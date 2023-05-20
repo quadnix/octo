@@ -10,6 +10,7 @@
     "cicd",
     "infrastructure"
   ],
+  "license": "MIT",
   "main": "index.js",
   "repository": {
     "type": "git",
