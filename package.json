@@ -1,0 +1,21 @@
+{
+  "description": "The open-source infrastructure management and CICD tool.",
+  "name": "@quadnix/octo",
+  "version": "0.0.1",
+  "bugs": {
+    "url": "https://github.com/quadnix/octo/issues"
+  },
+  "homepage": "https://github.com/quadnix/octo#readme",
+  "keywords": [
+    "cicd",
+    "infrastructure"
+  ],
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quadnix/octo.git"
+  },
+  "scripts": {
+    "test": "npm test"
+  }
+}
