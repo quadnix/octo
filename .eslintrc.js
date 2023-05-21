@@ -8,7 +8,7 @@ module.exports = {
     'plugin:jsonc/recommended-with-jsonc',
     'plugin:prettier/recommended',
   ],
-  ignorePatterns: ['package-lock.json'],
+  ignorePatterns: ['package-lock.json', 'dist'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     extraFileExtensions: ['.json'],
