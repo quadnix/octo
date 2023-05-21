@@ -27,15 +27,15 @@
   },
   "homepage": "https://github.com/quadnix/octo#readme",
   "jest": {
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": "./coverage",
     "moduleFileExtensions": [
       "js",
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "setupFilesAfterEnv": [
-      "../test/jest.setup.ts"
+      "./test/jest.setup.ts"
     ],
     "testEnvironment": "node",
     "testRegex": ".*\\.spec\\.ts$",

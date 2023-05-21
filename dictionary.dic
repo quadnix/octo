@@ -1,4 +1,5 @@
 Fallthrough
+aws
 brk
 cicd
 commonjs
@@ -8,7 +9,9 @@ eslintrc
 ispec
 jsonc
 octo
+promisify
 quadnix
 rimraf
 tsc
 tsconfig
+unlink
