@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { readFileSync } = require('fs');
+
 module.exports = {
   env: {
     jest: true,
@@ -16,7 +19,7 @@ module.exports = {
     sourceType: 'module',
     tsconfigRootDir: __dirname,
   },
-  plugins: ['@typescript-eslint/eslint-plugin'],
+  plugins: ['@typescript-eslint/eslint-plugin', 'spellcheck'],
   root: true,
   rules: {
     '@typescript-eslint/explicit-function-return-type': 'off',
@@ -32,6 +35,13 @@ module.exports = {
       'error',
       'asc',
       { caseSensitive: true, minKeys: 2, natural: false },
+    ],
+    'spellcheck/spell-checker': [
+      1,
+      {
+        minLength: 3,
+        skipWords: readFileSync('./dictionary.dic').toString().split('\n'),
+      },
     ],
   },
 };
