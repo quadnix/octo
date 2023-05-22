@@ -1,8 +1,8 @@
 import { readFile, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { App, Region, Server } from '../src';
-import { SYNTH_FILE_NAME } from '../src/models/app.model';
+import { App, Region, Server } from '../../src/v0';
+import { SYNTH_FILE_NAME } from '../../src/v0/models/app.model';
 
 const readFileAsync = promisify(readFile);
 const unlinkAsync = promisify(unlink);
