@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import { IApp } from './app.interface';
 import { Region } from './region.model';
 import { Server } from './server.model';
+import { Support } from './support.model';
 
 const writeFileAsync = promisify(writeFile);
 
@@ -16,6 +17,8 @@ export class App {
   private regions: Region[] = [];
 
   private servers: Server[] = [];
+
+  private supports: Support[] = [];
 
   private readonly version = SYNTH_VERSION;
 
@@ -41,6 +44,15 @@ export class App {
     this.servers.push(server);
   }
 
+  addSupport(support: Support): void {
+    // Check for duplicates.
+    if (this.supports.find((s) => s.serverKey === support.serverKey)) {
+      throw new Error('Support already exists!');
+    }
+
+    this.supports.push(support);
+  }
+
   async synth(filePath: string): Promise<void> {
     const output = this.synthReadOnly();
     await writeFileAsync(
@@ -54,6 +66,7 @@ export class App {
       name: this.name,
       regions: [],
       servers: [],
+      supports: [],
       version: this.version,
     };
 
@@ -66,6 +79,9 @@ export class App {
       r.environments?.forEach((e) => {
         region.environments.push({
           environmentName: e.environmentName,
+          environmentVariables: Object.fromEntries(
+            e.environmentVariables || new Map(),
+          ),
         });
       });
 
@@ -74,6 +90,12 @@ export class App {
 
     this.servers?.forEach((s) => {
       output.servers.push({
+        serverKey: s.serverKey,
+      });
+    });
+
+    this.supports?.forEach((s) => {
+      output.supports.push({
         serverKey: s.serverKey,
       });
     });

@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import { App, Region, Server } from '../../src/v0';
 import { SYNTH_FILE_NAME } from '../../src/v0/models/app.model';
 import { Environment } from '../../src/v0/models/environment.model';
+import { Support } from '../../src/v0/models/support.model';
 
 const readFileAsync = promisify(readFile);
 const unlinkAsync = promisify(unlink);
@@ -18,12 +19,13 @@ describe('App E2E Test', () => {
         "name": "test-app",
         "regions": [],
         "servers": [],
+        "supports": [],
         "version": "v0",
       }
     `);
   });
 
-  it('should synthesize a region and a server', () => {
+  it('should synthesize a region, server, and support', () => {
     const app = new App('test-app');
 
     const region = new Region('aws-us-east-1');
@@ -31,6 +33,9 @@ describe('App E2E Test', () => {
 
     const server = new Server('backend');
     app.addServer(server);
+
+    const support = new Support('nginx');
+    app.addSupport(support);
 
     const output = app.synthReadOnly();
     expect(output).toMatchInlineSnapshot(`
@@ -45,6 +50,11 @@ describe('App E2E Test', () => {
         "servers": [
           {
             "serverKey": "backend",
+          },
+        ],
+        "supports": [
+          {
+            "serverKey": "nginx",
           },
         ],
         "version": "v0",
@@ -70,12 +80,14 @@ describe('App E2E Test', () => {
             "environments": [
               {
                 "environmentName": "qa",
+                "environmentVariables": {},
               },
             ],
             "regionId": "aws-us-east-1",
           },
         ],
         "servers": [],
+        "supports": [],
         "version": "v0",
       }
     `);
@@ -103,6 +115,7 @@ describe('App E2E Test', () => {
                 "name": "test-app",
                 "regions": [],
                 "servers": [],
+                "supports": [],
                 "version": "v0",
               }
           `);
