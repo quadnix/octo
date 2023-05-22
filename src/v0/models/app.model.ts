@@ -8,11 +8,16 @@ import { Server } from './server.model';
 const writeFileAsync = promisify(writeFile);
 
 export const SYNTH_FILE_NAME = 'infrastructure.json';
+const SYNTH_VERSION = 'v0';
 
 export class App {
   private readonly name: string;
+
   private regions: Region[] = [];
+
   private servers: Server[] = [];
+
+  private readonly version = SYNTH_VERSION;
 
   constructor(name: string) {
     this.name = name;
@@ -49,6 +54,7 @@ export class App {
       name: this.name,
       regions: [],
       servers: [],
+      version: this.version,
     };
 
     this.regions?.forEach((r) => {

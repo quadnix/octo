@@ -18,6 +18,7 @@ describe('App E2E Test', () => {
         "name": "test-app",
         "regions": [],
         "servers": [],
+        "version": "v0",
       }
     `);
   });
@@ -46,6 +47,7 @@ describe('App E2E Test', () => {
             "serverKey": "backend",
           },
         ],
+        "version": "v0",
       }
     `);
   });
@@ -74,6 +76,7 @@ describe('App E2E Test', () => {
           },
         ],
         "servers": [],
+        "version": "v0",
       }
     `);
   });
@@ -100,6 +103,7 @@ describe('App E2E Test', () => {
                 "name": "test-app",
                 "regions": [],
                 "servers": [],
+                "version": "v0",
               }
           `);
     });

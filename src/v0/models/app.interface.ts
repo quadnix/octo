@@ -10,4 +10,5 @@ export interface IApp {
   servers: {
     serverKey: string;
   }[];
+  version: string;
 }
