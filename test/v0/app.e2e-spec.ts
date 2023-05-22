@@ -3,6 +3,7 @@ import { join } from 'path';
 import { promisify } from 'util';
 import { App, Region, Server } from '../../src/v0';
 import { SYNTH_FILE_NAME } from '../../src/v0/models/app.model';
+import { Environment } from '../../src/v0/models/environment.model';
 
 const readFileAsync = promisify(readFile);
 const unlinkAsync = promisify(unlink);
@@ -36,6 +37,7 @@ describe('App E2E Test', () => {
         "name": "test-app",
         "regions": [
           {
+            "environments": [],
             "regionId": "aws-us-east-1",
           },
         ],
@@ -44,6 +46,34 @@ describe('App E2E Test', () => {
             "serverKey": "backend",
           },
         ],
+      }
+    `);
+  });
+
+  it('should synthesize an environment', () => {
+    const app = new App('test-app');
+
+    const region = new Region('aws-us-east-1');
+    app.addRegion(region);
+
+    const environment = new Environment('qa');
+    region.addEnvironment(environment);
+
+    const output = app.synthReadOnly();
+    expect(output).toMatchInlineSnapshot(`
+      {
+        "name": "test-app",
+        "regions": [
+          {
+            "environments": [
+              {
+                "environmentName": "qa",
+              },
+            ],
+            "regionId": "aws-us-east-1",
+          },
+        ],
+        "servers": [],
       }
     `);
   });
@@ -66,12 +96,12 @@ describe('App E2E Test', () => {
       const contents = await readFileAsync(join(filePath, SYNTH_FILE_NAME));
       const output = JSON.parse(contents.toString());
       expect(output).toMatchInlineSnapshot(`
-      {
-        "name": "test-app",
-        "regions": [],
-        "servers": [],
-      }
-    `);
+              {
+                "name": "test-app",
+                "regions": [],
+                "servers": [],
+              }
+          `);
     });
   });
 });
