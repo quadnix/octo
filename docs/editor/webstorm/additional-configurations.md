@@ -1,0 +1,9 @@
+# Additional Configurations
+
+- Editor > Duplicates > JavaScript > Disable
+- Editor > Duplicates > TypeScript > Disable
+- Editor > Natural Languages > Grammar and Style > Scope > Check in > - Comments
+
+- Languages & Frameworks > JavaScript > Code Quality Tools > Disable all
+
+- Languages & Frameworks > Typescript > TSLint > Automatic TSLint configuration
