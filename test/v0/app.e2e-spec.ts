@@ -1,10 +1,7 @@
 import { readFile, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { App, Region, Server } from '../../src/v0';
-import { SYNTH_FILE_NAME } from '../../src/v0/models/app.model';
-import { Environment } from '../../src/v0/models/environment.model';
-import { Support } from '../../src/v0/models/support.model';
+import { App, Environment, Region, Server, Support } from '../../src/v0';
 
 const readFileAsync = promisify(readFile);
 const unlinkAsync = promisify(unlink);
@@ -98,7 +95,7 @@ describe('App E2E Test', () => {
 
     afterEach(async () => {
       if (filePath) {
-        await unlinkAsync(join(filePath, SYNTH_FILE_NAME));
+        await unlinkAsync(join(filePath, 'infrastructure.json'));
       }
     });
 
@@ -108,7 +105,9 @@ describe('App E2E Test', () => {
       const app = new App('test-app');
       await app.synth(filePath);
 
-      const contents = await readFileAsync(join(filePath, SYNTH_FILE_NAME));
+      const contents = await readFileAsync(
+        join(filePath, 'infrastructure.json'),
+      );
       const output = JSON.parse(contents.toString());
       expect(output).toMatchInlineSnapshot(`
               {

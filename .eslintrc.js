@@ -31,6 +31,10 @@ module.exports = {
       {
         zones: [
           {
+            from: ['./src/*/*/**'],
+            target: './test',
+          },
+          {
             from: ['./src/v1', './src/v2'],
             target: './src/v0',
           },

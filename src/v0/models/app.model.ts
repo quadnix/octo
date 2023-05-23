@@ -8,7 +8,7 @@ import { Support } from './support.model';
 
 const writeFileAsync = promisify(writeFile);
 
-export const SYNTH_FILE_NAME = 'infrastructure.json';
+const SYNTH_FILE_NAME = 'infrastructure.json';
 const SYNTH_VERSION = 'v0';
 
 export class App {
