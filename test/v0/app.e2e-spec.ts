@@ -1,7 +1,7 @@
 import { readFile, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { App, Environment, Region, Server, Support } from '../../src/v0';
+import { App, AwsRegion, Environment, Server, Support } from '../../src/v0';
 
 const readFileAsync = promisify(readFile);
 const unlinkAsync = promisify(unlink);
@@ -25,7 +25,7 @@ describe('App E2E Test', () => {
   it('should synthesize a region, server, and support', () => {
     const app = new App('test-app');
 
-    const region = new Region('aws-us-east-1');
+    const region = new AwsRegion('aws-us-east-1');
     app.addRegion(region);
 
     const server = new Server('backend');
@@ -62,7 +62,7 @@ describe('App E2E Test', () => {
   it('should synthesize an environment', () => {
     const app = new App('test-app');
 
-    const region = new Region('aws-us-east-1');
+    const region = new AwsRegion('aws-us-east-1');
     app.addRegion(region);
 
     const environment = new Environment('qa');

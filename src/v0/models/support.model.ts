@@ -1,5 +1,5 @@
 export class Support {
-  serverKey: string;
+  readonly serverKey: string;
 
   constructor(serverKey: string) {
     this.serverKey = serverKey;

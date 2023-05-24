@@ -12,15 +12,15 @@ const SYNTH_FILE_NAME = 'infrastructure.json';
 const SYNTH_VERSION = 'v0';
 
 export class App {
-  private readonly name: string;
+  readonly name: string;
 
-  private regions: Region[] = [];
+  readonly regions: Region[] = [];
 
-  private servers: Server[] = [];
+  readonly servers: Server[] = [];
 
-  private supports: Support[] = [];
+  readonly supports: Support[] = [];
 
-  private readonly version = SYNTH_VERSION;
+  readonly version = SYNTH_VERSION;
 
   constructor(name: string) {
     this.name = name;

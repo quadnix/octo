@@ -1,13 +1,14 @@
+import { IAwsRegionId } from './aws/region.model';
 import { Environment } from './environment.model';
 
-export type IRegionId = 'aws-us-east-1' | 'aws-ap-south-1';
+export type IRegionId = IAwsRegionId;
 
 export class Region {
-  environments: Environment[] = [];
+  readonly environments: Environment[] = [];
 
-  regionId: IRegionId;
+  readonly regionId: IRegionId;
 
-  constructor(regionId: IRegionId) {
+  protected constructor(regionId: IRegionId) {
     this.regionId = regionId;
   }
 
