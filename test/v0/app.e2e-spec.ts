@@ -1,7 +1,14 @@
 import { readFile, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { App, AwsRegion, Environment, Server, Support } from '../../src/v0';
+import {
+  App,
+  AwsRegion,
+  Environment,
+  Server,
+  Support,
+  SynthService,
+} from '../../src/v0';
 
 const readFileAsync = promisify(readFile);
 const unlinkAsync = promisify(unlink);
@@ -10,7 +17,7 @@ describe('App E2E Test', () => {
   it('should synthesize an empty app', () => {
     const app = new App('test-app');
 
-    const output = app.synthReadOnly();
+    const output = new SynthService(app).synthReadOnly();
     expect(output).toMatchInlineSnapshot(`
       {
         "name": "test-app",
@@ -34,7 +41,7 @@ describe('App E2E Test', () => {
     const support = new Support('nginx');
     app.addSupport(support);
 
-    const output = app.synthReadOnly();
+    const output = new SynthService(app).synthReadOnly();
     expect(output).toMatchInlineSnapshot(`
       {
         "name": "test-app",
@@ -68,7 +75,7 @@ describe('App E2E Test', () => {
     const environment = new Environment('qa');
     region.addEnvironment(environment);
 
-    const output = app.synthReadOnly();
+    const output = new SynthService(app).synthReadOnly();
     expect(output).toMatchInlineSnapshot(`
       {
         "name": "test-app",
@@ -103,7 +110,8 @@ describe('App E2E Test', () => {
       filePath = __dirname;
 
       const app = new App('test-app');
-      await app.synth(filePath);
+
+      await new SynthService(app).synth(filePath);
 
       const contents = await readFileAsync(
         join(filePath, 'infrastructure.json'),

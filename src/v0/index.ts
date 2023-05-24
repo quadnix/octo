@@ -5,3 +5,5 @@ export { Environment } from './models/environment.model';
 export { Region } from './models/region.model';
 export { Server } from './models/server.model';
 export { Support } from './models/support.model';
+
+export { SynthService } from './services/synth.service';
