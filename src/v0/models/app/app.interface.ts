@@ -1,11 +1,11 @@
-import { Environment } from './environment.model';
-import { IRegionId } from './region.model';
+import { Environment } from '../environment/environment.model';
+import { RegionId } from '../region/region.model';
 
 export interface IApp {
   name: string;
   regions: {
     environments: Environment[];
-    regionId: IRegionId;
+    regionId: RegionId;
   }[];
   servers: {
     serverKey: string;

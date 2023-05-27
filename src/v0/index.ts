@@ -1,9 +1,12 @@
-export { AwsRegion } from './models/aws/region.model';
+export { App } from './models/app/app.model';
 
-export { App } from './models/app.model';
-export { Environment } from './models/environment.model';
-export { Region } from './models/region.model';
-export { Server } from './models/server.model';
-export { Support } from './models/support.model';
+export { Environment } from './models/environment/environment.model';
 
-export { SynthService } from './services/synth.service';
+export { AwsRegion } from './models/region/aws/region.model';
+export { Region } from './models/region/region.model';
+
+export { Server } from './models/server/server.model';
+
+export { Support } from './models/support/support.model';
+
+export { SynthService } from './services/synth/synth.service';

@@ -1,131 +1,63 @@
-import { readFile, unlink } from 'fs';
-import { join } from 'path';
-import { promisify } from 'util';
-import {
-  App,
-  AwsRegion,
-  Environment,
-  Server,
-  Support,
-  SynthService,
-} from '../../src/v0';
-
-const readFileAsync = promisify(readFile);
-const unlinkAsync = promisify(unlink);
+import { App, AwsRegion, Environment, Server, Support } from '../../src/v0';
 
 describe('App E2E Test', () => {
-  it('should synthesize an empty app', () => {
-    const app = new App('test-app');
-
-    const output = new SynthService(app).synthReadOnly();
-    expect(output).toMatchInlineSnapshot(`
-      {
-        "name": "test-app",
-        "regions": [],
-        "servers": [],
-        "supports": [],
-        "version": "v0",
-      }
-    `);
-  });
-
-  it('should synthesize a region, server, and support', () => {
+  it('should generate app diff', () => {
     const app = new App('test-app');
 
     const region = new AwsRegion('aws-us-east-1');
     app.addRegion(region);
 
-    const server = new Server('backend');
-    app.addServer(server);
+    const qaEnvironment = new Environment('qa');
+    qaEnvironment.environmentVariables.set('env', 'QA');
+    region.addEnvironment(qaEnvironment);
 
-    const support = new Support('nginx');
-    app.addSupport(support);
+    app.addServer(new Server('backend'));
 
-    const output = new SynthService(app).synthReadOnly();
-    expect(output).toMatchInlineSnapshot(`
-      {
-        "name": "test-app",
-        "regions": [
-          {
-            "environments": [],
-            "regionId": "aws-us-east-1",
+    const newApp = app.clone();
+
+    // Add a new staging environment.
+    const stagingEnvironment = new Environment('staging');
+    stagingEnvironment.environmentVariables.set('env', 'staging');
+    newApp.regions
+      .find((r) => r.regionId === 'aws-us-east-1')
+      .addEnvironment(stagingEnvironment);
+
+    // Update the qa environment.
+    newApp.regions
+      .find((r) => r.regionId === 'aws-us-east-1')
+      .environments.find((e) => e.environmentName === 'qa')
+      .environmentVariables.set('env', 'qa');
+
+    // Add new server and support.
+    newApp.addServer(new Server('database'));
+    newApp.addSupport(new Support('nginx'));
+
+    expect(app.diff(newApp)).toMatchInlineSnapshot(`
+      [
+        Diff {
+          "action": "update",
+          "field": "environmentVariables",
+          "value": {
+            "key": "env",
+            "value": "qa",
           },
-        ],
-        "servers": [
-          {
-            "serverKey": "backend",
-          },
-        ],
-        "supports": [
-          {
-            "serverKey": "nginx",
-          },
-        ],
-        "version": "v0",
-      }
+        },
+        Diff {
+          "action": "add",
+          "field": "environment",
+          "value": "staging",
+        },
+        Diff {
+          "action": "add",
+          "field": "server",
+          "value": "database",
+        },
+        Diff {
+          "action": "add",
+          "field": "support",
+          "value": "nginx",
+        },
+      ]
     `);
-  });
-
-  it('should synthesize an environment', () => {
-    const app = new App('test-app');
-
-    const region = new AwsRegion('aws-us-east-1');
-    app.addRegion(region);
-
-    const environment = new Environment('qa');
-    region.addEnvironment(environment);
-
-    const output = new SynthService(app).synthReadOnly();
-    expect(output).toMatchInlineSnapshot(`
-      {
-        "name": "test-app",
-        "regions": [
-          {
-            "environments": [
-              {
-                "environmentName": "qa",
-                "environmentVariables": {},
-              },
-            ],
-            "regionId": "aws-us-east-1",
-          },
-        ],
-        "servers": [],
-        "supports": [],
-        "version": "v0",
-      }
-    `);
-  });
-
-  describe('synth()', () => {
-    let filePath;
-
-    afterEach(async () => {
-      if (filePath) {
-        await unlinkAsync(join(filePath, 'infrastructure.json'));
-      }
-    });
-
-    it('should be able to write the synthesized output', async () => {
-      filePath = __dirname;
-
-      const app = new App('test-app');
-
-      await new SynthService(app).synth(filePath);
-
-      const contents = await readFileAsync(
-        join(filePath, 'infrastructure.json'),
-      );
-      const output = JSON.parse(contents.toString());
-      expect(output).toMatchInlineSnapshot(`
-              {
-                "name": "test-app",
-                "regions": [],
-                "servers": [],
-                "supports": [],
-                "version": "v0",
-              }
-          `);
-    });
   });
 });

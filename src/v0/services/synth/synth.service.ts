@@ -1,8 +1,8 @@
 import { writeFile } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { IApp } from '../models/app.interface';
-import { App } from '../models/app.model';
+import { IApp } from '../../models/app/app.interface';
+import { App } from '../../models/app/app.model';
 
 const writeFileAsync = promisify(writeFile);
 
