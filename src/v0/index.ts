@@ -1,5 +1,7 @@
 export { App } from './models/app/app.model';
 
+export { Deployment } from './models/deployment/deployment.model';
+
 export { Environment } from './models/environment/environment.model';
 
 export { AwsRegion } from './models/region/aws/region.model';
