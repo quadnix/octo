@@ -33,7 +33,7 @@ export class SynthService {
     };
 
     this.app.regions.forEach((r) => {
-      const region = {
+      const region: IApp['regions'][0] = {
         environments: [],
         regionId: r.regionId,
       };
@@ -49,15 +49,33 @@ export class SynthService {
     });
 
     this.app.servers.forEach((s) => {
-      output.servers.push({
+      const server: IApp['servers'][0] = {
+        deployments: [],
         serverKey: s.serverKey,
+      };
+
+      s.deployments.forEach((d) => {
+        server.deployments.push({
+          deploymentTag: d.deploymentTag,
+        });
       });
+
+      output.servers.push(server);
     });
 
     this.app.supports.forEach((s) => {
-      output.supports.push({
+      const support: IApp['supports'][0] = {
+        deployments: [],
         serverKey: s.serverKey,
+      };
+
+      s.deployments.forEach((d) => {
+        support.deployments.push({
+          deploymentTag: d.deploymentTag,
+        });
       });
+
+      output.supports.push(support);
     });
 
     return output;

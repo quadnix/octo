@@ -37,47 +37,31 @@ export class Region implements IModel<Region> {
     return region;
   }
 
-  diff(latest: Region): Diff[] {
+  diff(previous?: Region): Diff[] {
     const diff: Diff[] = [];
 
-    for (const environment of this.environments) {
-      const environmentInLatest = latest.environments.find((e) => e.environmentName === environment.environmentName);
-      if (!environmentInLatest) {
-        diff.push(new Diff(DiffAction.DELETE, this.getContext(), 'environment', environment.environmentName));
-      } else {
-        const environmentDiff = environment.diff(environmentInLatest);
+    for (const previousEnvironment of previous?.environments || []) {
+      const environment = this.environments.find((e) => e.environmentName === previousEnvironment.environmentName);
+      if (environment) {
+        const environmentDiff = environment.diff(previousEnvironment);
         if (environmentDiff.length !== 0) {
           diff.push(...environmentDiff);
         }
+      } else {
+        diff.push(
+          new Diff(DiffAction.DELETE, previous!.getContext(), 'environment', previousEnvironment.environmentName),
+        );
       }
     }
 
-    for (const environment of latest.environments) {
-      if (!this.environments.find((e) => e.environmentName === environment.environmentName)) {
+    for (const environment of this.environments) {
+      if (!previous?.environments.find((e) => e.environmentName === environment.environmentName)) {
         diff.push(new Diff(DiffAction.ADD, this.getContext(), 'environment', environment.environmentName));
 
-        const environmentDiff = environment.diffAdd();
+        const environmentDiff = environment.diff();
         if (environmentDiff.length !== 0) {
           diff.push(...environmentDiff);
         }
-      }
-    }
-
-    return diff;
-  }
-
-  /**
-   * Generate a diff adding all children of self.
-   */
-  diffAdd(): Diff[] {
-    const diff: Diff[] = [];
-
-    for (const environment of this.environments) {
-      diff.push(new Diff(DiffAction.ADD, this.getContext(), 'environment', environment.environmentName));
-
-      const environmentDiff = environment.diffAdd();
-      if (environmentDiff.length !== 0) {
-        diff.push(...environmentDiff);
       }
     }
 

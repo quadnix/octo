@@ -1,24 +1,24 @@
-import { App, AwsRegion, Deployment, Environment, Server, Support } from '../../src/v0';
+import { App, AwsRegion, Deployment, Environment, Region, Server, Support } from '../../src/v0';
 
 describe('App E2E Test', () => {
   it('should generate app diff', () => {
-    const app = new App('test-app');
+    const oldApp = new App('test-app');
 
-    const region = new AwsRegion(app, 'aws-us-east-1');
-    app.addRegion(region);
+    const oldRegion = new AwsRegion(oldApp, 'aws-us-east-1');
+    oldApp.addRegion(oldRegion);
 
-    const qaEnvironment = new Environment(region, 'qa');
+    const qaEnvironment = new Environment(oldRegion, 'qa');
     qaEnvironment.environmentVariables.set('env', 'QA');
-    region.addEnvironment(qaEnvironment);
+    oldRegion.addEnvironment(qaEnvironment);
 
-    app.addServer(new Server(app, 'backend'));
+    oldApp.addServer(new Server(oldApp, 'backend'));
 
-    const newApp = app.clone();
-    const newAppRegion = newApp.regions.find((r) => r.regionId === 'aws-us-east-1');
-    const newAppBackendServer = newApp.servers.find((s) => s.serverKey === 'backend');
+    const newApp = oldApp.clone();
+    const newAppRegion: Region = newApp.regions.find((r) => r.regionId === 'aws-us-east-1') as Region;
+    const backendServer: Server = newApp.servers.find((s) => s.serverKey === 'backend') as Server;
 
     // Add a deployment to backend server.
-    newAppBackendServer.addDeployment(new Deployment(newAppBackendServer, 'v0.0.1'));
+    backendServer.addDeployment(new Deployment(backendServer, 'v0.0.1'));
 
     // Add a new staging environment.
     const stagingEnvironment = new Environment(newAppRegion, 'staging');
@@ -26,19 +26,19 @@ describe('App E2E Test', () => {
     newAppRegion.addEnvironment(stagingEnvironment);
 
     // Update the qa environment.
-    newAppRegion.environments.find((e) => e.environmentName === 'qa').environmentVariables.set('env', 'qa');
+    newAppRegion.environments.find((e) => e.environmentName === 'qa')!.environmentVariables.set('env', 'qa');
 
     // Add new server.
-    const newAppDatabaseServer = new Server(newApp, 'database');
-    newAppDatabaseServer.addDeployment(new Deployment(newAppDatabaseServer, 'v0.0.1'));
-    newApp.addServer(newAppDatabaseServer);
+    const databaseServer = new Server(newApp, 'database');
+    databaseServer.addDeployment(new Deployment(databaseServer, 'v0.0.1'));
+    newApp.addServer(databaseServer);
 
     // Add new support.
-    const newAppNginxSupport = new Support(newApp, 'nginx');
-    newAppNginxSupport.addDeployment(new Deployment(newAppNginxSupport, 'v1'));
-    newApp.addSupport(newAppNginxSupport);
+    const nginxSupport = new Support(newApp, 'nginx');
+    nginxSupport.addDeployment(new Deployment(nginxSupport, 'v1'));
+    newApp.addSupport(nginxSupport);
 
-    expect(app.diff(newApp)).toMatchInlineSnapshot(`
+    expect(newApp.diff(oldApp)).toMatchInlineSnapshot(`
       [
         Diff {
           "action": "update",

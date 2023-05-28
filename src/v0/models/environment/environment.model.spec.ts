@@ -17,37 +17,16 @@ describe('Environment UT', () => {
   });
 
   describe('diff()', () => {
-    it('should capture deletion of environmentVariables', () => {
-      const region = new AwsRegion(new App('test'), 'aws-us-east-1');
-      const oldEnvironment = new Environment(region, 'qa');
-      oldEnvironment.environmentVariables.set('key', 'value');
-      const newEnvironment = new Environment(region, 'qa');
-
-      const diff = oldEnvironment.diff(newEnvironment);
-
-      expect(diff).toMatchInlineSnapshot(`
-        [
-          Diff {
-            "action": "delete",
-            "context": "environment=qa,region=aws-us-east-1,app=test",
-            "field": "environmentVariables",
-            "value": {
-              "key": "key",
-              "value": "value",
-            },
-          },
-        ]
-      `);
-    });
-
     it('should capture update of environmentVariables', () => {
       const region = new AwsRegion(new App('test'), 'aws-us-east-1');
+
       const oldEnvironment = new Environment(region, 'qa');
       oldEnvironment.environmentVariables.set('key', 'value 1');
+
       const newEnvironment = new Environment(region, 'qa');
       newEnvironment.environmentVariables.set('key', 'value 2');
 
-      const diff = oldEnvironment.diff(newEnvironment);
+      const diff = newEnvironment.diff(oldEnvironment);
 
       expect(diff).toMatchInlineSnapshot(`
         [
@@ -64,13 +43,63 @@ describe('Environment UT', () => {
       `);
     });
 
+    it('should capture deletion of environmentVariables', () => {
+      const region = new AwsRegion(new App('test'), 'aws-us-east-1');
+
+      const oldEnvironment = new Environment(region, 'qa');
+      oldEnvironment.environmentVariables.set('key', 'value');
+
+      const newEnvironment = new Environment(region, 'qa');
+
+      const diff = newEnvironment.diff(oldEnvironment);
+
+      expect(diff).toMatchInlineSnapshot(`
+        [
+          Diff {
+            "action": "delete",
+            "context": "environment=qa,region=aws-us-east-1,app=test",
+            "field": "environmentVariables",
+            "value": {
+              "key": "key",
+              "value": "value",
+            },
+          },
+        ]
+      `);
+    });
+
     it('should capture addition of environmentVariables', () => {
       const region = new AwsRegion(new App('test'), 'aws-us-east-1');
+
       const oldEnvironment = new Environment(region, 'qa');
+
       const newEnvironment = new Environment(region, 'qa');
       newEnvironment.environmentVariables.set('key', 'value');
 
-      const diff = oldEnvironment.diff(newEnvironment);
+      const diff = newEnvironment.diff(oldEnvironment);
+
+      expect(diff).toMatchInlineSnapshot(`
+        [
+          Diff {
+            "action": "add",
+            "context": "environment=qa,region=aws-us-east-1,app=test",
+            "field": "environmentVariables",
+            "value": {
+              "key": "key",
+              "value": "value",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should capture replace of environmentVariables without previous', () => {
+      const region = new AwsRegion(new App('test'), 'aws-us-east-1');
+
+      const newEnvironment = new Environment(region, 'qa');
+      newEnvironment.environmentVariables.set('key', 'value');
+
+      const diff = newEnvironment.diff();
 
       expect(diff).toMatchInlineSnapshot(`
         [
@@ -89,12 +118,14 @@ describe('Environment UT', () => {
 
     it('should capture replace of environmentVariables', () => {
       const region = new AwsRegion(new App('test'), 'aws-us-east-1');
+
       const oldEnvironment = new Environment(region, 'qa');
       oldEnvironment.environmentVariables.set('key1', 'value 1');
+
       const newEnvironment = new Environment(region, 'qa');
       newEnvironment.environmentVariables.set('key2', 'value 2');
 
-      const diff = oldEnvironment.diff(newEnvironment);
+      const diff = newEnvironment.diff(oldEnvironment);
 
       expect(diff).toMatchInlineSnapshot(`
         [

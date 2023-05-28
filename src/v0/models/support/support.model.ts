@@ -34,47 +34,29 @@ export class Support implements IModel<Support> {
     return support;
   }
 
-  diff(latest: Support): Diff[] {
+  diff(previous?: Support): Diff[] {
     const diff: Diff[] = [];
 
-    for (const deployment of this.deployments) {
-      const deploymentInLatest = latest.deployments.find((d) => d.deploymentTag === deployment.deploymentTag);
-      if (!deploymentInLatest) {
-        diff.push(new Diff(DiffAction.DELETE, this.getContext(), 'deployment', deployment.deploymentTag));
-      } else {
-        const deploymentDiff = deployment.diff(deploymentInLatest);
+    for (const previousDeployment of previous?.deployments || []) {
+      const deployment = this.deployments.find((d) => d.deploymentTag === previousDeployment.deploymentTag);
+      if (deployment) {
+        const deploymentDiff = deployment.diff(previousDeployment);
         if (deploymentDiff.length !== 0) {
           diff.push(...deploymentDiff);
         }
+      } else {
+        diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'deployment', previousDeployment.deploymentTag));
       }
     }
 
-    for (const deployment of latest.deployments) {
-      if (!this.deployments.find((d) => d.deploymentTag === deployment.deploymentTag)) {
+    for (const deployment of this.deployments) {
+      if (!previous?.deployments.find((d) => d.deploymentTag === deployment.deploymentTag)) {
         diff.push(new Diff(DiffAction.ADD, this.getContext(), 'deployment', deployment.deploymentTag));
 
-        const deploymentDiff = deployment.diffAdd();
+        const deploymentDiff = deployment.diff();
         if (deploymentDiff.length !== 0) {
           diff.push(...deploymentDiff);
         }
-      }
-    }
-
-    return diff;
-  }
-
-  /**
-   * Generate a diff adding all children of self.
-   */
-  diffAdd(): Diff[] {
-    const diff: Diff[] = [];
-
-    for (const deployment of this.deployments) {
-      diff.push(new Diff(DiffAction.ADD, this.getContext(), 'deployment', deployment.deploymentTag));
-
-      const deploymentDiff = deployment.diffAdd();
-      if (deploymentDiff.length !== 0) {
-        diff.push(...deploymentDiff);
       }
     }
 

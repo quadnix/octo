@@ -62,72 +62,72 @@ export class App implements IModel<App> {
     return app;
   }
 
-  diff(latest: App): Diff[] {
+  diff(previous?: App): Diff[] {
     const diff: Diff[] = [];
 
-    for (const region of this.regions) {
-      const regionInLatest = latest.regions.find((r) => r.regionId === region.regionId);
-      if (!regionInLatest) {
-        diff.push(new Diff(DiffAction.DELETE, this.getContext(), 'region', region.regionId));
+    for (const previousRegion of previous?.regions || []) {
+      const region = this.regions.find((r) => r.regionId === previousRegion.regionId);
+      if (region) {
+        const regionDiff = region.diff(previousRegion);
+        if (regionDiff.length !== 0) {
+          diff.push(...regionDiff);
+        }
       } else {
-        const regionDiff = region.diff(regionInLatest);
+        diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'region', previousRegion.regionId));
+      }
+    }
+
+    for (const region of this.regions) {
+      if (!previous?.regions.find((r) => r.regionId === region.regionId)) {
+        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'region', region.regionId));
+
+        const regionDiff = region.diff();
         if (regionDiff.length !== 0) {
           diff.push(...regionDiff);
         }
       }
     }
 
-    for (const region of latest.regions) {
-      if (!this.regions.find((r) => r.regionId === region.regionId)) {
-        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'region', region.regionId));
-
-        const regionDiff = region.diffAdd();
-        if (regionDiff.length !== 0) {
-          diff.push(...regionDiff);
+    for (const previousServer of previous?.servers || []) {
+      const server = this.servers.find((s) => s.serverKey === previousServer.serverKey);
+      if (server) {
+        const serverDiff = server.diff(previousServer);
+        if (serverDiff.length !== 0) {
+          diff.push(...serverDiff);
         }
+      } else {
+        diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'server', previousServer.serverKey));
       }
     }
 
     for (const server of this.servers) {
-      const serverInLatest = latest.servers.find((s) => s.serverKey === server.serverKey);
-      if (!serverInLatest) {
-        diff.push(new Diff(DiffAction.DELETE, this.getContext(), 'server', server.serverKey));
-      } else {
-        const serverDiff = server.diff(serverInLatest);
+      if (!previous?.servers.find((s) => s.serverKey === server.serverKey)) {
+        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'server', server.serverKey));
+
+        const serverDiff = server.diff();
         if (serverDiff.length !== 0) {
           diff.push(...serverDiff);
         }
       }
     }
 
-    for (const server of latest.servers) {
-      if (!this.servers.find((s) => s.serverKey === server.serverKey)) {
-        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'server', server.serverKey));
-
-        const serverDiff = server.diffAdd();
-        if (serverDiff.length !== 0) {
-          diff.push(...serverDiff);
+    for (const previousSupport of previous?.supports || []) {
+      const support = this.supports.find((s) => s.serverKey === previousSupport.serverKey);
+      if (support) {
+        const supportDiff = support.diff(previousSupport);
+        if (supportDiff.length !== 0) {
+          diff.push(...supportDiff);
         }
+      } else {
+        diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'support', previousSupport.serverKey));
       }
     }
 
     for (const support of this.supports) {
-      const supportInLatest = latest.supports.find((s) => s.serverKey === support.serverKey);
-      if (!supportInLatest) {
-        diff.push(new Diff(DiffAction.DELETE, this.getContext(), 'support', support.serverKey));
-      } else {
-        const supportDiff = support.diff(supportInLatest);
-        if (supportDiff.length !== 0) {
-          diff.push(...supportDiff);
-        }
-      }
-    }
-
-    for (const support of latest.supports) {
-      if (!this.supports.find((s) => s.serverKey === support.serverKey)) {
+      if (!previous?.supports.find((s) => s.serverKey === support.serverKey)) {
         diff.push(new Diff(DiffAction.ADD, this.getContext(), 'support', support.serverKey));
 
-        const supportDiff = support.diffAdd();
+        const supportDiff = support.diff();
         if (supportDiff.length !== 0) {
           diff.push(...supportDiff);
         }

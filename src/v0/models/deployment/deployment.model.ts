@@ -17,14 +17,7 @@ export class Deployment implements IModel<Deployment> {
     return new Deployment(this.context, this.deploymentTag);
   }
 
-  diff(latest: Deployment): Diff[] {
-    return [];
-  }
-
-  /**
-   * Generate a diff adding all children of self.
-   */
-  diffAdd(): Diff[] {
+  diff(previous?: Deployment): Diff[] {
     return [];
   }
 

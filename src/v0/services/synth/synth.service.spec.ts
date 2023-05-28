@@ -59,11 +59,13 @@ describe('Synth Service UT', () => {
         ],
         "servers": [
           {
+            "deployments": [],
             "serverKey": "backend",
           },
         ],
         "supports": [
           {
+            "deployments": [],
             "serverKey": "nginx",
           },
         ],

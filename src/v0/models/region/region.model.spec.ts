@@ -28,34 +28,16 @@ describe('Region UT', () => {
   });
 
   describe('diff()', () => {
-    it('should capture deletion of an environment', () => {
-      const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
-      oldRegion.addEnvironment(new Environment(oldRegion, 'qa'));
-      const newRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
-
-      const diff = oldRegion.diff(newRegion);
-
-      expect(diff).toMatchInlineSnapshot(`
-        [
-          Diff {
-            "action": "delete",
-            "context": "region=aws-us-east-1,app=test",
-            "field": "environment",
-            "value": "qa",
-          },
-        ]
-      `);
-    });
-
     it('should capture update of an environment', () => {
       const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
       oldRegion.addEnvironment(new Environment(oldRegion, 'qa'));
+
       const newRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
       const newEnvironment = new Environment(newRegion, 'qa');
       newEnvironment.environmentVariables.set('key', 'value');
       newRegion.addEnvironment(newEnvironment);
 
-      const diff = oldRegion.diff(newRegion);
+      const diff = newRegion.diff(oldRegion);
 
       expect(diff).toMatchInlineSnapshot(`
         [
@@ -72,6 +54,26 @@ describe('Region UT', () => {
       `);
     });
 
+    it('should capture deletion of an environment', () => {
+      const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+      oldRegion.addEnvironment(new Environment(oldRegion, 'qa'));
+
+      const newRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+
+      const diff = newRegion.diff(oldRegion);
+
+      expect(diff).toMatchInlineSnapshot(`
+        [
+          Diff {
+            "action": "delete",
+            "context": "region=aws-us-east-1,app=test",
+            "field": "environment",
+            "value": "qa",
+          },
+        ]
+      `);
+    });
+
     it('should capture addition of an environment', () => {
       const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
 
@@ -81,7 +83,46 @@ describe('Region UT', () => {
       newEnvironment.environmentVariables.set('key2', 'value 2');
       newRegion.addEnvironment(newEnvironment);
 
-      const diff = oldRegion.diff(newRegion);
+      const diff = newRegion.diff(oldRegion);
+
+      expect(diff).toMatchInlineSnapshot(`
+        [
+          Diff {
+            "action": "add",
+            "context": "region=aws-us-east-1,app=test",
+            "field": "environment",
+            "value": "qa",
+          },
+          Diff {
+            "action": "add",
+            "context": "environment=qa,region=aws-us-east-1,app=test",
+            "field": "environmentVariables",
+            "value": {
+              "key": "key1",
+              "value": "value 1",
+            },
+          },
+          Diff {
+            "action": "add",
+            "context": "environment=qa,region=aws-us-east-1,app=test",
+            "field": "environmentVariables",
+            "value": {
+              "key": "key2",
+              "value": "value 2",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should capture addition of an environment without previous', () => {
+      const newRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+      const newEnvironment = new Environment(newRegion, 'qa');
+      newEnvironment.environmentVariables.set('key1', 'value 1');
+      newEnvironment.environmentVariables.set('key2', 'value 2');
+      newRegion.addEnvironment(newEnvironment);
+
+      const diff = newRegion.diff();
 
       expect(diff).toMatchInlineSnapshot(`
         [
@@ -116,10 +157,11 @@ describe('Region UT', () => {
     it('should capture replace of an environment', () => {
       const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
       oldRegion.addEnvironment(new Environment(oldRegion, 'qa'));
+
       const newRegion = new AwsRegion(new App('test'), 'aws-ap-south-1');
       newRegion.addEnvironment(new Environment(newRegion, 'staging'));
 
-      const diff = oldRegion.diff(newRegion);
+      const diff = newRegion.diff(oldRegion);
 
       expect(diff).toMatchInlineSnapshot(`
         [
@@ -131,7 +173,7 @@ describe('Region UT', () => {
           },
           Diff {
             "action": "add",
-            "context": "region=aws-us-east-1,app=test",
+            "context": "region=aws-ap-south-1,app=test",
             "field": "environment",
             "value": "staging",
           },

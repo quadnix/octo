@@ -7,9 +7,10 @@ export interface IModel<T> {
   clone(): T;
 
   /**
-   * Generate a diff comparing all children of self with latest instance.
+   * Generate a diff comparing all children of self with previous instance.
+   * If previous does not exist, diff adds all children of self.
    */
-  diff(latest: T): Diff[];
+  diff(previous?: T): Diff[];
 
   /**
    * Get a string representation of context.

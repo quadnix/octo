@@ -24,49 +24,28 @@ export class Environment implements IModel<Environment> {
     return environment;
   }
 
-  diff(latest: Environment): Diff[] {
+  diff(previous?: Environment): Diff[] {
     const diff: Diff[] = [];
 
-    for (const [key, value] of this.environmentVariables) {
-      if (!latest.environmentVariables.has(key)) {
-        diff.push(new Diff(DiffAction.DELETE, this.getContext(), 'environmentVariables', { key, value }));
-      } else if (latest.environmentVariables.get(key) !== value) {
-        diff.push(
-          new Diff(DiffAction.UPDATE, this.getContext(), 'environmentVariables', {
-            key,
-            value: latest.environmentVariables.get(key),
-          }),
-        );
+    for (const [key, value] of previous?.environmentVariables || new Map()) {
+      if (this.environmentVariables.has(key)) {
+        if (this.environmentVariables.get(key) !== value) {
+          diff.push(
+            new Diff(DiffAction.UPDATE, this.getContext(), 'environmentVariables', {
+              key,
+              value: this.environmentVariables.get(key),
+            }),
+          );
+        }
+      } else {
+        diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'environmentVariables', { key, value }));
       }
     }
 
-    for (const [key, value] of latest.environmentVariables) {
-      if (!this.environmentVariables.has(key)) {
-        diff.push(
-          new Diff(DiffAction.ADD, this.getContext(), 'environmentVariables', {
-            key,
-            value,
-          }),
-        );
-      }
-    }
-
-    return diff;
-  }
-
-  /**
-   * Generate a diff adding all children of self.
-   */
-  diffAdd(): Diff[] {
-    const diff: Diff[] = [];
-
     for (const [key, value] of this.environmentVariables) {
-      diff.push(
-        new Diff(DiffAction.ADD, this.getContext(), 'environmentVariables', {
-          key,
-          value,
-        }),
-      );
+      if (!previous?.environmentVariables.has(key)) {
+        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'environmentVariables', { key, value }));
+      }
     }
 
     return diff;
