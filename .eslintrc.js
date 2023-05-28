@@ -12,6 +12,14 @@ module.exports = {
     'plugin:prettier/recommended',
   ],
   ignorePatterns: ['package-lock.json', 'dist'],
+  overrides: [
+    {
+      files: ['*.ts'],
+      rules: {
+        '@typescript-eslint/no-non-null-assertion': 'off',
+      },
+    },
+  ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     extraFileExtensions: ['.json'],
