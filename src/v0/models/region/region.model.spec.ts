@@ -1,3 +1,4 @@
+import { App } from '../app/app.model';
 import { Environment } from '../environment/environment.model';
 import { AwsRegion } from './aws/region.model';
 
@@ -5,9 +6,9 @@ describe('Region UT', () => {
   describe('addEnvironment()', () => {
     it('should throw error if duplicate environments exist', () => {
       const t = (): void => {
-        const region = new AwsRegion('aws-us-east-1');
-        region.addEnvironment(new Environment('qa'));
-        region.addEnvironment(new Environment('qa'));
+        const region = new AwsRegion(new App('test'), 'aws-us-east-1');
+        region.addEnvironment(new Environment(region, 'qa'));
+        region.addEnvironment(new Environment(region, 'qa'));
       };
       expect(t).toThrow('Environment already exists!');
     });
@@ -15,25 +16,22 @@ describe('Region UT', () => {
 
   describe('clone()', () => {
     it('should clone all fields', () => {
-      const environment = new Environment('qa');
-      const region = new AwsRegion('aws-us-east-1');
-      region.addEnvironment(environment);
+      const region = new AwsRegion(new App('test'), 'aws-us-east-1');
+      region.addEnvironment(new Environment(region, 'qa'));
 
       const duplicate = region.clone();
 
-      expect(duplicate.regionId).toBe(region.regionId);
-      expect(duplicate.environments[0].environmentName).toBe(
-        region.environments[0].environmentName,
-      );
+      expect(duplicate.getContext()).toBe('region=aws-us-east-1,app=test');
+      expect(duplicate.regionId).toBe('aws-us-east-1');
+      expect(duplicate.environments[0].environmentName).toBe('qa');
     });
   });
 
   describe('diff()', () => {
     it('should capture deletion of an environment', () => {
-      const environment = new Environment('qa');
-      const oldRegion = new AwsRegion('aws-us-east-1');
-      oldRegion.addEnvironment(environment);
-      const newRegion = new AwsRegion('aws-us-east-1');
+      const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+      oldRegion.addEnvironment(new Environment(oldRegion, 'qa'));
+      const newRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
 
       const diff = oldRegion.diff(newRegion);
 
@@ -41,6 +39,7 @@ describe('Region UT', () => {
         [
           Diff {
             "action": "delete",
+            "context": "region=aws-us-east-1,app=test",
             "field": "environment",
             "value": "qa",
           },
@@ -49,12 +48,11 @@ describe('Region UT', () => {
     });
 
     it('should capture update of an environment', () => {
-      const oldEnvironment = new Environment('qa');
-      const oldRegion = new AwsRegion('aws-us-east-1');
-      oldRegion.addEnvironment(oldEnvironment);
-      const newEnvironment = new Environment('qa');
+      const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+      oldRegion.addEnvironment(new Environment(oldRegion, 'qa'));
+      const newRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+      const newEnvironment = new Environment(newRegion, 'qa');
       newEnvironment.environmentVariables.set('key', 'value');
-      const newRegion = new AwsRegion('aws-us-east-1');
       newRegion.addEnvironment(newEnvironment);
 
       const diff = oldRegion.diff(newRegion);
@@ -63,6 +61,7 @@ describe('Region UT', () => {
         [
           Diff {
             "action": "add",
+            "context": "environment=qa,region=aws-us-east-1,app=test",
             "field": "environmentVariables",
             "value": {
               "key": "key",
@@ -74,10 +73,9 @@ describe('Region UT', () => {
     });
 
     it('should capture addition of an environment', () => {
-      const oldRegion = new AwsRegion('aws-us-east-1');
-      const newEnvironment = new Environment('qa');
-      const newRegion = new AwsRegion('aws-us-east-1');
-      newRegion.addEnvironment(newEnvironment);
+      const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+      const newRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+      newRegion.addEnvironment(new Environment(newRegion, 'qa'));
 
       const diff = oldRegion.diff(newRegion);
 
@@ -85,6 +83,7 @@ describe('Region UT', () => {
         [
           Diff {
             "action": "add",
+            "context": "region=aws-us-east-1,app=test",
             "field": "environment",
             "value": "qa",
           },
@@ -93,12 +92,10 @@ describe('Region UT', () => {
     });
 
     it('should capture replace of an environment', () => {
-      const oldEnvironment = new Environment('qa');
-      const oldRegion = new AwsRegion('aws-us-east-1');
-      oldRegion.addEnvironment(oldEnvironment);
-      const newEnvironment = new Environment('staging');
-      const newRegion = new AwsRegion('aws-ap-south-1');
-      newRegion.addEnvironment(newEnvironment);
+      const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+      oldRegion.addEnvironment(new Environment(oldRegion, 'qa'));
+      const newRegion = new AwsRegion(new App('test'), 'aws-ap-south-1');
+      newRegion.addEnvironment(new Environment(newRegion, 'staging'));
 
       const diff = oldRegion.diff(newRegion);
 
@@ -106,11 +103,13 @@ describe('Region UT', () => {
         [
           Diff {
             "action": "delete",
+            "context": "region=aws-us-east-1,app=test",
             "field": "environment",
             "value": "qa",
           },
           Diff {
             "action": "add",
+            "context": "region=aws-us-east-1,app=test",
             "field": "environment",
             "value": "staging",
           },

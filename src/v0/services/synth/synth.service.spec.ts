@@ -10,6 +10,7 @@ import { SynthService } from './synth.service';
 
 const readFileAsync = promisify(readFile);
 const unlinkAsync = promisify(unlink);
+
 describe('Synth Service UT', () => {
   it('should synthesize an empty app', () => {
     const app = new App('test-app');
@@ -29,15 +30,15 @@ describe('Synth Service UT', () => {
   it('should synthesize a non-empty app', () => {
     const app = new App('test-app');
 
-    const region = new AwsRegion('aws-us-east-1');
+    const region = new AwsRegion(app, 'aws-us-east-1');
     app.addRegion(region);
 
-    const environment = new Environment('qa');
+    const environment = new Environment(region, 'qa');
     environment.environmentVariables.set('key', 'value');
     region.addEnvironment(environment);
 
-    app.addServer(new Server('backend'));
-    app.addSupport(new Support('nginx'));
+    app.addServer(new Server(app, 'backend'));
+    app.addSupport(new Support(app, 'nginx'));
 
     const output = new SynthService(app).synthReadOnly();
     expect(output).toMatchInlineSnapshot(`

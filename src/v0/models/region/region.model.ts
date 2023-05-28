@@ -1,4 +1,5 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
+import { App } from '../app/app.model';
 import { AwsRegionId } from './aws/region.model';
 import { Environment } from '../environment/environment.model';
 import { IModel } from '../model.interface';
@@ -6,11 +7,14 @@ import { IModel } from '../model.interface';
 export type RegionId = AwsRegionId;
 
 export class Region implements IModel<Region> {
+  readonly context: App;
+
   readonly environments: Environment[] = [];
 
   readonly regionId: RegionId;
 
-  protected constructor(regionId: RegionId) {
+  protected constructor(context: App, regionId: RegionId) {
+    this.context = context;
     this.regionId = regionId;
   }
 
@@ -28,7 +32,7 @@ export class Region implements IModel<Region> {
   }
 
   clone(): Region {
-    const region = new Region(this.regionId);
+    const region = new Region(this.context, this.regionId);
 
     this.environments.forEach((environment) => {
       region.addEnvironment(environment.clone());
@@ -48,6 +52,7 @@ export class Region implements IModel<Region> {
         diff.push(
           new Diff(
             DiffAction.DELETE,
+            this.getContext(),
             'environment',
             environment.environmentName,
           ),
@@ -67,11 +72,20 @@ export class Region implements IModel<Region> {
         )
       ) {
         diff.push(
-          new Diff(DiffAction.ADD, 'environment', environment.environmentName),
+          new Diff(
+            DiffAction.ADD,
+            this.getContext(),
+            'environment',
+            environment.environmentName,
+          ),
         );
       }
     }
 
     return diff;
+  }
+
+  getContext(): string {
+    return [`region=${this.regionId}`, this.context.getContext()].join(',');
   }
 }

@@ -4,4 +4,6 @@ export interface IModel<T> {
   clone(): T;
 
   diff(latest: T): Diff[];
+
+  getContext(): string;
 }

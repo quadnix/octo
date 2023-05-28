@@ -70,7 +70,14 @@ export class App implements IModel<App> {
         (r) => r.regionId === region.regionId,
       );
       if (!regionInLatest) {
-        diff.push(new Diff(DiffAction.DELETE, 'region', region.regionId));
+        diff.push(
+          new Diff(
+            DiffAction.DELETE,
+            this.getContext(),
+            'region',
+            region.regionId,
+          ),
+        );
       } else {
         const regionDiff = region.diff(regionInLatest);
         if (regionDiff.length !== 0) {
@@ -81,7 +88,14 @@ export class App implements IModel<App> {
 
     for (const region of latest.regions) {
       if (!this.regions.find((r) => r.regionId === region.regionId)) {
-        diff.push(new Diff(DiffAction.ADD, 'region', region.regionId));
+        diff.push(
+          new Diff(
+            DiffAction.ADD,
+            this.getContext(),
+            'region',
+            region.regionId,
+          ),
+        );
       }
     }
 
@@ -90,7 +104,14 @@ export class App implements IModel<App> {
         (s) => s.serverKey === server.serverKey,
       );
       if (!serverInLatest) {
-        diff.push(new Diff(DiffAction.DELETE, 'server', server.serverKey));
+        diff.push(
+          new Diff(
+            DiffAction.DELETE,
+            this.getContext(),
+            'server',
+            server.serverKey,
+          ),
+        );
       } else {
         const serverDiff = server.diff(serverInLatest);
         if (serverDiff.length !== 0) {
@@ -101,7 +122,14 @@ export class App implements IModel<App> {
 
     for (const server of latest.servers) {
       if (!this.servers.find((s) => s.serverKey === server.serverKey)) {
-        diff.push(new Diff(DiffAction.ADD, 'server', server.serverKey));
+        diff.push(
+          new Diff(
+            DiffAction.ADD,
+            this.getContext(),
+            'server',
+            server.serverKey,
+          ),
+        );
       }
     }
 
@@ -110,7 +138,14 @@ export class App implements IModel<App> {
         (s) => s.serverKey === support.serverKey,
       );
       if (!supportInLatest) {
-        diff.push(new Diff(DiffAction.DELETE, 'support', support.serverKey));
+        diff.push(
+          new Diff(
+            DiffAction.DELETE,
+            this.getContext(),
+            'support',
+            support.serverKey,
+          ),
+        );
       } else {
         const supportDiff = support.diff(supportInLatest);
         if (supportDiff.length !== 0) {
@@ -121,10 +156,21 @@ export class App implements IModel<App> {
 
     for (const support of latest.supports) {
       if (!this.supports.find((s) => s.serverKey === support.serverKey)) {
-        diff.push(new Diff(DiffAction.ADD, 'support', support.serverKey));
+        diff.push(
+          new Diff(
+            DiffAction.ADD,
+            this.getContext(),
+            'support',
+            support.serverKey,
+          ),
+        );
       }
     }
 
     return diff;
+  }
+
+  getContext(): string {
+    return `app=${this.name}`;
   }
 }
