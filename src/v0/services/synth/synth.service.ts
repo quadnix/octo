@@ -20,10 +20,7 @@ export class SynthService {
 
   async synth(filePath: string): Promise<void> {
     const output = this.synthReadOnly();
-    await writeFileAsync(
-      join(filePath, SYNTH_FILE_NAME),
-      JSON.stringify(output, null, 2),
-    );
+    await writeFileAsync(join(filePath, SYNTH_FILE_NAME), JSON.stringify(output, null, 2));
   }
 
   synthReadOnly(): IApp {
@@ -44,9 +41,7 @@ export class SynthService {
       r.environments.forEach((e) => {
         region.environments.push({
           environmentName: e.environmentName,
-          environmentVariables: Object.fromEntries(
-            e.environmentVariables || new Map(),
-          ),
+          environmentVariables: Object.fromEntries(e.environmentVariables || new Map()),
         });
       });
 

@@ -29,8 +29,6 @@ export class Deployment implements IModel<Deployment> {
   }
 
   getContext(): string {
-    return [`deployment=${this.deploymentTag}`, this.context.getContext()].join(
-      ',',
-    );
+    return [`deployment=${this.deploymentTag}`, this.context.getContext()].join(',');
   }
 }

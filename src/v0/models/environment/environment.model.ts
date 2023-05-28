@@ -29,25 +29,13 @@ export class Environment implements IModel<Environment> {
 
     for (const [key, value] of this.environmentVariables) {
       if (!latest.environmentVariables.has(key)) {
-        diff.push(
-          new Diff(
-            DiffAction.DELETE,
-            this.getContext(),
-            'environmentVariables',
-            { key, value },
-          ),
-        );
+        diff.push(new Diff(DiffAction.DELETE, this.getContext(), 'environmentVariables', { key, value }));
       } else if (latest.environmentVariables.get(key) !== value) {
         diff.push(
-          new Diff(
-            DiffAction.UPDATE,
-            this.getContext(),
-            'environmentVariables',
-            {
-              key,
-              value: latest.environmentVariables.get(key),
-            },
-          ),
+          new Diff(DiffAction.UPDATE, this.getContext(), 'environmentVariables', {
+            key,
+            value: latest.environmentVariables.get(key),
+          }),
         );
       }
     }
@@ -85,9 +73,6 @@ export class Environment implements IModel<Environment> {
   }
 
   getContext(): string {
-    return [
-      `environment=${this.environmentName}`,
-      this.context.getContext(),
-    ].join(',');
+    return [`environment=${this.environmentName}`, this.context.getContext()].join(',');
   }
 }

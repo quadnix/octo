@@ -5,17 +5,12 @@ import { Environment } from './environment.model';
 describe('Environment UT', () => {
   describe('clone()', () => {
     it('should clone all fields', () => {
-      const environment = new Environment(
-        new AwsRegion(new App('test'), 'aws-us-east-1'),
-        'qa',
-      );
+      const environment = new Environment(new AwsRegion(new App('test'), 'aws-us-east-1'), 'qa');
       environment.environmentVariables.set('key', 'value');
 
       const duplicate = environment.clone();
 
-      expect(duplicate.getContext()).toBe(
-        'environment=qa,region=aws-us-east-1,app=test',
-      );
+      expect(duplicate.getContext()).toBe('environment=qa,region=aws-us-east-1,app=test');
       expect(duplicate.environmentName).toBe('qa');
       expect(duplicate.environmentVariables.get('key')).toBe('value');
     });

@@ -13,12 +13,7 @@ export class Diff {
 
   readonly value: unknown;
 
-  constructor(
-    action: DiffAction,
-    context: string,
-    field: string,
-    value: unknown,
-  ) {
+  constructor(action: DiffAction, context: string, field: string, value: unknown) {
     this.action = action;
     this.context = context;
     this.field = field;

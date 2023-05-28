@@ -49,16 +49,9 @@ module.exports = {
         ],
       },
     ],
-    'jsonc/sort-keys': [
-      'error',
-      'asc',
-      { caseSensitive: true, minKeys: 2, natural: false },
-    ],
-    'sort-keys': [
-      'error',
-      'asc',
-      { caseSensitive: true, minKeys: 2, natural: false },
-    ],
+    'jsonc/sort-keys': ['error', 'asc', { caseSensitive: true, minKeys: 2, natural: false }],
+    'max-len': ['error', { code: 120, ignoreStrings: true }],
+    'sort-keys': ['error', 'asc', { caseSensitive: true, minKeys: 2, natural: false }],
     'spellcheck/spell-checker': [
       1,
       {

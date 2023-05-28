@@ -17,9 +17,7 @@ export class Server implements IModel<Server> {
 
   addDeployment(deployment: Deployment): void {
     // Check for duplicates.
-    if (
-      this.deployments.find((d) => d.deploymentTag === deployment.deploymentTag)
-    ) {
+    if (this.deployments.find((d) => d.deploymentTag === deployment.deploymentTag)) {
       throw new Error('Deployment already exists!');
     }
 
@@ -40,18 +38,9 @@ export class Server implements IModel<Server> {
     const diff: Diff[] = [];
 
     for (const deployment of this.deployments) {
-      const deploymentInLatest = latest.deployments.find(
-        (d) => d.deploymentTag === deployment.deploymentTag,
-      );
+      const deploymentInLatest = latest.deployments.find((d) => d.deploymentTag === deployment.deploymentTag);
       if (!deploymentInLatest) {
-        diff.push(
-          new Diff(
-            DiffAction.DELETE,
-            this.getContext(),
-            'deployment',
-            deployment.deploymentTag,
-          ),
-        );
+        diff.push(new Diff(DiffAction.DELETE, this.getContext(), 'deployment', deployment.deploymentTag));
       } else {
         const deploymentDiff = deployment.diff(deploymentInLatest);
         if (deploymentDiff.length !== 0) {
@@ -61,19 +50,8 @@ export class Server implements IModel<Server> {
     }
 
     for (const deployment of latest.deployments) {
-      if (
-        !this.deployments.find(
-          (d) => d.deploymentTag === deployment.deploymentTag,
-        )
-      ) {
-        diff.push(
-          new Diff(
-            DiffAction.ADD,
-            this.getContext(),
-            'deployment',
-            deployment.deploymentTag,
-          ),
-        );
+      if (!this.deployments.find((d) => d.deploymentTag === deployment.deploymentTag)) {
+        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'deployment', deployment.deploymentTag));
 
         const deploymentDiff = deployment.diffAdd();
         if (deploymentDiff.length !== 0) {
@@ -92,14 +70,7 @@ export class Server implements IModel<Server> {
     const diff: Diff[] = [];
 
     for (const deployment of this.deployments) {
-      diff.push(
-        new Diff(
-          DiffAction.ADD,
-          this.getContext(),
-          'deployment',
-          deployment.deploymentTag,
-        ),
-      );
+      diff.push(new Diff(DiffAction.ADD, this.getContext(), 'deployment', deployment.deploymentTag));
 
       const deploymentDiff = deployment.diffAdd();
       if (deploymentDiff.length !== 0) {

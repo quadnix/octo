@@ -20,11 +20,7 @@ export class Region implements IModel<Region> {
 
   addEnvironment(environment: Environment): void {
     // Check for duplicates.
-    if (
-      this.environments.find(
-        (e) => e.environmentName === environment.environmentName,
-      )
-    ) {
+    if (this.environments.find((e) => e.environmentName === environment.environmentName)) {
       throw new Error('Environment already exists!');
     }
 
@@ -45,18 +41,9 @@ export class Region implements IModel<Region> {
     const diff: Diff[] = [];
 
     for (const environment of this.environments) {
-      const environmentInLatest = latest.environments.find(
-        (e) => e.environmentName === environment.environmentName,
-      );
+      const environmentInLatest = latest.environments.find((e) => e.environmentName === environment.environmentName);
       if (!environmentInLatest) {
-        diff.push(
-          new Diff(
-            DiffAction.DELETE,
-            this.getContext(),
-            'environment',
-            environment.environmentName,
-          ),
-        );
+        diff.push(new Diff(DiffAction.DELETE, this.getContext(), 'environment', environment.environmentName));
       } else {
         const environmentDiff = environment.diff(environmentInLatest);
         if (environmentDiff.length !== 0) {
@@ -66,19 +53,8 @@ export class Region implements IModel<Region> {
     }
 
     for (const environment of latest.environments) {
-      if (
-        !this.environments.find(
-          (e) => e.environmentName === environment.environmentName,
-        )
-      ) {
-        diff.push(
-          new Diff(
-            DiffAction.ADD,
-            this.getContext(),
-            'environment',
-            environment.environmentName,
-          ),
-        );
+      if (!this.environments.find((e) => e.environmentName === environment.environmentName)) {
+        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'environment', environment.environmentName));
 
         const environmentDiff = environment.diffAdd();
         if (environmentDiff.length !== 0) {
@@ -97,14 +73,7 @@ export class Region implements IModel<Region> {
     const diff: Diff[] = [];
 
     for (const environment of this.environments) {
-      diff.push(
-        new Diff(
-          DiffAction.ADD,
-          this.getContext(),
-          'environment',
-          environment.environmentName,
-        ),
-      );
+      diff.push(new Diff(DiffAction.ADD, this.getContext(), 'environment', environment.environmentName));
 
       const environmentDiff = environment.diffAdd();
       if (environmentDiff.length !== 0) {

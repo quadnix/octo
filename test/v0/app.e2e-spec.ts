@@ -1,11 +1,4 @@
-import {
-  App,
-  AwsRegion,
-  Deployment,
-  Environment,
-  Server,
-  Support,
-} from '../../src/v0';
+import { App, AwsRegion, Deployment, Environment, Server, Support } from '../../src/v0';
 
 describe('App E2E Test', () => {
   it('should generate app diff', () => {
@@ -21,17 +14,11 @@ describe('App E2E Test', () => {
     app.addServer(new Server(app, 'backend'));
 
     const newApp = app.clone();
-    const newAppRegion = newApp.regions.find(
-      (r) => r.regionId === 'aws-us-east-1',
-    );
-    const newAppBackendServer = newApp.servers.find(
-      (s) => s.serverKey === 'backend',
-    );
+    const newAppRegion = newApp.regions.find((r) => r.regionId === 'aws-us-east-1');
+    const newAppBackendServer = newApp.servers.find((s) => s.serverKey === 'backend');
 
     // Add a deployment to backend server.
-    newAppBackendServer.addDeployment(
-      new Deployment(newAppBackendServer, 'v0.0.1'),
-    );
+    newAppBackendServer.addDeployment(new Deployment(newAppBackendServer, 'v0.0.1'));
 
     // Add a new staging environment.
     const stagingEnvironment = new Environment(newAppRegion, 'staging');
@@ -39,15 +26,11 @@ describe('App E2E Test', () => {
     newAppRegion.addEnvironment(stagingEnvironment);
 
     // Update the qa environment.
-    newAppRegion.environments
-      .find((e) => e.environmentName === 'qa')
-      .environmentVariables.set('env', 'qa');
+    newAppRegion.environments.find((e) => e.environmentName === 'qa').environmentVariables.set('env', 'qa');
 
     // Add new server.
     const newAppDatabaseServer = new Server(newApp, 'database');
-    newAppDatabaseServer.addDeployment(
-      new Deployment(newAppDatabaseServer, 'v0.0.1'),
-    );
+    newAppDatabaseServer.addDeployment(new Deployment(newAppDatabaseServer, 'v0.0.1'));
     newApp.addServer(newAppDatabaseServer);
 
     // Add new support.

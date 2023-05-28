@@ -88,9 +88,7 @@ describe('Synth Service UT', () => {
 
       await new SynthService(app).synth(filePath);
 
-      const contents = await readFileAsync(
-        join(filePath, 'infrastructure.json'),
-      );
+      const contents = await readFileAsync(join(filePath, 'infrastructure.json'));
       const output = JSON.parse(contents.toString());
       expect(output).toMatchInlineSnapshot(`
               {
