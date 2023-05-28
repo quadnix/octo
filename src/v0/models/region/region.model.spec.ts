@@ -74,8 +74,12 @@ describe('Region UT', () => {
 
     it('should capture addition of an environment', () => {
       const oldRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
+
       const newRegion = new AwsRegion(new App('test'), 'aws-us-east-1');
-      newRegion.addEnvironment(new Environment(newRegion, 'qa'));
+      const newEnvironment = new Environment(newRegion, 'qa');
+      newEnvironment.environmentVariables.set('key1', 'value 1');
+      newEnvironment.environmentVariables.set('key2', 'value 2');
+      newRegion.addEnvironment(newEnvironment);
 
       const diff = oldRegion.diff(newRegion);
 
@@ -86,6 +90,24 @@ describe('Region UT', () => {
             "context": "region=aws-us-east-1,app=test",
             "field": "environment",
             "value": "qa",
+          },
+          Diff {
+            "action": "add",
+            "context": "environment=qa,region=aws-us-east-1,app=test",
+            "field": "environmentVariables",
+            "value": {
+              "key": "key1",
+              "value": "value 1",
+            },
+          },
+          Diff {
+            "action": "add",
+            "context": "environment=qa,region=aws-us-east-1,app=test",
+            "field": "environmentVariables",
+            "value": {
+              "key": "key2",
+              "value": "value 2",
+            },
           },
         ]
       `);

@@ -66,6 +66,24 @@ export class Environment implements IModel<Environment> {
     return diff;
   }
 
+  /**
+   * Generate a diff adding all children of self.
+   */
+  diffAdd(): Diff[] {
+    const diff: Diff[] = [];
+
+    for (const [key, value] of this.environmentVariables) {
+      diff.push(
+        new Diff(DiffAction.ADD, this.getContext(), 'environmentVariables', {
+          key,
+          value,
+        }),
+      );
+    }
+
+    return diff;
+  }
+
   getContext(): string {
     return [
       `environment=${this.environmentName}`,

@@ -21,8 +21,15 @@ export class Deployment implements IModel<Deployment> {
     return [];
   }
 
+  /**
+   * Generate a diff adding all children of self.
+   */
+  diffAdd(): Diff[] {
+    return [];
+  }
+
   getContext(): string {
-    return [`deployment=${this.deploymentTag}`, this.context.getContext].join(
+    return [`deployment=${this.deploymentTag}`, this.context.getContext()].join(
       ',',
     );
   }

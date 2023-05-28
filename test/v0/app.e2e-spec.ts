@@ -1,4 +1,11 @@
-import { App, AwsRegion, Environment, Server, Support } from '../../src/v0';
+import {
+  App,
+  AwsRegion,
+  Deployment,
+  Environment,
+  Server,
+  Support,
+} from '../../src/v0';
 
 describe('App E2E Test', () => {
   it('should generate app diff', () => {
@@ -17,6 +24,14 @@ describe('App E2E Test', () => {
     const newAppRegion = newApp.regions.find(
       (r) => r.regionId === 'aws-us-east-1',
     );
+    const newAppBackendServer = newApp.servers.find(
+      (s) => s.serverKey === 'backend',
+    );
+
+    // Add a deployment to backend server.
+    newAppBackendServer.addDeployment(
+      new Deployment(newAppBackendServer, 'v0.0.1'),
+    );
 
     // Add a new staging environment.
     const stagingEnvironment = new Environment(newAppRegion, 'staging');
@@ -28,9 +43,17 @@ describe('App E2E Test', () => {
       .find((e) => e.environmentName === 'qa')
       .environmentVariables.set('env', 'qa');
 
-    // Add new server and support.
-    newApp.addServer(new Server(newApp, 'database'));
-    newApp.addSupport(new Support(newApp, 'nginx'));
+    // Add new server.
+    const newAppDatabaseServer = new Server(newApp, 'database');
+    newAppDatabaseServer.addDeployment(
+      new Deployment(newAppDatabaseServer, 'v0.0.1'),
+    );
+    newApp.addServer(newAppDatabaseServer);
+
+    // Add new support.
+    const newAppNginxSupport = new Support(newApp, 'nginx');
+    newAppNginxSupport.addDeployment(new Deployment(newAppNginxSupport, 'v1'));
+    newApp.addSupport(newAppNginxSupport);
 
     expect(app.diff(newApp)).toMatchInlineSnapshot(`
       [
@@ -51,15 +74,42 @@ describe('App E2E Test', () => {
         },
         Diff {
           "action": "add",
+          "context": "environment=staging,region=aws-us-east-1,app=test-app",
+          "field": "environmentVariables",
+          "value": {
+            "key": "env",
+            "value": "staging",
+          },
+        },
+        Diff {
+          "action": "add",
+          "context": "server=backend,app=test-app",
+          "field": "deployment",
+          "value": "v0.0.1",
+        },
+        Diff {
+          "action": "add",
           "context": "app=test-app",
           "field": "server",
           "value": "database",
         },
         Diff {
           "action": "add",
+          "context": "server=database,app=test-app",
+          "field": "deployment",
+          "value": "v0.0.1",
+        },
+        Diff {
+          "action": "add",
           "context": "app=test-app",
           "field": "support",
           "value": "nginx",
+        },
+        Diff {
+          "action": "add",
+          "context": "support=nginx,app=test-app",
+          "field": "deployment",
+          "value": "v1",
         },
       ]
     `);

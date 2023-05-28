@@ -74,6 +74,36 @@ export class Server implements IModel<Server> {
             deployment.deploymentTag,
           ),
         );
+
+        const deploymentDiff = deployment.diffAdd();
+        if (deploymentDiff.length !== 0) {
+          diff.push(...deploymentDiff);
+        }
+      }
+    }
+
+    return diff;
+  }
+
+  /**
+   * Generate a diff adding all children of self.
+   */
+  diffAdd(): Diff[] {
+    const diff: Diff[] = [];
+
+    for (const deployment of this.deployments) {
+      diff.push(
+        new Diff(
+          DiffAction.ADD,
+          this.getContext(),
+          'deployment',
+          deployment.deploymentTag,
+        ),
+      );
+
+      const deploymentDiff = deployment.diffAdd();
+      if (deploymentDiff.length !== 0) {
+        diff.push(...deploymentDiff);
       }
     }
 

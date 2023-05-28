@@ -96,6 +96,11 @@ export class App implements IModel<App> {
             region.regionId,
           ),
         );
+
+        const regionDiff = region.diffAdd();
+        if (regionDiff.length !== 0) {
+          diff.push(...regionDiff);
+        }
       }
     }
 
@@ -130,6 +135,11 @@ export class App implements IModel<App> {
             server.serverKey,
           ),
         );
+
+        const serverDiff = server.diffAdd();
+        if (serverDiff.length !== 0) {
+          diff.push(...serverDiff);
+        }
       }
     }
 
@@ -164,6 +174,11 @@ export class App implements IModel<App> {
             support.serverKey,
           ),
         );
+
+        const supportDiff = support.diffAdd();
+        if (supportDiff.length !== 0) {
+          diff.push(...supportDiff);
+        }
       }
     }
 

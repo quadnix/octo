@@ -1,8 +1,8 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
 import { App } from '../app/app.model';
-import { AwsRegionId } from './aws/region.model';
 import { Environment } from '../environment/environment.model';
 import { IModel } from '../model.interface';
+import { AwsRegionId } from './aws/region.model';
 
 export type RegionId = AwsRegionId;
 
@@ -79,6 +79,36 @@ export class Region implements IModel<Region> {
             environment.environmentName,
           ),
         );
+
+        const environmentDiff = environment.diffAdd();
+        if (environmentDiff.length !== 0) {
+          diff.push(...environmentDiff);
+        }
+      }
+    }
+
+    return diff;
+  }
+
+  /**
+   * Generate a diff adding all children of self.
+   */
+  diffAdd(): Diff[] {
+    const diff: Diff[] = [];
+
+    for (const environment of this.environments) {
+      diff.push(
+        new Diff(
+          DiffAction.ADD,
+          this.getContext(),
+          'environment',
+          environment.environmentName,
+        ),
+      );
+
+      const environmentDiff = environment.diffAdd();
+      if (environmentDiff.length !== 0) {
+        diff.push(...environmentDiff);
       }
     }
 
