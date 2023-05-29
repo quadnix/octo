@@ -4,6 +4,10 @@ export { Deployment } from './models/deployment/deployment.model';
 
 export { Environment } from './models/environment/environment.model';
 
+export { Execution, ExecutionContext } from './models/execution/execution.model';
+
+export { Instance } from './models/instance/instance.model';
+
 export { AwsRegion } from './models/region/aws/region.model';
 export { Region } from './models/region/region.model';
 

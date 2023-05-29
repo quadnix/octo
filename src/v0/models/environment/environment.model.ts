@@ -1,4 +1,5 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
+import { Execution } from '../execution/execution.model';
 import { IModel } from '../model.interface';
 import { Region } from '../region/region.model';
 
@@ -9,9 +10,20 @@ export class Environment implements IModel<Environment> {
 
   readonly environmentVariables: Map<string, string> = new Map();
 
+  readonly executions: Execution[] = [];
+
   constructor(context: Region, environmentName: string) {
     this.context = context;
     this.environmentName = environmentName;
+  }
+
+  addExecution(execution: Execution): void {
+    // Check for duplicates.
+    if (this.executions.find((e) => e.executionId === execution.executionId)) {
+      throw new Error('Execution already exists!');
+    }
+
+    this.executions.push(execution);
   }
 
   clone(): Environment {
