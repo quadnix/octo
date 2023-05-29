@@ -50,7 +50,6 @@ export class Support implements IModel<ISupport, Support> {
         diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'deployment', previousDeployment.deploymentTag));
       }
     }
-
     for (const deployment of this.deployments) {
       if (!previous?.deployments.find((d) => d.deploymentTag === deployment.deploymentTag)) {
         diff.push(new Diff(DiffAction.ADD, this.getContext(), 'deployment', deployment.deploymentTag));

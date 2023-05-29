@@ -1,7 +1,6 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
 import { Deployment } from '../deployment/deployment.model';
 import { Environment } from '../environment/environment.model';
-import { IInstance } from '../instance/instance.interface';
 import { Instance } from '../instance/instance.model';
 import { IModel } from '../model.interface';
 import { IExecution } from './execution.interface';

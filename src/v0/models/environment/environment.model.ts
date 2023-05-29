@@ -1,6 +1,4 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
-import { IExecution } from '../execution/execution.interface';
-import { Execution } from '../execution/execution.model';
 import { IModel } from '../model.interface';
 import { Region } from '../region/region.model';
 import { IEnvironment } from './environment.interface';
@@ -12,20 +10,9 @@ export class Environment implements IModel<IEnvironment, Environment> {
 
   readonly environmentVariables: Map<string, string> = new Map();
 
-  readonly executions: Execution[] = [];
-
   constructor(context: Region, environmentName: string) {
     this.context = context;
     this.environmentName = environmentName;
-  }
-
-  addExecution(execution: Execution): void {
-    // Check for duplicates.
-    if (this.executions.find((e) => e.executionId === execution.executionId)) {
-      throw new Error('Execution already exists!');
-    }
-
-    this.executions.push(execution);
   }
 
   clone(): Environment {
@@ -55,7 +42,6 @@ export class Environment implements IModel<IEnvironment, Environment> {
         diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'environmentVariables', { key, value }));
       }
     }
-
     for (const [key, value] of this.environmentVariables) {
       if (!previous?.environmentVariables.has(key)) {
         diff.push(new Diff(DiffAction.ADD, this.getContext(), 'environmentVariables', { key, value }));
@@ -70,15 +56,9 @@ export class Environment implements IModel<IEnvironment, Environment> {
   }
 
   synth(): IEnvironment {
-    const executions: IExecution[] = [];
-    this.executions.forEach((execution) => {
-      executions.push(execution.synth());
-    });
-
     return {
       environmentName: this.environmentName,
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
-      executions,
     };
   }
 }

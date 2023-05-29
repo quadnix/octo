@@ -80,7 +80,6 @@ export class App implements IModel<IApp, App> {
         diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'region', previousRegion.regionId));
       }
     }
-
     for (const region of this.regions) {
       if (!previous?.regions.find((r) => r.regionId === region.regionId)) {
         diff.push(new Diff(DiffAction.ADD, this.getContext(), 'region', region.regionId));
@@ -103,7 +102,6 @@ export class App implements IModel<IApp, App> {
         diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'server', previousServer.serverKey));
       }
     }
-
     for (const server of this.servers) {
       if (!previous?.servers.find((s) => s.serverKey === server.serverKey)) {
         diff.push(new Diff(DiffAction.ADD, this.getContext(), 'server', server.serverKey));
@@ -126,7 +124,6 @@ export class App implements IModel<IApp, App> {
         diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'support', previousSupport.serverKey));
       }
     }
-
     for (const support of this.supports) {
       if (!previous?.supports.find((s) => s.serverKey === support.serverKey)) {
         diff.push(new Diff(DiffAction.ADD, this.getContext(), 'support', support.serverKey));

@@ -55,7 +55,6 @@ export class Region implements IModel<IRegion, Region> {
         );
       }
     }
-
     for (const environment of this.environments) {
       if (!previous?.environments.find((e) => e.environmentName === environment.environmentName)) {
         diff.push(new Diff(DiffAction.ADD, this.getContext(), 'environment', environment.environmentName));

@@ -52,7 +52,6 @@ describe('Synth Service UT', () => {
                 "environmentVariables": {
                   "key": "value",
                 },
-                "executions": [],
               },
             ],
             "regionId": "aws-us-east-1",
