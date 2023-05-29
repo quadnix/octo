@@ -1,8 +1,9 @@
 import { Diff } from '../../utility/diff.utility';
 import { Execution } from '../execution/execution.model';
 import { IModel } from '../model.interface';
+import { IInstance } from './instance.interface';
 
-export class Instance implements IModel<Instance> {
+export class Instance implements IModel<IInstance, Instance> {
   readonly context: Execution;
 
   readonly taskId: string;
@@ -25,5 +26,11 @@ export class Instance implements IModel<Instance> {
 
   getContext(): string {
     return [`instance=${this.taskId}`, this.context.getContext()].join(',');
+  }
+
+  synth(): IInstance {
+    return {
+      taskId: this.taskId,
+    };
   }
 }

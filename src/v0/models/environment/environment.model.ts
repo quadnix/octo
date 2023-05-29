@@ -1,9 +1,11 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
+import { IExecution } from '../execution/execution.interface';
 import { Execution } from '../execution/execution.model';
 import { IModel } from '../model.interface';
 import { Region } from '../region/region.model';
+import { IEnvironment } from './environment.interface';
 
-export class Environment implements IModel<Environment> {
+export class Environment implements IModel<IEnvironment, Environment> {
   readonly context: Region;
 
   readonly environmentName: string;
@@ -65,5 +67,18 @@ export class Environment implements IModel<Environment> {
 
   getContext(): string {
     return [`environment=${this.environmentName}`, this.context.getContext()].join(',');
+  }
+
+  synth(): IEnvironment {
+    const executions: IExecution[] = [];
+    this.executions.forEach((execution) => {
+      executions.push(execution.synth());
+    });
+
+    return {
+      environmentName: this.environmentName,
+      environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
+      executions,
+    };
   }
 }

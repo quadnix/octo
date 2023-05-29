@@ -1,15 +1,17 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
 import { Deployment } from '../deployment/deployment.model';
 import { Environment } from '../environment/environment.model';
+import { IInstance } from '../instance/instance.interface';
 import { Instance } from '../instance/instance.model';
 import { IModel } from '../model.interface';
+import { IExecution } from './execution.interface';
 
 export type ExecutionContext = {
   deployment: Deployment;
   environment: Environment;
 };
 
-export class Execution implements IModel<Execution> {
+export class Execution implements IModel<IExecution, Execution> {
   readonly context: ExecutionContext;
 
   readonly environmentVariables: Map<string, string> = new Map();
@@ -74,5 +76,13 @@ export class Execution implements IModel<Execution> {
       this.context.deployment.getContext(),
       this.context.environment.getContext(),
     ].join(',');
+  }
+
+  synth(): IExecution {
+    return {
+      environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
+      executionId: this.executionId,
+      instances: [], // intentionally does not synthesize. It is done by engine at runtime.
+    };
   }
 }

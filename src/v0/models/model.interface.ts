@@ -1,6 +1,6 @@
 import { Diff } from '../utility/diff.utility';
 
-export interface IModel<T> {
+export interface IModel<I, T> {
   /**
    * Create a duplicate instance of this model.
    */
@@ -16,4 +16,9 @@ export interface IModel<T> {
    * Get a string representation of context.
    */
   getContext(): string;
+
+  /**
+   * Generate a synth as per model's interface.
+   */
+  synth(): I;
 }

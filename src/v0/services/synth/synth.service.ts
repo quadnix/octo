@@ -18,66 +18,12 @@ export class SynthService {
     this.app = app;
   }
 
-  async synth(filePath: string): Promise<void> {
-    const output = this.synthReadOnly();
-    await writeFileAsync(join(filePath, SYNTH_FILE_NAME), JSON.stringify(output, null, 2));
+  synth(): IApp & { version: string } {
+    return { ...this.app.synth(), version: this.version };
   }
 
-  synthReadOnly(): IApp {
-    const output: IApp = {
-      name: this.app.name,
-      regions: [],
-      servers: [],
-      supports: [],
-      version: this.version,
-    };
-
-    this.app.regions.forEach((r) => {
-      const region: IApp['regions'][0] = {
-        environments: [],
-        regionId: r.regionId,
-      };
-
-      r.environments.forEach((e) => {
-        region.environments.push({
-          environmentName: e.environmentName,
-          environmentVariables: Object.fromEntries(e.environmentVariables || new Map()),
-        });
-      });
-
-      output.regions.push(region);
-    });
-
-    this.app.servers.forEach((s) => {
-      const server: IApp['servers'][0] = {
-        deployments: [],
-        serverKey: s.serverKey,
-      };
-
-      s.deployments.forEach((d) => {
-        server.deployments.push({
-          deploymentTag: d.deploymentTag,
-        });
-      });
-
-      output.servers.push(server);
-    });
-
-    this.app.supports.forEach((s) => {
-      const support: IApp['supports'][0] = {
-        deployments: [],
-        serverKey: s.serverKey,
-      };
-
-      s.deployments.forEach((d) => {
-        support.deployments.push({
-          deploymentTag: d.deploymentTag,
-        });
-      });
-
-      output.supports.push(support);
-    });
-
-    return output;
+  async synthWrite(filePath: string): Promise<void> {
+    const output = this.synth();
+    await writeFileAsync(join(filePath, SYNTH_FILE_NAME), JSON.stringify(output, null, 2));
   }
 }

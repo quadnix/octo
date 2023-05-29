@@ -1,10 +1,14 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
 import { IModel } from '../model.interface';
+import { IRegion } from '../region/region.interface';
 import { Region } from '../region/region.model';
+import { IServer } from '../server/server.interface';
 import { Server } from '../server/server.model';
+import { ISupport } from '../support/support.interface';
 import { Support } from '../support/support.model';
+import { IApp } from './app.interface';
 
-export class App implements IModel<App> {
+export class App implements IModel<IApp, App> {
   readonly name: string;
 
   readonly regions: Region[] = [];
@@ -139,5 +143,29 @@ export class App implements IModel<App> {
 
   getContext(): string {
     return `app=${this.name}`;
+  }
+
+  synth(): IApp {
+    const regions: IRegion[] = [];
+    this.regions.forEach((region) => {
+      regions.push(region.synth());
+    });
+
+    const servers: IServer[] = [];
+    this.servers.forEach((server) => {
+      servers.push(server.synth());
+    });
+
+    const supports: ISupport[] = [];
+    this.supports.forEach((support) => {
+      supports.push(support.synth());
+    });
+
+    return {
+      name: this.name,
+      regions,
+      servers,
+      supports,
+    };
   }
 }

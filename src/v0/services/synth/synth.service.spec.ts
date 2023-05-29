@@ -15,7 +15,7 @@ describe('Synth Service UT', () => {
   it('should synthesize an empty app', () => {
     const app = new App('test-app');
 
-    const output = new SynthService(app).synthReadOnly();
+    const output = new SynthService(app).synth();
     expect(output).toMatchInlineSnapshot(`
       {
         "name": "test-app",
@@ -40,7 +40,7 @@ describe('Synth Service UT', () => {
     app.addServer(new Server(app, 'backend'));
     app.addSupport(new Support(app, 'nginx'));
 
-    const output = new SynthService(app).synthReadOnly();
+    const output = new SynthService(app).synth();
     expect(output).toMatchInlineSnapshot(`
       {
         "name": "test-app",
@@ -52,6 +52,7 @@ describe('Synth Service UT', () => {
                 "environmentVariables": {
                   "key": "value",
                 },
+                "executions": [],
               },
             ],
             "regionId": "aws-us-east-1",
@@ -74,7 +75,7 @@ describe('Synth Service UT', () => {
     `);
   });
 
-  describe('synth()', () => {
+  describe('synthWrite()', () => {
     let filePath;
 
     afterEach(async () => {
@@ -88,7 +89,7 @@ describe('Synth Service UT', () => {
 
       const app = new App('test-app');
 
-      await new SynthService(app).synth(filePath);
+      await new SynthService(app).synthWrite(filePath);
 
       const contents = await readFileAsync(join(filePath, 'infrastructure.json'));
       const output = JSON.parse(contents.toString());

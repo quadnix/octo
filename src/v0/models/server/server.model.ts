@@ -1,9 +1,11 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
 import { App } from '../app/app.model';
+import { IDeployment } from '../deployment/deployment.interface';
 import { Deployment } from '../deployment/deployment.model';
 import { IModel } from '../model.interface';
+import { IServer } from './server.interface';
 
-export class Server implements IModel<Server> {
+export class Server implements IModel<IServer, Server> {
   readonly context: App;
 
   readonly deployments: Deployment[] = [];
@@ -65,5 +67,17 @@ export class Server implements IModel<Server> {
 
   getContext(): string {
     return [`server=${this.serverKey}`, this.context.getContext()].join(',');
+  }
+
+  synth(): IServer {
+    const deployments: IDeployment[] = [];
+    this.deployments.forEach((deployment) => {
+      deployments.push(deployment.synth());
+    });
+
+    return {
+      deployments,
+      serverKey: this.serverKey,
+    };
   }
 }

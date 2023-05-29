@@ -1,29 +1,10 @@
-import { Deployment } from '../deployment/deployment.model';
-import { Environment } from '../environment/environment.model';
-import { RegionId } from '../region/region.model';
-import { Server } from '../server/server.model';
-import { Support } from '../support/support.model';
+import { IRegion } from '../region/region.interface';
+import { IServer } from '../server/server.interface';
+import { ISupport } from '../support/support.interface';
 
 export interface IApp {
   name: string;
-  regions: {
-    environments: {
-      environmentName: Environment['environmentName'];
-      environmentVariables: { [key: string]: string };
-    }[];
-    regionId: RegionId;
-  }[];
-  servers: {
-    deployments: {
-      deploymentTag: Deployment['deploymentTag'];
-    }[];
-    serverKey: Server['serverKey'];
-  }[];
-  supports: {
-    deployments: {
-      deploymentTag: Deployment['deploymentTag'];
-    }[];
-    serverKey: Support['serverKey'];
-  }[];
-  version: string;
+  regions: IRegion[];
+  servers: IServer[];
+  supports: ISupport[];
 }

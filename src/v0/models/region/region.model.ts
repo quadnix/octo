@@ -1,12 +1,14 @@
 import { Diff, DiffAction } from '../../utility/diff.utility';
 import { App } from '../app/app.model';
+import { IEnvironment } from '../environment/environment.interface';
 import { Environment } from '../environment/environment.model';
 import { IModel } from '../model.interface';
 import { AwsRegionId } from './aws/region.model';
+import { IRegion } from './region.interface';
 
 export type RegionId = AwsRegionId;
 
-export class Region implements IModel<Region> {
+export class Region implements IModel<IRegion, Region> {
   readonly context: App;
 
   readonly environments: Environment[] = [];
@@ -70,5 +72,17 @@ export class Region implements IModel<Region> {
 
   getContext(): string {
     return [`region=${this.regionId}`, this.context.getContext()].join(',');
+  }
+
+  synth(): IRegion {
+    const environments: IEnvironment[] = [];
+    this.environments.forEach((environment) => {
+      environments.push(environment.synth());
+    });
+
+    return {
+      environments,
+      regionId: this.regionId,
+    };
   }
 }
