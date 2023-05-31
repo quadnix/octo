@@ -1,4 +1,5 @@
-import { Diff, DiffAction } from '../../utility/diff.utility';
+import { DiffUtility } from '../../utility/diff/diff.utility';
+import { Diff } from '../utility/diff/diff.utility.model';
 import { App } from '../app/app.model';
 import { IEnvironment } from '../environment/environment.interface';
 import { Environment } from '../environment/environment.model';
@@ -40,33 +41,15 @@ export class Region implements IModel<IRegion, Region> {
   }
 
   diff(previous?: Region): Diff[] {
-    const diff: Diff[] = [];
-
-    for (const previousEnvironment of previous?.environments || []) {
-      const environment = this.environments.find((e) => e.environmentName === previousEnvironment.environmentName);
-      if (environment) {
-        const environmentDiff = environment.diff(previousEnvironment);
-        if (environmentDiff.length !== 0) {
-          diff.push(...environmentDiff);
-        }
-      } else {
-        diff.push(
-          new Diff(DiffAction.DELETE, previous!.getContext(), 'environment', previousEnvironment.environmentName),
-        );
-      }
-    }
-    for (const environment of this.environments) {
-      if (!previous?.environments.find((e) => e.environmentName === environment.environmentName)) {
-        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'environment', environment.environmentName));
-
-        const environmentDiff = environment.diff();
-        if (environmentDiff.length !== 0) {
-          diff.push(...environmentDiff);
-        }
-      }
-    }
-
-    return diff;
+    // Generate diff of environments.
+    return DiffUtility.diffModels(
+      previous?.environments || [],
+      this.environments,
+      previous?.getContext() || '',
+      this.getContext(),
+      'environment',
+      'environmentName',
+    );
   }
 
   getContext(): string {

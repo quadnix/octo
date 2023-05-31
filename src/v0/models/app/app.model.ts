@@ -1,4 +1,4 @@
-import { Diff, DiffAction } from '../../utility/diff.utility';
+import { Diff, DiffAction } from '../utility/diff/diff.utility.model';
 import { IModel } from '../model.interface';
 import { IRegion } from '../region/region.interface';
 import { Region } from '../region/region.model';

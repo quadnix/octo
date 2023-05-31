@@ -1,4 +1,4 @@
-import { Diff } from '../utility/diff.utility';
+import { Diff } from './utility/diff/diff.utility.model';
 
 export interface IModel<I, T> {
   /**

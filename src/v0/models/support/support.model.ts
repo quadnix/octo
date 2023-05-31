@@ -1,4 +1,5 @@
-import { Diff, DiffAction } from '../../utility/diff.utility';
+import { DiffUtility } from '../../utility/diff/diff.utility';
+import { Diff } from '../utility/diff/diff.utility.model';
 import { App } from '../app/app.model';
 import { IDeployment } from '../deployment/deployment.interface';
 import { Deployment } from '../deployment/deployment.model';
@@ -37,31 +38,15 @@ export class Support implements IModel<ISupport, Support> {
   }
 
   diff(previous?: Support): Diff[] {
-    const diff: Diff[] = [];
-
-    for (const previousDeployment of previous?.deployments || []) {
-      const deployment = this.deployments.find((d) => d.deploymentTag === previousDeployment.deploymentTag);
-      if (deployment) {
-        const deploymentDiff = deployment.diff(previousDeployment);
-        if (deploymentDiff.length !== 0) {
-          diff.push(...deploymentDiff);
-        }
-      } else {
-        diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'deployment', previousDeployment.deploymentTag));
-      }
-    }
-    for (const deployment of this.deployments) {
-      if (!previous?.deployments.find((d) => d.deploymentTag === deployment.deploymentTag)) {
-        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'deployment', deployment.deploymentTag));
-
-        const deploymentDiff = deployment.diff();
-        if (deploymentDiff.length !== 0) {
-          diff.push(...deploymentDiff);
-        }
-      }
-    }
-
-    return diff;
+    // Generate diff of deployments.
+    return DiffUtility.diffModels(
+      previous?.deployments || [],
+      this.deployments,
+      previous?.getContext() || '',
+      this.getContext(),
+      'deployment',
+      'deploymentTag',
+    );
   }
 
   getContext(): string {

@@ -1,4 +1,4 @@
-import { Diff } from '../../utility/diff.utility';
+import { Diff } from '../utility/diff/diff.utility.model';
 import { IModel } from '../model.interface';
 import { Server } from '../server/server.model';
 import { Support } from '../support/support.model';
