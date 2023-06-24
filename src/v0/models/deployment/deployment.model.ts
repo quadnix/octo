@@ -18,7 +18,7 @@ export class Deployment implements IModel<IDeployment, Deployment> {
     return new Deployment(this.context, this.deploymentTag);
   }
 
-  diff(previous?: Deployment): Diff[] {
+  diff(): Diff[] {
     return [];
   }
 
