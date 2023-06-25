@@ -18,7 +18,7 @@ export interface IModel<I, T> {
   getContext(): string;
 
   /**
-   * Generate a synth as per model's interface.
+   * Generate a serializable representation of model as per model's interface.
    */
   synth(): I;
 }
