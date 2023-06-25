@@ -1,6 +1,7 @@
+import { DiffUtility } from '../../utility/diff/diff.utility';
 import { IService } from '../service/service.interface';
 import { Service } from '../service/service.model';
-import { Diff, DiffAction } from '../utility/diff/diff.utility.model';
+import { Diff } from '../utility/diff/diff.utility.model';
 import { IModel } from '../model.interface';
 import { IRegion } from '../region/region.interface';
 import { Region } from '../region/region.model';
@@ -84,97 +85,12 @@ export class App implements IModel<IApp, App> {
   }
 
   diff(previous?: App): Diff[] {
-    const diff: Diff[] = [];
-
-    for (const previousRegion of previous?.regions || []) {
-      const region = this.regions.find((r) => r.regionId === previousRegion.regionId);
-      if (region) {
-        const regionDiff = region.diff(previousRegion);
-        if (regionDiff.length !== 0) {
-          diff.push(...regionDiff);
-        }
-      } else {
-        diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'region', previousRegion.regionId));
-      }
-    }
-    for (const region of this.regions) {
-      if (!previous?.regions.find((r) => r.regionId === region.regionId)) {
-        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'region', region.regionId));
-
-        const regionDiff = region.diff();
-        if (regionDiff.length !== 0) {
-          diff.push(...regionDiff);
-        }
-      }
-    }
-
-    for (const previousServer of previous?.servers || []) {
-      const server = this.servers.find((s) => s.serverKey === previousServer.serverKey);
-      if (server) {
-        const serverDiff = server.diff(previousServer);
-        if (serverDiff.length !== 0) {
-          diff.push(...serverDiff);
-        }
-      } else {
-        diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'server', previousServer.serverKey));
-      }
-    }
-    for (const server of this.servers) {
-      if (!previous?.servers.find((s) => s.serverKey === server.serverKey)) {
-        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'server', server.serverKey));
-
-        const serverDiff = server.diff();
-        if (serverDiff.length !== 0) {
-          diff.push(...serverDiff);
-        }
-      }
-    }
-
-    for (const previousService of previous?.services || []) {
-      const service = this.services.find((s) => s.serviceId === previousService.serviceId);
-      if (service) {
-        const serviceDiff = service.diff();
-        if (serviceDiff.length !== 0) {
-          diff.push(...serviceDiff);
-        }
-      } else {
-        diff.push(new Diff(DiffAction.DELETE, previousService, 'service', previousService.serviceId));
-      }
-    }
-    for (const service of this.services) {
-      if (!previous?.services.find((s) => s.serviceId === service.serviceId)) {
-        diff.push(new Diff(DiffAction.ADD, service, 'service', service.serviceId));
-
-        const serviceDiff = service.diff();
-        if (serviceDiff.length !== 0) {
-          diff.push(...serviceDiff);
-        }
-      }
-    }
-
-    for (const previousSupport of previous?.supports || []) {
-      const support = this.supports.find((s) => s.serverKey === previousSupport.serverKey);
-      if (support) {
-        const supportDiff = support.diff(previousSupport);
-        if (supportDiff.length !== 0) {
-          diff.push(...supportDiff);
-        }
-      } else {
-        diff.push(new Diff(DiffAction.DELETE, previous!.getContext(), 'support', previousSupport.serverKey));
-      }
-    }
-    for (const support of this.supports) {
-      if (!previous?.supports.find((s) => s.serverKey === support.serverKey)) {
-        diff.push(new Diff(DiffAction.ADD, this.getContext(), 'support', support.serverKey));
-
-        const supportDiff = support.diff();
-        if (supportDiff.length !== 0) {
-          diff.push(...supportDiff);
-        }
-      }
-    }
-
-    return diff;
+    return [
+      ...DiffUtility.diffModels(previous?.regions || [], this.regions, 'region', 'regionId'),
+      ...DiffUtility.diffModels(previous?.servers || [], this.servers, 'server', 'serverKey'),
+      ...DiffUtility.diffModels(previous?.services || [], this.services, 'service', 'serviceId'),
+      ...DiffUtility.diffModels(previous?.supports || [], this.supports, 'support', 'serverKey'),
+    ];
   }
 
   getContext(): string {

@@ -46,10 +46,8 @@ export class Execution implements IModel<IExecution, Execution> {
   diff(previous?: Execution): Diff[] {
     // Generate diff of environmentVariables.
     return DiffUtility.diffMap(
-      previous?.environmentVariables || new Map(),
-      this.environmentVariables,
-      previous?.getContext() || '',
-      this.getContext(),
+      previous || ({ environmentVariables: new Map() } as Execution),
+      this,
       'environmentVariables',
     );
   }

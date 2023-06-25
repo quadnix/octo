@@ -42,14 +42,7 @@ export class Region implements IModel<IRegion, Region> {
 
   diff(previous?: Region): Diff[] {
     // Generate diff of environments.
-    return DiffUtility.diffModels(
-      previous?.environments || [],
-      this.environments,
-      previous?.getContext() || '',
-      this.getContext(),
-      'environment',
-      'environmentName',
-    );
+    return DiffUtility.diffModels(previous?.environments || [], this.environments, 'environment', 'environmentName');
   }
 
   getContext(): string {

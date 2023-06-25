@@ -29,10 +29,8 @@ export class Environment implements IModel<IEnvironment, Environment> {
   diff(previous?: Environment): Diff[] {
     // Generate diff of environmentVariables.
     return DiffUtility.diffMap(
-      previous?.environmentVariables || new Map(),
-      this.environmentVariables,
-      previous?.getContext() || '',
-      this.getContext(),
+      previous || ({ environmentVariables: new Map() } as Environment),
+      this,
       'environmentVariables',
     );
   }
