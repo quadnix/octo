@@ -4,19 +4,16 @@ import { App } from '../app/app.model';
 import { IEnvironment } from '../environment/environment.interface';
 import { Environment } from '../environment/environment.model';
 import { IModel } from '../model.interface';
-import { AwsRegionId } from './aws/region.model';
 import { IRegion } from './region.interface';
-
-export type RegionId = AwsRegionId;
 
 export class Region implements IModel<IRegion, Region> {
   readonly context: App;
 
   readonly environments: Environment[] = [];
 
-  readonly regionId: RegionId;
+  readonly regionId: string;
 
-  protected constructor(context: App, regionId: RegionId) {
+  constructor(context: App, regionId: string) {
     this.context = context;
     this.regionId = regionId;
   }

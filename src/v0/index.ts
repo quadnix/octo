@@ -8,7 +8,6 @@ export { Execution, ExecutionContext } from './models/execution/execution.model'
 
 export { Instance } from './models/instance/instance.model';
 
-export { AwsRegion } from './models/region/aws/region.model';
 export { Region } from './models/region/region.model';
 
 export { Server } from './models/server/server.model';

@@ -1,4 +1,4 @@
-import { AwsRegion } from '../region/aws/region.model';
+import { Region } from '../region/region.model';
 import { Server } from '../server/server.model';
 import { Support } from '../support/support.model';
 import { App } from './app.model';
@@ -7,7 +7,7 @@ describe('App UT', () => {
   describe('clone()', () => {
     it('should clone all fields', () => {
       const app = new App('test');
-      app.addRegion(new AwsRegion(app, 'aws-us-east-1'));
+      app.addRegion(new Region(app, 'aws-us-east-1'));
       app.addServer(new Server(app, 'backend'));
       app.addSupport(new Support(app, 'nginx'));
 
