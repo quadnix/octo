@@ -1,3 +1,5 @@
+import { IService } from '../service/service.interface';
+import { Service } from '../service/service.model';
 import { Diff, DiffAction } from '../utility/diff/diff.utility.model';
 import { IModel } from '../model.interface';
 import { IRegion } from '../region/region.interface';
@@ -14,6 +16,8 @@ export class App implements IModel<IApp, App> {
   readonly regions: Region[] = [];
 
   readonly servers: Server[] = [];
+
+  readonly services: Service[] = [];
 
   readonly supports: Support[] = [];
 
@@ -39,6 +43,15 @@ export class App implements IModel<IApp, App> {
     this.servers.push(server);
   }
 
+  addService(service: Service): void {
+    // Check for duplicates.
+    if (this.services.find((s) => s.serviceId === service.serviceId)) {
+      throw new Error('Service already exists!');
+    }
+
+    this.services.push(service);
+  }
+
   addSupport(support: Support): void {
     // Check for duplicates.
     if (this.supports.find((s) => s.serverKey === support.serverKey)) {
@@ -57,6 +70,10 @@ export class App implements IModel<IApp, App> {
 
     this.servers.forEach((server) => {
       app.addServer(server.clone());
+    });
+
+    this.services.forEach((service) => {
+      app.addService(service.clone());
     });
 
     this.supports.forEach((support) => {
@@ -113,6 +130,28 @@ export class App implements IModel<IApp, App> {
       }
     }
 
+    for (const previousService of previous?.services || []) {
+      const service = this.services.find((s) => s.serviceId === previousService.serviceId);
+      if (service) {
+        const serviceDiff = service.diff();
+        if (serviceDiff.length !== 0) {
+          diff.push(...serviceDiff);
+        }
+      } else {
+        diff.push(new Diff(DiffAction.DELETE, previousService, 'service', previousService.serviceId));
+      }
+    }
+    for (const service of this.services) {
+      if (!previous?.services.find((s) => s.serviceId === service.serviceId)) {
+        diff.push(new Diff(DiffAction.ADD, service, 'service', service.serviceId));
+
+        const serviceDiff = service.diff();
+        if (serviceDiff.length !== 0) {
+          diff.push(...serviceDiff);
+        }
+      }
+    }
+
     for (const previousSupport of previous?.supports || []) {
       const support = this.supports.find((s) => s.serverKey === previousSupport.serverKey);
       if (support) {
@@ -153,6 +192,11 @@ export class App implements IModel<IApp, App> {
       servers.push(server.synth());
     });
 
+    const services: IService[] = [];
+    this.services.forEach((service) => {
+      services.push(service.synth());
+    });
+
     const supports: ISupport[] = [];
     this.supports.forEach((support) => {
       supports.push(support.synth());
@@ -162,6 +206,7 @@ export class App implements IModel<IApp, App> {
       name: this.name,
       regions,
       servers,
+      services,
       supports,
     };
   }
