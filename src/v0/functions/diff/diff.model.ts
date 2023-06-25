@@ -1,4 +1,4 @@
-import { IModel } from '../../model.interface';
+import { IModel } from '../../models/model.interface';
 
 export enum DiffAction {
   ADD = 'add',

@@ -2,7 +2,7 @@ import { IInstance } from '../instance/instance.interface';
 import { Execution } from './execution.model';
 
 export interface IExecution {
-  environmentVariables: Execution['environmentVariables'];
+  environmentVariables: { [key: string]: string };
   executionId: Execution['executionId'];
   instances: IInstance[];
 }

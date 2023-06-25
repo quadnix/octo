@@ -1,6 +1,6 @@
 import { App } from '../app/app.model';
 import { IModel } from '../model.interface';
-import { Diff } from '../utility/diff/diff.utility.model';
+import { Diff } from '../../functions/diff/diff.model';
 import { IService } from './service.interface';
 
 export class Service implements IModel<IService, Service> {

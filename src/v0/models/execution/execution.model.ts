@@ -1,5 +1,5 @@
-import { DiffUtility } from '../../utility/diff/diff.utility';
-import { Diff } from '../utility/diff/diff.utility.model';
+import { DiffUtility } from '../../functions/diff/diff.utility';
+import { Diff } from '../../functions/diff/diff.model';
 import { Deployment } from '../deployment/deployment.model';
 import { Environment } from '../environment/environment.model';
 import { Instance } from '../instance/instance.model';

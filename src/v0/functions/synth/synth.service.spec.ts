@@ -3,7 +3,7 @@ import { join } from 'path';
 import { promisify } from 'util';
 import { App } from '../../models/app/app.model';
 import { Environment } from '../../models/environment/environment.model';
-import { AwsRegion } from '../../models/region/aws/region.model';
+import { Region } from '../../models/region/region.model';
 import { Server } from '../../models/server/server.model';
 import { Support } from '../../models/support/support.model';
 import { SynthService } from './synth.service';
@@ -21,6 +21,7 @@ describe('Synth Service UT', () => {
         "name": "test-app",
         "regions": [],
         "servers": [],
+        "services": [],
         "supports": [],
         "version": "v0",
       }
@@ -30,7 +31,7 @@ describe('Synth Service UT', () => {
   it('should synthesize a non-empty app', () => {
     const app = new App('test-app');
 
-    const region = new AwsRegion(app, 'aws-us-east-1');
+    const region = new Region(app, 'aws-us-east-1');
     app.addRegion(region);
 
     const environment = new Environment(region, 'qa');
@@ -63,6 +64,7 @@ describe('Synth Service UT', () => {
             "serverKey": "backend",
           },
         ],
+        "services": [],
         "supports": [
           {
             "deployments": [],
@@ -97,6 +99,7 @@ describe('Synth Service UT', () => {
                 "name": "test-app",
                 "regions": [],
                 "servers": [],
+                "services": [],
                 "supports": [],
                 "version": "v0",
               }

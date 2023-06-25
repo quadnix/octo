@@ -1,4 +1,4 @@
-import { Diff } from '../utility/diff/diff.utility.model';
+import { Diff } from '../../functions/diff/diff.model';
 import { Execution } from '../execution/execution.model';
 import { IModel } from '../model.interface';
 import { IInstance } from './instance.interface';

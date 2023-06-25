@@ -1,5 +1,5 @@
-import { DiffUtility } from '../../utility/diff/diff.utility';
-import { Diff } from '../utility/diff/diff.utility.model';
+import { DiffUtility } from '../../functions/diff/diff.utility';
+import { Diff } from '../../functions/diff/diff.model';
 import { IModel } from '../model.interface';
 import { Region } from '../region/region.model';
 import { IEnvironment } from './environment.interface';

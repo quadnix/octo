@@ -1,5 +1,5 @@
 import { IModel } from '../../models/model.interface';
-import { Diff, DiffAction } from '../../models/utility/diff/diff.utility.model';
+import { Diff, DiffAction } from './diff.model';
 
 export class DiffUtility {
   /**

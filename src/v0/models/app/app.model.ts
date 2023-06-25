@@ -1,7 +1,7 @@
-import { DiffUtility } from '../../utility/diff/diff.utility';
+import { DiffUtility } from '../../functions/diff/diff.utility';
 import { IService } from '../service/service.interface';
 import { Service } from '../service/service.model';
-import { Diff } from '../utility/diff/diff.utility.model';
+import { Diff } from '../../functions/diff/diff.model';
 import { IModel } from '../model.interface';
 import { IRegion } from '../region/region.interface';
 import { Region } from '../region/region.model';
