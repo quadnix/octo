@@ -1,12 +1,12 @@
 import { Diff } from './diff.model';
 
-type IHandler = { filter: (diff: Diff) => boolean; handle: () => Promise<void> };
+type IAction = { filter: (diff: Diff) => boolean; handle: (diff: Diff) => Promise<void> };
 
 export class DiffService {
-  private readonly handlers: IHandler[] = [];
+  private readonly actions: IAction[] = [];
 
-  registerHandler(filter: IHandler['filter'], handle: IHandler['handle']): void {
-    this.handlers.push({
+  registerAction(filter: IAction['filter'], handle: IAction['handle']): void {
+    this.actions.push({
       filter,
       handle,
     });
@@ -15,9 +15,9 @@ export class DiffService {
   async apply(diff: Diff): Promise<void> {
     const handles: Promise<void>[] = [];
 
-    for (const handler of this.handlers) {
-      if (handler.filter(diff)) {
-        handles.push(handler.handle());
+    for (const action of this.actions) {
+      if (action.filter(diff)) {
+        handles.push(action.handle(diff));
       }
     }
 
