@@ -31,7 +31,7 @@ describe('Synth Service UT', () => {
   it('should synthesize a non-empty app', () => {
     const app = new App('test-app');
 
-    const region = new Region(app, 'aws-us-east-1');
+    const region = new Region(app, 'region-1');
     app.addRegion(region);
 
     const environment = new Environment(region, 'qa');
@@ -55,7 +55,7 @@ describe('Synth Service UT', () => {
                 },
               },
             ],
-            "regionId": "aws-us-east-1",
+            "regionId": "region-1",
           },
         ],
         "servers": [

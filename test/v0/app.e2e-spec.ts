@@ -1,10 +1,10 @@
-import { App, AwsRegion, Deployment, Environment, Region, Server, Support } from '../../src/v0';
+import { App, Deployment, Environment, Region, Server, Support } from '../../src/v0';
 
 describe('App E2E Test', () => {
   it('should generate app diff', () => {
     const oldApp = new App('test-app');
 
-    const oldRegion = new AwsRegion(oldApp, 'aws-us-east-1');
+    const oldRegion = new Region(oldApp, 'region-1');
     oldApp.addRegion(oldRegion);
 
     const qaEnvironment = new Environment(oldRegion, 'qa');
@@ -14,7 +14,7 @@ describe('App E2E Test', () => {
     oldApp.addServer(new Server(oldApp, 'backend'));
 
     const newApp = oldApp.clone();
-    const newAppRegion: Region = newApp.regions.find((r) => r.regionId === 'aws-us-east-1') as Region;
+    const newAppRegion: Region = newApp.regions.find((r) => r.regionId === 'region-1') as Region;
     const backendServer: Server = newApp.servers.find((s) => s.serverKey === 'backend') as Server;
 
     // Add a deployment to backend server.
@@ -42,7 +42,7 @@ describe('App E2E Test', () => {
       [
         Diff {
           "action": "update",
-          "context": "environment=qa,region=aws-us-east-1,app=test-app",
+          "context": "environment=qa,region=region-1,app=test-app",
           "field": "environmentVariables",
           "value": {
             "key": "env",
@@ -51,13 +51,13 @@ describe('App E2E Test', () => {
         },
         Diff {
           "action": "add",
-          "context": "region=aws-us-east-1,app=test-app",
+          "context": "region=region-1,app=test-app",
           "field": "environment",
           "value": "staging",
         },
         Diff {
           "action": "add",
-          "context": "environment=staging,region=aws-us-east-1,app=test-app",
+          "context": "environment=staging,region=region-1,app=test-app",
           "field": "environmentVariables",
           "value": {
             "key": "env",
