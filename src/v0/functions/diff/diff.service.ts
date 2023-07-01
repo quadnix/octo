@@ -22,7 +22,7 @@ export class DiffService {
     }
 
     if (handles.length === 0) {
-      throw new Error('No handle found!');
+      throw new Error('No action found!');
     }
     await Promise.all(handles);
   }
