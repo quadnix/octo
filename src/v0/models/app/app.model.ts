@@ -1,4 +1,6 @@
 import { DiffUtility } from '../../functions/diff/diff.utility';
+import { IPipeline } from '../pipeline/pipeline.interface';
+import { Pipeline } from '../pipeline/pipeline.model';
 import { IService } from '../service/service.interface';
 import { Service } from '../service/service.model';
 import { Diff } from '../../functions/diff/diff.model';
@@ -14,6 +16,8 @@ import { IApp } from './app.interface';
 export class App implements IModel<IApp, App> {
   readonly name: string;
 
+  readonly pipelines: Pipeline[] = [];
+
   readonly regions: Region[] = [];
 
   readonly servers: Server[] = [];
@@ -24,6 +28,15 @@ export class App implements IModel<IApp, App> {
 
   constructor(name: string) {
     this.name = name;
+  }
+
+  addPipeline(pipeline: Pipeline): void {
+    // Check for duplicates.
+    if (this.pipelines.find((p) => p.pipelineName === pipeline.pipelineName)) {
+      throw new Error('Pipeline already exists!');
+    }
+
+    this.pipelines.push(pipeline);
   }
 
   addRegion(region: Region): void {
@@ -65,6 +78,10 @@ export class App implements IModel<IApp, App> {
   clone(): App {
     const app = new App(this.name);
 
+    this.pipelines.forEach((pipeline) => {
+      app.addPipeline(pipeline.clone());
+    });
+
     this.regions.forEach((region) => {
       app.addRegion(region.clone());
     });
@@ -86,6 +103,7 @@ export class App implements IModel<IApp, App> {
 
   diff(previous?: App): Diff[] {
     return [
+      ...DiffUtility.diffModels(previous?.pipelines || [], this.pipelines, 'pipeline', 'pipelineName'),
       ...DiffUtility.diffModels(previous?.regions || [], this.regions, 'region', 'regionId'),
       ...DiffUtility.diffModels(previous?.servers || [], this.servers, 'server', 'serverKey'),
       ...DiffUtility.diffModels(previous?.services || [], this.services, 'service', 'serviceId'),
@@ -98,6 +116,11 @@ export class App implements IModel<IApp, App> {
   }
 
   synth(): IApp {
+    const pipelines: IPipeline[] = [];
+    this.pipelines.forEach((pipeline) => {
+      pipelines.push(pipeline.synth());
+    });
+
     const regions: IRegion[] = [];
     this.regions.forEach((region) => {
       regions.push(region.synth());
@@ -120,6 +143,7 @@ export class App implements IModel<IApp, App> {
 
     return {
       name: this.name,
+      pipelines,
       regions,
       servers,
       services,

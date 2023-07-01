@@ -1,31 +1,20 @@
+import { App } from '../app/app.model';
 import { IModel } from '../model.interface';
-import { Server } from '../server/server.model';
-import { Diff } from '../utility/diff/diff.utility.model';
+import { Diff } from '../../functions/diff/diff.model';
 import { IPipeline } from './pipeline.interface';
 
 export class Pipeline implements IModel<IPipeline, Pipeline> {
-  readonly context: Server;
-
-  readonly handlerName: string;
-
-  readonly handlerPathInSource: string;
-
-  readonly permissionSet: [];
+  readonly context: App;
 
   readonly pipelineName: string;
 
-  constructor(context: Server, pipelineName: string, handlerName: string, handlerPathInSource: string) {
+  constructor(context: App, pipelineName: string) {
     this.context = context;
-
     this.pipelineName = pipelineName;
-    this.handlerName = handlerName;
-    this.handlerPathInSource = handlerPathInSource;
-
-    this.permissionSet = [];
   }
 
   clone(): Pipeline {
-    return new Pipeline(this.context, this.pipelineName, this.handlerName, this.handlerPathInSource);
+    return new Pipeline(this.context, this.pipelineName);
   }
 
   diff(): Diff[] {
@@ -38,9 +27,6 @@ export class Pipeline implements IModel<IPipeline, Pipeline> {
 
   synth(): IPipeline {
     return {
-      handlerName: this.handlerName,
-      handlerPathInSource: this.handlerPathInSource,
-      permissionSet: this.permissionSet,
       pipelineName: this.pipelineName,
     };
   }
