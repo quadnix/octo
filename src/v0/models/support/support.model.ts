@@ -39,7 +39,7 @@ export class Support implements IModel<ISupport, Support> {
 
   diff(previous?: Support): Diff[] {
     // Generate diff of deployments.
-    return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deployment', 'deploymentTag');
+    return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deployments', 'deploymentTag');
   }
 
   getContext(): string {

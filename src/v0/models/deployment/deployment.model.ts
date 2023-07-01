@@ -40,7 +40,7 @@ export class Deployment implements IModel<IDeployment, Deployment> {
 
   diff(previous?: Deployment): Diff[] {
     // Generate diff of all executions.
-    return DiffUtility.diffModels(previous?.executions || [], this.executions, 'execution', 'executionId');
+    return DiffUtility.diffModels(previous?.executions || [], this.executions, 'executions', 'executionId');
   }
 
   getContext(): string {

@@ -103,11 +103,11 @@ export class App implements IModel<IApp, App> {
 
   diff(previous?: App): Diff[] {
     return [
-      ...DiffUtility.diffModels(previous?.pipelines || [], this.pipelines, 'pipeline', 'pipelineName'),
-      ...DiffUtility.diffModels(previous?.regions || [], this.regions, 'region', 'regionId'),
-      ...DiffUtility.diffModels(previous?.servers || [], this.servers, 'server', 'serverKey'),
-      ...DiffUtility.diffModels(previous?.services || [], this.services, 'service', 'serviceId'),
-      ...DiffUtility.diffModels(previous?.supports || [], this.supports, 'support', 'serverKey'),
+      ...DiffUtility.diffModels(previous?.pipelines || [], this.pipelines, 'pipelines', 'pipelineName'),
+      ...DiffUtility.diffModels(previous?.regions || [], this.regions, 'regions', 'regionId'),
+      ...DiffUtility.diffModels(previous?.servers || [], this.servers, 'servers', 'serverKey'),
+      ...DiffUtility.diffModels(previous?.services || [], this.services, 'services', 'serviceId'),
+      ...DiffUtility.diffModels(previous?.supports || [], this.supports, 'supports', 'serverKey'),
     ];
   }
 

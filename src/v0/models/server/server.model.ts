@@ -39,7 +39,7 @@ export class Server implements IModel<IServer, Server> {
 
   diff(previous?: Server): Diff[] {
     // Generate diff of deployments.
-    return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deployment', 'deploymentTag');
+    return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deployments', 'deploymentTag');
   }
 
   getContext(): string {
