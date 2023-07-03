@@ -13,26 +13,26 @@ export abstract class Model<I, T> implements IModel<I, T> {
   abstract diff(previous?: T): Diff[];
 
   addDependency(
-    onProperty: keyof I,
+    onField: keyof I,
     onAction: DiffAction,
     toModel: Model<unknown, unknown>,
-    toProperty: string,
+    toField: string,
     forAction: DiffAction,
   ): void {
-    if (!this.dependencies[onProperty]) {
-      this.dependencies[onProperty] = {};
+    if (!this.dependencies[onField]) {
+      this.dependencies[onField] = {};
     }
-    if (!this.dependencies[onProperty]![onAction]) {
-      this.dependencies[onProperty]![onAction] = [];
+    if (!this.dependencies[onField]![onAction]) {
+      this.dependencies[onField]![onAction] = [];
     }
 
-    const dependencies = this.dependencies[onProperty]![onAction];
+    const dependencies = this.dependencies[onField]![onAction];
     const exists = dependencies!.some((d) => {
-      const [model, property, action] = d;
-      return model.MODEL_NAME === toModel.MODEL_NAME && model[property] === toModel[toProperty] && action === forAction;
+      const [model, field, action] = d;
+      return model.MODEL_NAME === toModel.MODEL_NAME && model[field] === toModel[toField] && action === forAction;
     });
     if (!exists) {
-      dependencies!.push([toModel, toProperty, forAction]);
+      dependencies!.push([toModel, toField, forAction]);
     }
   }
 

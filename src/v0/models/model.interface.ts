@@ -8,10 +8,10 @@ export interface IModel<I, T> {
   readonly MODEL_NAME: string;
 
   /**
-   * The dependency map of properties, representing an array of dependencies on other model properties.
+   * The dependency map of fields, representing an array of dependencies on other model fields.
    * This map is transient, i.e. it is not synthesized, so cannot be constructed back.
-   * It represents the dependencies by model's property, by the action on that property, and an array of dependencies.
-   * A dependency consists of reference to the parent model, parent model's property on whom dependency is created,
+   * It categorizes the dependencies by model's field, by the action on that field, and an array of dependencies.
+   * A dependency consists of reference to the parent model, parent model's field on whom dependency is created,
    * and finally the action for which dependency is being created.
    */
   readonly dependencies: {
