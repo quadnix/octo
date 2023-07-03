@@ -1,28 +1,23 @@
-import { App } from '../app/app.model';
-import { IModel } from '../model.interface';
+import { Model } from '../model.abstract';
 import { Diff } from '../../functions/diff/diff.model';
 import { IService } from './service.interface';
 
-export class Service implements IModel<IService, Service> {
-  readonly context: App;
+export class Service extends Model<IService, Service> {
+  readonly MODEL_NAME: string = 'service';
 
   readonly serviceId: string;
 
-  constructor(context: App, serviceId: string) {
-    this.context = context;
+  constructor(serviceId: string) {
+    super();
     this.serviceId = serviceId;
   }
 
   clone(): Service {
-    return new Service(this.context, this.serviceId);
+    return new Service(this.serviceId);
   }
 
   diff(): Diff[] {
     return [];
-  }
-
-  getContext(): string {
-    return [`service=${this.serviceId}`, this.context.getContext()].join(',');
   }
 
   synth(): IService {

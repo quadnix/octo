@@ -19,6 +19,7 @@ describe('Synth Service UT', () => {
     expect(output).toMatchInlineSnapshot(`
       {
         "name": "test-app",
+        "pipelines": [],
         "regions": [],
         "servers": [],
         "services": [],
@@ -31,20 +32,21 @@ describe('Synth Service UT', () => {
   it('should synthesize a non-empty app', () => {
     const app = new App('test-app');
 
-    const region = new Region(app, 'region-1');
+    const region = new Region('region-1');
     app.addRegion(region);
 
-    const environment = new Environment(region, 'qa');
+    const environment = new Environment('qa');
     environment.environmentVariables.set('key', 'value');
     region.addEnvironment(environment);
 
-    app.addServer(new Server(app, 'backend'));
-    app.addSupport(new Support(app, 'nginx'));
+    app.addServer(new Server('backend'));
+    app.addSupport(new Support('nginx'));
 
     const output = new SynthService(app).synth();
     expect(output).toMatchInlineSnapshot(`
       {
         "name": "test-app",
+        "pipelines": [],
         "regions": [
           {
             "environments": [
@@ -97,6 +99,7 @@ describe('Synth Service UT', () => {
       expect(output).toMatchInlineSnapshot(`
               {
                 "name": "test-app",
+                "pipelines": [],
                 "regions": [],
                 "servers": [],
                 "services": [],

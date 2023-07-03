@@ -3,41 +3,43 @@ import { Diff } from '../../functions/diff/diff.model';
 import { Deployment } from '../deployment/deployment.model';
 import { Environment } from '../environment/environment.model';
 import { Instance } from '../instance/instance.model';
-import { IModel } from '../model.interface';
+import { Model } from '../model.abstract';
 import { IExecution } from './execution.interface';
 
-export type ExecutionContext = {
-  deployment: Deployment;
-  environment: Environment;
-};
+export class Execution extends Model<IExecution, Execution> {
+  readonly MODEL_NAME: string = 'execution';
 
-export class Execution implements IModel<IExecution, Execution> {
-  readonly context: ExecutionContext;
+  readonly deployment: Deployment;
+
+  readonly environment: Environment;
 
   readonly environmentVariables: Map<string, string> = new Map();
 
   readonly executionId: string;
 
   // There are intentionally no methods to add an instance,
-  // since that is done only by the engine at runtime.
-  // Trying to create an instance object locally would not do anything,
+  // since that can only be done by the Engine at runtime.
+  // Trying to create an instance object locally would not accomplish anything,
   // since an instance can only be constructed, never diff-ed.
   readonly instances: Instance[] = [];
 
-  constructor(context: ExecutionContext) {
-    this.context = context;
-    this.executionId = [context.deployment.deploymentTag, context.environment.environmentName].join('_');
+  constructor(deployment: Deployment, environment: Environment) {
+    super();
+
+    this.deployment = deployment;
+    this.environment = environment;
+    this.executionId = [deployment.deploymentTag, environment.environmentName].join('_');
   }
 
   clone(): Execution {
-    const execution = new Execution(this.context);
+    const execution = new Execution(this.deployment, this.environment);
 
     for (const [key, value] of this.environmentVariables) {
       execution.environmentVariables.set(key, value);
     }
 
     this.instances.forEach((instance) => {
-      execution.instances.push(new Instance(execution, instance.taskId));
+      execution.instances.push(new Instance(instance.taskId));
     });
 
     return execution;
@@ -52,19 +54,11 @@ export class Execution implements IModel<IExecution, Execution> {
     );
   }
 
-  getContext(): string {
-    return [
-      `execution=${this.executionId}`,
-      this.context.deployment.getContext(),
-      this.context.environment.getContext(),
-    ].join(',');
-  }
-
   synth(): IExecution {
     return {
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
       executionId: this.executionId,
-      instances: [], // intentionally does not synthesize. It is done by engine at runtime.
+      instances: [], // intentionally does not synthesize. It is done by the Engine at runtime.
     };
   }
 }

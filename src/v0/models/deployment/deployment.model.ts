@@ -1,21 +1,19 @@
-import { Diff } from '../../functions/diff/diff.model';
+import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { DiffUtility } from '../../functions/diff/diff.utility';
 import { IExecution } from '../execution/execution.interface';
 import { Execution } from '../execution/execution.model';
-import { IModel } from '../model.interface';
-import { Server } from '../server/server.model';
-import { Support } from '../support/support.model';
+import { Model } from '../model.abstract';
 import { IDeployment } from './deployment.interface';
 
-export class Deployment implements IModel<IDeployment, Deployment> {
-  readonly context: Server | Support;
+export class Deployment extends Model<IDeployment, Deployment> {
+  readonly MODEL_NAME: string = 'deployment';
 
   readonly deploymentTag: string;
 
   readonly executions: Execution[] = [];
 
-  constructor(context: Server | Support, deploymentTag: string) {
-    this.context = context;
+  constructor(deploymentTag: string) {
+    super();
     this.deploymentTag = deploymentTag;
   }
 
@@ -25,11 +23,25 @@ export class Deployment implements IModel<IDeployment, Deployment> {
       throw new Error('Execution already exists!');
     }
 
+    // Define parent-child dependency.
+    execution.addDependency('executionId', DiffAction.ADD, this, 'deploymentTag', DiffAction.ADD);
+    execution.addDependency('executionId', DiffAction.ADD, this, 'deploymentTag', DiffAction.UPDATE);
+    execution.addDependency('executionId', DiffAction.ADD, execution.environment, 'environmentName', DiffAction.ADD);
+    execution.addDependency('executionId', DiffAction.ADD, execution.environment, 'environmentName', DiffAction.UPDATE);
+    this.addDependency('deploymentTag', DiffAction.DELETE, execution, 'executionId', DiffAction.DELETE);
+    execution.environment.addDependency(
+      'environmentName',
+      DiffAction.DELETE,
+      execution,
+      'executionId',
+      DiffAction.DELETE,
+    );
+
     this.executions.push(execution);
   }
 
   clone(): Deployment {
-    const deployment = new Deployment(this.context, this.deploymentTag);
+    const deployment = new Deployment(this.deploymentTag);
 
     this.executions.forEach((execution) => {
       deployment.addExecution(execution.clone());
@@ -41,10 +53,6 @@ export class Deployment implements IModel<IDeployment, Deployment> {
   diff(previous?: Deployment): Diff[] {
     // Generate diff of all executions.
     return DiffUtility.diffModels(previous?.executions || [], this.executions, 'executions', 'executionId');
-  }
-
-  getContext(): string {
-    return [`deployment=${this.deploymentTag}`, this.context.getContext()].join(',');
   }
 
   synth(): IDeployment {

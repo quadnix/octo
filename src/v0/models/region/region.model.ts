@@ -1,20 +1,19 @@
+import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { DiffUtility } from '../../functions/diff/diff.utility';
-import { Diff } from '../../functions/diff/diff.model';
-import { App } from '../app/app.model';
 import { IEnvironment } from '../environment/environment.interface';
 import { Environment } from '../environment/environment.model';
-import { IModel } from '../model.interface';
+import { Model } from '../model.abstract';
 import { IRegion } from './region.interface';
 
-export class Region implements IModel<IRegion, Region> {
-  readonly context: App;
+export class Region extends Model<IRegion, Region> {
+  readonly MODEL_NAME: string = 'region';
 
   readonly environments: Environment[] = [];
 
   readonly regionId: string;
 
-  constructor(context: App, regionId: string) {
-    this.context = context;
+  constructor(regionId: string) {
+    super();
     this.regionId = regionId;
   }
 
@@ -24,11 +23,16 @@ export class Region implements IModel<IRegion, Region> {
       throw new Error('Environment already exists!');
     }
 
+    // Define parent-child dependency.
+    environment.addDependency('environmentName', DiffAction.ADD, this, 'regionId', DiffAction.ADD);
+    environment.addDependency('environmentName', DiffAction.ADD, this, 'regionId', DiffAction.UPDATE);
+    this.addDependency('regionId', DiffAction.DELETE, environment, 'environmentName', DiffAction.DELETE);
+
     this.environments.push(environment);
   }
 
   clone(): Region {
-    const region = new Region(this.context, this.regionId);
+    const region = new Region(this.regionId);
 
     this.environments.forEach((environment) => {
       region.addEnvironment(environment.clone());
@@ -40,10 +44,6 @@ export class Region implements IModel<IRegion, Region> {
   diff(previous?: Region): Diff[] {
     // Generate diff of environments.
     return DiffUtility.diffModels(previous?.environments || [], this.environments, 'environments', 'environmentName');
-  }
-
-  getContext(): string {
-    return [`region=${this.regionId}`, this.context.getContext()].join(',');
   }
 
   synth(): IRegion {

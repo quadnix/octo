@@ -22,10 +22,9 @@ export class Diff {
     this.value = value;
   }
 
-  toJSON(): { action: Diff['action']; context: string; field: Diff['field']; value: Diff['value'] } {
+  toJSON(): Omit<Diff, 'model' | 'toJSON'> {
     return {
       action: this.action,
-      context: this.model.getContext(),
       field: this.field,
       value: this.value,
     };

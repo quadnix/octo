@@ -1,23 +1,22 @@
 import { DiffUtility } from '../../functions/diff/diff.utility';
-import { App } from '../app/app.model';
-import { IModel } from '../model.interface';
+import { Model } from '../model.abstract';
 import { Diff } from '../../functions/diff/diff.model';
 import { IPipeline } from './pipeline.interface';
 
-export class Pipeline implements IModel<IPipeline, Pipeline> {
-  readonly context: App;
+export class Pipeline extends Model<IPipeline, Pipeline> {
+  readonly MODEL_NAME: string = 'pipeline';
 
   readonly instructionSet: string[] = [];
 
   readonly pipelineName: string;
 
-  constructor(context: App, pipelineName: string) {
-    this.context = context;
+  constructor(pipelineName: string) {
+    super();
     this.pipelineName = pipelineName;
   }
 
   clone(): Pipeline {
-    const pipeline = new Pipeline(this.context, this.pipelineName);
+    const pipeline = new Pipeline(this.pipelineName);
 
     pipeline.instructionSet.push(...this.instructionSet);
 
@@ -27,10 +26,6 @@ export class Pipeline implements IModel<IPipeline, Pipeline> {
   diff(previous?: Pipeline): Diff[] {
     // Generate diff of instructionSet.
     return DiffUtility.diffArray(previous || ({ instructionSet: [] } as unknown as Pipeline), this, 'instructionSet');
-  }
-
-  getContext(): string {
-    return [`pipeline=${this.pipelineName}`, this.context.getContext()].join(',');
   }
 
   synth(): IPipeline {

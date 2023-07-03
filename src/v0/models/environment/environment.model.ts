@@ -1,23 +1,22 @@
 import { DiffUtility } from '../../functions/diff/diff.utility';
 import { Diff } from '../../functions/diff/diff.model';
-import { IModel } from '../model.interface';
-import { Region } from '../region/region.model';
+import { Model } from '../model.abstract';
 import { IEnvironment } from './environment.interface';
 
-export class Environment implements IModel<IEnvironment, Environment> {
-  readonly context: Region;
+export class Environment extends Model<IEnvironment, Environment> {
+  readonly MODEL_NAME: string = 'environment';
 
   readonly environmentName: string;
 
   readonly environmentVariables: Map<string, string> = new Map();
 
-  constructor(context: Region, environmentName: string) {
-    this.context = context;
+  constructor(environmentName: string) {
+    super();
     this.environmentName = environmentName;
   }
 
   clone(): Environment {
-    const environment = new Environment(this.context, this.environmentName);
+    const environment = new Environment(this.environmentName);
 
     for (const [key, value] of this.environmentVariables) {
       environment.environmentVariables.set(key, value);
@@ -33,10 +32,6 @@ export class Environment implements IModel<IEnvironment, Environment> {
       this,
       'environmentVariables',
     );
-  }
-
-  getContext(): string {
-    return [`environment=${this.environmentName}`, this.context.getContext()].join(',');
   }
 
   synth(): IEnvironment {

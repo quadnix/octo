@@ -1,20 +1,19 @@
 import { Diff } from '../../functions/diff/diff.model';
-import { Execution } from '../execution/execution.model';
-import { IModel } from '../model.interface';
+import { Model } from '../model.abstract';
 import { IInstance } from './instance.interface';
 
-export class Instance implements IModel<IInstance, Instance> {
-  readonly context: Execution;
+export class Instance extends Model<IInstance, Instance> {
+  readonly MODEL_NAME: string = 'instance';
 
   readonly taskId: string;
 
-  constructor(context: Execution, taskId: string) {
-    this.context = context;
+  constructor(taskId: string) {
+    super();
     this.taskId = taskId;
   }
 
   clone(): Instance {
-    return new Instance(this.context, this.taskId);
+    return new Instance(this.taskId);
   }
 
   diff(): Diff[] {
@@ -22,10 +21,6 @@ export class Instance implements IModel<IInstance, Instance> {
     // since instances can only be constructed, never diff-ed.
     // Instances are dynamically added by engine in its own state.
     return [];
-  }
-
-  getContext(): string {
-    return [`instance=${this.taskId}`, this.context.getContext()].join(',');
   }
 
   synth(): IInstance {

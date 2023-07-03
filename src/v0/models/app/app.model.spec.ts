@@ -7,13 +7,12 @@ describe('App UT', () => {
   describe('clone()', () => {
     it('should clone all fields', () => {
       const app = new App('test');
-      app.addRegion(new Region(app, 'region-1'));
-      app.addServer(new Server(app, 'backend'));
-      app.addSupport(new Support(app, 'nginx'));
+      app.addRegion(new Region('region-1'));
+      app.addServer(new Server('backend'));
+      app.addSupport(new Support('nginx'));
 
       const duplicate = app.clone();
 
-      expect(duplicate.getContext()).toBe('app=test');
       expect(duplicate.regions[0].regionId).toBe('region-1');
       expect(duplicate.servers[0].serverKey).toBe('backend');
       expect(duplicate.supports[0].serverKey).toBe('nginx');

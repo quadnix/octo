@@ -1,16 +1,13 @@
-import { App } from '../app/app.model';
-import { Region } from '../region/region.model';
 import { Environment } from './environment.model';
 
 describe('Environment UT', () => {
   describe('clone()', () => {
     it('should clone all fields', () => {
-      const environment = new Environment(new Region(new App('test'), 'region-1'), 'qa');
+      const environment = new Environment('qa');
       environment.environmentVariables.set('key', 'value');
 
       const duplicate = environment.clone();
 
-      expect(duplicate.getContext()).toBe('environment=qa,region=region-1,app=test');
       expect(duplicate.environmentName).toBe('qa');
       expect(duplicate.environmentVariables.get('key')).toBe('value');
     });
@@ -19,21 +16,18 @@ describe('Environment UT', () => {
   describe('diff()', () => {
     describe('when diff of environmentVariables', () => {
       it('should capture update', () => {
-        const region = new Region(new App('test'), 'region-1');
-
-        const oldEnvironment = new Environment(region, 'qa');
+        const oldEnvironment = new Environment('qa');
         oldEnvironment.environmentVariables.set('key', 'value 1');
 
-        const newEnvironment = new Environment(region, 'qa');
+        const newEnvironment = new Environment('qa');
         newEnvironment.environmentVariables.set('key', 'value 2');
 
         const diff = newEnvironment.diff(oldEnvironment);
 
         expect(diff).toMatchInlineSnapshot(`
         [
-          Diff {
+          {
             "action": "update",
-            "context": "environment=qa,region=region-1,app=test",
             "field": "environmentVariables",
             "value": {
               "key": "key",
@@ -45,20 +39,17 @@ describe('Environment UT', () => {
       });
 
       it('should capture deletion', () => {
-        const region = new Region(new App('test'), 'region-1');
-
-        const oldEnvironment = new Environment(region, 'qa');
+        const oldEnvironment = new Environment('qa');
         oldEnvironment.environmentVariables.set('key', 'value');
 
-        const newEnvironment = new Environment(region, 'qa');
+        const newEnvironment = new Environment('qa');
 
         const diff = newEnvironment.diff(oldEnvironment);
 
         expect(diff).toMatchInlineSnapshot(`
         [
-          Diff {
+          {
             "action": "delete",
-            "context": "environment=qa,region=region-1,app=test",
             "field": "environmentVariables",
             "value": {
               "key": "key",
@@ -70,20 +61,17 @@ describe('Environment UT', () => {
       });
 
       it('should capture addition', () => {
-        const region = new Region(new App('test'), 'region-1');
+        const oldEnvironment = new Environment('qa');
 
-        const oldEnvironment = new Environment(region, 'qa');
-
-        const newEnvironment = new Environment(region, 'qa');
+        const newEnvironment = new Environment('qa');
         newEnvironment.environmentVariables.set('key', 'value');
 
         const diff = newEnvironment.diff(oldEnvironment);
 
         expect(diff).toMatchInlineSnapshot(`
         [
-          Diff {
+          {
             "action": "add",
-            "context": "environment=qa,region=region-1,app=test",
             "field": "environmentVariables",
             "value": {
               "key": "key",
@@ -95,30 +83,26 @@ describe('Environment UT', () => {
       });
 
       it('should capture replace', () => {
-        const region = new Region(new App('test'), 'region-1');
-
-        const oldEnvironment = new Environment(region, 'qa');
+        const oldEnvironment = new Environment('qa');
         oldEnvironment.environmentVariables.set('key1', 'value 1');
 
-        const newEnvironment = new Environment(region, 'qa');
+        const newEnvironment = new Environment('qa');
         newEnvironment.environmentVariables.set('key2', 'value 2');
 
         const diff = newEnvironment.diff(oldEnvironment);
 
         expect(diff).toMatchInlineSnapshot(`
         [
-          Diff {
+          {
             "action": "delete",
-            "context": "environment=qa,region=region-1,app=test",
             "field": "environmentVariables",
             "value": {
               "key": "key1",
               "value": "value 1",
             },
           },
-          Diff {
+          {
             "action": "add",
-            "context": "environment=qa,region=region-1,app=test",
             "field": "environmentVariables",
             "value": {
               "key": "key2",
@@ -130,18 +114,15 @@ describe('Environment UT', () => {
       });
 
       it('should capture diff without a previous instance', () => {
-        const region = new Region(new App('test'), 'region-1');
-
-        const newEnvironment = new Environment(region, 'qa');
+        const newEnvironment = new Environment('qa');
         newEnvironment.environmentVariables.set('key', 'value');
 
         const diff = newEnvironment.diff();
 
         expect(diff).toMatchInlineSnapshot(`
         [
-          Diff {
+          {
             "action": "add",
-            "context": "environment=qa,region=region-1,app=test",
             "field": "environmentVariables",
             "value": {
               "key": "key",
