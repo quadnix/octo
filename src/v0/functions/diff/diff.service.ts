@@ -1,29 +1,89 @@
+import { IAction } from '../../models/action.interface';
 import { Diff } from './diff.model';
-
-type IAction = { filter: (diff: Diff) => boolean; handle: (diff: Diff) => Promise<void> };
 
 export class DiffService {
   private readonly actions: IAction[] = [];
 
-  registerAction(filter: IAction['filter'], handle: IAction['handle']): void {
-    this.actions.push({
-      filter,
-      handle,
-    });
-  }
+  private getMatchingDiffs(diff: Diff, diffs: Diff[]): Diff[] {
+    const matchingDiffs: Diff[] = [];
 
-  async apply(diff: Diff): Promise<void> {
-    const handles: Promise<void>[] = [];
-
-    for (const action of this.actions) {
-      if (action.filter(diff)) {
-        handles.push(action.handle(diff));
+    for (const d of diffs) {
+      if (diff.model.isEqual(d.model) && diff.field === d.field && diff.action === d.action) {
+        matchingDiffs.push(d);
       }
     }
 
-    if (handles.length === 0) {
-      throw new Error('No action found!');
+    return matchingDiffs;
+  }
+
+  private setApplyOrder(diff: Diff, diffs: Diff[], seen: Diff[] = []): void {
+    // Detect circular dependencies.
+    if (this.getMatchingDiffs(diff, seen).length > 0) {
+      throw new Error('Found circular dependencies!');
     }
-    await Promise.all(handles);
+
+    // Skip processing diff that already has the applyOrder set.
+    if (diff.metadata.applyOrder >= 0) {
+      return;
+    }
+
+    // Set applyOrder to 0 for diff with no dependencies.
+    if (!diff.model.dependencies?.[diff.field]?.[diff.action]?.length) {
+      diff.metadata.applyOrder = 0;
+      return;
+    }
+
+    const dependencies = diff.model.dependencies[diff.field][diff.action];
+    const dependencyApplyOrders: number[] = [-1];
+    for (const [model, field, action] of dependencies) {
+      const matchingDiffs = diffs.filter(
+        (d) => d.model.MODEL_NAME === model.MODEL_NAME && d.field === field && d.action === action,
+      );
+
+      for (const matchingDiff of matchingDiffs) {
+        this.setApplyOrder(matchingDiff, diffs, [...seen, diff]);
+        dependencyApplyOrders.push(matchingDiff.metadata.applyOrder);
+      }
+    }
+
+    diff.metadata.applyOrder = Math.max(...dependencyApplyOrders) + 1;
+  }
+
+  registerActions(actions: IAction[]): void {
+    this.actions.push(...actions);
+  }
+
+  async apply(diffs: Diff[]): Promise<void> {
+    for (const diff of diffs) {
+      this.setApplyOrder(diff, diffs);
+    }
+
+    let accountedFor = 0;
+    let currentApplyOrder = 0;
+    while (accountedFor < diffs.length) {
+      const diffsInSameLevel = diffs.filter((d) => d.metadata.applyOrder === currentApplyOrder);
+
+      const promisesToApplyDiff: Promise<void>[] = [];
+      for (const diff of diffsInSameLevel) {
+        const actions = this.actions.filter((a) => a.filter(diff));
+        if (actions.length === 0) {
+          throw new Error('No matching action found to process diff!');
+        }
+
+        const matchingDiffs = this.getMatchingDiffs(diff, diffsInSameLevel);
+        const unprocessedDiffs = matchingDiffs.filter((d) => !d.metadata.applied);
+
+        actions.map((a) => {
+          promisesToApplyDiff.push(a.handle(unprocessedDiffs));
+        });
+
+        unprocessedDiffs.forEach((d) => (d.metadata.applied = true));
+      }
+
+      await Promise.all(promisesToApplyDiff);
+
+      accountedFor += diffsInSameLevel.length;
+      currentApplyOrder += 1;
+    }
   }
 }

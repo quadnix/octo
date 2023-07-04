@@ -11,6 +11,11 @@ export class Diff {
 
   readonly field: string;
 
+  readonly metadata: {
+    applied: boolean;
+    applyOrder: number;
+  };
+
   readonly model: IModel<unknown, unknown>;
 
   readonly value: unknown;
@@ -20,9 +25,10 @@ export class Diff {
     this.action = action;
     this.field = field;
     this.value = value;
+    this.metadata = { applied: false, applyOrder: -1 };
   }
 
-  toJSON(): Omit<Diff, 'model' | 'toJSON'> {
+  toJSON(): Omit<Diff, 'metadata' | 'model' | 'toJSON'> {
     return {
       action: this.action,
       field: this.field,
