@@ -50,7 +50,7 @@ describe('App E2E Test', () => {
         },
         {
           "action": "add",
-          "field": "environments",
+          "field": "environmentName",
           "value": "staging",
         },
         {
@@ -63,27 +63,27 @@ describe('App E2E Test', () => {
         },
         {
           "action": "add",
-          "field": "deployments",
+          "field": "deploymentTag",
           "value": "v0.0.1",
         },
         {
           "action": "add",
-          "field": "servers",
+          "field": "serverKey",
           "value": "database",
         },
         {
           "action": "add",
-          "field": "deployments",
+          "field": "deploymentTag",
           "value": "v0.0.1",
         },
         {
           "action": "add",
-          "field": "supports",
+          "field": "serverKey",
           "value": "nginx",
         },
         {
           "action": "add",
-          "field": "deployments",
+          "field": "deploymentTag",
           "value": "v1",
         },
       ]

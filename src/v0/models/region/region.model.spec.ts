@@ -64,7 +64,7 @@ describe('Region UT', () => {
         [
           {
             "action": "delete",
-            "field": "environments",
+            "field": "environmentName",
             "value": "qa",
           },
         ]
@@ -86,7 +86,7 @@ describe('Region UT', () => {
         [
           {
             "action": "add",
-            "field": "environments",
+            "field": "environmentName",
             "value": "qa",
           },
           {
@@ -122,12 +122,12 @@ describe('Region UT', () => {
         [
           {
             "action": "delete",
-            "field": "environments",
+            "field": "environmentName",
             "value": "qa",
           },
           {
             "action": "add",
-            "field": "environments",
+            "field": "environmentName",
             "value": "staging",
           },
         ]
@@ -147,7 +147,7 @@ describe('Region UT', () => {
         [
           {
             "action": "add",
-            "field": "environments",
+            "field": "environmentName",
             "value": "qa",
           },
           {
