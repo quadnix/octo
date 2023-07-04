@@ -30,6 +30,11 @@ export interface IModel<I, T> {
   diff(previous?: T): Diff[];
 
   /**
+   * Determines if the instance is the same as this.
+   */
+  isEqual(instance: T): boolean;
+
+  /**
    * Generate a serializable representation of model as per model's interface.
    */
   synth(): I;

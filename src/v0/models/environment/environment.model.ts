@@ -34,6 +34,10 @@ export class Environment extends Model<IEnvironment, Environment> {
     );
   }
 
+  isEqual(instance: Environment): boolean {
+    return this.environmentName === instance.environmentName;
+  }
+
   synth(): IEnvironment {
     return {
       environmentName: this.environmentName,

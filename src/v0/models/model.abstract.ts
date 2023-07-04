@@ -8,10 +8,6 @@ export abstract class Model<I, T> implements IModel<I, T> {
     [key in keyof I]?: { [key in DiffAction]?: [Model<unknown, unknown>, string, DiffAction][] };
   } = {};
 
-  abstract clone(): T;
-
-  abstract diff(previous?: T): Diff[];
-
   addDependency(
     onField: keyof I,
     onAction: DiffAction,
@@ -35,6 +31,12 @@ export abstract class Model<I, T> implements IModel<I, T> {
       dependencies!.push([toModel, toField, forAction]);
     }
   }
+
+  abstract clone(): T;
+
+  abstract diff(previous?: T): Diff[];
+
+  abstract isEqual(instance: T): boolean;
 
   abstract synth(): I;
 }

@@ -43,7 +43,11 @@ export class Support extends Model<ISupport, Support> {
 
   diff(previous?: Support): Diff[] {
     // Generate diff of deployments.
-    return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deployments', 'deploymentTag');
+    return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deploymentTag');
+  }
+
+  isEqual(instance: Support): boolean {
+    return this.serverKey === instance.serverKey;
   }
 
   synth(): ISupport {

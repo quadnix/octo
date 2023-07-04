@@ -20,6 +20,10 @@ export class Service extends Model<IService, Service> {
     return [];
   }
 
+  isEqual(instance: Service): boolean {
+    return this.serviceId === instance.serviceId;
+  }
+
   synth(): IService {
     return {
       serviceId: this.serviceId,

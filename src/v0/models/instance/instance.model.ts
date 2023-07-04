@@ -23,6 +23,10 @@ export class Instance extends Model<IInstance, Instance> {
     return [];
   }
 
+  isEqual(instance: Instance): boolean {
+    return this.taskId === instance.taskId;
+  }
+
   synth(): IInstance {
     return {
       taskId: this.taskId,

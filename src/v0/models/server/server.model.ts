@@ -43,7 +43,11 @@ export class Server extends Model<IServer, Server> {
 
   diff(previous?: Server): Diff[] {
     // Generate diff of deployments.
-    return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deployments', 'deploymentTag');
+    return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deploymentTag');
+  }
+
+  isEqual(instance: Server): boolean {
+    return this.serverKey === instance.serverKey;
   }
 
   synth(): IServer {

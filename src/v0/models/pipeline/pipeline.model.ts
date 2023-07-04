@@ -28,6 +28,10 @@ export class Pipeline extends Model<IPipeline, Pipeline> {
     return DiffUtility.diffArray(previous || ({ instructionSet: [] } as unknown as Pipeline), this, 'instructionSet');
   }
 
+  isEqual(instance: Pipeline): boolean {
+    return this.pipelineName === instance.pipelineName;
+  }
+
   synth(): IPipeline {
     return {
       instructionSet: this.instructionSet,

@@ -77,7 +77,7 @@ export class DiffUtility {
   static diffMap(a: IModel<unknown, unknown>, b: IModel<unknown, unknown>, field: string): Diff[] {
     const diff: Diff[] = [];
 
-    // Iterate properties of previous (a). If found in latest (b), consider it an UPDATE.
+    // Iterate fields of previous (a). If found in latest (b), consider it an UPDATE.
     // If not found in latest (b), consider it a DELETE.
     for (const [key, value] of a[field]) {
       if (b[field].has(key)) {
@@ -89,7 +89,7 @@ export class DiffUtility {
       }
     }
 
-    // Iterate properties of latest (b). If not found in previous (a), consider it an ADD.
+    // Iterate fields of latest (b). If not found in previous (a), consider it an ADD.
     for (const [key, value] of b[field]) {
       if (!a[field].has(key)) {
         diff.push(new Diff(b, DiffAction.ADD, field, { key, value }));
@@ -104,34 +104,28 @@ export class DiffUtility {
    * The diff is generated recursively, i.e. all children of the model are included in the diff.
    * @param a array of previous models.
    * @param b array of latest models.
-   * @param field string representing the field parent uses to reference the models.
-   * @param property string representing the unique key of the model.
+   * @param field string representing the unique identifier of the model.
    */
-  static diffModels(
-    a: IModel<unknown, unknown>[],
-    b: IModel<unknown, unknown>[],
-    field: string,
-    property: string,
-  ): Diff[] {
+  static diffModels(a: IModel<unknown, unknown>[], b: IModel<unknown, unknown>[], field: string): Diff[] {
     const diff: Diff[] = [];
 
-    // Iterate properties of previous (a). If found in latest (b), get recursive diff of children of b vs a.
+    // Iterate fields of previous (a). If found in latest (b), get recursive diff of children of b vs a.
     // If not found in latest (b), consider it a DELETE.
     for (const x of a) {
-      const y = b.find((i) => i[property] === x[property]);
+      const y = b.find((i) => i[field] === x[field]);
       if (y) {
         const pDiff = y.diff(x);
         diff.push(...pDiff);
       } else {
-        diff.push(new Diff(x, DiffAction.DELETE, field, x[property]));
+        diff.push(new Diff(x, DiffAction.DELETE, field, x[field]));
       }
     }
 
-    // Iterate properties of latest (b). If not found in previous (a), consider it an ADD.
+    // Iterate fields of latest (b). If not found in previous (a), consider it an ADD.
     // Recursively add all children of b.
     for (const y of b) {
-      if (!a.find((i) => i[property] === y[property])) {
-        diff.push(new Diff(y, DiffAction.ADD, field, y[property]));
+      if (!a.find((i) => i[field] === y[field])) {
+        diff.push(new Diff(y, DiffAction.ADD, field, y[field]));
 
         const pDiff = y.diff();
         diff.push(...pDiff);

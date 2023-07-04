@@ -54,6 +54,10 @@ export class Execution extends Model<IExecution, Execution> {
     );
   }
 
+  isEqual(instance: Execution): boolean {
+    return this.executionId === instance.executionId;
+  }
+
   synth(): IExecution {
     return {
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),

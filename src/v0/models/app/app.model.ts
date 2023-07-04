@@ -131,12 +131,16 @@ export class App extends Model<IApp, App> {
 
   diff(previous?: App): Diff[] {
     return [
-      ...DiffUtility.diffModels(previous?.pipelines || [], this.pipelines, 'pipelines', 'pipelineName'),
-      ...DiffUtility.diffModels(previous?.regions || [], this.regions, 'regions', 'regionId'),
-      ...DiffUtility.diffModels(previous?.servers || [], this.servers, 'servers', 'serverKey'),
-      ...DiffUtility.diffModels(previous?.services || [], this.services, 'services', 'serviceId'),
-      ...DiffUtility.diffModels(previous?.supports || [], this.supports, 'supports', 'serverKey'),
+      ...DiffUtility.diffModels(previous?.pipelines || [], this.pipelines, 'pipelineName'),
+      ...DiffUtility.diffModels(previous?.regions || [], this.regions, 'regionId'),
+      ...DiffUtility.diffModels(previous?.servers || [], this.servers, 'serverKey'),
+      ...DiffUtility.diffModels(previous?.services || [], this.services, 'serviceId'),
+      ...DiffUtility.diffModels(previous?.supports || [], this.supports, 'serverKey'),
     ];
+  }
+
+  isEqual(instance: App): boolean {
+    return this.name === instance.name;
   }
 
   synth(): IApp {

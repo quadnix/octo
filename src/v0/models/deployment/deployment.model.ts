@@ -52,7 +52,11 @@ export class Deployment extends Model<IDeployment, Deployment> {
 
   diff(previous?: Deployment): Diff[] {
     // Generate diff of all executions.
-    return DiffUtility.diffModels(previous?.executions || [], this.executions, 'executions', 'executionId');
+    return DiffUtility.diffModels(previous?.executions || [], this.executions, 'executionId');
+  }
+
+  isEqual(instance: Deployment): boolean {
+    return this.deploymentTag === instance.deploymentTag;
   }
 
   synth(): IDeployment {

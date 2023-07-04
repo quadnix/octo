@@ -43,7 +43,11 @@ export class Region extends Model<IRegion, Region> {
 
   diff(previous?: Region): Diff[] {
     // Generate diff of environments.
-    return DiffUtility.diffModels(previous?.environments || [], this.environments, 'environments', 'environmentName');
+    return DiffUtility.diffModels(previous?.environments || [], this.environments, 'environmentName');
+  }
+
+  isEqual(instance: Region): boolean {
+    return this.regionId === instance.regionId;
   }
 
   synth(): IRegion {
