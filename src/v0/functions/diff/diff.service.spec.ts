@@ -138,13 +138,14 @@ describe('DiffService UT', () => {
           ACTION_NAME: 'test',
           filter: () => true,
           handle: testActionMock,
+          revert: jest.fn(),
         },
       ];
 
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      const transaction = await diffService.apply(diffs);
 
       expect(testActionMock).toHaveBeenCalledTimes(1);
       expect(testActionMock.mock.calls[0][0].length).toBe(1);
@@ -153,6 +154,18 @@ describe('DiffService UT', () => {
         field: 'environmentName',
         value: 'qa',
       });
+
+      expect(transaction).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "action": "add",
+              "field": "environmentName",
+              "value": "qa",
+            },
+          ],
+        ]
+      `);
     });
 
     it('should call the handles for each diff with no dependencies', async () => {
@@ -169,18 +182,20 @@ describe('DiffService UT', () => {
           ACTION_NAME: 'addEnvironmentName',
           filter: (diff: Diff) => diff.field === 'environmentName',
           handle: addEnvironmentNameActionMock,
+          revert: jest.fn(),
         },
         {
           ACTION_NAME: 'addEnvironmentVariables',
           filter: (diff: Diff) => diff.field === 'environmentVariables',
           handle: addEnvironmentVariablesActionMock,
+          revert: jest.fn(),
         },
       ];
 
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      const transaction = await diffService.apply(diffs);
 
       expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
@@ -197,6 +212,27 @@ describe('DiffService UT', () => {
         field: 'environmentVariables',
         value: { key: 'value' },
       });
+
+      expect(transaction).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "action": "add",
+              "field": "environmentName",
+              "value": "qa",
+            },
+          ],
+          [
+            {
+              "action": "add",
+              "field": "environmentVariables",
+              "value": {
+                "key": "value",
+              },
+            },
+          ],
+        ]
+      `);
     });
 
     it('should call the handles for each diff with 1 level of dependencies', async () => {
@@ -214,18 +250,20 @@ describe('DiffService UT', () => {
           ACTION_NAME: 'addEnvironmentName',
           filter: (diff: Diff) => diff.field === 'environmentName',
           handle: addEnvironmentNameActionMock,
+          revert: jest.fn(),
         },
         {
           ACTION_NAME: 'addEnvironmentVariables',
           filter: (diff: Diff) => diff.field === 'environmentVariables',
           handle: addEnvironmentVariablesActionMock,
+          revert: jest.fn(),
         },
       ];
 
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      const transaction = await diffService.apply(diffs);
 
       expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
@@ -246,6 +284,27 @@ describe('DiffService UT', () => {
       expect(addEnvironmentVariablesActionMock.mock.invocationCallOrder[0]).toBeLessThan(
         addEnvironmentNameActionMock.mock.invocationCallOrder[0],
       );
+
+      expect(transaction).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "action": "add",
+              "field": "environmentVariables",
+              "value": {
+                "key": "value",
+              },
+            },
+          ],
+          [
+            {
+              "action": "add",
+              "field": "environmentName",
+              "value": "qa",
+            },
+          ],
+        ]
+      `);
     });
 
     it('should call the handles for each diff with 2 level of dependencies', async () => {
@@ -272,23 +331,26 @@ describe('DiffService UT', () => {
           ACTION_NAME: 'addEnvironmentName',
           filter: (diff: Diff) => diff.field === 'environmentName',
           handle: addEnvironmentNameActionMock,
+          revert: jest.fn(),
         },
         {
           ACTION_NAME: 'addEnvironmentVariables',
           filter: (diff: Diff) => diff.field === 'environmentVariables' && diff.action === DiffAction.ADD,
           handle: addEnvironmentVariablesActionMock,
+          revert: jest.fn(),
         },
         {
           ACTION_NAME: 'addEnvironmentVariables',
           filter: (diff: Diff) => diff.field === 'environmentVariables' && diff.action === DiffAction.DELETE,
           handle: deleteEnvironmentVariablesActionMock,
+          revert: jest.fn(),
         },
       ];
 
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      const transaction = await diffService.apply(diffs);
 
       expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
@@ -320,6 +382,36 @@ describe('DiffService UT', () => {
       expect(addEnvironmentVariablesActionMock.mock.invocationCallOrder[0]).toBeLessThan(
         addEnvironmentNameActionMock.mock.invocationCallOrder[0],
       );
+
+      expect(transaction).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "action": "delete",
+              "field": "environmentVariables",
+              "value": {
+                "key": "value",
+              },
+            },
+          ],
+          [
+            {
+              "action": "add",
+              "field": "environmentVariables",
+              "value": {
+                "key": "value",
+              },
+            },
+          ],
+          [
+            {
+              "action": "add",
+              "field": "environmentName",
+              "value": "qa",
+            },
+          ],
+        ]
+      `);
     });
 
     it('should batch similar diffs to be processed together', async () => {
@@ -338,18 +430,20 @@ describe('DiffService UT', () => {
           ACTION_NAME: 'addEnvironmentName',
           filter: (diff: Diff) => diff.field === 'environmentName',
           handle: addEnvironmentNameActionMock,
+          revert: jest.fn(),
         },
         {
           ACTION_NAME: 'addEnvironmentVariables',
           filter: (diff: Diff) => diff.field === 'environmentVariables',
           handle: addEnvironmentVariablesActionMock,
+          revert: jest.fn(),
         },
       ];
 
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      const transaction = await diffService.apply(diffs);
 
       expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
@@ -378,6 +472,139 @@ describe('DiffService UT', () => {
       expect(addEnvironmentVariablesActionMock.mock.invocationCallOrder[1]).toBeLessThan(
         addEnvironmentNameActionMock.mock.invocationCallOrder[0],
       );
+
+      expect(transaction).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "action": "add",
+              "field": "environmentVariables",
+              "value": {
+                "key1": "value1",
+              },
+            },
+            {
+              "action": "add",
+              "field": "environmentVariables",
+              "value": {
+                "key2": "value2",
+              },
+            },
+          ],
+          [],
+          [
+            {
+              "action": "add",
+              "field": "environmentName",
+              "value": "qa",
+            },
+          ],
+        ]
+      `);
+    });
+  });
+
+  describe('rollback()', () => {
+    it('should rollback a single diff', async () => {
+      const environment = new Environment('qa');
+      const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+
+      const testActionMock = jest.fn();
+      const actions: IAction[] = [
+        {
+          ACTION_NAME: 'test',
+          filter: () => true,
+          handle: jest.fn(),
+          revert: testActionMock,
+        },
+      ];
+      diff1.metadata.actions = actions;
+
+      const diffService = new DiffService();
+      diffService.registerActions(actions);
+
+      await diffService.rollback([[diff1]]);
+
+      expect(testActionMock).toHaveBeenCalledTimes(1);
+      expect(testActionMock.mock.calls[0][0].length).toBe(1);
+      expect(testActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+        action: 'add',
+        field: 'environmentName',
+        value: 'qa',
+      });
+    });
+
+    it('should rollback multiple diffs of same type', async () => {
+      const environment = new Environment('qa');
+      const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+      const diff2 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+
+      const testActionMock = jest.fn();
+      const actions: IAction[] = [
+        {
+          ACTION_NAME: 'test',
+          filter: () => true,
+          handle: jest.fn(),
+          revert: testActionMock,
+        },
+      ];
+      diff1.metadata.actions = actions;
+      diff2.metadata.actions = actions;
+
+      const diffService = new DiffService();
+      diffService.registerActions(actions);
+
+      await diffService.rollback([[diff1, diff2]]);
+
+      expect(testActionMock).toHaveBeenCalledTimes(1);
+      expect(testActionMock.mock.calls[0][0].length).toBe(2);
+      expect(testActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+        action: 'add',
+        field: 'environmentName',
+        value: 'qa',
+      });
+      expect(testActionMock.mock.calls[0][0][1].toJSON()).toEqual({
+        action: 'add',
+        field: 'environmentName',
+        value: 'qa',
+      });
+    });
+
+    it('should rollback multiple diffs in order', async () => {
+      const environment = new Environment('qa');
+      const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+      const diff2 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+
+      const testActionMock = jest.fn();
+      const actions: IAction[] = [
+        {
+          ACTION_NAME: 'test',
+          filter: () => true,
+          handle: jest.fn(),
+          revert: testActionMock,
+        },
+      ];
+      diff1.metadata.actions = actions;
+      diff2.metadata.actions = actions;
+
+      const diffService = new DiffService();
+      diffService.registerActions(actions);
+
+      await diffService.rollback([[diff1], [diff2]]);
+
+      expect(testActionMock).toHaveBeenCalledTimes(2);
+      expect(testActionMock.mock.calls[0][0].length).toBe(1);
+      expect(testActionMock.mock.calls[1][0].length).toBe(1);
+      expect(testActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+        action: 'add',
+        field: 'environmentName',
+        value: 'qa',
+      });
+      expect(testActionMock.mock.calls[1][0][0].toJSON()).toEqual({
+        action: 'add',
+        field: 'environmentName',
+        value: 'qa',
+      });
     });
   });
 });

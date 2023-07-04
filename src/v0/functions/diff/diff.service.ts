@@ -49,11 +49,9 @@ export class DiffService {
     diff.metadata.applyOrder = Math.max(...dependencyApplyOrders) + 1;
   }
 
-  registerActions(actions: IAction[]): void {
-    this.actions.push(...actions);
-  }
+  async apply(diffs: Diff[]): Promise<Diff[][]> {
+    const transaction: Diff[][] = [];
 
-  async apply(diffs: Diff[]): Promise<void> {
     for (const diff of diffs) {
       this.setApplyOrder(diff, diffs);
     }
@@ -65,25 +63,63 @@ export class DiffService {
 
       const promisesToApplyDiff: Promise<void>[] = [];
       for (const diff of diffsInSameLevel) {
+        // Ensure at least one action can process this diff.
         const actions = this.actions.filter((a) => a.filter(diff));
         if (actions.length === 0) {
           throw new Error('No matching action found to process diff!');
         }
 
+        // Check for similar unprocessed-diffs on the same model and same field.
         const matchingDiffs = this.getMatchingDiffs(diff, diffsInSameLevel);
-        const unprocessedDiffs = matchingDiffs.filter((d) => !d.metadata.applied);
+        const unprocessedMatchingDiffs = matchingDiffs.filter((d) => !d.metadata.applied);
 
-        actions.map((a) => {
-          promisesToApplyDiff.push(a.handle(unprocessedDiffs));
+        // Enrich all unprocessed-matching-diffs with their actions.
+        unprocessedMatchingDiffs.map((d) => (d.metadata.actions = actions));
+
+        // Add all all unprocessed-matching-diffs to transaction.
+        transaction.push(unprocessedMatchingDiffs);
+
+        // Apply the actions on each unprocessed-matching-diffs.
+        actions.forEach((a) => {
+          promisesToApplyDiff.push(a.handle(unprocessedMatchingDiffs));
         });
 
-        unprocessedDiffs.forEach((d) => (d.metadata.applied = true));
+        // Mark metadata of each unprocessed-matching-diffs as applied.
+        unprocessedMatchingDiffs.forEach((d) => (d.metadata.applied = true));
       }
 
       await Promise.all(promisesToApplyDiff);
 
       accountedFor += diffsInSameLevel.length;
       currentApplyOrder += 1;
+    }
+
+    return transaction;
+  }
+
+  registerActions(actions: IAction[]): void {
+    this.actions.push(...actions);
+  }
+
+  async rollback(transaction: Diff[][]): Promise<void> {
+    for (let i = transaction.length - 1; i >= 0; i--) {
+      const processedMatchingDiffs = transaction[i];
+      if (processedMatchingDiffs.length === 0) {
+        continue;
+      }
+
+      const promiseToRevertDiff: Promise<void>[] = [];
+      const diff = processedMatchingDiffs[0];
+
+      // Apply the actions on each unprocessed-matching-diffs.
+      diff.metadata.actions.forEach((a) => {
+        promiseToRevertDiff.push(a.revert(processedMatchingDiffs));
+      });
+
+      await Promise.all(promiseToRevertDiff);
+
+      // Mark metadata of each processed-matching-diffs as un-applied.
+      processedMatchingDiffs.forEach((d) => (d.metadata.applied = false));
     }
   }
 }

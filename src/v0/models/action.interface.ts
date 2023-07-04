@@ -12,7 +12,12 @@ export interface IAction {
   filter(diff: Diff): boolean;
 
   /**
-   * This function contains the logic to apply the diff to the underlying infrastructure.
+   * This function contains the logic to apply the diff(s) to the underlying infrastructure.
    */
   handle(diffs: Diff[]): Promise<void>;
+
+  /**
+   * This function contains the logic to revert the diff(s) from the underlying infrastructure.
+   */
+  revert(diffs: Diff[]): Promise<void>;
 }

@@ -1,3 +1,4 @@
+import { IAction } from '../../models/action.interface';
 import { IModel } from '../../models/model.interface';
 
 export enum DiffAction {
@@ -12,6 +13,7 @@ export class Diff {
   readonly field: string;
 
   readonly metadata: {
+    actions: IAction[];
     applied: boolean;
     applyOrder: number;
   };
@@ -25,7 +27,7 @@ export class Diff {
     this.action = action;
     this.field = field;
     this.value = value;
-    this.metadata = { applied: false, applyOrder: -1 };
+    this.metadata = { actions: [], applied: false, applyOrder: -1 };
   }
 
   toJSON(): Omit<Diff, 'metadata' | 'model' | 'toJSON'> {
