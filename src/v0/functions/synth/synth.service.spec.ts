@@ -18,6 +18,7 @@ describe('Synth Service UT', () => {
     const output = new SynthService(app).synth();
     expect(output).toMatchInlineSnapshot(`
       {
+        "images": [],
         "name": "test-app",
         "pipelines": [],
         "regions": [],
@@ -45,6 +46,7 @@ describe('Synth Service UT', () => {
     const output = new SynthService(app).synth();
     expect(output).toMatchInlineSnapshot(`
       {
+        "images": [],
         "name": "test-app",
         "pipelines": [],
         "regions": [
@@ -99,6 +101,7 @@ describe('Synth Service UT', () => {
       const output = JSON.parse(contents.toString());
       expect(output).toMatchInlineSnapshot(`
               {
+                "images": [],
                 "name": "test-app",
                 "pipelines": [],
                 "regions": [],

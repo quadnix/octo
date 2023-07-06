@@ -1,5 +1,7 @@
 import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { DiffUtility } from '../../functions/diff/diff.utility';
+import { IImage } from '../image/image.interface';
+import { Image } from '../image/image.model';
 import { Model } from '../model.abstract';
 import { IPipeline } from '../pipeline/pipeline.interface';
 import { Pipeline } from '../pipeline/pipeline.model';
@@ -16,6 +18,8 @@ import { IApp } from './app.interface';
 export class App extends Model<IApp, App> {
   readonly MODEL_NAME: string = 'app';
 
+  readonly images: Image[] = [];
+
   readonly name: string;
 
   readonly pipelines: Pipeline[] = [];
@@ -31,6 +35,20 @@ export class App extends Model<IApp, App> {
   constructor(name: string) {
     super();
     this.name = name;
+  }
+
+  addImage(image: Image): void {
+    // Check for duplicates.
+    if (this.images.find((i) => i.imageId === image.imageId)) {
+      throw new Error('Image already exists!');
+    }
+
+    // Define parent-child dependency.
+    image.addDependency('imageId', DiffAction.ADD, this, 'name', DiffAction.ADD);
+    image.addDependency('imageId', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
+    this.addDependency('name', DiffAction.DELETE, image, 'imageId', DiffAction.DELETE);
+
+    this.images.push(image);
   }
 
   addPipeline(pipeline: Pipeline): void {
@@ -106,6 +124,10 @@ export class App extends Model<IApp, App> {
   clone(): App {
     const app = new App(this.name);
 
+    this.images.forEach((image) => {
+      app.addImage(image.clone());
+    });
+
     this.pipelines.forEach((pipeline) => {
       app.addPipeline(pipeline.clone());
     });
@@ -131,6 +153,7 @@ export class App extends Model<IApp, App> {
 
   diff(previous?: App): Diff[] {
     return [
+      ...DiffUtility.diffModels(previous?.images || [], this.images, 'imageId'),
       ...DiffUtility.diffModels(previous?.pipelines || [], this.pipelines, 'pipelineName'),
       ...DiffUtility.diffModels(previous?.regions || [], this.regions, 'regionId'),
       ...DiffUtility.diffModels(previous?.servers || [], this.servers, 'serverKey'),
@@ -144,6 +167,11 @@ export class App extends Model<IApp, App> {
   }
 
   synth(): IApp {
+    const images: IImage[] = [];
+    this.images.forEach((image) => {
+      images.push(image.synth());
+    });
+
     const pipelines: IPipeline[] = [];
     this.pipelines.forEach((pipeline) => {
       pipelines.push(pipeline.synth());
@@ -170,6 +198,7 @@ export class App extends Model<IApp, App> {
     });
 
     return {
+      images,
       name: this.name,
       pipelines,
       regions,
