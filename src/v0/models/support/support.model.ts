@@ -5,16 +5,21 @@ import { Deployment } from '../deployment/deployment.model';
 import { Model } from '../model.abstract';
 import { ISupport } from './support.interface';
 
+export type ISupportApplicationType = 'nginx';
+
 export class Support extends Model<ISupport, Support> {
-  readonly MODEL_NAME: string = 'region';
+  readonly MODEL_NAME: string = 'support';
+
+  readonly applicationType: ISupportApplicationType;
 
   readonly deployments: Deployment[] = [];
 
   readonly serverKey: string;
 
-  constructor(serverKey: string) {
+  constructor(serverKey: string, applicationType: ISupportApplicationType) {
     super();
     this.serverKey = serverKey;
+    this.applicationType = applicationType;
   }
 
   addDeployment(deployment: Deployment): void {
@@ -32,7 +37,7 @@ export class Support extends Model<ISupport, Support> {
   }
 
   clone(): Support {
-    const support = new Support(this.serverKey);
+    const support = new Support(this.serverKey, this.applicationType);
 
     this.deployments.forEach((deployment) => {
       support.addDeployment(deployment.clone());
@@ -42,6 +47,8 @@ export class Support extends Model<ISupport, Support> {
   }
 
   diff(previous?: Support): Diff[] {
+    // applicationType intentionally not included in diff, since it cannot change once set.
+
     // Generate diff of deployments.
     return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deploymentTag');
   }
@@ -57,6 +64,7 @@ export class Support extends Model<ISupport, Support> {
     });
 
     return {
+      applicationType: this.applicationType,
       deployments,
       serverKey: this.serverKey,
     };

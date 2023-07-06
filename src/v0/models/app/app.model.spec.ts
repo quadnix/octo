@@ -9,7 +9,7 @@ describe('App UT', () => {
       const app = new App('test');
       app.addRegion(new Region('region-1'));
       app.addServer(new Server('backend'));
-      app.addSupport(new Support('nginx'));
+      app.addSupport(new Support('nginx', 'nginx'));
 
       const duplicate = app.clone();
 

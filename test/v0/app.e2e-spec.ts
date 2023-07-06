@@ -34,7 +34,7 @@ describe('App E2E Test', () => {
     newApp.addServer(databaseServer);
 
     // Add new support.
-    const nginxSupport = new Support('nginx');
+    const nginxSupport = new Support('nginx', 'nginx');
     nginxSupport.addDeployment(new Deployment('v1'));
     newApp.addSupport(nginxSupport);
 

@@ -40,7 +40,7 @@ describe('Synth Service UT', () => {
     region.addEnvironment(environment);
 
     app.addServer(new Server('backend'));
-    app.addSupport(new Support('nginx'));
+    app.addSupport(new Support('nginx', 'nginx'));
 
     const output = new SynthService(app).synth();
     expect(output).toMatchInlineSnapshot(`
@@ -69,6 +69,7 @@ describe('Synth Service UT', () => {
         "services": [],
         "supports": [
           {
+            "applicationType": "nginx",
             "deployments": [],
             "serverKey": "nginx",
           },
