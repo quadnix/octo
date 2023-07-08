@@ -9,7 +9,7 @@ describe('Region UT', () => {
         region.addEnvironment(new Environment('qa'));
         region.addEnvironment(new Environment('qa'));
       };
-      expect(t).toThrow('Environment already exists!');
+      expect(t).toThrowError('Environment already exists!');
     });
   });
 

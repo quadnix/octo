@@ -15,6 +15,10 @@ export abstract class Model<I, T> implements IModel<I, T> {
     toField: string,
     forAction: DiffAction,
   ): void {
+    if (!toModel.hasOwnProperty(toField)) {
+      throw new Error('Invalid field name is not a property of this model!');
+    }
+
     if (!this.dependencies[onField]) {
       this.dependencies[onField] = {};
     }
