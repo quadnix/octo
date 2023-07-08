@@ -3,6 +3,7 @@ import { Diff } from './diff.model';
 
 export class DiffService {
   private readonly actions: IAction[] = [];
+  private readonly transaction: Diff[][] = [];
 
   private getMatchingDiffs(diff: Diff, diffs: Diff[]): Diff[] {
     const matchingDiffs: Diff[] = [];
@@ -49,9 +50,7 @@ export class DiffService {
     diff.metadata.applyOrder = Math.max(...dependencyApplyOrders) + 1;
   }
 
-  async apply(diffs: Diff[]): Promise<Diff[][]> {
-    const transaction: Diff[][] = [];
-
+  async apply(diffs: Diff[]): Promise<void> {
     for (const diff of diffs) {
       this.setApplyOrder(diff, diffs);
     }
@@ -76,8 +75,8 @@ export class DiffService {
         // Enrich all unprocessed-matching-diffs with their actions.
         unprocessedMatchingDiffs.map((d) => (d.metadata.actions = actions));
 
-        // Add all all unprocessed-matching-diffs to transaction.
-        transaction.push(unprocessedMatchingDiffs);
+        // Add all unprocessed-matching-diffs to transaction.
+        this.transaction.push(unprocessedMatchingDiffs);
 
         // Apply the actions on each unprocessed-matching-diffs.
         actions.forEach((a) => {
@@ -93,6 +92,18 @@ export class DiffService {
       accountedFor += diffsInSameLevel.length;
       currentApplyOrder += 1;
     }
+  }
+
+  getActionNames(): string[] {
+    return this.actions.map((a) => a.ACTION_NAME);
+  }
+
+  getTransaction(): ReturnType<Diff['toJSON']>[][] {
+    const transaction: ReturnType<Diff['toJSON']>[][] = [];
+
+    for (const transactionRow of this.transaction) {
+      transaction.push(transactionRow.map((diff) => diff.toJSON()));
+    }
 
     return transaction;
   }
@@ -101,9 +112,9 @@ export class DiffService {
     this.actions.push(...actions);
   }
 
-  async rollback(transaction: Diff[][]): Promise<void> {
-    for (let i = transaction.length - 1; i >= 0; i--) {
-      const processedMatchingDiffs = transaction[i];
+  async rollback(): Promise<void> {
+    for (let i = this.transaction.length - 1; i >= 0; i--) {
+      const processedMatchingDiffs = this.transaction[i];
       if (processedMatchingDiffs.length === 0) {
         continue;
       }
