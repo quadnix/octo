@@ -127,7 +127,7 @@ describe('DiffService UT', () => {
     });
   });
 
-  describe('apply()', () => {
+  describe('beginTransaction()', () => {
     it('should call the handle for a single diff with no dependencies', async () => {
       const environment = new Environment('qa');
       const diffs: Diff[] = [new Diff(environment, DiffAction.ADD, 'environmentName', 'qa')];
@@ -145,7 +145,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      await diffService.beginTransaction(diffs);
 
       expect(testActionMock).toHaveBeenCalledTimes(1);
       expect(testActionMock.mock.calls[0][0].length).toBe(1);
@@ -195,7 +195,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      await diffService.beginTransaction(diffs);
 
       expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
@@ -263,7 +263,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      await diffService.beginTransaction(diffs);
 
       expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
@@ -350,7 +350,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      await diffService.beginTransaction(diffs);
 
       expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
@@ -443,7 +443,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.apply(diffs);
+      await diffService.beginTransaction(diffs);
 
       expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);

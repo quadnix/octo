@@ -50,7 +50,7 @@ export class DiffService {
     diff.metadata.applyOrder = Math.max(...dependencyApplyOrders) + 1;
   }
 
-  async apply(diffs: Diff[]): Promise<void> {
+  async beginTransaction(diffs: Diff[]): Promise<void> {
     for (const diff of diffs) {
       this.setApplyOrder(diff, diffs);
     }
