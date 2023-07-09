@@ -1,4 +1,5 @@
 import { Diff, DiffAction } from '../functions/diff/diff.model';
+import { HookService } from '../functions/hook/hook.service';
 import { IModel } from './model.interface';
 
 export abstract class Model<I, T> implements IModel<I, T> {
@@ -7,6 +8,12 @@ export abstract class Model<I, T> implements IModel<I, T> {
   readonly dependencies: {
     [key in keyof I]?: { [key in DiffAction]?: [Model<unknown, unknown>, string, DiffAction][] };
   } = {};
+
+  readonly hookService: HookService;
+
+  protected constructor() {
+    this.hookService = HookService.getInstance();
+  }
 
   addDependency(
     onField: keyof I,
