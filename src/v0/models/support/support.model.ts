@@ -34,6 +34,9 @@ export class Support extends Model<ISupport, Support> {
     this.addDependency('serverKey', DiffAction.DELETE, deployment, 'deploymentTag', DiffAction.DELETE);
 
     this.deployments.push(deployment);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addDeployment');
   }
 
   clone(): Support {

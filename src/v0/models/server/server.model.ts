@@ -29,6 +29,9 @@ export class Server extends Model<IServer, Server> {
     this.addDependency('serverKey', DiffAction.DELETE, deployment, 'deploymentTag', DiffAction.DELETE);
 
     this.deployments.push(deployment);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addDeployment');
   }
 
   clone(): Server {

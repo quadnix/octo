@@ -38,6 +38,9 @@ export class Deployment extends Model<IDeployment, Deployment> {
     );
 
     this.executions.push(execution);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addExecution');
   }
 
   clone(): Deployment {

@@ -49,6 +49,9 @@ export class App extends Model<IApp, App> {
     this.addDependency('name', DiffAction.DELETE, image, 'imageId', DiffAction.DELETE);
 
     this.images.push(image);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addImage');
   }
 
   addPipeline(pipeline: Pipeline): void {
@@ -63,6 +66,9 @@ export class App extends Model<IApp, App> {
     this.addDependency('name', DiffAction.DELETE, pipeline, 'pipelineName', DiffAction.DELETE);
 
     this.pipelines.push(pipeline);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addPipeline');
   }
 
   addRegion(region: Region): void {
@@ -77,6 +83,9 @@ export class App extends Model<IApp, App> {
     this.addDependency('name', DiffAction.DELETE, region, 'regionId', DiffAction.DELETE);
 
     this.regions.push(region);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addRegion');
   }
 
   addServer(server: Server): void {
@@ -91,6 +100,9 @@ export class App extends Model<IApp, App> {
     this.addDependency('name', DiffAction.DELETE, server, 'serverKey', DiffAction.DELETE);
 
     this.servers.push(server);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addServer');
   }
 
   addService(service: Service): void {
@@ -105,6 +117,9 @@ export class App extends Model<IApp, App> {
     this.addDependency('name', DiffAction.DELETE, service, 'serviceId', DiffAction.DELETE);
 
     this.services.push(service);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addService');
   }
 
   addSupport(support: Support): void {
@@ -119,6 +134,9 @@ export class App extends Model<IApp, App> {
     this.addDependency('name', DiffAction.DELETE, support, 'serverKey', DiffAction.DELETE);
 
     this.supports.push(support);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addSupport');
   }
 
   clone(): App {

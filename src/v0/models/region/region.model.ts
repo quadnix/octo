@@ -29,6 +29,9 @@ export class Region extends Model<IRegion, Region> {
     this.addDependency('regionId', DiffAction.DELETE, environment, 'environmentName', DiffAction.DELETE);
 
     this.environments.push(environment);
+
+    // Trigger hooks related to this event.
+    this.hookService.applyHooks('addEnvironment');
   }
 
   clone(): Region {
