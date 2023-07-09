@@ -1,5 +1,6 @@
 import { IAction } from '../../models/action.interface';
 import { Environment } from '../../models/environment/environment.model';
+import { Region } from '../../models/region/region.model';
 import { Diff, DiffAction } from './diff.model';
 import { DiffService } from './diff.service';
 
@@ -53,6 +54,23 @@ describe('DiffService UT', () => {
       setApplyOrder(diff1, [diff1, diff2]);
       expect(diff1.metadata.applyOrder).toBe(1);
       expect(diff2.metadata.applyOrder).toBe(0);
+    });
+
+    it('should only set order for the diff and its dependencies', () => {
+      const region1 = new Region('region-1');
+      const region2 = new Region('region-2');
+      const environment = new Environment('qa');
+      environment.addDependency('environmentName', DiffAction.ADD, region1, 'regionId', DiffAction.ADD);
+
+      const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+      const diff2 = new Diff(region1, DiffAction.ADD, 'regionId', 'region-1');
+      const diff3 = new Diff(region2, DiffAction.ADD, 'regionId', 'region-2');
+
+      setApplyOrder(diff1, [diff1, diff2, diff3]);
+
+      expect(diff1.metadata.applyOrder).toBe(1);
+      expect(diff2.metadata.applyOrder).toBe(0);
+      expect(diff3.metadata.applyOrder).toBe(-1);
     });
 
     it('should set order 2 for diff with 2 level of dependencies', () => {

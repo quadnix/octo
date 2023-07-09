@@ -38,7 +38,8 @@ export class DiffService {
     const dependencyApplyOrders: number[] = [-1];
     for (const [model, field, action] of dependencies) {
       const matchingDiffs = diffs.filter(
-        (d) => d.model.MODEL_NAME === model.MODEL_NAME && d.field === field && d.action === action,
+        (d) =>
+          d.model.MODEL_NAME === model.MODEL_NAME && d.model.isEqual(model) && d.field === field && d.action === action,
       );
 
       for (const matchingDiff of matchingDiffs) {
