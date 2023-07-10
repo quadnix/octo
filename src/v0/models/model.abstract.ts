@@ -2,6 +2,11 @@ import { Diff, DiffAction } from '../functions/diff/diff.model';
 import { HookService } from '../functions/hook/hook.service';
 import { IModel } from './model.interface';
 
+/**
+ * This is the first implementation of the Model's interface,
+ * and is used to define common functionality between all models.
+ * All models are an extension of this class.
+ */
 export abstract class Model<I, T> implements IModel<I, T> {
   abstract readonly MODEL_NAME: string;
 
@@ -15,6 +20,11 @@ export abstract class Model<I, T> implements IModel<I, T> {
     this.hookService = HookService.getInstance();
   }
 
+  /**
+   * See the field definition of "dependencies" for more details.
+   * This function adds a dependency between a field in self model, and another model's field.
+   * The method is idempotent, i.e. the dependency is only added if it does not already exists.
+   */
   addDependency(
     onField: keyof I,
     onAction: DiffAction,
