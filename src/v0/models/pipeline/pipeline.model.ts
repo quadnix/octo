@@ -34,7 +34,7 @@ export class Pipeline extends Model<IPipeline, Pipeline> {
 
   synth(): IPipeline {
     return {
-      instructionSet: this.instructionSet,
+      instructionSet: [...this.instructionSet],
       pipelineName: this.pipelineName,
     };
   }

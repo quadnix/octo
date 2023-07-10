@@ -46,6 +46,9 @@ export class Execution extends Model<IExecution, Execution> {
   }
 
   diff(previous?: Execution): Diff[] {
+    // deployment, environment, and executionId intentionally not included in diff,
+    // since they all contribute to executionId (primary key) and they can never change.
+
     // Generate diff of environmentVariables.
     return DiffUtility.diffMap(
       previous || ({ environmentVariables: new Map() } as Execution),

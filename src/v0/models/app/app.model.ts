@@ -1,5 +1,6 @@
 import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { DiffUtility } from '../../functions/diff/diff.utility';
+import { HOOK_NAMES } from '../hook.interface';
 import { IImage } from '../image/image.interface';
 import { Image } from '../image/image.model';
 import { Model } from '../model.abstract';
@@ -43,15 +44,15 @@ export class App extends Model<IApp, App> {
       throw new Error('Image already exists!');
     }
 
+    this.images.push(image);
+
     // Define parent-child dependency.
     image.addDependency('imageId', DiffAction.ADD, this, 'name', DiffAction.ADD);
     image.addDependency('imageId', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
     this.addDependency('name', DiffAction.DELETE, image, 'imageId', DiffAction.DELETE);
 
-    this.images.push(image);
-
     // Trigger hooks related to this event.
-    this.hookService.applyHooks('addImage');
+    this.hookService.applyHooks(HOOK_NAMES.ADD_IMAGE);
   }
 
   addPipeline(pipeline: Pipeline): void {
@@ -60,15 +61,15 @@ export class App extends Model<IApp, App> {
       throw new Error('Pipeline already exists!');
     }
 
+    this.pipelines.push(pipeline);
+
     // Define parent-child dependency.
     pipeline.addDependency('pipelineName', DiffAction.ADD, this, 'name', DiffAction.ADD);
     pipeline.addDependency('pipelineName', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
     this.addDependency('name', DiffAction.DELETE, pipeline, 'pipelineName', DiffAction.DELETE);
 
-    this.pipelines.push(pipeline);
-
     // Trigger hooks related to this event.
-    this.hookService.applyHooks('addPipeline');
+    this.hookService.applyHooks(HOOK_NAMES.ADD_PIPELINE);
   }
 
   addRegion(region: Region): void {
@@ -77,15 +78,15 @@ export class App extends Model<IApp, App> {
       throw new Error('Region already exists!');
     }
 
+    this.regions.push(region);
+
     // Define parent-child dependency.
     region.addDependency('regionId', DiffAction.ADD, this, 'name', DiffAction.ADD);
     region.addDependency('regionId', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
     this.addDependency('name', DiffAction.DELETE, region, 'regionId', DiffAction.DELETE);
 
-    this.regions.push(region);
-
     // Trigger hooks related to this event.
-    this.hookService.applyHooks('addRegion');
+    this.hookService.applyHooks(HOOK_NAMES.ADD_REGION);
   }
 
   addServer(server: Server): void {
@@ -94,15 +95,15 @@ export class App extends Model<IApp, App> {
       throw new Error('Server already exists!');
     }
 
+    this.servers.push(server);
+
     // Define parent-child dependency.
     server.addDependency('serverKey', DiffAction.ADD, this, 'name', DiffAction.ADD);
     server.addDependency('serverKey', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
     this.addDependency('name', DiffAction.DELETE, server, 'serverKey', DiffAction.DELETE);
 
-    this.servers.push(server);
-
     // Trigger hooks related to this event.
-    this.hookService.applyHooks('addServer');
+    this.hookService.applyHooks(HOOK_NAMES.ADD_SERVER);
   }
 
   addService(service: Service): void {
@@ -111,15 +112,15 @@ export class App extends Model<IApp, App> {
       throw new Error('Service already exists!');
     }
 
+    this.services.push(service);
+
     // Define parent-child dependency.
     service.addDependency('serviceId', DiffAction.ADD, this, 'name', DiffAction.ADD);
     service.addDependency('serviceId', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
     this.addDependency('name', DiffAction.DELETE, service, 'serviceId', DiffAction.DELETE);
 
-    this.services.push(service);
-
     // Trigger hooks related to this event.
-    this.hookService.applyHooks('addService');
+    this.hookService.applyHooks(HOOK_NAMES.ADD_SERVICE);
   }
 
   addSupport(support: Support): void {
@@ -128,15 +129,15 @@ export class App extends Model<IApp, App> {
       throw new Error('Support already exists!');
     }
 
+    this.supports.push(support);
+
     // Define parent-child dependency.
     support.addDependency('serverKey', DiffAction.ADD, this, 'name', DiffAction.ADD);
     support.addDependency('serverKey', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
     this.addDependency('name', DiffAction.DELETE, support, 'serverKey', DiffAction.DELETE);
 
-    this.supports.push(support);
-
     // Trigger hooks related to this event.
-    this.hookService.applyHooks('addSupport');
+    this.hookService.applyHooks(HOOK_NAMES.ADD_SUPPORT);
   }
 
   clone(): App {

@@ -2,6 +2,7 @@ import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { DiffUtility } from '../../functions/diff/diff.utility';
 import { IEnvironment } from '../environment/environment.interface';
 import { Environment } from '../environment/environment.model';
+import { HOOK_NAMES } from '../hook.interface';
 import { Model } from '../model.abstract';
 import { IRegion } from './region.interface';
 
@@ -23,15 +24,15 @@ export class Region extends Model<IRegion, Region> {
       throw new Error('Environment already exists!');
     }
 
+    this.environments.push(environment);
+
     // Define parent-child dependency.
     environment.addDependency('environmentName', DiffAction.ADD, this, 'regionId', DiffAction.ADD);
     environment.addDependency('environmentName', DiffAction.ADD, this, 'regionId', DiffAction.UPDATE);
     this.addDependency('regionId', DiffAction.DELETE, environment, 'environmentName', DiffAction.DELETE);
 
-    this.environments.push(environment);
-
     // Trigger hooks related to this event.
-    this.hookService.applyHooks('addEnvironment');
+    this.hookService.applyHooks(HOOK_NAMES.ADD_ENVIRONMENT);
   }
 
   clone(): Region {

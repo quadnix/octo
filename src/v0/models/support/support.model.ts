@@ -2,6 +2,7 @@ import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { DiffUtility } from '../../functions/diff/diff.utility';
 import { IDeployment } from '../deployment/deployment.interface';
 import { Deployment } from '../deployment/deployment.model';
+import { HOOK_NAMES } from '../hook.interface';
 import { Model } from '../model.abstract';
 import { ISupport } from './support.interface';
 
@@ -28,15 +29,15 @@ export class Support extends Model<ISupport, Support> {
       throw new Error('Deployment already exists!');
     }
 
+    this.deployments.push(deployment);
+
     // Define parent-child dependency.
     deployment.addDependency('deploymentTag', DiffAction.ADD, this, 'serverKey', DiffAction.ADD);
     deployment.addDependency('deploymentTag', DiffAction.ADD, this, 'serverKey', DiffAction.UPDATE);
     this.addDependency('serverKey', DiffAction.DELETE, deployment, 'deploymentTag', DiffAction.DELETE);
 
-    this.deployments.push(deployment);
-
     // Trigger hooks related to this event.
-    this.hookService.applyHooks('addDeployment');
+    this.hookService.applyHooks(HOOK_NAMES.ADD_DEPLOYMENT);
   }
 
   clone(): Support {
