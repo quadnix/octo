@@ -1,4 +1,4 @@
-import { IHook } from '../../models/hook.interface';
+import { HOOK_NAMES, IHook } from '../../models/hook.interface';
 
 export class HookService {
   private hooks: IHook[];
@@ -9,12 +9,12 @@ export class HookService {
     this.hooks = [];
   }
 
-  applyHooks(hookName: string): void {
+  applyHooks(hookName: HOOK_NAMES): void {
     this.hooks.filter((h) => h.HOOK_NAME === hookName).map((h) => h.handle(...h.args));
   }
 
-  static getInstance(): HookService {
-    if (!HookService.instance) {
+  static getInstance(forceNew?: boolean): HookService {
+    if (!HookService.instance || forceNew) {
       HookService.instance = new HookService();
     }
 
