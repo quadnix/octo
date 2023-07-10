@@ -1,8 +1,11 @@
-import { App, Deployment, Environment, Region, Server, Support } from '../../src/v0';
+import { App, Deployment, Environment, Image, Region, Server, Support } from '../../src/v0';
 
 describe('App E2E Test', () => {
   it('should generate app diff', () => {
     const oldApp = new App('test-app');
+
+    const image = new Image('image', 'tag', { dockerFilePath: '.' });
+    oldApp.addImage(image);
 
     const oldRegion = new Region('region-1');
     oldApp.addRegion(oldRegion);
@@ -18,7 +21,7 @@ describe('App E2E Test', () => {
     const backendServer: Server = newApp.servers.find((s) => s.serverKey === 'backend') as Server;
 
     // Add a deployment to backend server.
-    backendServer.addDeployment(new Deployment('v0.0.1'));
+    backendServer.addDeployment(new Deployment('v0.0.1', image));
 
     // Add a new staging environment.
     const stagingEnvironment = new Environment('staging');
@@ -30,12 +33,12 @@ describe('App E2E Test', () => {
 
     // Add new server.
     const databaseServer = new Server('database');
-    databaseServer.addDeployment(new Deployment('v0.0.1'));
+    databaseServer.addDeployment(new Deployment('v0.0.1', image));
     newApp.addServer(databaseServer);
 
     // Add new support.
     const nginxSupport = new Support('nginx', 'nginx');
-    nginxSupport.addDeployment(new Deployment('v1'));
+    nginxSupport.addDeployment(new Deployment('v1', image));
     newApp.addSupport(nginxSupport);
 
     expect(newApp.diff(oldApp)).toMatchInlineSnapshot(`
