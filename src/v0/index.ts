@@ -13,7 +13,6 @@ export { Deployment } from './models/deployment/deployment.model';
 export { Environment } from './models/environment/environment.model';
 export { Execution } from './models/execution/execution.model';
 export { Image } from './models/image/image.model';
-export { Instance } from './models/instance/instance.model';
 export { Pipeline } from './models/pipeline/pipeline.model';
 export { Region } from './models/region/region.model';
 export { Server } from './models/server/server.model';

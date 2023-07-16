@@ -1,5 +1,3 @@
-import { Diff, DiffAction } from '../../functions/diff/diff.model';
-import { DiffUtility } from '../../functions/diff/diff.utility';
 import { IDeployment } from '../deployment/deployment.interface';
 import { Deployment } from '../deployment/deployment.model';
 import { HOOK_NAMES } from '../hook.interface';
@@ -9,8 +7,6 @@ import { IServer } from './server.interface';
 export class Server extends Model<IServer, Server> {
   readonly MODEL_NAME: string = 'server';
 
-  readonly deployments: Deployment[] = [];
-
   readonly serverKey: string;
 
   constructor(serverKey: string) {
@@ -19,45 +15,44 @@ export class Server extends Model<IServer, Server> {
   }
 
   addDeployment(deployment: Deployment): void {
+    const childrenDependencies = this.getChildren('deployment');
+    if (!childrenDependencies['deployment']) childrenDependencies['deployment'] = [];
+
     // Check for duplicates.
-    if (this.deployments.find((d) => d.deploymentTag === deployment.deploymentTag)) {
+    const deployments = childrenDependencies['deployment'].map((d) => d.to);
+    if (deployments.find((d: Deployment) => d.deploymentTag === deployment.deploymentTag)) {
       throw new Error('Deployment already exists!');
     }
+    this.addChild('serverKey', deployment, 'deploymentTag');
 
-    this.deployments.push(deployment);
-
-    // Define parent-child dependency.
-    deployment.addDependency('deploymentTag', DiffAction.ADD, this, 'serverKey', DiffAction.ADD);
-    deployment.addDependency('deploymentTag', DiffAction.ADD, this, 'serverKey', DiffAction.UPDATE);
-    this.addDependency('serverKey', DiffAction.DELETE, deployment, 'deploymentTag', DiffAction.DELETE);
-
-    // Trigger hooks related to this event.
     this.hookService.applyHooks(HOOK_NAMES.ADD_DEPLOYMENT);
   }
 
   clone(): Server {
     const server = new Server(this.serverKey);
+    const childrenDependencies = this.getChildren();
+    if (!childrenDependencies['deployment']) childrenDependencies['deployment'] = [];
 
-    this.deployments.forEach((deployment) => {
-      server.addDeployment(deployment.clone());
+    childrenDependencies['deployment'].forEach((dependency) => {
+      server.addDeployment((dependency.to as Deployment).clone());
     });
 
     return server;
   }
 
-  diff(previous?: Server): Diff[] {
-    // Generate diff of deployments.
-    return DiffUtility.diffModels(previous?.deployments || [], this.deployments, 'deploymentTag');
-  }
-
-  isEqual(instance: Server): boolean {
-    return this.serverKey === instance.serverKey;
+  getContext(): string {
+    const parents = this.getParents();
+    const app = parents['app'][0].to;
+    return [`${this.MODEL_NAME}=${this.serverKey}`, app.getContext()].join(',');
   }
 
   synth(): IServer {
+    const childrenDependencies = this.getChildren();
+    if (!childrenDependencies['deployment']) childrenDependencies['deployment'] = [];
+
     const deployments: IDeployment[] = [];
-    this.deployments.forEach((deployment) => {
-      deployments.push(deployment.synth());
+    childrenDependencies['deployment'].forEach((dependency) => {
+      deployments.push((dependency.to as Deployment).synth());
     });
 
     return {

@@ -1,4 +1,3 @@
-import { Diff } from '../../functions/diff/diff.model';
 import { Model } from '../model.abstract';
 import { IImage } from './image.interface';
 
@@ -31,12 +30,10 @@ export class Image extends Model<IImage, Image> {
     return new Image(this.imageName, this.imageTag, this.dockerOptions);
   }
 
-  diff(): Diff[] {
-    return [];
-  }
-
-  isEqual(instance: Image): boolean {
-    return this.imageId === instance.imageId;
+  getContext(): string {
+    const parents = this.getParents();
+    const app = parents['app'][0].to;
+    return [`${this.MODEL_NAME}=${this.imageId}`, app.getContext()].join(',');
   }
 
   synth(): IImage {

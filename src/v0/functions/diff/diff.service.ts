@@ -6,15 +6,9 @@ export class DiffService {
   private readonly transaction: Diff[][] = [];
 
   private getMatchingDiffs(diff: Diff, diffs: Diff[]): Diff[] {
-    const matchingDiffs: Diff[] = [];
-
-    for (const d of diffs) {
-      if (diff.model.isEqual(d.model) && diff.field === d.field && diff.action === d.action) {
-        matchingDiffs.push(d);
-      }
-    }
-
-    return matchingDiffs;
+    return diffs.filter(
+      (d) => d.model.getContext() === diff.model.getContext() && d.field === diff.field && d.action === diff.action,
+    );
   }
 
   private setApplyOrder(diff: Diff, diffs: Diff[], seen: Diff[] = []): void {
@@ -28,25 +22,21 @@ export class DiffService {
       return;
     }
 
-    // Set applyOrder to 0 for diff with no dependencies.
-    if (!diff.model.dependencies?.[diff.field]?.[diff.action]?.length) {
-      diff.metadata.applyOrder = 0;
-      return;
-    }
-
-    const dependencies = diff.model.dependencies[diff.field][diff.action];
+    const dependencies = diff.model.getMatchingDependencies(diff.field, diff.action);
     const dependencyApplyOrders: number[] = [-1];
-    for (const [model, field, action] of dependencies) {
+
+    dependencies.forEach((dependency) => {
       const matchingDiffs = diffs.filter(
         (d) =>
-          d.model.MODEL_NAME === model.MODEL_NAME && d.model.isEqual(model) && d.field === field && d.action === action,
+          d.model.getContext() === dependency.to.getContext() &&
+          dependency.hasMatchingBehavior(diff.field, diff.action, d.field, d.action),
       );
 
       for (const matchingDiff of matchingDiffs) {
         this.setApplyOrder(matchingDiff, diffs, [...seen, diff]);
         dependencyApplyOrders.push(matchingDiff.metadata.applyOrder);
       }
-    }
+    });
 
     diff.metadata.applyOrder = Math.max(...dependencyApplyOrders) + 1;
   }

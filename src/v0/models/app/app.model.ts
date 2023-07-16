@@ -1,5 +1,3 @@
-import { Diff, DiffAction } from '../../functions/diff/diff.model';
-import { DiffUtility } from '../../functions/diff/diff.utility';
 import { HOOK_NAMES } from '../hook.interface';
 import { IImage } from '../image/image.interface';
 import { Image } from '../image/image.model';
@@ -19,19 +17,7 @@ import { IApp } from './app.interface';
 export class App extends Model<IApp, App> {
   readonly MODEL_NAME: string = 'app';
 
-  readonly images: Image[] = [];
-
   readonly name: string;
-
-  readonly pipelines: Pipeline[] = [];
-
-  readonly regions: Region[] = [];
-
-  readonly servers: Server[] = [];
-
-  readonly services: Service[] = [];
-
-  readonly supports: Support[] = [];
 
   constructor(name: string) {
     super();
@@ -39,181 +25,167 @@ export class App extends Model<IApp, App> {
   }
 
   addImage(image: Image): void {
+    const childrenDependencies = this.getChildren('image');
+    if (!childrenDependencies['image']) childrenDependencies['image'] = [];
+
     // Check for duplicates.
-    if (this.images.find((i) => i.imageId === image.imageId)) {
-      throw new Error('Image already exists!');
+    const images = childrenDependencies['image'].map((d) => d.to);
+    if (images.find((i: Image) => i.imageId === image.imageId)) {
+      throw new Error('Environment already exists!');
     }
+    this.addChild('name', image, 'imageId');
 
-    this.images.push(image);
-
-    // Define parent-child dependency.
-    image.addDependency('imageId', DiffAction.ADD, this, 'name', DiffAction.ADD);
-    image.addDependency('imageId', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
-    this.addDependency('name', DiffAction.DELETE, image, 'imageId', DiffAction.DELETE);
-
-    // Trigger hooks related to this event.
     this.hookService.applyHooks(HOOK_NAMES.ADD_IMAGE);
   }
 
   addPipeline(pipeline: Pipeline): void {
+    const childrenDependencies = this.getChildren('pipeline');
+    if (!childrenDependencies['pipeline']) childrenDependencies['pipeline'] = [];
+
     // Check for duplicates.
-    if (this.pipelines.find((p) => p.pipelineName === pipeline.pipelineName)) {
+    const pipelines = childrenDependencies['pipeline'].map((d) => d.to);
+    if (pipelines.find((p: Pipeline) => p.pipelineName === pipeline.pipelineName)) {
       throw new Error('Pipeline already exists!');
     }
+    this.addChild('name', pipeline, 'pipelineName');
 
-    this.pipelines.push(pipeline);
-
-    // Define parent-child dependency.
-    pipeline.addDependency('pipelineName', DiffAction.ADD, this, 'name', DiffAction.ADD);
-    pipeline.addDependency('pipelineName', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
-    this.addDependency('name', DiffAction.DELETE, pipeline, 'pipelineName', DiffAction.DELETE);
-
-    // Trigger hooks related to this event.
     this.hookService.applyHooks(HOOK_NAMES.ADD_PIPELINE);
   }
 
   addRegion(region: Region): void {
+    const childrenDependencies = this.getChildren('region');
+    if (!childrenDependencies['region']) childrenDependencies['region'] = [];
+
     // Check for duplicates.
-    if (this.regions.find((r) => r.regionId === region.regionId)) {
+    const regions = childrenDependencies['region'].map((d) => d.to);
+    if (regions.find((r: Region) => r.regionId === region.regionId)) {
       throw new Error('Region already exists!');
     }
+    this.addChild('name', region, 'regionId');
 
-    this.regions.push(region);
-
-    // Define parent-child dependency.
-    region.addDependency('regionId', DiffAction.ADD, this, 'name', DiffAction.ADD);
-    region.addDependency('regionId', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
-    this.addDependency('name', DiffAction.DELETE, region, 'regionId', DiffAction.DELETE);
-
-    // Trigger hooks related to this event.
     this.hookService.applyHooks(HOOK_NAMES.ADD_REGION);
   }
 
   addServer(server: Server): void {
+    const childrenDependencies = this.getChildren('server');
+    if (!childrenDependencies['server']) childrenDependencies['server'] = [];
+
     // Check for duplicates.
-    if (this.servers.find((s) => s.serverKey === server.serverKey)) {
+    const servers = childrenDependencies['server'].map((d) => d.to);
+    if (servers.find((s: Server) => s.serverKey === server.serverKey)) {
       throw new Error('Server already exists!');
     }
+    this.addChild('name', server, 'serverKey');
 
-    this.servers.push(server);
-
-    // Define parent-child dependency.
-    server.addDependency('serverKey', DiffAction.ADD, this, 'name', DiffAction.ADD);
-    server.addDependency('serverKey', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
-    this.addDependency('name', DiffAction.DELETE, server, 'serverKey', DiffAction.DELETE);
-
-    // Trigger hooks related to this event.
     this.hookService.applyHooks(HOOK_NAMES.ADD_SERVER);
   }
 
   addService(service: Service): void {
+    const childrenDependencies = this.getChildren('service');
+    if (!childrenDependencies['service']) childrenDependencies['service'] = [];
+
     // Check for duplicates.
-    if (this.services.find((s) => s.serviceId === service.serviceId)) {
+    const services = childrenDependencies['service'].map((d) => d.to);
+    if (services.find((s: Service) => s.serviceId === service.serviceId)) {
       throw new Error('Service already exists!');
     }
+    this.addChild('name', service, 'serviceId');
 
-    this.services.push(service);
-
-    // Define parent-child dependency.
-    service.addDependency('serviceId', DiffAction.ADD, this, 'name', DiffAction.ADD);
-    service.addDependency('serviceId', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
-    this.addDependency('name', DiffAction.DELETE, service, 'serviceId', DiffAction.DELETE);
-
-    // Trigger hooks related to this event.
     this.hookService.applyHooks(HOOK_NAMES.ADD_SERVICE);
   }
 
   addSupport(support: Support): void {
+    const childrenDependencies = this.getChildren('support');
+    if (!childrenDependencies['support']) childrenDependencies['support'] = [];
+
     // Check for duplicates.
-    if (this.supports.find((s) => s.serverKey === support.serverKey)) {
+    const supports = childrenDependencies['support'].map((d) => d.to);
+    if (supports.find((s: Support) => s.serverKey === support.serverKey)) {
       throw new Error('Support already exists!');
     }
+    this.addChild('name', support, 'serverKey');
 
-    this.supports.push(support);
-
-    // Define parent-child dependency.
-    support.addDependency('serverKey', DiffAction.ADD, this, 'name', DiffAction.ADD);
-    support.addDependency('serverKey', DiffAction.ADD, this, 'name', DiffAction.UPDATE);
-    this.addDependency('name', DiffAction.DELETE, support, 'serverKey', DiffAction.DELETE);
-
-    // Trigger hooks related to this event.
     this.hookService.applyHooks(HOOK_NAMES.ADD_SUPPORT);
   }
 
   clone(): App {
     const app = new App(this.name);
+    const childrenDependencies = this.getChildren();
+    if (!childrenDependencies['image']) childrenDependencies['image'] = [];
+    if (!childrenDependencies['pipeline']) childrenDependencies['pipeline'] = [];
+    if (!childrenDependencies['region']) childrenDependencies['region'] = [];
+    if (!childrenDependencies['server']) childrenDependencies['server'] = [];
+    if (!childrenDependencies['service']) childrenDependencies['service'] = [];
+    if (!childrenDependencies['support']) childrenDependencies['support'] = [];
 
-    this.images.forEach((image) => {
-      app.addImage(image.clone());
+    childrenDependencies['image'].forEach((dependency) => {
+      app.addImage((dependency.to as Image).clone());
     });
 
-    this.pipelines.forEach((pipeline) => {
-      app.addPipeline(pipeline.clone());
+    childrenDependencies['pipeline'].forEach((dependency) => {
+      app.addPipeline((dependency.to as Pipeline).clone());
     });
 
-    this.regions.forEach((region) => {
-      app.addRegion(region.clone());
+    childrenDependencies['region'].forEach((dependency) => {
+      app.addRegion((dependency.to as Region).clone());
     });
 
-    this.servers.forEach((server) => {
-      app.addServer(server.clone());
+    childrenDependencies['server'].forEach((dependency) => {
+      app.addServer((dependency.to as Server).clone());
     });
 
-    this.services.forEach((service) => {
-      app.addService(service.clone());
+    childrenDependencies['service'].forEach((dependency) => {
+      app.addService((dependency.to as Service).clone());
     });
 
-    this.supports.forEach((support) => {
-      app.addSupport(support.clone());
+    childrenDependencies['support'].forEach((dependency) => {
+      app.addSupport((dependency.to as Support).clone());
     });
 
     return app;
   }
 
-  diff(previous?: App): Diff[] {
-    return [
-      ...DiffUtility.diffModels(previous?.images || [], this.images, 'imageId'),
-      ...DiffUtility.diffModels(previous?.pipelines || [], this.pipelines, 'pipelineName'),
-      ...DiffUtility.diffModels(previous?.regions || [], this.regions, 'regionId'),
-      ...DiffUtility.diffModels(previous?.servers || [], this.servers, 'serverKey'),
-      ...DiffUtility.diffModels(previous?.services || [], this.services, 'serviceId'),
-      ...DiffUtility.diffModels(previous?.supports || [], this.supports, 'serverKey'),
-    ];
-  }
-
-  isEqual(instance: App): boolean {
-    return this.name === instance.name;
+  getContext(): string {
+    return `${this.MODEL_NAME}=${this.name}`;
   }
 
   synth(): IApp {
+    const childrenDependencies = this.getChildren();
+    if (!childrenDependencies['image']) childrenDependencies['image'] = [];
+    if (!childrenDependencies['pipeline']) childrenDependencies['pipeline'] = [];
+    if (!childrenDependencies['region']) childrenDependencies['region'] = [];
+    if (!childrenDependencies['server']) childrenDependencies['server'] = [];
+    if (!childrenDependencies['service']) childrenDependencies['service'] = [];
+    if (!childrenDependencies['support']) childrenDependencies['support'] = [];
+
     const images: IImage[] = [];
-    this.images.forEach((image) => {
-      images.push(image.synth());
+    childrenDependencies['image'].forEach((dependency) => {
+      images.push((dependency.to as Image).synth());
     });
 
     const pipelines: IPipeline[] = [];
-    this.pipelines.forEach((pipeline) => {
-      pipelines.push(pipeline.synth());
+    childrenDependencies['pipeline'].forEach((dependency) => {
+      pipelines.push((dependency.to as Pipeline).synth());
     });
 
     const regions: IRegion[] = [];
-    this.regions.forEach((region) => {
-      regions.push(region.synth());
+    childrenDependencies['region'].forEach((dependency) => {
+      regions.push((dependency.to as Region).synth());
     });
 
     const servers: IServer[] = [];
-    this.servers.forEach((server) => {
-      servers.push(server.synth());
+    childrenDependencies['server'].forEach((dependency) => {
+      servers.push((dependency.to as Server).synth());
     });
 
     const services: IService[] = [];
-    this.services.forEach((service) => {
-      services.push(service.synth());
+    childrenDependencies['service'].forEach((dependency) => {
+      services.push((dependency.to as Service).synth());
     });
 
     const supports: ISupport[] = [];
-    this.supports.forEach((support) => {
-      supports.push(support.synth());
+    childrenDependencies['support'].forEach((dependency) => {
+      supports.push((dependency.to as Support).synth());
     });
 
     return {

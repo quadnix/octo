@@ -21,7 +21,7 @@ describe('Region UT', () => {
       const duplicate = region.clone();
 
       expect(duplicate.regionId).toBe('region-1');
-      expect(duplicate.environments[0].environmentName).toBe('qa');
+      expect(duplicate.getChildren('environment')['environment'][0]['to']['environmentName']).toBe('qa');
     });
   });
 

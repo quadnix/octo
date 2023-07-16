@@ -1,5 +1,4 @@
 import { Model } from '../model.abstract';
-import { Diff } from '../../functions/diff/diff.model';
 import { IService } from './service.interface';
 
 export class Service extends Model<IService, Service> {
@@ -16,12 +15,10 @@ export class Service extends Model<IService, Service> {
     return new Service(this.serviceId);
   }
 
-  diff(): Diff[] {
-    return [];
-  }
-
-  isEqual(instance: Service): boolean {
-    return this.serviceId === instance.serviceId;
+  getContext(): string {
+    const parents = this.getParents();
+    const app = parents['app'][0].to;
+    return [`${this.MODEL_NAME}=${this.serviceId}`, app.getContext()].join(',');
   }
 
   synth(): IService {

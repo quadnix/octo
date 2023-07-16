@@ -1,4 +1,4 @@
-import { IModel } from '../../models/model.interface';
+import { Model } from '../../models/model.abstract';
 import { Diff, DiffAction } from './diff.model';
 
 export class DiffUtility {
@@ -8,7 +8,7 @@ export class DiffUtility {
    * @param b latest model.
    * @param field string representing the field parent uses to reference the array.
    */
-  static diffArray(a: IModel<unknown, unknown>, b: IModel<unknown, unknown>, field: string): Diff[] {
+  static diffArray(a: Model<unknown, unknown>, b: Model<unknown, unknown>, field: string): Diff[] {
     const diff: Diff[] = [];
     const aSet = new Set(a[field]);
     const bSet = new Set(b[field]);
@@ -41,8 +41,8 @@ export class DiffUtility {
    * @param compare function to check if two objects are equal.
    */
   static diffArrayOfObjects(
-    a: IModel<unknown, unknown>,
-    b: IModel<unknown, unknown>,
+    a: Model<unknown, unknown>,
+    b: Model<unknown, unknown>,
     field: string,
     compare: (object1, object2) => boolean,
   ): Diff[] {
@@ -74,7 +74,7 @@ export class DiffUtility {
    * @param b latest model.
    * @param field string representing the field parent uses to reference the map.
    */
-  static diffMap(a: IModel<unknown, unknown>, b: IModel<unknown, unknown>, field: string): Diff[] {
+  static diffMap(a: Model<unknown, unknown>, b: Model<unknown, unknown>, field: string): Diff[] {
     const diff: Diff[] = [];
 
     // Iterate fields of previous (a). If found in latest (b), consider it an UPDATE.
@@ -106,7 +106,7 @@ export class DiffUtility {
    * @param b array of latest models.
    * @param field string representing the unique identifier of the model.
    */
-  static diffModels(a: IModel<unknown, unknown>[], b: IModel<unknown, unknown>[], field: string): Diff[] {
+  static diffModels(a: Model<unknown, unknown>[], b: Model<unknown, unknown>[], field: string): Diff[] {
     const diff: Diff[] = [];
 
     // Iterate fields of previous (a). If found in latest (b), get recursive diff of children of b vs a.

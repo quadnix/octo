@@ -25,7 +25,7 @@ export class Environment extends Model<IEnvironment, Environment> {
     return environment;
   }
 
-  diff(previous?: Environment): Diff[] {
+  override diff(previous?: Environment): Diff[] {
     // Generate diff of environmentVariables.
     return DiffUtility.diffMap(
       previous || ({ environmentVariables: new Map() } as Environment),
@@ -34,8 +34,10 @@ export class Environment extends Model<IEnvironment, Environment> {
     );
   }
 
-  isEqual(instance: Environment): boolean {
-    return this.environmentName === instance.environmentName;
+  getContext(): string {
+    const parents = this.getParents();
+    const region = parents['region'][0].to;
+    return [`${this.MODEL_NAME}=${this.environmentName}`, region.getContext()].join(',');
   }
 
   synth(): IEnvironment {

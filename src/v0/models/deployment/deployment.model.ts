@@ -1,8 +1,7 @@
-import { Diff, DiffAction } from '../../functions/diff/diff.model';
-import { DiffUtility } from '../../functions/diff/diff.utility';
+import { Dependency } from '../../functions/dependency/dependency.model';
+import { DiffAction } from '../../functions/diff/diff.model';
 import { IExecution } from '../execution/execution.interface';
 import { Execution } from '../execution/execution.model';
-import { HOOK_NAMES } from '../hook.interface';
 import { Image } from '../image/image.model';
 import { Model } from '../model.abstract';
 import { IDeployment } from './deployment.interface';
@@ -12,72 +11,59 @@ export class Deployment extends Model<IDeployment, Deployment> {
 
   readonly deploymentTag: string;
 
-  readonly executions: Execution[] = [];
-
   readonly image: Image;
 
   constructor(deploymentTag: string, image: Image) {
     super();
     this.deploymentTag = deploymentTag;
-
     this.image = image;
-    // Define parent-child dependency.
-    this.addDependency('deploymentTag', DiffAction.ADD, image, 'imageId', DiffAction.ADD);
-    this.addDependency('deploymentTag', DiffAction.ADD, image, 'imageId', DiffAction.UPDATE);
-    image.addDependency('imageId', DiffAction.DELETE, this, 'deploymentTag', DiffAction.DELETE);
+
+    const deploymentToImageDependency = new Dependency(this, image);
+    deploymentToImageDependency.addBehavior('deploymentTag', DiffAction.ADD, 'imageId', DiffAction.ADD);
+    deploymentToImageDependency.addBehavior('deploymentTag', DiffAction.ADD, 'imageId', DiffAction.UPDATE);
+    this.dependencies.push(deploymentToImageDependency);
+    const imageToDeploymentDependency = new Dependency(image, this);
+    imageToDeploymentDependency.addBehavior('imageId', DiffAction.DELETE, 'deploymentTag', DiffAction.DELETE);
+    this.dependencies.push(imageToDeploymentDependency);
   }
 
   addExecution(execution: Execution): void {
+    const childrenDependencies = this.getChildren('execution');
+    if (!childrenDependencies['execution']) childrenDependencies['execution'] = [];
+
     // Check for duplicates.
-    if (this.executions.find((e) => e.executionId === execution.executionId)) {
+    const executions = childrenDependencies['execution'].map((d) => d.to);
+    if (executions.find((e: Execution) => e.executionId === execution.executionId)) {
       throw new Error('Execution already exists!');
     }
-
-    this.executions.push(execution);
-
-    // Define parent-child dependency.
-    execution.addDependency('executionId', DiffAction.ADD, this, 'deploymentTag', DiffAction.ADD);
-    execution.addDependency('executionId', DiffAction.ADD, this, 'deploymentTag', DiffAction.UPDATE);
-    execution.addDependency('executionId', DiffAction.ADD, execution.environment, 'environmentName', DiffAction.ADD);
-    execution.addDependency('executionId', DiffAction.ADD, execution.environment, 'environmentName', DiffAction.UPDATE);
-    this.addDependency('deploymentTag', DiffAction.DELETE, execution, 'executionId', DiffAction.DELETE);
-    execution.environment.addDependency(
-      'environmentName',
-      DiffAction.DELETE,
-      execution,
-      'executionId',
-      DiffAction.DELETE,
-    );
-
-    // Trigger hooks related to this event.
-    this.hookService.applyHooks(HOOK_NAMES.ADD_EXECUTION);
+    this.addChild('deploymentTag', execution, 'executionId');
   }
 
   clone(): Deployment {
     const deployment = new Deployment(this.deploymentTag, this.image);
+    const childrenDependencies = this.getChildren();
+    if (!childrenDependencies['execution']) childrenDependencies['execution'] = [];
 
-    this.executions.forEach((execution) => {
-      deployment.addExecution(execution.clone());
+    childrenDependencies['execution'].forEach((dependency) => {
+      deployment.addExecution((dependency.to as Execution).clone());
     });
 
     return deployment;
   }
 
-  diff(previous?: Deployment): Diff[] {
-    // Generate diff of all executions.
-    return DiffUtility.diffModels(previous?.executions || [], this.executions, 'executionId');
-
-    // image is intentionally not included in diff, since it can never change.
-  }
-
-  isEqual(instance: Deployment): boolean {
-    return this.deploymentTag === instance.deploymentTag && this.image.imageId === instance.image.imageId;
+  getContext(): string {
+    const parents = this.getParents();
+    const parent = (parents['server'] || parents['support'])[0].to;
+    return [`${this.MODEL_NAME}=${this.deploymentTag}`, parent.getContext()].join(',');
   }
 
   synth(): IDeployment {
+    const childrenDependencies = this.getChildren();
+    if (!childrenDependencies['execution']) childrenDependencies['execution'] = [];
+
     const executions: IExecution[] = [];
-    this.executions.forEach((execution) => {
-      executions.push(execution.synth());
+    childrenDependencies['execution'].forEach((dependency) => {
+      executions.push((dependency.to as Execution).synth());
     });
 
     return {

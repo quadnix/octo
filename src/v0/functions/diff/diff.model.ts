@@ -1,5 +1,5 @@
 import { IAction } from '../../models/action.interface';
-import { IModel } from '../../models/model.interface';
+import { Model } from '../../models/model.abstract';
 
 export enum DiffAction {
   ADD = 'add',
@@ -18,7 +18,7 @@ export class Diff {
     applyOrder: number;
   };
 
-  readonly model: IModel<unknown, unknown>;
+  readonly model: Model<unknown, unknown>;
 
   readonly value: unknown;
 

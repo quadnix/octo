@@ -23,13 +23,15 @@ export class Pipeline extends Model<IPipeline, Pipeline> {
     return pipeline;
   }
 
-  diff(previous?: Pipeline): Diff[] {
+  override diff(previous?: Pipeline): Diff[] {
     // Generate diff of instructionSet.
     return DiffUtility.diffArray(previous || ({ instructionSet: [] } as unknown as Pipeline), this, 'instructionSet');
   }
 
-  isEqual(instance: Pipeline): boolean {
-    return this.pipelineName === instance.pipelineName;
+  getContext(): string {
+    const parents = this.getParents();
+    const app = parents['app'][0].to;
+    return [`${this.MODEL_NAME}=${this.pipelineName}`, app.getContext()].join(',');
   }
 
   synth(): IPipeline {

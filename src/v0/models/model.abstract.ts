@@ -1,4 +1,6 @@
+import { Dependency } from '../functions/dependency/dependency.model';
 import { Diff, DiffAction } from '../functions/diff/diff.model';
+import { DiffUtility } from '../functions/diff/diff.utility';
 import { HookService } from '../functions/hook/hook.service';
 import { IModel } from './model.interface';
 
@@ -10,9 +12,7 @@ import { IModel } from './model.interface';
 export abstract class Model<I, T> implements IModel<I, T> {
   abstract readonly MODEL_NAME: string;
 
-  readonly dependencies: {
-    [key in keyof I]?: { [key in DiffAction]?: [Model<unknown, unknown>, string, DiffAction][] };
-  } = {};
+  protected readonly dependencies: Dependency[] = [];
 
   readonly hookService: HookService;
 
@@ -20,44 +20,88 @@ export abstract class Model<I, T> implements IModel<I, T> {
     this.hookService = HookService.getInstance();
   }
 
-  /**
-   * See the field definition of "dependencies" for more details.
-   * This function adds a dependency between a field in self model, and another model's field.
-   * The method is idempotent, i.e. the dependency is only added if it does not already exists.
-   */
-  addDependency(
-    onField: keyof I,
-    onAction: DiffAction,
-    toModel: Model<unknown, unknown>,
-    toField: string,
-    forAction: DiffAction,
-  ): void {
-    if (!toModel.hasOwnProperty(toField)) {
-      throw new Error('Invalid field name is not a property of this model!');
+  addChild(onField: keyof T, child: Model<unknown, unknown>, toField: string): void {
+    // Check if child already has a dependency to self.
+    const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
+    const childToParentDependency = cIndex === -1 ? new Dependency(child, this) : child.dependencies[cIndex];
+    childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.ADD);
+    childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.UPDATE);
+    if (cIndex === -1) {
+      childToParentDependency.addChildRelationship(toField, onField as string);
+      child.dependencies.push(childToParentDependency);
     }
 
-    if (!this.dependencies[onField]) {
-      this.dependencies[onField] = {};
-    }
-    if (!this.dependencies[onField]![onAction]) {
-      this.dependencies[onField]![onAction] = [];
-    }
-
-    const dependencies = this.dependencies[onField]![onAction];
-    const exists = dependencies!.some((d) => {
-      const [model, field, action] = d;
-      return model.MODEL_NAME === toModel.MODEL_NAME && model[field] === toModel[toField] && action === forAction;
-    });
-    if (!exists) {
-      dependencies!.push([toModel, toField, forAction]);
+    // Check if parent already has a dependency to child.
+    const pIndex = this.dependencies.findIndex((d) => Object.is(d.to, child));
+    const parentToChildDependency = pIndex === -1 ? new Dependency(this, child) : this.dependencies[pIndex];
+    parentToChildDependency.addBehavior(onField as string, DiffAction.DELETE, toField, DiffAction.DELETE);
+    if (pIndex === -1) {
+      parentToChildDependency.addParentRelationship(onField as string, toField);
+      this.dependencies.push(parentToChildDependency);
     }
   }
 
   abstract clone(): T;
 
-  abstract diff(previous?: T): Diff[];
+  diff(previous?: T): Diff[] {
+    const childrenByModel = this.getChildren();
+    const childrenOfPreviousByModel = (previous as Model<unknown, unknown>)?.getChildren() ?? {};
 
-  abstract isEqual(instance: T): boolean;
+    const diffs: Diff[] = [];
+    const modelsSeen: string[] = [];
+
+    for (const modelName of Object.keys(childrenByModel)) {
+      const children = childrenByModel[modelName].map((d) => d.to);
+      const childrenOfPrevious = childrenOfPreviousByModel[modelName]?.map((d) => d.to) ?? [];
+      const field = childrenByModel[modelName][0].getRelationship()!.toField;
+      diffs.push(...DiffUtility.diffModels(childrenOfPrevious, children, field as string));
+
+      modelsSeen.push(modelName);
+    }
+
+    for (const modelName of Object.keys(childrenOfPreviousByModel)) {
+      if (modelsSeen.indexOf(modelName) !== -1) {
+        continue;
+      }
+
+      const children = [];
+      const childrenOfPrevious = childrenOfPreviousByModel[modelName].map((d) => d.to);
+      const field = childrenOfPreviousByModel[modelName][0].getRelationship()!.toField;
+      diffs.push(...DiffUtility.diffModels(childrenOfPrevious, children, field as string));
+    }
+
+    return diffs;
+  }
+
+  getChildren(modelName?: string): { [key: string]: Dependency[] } {
+    return this.dependencies
+      .filter((d) => d.isParentRelationship() && (modelName ? d.to.MODEL_NAME === modelName : true))
+      .reduce((accumulator, currentValue) => {
+        if (!(currentValue.to.MODEL_NAME in accumulator)) {
+          accumulator[currentValue.to.MODEL_NAME] = [];
+        }
+        accumulator[currentValue.to.MODEL_NAME].push(currentValue);
+        return accumulator;
+      }, {});
+  }
+
+  abstract getContext(): string;
+
+  getMatchingDependencies(onField: string, onAction: DiffAction): Dependency[] {
+    return this.dependencies.filter((d) => d.hasMatchingBehavior(onField, onAction));
+  }
+
+  getParents(modelName?: string): { [key: string]: Dependency[] } {
+    return this.dependencies
+      .filter((d) => d.isChildRelationship() && (modelName ? d.from.MODEL_NAME === modelName : true))
+      .reduce((accumulator, currentValue) => {
+        if (!(currentValue.to.MODEL_NAME in accumulator)) {
+          accumulator[currentValue.to.MODEL_NAME] = [];
+        }
+        accumulator[currentValue.to.MODEL_NAME].push(currentValue);
+        return accumulator;
+      }, {});
+  }
 
   abstract synth(): I;
 }
