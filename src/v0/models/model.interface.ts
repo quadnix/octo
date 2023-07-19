@@ -13,11 +13,6 @@ export interface IModel<I, T> {
   readonly MODEL_NAME: string;
 
   /**
-   * Create a duplicate instance of self.
-   */
-  clone(): T;
-
-  /**
    * Generate a diff comparing all children of self with previous instance.
    * If previous does not exist, diff adds all children of self.
    *
@@ -34,4 +29,11 @@ export interface IModel<I, T> {
    * Generate a serializable representation of self as per model's interface.
    */
   synth(): I;
+}
+
+/**
+ * Model Reference encapsulates identification information of self.
+ */
+export interface IModelReference {
+  context: string;
 }

@@ -1,7 +1,6 @@
 import { Dependency } from '../functions/dependency/dependency.model';
 import { Diff, DiffAction } from '../functions/diff/diff.model';
 import { DiffUtility } from '../functions/diff/diff.utility';
-import { HookService } from '../functions/hook/hook.service';
 import { IModel } from './model.interface';
 
 /**
@@ -13,12 +12,6 @@ export abstract class Model<I, T> implements IModel<I, T> {
   abstract readonly MODEL_NAME: string;
 
   protected readonly dependencies: Dependency[] = [];
-
-  readonly hookService: HookService;
-
-  protected constructor() {
-    this.hookService = HookService.getInstance();
-  }
 
   addChild(onField: keyof T, child: Model<unknown, unknown>, toField: string): void {
     // Check if child already has a dependency to self.
@@ -40,8 +33,6 @@ export abstract class Model<I, T> implements IModel<I, T> {
       this.dependencies.push(parentToChildDependency);
     }
   }
-
-  abstract clone(): T;
 
   diff(previous?: T): Diff[] {
     const childrenByModel = this.getChildren();
@@ -71,6 +62,20 @@ export abstract class Model<I, T> implements IModel<I, T> {
     }
 
     return diffs;
+  }
+
+  getAllDependenciesRecursivelyIn(seen: Dependency[] = []): void {
+    this.dependencies.forEach((d) => {
+      // Check circular dependency.
+      if (seen.some((s) => s.isEqual(d))) {
+        throw new Error('Found circular dependencies!');
+      }
+
+      seen.push(d);
+      if (d.isParentRelationship() || d.getRelationship() === undefined) {
+        d.to.getAllDependenciesRecursivelyIn(seen);
+      }
+    });
   }
 
   getChildren(modelName?: string): { [key: string]: Dependency[] } {

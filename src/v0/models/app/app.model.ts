@@ -1,16 +1,11 @@
+import { HookService } from '../../functions/hook/hook.service';
 import { HOOK_NAMES } from '../hook.interface';
-import { IImage } from '../image/image.interface';
 import { Image } from '../image/image.model';
 import { Model } from '../model.abstract';
-import { IPipeline } from '../pipeline/pipeline.interface';
 import { Pipeline } from '../pipeline/pipeline.model';
-import { IRegion } from '../region/region.interface';
 import { Region } from '../region/region.model';
-import { IServer } from '../server/server.interface';
 import { Server } from '../server/server.model';
-import { IService } from '../service/service.interface';
 import { Service } from '../service/service.model';
-import { ISupport } from '../support/support.interface';
 import { Support } from '../support/support.model';
 import { IApp } from './app.interface';
 
@@ -19,9 +14,12 @@ export class App extends Model<IApp, App> {
 
   readonly name: string;
 
+  private readonly hookService: HookService;
+
   constructor(name: string) {
     super();
     this.name = name;
+    this.hookService = HookService.getInstance();
   }
 
   addImage(image: Image): void {
@@ -108,94 +106,17 @@ export class App extends Model<IApp, App> {
     this.hookService.applyHooks(HOOK_NAMES.ADD_SUPPORT);
   }
 
-  clone(): App {
-    const app = new App(this.name);
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['image']) childrenDependencies['image'] = [];
-    if (!childrenDependencies['pipeline']) childrenDependencies['pipeline'] = [];
-    if (!childrenDependencies['region']) childrenDependencies['region'] = [];
-    if (!childrenDependencies['server']) childrenDependencies['server'] = [];
-    if (!childrenDependencies['service']) childrenDependencies['service'] = [];
-    if (!childrenDependencies['support']) childrenDependencies['support'] = [];
-
-    childrenDependencies['image'].forEach((dependency) => {
-      app.addImage((dependency.to as Image).clone());
-    });
-
-    childrenDependencies['pipeline'].forEach((dependency) => {
-      app.addPipeline((dependency.to as Pipeline).clone());
-    });
-
-    childrenDependencies['region'].forEach((dependency) => {
-      app.addRegion((dependency.to as Region).clone());
-    });
-
-    childrenDependencies['server'].forEach((dependency) => {
-      app.addServer((dependency.to as Server).clone());
-    });
-
-    childrenDependencies['service'].forEach((dependency) => {
-      app.addService((dependency.to as Service).clone());
-    });
-
-    childrenDependencies['support'].forEach((dependency) => {
-      app.addSupport((dependency.to as Support).clone());
-    });
-
-    return app;
-  }
-
   getContext(): string {
     return `${this.MODEL_NAME}=${this.name}`;
   }
 
   synth(): IApp {
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['image']) childrenDependencies['image'] = [];
-    if (!childrenDependencies['pipeline']) childrenDependencies['pipeline'] = [];
-    if (!childrenDependencies['region']) childrenDependencies['region'] = [];
-    if (!childrenDependencies['server']) childrenDependencies['server'] = [];
-    if (!childrenDependencies['service']) childrenDependencies['service'] = [];
-    if (!childrenDependencies['support']) childrenDependencies['support'] = [];
-
-    const images: IImage[] = [];
-    childrenDependencies['image'].forEach((dependency) => {
-      images.push((dependency.to as Image).synth());
-    });
-
-    const pipelines: IPipeline[] = [];
-    childrenDependencies['pipeline'].forEach((dependency) => {
-      pipelines.push((dependency.to as Pipeline).synth());
-    });
-
-    const regions: IRegion[] = [];
-    childrenDependencies['region'].forEach((dependency) => {
-      regions.push((dependency.to as Region).synth());
-    });
-
-    const servers: IServer[] = [];
-    childrenDependencies['server'].forEach((dependency) => {
-      servers.push((dependency.to as Server).synth());
-    });
-
-    const services: IService[] = [];
-    childrenDependencies['service'].forEach((dependency) => {
-      services.push((dependency.to as Service).synth());
-    });
-
-    const supports: ISupport[] = [];
-    childrenDependencies['support'].forEach((dependency) => {
-      supports.push((dependency.to as Support).synth());
-    });
-
     return {
-      images,
       name: this.name,
-      pipelines,
-      regions,
-      servers,
-      services,
-      supports,
     };
+  }
+
+  static async unSynth(app: IApp): Promise<App> {
+    return new App(app.name);
   }
 }

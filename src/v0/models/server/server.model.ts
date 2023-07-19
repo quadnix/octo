@@ -1,4 +1,4 @@
-import { IDeployment } from '../deployment/deployment.interface';
+import { HookService } from '../../functions/hook/hook.service';
 import { Deployment } from '../deployment/deployment.model';
 import { HOOK_NAMES } from '../hook.interface';
 import { Model } from '../model.abstract';
@@ -9,9 +9,12 @@ export class Server extends Model<IServer, Server> {
 
   readonly serverKey: string;
 
+  private readonly hookService: HookService;
+
   constructor(serverKey: string) {
     super();
     this.serverKey = serverKey;
+    this.hookService = HookService.getInstance();
   }
 
   addDeployment(deployment: Deployment): void {
@@ -28,18 +31,6 @@ export class Server extends Model<IServer, Server> {
     this.hookService.applyHooks(HOOK_NAMES.ADD_DEPLOYMENT);
   }
 
-  clone(): Server {
-    const server = new Server(this.serverKey);
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['deployment']) childrenDependencies['deployment'] = [];
-
-    childrenDependencies['deployment'].forEach((dependency) => {
-      server.addDeployment((dependency.to as Deployment).clone());
-    });
-
-    return server;
-  }
-
   getContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
@@ -47,17 +38,12 @@ export class Server extends Model<IServer, Server> {
   }
 
   synth(): IServer {
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['deployment']) childrenDependencies['deployment'] = [];
-
-    const deployments: IDeployment[] = [];
-    childrenDependencies['deployment'].forEach((dependency) => {
-      deployments.push((dependency.to as Deployment).synth());
-    });
-
     return {
-      deployments,
       serverKey: this.serverKey,
     };
+  }
+
+  static async unSynth(server: IServer): Promise<Server> {
+    return new Server(server.serverKey);
   }
 }

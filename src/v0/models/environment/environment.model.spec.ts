@@ -1,18 +1,6 @@
 import { Environment } from './environment.model';
 
 describe('Environment UT', () => {
-  describe('clone()', () => {
-    it('should clone all fields', () => {
-      const environment = new Environment('qa');
-      environment.environmentVariables.set('key', 'value');
-
-      const duplicate = environment.clone();
-
-      expect(duplicate.environmentName).toBe('qa');
-      expect(duplicate.environmentVariables.get('key')).toBe('value');
-    });
-  });
-
   describe('diff()', () => {
     describe('when diff of environmentVariables', () => {
       it('should capture update', () => {

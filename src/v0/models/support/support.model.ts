@@ -1,4 +1,4 @@
-import { IDeployment } from '../deployment/deployment.interface';
+import { HookService } from '../../functions/hook/hook.service';
 import { Deployment } from '../deployment/deployment.model';
 import { HOOK_NAMES } from '../hook.interface';
 import { Model } from '../model.abstract';
@@ -13,10 +13,13 @@ export class Support extends Model<ISupport, Support> {
 
   readonly serverKey: string;
 
+  private readonly hookService: HookService;
+
   constructor(serverKey: string, applicationType: ISupportApplicationType) {
     super();
     this.serverKey = serverKey;
     this.applicationType = applicationType;
+    this.hookService = HookService.getInstance();
   }
 
   addDeployment(deployment: Deployment): void {
@@ -33,19 +36,6 @@ export class Support extends Model<ISupport, Support> {
     this.hookService.applyHooks(HOOK_NAMES.ADD_DEPLOYMENT);
   }
 
-  clone(): Support {
-    const support = new Support(this.serverKey, this.applicationType);
-
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['deployment']) childrenDependencies['deployment'] = [];
-
-    childrenDependencies['deployment'].forEach((dependency) => {
-      support.addDeployment((dependency.to as Deployment).clone());
-    });
-
-    return support;
-  }
-
   getContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
@@ -53,18 +43,13 @@ export class Support extends Model<ISupport, Support> {
   }
 
   synth(): ISupport {
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['deployment']) childrenDependencies['deployment'] = [];
-
-    const deployments: IDeployment[] = [];
-    childrenDependencies['deployment'].forEach((dependency) => {
-      deployments.push((dependency.to as Deployment).synth());
-    });
-
     return {
       applicationType: this.applicationType,
-      deployments,
       serverKey: this.serverKey,
     };
+  }
+
+  static async unSynth(support: ISupport): Promise<Support> {
+    return new Support(support.serverKey, support.applicationType);
   }
 }

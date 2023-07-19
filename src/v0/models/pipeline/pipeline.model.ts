@@ -15,14 +15,6 @@ export class Pipeline extends Model<IPipeline, Pipeline> {
     this.pipelineName = pipelineName;
   }
 
-  clone(): Pipeline {
-    const pipeline = new Pipeline(this.pipelineName);
-
-    pipeline.instructionSet.push(...this.instructionSet);
-
-    return pipeline;
-  }
-
   override diff(previous?: Pipeline): Diff[] {
     // Generate diff of instructionSet.
     return DiffUtility.diffArray(previous || ({ instructionSet: [] } as unknown as Pipeline), this, 'instructionSet');
@@ -39,5 +31,11 @@ export class Pipeline extends Model<IPipeline, Pipeline> {
       instructionSet: [...this.instructionSet],
       pipelineName: this.pipelineName,
     };
+  }
+
+  static async unSynth(pipeline: IPipeline): Promise<Pipeline> {
+    const newPipeline = new Pipeline(pipeline.pipelineName);
+    newPipeline.instructionSet.push(...pipeline.instructionSet);
+    return newPipeline;
   }
 }

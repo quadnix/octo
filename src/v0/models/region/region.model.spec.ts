@@ -13,18 +13,6 @@ describe('Region UT', () => {
     });
   });
 
-  describe('clone()', () => {
-    it('should clone all fields', () => {
-      const region = new Region('region-1');
-      region.addEnvironment(new Environment('qa'));
-
-      const duplicate = region.clone();
-
-      expect(duplicate.regionId).toBe('region-1');
-      expect(duplicate.getChildren('environment')['environment'][0]['to']['environmentName']).toBe('qa');
-    });
-  });
-
   describe('diff()', () => {
     describe('when diff of environment', () => {
       it('should capture update', () => {

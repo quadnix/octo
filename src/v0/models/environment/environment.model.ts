@@ -15,16 +15,6 @@ export class Environment extends Model<IEnvironment, Environment> {
     this.environmentName = environmentName;
   }
 
-  clone(): Environment {
-    const environment = new Environment(this.environmentName);
-
-    for (const [key, value] of this.environmentVariables) {
-      environment.environmentVariables.set(key, value);
-    }
-
-    return environment;
-  }
-
   override diff(previous?: Environment): Diff[] {
     // Generate diff of environmentVariables.
     return DiffUtility.diffMap(
@@ -45,5 +35,15 @@ export class Environment extends Model<IEnvironment, Environment> {
       environmentName: this.environmentName,
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
     };
+  }
+
+  static async unSynth(environment: IEnvironment): Promise<Environment> {
+    const newEnvironment = new Environment(environment.environmentName);
+
+    for (const key of Object.keys(environment.environmentVariables)) {
+      newEnvironment.environmentVariables.set(key, environment.environmentVariables[key]);
+    }
+
+    return newEnvironment;
   }
 }

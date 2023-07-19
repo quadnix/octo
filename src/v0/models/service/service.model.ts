@@ -11,10 +11,6 @@ export class Service extends Model<IService, Service> {
     this.serviceId = serviceId;
   }
 
-  clone(): Service {
-    return new Service(this.serviceId);
-  }
-
   getContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
@@ -22,8 +18,10 @@ export class Service extends Model<IService, Service> {
   }
 
   synth(): IService {
-    return {
-      serviceId: this.serviceId,
-    };
+    throw new Error('Method not implemented! Use subclass');
+  }
+
+  static async unSynth(): Promise<Service> {
+    throw new Error('Method not implemented! Use subclass');
   }
 }

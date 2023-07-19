@@ -1,6 +1,5 @@
 import { Dependency } from '../../functions/dependency/dependency.model';
 import { DiffAction } from '../../functions/diff/diff.model';
-import { IExecution } from '../execution/execution.interface';
 import { Execution } from '../execution/execution.model';
 import { Image } from '../image/image.model';
 import { Model } from '../model.abstract';
@@ -39,18 +38,6 @@ export class Deployment extends Model<IDeployment, Deployment> {
     this.addChild('deploymentTag', execution, 'executionId');
   }
 
-  clone(): Deployment {
-    const deployment = new Deployment(this.deploymentTag, this.image);
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['execution']) childrenDependencies['execution'] = [];
-
-    childrenDependencies['execution'].forEach((dependency) => {
-      deployment.addExecution((dependency.to as Execution).clone());
-    });
-
-    return deployment;
-  }
-
   getContext(): string {
     const parents = this.getParents();
     const parent = (parents['server'] || parents['support'])[0].to;
@@ -58,18 +45,17 @@ export class Deployment extends Model<IDeployment, Deployment> {
   }
 
   synth(): IDeployment {
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['execution']) childrenDependencies['execution'] = [];
-
-    const executions: IExecution[] = [];
-    childrenDependencies['execution'].forEach((dependency) => {
-      executions.push((dependency.to as Execution).synth());
-    });
-
     return {
       deploymentTag: this.deploymentTag,
-      executions,
-      imageId: this.image.imageId,
+      image: { context: this.image.getContext() },
     };
+  }
+
+  static async unSynth(
+    deployment: IDeployment,
+    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
+  ): Promise<Deployment> {
+    const image = (await deReferenceContext(deployment.image.context)) as Image;
+    return new Deployment(deployment.deploymentTag, image);
   }
 }

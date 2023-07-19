@@ -1,4 +1,4 @@
-import { IEnvironment } from '../environment/environment.interface';
+import { HookService } from '../../functions/hook/hook.service';
 import { Environment } from '../environment/environment.model';
 import { HOOK_NAMES } from '../hook.interface';
 import { Model } from '../model.abstract';
@@ -9,9 +9,12 @@ export class Region extends Model<IRegion, Region> {
 
   readonly regionId: string;
 
+  private readonly hookService: HookService;
+
   constructor(regionId: string) {
     super();
     this.regionId = regionId;
+    this.hookService = HookService.getInstance();
   }
 
   addEnvironment(environment: Environment): void {
@@ -28,18 +31,6 @@ export class Region extends Model<IRegion, Region> {
     this.hookService.applyHooks(HOOK_NAMES.ADD_ENVIRONMENT);
   }
 
-  clone(): Region {
-    const region = new Region(this.regionId);
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['environment']) childrenDependencies['environment'] = [];
-
-    childrenDependencies['environment'].forEach((dependency) => {
-      region.addEnvironment((dependency.to as Environment).clone());
-    });
-
-    return region;
-  }
-
   getContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
@@ -47,17 +38,12 @@ export class Region extends Model<IRegion, Region> {
   }
 
   synth(): IRegion {
-    const childrenDependencies = this.getChildren();
-    if (!childrenDependencies['environment']) childrenDependencies['environment'] = [];
-
-    const environments: IEnvironment[] = [];
-    childrenDependencies['environment'].forEach((dependency) => {
-      environments.push((dependency.to as Environment).synth());
-    });
-
     return {
-      environments,
       regionId: this.regionId,
     };
+  }
+
+  static async unSynth(region: IRegion): Promise<Region> {
+    return new Region(region.regionId);
   }
 }

@@ -26,10 +26,6 @@ export class Image extends Model<IImage, Image> {
     this.dockerOptions = options;
   }
 
-  clone(): Image {
-    return new Image(this.imageName, this.imageTag, this.dockerOptions);
-  }
-
   getContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
@@ -47,5 +43,11 @@ export class Image extends Model<IImage, Image> {
       imageName: this.imageName,
       imageTag: this.imageTag,
     };
+  }
+
+  static async unSynth(image: IImage): Promise<Image> {
+    return new Image(image.imageName, image.imageTag, {
+      ...image.dockerOptions,
+    });
   }
 }

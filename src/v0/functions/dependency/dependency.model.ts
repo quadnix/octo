@@ -23,14 +23,33 @@ export enum DependencyRelationship {
   PARENT = 'parent',
 }
 
+export interface IDependency {
+  behaviors: {
+    forAction: DependencyBehavior['forAction'];
+    onAction: DependencyBehavior['onAction'];
+    onField: DependencyBehavior['onField'];
+    toField: DependencyBehavior['toField'];
+  }[];
+
+  from: string;
+
+  relationship: {
+    onField: DependencyBehavior['onField'];
+    toField: DependencyBehavior['toField'];
+    type: DependencyRelationship;
+  };
+
+  to: string;
+}
+
 export class Dependency {
   private readonly behaviors: DependencyBehavior[] = [];
 
   readonly from: Model<unknown, unknown>;
 
-  readonly to: Model<unknown, unknown>;
-
   private relationship: { onField: string; toField: string; type: DependencyRelationship };
+
+  readonly to: Model<unknown, unknown>;
 
   constructor(from: Model<unknown, unknown>, to: Model<unknown, unknown>) {
     this.from = from;
@@ -81,6 +100,12 @@ export class Dependency {
     return this.relationship && this.relationship.type === DependencyRelationship.CHILD;
   }
 
+  isEqual(dependency: Dependency): boolean {
+    return (
+      this.from.getContext() === dependency.from.getContext() && this.to.getContext() === dependency.to.getContext()
+    );
+  }
+
   isParentRelationship(): boolean {
     return this.relationship && this.relationship.type === DependencyRelationship.PARENT;
   }
@@ -96,5 +121,28 @@ export class Dependency {
     }
 
     this.behaviors.splice(index, 1);
+  }
+
+  synth(): IDependency {
+    const behaviors: IDependency['behaviors'] = [];
+    this.behaviors.forEach((b) => {
+      behaviors.push({
+        forAction: b.forAction,
+        onAction: b.onAction,
+        onField: b.onField,
+        toField: b.toField,
+      });
+    });
+
+    return {
+      behaviors,
+      from: this.from.getContext(),
+      relationship: {
+        onField: this.relationship.onField,
+        toField: this.relationship.toField,
+        type: this.relationship.type,
+      },
+      to: this.to.getContext(),
+    };
   }
 }
