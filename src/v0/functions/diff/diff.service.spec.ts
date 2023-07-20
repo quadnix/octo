@@ -1,4 +1,5 @@
 import { IAction } from '../../models/action.interface';
+import { App } from '../../models/app/app.model';
 import { Environment } from '../../models/environment/environment.model';
 import { Region } from '../../models/region/region.model';
 import { Diff, DiffAction } from './diff.model';
@@ -34,8 +35,11 @@ describe('DiffService UT', () => {
     });
 
     it('should set order 0 for diff with dependencies not in current array of diffs', () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
-      environment.addDependency('environmentName', DiffAction.ADD, environment, 'environmentVariables', DiffAction.ADD);
+      app.addRegion(region);
+      region.addEnvironment(environment);
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
 
       expect(diff.metadata.applyOrder).toBe(-1);
@@ -43,24 +47,14 @@ describe('DiffService UT', () => {
       expect(diff.metadata.applyOrder).toBe(0);
     });
 
-    it('should set order 1 for diff with 1 level of dependencies', () => {
-      const environment = new Environment('qa');
-      environment.addDependency('environmentName', DiffAction.ADD, environment, 'environmentVariables', DiffAction.ADD);
-      const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
-      const diff2 = new Diff(environment, DiffAction.ADD, 'environmentVariables', { key: 'value' });
-
-      expect(diff1.metadata.applyOrder).toBe(-1);
-      expect(diff2.metadata.applyOrder).toBe(-1);
-      setApplyOrder(diff1, [diff1, diff2]);
-      expect(diff1.metadata.applyOrder).toBe(1);
-      expect(diff2.metadata.applyOrder).toBe(0);
-    });
-
     it('should only set order for the diff and its dependencies', () => {
+      const app = new App('test');
       const region1 = new Region('region-1');
       const region2 = new Region('region-2');
       const environment = new Environment('qa');
-      environment.addDependency('environmentName', DiffAction.ADD, region1, 'regionId', DiffAction.ADD);
+      app.addRegion(region1);
+      app.addRegion(region2);
+      region1.addEnvironment(environment);
 
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region1, DiffAction.ADD, 'regionId', 'region-1');
@@ -73,19 +67,31 @@ describe('DiffService UT', () => {
       expect(diff3.metadata.applyOrder).toBe(-1);
     });
 
-    it('should set order 2 for diff with 2 level of dependencies', () => {
+    it('should set order 1 for diff with 1 level of dependencies', () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
-      environment.addDependency('environmentName', DiffAction.ADD, environment, 'environmentVariables', DiffAction.ADD);
-      environment.addDependency(
-        'environmentVariables',
-        DiffAction.ADD,
-        environment,
-        'environmentVariables',
-        DiffAction.DELETE,
-      );
+      app.addRegion(region);
+      region.addEnvironment(environment);
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
-      const diff2 = new Diff(environment, DiffAction.ADD, 'environmentVariables', { key: 'value' });
-      const diff3 = new Diff(environment, DiffAction.DELETE, 'environmentVariables', { key: 'value' });
+      const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
+
+      expect(diff1.metadata.applyOrder).toBe(-1);
+      expect(diff2.metadata.applyOrder).toBe(-1);
+      setApplyOrder(diff1, [diff1, diff2]);
+      expect(diff1.metadata.applyOrder).toBe(1);
+      expect(diff2.metadata.applyOrder).toBe(0);
+    });
+
+    it('should set order 2 for diff with 2 level of dependencies', () => {
+      const app = new App('test');
+      const region = new Region('region-1');
+      const environment = new Environment('qa');
+      app.addRegion(region);
+      region.addEnvironment(environment);
+      const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+      const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
+      const diff3 = new Diff(app, DiffAction.ADD, 'name', 'test');
 
       expect(diff1.metadata.applyOrder).toBe(-1);
       expect(diff2.metadata.applyOrder).toBe(-1);
@@ -97,11 +103,12 @@ describe('DiffService UT', () => {
     });
 
     it('should throw errors with 1 level of circular dependencies', () => {
-      const environment = new Environment('qa');
-      environment.addDependency('environmentName', DiffAction.ADD, environment, 'environmentVariables', DiffAction.ADD);
-      environment.addDependency('environmentVariables', DiffAction.ADD, environment, 'environmentName', DiffAction.ADD);
-      const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
-      const diff2 = new Diff(environment, DiffAction.ADD, 'environmentVariables', { key: 'value' });
+      const app = new App('test');
+      const region = new Region('region-1');
+      app.addRegion(region);
+      region.addChild('regionId', app, 'name');
+      const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
+      const diff2 = new Diff(app, DiffAction.ADD, 'name', 'test');
 
       expect(diff1.metadata.applyOrder).toBe(-1);
       expect(diff2.metadata.applyOrder).toBe(-1);
@@ -113,25 +120,15 @@ describe('DiffService UT', () => {
     });
 
     it('should throw errors with 2 level of circular dependencies', () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
-      environment.addDependency('environmentName', DiffAction.ADD, environment, 'environmentVariables', DiffAction.ADD);
-      environment.addDependency(
-        'environmentVariables',
-        DiffAction.ADD,
-        environment,
-        'environmentVariables',
-        DiffAction.DELETE,
-      );
-      environment.addDependency(
-        'environmentVariables',
-        DiffAction.DELETE,
-        environment,
-        'environmentName',
-        DiffAction.ADD,
-      );
+      app.addRegion(region);
+      region.addEnvironment(environment);
+      environment.addChild('environmentName', app, 'name');
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
-      const diff2 = new Diff(environment, DiffAction.ADD, 'environmentVariables', { key: 'value' });
-      const diff3 = new Diff(environment, DiffAction.DELETE, 'environmentVariables', { key: 'value' });
+      const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
+      const diff3 = new Diff(app, DiffAction.ADD, 'name', 'test');
 
       expect(diff1.metadata.applyOrder).toBe(-1);
       expect(diff2.metadata.applyOrder).toBe(-1);
@@ -147,7 +144,11 @@ describe('DiffService UT', () => {
 
   describe('beginTransaction()', () => {
     it('should call the handle for a single diff with no dependencies', async () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
+      app.addRegion(region);
+      region.addEnvironment(environment);
       const diffs: Diff[] = [new Diff(environment, DiffAction.ADD, 'environmentName', 'qa')];
 
       const testActionMock = jest.fn();
@@ -187,7 +188,11 @@ describe('DiffService UT', () => {
     });
 
     it('should call the handles for each diff with no dependencies', async () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
+      app.addRegion(region);
+      region.addEnvironment(environment);
       const diffs: Diff[] = [
         new Diff(environment, DiffAction.ADD, 'environmentName', 'qa'),
         new Diff(environment, DiffAction.ADD, 'environmentVariables', { key: 'value' }),
@@ -254,26 +259,29 @@ describe('DiffService UT', () => {
     });
 
     it('should call the handles for each diff with 1 level of dependencies', async () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
-      environment.addDependency('environmentName', DiffAction.ADD, environment, 'environmentVariables', DiffAction.ADD);
+      app.addRegion(region);
+      region.addEnvironment(environment);
       const diffs: Diff[] = [
         new Diff(environment, DiffAction.ADD, 'environmentName', 'qa'),
-        new Diff(environment, DiffAction.ADD, 'environmentVariables', { key: 'value' }),
+        new Diff(region, DiffAction.ADD, 'regionId', 'region-1'),
       ];
 
-      const addEnvironmentNameActionMock = jest.fn();
-      const addEnvironmentVariablesActionMock = jest.fn();
+      const addEnvironmentActionMock = jest.fn();
+      const addRegionActionMock = jest.fn();
       const actions: IAction[] = [
         {
-          ACTION_NAME: 'addEnvironmentName',
+          ACTION_NAME: 'addEnvironment',
           filter: (diff: Diff) => diff.field === 'environmentName',
-          handle: addEnvironmentNameActionMock,
+          handle: addEnvironmentActionMock,
           revert: jest.fn(),
         },
         {
-          ACTION_NAME: 'addEnvironmentVariables',
-          filter: (diff: Diff) => diff.field === 'environmentVariables',
-          handle: addEnvironmentVariablesActionMock,
+          ACTION_NAME: 'addRegion',
+          filter: (diff: Diff) => diff.field === 'regionId',
+          handle: addRegionActionMock,
           revert: jest.fn(),
         },
       ];
@@ -283,24 +291,24 @@ describe('DiffService UT', () => {
 
       await diffService.beginTransaction(diffs);
 
-      expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
-      expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
-      expect(addEnvironmentNameActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+      expect(addEnvironmentActionMock).toHaveBeenCalledTimes(1);
+      expect(addEnvironmentActionMock.mock.calls[0][0].length).toBe(1);
+      expect(addEnvironmentActionMock.mock.calls[0][0][0].toJSON()).toEqual({
         action: 'add',
         field: 'environmentName',
         value: 'qa',
       });
 
-      expect(addEnvironmentVariablesActionMock).toHaveBeenCalledTimes(1);
-      expect(addEnvironmentVariablesActionMock.mock.calls[0][0].length).toBe(1);
-      expect(addEnvironmentVariablesActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+      expect(addRegionActionMock).toHaveBeenCalledTimes(1);
+      expect(addRegionActionMock.mock.calls[0][0].length).toBe(1);
+      expect(addRegionActionMock.mock.calls[0][0][0].toJSON()).toEqual({
         action: 'add',
-        field: 'environmentVariables',
-        value: { key: 'value' },
+        field: 'regionId',
+        value: 'region-1',
       });
 
-      expect(addEnvironmentVariablesActionMock.mock.invocationCallOrder[0]).toBeLessThan(
-        addEnvironmentNameActionMock.mock.invocationCallOrder[0],
+      expect(addRegionActionMock.mock.invocationCallOrder[0]).toBeLessThan(
+        addEnvironmentActionMock.mock.invocationCallOrder[0],
       );
 
       expect(diffService.getTransaction()).toMatchInlineSnapshot(`
@@ -308,10 +316,8 @@ describe('DiffService UT', () => {
           [
             {
               "action": "add",
-              "field": "environmentVariables",
-              "value": {
-                "key": "value",
-              },
+              "field": "regionId",
+              "value": "region-1",
             },
           ],
           [
@@ -326,41 +332,37 @@ describe('DiffService UT', () => {
     });
 
     it('should call the handles for each diff with 2 level of dependencies', async () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
-      environment.addDependency('environmentName', DiffAction.ADD, environment, 'environmentVariables', DiffAction.ADD);
-      environment.addDependency(
-        'environmentVariables',
-        DiffAction.ADD,
-        environment,
-        'environmentVariables',
-        DiffAction.DELETE,
-      );
+      app.addRegion(region);
+      region.addEnvironment(environment);
       const diffs: Diff[] = [
         new Diff(environment, DiffAction.ADD, 'environmentName', 'qa'),
-        new Diff(environment, DiffAction.ADD, 'environmentVariables', { key: 'value' }),
-        new Diff(environment, DiffAction.DELETE, 'environmentVariables', { key: 'value' }),
+        new Diff(region, DiffAction.ADD, 'regionId', 'region-1'),
+        new Diff(app, DiffAction.ADD, 'name', 'test'),
       ];
 
-      const addEnvironmentNameActionMock = jest.fn();
-      const addEnvironmentVariablesActionMock = jest.fn();
-      const deleteEnvironmentVariablesActionMock = jest.fn();
+      const addEnvironmentActionMock = jest.fn();
+      const addRegionActionMock = jest.fn();
+      const addAppActionMock = jest.fn();
       const actions: IAction[] = [
         {
-          ACTION_NAME: 'addEnvironmentName',
+          ACTION_NAME: 'addEnvironment',
           filter: (diff: Diff) => diff.field === 'environmentName',
-          handle: addEnvironmentNameActionMock,
+          handle: addEnvironmentActionMock,
           revert: jest.fn(),
         },
         {
-          ACTION_NAME: 'addEnvironmentVariables',
-          filter: (diff: Diff) => diff.field === 'environmentVariables' && diff.action === DiffAction.ADD,
-          handle: addEnvironmentVariablesActionMock,
+          ACTION_NAME: 'addRegion',
+          filter: (diff: Diff) => diff.field === 'regionId',
+          handle: addRegionActionMock,
           revert: jest.fn(),
         },
         {
-          ACTION_NAME: 'addEnvironmentVariables',
-          filter: (diff: Diff) => diff.field === 'environmentVariables' && diff.action === DiffAction.DELETE,
-          handle: deleteEnvironmentVariablesActionMock,
+          ACTION_NAME: 'addApp',
+          filter: (diff: Diff) => diff.field === 'name',
+          handle: addAppActionMock,
           revert: jest.fn(),
         },
       ];
@@ -370,55 +372,51 @@ describe('DiffService UT', () => {
 
       await diffService.beginTransaction(diffs);
 
-      expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
-      expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
-      expect(addEnvironmentNameActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+      expect(addEnvironmentActionMock).toHaveBeenCalledTimes(1);
+      expect(addEnvironmentActionMock.mock.calls[0][0].length).toBe(1);
+      expect(addEnvironmentActionMock.mock.calls[0][0][0].toJSON()).toEqual({
         action: 'add',
         field: 'environmentName',
         value: 'qa',
       });
 
-      expect(addEnvironmentVariablesActionMock).toHaveBeenCalledTimes(1);
-      expect(addEnvironmentVariablesActionMock.mock.calls[0][0].length).toBe(1);
-      expect(addEnvironmentVariablesActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+      expect(addRegionActionMock).toHaveBeenCalledTimes(1);
+      expect(addRegionActionMock.mock.calls[0][0].length).toBe(1);
+      expect(addRegionActionMock.mock.calls[0][0][0].toJSON()).toEqual({
         action: 'add',
-        field: 'environmentVariables',
-        value: { key: 'value' },
+        field: 'regionId',
+        value: 'region-1',
       });
 
-      expect(deleteEnvironmentVariablesActionMock).toHaveBeenCalledTimes(1);
-      expect(deleteEnvironmentVariablesActionMock.mock.calls[0][0].length).toBe(1);
-      expect(deleteEnvironmentVariablesActionMock.mock.calls[0][0][0].toJSON()).toEqual({
-        action: 'delete',
-        field: 'environmentVariables',
-        value: { key: 'value' },
+      expect(addAppActionMock).toHaveBeenCalledTimes(1);
+      expect(addAppActionMock.mock.calls[0][0].length).toBe(1);
+      expect(addAppActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+        action: 'add',
+        field: 'name',
+        value: 'test',
       });
 
-      expect(deleteEnvironmentVariablesActionMock.mock.invocationCallOrder[0]).toBeLessThan(
-        addEnvironmentVariablesActionMock.mock.invocationCallOrder[0],
+      expect(addAppActionMock.mock.invocationCallOrder[0]).toBeLessThan(
+        addRegionActionMock.mock.invocationCallOrder[0],
       );
-      expect(addEnvironmentVariablesActionMock.mock.invocationCallOrder[0]).toBeLessThan(
-        addEnvironmentNameActionMock.mock.invocationCallOrder[0],
+      expect(addRegionActionMock.mock.invocationCallOrder[0]).toBeLessThan(
+        addEnvironmentActionMock.mock.invocationCallOrder[0],
       );
 
       expect(diffService.getTransaction()).toMatchInlineSnapshot(`
         [
           [
             {
-              "action": "delete",
-              "field": "environmentVariables",
-              "value": {
-                "key": "value",
-              },
+              "action": "add",
+              "field": "name",
+              "value": "test",
             },
           ],
           [
             {
               "action": "add",
-              "field": "environmentVariables",
-              "value": {
-                "key": "value",
-              },
+              "field": "regionId",
+              "value": "region-1",
             },
           ],
           [
@@ -433,27 +431,30 @@ describe('DiffService UT', () => {
     });
 
     it('should batch similar diffs to be processed together', async () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
-      environment.addDependency('environmentName', DiffAction.ADD, environment, 'environmentVariables', DiffAction.ADD);
+      app.addRegion(region);
+      region.addEnvironment(environment);
       const diffs: Diff[] = [
         new Diff(environment, DiffAction.ADD, 'environmentName', 'qa'),
-        new Diff(environment, DiffAction.ADD, 'environmentVariables', { key1: 'value1' }),
-        new Diff(environment, DiffAction.ADD, 'environmentVariables', { key2: 'value2' }),
+        new Diff(region, DiffAction.ADD, 'regionId', 'region-1'),
+        new Diff(region, DiffAction.ADD, 'regionId', 'region-1'),
       ];
 
-      const addEnvironmentNameActionMock = jest.fn();
-      const addEnvironmentVariablesActionMock = jest.fn();
+      const addEnvironmentActionMock = jest.fn();
+      const addRegionActionMock = jest.fn();
       const actions: IAction[] = [
         {
-          ACTION_NAME: 'addEnvironmentName',
+          ACTION_NAME: 'addEnvironment',
           filter: (diff: Diff) => diff.field === 'environmentName',
-          handle: addEnvironmentNameActionMock,
+          handle: addEnvironmentActionMock,
           revert: jest.fn(),
         },
         {
-          ACTION_NAME: 'addEnvironmentVariables',
-          filter: (diff: Diff) => diff.field === 'environmentVariables',
-          handle: addEnvironmentVariablesActionMock,
+          ACTION_NAME: 'addRegion',
+          filter: (diff: Diff) => diff.field === 'regionId',
+          handle: addRegionActionMock,
           revert: jest.fn(),
         },
       ];
@@ -463,32 +464,32 @@ describe('DiffService UT', () => {
 
       await diffService.beginTransaction(diffs);
 
-      expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
-      expect(addEnvironmentNameActionMock.mock.calls[0][0].length).toBe(1);
-      expect(addEnvironmentNameActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+      expect(addEnvironmentActionMock).toHaveBeenCalledTimes(1);
+      expect(addEnvironmentActionMock.mock.calls[0][0].length).toBe(1);
+      expect(addEnvironmentActionMock.mock.calls[0][0][0].toJSON()).toEqual({
         action: 'add',
         field: 'environmentName',
         value: 'qa',
       });
 
-      expect(addEnvironmentVariablesActionMock).toHaveBeenCalledTimes(2);
-      expect(addEnvironmentVariablesActionMock.mock.calls[0][0].length).toBe(2);
-      expect(addEnvironmentVariablesActionMock.mock.calls[0][0][0].toJSON()).toEqual({
+      expect(addRegionActionMock).toHaveBeenCalledTimes(2);
+      expect(addRegionActionMock.mock.calls[0][0].length).toBe(2);
+      expect(addRegionActionMock.mock.calls[0][0][0].toJSON()).toEqual({
         action: 'add',
-        field: 'environmentVariables',
-        value: { key1: 'value1' },
+        field: 'regionId',
+        value: 'region-1',
       });
-      expect(addEnvironmentVariablesActionMock.mock.calls[0][0][1].toJSON()).toEqual({
+      expect(addRegionActionMock.mock.calls[0][0][1].toJSON()).toEqual({
         action: 'add',
-        field: 'environmentVariables',
-        value: { key2: 'value2' },
+        field: 'regionId',
+        value: 'region-1',
       });
 
-      expect(addEnvironmentVariablesActionMock.mock.invocationCallOrder[0]).toBeLessThan(
-        addEnvironmentNameActionMock.mock.invocationCallOrder[0],
+      expect(addRegionActionMock.mock.invocationCallOrder[0]).toBeLessThan(
+        addEnvironmentActionMock.mock.invocationCallOrder[0],
       );
-      expect(addEnvironmentVariablesActionMock.mock.invocationCallOrder[1]).toBeLessThan(
-        addEnvironmentNameActionMock.mock.invocationCallOrder[0],
+      expect(addRegionActionMock.mock.invocationCallOrder[1]).toBeLessThan(
+        addEnvironmentActionMock.mock.invocationCallOrder[0],
       );
 
       expect(diffService.getTransaction()).toMatchInlineSnapshot(`
@@ -496,17 +497,13 @@ describe('DiffService UT', () => {
           [
             {
               "action": "add",
-              "field": "environmentVariables",
-              "value": {
-                "key1": "value1",
-              },
+              "field": "regionId",
+              "value": "region-1",
             },
             {
               "action": "add",
-              "field": "environmentVariables",
-              "value": {
-                "key2": "value2",
-              },
+              "field": "regionId",
+              "value": "region-1",
             },
           ],
           [],
