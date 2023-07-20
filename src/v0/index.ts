@@ -1,7 +1,7 @@
 export { Diff, DiffAction } from './functions/diff/diff.model';
 export { DiffService } from './functions/diff/diff.service';
 export { HookService } from './functions/hook/hook.service';
-export { SynthService } from './functions/synth/synth.service';
+export { SerializationService } from './functions/synth/serialization.service';
 
 export { IAction } from './models/action.interface';
 export { HOOK_NAMES, IHook } from './models/hook.interface';
