@@ -1,0 +1,98 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Model E2E Test Service E2E Test should be able to synth 1`] = `"Method not implemented! Use subclass"`;
+
+exports[`Model E2E Test Service E2E Test should get context 1`] = `"service=testService,app=test"`;
+
+exports[`Model E2E Test Test app should be able to synth 1`] = `
+{
+  "name": "test",
+}
+`;
+
+exports[`Model E2E Test Test app should get context 1`] = `"app=test"`;
+
+exports[`Model E2E Test Test deployment should be able to synth 1`] = `
+{
+  "deploymentTag": "v1",
+  "image": {
+    "context": "image=nginx:0.0.1,app=test",
+  },
+}
+`;
+
+exports[`Model E2E Test Test deployment should get context 1`] = `"deployment=v1,support=nginx,app=test"`;
+
+exports[`Model E2E Test Test environment should be able to synth 1`] = `
+{
+  "environmentName": "qa",
+  "environmentVariables": {},
+}
+`;
+
+exports[`Model E2E Test Test environment should get context 1`] = `"environment=qa,region=region-1,app=test"`;
+
+exports[`Model E2E Test Test execution should be able to synth 1`] = `
+{
+  "deployment": {
+    "context": "deployment=v1,support=nginx,app=test",
+  },
+  "environment": {
+    "context": "environment=qa,region=region-1,app=test",
+  },
+  "environmentVariables": {},
+}
+`;
+
+exports[`Model E2E Test Test execution should get context 1`] = `"execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test"`;
+
+exports[`Model E2E Test Test image should be able to synth 1`] = `
+{
+  "dockerOptions": {
+    "buildArgs": {},
+    "dockerFilePath": "path/to/dockerFile",
+    "quiet": undefined,
+  },
+  "imageId": "0.0.1",
+  "imageName": "nginx",
+  "imageTag": "0.0.1",
+}
+`;
+
+exports[`Model E2E Test Test image should get context 1`] = `"image=nginx:0.0.1,app=test"`;
+
+exports[`Model E2E Test Test pipeline should be able to synth 1`] = `
+{
+  "instructionSet": [],
+  "pipelineName": "testPipeline",
+}
+`;
+
+exports[`Model E2E Test Test pipeline should get context 1`] = `"pipeline=testPipeline,app=test"`;
+
+exports[`Model E2E Test Test region should be able to synth 1`] = `
+{
+  "regionId": "region-1",
+}
+`;
+
+exports[`Model E2E Test Test region should get context 1`] = `"region=region-1,app=test"`;
+
+exports[`Model E2E Test Test server should be able to synth 1`] = `
+{
+  "serverKey": "backend",
+}
+`;
+
+exports[`Model E2E Test Test server should get context 1`] = `"server=backend,app=test"`;
+
+exports[`Model E2E Test Test service should get context 1`] = `"service=testService,app=test"`;
+
+exports[`Model E2E Test Test support should be able to synth 1`] = `
+{
+  "applicationType": "nginx",
+  "serverKey": "nginx",
+}
+`;
+
+exports[`Model E2E Test Test support should get context 1`] = `"support=nginx,app=test"`;
