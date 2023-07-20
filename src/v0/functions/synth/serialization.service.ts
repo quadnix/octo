@@ -78,6 +78,9 @@ export class SerializationService {
           deReferencePromises[d.to](true);
         }
       }
+
+      const dependency = Dependency.unSynth(seen[d.from], seen[d.to], d);
+      seen[d.from]['dependencies'].push(dependency);
     }
 
     return seen[serializedOutput.dependencies[0].from];

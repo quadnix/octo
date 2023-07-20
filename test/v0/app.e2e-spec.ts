@@ -1,7 +1,9 @@
-import { App, Deployment, Environment, Image, Region, Server, Support } from '../../src/v0';
+import { App, Deployment, Environment, Image, Region, SerializationService, Server, Support } from '../../src/v0';
 
 describe('App E2E Test', () => {
-  it('should generate app diff', () => {
+  it('should generate app diff', async () => {
+    const serializationService = new SerializationService();
+
     const oldApp = new App('test-app');
 
     const image = new Image('image', 'tag', { dockerFilePath: '.' });
@@ -16,12 +18,19 @@ describe('App E2E Test', () => {
 
     oldApp.addServer(new Server('backend'));
 
-    const newApp = oldApp.clone();
-    const newAppRegion: Region = newApp.regions.find((r) => r.regionId === 'region-1') as Region;
-    const backendServer: Server = newApp.servers.find((s) => s.serverKey === 'backend') as Server;
+    const newApp = (await serializationService.deserialize(serializationService.serialize(oldApp))) as App;
+    const newAppRegion: Region = newApp
+      .getChildren('region')
+      ['region'].find((d) => (d.to as Region).regionId === 'region-1')!.to as Region;
+    const newAppBackendServer: Server = newApp
+      .getChildren('server')
+      ['server'].find((d) => (d.to as Server).serverKey === 'backend')!.to as Server;
+    const newAppQaEnvironment: Environment = newAppRegion
+      .getChildren('environment')
+      ['environment'].find((d) => (d.to as Environment).environmentName === 'qa')!.to as Environment;
 
     // Add a deployment to backend server.
-    backendServer.addDeployment(new Deployment('v0.0.1', image));
+    newAppBackendServer.addDeployment(new Deployment('v0.0.1', image));
 
     // Add a new staging environment.
     const stagingEnvironment = new Environment('staging');
@@ -29,7 +38,7 @@ describe('App E2E Test', () => {
     newAppRegion.addEnvironment(stagingEnvironment);
 
     // Update the qa environment.
-    newAppRegion.environments.find((e) => e.environmentName === 'qa')!.environmentVariables.set('env', 'qa');
+    newAppQaEnvironment.environmentVariables.set('env', 'qa');
 
     // Add new server.
     const databaseServer = new Server('database');
