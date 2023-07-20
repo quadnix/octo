@@ -78,6 +78,13 @@ export abstract class Model<I, T> implements IModel<I, T> {
     });
   }
 
+  getChild(modelName: string, filters: { key: string; value: any }[]): Model<unknown, unknown> | undefined {
+    const dependency = this.getChildren(modelName)[modelName]?.find((d) =>
+      filters.every((c) => d.to[c.key] === c.value),
+    );
+    return dependency ? dependency.to : undefined;
+  }
+
   getChildren(modelName?: string): { [key: string]: Dependency[] } {
     return this.dependencies
       .filter((d) => d.isParentRelationship() && (modelName ? d.to.MODEL_NAME === modelName : true))

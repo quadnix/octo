@@ -19,15 +19,11 @@ describe('App E2E Test', () => {
     oldApp.addServer(new Server('backend'));
 
     const newApp = (await serializationService.deserialize(serializationService.serialize(oldApp))) as App;
-    const newAppRegion: Region = newApp
-      .getChildren('region')
-      ['region'].find((d) => (d.to as Region).regionId === 'region-1')!.to as Region;
-    const newAppBackendServer: Server = newApp
-      .getChildren('server')
-      ['server'].find((d) => (d.to as Server).serverKey === 'backend')!.to as Server;
-    const newAppQaEnvironment: Environment = newAppRegion
-      .getChildren('environment')
-      ['environment'].find((d) => (d.to as Environment).environmentName === 'qa')!.to as Environment;
+    const newAppRegion = newApp.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
+    const newAppBackendServer = newApp.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
+    const newAppQaEnvironment = newAppRegion.getChild('environment', [
+      { key: 'environmentName', value: 'qa' },
+    ]) as Environment;
 
     // Add a deployment to backend server.
     newAppBackendServer.addDeployment(new Deployment('v0.0.1', image));
