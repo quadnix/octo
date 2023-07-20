@@ -21,24 +21,19 @@ export class Execution extends Model<IExecution, Execution> {
     this.executionId = [deployment.deploymentTag, environment.environmentName].join('_');
     this.hookService = HookService.getInstance();
 
+    // Check for duplicates.
+    if (
+      deployment.getChild('execution', [{ key: 'executionId', value: this.executionId }]) ||
+      environment.getChild('execution', [{ key: 'executionId', value: this.executionId }])
+    ) {
+      throw new Error('Execution already exists!');
+    }
+
     // In order for this execution to properly have defined its parent-child relationship, both execution and deployment
     // must claim it as their child. Doing it here, prevents the confusion.
     deployment.addChild('deploymentTag', this, 'executionId');
     environment.addChild('environmentName', this, 'executionId');
     this.hookService.applyHooks(HOOK_NAMES.ADD_EXECUTION);
-  }
-
-  clone(): Execution {
-    const parents = this.getParents();
-    const deployment: Deployment = parents['deployment'][0]['to'] as Deployment;
-    const environment: Environment = parents['environment'][0]['to'] as Environment;
-    const execution = new Execution(deployment, environment);
-
-    for (const [key, value] of this.environmentVariables) {
-      execution.environmentVariables.set(key, value);
-    }
-
-    return execution;
   }
 
   override diff(previous?: Execution): Diff[] {

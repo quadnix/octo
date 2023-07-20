@@ -23,7 +23,7 @@ export class Support extends Model<ISupport, Support> {
   }
 
   addDeployment(deployment: Deployment): void {
-    const childrenDependencies = this.getChildren();
+    const childrenDependencies = this.getChildren('deployment');
     if (!childrenDependencies['deployment']) childrenDependencies['deployment'] = [];
 
     // Check for duplicates.

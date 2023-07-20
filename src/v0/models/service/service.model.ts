@@ -20,8 +20,4 @@ export class Service extends Model<IService, Service> {
   synth(): IService {
     throw new Error('Method not implemented! Use subclass');
   }
-
-  static async unSynth(): Promise<Service> {
-    throw new Error('Method not implemented! Use subclass');
-  }
 }

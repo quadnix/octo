@@ -27,7 +27,7 @@ export class SerializationService {
   };
 
   private throwErrorIfDeserializationClassInvalid(deserializationClass: any): void {
-    const isValid = typeof deserializationClass.unSynth === 'function';
+    const isValid = typeof deserializationClass?.unSynth === 'function';
     if (!isValid) {
       throw new Error('Invalid class, no reference to unSynth static method!');
     }
