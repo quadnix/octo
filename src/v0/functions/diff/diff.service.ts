@@ -1,8 +1,9 @@
-import { IAction } from '../../models/action.interface';
+import { IAction, IActionInputResponse } from '../../models/action.interface';
 import { Diff } from './diff.model';
 
 export class DiffService {
   private readonly actions: IAction[] = [];
+  private readonly inputs: IActionInputResponse = {};
   private readonly transaction: Diff[][] = [];
 
   private getMatchingDiffs(diff: Diff, diffs: Diff[]): Diff[] {
@@ -42,6 +43,21 @@ export class DiffService {
   }
 
   async beginTransaction(diffs: Diff[]): Promise<void> {
+    // Validate diff action(s).
+    for (const diff of diffs) {
+      const actions = this.actions.filter((a) => a.filter(diff));
+      if (actions.length === 0) {
+        throw new Error('No matching action found to process diff!');
+      }
+
+      for (const action of actions) {
+        const requests = action.collectInput(diff);
+        if (!requests.every((r) => this.inputs[r])) {
+          throw new Error('No matching input found on action!');
+        }
+      }
+    }
+
     for (const diff of diffs) {
       this.setApplyOrder(diff, diffs);
     }
@@ -50,35 +66,42 @@ export class DiffService {
     let currentApplyOrder = 0;
     while (accountedFor < diffs.length) {
       const diffsInSameLevel = diffs.filter((d) => d.metadata.applyOrder === currentApplyOrder);
+      const diffsProcessedInSameLevel: Diff[] = [];
+      const promisesToApplyDiffInSameLevel: Promise<void>[] = [];
 
-      const promisesToApplyDiff: Promise<void>[] = [];
       for (const diff of diffsInSameLevel) {
-        // Ensure at least one action can process this diff.
         const actions = this.actions.filter((a) => a.filter(diff));
-        if (actions.length === 0) {
-          throw new Error('No matching action found to process diff!');
+
+        // Check for similar diffs on the same model and same field.
+        const matchingDiffs = this.getMatchingDiffs(diff, diffsInSameLevel);
+
+        // Enrich all matching-diffs with their actions.
+        matchingDiffs.map((d) => (d.metadata.actions = actions));
+
+        // Mark metadata of each matching-diffs as applied.
+        matchingDiffs.forEach((d) => (d.metadata.applied = true));
+
+        // Only process the first diff, given all matching-diffs are the same.
+        const diffToProcess = matchingDiffs[0];
+
+        for (const a of actions) {
+          // Resolve input requests.
+          const responses: IActionInputResponse = {};
+          const requests = a.collectInput(diffToProcess);
+          requests.map((r) => (responses[r] = this.inputs[r]));
+
+          // Apply all actions on the diff.
+          promisesToApplyDiffInSameLevel.push(a.handle(diffToProcess, responses));
         }
 
-        // Check for similar unprocessed-diffs on the same model and same field.
-        const matchingDiffs = this.getMatchingDiffs(diff, diffsInSameLevel);
-        const unprocessedMatchingDiffs = matchingDiffs.filter((d) => !d.metadata.applied);
-
-        // Enrich all unprocessed-matching-diffs with their actions.
-        unprocessedMatchingDiffs.map((d) => (d.metadata.actions = actions));
-
-        // Add all unprocessed-matching-diffs to transaction.
-        this.transaction.push(unprocessedMatchingDiffs);
-
-        // Apply the actions on each unprocessed-matching-diffs.
-        actions.forEach((a) => {
-          promisesToApplyDiff.push(a.handle(unprocessedMatchingDiffs));
-        });
-
-        // Mark metadata of each unprocessed-matching-diffs as applied.
-        unprocessedMatchingDiffs.forEach((d) => (d.metadata.applied = true));
+        // Include the diff to process in the list of diffs processed in the same level.
+        diffsProcessedInSameLevel.push(diffToProcess);
       }
 
-      await Promise.all(promisesToApplyDiff);
+      // Add all diff in same level to transaction.
+      this.transaction.push(diffsProcessedInSameLevel);
+
+      await Promise.all(promisesToApplyDiffInSameLevel);
 
       accountedFor += diffsInSameLevel.length;
       currentApplyOrder += 1;
@@ -103,25 +126,28 @@ export class DiffService {
     this.actions.push(...actions);
   }
 
-  async rollback(): Promise<void> {
+  registerInputs(inputs: IActionInputResponse): void {
+    for (const key of Object.keys(inputs)) {
+      this.inputs[key] = inputs[key];
+    }
+  }
+
+  async rollbackAll(): Promise<void> {
     for (let i = this.transaction.length - 1; i >= 0; i--) {
-      const processedMatchingDiffs = this.transaction[i];
-      if (processedMatchingDiffs.length === 0) {
-        continue;
+      const diffsProcessedInSameLevel = this.transaction[i];
+      const promisesToRevertDiffInSameLevel: Promise<void>[] = [];
+
+      for (const diff of diffsProcessedInSameLevel) {
+        // Apply revert on all actions of the diff.
+        diff.metadata.actions.forEach((a) => {
+          promisesToRevertDiffInSameLevel.push(a.revert(diff));
+        });
       }
 
-      const promiseToRevertDiff: Promise<void>[] = [];
-      const diff = processedMatchingDiffs[0];
+      await Promise.all(promisesToRevertDiffInSameLevel);
 
-      // Apply the actions on each unprocessed-matching-diffs.
-      diff.metadata.actions.forEach((a) => {
-        promiseToRevertDiff.push(a.revert(processedMatchingDiffs));
-      });
-
-      await Promise.all(promiseToRevertDiff);
-
-      // Mark metadata of each processed-matching-diffs as un-applied.
-      processedMatchingDiffs.forEach((d) => (d.metadata.applied = false));
+      // Mark each diff metadata as un-applied.
+      diffsProcessedInSameLevel.forEach((d) => (d.metadata.applied = false));
     }
   }
 }
