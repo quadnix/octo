@@ -1,4 +1,4 @@
-import { App, Deployment, Environment, Image, Region, SerializationService, Server, Support } from '../../src/v0';
+import { App, Deployment, Environment, Image, Region, SerializationService, Server, Support } from '../src';
 
 describe('App E2E Test', () => {
   it('should generate app diff', async () => {

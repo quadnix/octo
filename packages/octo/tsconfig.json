@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist"
+  },
+  "exclude": ["coverage", "dist", "node_modules"],
+  "extends": "../../tsconfig.json",
+  "include": [".eslintrc.js", "**/*.json", "**/*.ts"]
+}

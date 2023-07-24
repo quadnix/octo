@@ -10,7 +10,7 @@ import {
   Server,
   Service,
   Support,
-} from '../../../src/v0';
+} from '../../src';
 
 describe('Model E2E Test', () => {
   const app = new App('test');

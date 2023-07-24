@@ -1,6 +1,8 @@
 Fallthrough
 aws
 brk
+cacheable
+cdk
 cicd
 commonjs
 cov
@@ -14,7 +16,9 @@ octo
 promisify
 quadnix
 rimraf
+schemas
 serializable
 tsc
 tsconfig
 unlink
+workspaces

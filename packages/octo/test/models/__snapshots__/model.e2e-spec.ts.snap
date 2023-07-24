@@ -86,8 +86,6 @@ exports[`Model E2E Test Test server should be able to synth 1`] = `
 
 exports[`Model E2E Test Test server should get context 1`] = `"server=backend,app=test"`;
 
-exports[`Model E2E Test Test service should get context 1`] = `"service=testService,app=test"`;
-
 exports[`Model E2E Test Test support should be able to synth 1`] = `
 {
   "applicationType": "nginx",

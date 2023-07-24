@@ -11,7 +11,7 @@ module.exports = {
     'plugin:jsonc/recommended-with-jsonc',
     'plugin:prettier/recommended',
   ],
-  ignorePatterns: ['package-lock.json', 'dist'],
+  ignorePatterns: ['package-lock.json'],
   overrides: [
     {
       files: ['*.ts'],
@@ -34,29 +34,6 @@ module.exports = {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
-    'import/no-restricted-paths': [
-      'error',
-      {
-        zones: [
-          {
-            from: ['./src/*/*/**'],
-            target: './test',
-          },
-          {
-            from: ['./src/v1', './src/v2'],
-            target: './src/v0',
-          },
-          {
-            from: ['./src/v0', './src/v2'],
-            target: './src/v1',
-          },
-          {
-            from: ['./src/v0', './src/v1'],
-            target: './src/v2',
-          },
-        ],
-      },
-    ],
     'jsonc/sort-keys': ['error', 'asc', { caseSensitive: true, minKeys: 2, natural: false }],
     'max-len': ['error', { code: 120, ignoreStrings: true }],
     'sort-imports': [
@@ -74,17 +51,10 @@ module.exports = {
       1,
       {
         minLength: 3,
-        skipWords: readFileSync('./dictionary.dic').toString().split('\n'),
+        skipWords: readFileSync(__dirname + '/dictionary.dic')
+          .toString()
+          .split('\n'),
       },
     ],
-  },
-  settings: {
-    // Fix to make `no-restricted-paths` rule work.
-    // Source: https://github.com/import-js/eslint-plugin-import/issues/1928#issuecomment-715164532
-    'import/resolver': {
-      node: {
-        extensions: ['.ts'],
-      },
-    },
   },
 };

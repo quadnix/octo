@@ -3,7 +3,7 @@
     "url": "https://github.com/quadnix/octo/issues"
   },
   "dependencies": {},
-  "description": "The open-source infrastructure management and CICD tool.",
+  "description": "The Octo CDK is an opinionated cloud infrastructure management and CICD tool.",
   "devDependencies": {
     "@types/jest": "~29.5.1",
     "@types/node": "~18.15.3",
@@ -17,6 +17,7 @@
     "eslint-plugin-spellcheck": "~0.0.20",
     "husky": "~8.0.3",
     "jest": "~29.5.0",
+    "nx": "~16.5.5",
     "prettier": "~2.8.8",
     "rimraf": "~5.0.1",
     "source-map-support": "~0.5.21",
@@ -27,46 +28,33 @@
     "typescript": "~5.0.4"
   },
   "homepage": "https://github.com/quadnix/octo#readme",
-  "jest": {
-    "coverageDirectory": "./coverage",
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": ".",
-    "setupFilesAfterEnv": [
-      "./test/jest.setup.ts"
-    ],
-    "testEnvironment": "node",
-    "testRegex": ".*spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    }
-  },
   "keywords": [
+    "cdk",
     "cicd",
-    "infrastructure"
+    "infrastructure",
+    "octo"
   ],
   "license": "MIT",
-  "main": "index.js",
-  "name": "@quadnix/octo",
+  "name": "@quadnix/packages",
+  "private": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/quadnix/octo.git"
   },
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "lint": "eslint .",
-    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "build": "nx run-many -t build",
+    "format": "nx run-many -t format",
+    "lint": "nx run-many -t lint",
+    "lint:fix": "nx run-many -t lint:fix",
     "prepare": "husky install",
-    "test": "jest --testRegex=\"\\.spec.ts$\"",
-    "test:cov": "jest --coverage --testRegex=\"\\.spec.ts$\"",
-    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --testRegex=\"\\.e2e-spec.ts$\"",
-    "test:integration": "jest --testRegex=\"\\.ispec.ts$\"",
-    "test:watch": "jest --watch"
+    "test": "nx run-many -t test",
+    "test:cov": "nx run-many -t test:cov",
+    "test:e2e": "nx run-many -t test:e2e",
+    "test:integration": "nx run-many -t test:integration",
+    "test:watch": "nx run-many -t test:watch"
   },
-  "version": "0.0.1"
+  "version": "0.0.0",
+  "workspaces": [
+    "packages/*"
+  ]
 }
