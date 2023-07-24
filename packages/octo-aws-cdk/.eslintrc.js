@@ -15,8 +15,8 @@ module.exports = {
         allow: [],
         depConstraints: [
           {
-            onlyDependOnLibsWithTags: ['scope:octo'],
-            sourceTag: 'scope:octo',
+            onlyDependOnLibsWithTags: ['scope:octo', 'scope:octo-aws-cdk'],
+            sourceTag: 'scope:octo-aws-cdk',
           },
         ],
       },

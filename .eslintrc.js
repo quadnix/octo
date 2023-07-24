@@ -27,7 +27,7 @@ module.exports = {
     sourceType: 'module',
     tsconfigRootDir: __dirname,
   },
-  plugins: ['@typescript-eslint/eslint-plugin', 'import', 'spellcheck'],
+  plugins: ['@nx', '@typescript-eslint/eslint-plugin', 'import', 'spellcheck'],
   root: true,
   rules: {
     '@typescript-eslint/explicit-function-return-type': 2,

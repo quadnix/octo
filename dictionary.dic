@@ -6,6 +6,7 @@ cdk
 cicd
 commonjs
 cov
+dep
 dic
 eslintrc
 ispec
@@ -17,6 +18,7 @@ promisify
 quadnix
 rimraf
 schemas
+sdk
 serializable
 tsc
 tsconfig
