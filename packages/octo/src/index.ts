@@ -1,7 +1,8 @@
 export { Diff, DiffAction } from './functions/diff/diff.model';
 export { DiffService } from './functions/diff/diff.service';
+export { DiffUtility } from './functions/diff/diff.utility';
 export { HookService } from './functions/hook/hook.service';
-export { SerializationService } from './functions/synth/serialization.service';
+export { SerializationService } from './functions/serialization/serialization.service';
 
 export { IAction } from './models/action.interface';
 export { HOOK_NAMES, IHook } from './models/hook.interface';
@@ -9,12 +10,22 @@ export { Model } from './models/model.abstract';
 export { IModel } from './models/model.interface';
 
 export { App } from './models/app/app.model';
+export { IApp } from './models/app/app.interface';
 export { Deployment } from './models/deployment/deployment.model';
+export { IDeployment } from './models/deployment/deployment.interface';
 export { Environment } from './models/environment/environment.model';
+export { IEnvironment } from './models/environment/environment.interface';
 export { Execution } from './models/execution/execution.model';
+export { IExecution } from './models/execution/execution.interface';
 export { Image } from './models/image/image.model';
+export { IImage } from './models/image/image.interface';
 export { Pipeline } from './models/pipeline/pipeline.model';
+export { IPipeline } from './models/pipeline/pipeline.interface';
 export { Region } from './models/region/region.model';
+export { IRegion } from './models/region/region.interface';
 export { Server } from './models/server/server.model';
+export { IServer } from './models/server/server.interface';
 export { Service } from './models/service/service.model';
+export { IService } from './models/service/service.interface';
 export { Support } from './models/support/support.model';
+export { ISupport } from './models/support/support.interface';
