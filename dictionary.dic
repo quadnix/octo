@@ -12,10 +12,12 @@ eslintrc
 ispec
 jsonc
 len
+lstat
 nginx
 octo
 promisify
 quadnix
+readdir
 rimraf
 schemas
 sdk
