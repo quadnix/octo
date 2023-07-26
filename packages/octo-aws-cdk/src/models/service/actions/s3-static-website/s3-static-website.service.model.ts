@@ -1,6 +1,6 @@
+import { Diff, DiffAction, Service } from '@quadnix/octo';
 import { lstat, readdir } from 'fs/promises';
-import { join } from 'path';
-import { Diff, DiffUtility, Service } from '@quadnix/octo';
+import { join, resolve } from 'path';
 import { IS3StaticWebsiteService } from './s3-static-website.service.interface';
 
 export class S3StaticWebsiteService extends Service {
@@ -27,6 +27,7 @@ export class S3StaticWebsiteService extends Service {
     filter?: (filePath: string) => boolean,
     transform?: (filePath: string) => string,
   ): Promise<void> {
+    directoryPath = resolve(directoryPath);
     if (!subDirectoryOrFilePath) {
       subDirectoryOrFilePath = '';
     }
@@ -58,7 +59,7 @@ export class S3StaticWebsiteService extends Service {
 
       const filePaths = await readdir(relativeSubDirectoryOrFilePath);
       for (let filePath of filePaths) {
-        filePath = join(subDirectoryOrFilePath!, filePath);
+        filePath = join(subDirectoryOrFilePath, filePath);
 
         const shouldInclude = filter ? filter(filePath) : true;
         if (!shouldInclude) {
@@ -71,7 +72,7 @@ export class S3StaticWebsiteService extends Service {
     }
   }
 
-  override diff(previous?: S3StaticWebsiteService): Diff[] {
+  override diff(): Diff[] {
     // bucketName is intentionally not included in diff, since it is being used as an ID in the serviceId.
     // It cannot change within the same service.
 
@@ -80,19 +81,8 @@ export class S3StaticWebsiteService extends Service {
     // If a source gets deleted, the excludePaths does not apply to this case.
 
     // Generate diff of sourcePaths.
-    return DiffUtility.diffArrayOfObjects(
-      previous || ({ sourcePaths: [] } as unknown as S3StaticWebsiteService),
-      this,
-      'sourcePaths',
-      (object1, object2) => {
-        return (
-          object1.directoryPath === object2.directoryPath &&
-          object1.isDirectory === object2.isDirectory &&
-          object1.remotePath === object2.remotePath &&
-          object1.subDirectoryOrFilePath === object2.subDirectoryOrFilePath
-        );
-      },
-    );
+    // This is a permanent update since all sourcePaths needs to be reconciled with remote.
+    return [new Diff(this, DiffAction.UPDATE, 'sourcePaths', this.sourcePaths)];
   }
 
   override synth(): IS3StaticWebsiteService {

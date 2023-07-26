@@ -2,7 +2,7 @@ import { join, resolve } from 'path';
 import { App, SerializationService } from '@quadnix/octo';
 import { S3StaticWebsiteService } from './s3-static-website.service.model';
 
-const resourcesPath = resolve(join(__dirname, '../../../../../resources'));
+const resourcesPath = join(__dirname, '../../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
 
 describe('S3StaticWebsiteService UT', () => {
@@ -14,8 +14,21 @@ describe('S3StaticWebsiteService UT', () => {
     });
 
     describe('when called with directoryPath', () => {
-      it('should add the directory', async () => {
+      it('should add the directory when relative path given', async () => {
         await service.addSource(websiteSourcePath);
+
+        expect(service.sourcePaths).toEqual([
+          {
+            directoryPath: websiteSourcePath,
+            isDirectory: true,
+            remotePath: '',
+            subDirectoryOrFilePath: '',
+          },
+        ]);
+      });
+
+      it('should add the directory when absolute path given', async () => {
+        await service.addSource(resolve(websiteSourcePath));
 
         expect(service.sourcePaths).toEqual([
           {
@@ -121,7 +134,7 @@ describe('S3StaticWebsiteService UT', () => {
   });
 
   describe('diff()', () => {
-    it('should generate an addition', async () => {
+    it('should generate an update on addition', async () => {
       const app = new App('test');
       const service = new S3StaticWebsiteService('test-bucket');
       app.addService(service);
@@ -137,20 +150,22 @@ describe('S3StaticWebsiteService UT', () => {
             "value": "test-bucket-s3-static-website",
           },
           {
-            "action": "add",
+            "action": "update",
             "field": "sourcePaths",
-            "value": {
-              "directoryPath": "${websiteSourcePath}",
-              "isDirectory": true,
-              "remotePath": "",
-              "subDirectoryOrFilePath": "",
-            },
+            "value": [
+              {
+                "directoryPath": "${websiteSourcePath}",
+                "isDirectory": true,
+                "remotePath": "",
+                "subDirectoryOrFilePath": "",
+              },
+            ],
           },
         ]
       `);
     });
 
-    it('should generate a deletion', async () => {
+    it('should generate an update on deletion', async () => {
       const serializationService = new SerializationService();
       serializationService.registerClass(S3StaticWebsiteService.name, S3StaticWebsiteService);
 
@@ -173,20 +188,15 @@ describe('S3StaticWebsiteService UT', () => {
       expect(diffs).toMatchInlineSnapshot(`
         [
           {
-            "action": "delete",
+            "action": "update",
             "field": "sourcePaths",
-            "value": {
-              "directoryPath": "${websiteSourcePath}",
-              "isDirectory": true,
-              "remotePath": "",
-              "subDirectoryOrFilePath": "",
-            },
+            "value": [],
           },
         ]
       `);
     });
 
-    it('should generate an update', async () => {
+    it('should generate an update on update', async () => {
       const serializationService = new SerializationService();
       serializationService.registerClass(S3StaticWebsiteService.name, S3StaticWebsiteService);
 
@@ -204,12 +214,14 @@ describe('S3StaticWebsiteService UT', () => {
           {
             "action": "update",
             "field": "sourcePaths",
-            "value": {
-              "directoryPath": "${websiteSourcePath}",
-              "isDirectory": true,
-              "remotePath": "",
-              "subDirectoryOrFilePath": "",
-            },
+            "value": [
+              {
+                "directoryPath": "${websiteSourcePath}",
+                "isDirectory": true,
+                "remotePath": "",
+                "subDirectoryOrFilePath": "",
+              },
+            ],
           },
         ]
       `);
