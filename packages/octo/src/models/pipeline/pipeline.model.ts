@@ -15,7 +15,7 @@ export class Pipeline extends Model<IPipeline, Pipeline> {
     this.pipelineName = pipelineName;
   }
 
-  override diff(previous?: Pipeline): Diff[] {
+  override async diff(previous?: Pipeline): Promise<Diff[]> {
     // Generate diff of instructionSet.
     return DiffUtility.diffArray(previous || ({ instructionSet: [] } as unknown as Pipeline), this, 'instructionSet');
   }

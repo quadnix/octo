@@ -15,7 +15,7 @@ export class Environment extends Model<IEnvironment, Environment> {
     this.environmentName = environmentName;
   }
 
-  override diff(previous?: Environment): Diff[] {
+  override async diff(previous?: Environment): Promise<Diff[]> {
     // Generate diff of environmentVariables.
     return DiffUtility.diffMap(
       previous || ({ environmentVariables: new Map() } as Environment),

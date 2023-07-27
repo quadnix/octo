@@ -18,7 +18,7 @@ export interface IModel<I, T> {
    *
    * Diff captures change. So fields that do not change, e.g. ID fields, do not need to be diffed.
    */
-  diff(previous?: T): Diff[];
+  diff(previous?: T): Promise<Diff[]>;
 
   /**
    * Generates a string representation of self, used to identify the uniqueness of the instance.

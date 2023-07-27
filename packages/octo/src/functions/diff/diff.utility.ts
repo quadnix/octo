@@ -106,7 +106,7 @@ export class DiffUtility {
    * @param b array of latest models.
    * @param field string representing the unique identifier of the model.
    */
-  static diffModels(a: Model<unknown, unknown>[], b: Model<unknown, unknown>[], field: string): Diff[] {
+  static async diffModels(a: Model<unknown, unknown>[], b: Model<unknown, unknown>[], field: string): Promise<Diff[]> {
     const diff: Diff[] = [];
 
     // Iterate fields of previous (a). If found in latest (b), get recursive diff of children of b vs a.
@@ -114,7 +114,7 @@ export class DiffUtility {
     for (const x of a) {
       const y = b.find((i) => i[field] === x[field]);
       if (y) {
-        const pDiff = y.diff(x);
+        const pDiff = await y.diff(x);
         diff.push(...pDiff);
       } else {
         diff.push(new Diff(x, DiffAction.DELETE, field, x[field]));
@@ -127,7 +127,7 @@ export class DiffUtility {
       if (!a.find((i) => i[field] === y[field])) {
         diff.push(new Diff(y, DiffAction.ADD, field, y[field]));
 
-        const pDiff = y.diff();
+        const pDiff = await y.diff();
         diff.push(...pDiff);
       }
     }

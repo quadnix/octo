@@ -46,7 +46,8 @@ describe('App E2E Test', () => {
     nginxSupport.addDeployment(new Deployment('v1', image));
     newApp.addSupport(nginxSupport);
 
-    expect(newApp.diff(oldApp)).toMatchInlineSnapshot(`
+    const diffs = await newApp.diff(oldApp);
+    expect(diffs).toMatchInlineSnapshot(`
       [
         {
           "action": "update",

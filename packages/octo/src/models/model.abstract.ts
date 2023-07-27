@@ -34,7 +34,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
     }
   }
 
-  diff(previous?: T): Diff[] {
+  async diff(previous?: T): Promise<Diff[]> {
     const childrenByModel = this.getChildren();
     const childrenOfPreviousByModel = (previous as Model<unknown, unknown>)?.getChildren() ?? {};
 
@@ -45,7 +45,8 @@ export abstract class Model<I, T> implements IModel<I, T> {
       const children = childrenByModel[modelName].map((d) => d.to);
       const childrenOfPrevious = childrenOfPreviousByModel[modelName]?.map((d) => d.to) ?? [];
       const field = childrenByModel[modelName][0].getRelationship()!.toField;
-      diffs.push(...DiffUtility.diffModels(childrenOfPrevious, children, field as string));
+      const childrenDiffs = await DiffUtility.diffModels(childrenOfPrevious, children, field as string);
+      diffs.push(...childrenDiffs);
 
       modelsSeen.push(modelName);
     }
@@ -58,7 +59,8 @@ export abstract class Model<I, T> implements IModel<I, T> {
       const children = [];
       const childrenOfPrevious = childrenOfPreviousByModel[modelName].map((d) => d.to);
       const field = childrenOfPreviousByModel[modelName][0].getRelationship()!.toField;
-      diffs.push(...DiffUtility.diffModels(childrenOfPrevious, children, field as string));
+      const childrenDiffs = await DiffUtility.diffModels(childrenOfPrevious, children, field as string);
+      diffs.push(...childrenDiffs);
     }
 
     return diffs;

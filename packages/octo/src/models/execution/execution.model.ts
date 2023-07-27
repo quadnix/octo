@@ -36,7 +36,7 @@ export class Execution extends Model<IExecution, Execution> {
     this.hookService.applyHooks(HOOK_NAMES.ADD_EXECUTION);
   }
 
-  override diff(previous?: Execution): Diff[] {
+  override async diff(previous?: Execution): Promise<Diff[]> {
     // deployment, environment, and executionId intentionally not included in diff,
     // since they all contribute to executionId (primary key) which can never change.
 
