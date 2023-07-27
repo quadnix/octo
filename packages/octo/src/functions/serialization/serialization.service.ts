@@ -33,11 +33,7 @@ export class SerializationService {
     }
   }
 
-  async deserialize(serializedOutput: {
-    dependencies: IDependency[];
-    models: { [p: string]: { className: string; model: IModel<unknown, unknown> } };
-    version: string;
-  }): Promise<Model<unknown, unknown>> {
+  async deserialize(serializedOutput: ReturnType<SerializationService['serialize']>): Promise<Model<unknown, unknown>> {
     if (serializedOutput.version !== this.SERIALIZATION_VERSION) {
       throw new Error('Version mismatch on deserialization!');
     }

@@ -4,7 +4,7 @@ export { DiffUtility } from './functions/diff/diff.utility';
 export { HookService } from './functions/hook/hook.service';
 export { SerializationService } from './functions/serialization/serialization.service';
 
-export { IAction } from './models/action.interface';
+export { IAction, IActionInputRequest, IActionInputResponse } from './models/action.interface';
 export { HOOK_NAMES, IHook } from './models/hook.interface';
 export { Model } from './models/model.abstract';
 export { IModel } from './models/model.interface';
@@ -29,3 +29,7 @@ export { Service } from './models/service/service.model';
 export { IService } from './models/service/service.interface';
 export { Support } from './models/support/support.model';
 export { ISupport } from './models/support/support.interface';
+
+export { LocalStateProvider } from './services/state-management/local.state-provider';
+export { StateManagementService } from './services/state-management/state-management.service';
+export { IStateProvider } from './services/state-management/state-provider.interface';
