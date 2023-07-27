@@ -1,6 +1,10 @@
+import { unlink } from 'fs';
 import { join, resolve } from 'path';
-import { App, SerializationService } from '@quadnix/octo';
+import { App, LocalStateProvider, SerializationService, StateManagementService } from '@quadnix/octo';
+import { promisify } from 'util';
 import { S3StaticWebsiteService } from './s3-static-website.service.model';
+
+const unlinkAsync = promisify(unlink);
 
 const resourcesPath = join(__dirname, '../../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
@@ -39,6 +43,19 @@ describe('S3StaticWebsiteService UT', () => {
           },
         ]);
       });
+    });
+
+    it('should add when file path is given', async () => {
+      await service.addSource(websiteSourcePath + '/index.html');
+
+      expect(service.sourcePaths).toEqual([
+        {
+          directoryPath: websiteSourcePath,
+          isDirectory: false,
+          remotePath: 'index.html',
+          subDirectoryOrFilePath: 'index.html',
+        },
+      ]);
     });
 
     describe('when called with directoryPath and subDirectoryOrFilePath', () => {
@@ -134,14 +151,26 @@ describe('S3StaticWebsiteService UT', () => {
   });
 
   describe('diff()', () => {
+    let filePath;
+
+    afterEach(async () => {
+      if (filePath) {
+        await unlinkAsync(filePath);
+      }
+    });
+
     it('should generate an update on addition', async () => {
+      StateManagementService.getInstance(new LocalStateProvider(__dirname));
+      filePath = join(__dirname, 'manifest.json');
+
       const app = new App('test');
       const service = new S3StaticWebsiteService('test-bucket');
       app.addService(service);
       await service.addSource(websiteSourcePath);
 
-      const diffs = app.diff().map((diff) => diff.toJSON());
+      const diffs = await app.diff();
 
+      // eslint-disable-next-line spellcheck/spell-checker
       expect(diffs).toMatchInlineSnapshot(`
         [
           {
@@ -152,20 +181,25 @@ describe('S3StaticWebsiteService UT', () => {
           {
             "action": "update",
             "field": "sourcePaths",
-            "value": [
-              {
-                "directoryPath": "${websiteSourcePath}",
-                "isDirectory": true,
-                "remotePath": "",
-                "subDirectoryOrFilePath": "",
+            "value": {
+              "error.html": {
+                "algorithm": "sha1",
+                "digest": "747c324737a310ff1c0ff1d3ab90d15cb00b585b",
               },
-            ],
+              "index.html": {
+                "algorithm": "sha1",
+                "digest": "aba92cd2086d7ab2f36d3bf5baa269478b941921",
+              },
+            },
           },
         ]
       `);
     });
 
     it('should generate an update on deletion', async () => {
+      StateManagementService.getInstance(new LocalStateProvider(__dirname));
+      filePath = join(__dirname, 'manifest.json');
+
       const serializationService = new SerializationService();
       serializationService.registerClass(S3StaticWebsiteService.name, S3StaticWebsiteService);
 
@@ -183,20 +217,23 @@ describe('S3StaticWebsiteService UT', () => {
         newService.sourcePaths.pop();
       }
 
-      const diffs = newApp.diff(oldApp).map((diff) => diff.toJSON());
+      const diffs = await newApp.diff(oldApp);
 
       expect(diffs).toMatchInlineSnapshot(`
         [
           {
             "action": "update",
             "field": "sourcePaths",
-            "value": [],
+            "value": {},
           },
         ]
       `);
     });
 
     it('should generate an update on update', async () => {
+      StateManagementService.getInstance(new LocalStateProvider(__dirname));
+      filePath = join(__dirname, 'manifest.json');
+
       const serializationService = new SerializationService();
       serializationService.registerClass(S3StaticWebsiteService.name, S3StaticWebsiteService);
 
@@ -207,21 +244,24 @@ describe('S3StaticWebsiteService UT', () => {
 
       const newApp = (await serializationService.deserialize(serializationService.serialize(oldApp))) as App;
 
-      const diffs = newApp.diff(oldApp).map((diff) => diff.toJSON());
+      const diffs = await newApp.diff(oldApp);
 
+      // eslint-disable-next-line spellcheck/spell-checker
       expect(diffs).toMatchInlineSnapshot(`
         [
           {
             "action": "update",
             "field": "sourcePaths",
-            "value": [
-              {
-                "directoryPath": "${websiteSourcePath}",
-                "isDirectory": true,
-                "remotePath": "",
-                "subDirectoryOrFilePath": "",
+            "value": {
+              "error.html": {
+                "algorithm": "sha1",
+                "digest": "747c324737a310ff1c0ff1d3ab90d15cb00b585b",
               },
-            ],
+              "index.html": {
+                "algorithm": "sha1",
+                "digest": "aba92cd2086d7ab2f36d3bf5baa269478b941921",
+              },
+            },
           },
         ]
       `);

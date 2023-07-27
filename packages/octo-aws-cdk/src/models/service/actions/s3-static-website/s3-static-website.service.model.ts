@@ -1,7 +1,10 @@
-import { Diff, DiffAction, Service } from '@quadnix/octo';
+import { Diff, DiffAction, Service, StateManagementService } from '@quadnix/octo';
 import { lstat, readdir } from 'fs/promises';
-import { join, resolve } from 'path';
+import { join, parse, resolve } from 'path';
+import { FileUtility } from '../../../../utilities/file/file.utility';
 import { IS3StaticWebsiteService } from './s3-static-website.service.interface';
+
+export type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted' } };
 
 export class S3StaticWebsiteService extends Service {
   readonly bucketName: string;
@@ -40,6 +43,12 @@ export class S3StaticWebsiteService extends Service {
     const stats = await lstat(relativeSubDirectoryOrFilePath);
 
     if (stats.isFile()) {
+      if (!subDirectoryOrFilePath) {
+        const { base, dir } = parse(directoryPath);
+        directoryPath = dir;
+        subDirectoryOrFilePath = base;
+      }
+
       const shouldInclude = filter ? filter(subDirectoryOrFilePath) : true;
       if (shouldInclude) {
         this.sourcePaths.push({
@@ -72,17 +81,60 @@ export class S3StaticWebsiteService extends Service {
     }
   }
 
-  override diff(): Diff[] {
-    // bucketName is intentionally not included in diff, since it is being used as an ID in the serviceId.
-    // It cannot change within the same service.
+  override async diff(): Promise<Diff[]> {
+    // Get old manifest.
+    let oldManifestData: IManifest;
+    try {
+      const oldManifestDataBuffer = await StateManagementService.getInstance().getBufferState('manifest.json');
+      oldManifestData = JSON.parse(oldManifestDataBuffer.toString());
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        oldManifestData = {};
+      } else {
+        throw error;
+      }
+    }
 
-    // excludePaths is intentionally not included in diff, since it is referenced by actions.
-    // If a source gets added or updated, the excludePaths will be referenced to pickup any new changes.
-    // If a source gets deleted, the excludePaths does not apply to this case.
+    // Generate new manifest.
+    const newManifestData: IManifest = {};
+    for (const sourcePath of this.sourcePaths) {
+      if (!sourcePath.isDirectory) {
+        const digest = await FileUtility.hash(join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath));
+        newManifestData[sourcePath.remotePath] = { algorithm: 'sha1', digest };
+      } else {
+        const filePaths = await readdir(join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath));
+        for (const filePath of filePaths) {
+          if (this.excludePaths.findIndex((p) => join(p.directoryPath, p.subDirectoryOrFilePath) === filePath) === -1) {
+            const remotePath = join(sourcePath.remotePath, filePath);
+            const digest = await FileUtility.hash(
+              join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath, filePath),
+            );
+            newManifestData[remotePath] = { algorithm: 'sha1', digest };
+          }
+        }
+      }
+    }
+    // Save new manifest.
+    await StateManagementService.getInstance().saveBufferState(
+      'manifest.json',
+      Buffer.from(JSON.stringify(newManifestData)),
+    );
 
-    // Generate diff of sourcePaths.
-    // This is a permanent update since all sourcePaths needs to be reconciled with remote.
-    return [new Diff(this, DiffAction.UPDATE, 'sourcePaths', this.sourcePaths)];
+    // Generate difference in new manifest.
+    for (const key of Object.keys(oldManifestData)) {
+      if (key in newManifestData) {
+        if (
+          oldManifestData[key].algorithm === newManifestData[key].algorithm &&
+          oldManifestData[key].digest === newManifestData[key].digest
+        ) {
+          delete newManifestData[key];
+        }
+      } else {
+        newManifestData[key] = { algorithm: 'sha1', digest: 'deleted' };
+      }
+    }
+
+    return [new Diff(this, DiffAction.UPDATE, 'sourcePaths', newManifestData)];
   }
 
   override synth(): IS3StaticWebsiteService {
