@@ -1,10 +1,10 @@
-import { Diff, DiffAction, Service, StateManagementService } from '@quadnix/octo';
+import { Diff, DiffAction, Service } from '@quadnix/octo';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
 import { FileUtility } from '../../../../utilities/file/file.utility';
 import { IS3StaticWebsiteService } from './s3-static-website.service.interface';
 
-export type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted' } };
+export type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
 
 export class S3StaticWebsiteService extends Service {
   readonly bucketName: string;
@@ -82,56 +82,34 @@ export class S3StaticWebsiteService extends Service {
   }
 
   override async diff(): Promise<Diff[]> {
-    // Get old manifest.
-    let oldManifestData: IManifest;
-    try {
-      const oldManifestDataBuffer = await StateManagementService.getInstance().getBufferState('manifest.json');
-      oldManifestData = JSON.parse(oldManifestDataBuffer.toString());
-    } catch (error) {
-      if (error.code === 'ENOENT') {
-        oldManifestData = {};
-      } else {
-        throw error;
-      }
-    }
-
     // Generate new manifest.
     const newManifestData: IManifest = {};
     for (const sourcePath of this.sourcePaths) {
       if (!sourcePath.isDirectory) {
-        const digest = await FileUtility.hash(join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath));
-        newManifestData[sourcePath.remotePath] = { algorithm: 'sha1', digest };
+        const filePath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
+        const digest = await FileUtility.hash(filePath);
+        newManifestData[sourcePath.remotePath] = { algorithm: 'sha1', digest, filePath };
       } else {
-        const filePaths = await readdir(join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath));
-        for (const filePath of filePaths) {
-          if (this.excludePaths.findIndex((p) => join(p.directoryPath, p.subDirectoryOrFilePath) === filePath) === -1) {
-            const remotePath = join(sourcePath.remotePath, filePath);
-            const digest = await FileUtility.hash(
-              join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath, filePath),
-            );
-            newManifestData[remotePath] = { algorithm: 'sha1', digest };
+        const directoryPath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
+        const directoryFilePaths = await readdir(directoryPath);
+        for (const directoryFilePath of directoryFilePaths) {
+          if (
+            this.excludePaths.findIndex(
+              (p) => join(p.directoryPath, p.subDirectoryOrFilePath) === directoryFilePath,
+            ) === -1
+          ) {
+            const filePath = join(directoryPath, directoryFilePath);
+            const remotePath = join(sourcePath.remotePath, directoryFilePath);
+            const digest = await FileUtility.hash(filePath);
+            newManifestData[remotePath] = { algorithm: 'sha1', digest, filePath };
           }
         }
       }
     }
-    // Save new manifest.
-    await StateManagementService.getInstance().saveBufferState(
-      'manifest.json',
-      Buffer.from(JSON.stringify(newManifestData)),
-    );
 
-    // Generate difference in new manifest.
-    for (const key of Object.keys(oldManifestData)) {
-      if (key in newManifestData) {
-        if (
-          oldManifestData[key].algorithm === newManifestData[key].algorithm &&
-          oldManifestData[key].digest === newManifestData[key].digest
-        ) {
-          delete newManifestData[key];
-        }
-      } else {
-        newManifestData[key] = { algorithm: 'sha1', digest: 'deleted' };
-      }
+    // Ensure error.html and index.html exists.
+    if (!newManifestData['error.html'] || !newManifestData['index.html']) {
+      throw new Error('error.html/index.html missing in root of website!');
     }
 
     return [new Diff(this, DiffAction.UPDATE, 'sourcePaths', newManifestData)];

@@ -3,7 +3,9 @@
     "@aws-sdk/client-ecr": "~3.370.0",
     "@aws-sdk/client-ecs": "~3.370.0",
     "@aws-sdk/client-s3": "~3.374.0",
-    "@quadnix/octo": "~0.0.1"
+    "@aws-sdk/lib-storage": "~3.379.1",
+    "@quadnix/octo": "~0.0.1",
+    "mime": "~3.0.0"
   },
   "description": "Octo-AWS-CDK is an AWS specific implementation of the Octo interface.",
   "devDependencies": {},
