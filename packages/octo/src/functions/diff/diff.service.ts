@@ -4,7 +4,6 @@ import { Diff } from './diff.model';
 export class DiffService {
   private readonly actions: IAction[] = [];
   private readonly inputs: IActionInputResponse = {};
-  private readonly transaction: Diff[][] = [];
 
   private getMatchingDiffs(diff: Diff, diffs: Diff[]): Diff[] {
     return diffs.filter(
@@ -45,7 +44,9 @@ export class DiffService {
     diff.metadata.applyOrder = Math.max(...dependencyApplyOrders) + 1;
   }
 
-  async beginTransaction(diffs: Diff[]): Promise<void> {
+  async beginTransaction(diffs: Diff[]): Promise<Diff[][]> {
+    const transaction: Diff[][] = [];
+
     // Validate diff action(s).
     for (const diff of diffs) {
       const actions = this.actions.filter((a) => a.filter(diff));
@@ -102,27 +103,19 @@ export class DiffService {
       }
 
       // Add all diff in same level to transaction.
-      this.transaction.push(diffsProcessedInSameLevel);
+      transaction.push(diffsProcessedInSameLevel);
 
       await Promise.all(promisesToApplyDiffInSameLevel);
 
       accountedFor += diffsInSameLevel.length;
       currentApplyOrder += 1;
     }
+
+    return transaction;
   }
 
   getActionNames(): string[] {
     return this.actions.map((a) => a.ACTION_NAME);
-  }
-
-  getTransaction(): ReturnType<Diff['toJSON']>[][] {
-    const transaction: ReturnType<Diff['toJSON']>[][] = [];
-
-    for (const transactionRow of this.transaction) {
-      transaction.push(transactionRow.map((diff) => diff.toJSON()));
-    }
-
-    return transaction;
   }
 
   registerActions(actions: IAction[]): void {
@@ -135,9 +128,9 @@ export class DiffService {
     }
   }
 
-  async rollbackAll(): Promise<void> {
-    for (let i = this.transaction.length - 1; i >= 0; i--) {
-      const diffsProcessedInSameLevel = this.transaction[i];
+  async rollbackAll(transaction: Diff[][]): Promise<void> {
+    for (let i = transaction.length - 1; i >= 0; i--) {
+      const diffsProcessedInSameLevel = transaction[i];
       const promisesToRevertDiffInSameLevel: Promise<void>[] = [];
 
       for (const diff of diffsProcessedInSameLevel) {

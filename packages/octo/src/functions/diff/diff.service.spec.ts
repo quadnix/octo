@@ -193,7 +193,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.beginTransaction(diffs);
+      const transaction = await diffService.beginTransaction(diffs);
 
       expect(testActionMock).toHaveBeenCalledTimes(1);
       expect(testActionMock.mock.calls[0][0].toJSON()).toEqual({
@@ -202,7 +202,7 @@ describe('DiffService UT', () => {
         value: 'qa',
       });
 
-      expect(diffService.getTransaction()).toMatchInlineSnapshot(`
+      expect(transaction).toMatchInlineSnapshot(`
         [
           [
             {
@@ -279,7 +279,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.beginTransaction(diffs);
+      const transaction = await diffService.beginTransaction(diffs);
 
       expect(addEnvironmentNameActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentNameActionMock.mock.calls[0][0].toJSON()).toEqual({
@@ -295,7 +295,7 @@ describe('DiffService UT', () => {
         value: { key: 'value' },
       });
 
-      expect(diffService.getTransaction()).toMatchInlineSnapshot(`
+      expect(transaction).toMatchInlineSnapshot(`
         [
           [
             {
@@ -348,7 +348,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.beginTransaction(diffs);
+      const transaction = await diffService.beginTransaction(diffs);
 
       expect(addEnvironmentActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentActionMock.mock.calls[0][0].toJSON()).toEqual({
@@ -368,7 +368,7 @@ describe('DiffService UT', () => {
         addEnvironmentActionMock.mock.invocationCallOrder[0],
       );
 
-      expect(diffService.getTransaction()).toMatchInlineSnapshot(`
+      expect(transaction).toMatchInlineSnapshot(`
         [
           [
             {
@@ -430,7 +430,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.beginTransaction(diffs);
+      const transaction = await diffService.beginTransaction(diffs);
 
       expect(addEnvironmentActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentActionMock.mock.calls[0][0].toJSON()).toEqual({
@@ -460,7 +460,7 @@ describe('DiffService UT', () => {
         addEnvironmentActionMock.mock.invocationCallOrder[0],
       );
 
-      expect(diffService.getTransaction()).toMatchInlineSnapshot(`
+      expect(transaction).toMatchInlineSnapshot(`
         [
           [
             {
@@ -521,7 +521,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      await diffService.beginTransaction(diffs);
+      const transaction = await diffService.beginTransaction(diffs);
 
       expect(addEnvironmentActionMock).toHaveBeenCalledTimes(1);
       expect(addEnvironmentActionMock.mock.calls[0][0].toJSON()).toEqual({
@@ -544,7 +544,7 @@ describe('DiffService UT', () => {
         addEnvironmentActionMock.mock.invocationCallOrder[0],
       );
 
-      expect(diffService.getTransaction()).toMatchInlineSnapshot(`
+      expect(transaction).toMatchInlineSnapshot(`
         [
           [
             {
@@ -608,8 +608,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      diffService['transaction'].push([diff1]);
-      await diffService.rollbackAll();
+      await diffService.rollbackAll([[diff1]]);
 
       expect(testActionMock).toHaveBeenCalledTimes(1);
       expect(testActionMock.mock.calls[0][0].toJSON()).toEqual({
@@ -639,8 +638,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      diffService['transaction'].push([diff1, diff2]);
-      await diffService.rollbackAll();
+      await diffService.rollbackAll([[diff1, diff2]]);
 
       expect(testActionMock).toHaveBeenCalledTimes(2);
     });
@@ -665,8 +663,7 @@ describe('DiffService UT', () => {
       const diffService = new DiffService();
       diffService.registerActions(actions);
 
-      diffService['transaction'].push([diff1], [diff2]);
-      await diffService.rollbackAll();
+      await diffService.rollbackAll([[diff1], [diff2]]);
 
       expect(testActionMock).toHaveBeenCalledTimes(2);
       expect(testActionMock.mock.calls[0][0].toJSON()).toEqual({

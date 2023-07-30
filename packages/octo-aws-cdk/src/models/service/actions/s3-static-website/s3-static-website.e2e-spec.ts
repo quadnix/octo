@@ -33,18 +33,18 @@ describe('S3StaticWebsite E2E Test', () => {
 
     // Initialize Octo AWS.
     const octoAws = new OctoAws('us-east-1');
-    const diffService0 = new DiffService();
-    diffService0.registerActions(octoAws.getS3StaticWebsiteActions());
+    const diffService = new DiffService();
+    diffService.registerActions(octoAws.getS3StaticWebsiteActions());
 
     // Add website.
     const app0 = new App('test-app');
     const service0 = new S3StaticWebsiteService(BUCKET_NAME);
     app0.addService(service0);
     const diffs0 = await app0.diff();
-    await diffService0.beginTransaction(diffs0);
+    const transaction0 = await diffService.beginTransaction(diffs0);
     await stateManagementService.saveApplicationState(serializationService.serialize(app0));
     /* eslint-disable spellcheck/spell-checker */
-    expect(diffService0.getTransaction()).toMatchInlineSnapshot(`
+    expect(transaction0).toMatchInlineSnapshot(`
       [
         [
           {
@@ -70,12 +70,10 @@ describe('S3StaticWebsite E2E Test', () => {
     ]) as S3StaticWebsiteService;
     await service1.addSource(WEBSITE_PATH);
     const diffs1 = await app1.diff(app0);
-    const diffService1 = new DiffService();
-    diffService1.registerActions(octoAws.getS3StaticWebsiteActions());
-    await diffService1.beginTransaction(diffs1);
+    const transaction1 = await diffService.beginTransaction(diffs1);
     await stateManagementService.saveApplicationState(serializationService.serialize(app1));
     /* eslint-disable spellcheck/spell-checker */
-    expect(diffService1.getTransaction()).toMatchInlineSnapshot(`
+    expect(transaction1).toMatchInlineSnapshot(`
       [
         [
           {
@@ -111,14 +109,12 @@ describe('S3StaticWebsite E2E Test', () => {
     try {
       await writeFileAsync(join(WEBSITE_PATH, 'error.html'), 'New error content!');
       const diffs2 = await app2.diff(app1);
-      const diffService2 = new DiffService();
-      diffService2.registerActions(octoAws.getS3StaticWebsiteActions());
 
-      await diffService2.beginTransaction(diffs2);
+      const transaction2 = await diffService.beginTransaction(diffs2);
       await stateManagementService.saveApplicationState(serializationService.serialize(app2));
 
       /* eslint-disable spellcheck/spell-checker */
-      expect(diffService2.getTransaction()).toMatchInlineSnapshot(`
+      expect(transaction2).toMatchInlineSnapshot(`
         [
           [
             {
@@ -149,15 +145,12 @@ describe('S3StaticWebsite E2E Test', () => {
       await writeFileAsync(join(WEBSITE_PATH, 'error.html'), errorContent.data);
     }
 
+    // Remove website.
     const app3 = new App('test-app');
     const diffs3 = await app3.diff(app2);
-    const diffService3 = new DiffService();
-    diffService3.registerActions(octoAws.getS3StaticWebsiteActions());
-
-    await diffService3.beginTransaction(diffs3);
+    const transaction3 = await diffService.beginTransaction(diffs3);
     await stateManagementService.saveApplicationState(serializationService.serialize(app3));
-
-    expect(diffService3.getTransaction()).toMatchInlineSnapshot(`
+    expect(transaction3).toMatchInlineSnapshot(`
       [
         [
           {
