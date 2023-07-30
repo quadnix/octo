@@ -237,8 +237,17 @@ describe('Serialization Service UT', () => {
         "version": "v0",
       }
     `);
+  });
 
+  it('should deserialize', async () => {
+    const app = new App('test-app');
+    const region = new Region('region-1');
+    app.addRegion(region);
+
+    const serializationService = new SerializationService();
+    const output = serializationService.serialize(app);
     const newApp = (await serializationService.deserialize(output)) as App;
+
     expect(newApp.name).toBe('test-app');
   });
 });

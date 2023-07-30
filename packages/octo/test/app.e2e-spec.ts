@@ -4,49 +4,38 @@ describe('App E2E Test', () => {
   it('should generate app diff', async () => {
     const serializationService = new SerializationService();
 
-    const oldApp = new App('test-app');
+    const app0 = new App('test-app');
+    const image0 = new Image('image', 'tag', { dockerFilePath: '.' });
+    app0.addImage(image0);
+    const region0 = new Region('region-1');
+    app0.addRegion(region0);
+    const qaEnvironment0 = new Environment('qa');
+    qaEnvironment0.environmentVariables.set('env', 'QA');
+    region0.addEnvironment(qaEnvironment0);
+    app0.addServer(new Server('backend'));
 
-    const image = new Image('image', 'tag', { dockerFilePath: '.' });
-    oldApp.addImage(image);
-
-    const oldRegion = new Region('region-1');
-    oldApp.addRegion(oldRegion);
-
-    const qaEnvironment = new Environment('qa');
-    qaEnvironment.environmentVariables.set('env', 'QA');
-    oldRegion.addEnvironment(qaEnvironment);
-
-    oldApp.addServer(new Server('backend'));
-
-    const newApp = (await serializationService.deserialize(serializationService.serialize(oldApp))) as App;
-    const newAppRegion = newApp.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
-    const newAppBackendServer = newApp.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
-    const newAppQaEnvironment = newAppRegion.getChild('environment', [
-      { key: 'environmentName', value: 'qa' },
-    ]) as Environment;
-
+    const app1 = (await serializationService.deserialize(serializationService.serialize(app0))) as App;
+    const region1 = app1.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
+    const backendServer1 = app1.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
+    const qaEnvironment1 = region1.getChild('environment', [{ key: 'environmentName', value: 'qa' }]) as Environment;
     // Add a deployment to backend server.
-    newAppBackendServer.addDeployment(new Deployment('v0.0.1', image));
-
+    backendServer1.addDeployment(new Deployment('v0.0.1', image0));
     // Add a new staging environment.
-    const stagingEnvironment = new Environment('staging');
-    stagingEnvironment.environmentVariables.set('env', 'staging');
-    newAppRegion.addEnvironment(stagingEnvironment);
-
+    const stagingEnvironment1 = new Environment('staging');
+    stagingEnvironment1.environmentVariables.set('env', 'staging');
+    region1.addEnvironment(stagingEnvironment1);
     // Update the qa environment.
-    newAppQaEnvironment.environmentVariables.set('env', 'qa');
-
+    qaEnvironment1.environmentVariables.set('env', 'qa');
     // Add new server.
-    const databaseServer = new Server('database');
-    databaseServer.addDeployment(new Deployment('v0.0.1', image));
-    newApp.addServer(databaseServer);
-
+    const databaseServer1 = new Server('database');
+    databaseServer1.addDeployment(new Deployment('v0.0.1', image0));
+    app1.addServer(databaseServer1);
     // Add new support.
-    const nginxSupport = new Support('nginx', 'nginx');
-    nginxSupport.addDeployment(new Deployment('v1', image));
-    newApp.addSupport(nginxSupport);
+    const nginxSupport1 = new Support('nginx', 'nginx');
+    nginxSupport1.addDeployment(new Deployment('v1', image0));
+    app1.addSupport(nginxSupport1);
 
-    const diffs = await newApp.diff(oldApp);
+    const diffs = await app1.diff(app0);
     expect(diffs).toMatchInlineSnapshot(`
       [
         {
