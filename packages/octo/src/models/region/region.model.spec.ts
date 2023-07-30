@@ -16,15 +16,15 @@ describe('Region UT', () => {
   describe('diff()', () => {
     describe('when diff of environment', () => {
       it('should capture update', async () => {
-        const oldRegion = new Region('region-1');
-        oldRegion.addEnvironment(new Environment('qa'));
+        const region0 = new Region('region-1');
+        region0.addEnvironment(new Environment('qa'));
 
-        const newRegion = new Region('region-1');
-        const newEnvironment = new Environment('qa');
-        newEnvironment.environmentVariables.set('key', 'value');
-        newRegion.addEnvironment(newEnvironment);
+        const region1 = new Region('region-1');
+        const environment1 = new Environment('qa');
+        environment1.environmentVariables.set('key', 'value');
+        region1.addEnvironment(environment1);
 
-        const diff = await newRegion.diff(oldRegion);
+        const diff = await region1.diff(region0);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -41,12 +41,12 @@ describe('Region UT', () => {
       });
 
       it('should capture deletion', async () => {
-        const oldRegion = new Region('region-1');
-        oldRegion.addEnvironment(new Environment('qa'));
+        const region0 = new Region('region-1');
+        region0.addEnvironment(new Environment('qa'));
 
-        const newRegion = new Region('region-1');
+        const region1 = new Region('region-1');
 
-        const diff = await newRegion.diff(oldRegion);
+        const diff = await region1.diff(region0);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -60,15 +60,15 @@ describe('Region UT', () => {
       });
 
       it('should capture addition', async () => {
-        const oldRegion = new Region('region-1');
+        const region0 = new Region('region-1');
 
-        const newRegion = new Region('region-1');
-        const newEnvironment = new Environment('qa');
-        newEnvironment.environmentVariables.set('key1', 'value 1');
-        newEnvironment.environmentVariables.set('key2', 'value 2');
-        newRegion.addEnvironment(newEnvironment);
+        const region1 = new Region('region-1');
+        const environment1 = new Environment('qa');
+        environment1.environmentVariables.set('key1', 'value 1');
+        environment1.environmentVariables.set('key2', 'value 2');
+        region1.addEnvironment(environment1);
 
-        const diff = await newRegion.diff(oldRegion);
+        const diff = await region1.diff(region0);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -98,13 +98,13 @@ describe('Region UT', () => {
       });
 
       it('should capture replace', async () => {
-        const oldRegion = new Region('region-1');
-        oldRegion.addEnvironment(new Environment('qa'));
+        const region0 = new Region('region-1');
+        region0.addEnvironment(new Environment('qa'));
 
-        const newRegion = new Region('aws-ap-south-1');
-        newRegion.addEnvironment(new Environment('staging'));
+        const region1 = new Region('aws-ap-south-1');
+        region1.addEnvironment(new Environment('staging'));
 
-        const diff = await newRegion.diff(oldRegion);
+        const diff = await region1.diff(region0);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -123,13 +123,13 @@ describe('Region UT', () => {
       });
 
       it('should capture diff without a previous instance', async () => {
-        const newRegion = new Region('region-1');
-        const newEnvironment = new Environment('qa');
-        newEnvironment.environmentVariables.set('key1', 'value 1');
-        newEnvironment.environmentVariables.set('key2', 'value 2');
-        newRegion.addEnvironment(newEnvironment);
+        const region = new Region('region-1');
+        const environment = new Environment('qa');
+        environment.environmentVariables.set('key1', 'value 1');
+        environment.environmentVariables.set('key2', 'value 2');
+        region.addEnvironment(environment);
 
-        const diff = await newRegion.diff();
+        const diff = await region.diff();
 
         expect(diff).toMatchInlineSnapshot(`
         [

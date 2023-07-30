@@ -23,16 +23,19 @@ export class DiffService {
       return;
     }
 
+    // Get all dependencies where the subject model is a child. Resulting dependencies are parent.
     const dependencies = diff.model.getMatchingDependencies(diff.field, diff.action);
     const dependencyApplyOrders: number[] = [-1];
 
     dependencies.forEach((dependency) => {
+      // Iterate diffs looking to match parent dependency on same field and action.
       const matchingDiffs = diffs.filter(
         (d) =>
           d.model.getContext() === dependency.to.getContext() &&
           dependency.hasMatchingBehavior(diff.field, diff.action, d.field, d.action),
       );
 
+      // On each parent diff that should be processed first, apply order on it before than self.
       for (const matchingDiff of matchingDiffs) {
         this.setApplyOrder(matchingDiff, diffs, [...seen, diff]);
         dependencyApplyOrders.push(matchingDiff.metadata.applyOrder);

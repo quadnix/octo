@@ -4,13 +4,13 @@ describe('Environment UT', () => {
   describe('diff()', () => {
     describe('when diff of environmentVariables', () => {
       it('should capture update', async () => {
-        const oldEnvironment = new Environment('qa');
-        oldEnvironment.environmentVariables.set('key', 'value 1');
+        const environment0 = new Environment('qa');
+        environment0.environmentVariables.set('key', 'value 1');
 
-        const newEnvironment = new Environment('qa');
-        newEnvironment.environmentVariables.set('key', 'value 2');
+        const environment1 = new Environment('qa');
+        environment1.environmentVariables.set('key', 'value 2');
 
-        const diff = await newEnvironment.diff(oldEnvironment);
+        const diff = await environment1.diff(environment0);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -27,12 +27,12 @@ describe('Environment UT', () => {
       });
 
       it('should capture deletion', async () => {
-        const oldEnvironment = new Environment('qa');
-        oldEnvironment.environmentVariables.set('key', 'value');
+        const environment0 = new Environment('qa');
+        environment0.environmentVariables.set('key', 'value');
 
-        const newEnvironment = new Environment('qa');
+        const environment1 = new Environment('qa');
 
-        const diff = await newEnvironment.diff(oldEnvironment);
+        const diff = await environment1.diff(environment0);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -49,12 +49,12 @@ describe('Environment UT', () => {
       });
 
       it('should capture addition', async () => {
-        const oldEnvironment = new Environment('qa');
+        const environment0 = new Environment('qa');
 
-        const newEnvironment = new Environment('qa');
-        newEnvironment.environmentVariables.set('key', 'value');
+        const environment1 = new Environment('qa');
+        environment1.environmentVariables.set('key', 'value');
 
-        const diff = await newEnvironment.diff(oldEnvironment);
+        const diff = await environment1.diff(environment0);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -71,13 +71,13 @@ describe('Environment UT', () => {
       });
 
       it('should capture replace', async () => {
-        const oldEnvironment = new Environment('qa');
-        oldEnvironment.environmentVariables.set('key1', 'value 1');
+        const environment0 = new Environment('qa');
+        environment0.environmentVariables.set('key1', 'value 1');
 
-        const newEnvironment = new Environment('qa');
-        newEnvironment.environmentVariables.set('key2', 'value 2');
+        const environment1 = new Environment('qa');
+        environment1.environmentVariables.set('key2', 'value 2');
 
-        const diff = await newEnvironment.diff(oldEnvironment);
+        const diff = await environment1.diff(environment0);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -102,10 +102,10 @@ describe('Environment UT', () => {
       });
 
       it('should capture diff without a previous instance', async () => {
-        const newEnvironment = new Environment('qa');
-        newEnvironment.environmentVariables.set('key', 'value');
+        const environment = new Environment('qa');
+        environment.environmentVariables.set('key', 'value');
 
-        const diff = await newEnvironment.diff();
+        const diff = await environment.diff();
 
         expect(diff).toMatchInlineSnapshot(`
         [
