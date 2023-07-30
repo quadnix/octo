@@ -2,6 +2,7 @@ import { ECRClient } from '@aws-sdk/client-ecr';
 import { S3Client } from '@aws-sdk/client-s3';
 import { IAction } from '@quadnix/octo';
 import { AddS3StaticWebsiteAction } from './models/service/actions/s3-static-website/add-s3-static-website.action';
+import { DeleteS3StaticWebsiteAction } from './models/service/actions/s3-static-website/delete-s3-static-website.action';
 import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/actions/s3-static-website/update-source-paths-s3-static-website.action';
 
 export class OctoAws {
@@ -14,8 +15,9 @@ export class OctoAws {
   }
 
   getS3StaticWebsiteActions(): IAction[] {
-    const addAction = new AddS3StaticWebsiteAction(this.s3Client);
-    const updateAction = new UpdateSourcePathsS3StaticWebsiteAction(this.s3Client);
-    return [addAction, updateAction];
+    const addWebsiteAction = new AddS3StaticWebsiteAction(this.s3Client);
+    const deleteWebsiteAction = new DeleteS3StaticWebsiteAction(this.s3Client);
+    const updateSourcePathAction = new UpdateSourcePathsS3StaticWebsiteAction(this.s3Client);
+    return [addWebsiteAction, deleteWebsiteAction, updateSourcePathAction];
   }
 }
