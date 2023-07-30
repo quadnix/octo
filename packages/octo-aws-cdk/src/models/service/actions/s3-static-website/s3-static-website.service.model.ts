@@ -108,7 +108,7 @@ export class S3StaticWebsiteService extends Service {
     }
 
     // Ensure error.html and index.html exists.
-    if (!newManifestData['error.html'] || !newManifestData['index.html']) {
+    if (this.sourcePaths.length > 0 && (!newManifestData['error.html'] || !newManifestData['index.html'])) {
       throw new Error('error.html/index.html missing in root of website!');
     }
 
