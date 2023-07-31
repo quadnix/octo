@@ -46,19 +46,6 @@ exports[`Model E2E Test Test execution should be able to synth 1`] = `
 
 exports[`Model E2E Test Test execution should get context 1`] = `"execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test"`;
 
-exports[`Model E2E Test Test image should be able to synth 1`] = `
-{
-  "dockerOptions": {
-    "buildArgs": {},
-    "dockerFilePath": "path/to/dockerFile",
-    "quiet": undefined,
-  },
-  "imageId": "0.0.1",
-  "imageName": "nginx",
-  "imageTag": "0.0.1",
-}
-`;
-
 exports[`Model E2E Test Test image should get context 1`] = `"image=nginx:0.0.1,app=test"`;
 
 exports[`Model E2E Test Test pipeline should be able to synth 1`] = `

@@ -1,3 +1,4 @@
+import { resolve } from 'path';
 import { Model } from '../model.abstract';
 import { IImage } from './image.interface';
 
@@ -23,6 +24,8 @@ export class Image extends Model<IImage, Image> {
     this.imageId = `${imageName}:${imageTag}`;
     this.imageName = imageName;
     this.imageTag = imageTag;
+
+    options.dockerFilePath = resolve(options.dockerFilePath);
     this.dockerOptions = options;
   }
 

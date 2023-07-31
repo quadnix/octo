@@ -12,6 +12,7 @@ commonjs
 cov
 dep
 dic
+Dockerfile
 ecr
 ecs
 eslintrc

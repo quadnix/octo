@@ -15,7 +15,7 @@ import {
 describe('Model E2E Test', () => {
   const app = new App('test');
   const image = new Image('nginx', '0.0.1', {
-    dockerFilePath: 'path/to/dockerFile',
+    dockerFilePath: __dirname + '/Dockerfile',
   });
   const pipeline = new Pipeline('testPipeline');
   const region = new Region('region-1');
@@ -37,12 +37,23 @@ describe('Model E2E Test', () => {
 
   const testCases: {
     model: Model<unknown, unknown>;
+    synth?: any;
   }[] = [
     {
       model: app,
     },
     {
       model: image,
+      synth: {
+        dockerOptions: {
+          buildArgs: {},
+          dockerFilePath: __dirname + '/Dockerfile',
+          quiet: undefined,
+        },
+        imageId: '0.0.1',
+        imageName: 'nginx',
+        imageTag: '0.0.1',
+      },
     },
     {
       model: pipeline,
@@ -73,7 +84,11 @@ describe('Model E2E Test', () => {
     });
 
     it('should be able to synth', () => {
-      expect(data.model.synth()).toMatchSnapshot();
+      if (data.synth) {
+        expect(data.model.synth()).toEqual(data.synth);
+      } else {
+        expect(data.model.synth()).toMatchSnapshot();
+      }
     });
   });
 
