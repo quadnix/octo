@@ -27,7 +27,7 @@ export interface IAction {
   /**
    * This function contains the logic to apply the diff(s) to the underlying infrastructure.
    */
-  handle(diff: Diff, actionInputResponses: IActionInputResponse): Promise<void>;
+  handle(diff: Diff, actionInput: IActionInputResponse): Promise<void>;
 
   /**
    * This function contains the logic to revert the diff(s) from the underlying infrastructure.
