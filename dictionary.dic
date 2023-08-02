@@ -1,6 +1,7 @@
 acls
 amazonaws
 arn
+ascii
 aws
 axios
 brk
@@ -30,6 +31,8 @@ rimraf
 schemas
 sdk
 serializable
+stdin
+sts
 tsc
 tsconfig
 unlink

@@ -1,16 +1,18 @@
-import { CreateRepositoryCommand, DescribeImagesCommand, ECRClient } from '@aws-sdk/client-ecr';
+import {
+  CreateRepositoryCommand,
+  DescribeImagesCommand,
+  ECRClient,
+  GetAuthorizationTokenCommand,
+} from '@aws-sdk/client-ecr';
 import { Diff, DiffAction, IAction, IActionInputRequest, IActionInputResponse, Image } from '@quadnix/octo';
 import { parse } from 'path';
+import { FileUtility } from '../../../utilities/file/file.utility';
 import { ProcessUtility } from '../../../utilities/process/process.utility';
 
 export class AddImageAction implements IAction {
   readonly ACTION_NAME: string = 'addImageToECRAction';
 
-  private readonly ecrClient: ECRClient;
-
-  constructor(ecrClient: ECRClient) {
-    this.ecrClient = ecrClient;
-  }
+  constructor(private readonly ecrClient: ECRClient) {}
 
   collectInput(diff: Diff): IActionInputRequest {
     const image = diff.model as Image;
@@ -23,6 +25,8 @@ export class AddImageAction implements IAction {
 
   async handle(diff: Diff, actionInput: IActionInputResponse): Promise<void> {
     const { dockerOptions, imageName, imageTag } = diff.model as Image;
+    const dockerExec = actionInput[this.collectInput(diff)[0]];
+    const image = `${imageName}:${imageTag}`;
 
     // Create a new repository.
     try {
@@ -60,9 +64,8 @@ export class AddImageAction implements IAction {
       }
 
       // Build command to build image.
-      const inputKeys = this.collectInput(diff);
       const dockerFileParts = parse(dockerOptions.dockerFilePath);
-      const buildCommand = [actionInput[inputKeys[0]], 'build'];
+      const buildCommand = [dockerExec, 'build'];
       if (dockerOptions.quiet) {
         buildCommand.push('--quiet');
       }
@@ -71,7 +74,7 @@ export class AddImageAction implements IAction {
           buildCommand.push(`--build-arg ${key}=${dockerOptions.buildArgs[key]}`);
         }
       }
-      buildCommand.push(`-t ${imageName}:${imageTag}`);
+      buildCommand.push(`-t ${image}`);
       buildCommand.push(`-f ${dockerFileParts.base}`);
       buildCommand.push('.');
 
@@ -99,7 +102,48 @@ export class AddImageAction implements IAction {
         });
       });
 
+      // Get authorization token to push image.
+      const tokenResponse = await this.ecrClient.send(new GetAuthorizationTokenCommand({}));
+      const token = FileUtility.base64Decode(tokenResponse.authorizationData![0].authorizationToken as string);
+      const proxyEndpoint = new URL(tokenResponse.authorizationData![0].proxyEndpoint as string).host;
+
+      // Build command for docker login.
+      const dockerLoginCommand = [
+        'echo',
+        token.split(':')[1],
+        '|',
+        dockerExec,
+        'login --username AWS --password-stdin',
+        proxyEndpoint,
+      ].join(' ');
+      // Build command for docker tag.
+      const dockerTagCommand = [dockerExec, 'tag', `${image}`, `${proxyEndpoint}/${image}`].join(' ');
+      // Build command for docker push.
+      const dockerPushCommand = [dockerExec, 'push', `${proxyEndpoint}/${image}`].join(' ');
+
       // Push image.
+      const pushRunner = ProcessUtility.runDetachedProcess(
+        `${dockerLoginCommand} && ${dockerTagCommand} && ${dockerPushCommand}`,
+        { cwd: dockerFileParts.dir, shell: true },
+        'pipe',
+      );
+      await new Promise<void>((resolve, reject) => {
+        pushRunner.on('error', (error) => {
+          pushRunner.removeAllListeners();
+
+          pushRunner.kill();
+          reject(error);
+        });
+        pushRunner.on('exit', (code) => {
+          pushRunner.removeAllListeners();
+
+          if (code !== 0) {
+            reject(new Error(`Push failed with exit code: ${code}`));
+          } else {
+            resolve();
+          }
+        });
+      });
     }
   }
 

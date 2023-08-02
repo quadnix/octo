@@ -10,6 +10,10 @@ import { join } from 'path';
 import { OctoAws } from '../../../index';
 
 describe('Image E2E Test', () => {
+  beforeEach(() => {
+    jest.setTimeout(60_000);
+  });
+
   it('should test working with an image', async () => {
     // Initialize local state.
     const stateManagementService = StateManagementService.getInstance(new LocalStateProvider(__dirname));
