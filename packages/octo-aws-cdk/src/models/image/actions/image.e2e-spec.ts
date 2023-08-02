@@ -6,15 +6,28 @@ import {
   SerializationService,
   StateManagementService,
 } from '@quadnix/octo';
+import { unlink } from 'fs';
 import { join } from 'path';
+import { promisify } from 'util';
 import { OctoAws } from '../../../index';
 
+const unlinkAsync = promisify(unlink);
+
 describe('Image E2E Test', () => {
+  const filePaths: string[] = [];
+
   beforeEach(() => {
     jest.setTimeout(60_000);
   });
 
+  afterEach(async () => {
+    await Promise.all(filePaths.map((f) => unlinkAsync(f)));
+  });
+
   it('should test working with an image', async () => {
+    // Setup test cleanup.
+    filePaths.push(join(__dirname, 'infrastructure.json'));
+
     // Initialize local state.
     const stateManagementService = StateManagementService.getInstance(new LocalStateProvider(__dirname));
 
@@ -37,10 +50,14 @@ describe('Image E2E Test', () => {
       dockerFilePath: join(__dirname, '../../../../../../resources/images/quadnix/nginx/0.0.1/Dockerfile'),
     });
     app0.addImage(image0);
-    const diffs0 = await app0.diff();
-    const transaction0 = await diffService.beginTransaction(diffs0);
-    await stateManagementService.saveApplicationState(serializationService.serialize(app0));
-    expect(transaction0).toMatchInlineSnapshot(`
+
+    // Apply image, then revert.
+    let transaction0;
+    try {
+      const diffs0 = await app0.diff();
+      transaction0 = await diffService.beginTransaction(diffs0);
+      await stateManagementService.saveApplicationState(serializationService.serialize(app0));
+      expect(transaction0).toMatchInlineSnapshot(`
       [
         [
           {
@@ -51,5 +68,10 @@ describe('Image E2E Test', () => {
         ],
       ]
     `);
+    } finally {
+      if (transaction0) {
+        await diffService.rollbackAll(transaction0);
+      }
+    }
   });
 });

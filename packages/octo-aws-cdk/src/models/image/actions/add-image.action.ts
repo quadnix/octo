@@ -1,4 +1,5 @@
 import {
+  BatchDeleteImageCommand,
   CreateRepositoryCommand,
   DescribeImagesCommand,
   ECRClient,
@@ -110,7 +111,7 @@ export class AddImageAction implements IAction {
       // Build command for docker login.
       const dockerLoginCommand = [
         'echo',
-        token.split(':')[1],
+        token.split(':')[1], // Remove 'AWS:' from the beginning of token.
         '|',
         dockerExec,
         'login --username AWS --password-stdin',
@@ -147,7 +148,18 @@ export class AddImageAction implements IAction {
     }
   }
 
-  async revert(): Promise<void> {
-    throw new Error('Method not implemented!');
+  async revert(diff: Diff): Promise<void> {
+    const { imageName, imageTag } = diff.model as Image;
+
+    await this.ecrClient.send(
+      new BatchDeleteImageCommand({
+        imageIds: [
+          {
+            imageTag,
+          },
+        ],
+        repositoryName: imageName,
+      }),
+    );
   }
 }
