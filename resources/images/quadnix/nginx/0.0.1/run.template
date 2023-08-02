@@ -1,0 +1,69 @@
+user nginx;
+worker_processes 1;
+
+error_log /var/log/nginx/error.log warn;
+pid /run/nginx/nginx.pid;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  server_names_hash_bucket_size  512;
+
+  # Redirect all requests with "www" to same domains without the "www" part.
+  server {
+    server_name ~^(www\.)(?<domain>.+)$;
+    return 301 $scheme://$domain$request_uri;
+  }
+
+  {{ $APP_NAME := env "APP_NAME" }}
+  {{ $REGION_ID := env "REGION_ID" }}
+  {{ $ENVIRONMENT_NAME := env "ENVIRONMENT_NAME" }}
+  {{ $DNS_MAPPINGS_PATH := (print "dns-mappings/" $APP_NAME "/" $REGION_ID "/" $ENVIRONMENT_NAME) }}
+
+  {{ range ls $DNS_MAPPINGS_PATH }}
+    {{ $SERVICE_NAME := (print $APP_NAME "-" $ENVIRONMENT_NAME "-" .Key) }}
+    {{ $SERVICE_CONFIG_PATH := (print "dns-mappings/" $APP_NAME "/" $ENVIRONMENT_NAME "/" .Key) }}
+
+    # Setup upstream using Consul's discovered services.
+    {{ if service $SERVICE_NAME }}
+    upstream {{ $SERVICE_NAME }} {
+      {{ range service $SERVICE_NAME }}
+        server {{.Address}}:{{.Port}};
+      {{ end }}
+    }
+
+    # Configure server using metadata stored in Consul's key-value store.
+    {{ with $SERVICE_CONFIG := key $SERVICE_CONFIG_PATH | parseJSON }}
+      {{ if $SERVICE_CONFIG.with_basic | parseBool }}
+      server {
+        server_name {{ $SERVICE_CONFIG.aliases }};
+        listen 80;
+        listen [::]:80;
+
+        location / {
+          proxy_pass http://{{ $SERVICE_NAME }};
+        }
+      }
+      {{ end }}
+    {{ end }}
+    {{ end }}
+  {{ end }}
+
+  # Disable all requests to IP addresses.
+  server {
+    server_name ~^[\d\.:]+$;
+    listen 80;
+    listen [::]:80;
+    return 404;
+  }
+
+  # Default server for health-check.
+  server {
+    server_name _;
+    listen 8080 default_server;
+    listen [::]:8080 default_server;
+    return 200;
+  }
+}
