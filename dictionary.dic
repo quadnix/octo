@@ -9,11 +9,13 @@ cacheable
 cdbac
 cdk
 cicd
+cidr
 commonjs
 cov
 dep
 dic
 Dockerfile
+ec2
 ecr
 ecs
 eslintrc
@@ -36,4 +38,5 @@ sts
 tsc
 tsconfig
 unlink
+vpc
 workspaces
