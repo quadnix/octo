@@ -3,25 +3,30 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
 import { IAction } from '@quadnix/octo';
 import { AddImageAction } from './models/image/actions/add-image.action';
+import { AwsRegion } from './models/region/aws.region.model';
 import { AddS3StaticWebsiteAction } from './models/service/actions/s3-static-website/add-s3-static-website.action';
 import { DeleteS3StaticWebsiteAction } from './models/service/actions/s3-static-website/delete-s3-static-website.action';
 import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/actions/s3-static-website/update-source-paths-s3-static-website.action';
 
+export { AwsRegion, AWSRegionId } from './models/region/aws.region.model';
+export { IS3StaticWebsiteService } from './models/service/actions/s3-static-website/s3-static-website.service.interface';
+export { S3StaticWebsiteService } from './models/service/actions/s3-static-website/s3-static-website.service.model';
+
 export class OctoAws {
-  private readonly region: string;
+  private readonly region: AwsRegion;
 
   private readonly ecrClient: ECRClient;
   private readonly s3Client: S3Client;
   private readonly stsClient: STSClient;
 
-  constructor(region: string) {
+  constructor(region: AwsRegion) {
     this.region = region;
 
-    this.ecrClient = new ECRClient({ region });
+    this.ecrClient = new ECRClient({ region: region.nativeAwsRegionId });
 
-    this.s3Client = new S3Client({ region });
+    this.s3Client = new S3Client({ region: region.nativeAwsRegionId });
 
-    this.stsClient = new STSClient({ region });
+    this.stsClient = new STSClient({ region: region.nativeAwsRegionId });
   }
 
   getImageActions(): IAction[] {

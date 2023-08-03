@@ -9,7 +9,7 @@ import {
 import { unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { OctoAws } from '../../../index';
+import { AWSRegionId, AwsRegion, OctoAws } from '../../../index';
 
 const unlinkAsync = promisify(unlink);
 
@@ -35,7 +35,7 @@ describe('Image E2E Test', () => {
     const serializationService = new SerializationService();
 
     // Initialize Octo AWS.
-    const octoAws = new OctoAws('us-east-1');
+    const octoAws = new OctoAws(new AwsRegion(AWSRegionId.AWS_US_EAST_1));
     const diffService = new DiffService();
     diffService.registerActions(octoAws.getImageActions());
 

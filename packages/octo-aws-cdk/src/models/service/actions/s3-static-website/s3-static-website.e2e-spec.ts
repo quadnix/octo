@@ -3,8 +3,7 @@ import axios from 'axios';
 import { unlink, writeFile } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { OctoAws } from '../../../../index';
-import { S3StaticWebsiteService } from './s3-static-website.service.model';
+import { AWSRegionId, AwsRegion, OctoAws, S3StaticWebsiteService } from '../../../../index';
 
 const writeFileAsync = promisify(writeFile);
 const unlinkAsync = promisify(unlink);
@@ -32,7 +31,7 @@ describe('S3StaticWebsite E2E Test', () => {
     serializationService.registerClass('S3StaticWebsiteService', S3StaticWebsiteService);
 
     // Initialize Octo AWS.
-    const octoAws = new OctoAws('us-east-1');
+    const octoAws = new OctoAws(new AwsRegion(AWSRegionId.AWS_US_EAST_1));
     const diffService = new DiffService();
     diffService.registerActions(octoAws.getS3StaticWebsiteActions());
 
