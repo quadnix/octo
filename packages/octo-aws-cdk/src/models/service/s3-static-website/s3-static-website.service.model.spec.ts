@@ -2,7 +2,7 @@ import { join, resolve } from 'path';
 import { App, SerializationService } from '@quadnix/octo';
 import { S3StaticWebsiteService } from './s3-static-website.service.model';
 
-const resourcesPath = join(__dirname, '../../../../../resources');
+const resourcesPath = join(__dirname, '../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
 
 describe('S3StaticWebsiteService UT', () => {

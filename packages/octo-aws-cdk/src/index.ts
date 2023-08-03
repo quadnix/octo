@@ -4,13 +4,13 @@ import { STSClient } from '@aws-sdk/client-sts';
 import { IAction } from '@quadnix/octo';
 import { AddImageAction } from './models/image/actions/add-image.action';
 import { AwsRegion } from './models/region/aws.region.model';
-import { AddS3StaticWebsiteAction } from './models/service/actions/s3-static-website/add-s3-static-website.action';
-import { DeleteS3StaticWebsiteAction } from './models/service/actions/s3-static-website/delete-s3-static-website.action';
-import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/actions/s3-static-website/update-source-paths-s3-static-website.action';
+import { AddS3StaticWebsiteAction } from './models/service/s3-static-website/actions/add-s3-static-website.action';
+import { DeleteS3StaticWebsiteAction } from './models/service/s3-static-website/actions/delete-s3-static-website.action';
+import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/s3-static-website/actions/update-source-paths-s3-static-website.action';
 
 export { AwsRegion, AWSRegionId } from './models/region/aws.region.model';
-export { IS3StaticWebsiteService } from './models/service/actions/s3-static-website/s3-static-website.service.interface';
-export { S3StaticWebsiteService } from './models/service/actions/s3-static-website/s3-static-website.service.model';
+export { IS3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.interface';
+export { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model';
 
 export class OctoAws {
   private readonly region: AwsRegion;

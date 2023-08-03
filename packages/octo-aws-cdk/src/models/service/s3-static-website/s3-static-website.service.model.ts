@@ -1,7 +1,7 @@
 import { Diff, DiffAction, Service } from '@quadnix/octo';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
-import { FileUtility } from '../../../../utilities/file/file.utility';
+import { FileUtility } from '../../../utilities/file/file.utility';
 import { IS3StaticWebsiteService } from './s3-static-website.service.interface';
 
 export type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };

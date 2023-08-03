@@ -3,7 +3,7 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { Diff, DiffAction, IAction, IActionInputRequest, StateManagementService } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import * as mime from 'mime';
-import { IManifest, S3StaticWebsiteService } from './s3-static-website.service.model';
+import { IManifest, S3StaticWebsiteService } from '../s3-static-website.service.model';
 
 export class UpdateSourcePathsS3StaticWebsiteAction implements IAction {
   readonly ACTION_NAME: string = 'updateSourcePathsS3StaticWebsiteAction';

@@ -3,13 +3,13 @@ import axios from 'axios';
 import { unlink, writeFile } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { AWSRegionId, AwsRegion, OctoAws, S3StaticWebsiteService } from '../../../../index';
+import { AWSRegionId, AwsRegion, OctoAws, S3StaticWebsiteService } from '../../../index';
 
 const writeFileAsync = promisify(writeFile);
 const unlinkAsync = promisify(unlink);
 
 const BUCKET_NAME = 'rash-new-bucket-test-1';
-const WEBSITE_PATH = join(__dirname, '../../../../../resources/s3-static-website');
+const WEBSITE_PATH = join(__dirname, '../../../../resources/s3-static-website');
 
 describe('S3StaticWebsite E2E Test', () => {
   const filePaths: string[] = [];

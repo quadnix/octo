@@ -1,6 +1,6 @@
 import { DeleteBucketCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { Diff, DiffAction, IAction, IActionInputRequest } from '@quadnix/octo';
-import { S3StaticWebsiteService } from './s3-static-website.service.model';
+import { S3StaticWebsiteService } from '../s3-static-website.service.model';
 
 export class DeleteS3StaticWebsiteAction implements IAction {
   readonly ACTION_NAME: string = 'deleteS3StaticWebsiteAction';
