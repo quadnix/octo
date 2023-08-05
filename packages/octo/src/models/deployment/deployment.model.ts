@@ -22,7 +22,7 @@ export class Deployment extends Model<IDeployment, Deployment> {
     this.dependencies.push(deploymentToImageDependency);
     const imageToDeploymentDependency = new Dependency(image, this);
     imageToDeploymentDependency.addBehavior('imageId', DiffAction.DELETE, 'deploymentTag', DiffAction.DELETE);
-    this.dependencies.push(imageToDeploymentDependency);
+    image['dependencies'].push(imageToDeploymentDependency);
   }
 
   getContext(): string {

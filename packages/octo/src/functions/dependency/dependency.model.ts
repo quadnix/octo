@@ -33,7 +33,7 @@ export interface IDependency {
 
   from: string;
 
-  relationship: {
+  relationship?: {
     onField: DependencyBehavior['onField'];
     toField: DependencyBehavior['toField'];
     type: DependencyRelationship;
@@ -137,11 +137,13 @@ export class Dependency {
     return {
       behaviors,
       from: this.from.getContext(),
-      relationship: {
-        onField: this.relationship.onField,
-        toField: this.relationship.toField,
-        type: this.relationship.type,
-      },
+      relationship: this.relationship
+        ? {
+            onField: this.relationship.onField,
+            toField: this.relationship.toField,
+            type: this.relationship.type,
+          }
+        : undefined,
       to: this.to.getContext(),
     };
   }

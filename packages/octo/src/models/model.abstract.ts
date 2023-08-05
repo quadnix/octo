@@ -74,7 +74,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
       }
 
       seen.push(d);
-      if (d.isParentRelationship() || d.getRelationship() === undefined) {
+      if (d.isParentRelationship()) {
         d.to.getAllDependenciesRecursivelyIn(seen);
       }
     });

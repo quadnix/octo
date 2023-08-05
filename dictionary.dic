@@ -39,4 +39,5 @@ tsc
 tsconfig
 unlink
 vpc
+workspace
 workspaces
