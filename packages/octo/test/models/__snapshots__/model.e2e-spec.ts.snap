@@ -1,18 +1,56 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Model E2E Test Service E2E Test should be able to synth 1`] = `"Method not implemented! Use subclass"`;
+exports[`Model E2E Test common functions Test app getAncestors() 1`] = `
+[
+  "app=test",
+]
+`;
 
-exports[`Model E2E Test Service E2E Test should get context 1`] = `"service=testService,app=test"`;
+exports[`Model E2E Test common functions Test app getChildren() 1`] = `
+[
+  "image",
+  "pipeline",
+  "region",
+  "server",
+  "service",
+  "support",
+]
+`;
 
-exports[`Model E2E Test Test app should be able to synth 1`] = `
+exports[`Model E2E Test common functions Test app getContext() 1`] = `"app=test"`;
+
+exports[`Model E2E Test common functions Test app getParents() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test app synth() 1`] = `
 {
   "name": "test",
 }
 `;
 
-exports[`Model E2E Test Test app should get context 1`] = `"app=test"`;
+exports[`Model E2E Test common functions Test deployment getAncestors() 1`] = `
+[
+  "deployment=v1,support=nginx,app=test",
+  "support=nginx,app=test",
+  "app=test",
+  "image=nginx:0.0.1,app=test",
+]
+`;
 
-exports[`Model E2E Test Test deployment should be able to synth 1`] = `
+exports[`Model E2E Test common functions Test deployment getChildren() 1`] = `
+[
+  "execution",
+]
+`;
+
+exports[`Model E2E Test common functions Test deployment getContext() 1`] = `"deployment=v1,support=nginx,app=test"`;
+
+exports[`Model E2E Test common functions Test deployment getParents() 1`] = `
+[
+  "support",
+]
+`;
+
+exports[`Model E2E Test common functions Test deployment synth() 1`] = `
 {
   "deploymentTag": "v1",
   "image": {
@@ -21,18 +59,59 @@ exports[`Model E2E Test Test deployment should be able to synth 1`] = `
 }
 `;
 
-exports[`Model E2E Test Test deployment should get context 1`] = `"deployment=v1,support=nginx,app=test"`;
+exports[`Model E2E Test common functions Test environment getAncestors() 1`] = `
+[
+  "environment=qa,region=region-1,app=test",
+  "region=region-1,app=test",
+  "app=test",
+]
+`;
 
-exports[`Model E2E Test Test environment should be able to synth 1`] = `
+exports[`Model E2E Test common functions Test environment getChildren() 1`] = `
+[
+  "execution",
+]
+`;
+
+exports[`Model E2E Test common functions Test environment getContext() 1`] = `"environment=qa,region=region-1,app=test"`;
+
+exports[`Model E2E Test common functions Test environment getParents() 1`] = `
+[
+  "region",
+]
+`;
+
+exports[`Model E2E Test common functions Test environment synth() 1`] = `
 {
   "environmentName": "qa",
   "environmentVariables": {},
 }
 `;
 
-exports[`Model E2E Test Test environment should get context 1`] = `"environment=qa,region=region-1,app=test"`;
+exports[`Model E2E Test common functions Test execution getAncestors() 1`] = `
+[
+  "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
+  "environment=qa,region=region-1,app=test",
+  "region=region-1,app=test",
+  "app=test",
+  "deployment=v1,support=nginx,app=test",
+  "support=nginx,app=test",
+  "image=nginx:0.0.1,app=test",
+]
+`;
 
-exports[`Model E2E Test Test execution should be able to synth 1`] = `
+exports[`Model E2E Test common functions Test execution getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test execution getContext() 1`] = `"execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test"`;
+
+exports[`Model E2E Test common functions Test execution getParents() 1`] = `
+[
+  "deployment",
+  "environment",
+]
+`;
+
+exports[`Model E2E Test common functions Test execution synth() 1`] = `
 {
   "deployment": {
     "context": "deployment=v1,support=nginx,app=test",
@@ -44,120 +123,30 @@ exports[`Model E2E Test Test execution should be able to synth 1`] = `
 }
 `;
 
-exports[`Model E2E Test Test execution should get context 1`] = `"execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test"`;
-
-exports[`Model E2E Test Test image should get context 1`] = `"image=nginx:0.0.1,app=test"`;
-
-exports[`Model E2E Test Test pipeline should be able to synth 1`] = `
-{
-  "instructionSet": [],
-  "pipelineName": "testPipeline",
-}
-`;
-
-exports[`Model E2E Test Test pipeline should get context 1`] = `"pipeline=testPipeline,app=test"`;
-
-exports[`Model E2E Test Test region should be able to synth 1`] = `
-{
-  "regionId": "region-1",
-}
-`;
-
-exports[`Model E2E Test Test region should get context 1`] = `"region=region-1,app=test"`;
-
-exports[`Model E2E Test Test server should be able to synth 1`] = `
-{
-  "serverKey": "backend",
-}
-`;
-
-exports[`Model E2E Test Test server should get context 1`] = `"server=backend,app=test"`;
-
-exports[`Model E2E Test Test support should be able to synth 1`] = `
-{
-  "applicationType": "nginx",
-  "serverKey": "nginx",
-}
-`;
-
-exports[`Model E2E Test Test support should get context 1`] = `"support=nginx,app=test"`;
-
-exports[`Model E2E Test getAncestors() should get model ancestors 1`] = `
+exports[`Model E2E Test common functions Test image getAncestors() 1`] = `
 [
-  "app=test-app",
+  "image=nginx:0.0.1,app=test",
+  "app=test",
+  "deployment=v1,support=nginx,app=test",
+  "support=nginx,app=test",
 ]
 `;
 
-exports[`Model E2E Test getAncestors() should get model ancestors 2`] = `
+exports[`Model E2E Test common functions Test image getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test image getContext() 1`] = `"image=nginx:0.0.1,app=test"`;
+
+exports[`Model E2E Test common functions Test image getParents() 1`] = `
 [
-  "region=region-0,app=test-app",
-  "app=test-app",
+  "app",
 ]
 `;
 
-exports[`Model E2E Test getAncestors() should get model ancestors 3`] = `
-[
-  "execution=0.0.1_qa,deployment=0.0.1,server=backend,app=test-app,environment=qa,region=region-0,app=test-app",
-  "environment=qa,region=region-0,app=test-app",
-  "region=region-0,app=test-app",
-  "app=test-app",
-  "deployment=0.0.1,server=backend,app=test-app",
-  "server=backend,app=test-app",
-  "image=test:0.0.1,app=test-app",
-]
-`;
-
-exports[`Model E2E Test getContext() & synth() Service E2E Test should be able to synth 1`] = `"Method not implemented! Use subclass"`;
-
-exports[`Model E2E Test getContext() & synth() Service E2E Test should get context 1`] = `"service=testService,app=test"`;
-
-exports[`Model E2E Test getContext() & synth() Test app should be able to synth 1`] = `
-{
-  "name": "test",
-}
-`;
-
-exports[`Model E2E Test getContext() & synth() Test app should get context 1`] = `"app=test"`;
-
-exports[`Model E2E Test getContext() & synth() Test deployment should be able to synth 1`] = `
-{
-  "deploymentTag": "v1",
-  "image": {
-    "context": "image=nginx:0.0.1,app=test",
-  },
-}
-`;
-
-exports[`Model E2E Test getContext() & synth() Test deployment should get context 1`] = `"deployment=v1,support=nginx,app=test"`;
-
-exports[`Model E2E Test getContext() & synth() Test environment should be able to synth 1`] = `
-{
-  "environmentName": "qa",
-  "environmentVariables": {},
-}
-`;
-
-exports[`Model E2E Test getContext() & synth() Test environment should get context 1`] = `"environment=qa,region=region-1,app=test"`;
-
-exports[`Model E2E Test getContext() & synth() Test execution should be able to synth 1`] = `
-{
-  "deployment": {
-    "context": "deployment=v1,support=nginx,app=test",
-  },
-  "environment": {
-    "context": "environment=qa,region=region-1,app=test",
-  },
-  "environmentVariables": {},
-}
-`;
-
-exports[`Model E2E Test getContext() & synth() Test execution should get context 1`] = `"execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test"`;
-
-exports[`Model E2E Test getContext() & synth() Test image should be able to synth 1`] = `
+exports[`Model E2E Test common functions Test image synth() 1`] = `
 {
   "dockerOptions": {
     "buildArgs": {},
-    "dockerFilePath": "/Users/rash/Workspace/@quadnix/octo/packages/octo/test/models/Dockerfile",
+    "dockerFilePath": "/Dockerfile",
     "quiet": undefined,
   },
   "imageId": "0.0.1",
@@ -166,42 +155,123 @@ exports[`Model E2E Test getContext() & synth() Test image should be able to synt
 }
 `;
 
-exports[`Model E2E Test getContext() & synth() Test image should get context 1`] = `"image=nginx:0.0.1,app=test"`;
+exports[`Model E2E Test common functions Test pipeline getAncestors() 1`] = `
+[
+  "pipeline=testPipeline,app=test",
+  "app=test",
+]
+`;
 
-exports[`Model E2E Test getContext() & synth() Test pipeline should be able to synth 1`] = `
+exports[`Model E2E Test common functions Test pipeline getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test pipeline getContext() 1`] = `"pipeline=testPipeline,app=test"`;
+
+exports[`Model E2E Test common functions Test pipeline getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test pipeline synth() 1`] = `
 {
   "instructionSet": [],
   "pipelineName": "testPipeline",
 }
 `;
 
-exports[`Model E2E Test getContext() & synth() Test pipeline should get context 1`] = `"pipeline=testPipeline,app=test"`;
+exports[`Model E2E Test common functions Test region getAncestors() 1`] = `
+[
+  "region=region-1,app=test",
+  "app=test",
+]
+`;
 
-exports[`Model E2E Test getContext() & synth() Test region should be able to synth 1`] = `
+exports[`Model E2E Test common functions Test region getChildren() 1`] = `
+[
+  "environment",
+]
+`;
+
+exports[`Model E2E Test common functions Test region getContext() 1`] = `"region=region-1,app=test"`;
+
+exports[`Model E2E Test common functions Test region getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test region synth() 1`] = `
 {
   "regionId": "region-1",
 }
 `;
 
-exports[`Model E2E Test getContext() & synth() Test region should get context 1`] = `"region=region-1,app=test"`;
+exports[`Model E2E Test common functions Test server getAncestors() 1`] = `
+[
+  "server=backend,app=test",
+  "app=test",
+]
+`;
 
-exports[`Model E2E Test getContext() & synth() Test server should be able to synth 1`] = `
+exports[`Model E2E Test common functions Test server getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test server getContext() 1`] = `"server=backend,app=test"`;
+
+exports[`Model E2E Test common functions Test server getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test server synth() 1`] = `
 {
   "serverKey": "backend",
 }
 `;
 
-exports[`Model E2E Test getContext() & synth() Test server should get context 1`] = `"server=backend,app=test"`;
+exports[`Model E2E Test common functions Test service getAncestors() 1`] = `
+[
+  "service=testService,app=test",
+  "app=test",
+]
+`;
 
-exports[`Model E2E Test getContext() & synth() Test service should be able to synth 1`] = `"Method not implemented! Use subclass"`;
+exports[`Model E2E Test common functions Test service getChildren() 1`] = `[]`;
 
-exports[`Model E2E Test getContext() & synth() Test service should get context 1`] = `"service=testService,app=test"`;
+exports[`Model E2E Test common functions Test service getContext() 1`] = `"service=testService,app=test"`;
 
-exports[`Model E2E Test getContext() & synth() Test support should be able to synth 1`] = `
+exports[`Model E2E Test common functions Test service getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test service synth() 1`] = `"Method not implemented! Use subclass"`;
+
+exports[`Model E2E Test common functions Test support getAncestors() 1`] = `
+[
+  "support=nginx,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test support getChildren() 1`] = `
+[
+  "deployment",
+]
+`;
+
+exports[`Model E2E Test common functions Test support getContext() 1`] = `"support=nginx,app=test"`;
+
+exports[`Model E2E Test common functions Test support getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test support synth() 1`] = `
 {
   "applicationType": "nginx",
   "serverKey": "nginx",
 }
 `;
-
-exports[`Model E2E Test getContext() & synth() Test support should get context 1`] = `"support=nginx,app=test"`;
