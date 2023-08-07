@@ -9,7 +9,7 @@ import { Pipeline } from '../../models/pipeline/pipeline.model';
 import { Region } from '../../models/region/region.model';
 import { Server } from '../../models/server/server.model';
 import { Support } from '../../models/support/support.model';
-import { Dependency, IDependency } from '../dependency/dependency.model';
+import { Dependency, IDependency } from '../../functions/dependency/dependency.model';
 
 export class SerializationService {
   readonly SERIALIZATION_VERSION = 'v0';

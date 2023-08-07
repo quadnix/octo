@@ -1,4 +1,4 @@
-import { SerializationService } from '../../functions/serialization/serialization.service';
+import { SerializationService } from '../serialization/serialization.service';
 
 export interface IStateProvider {
   getApplicationState(): Promise<ReturnType<SerializationService['serialize']>>;

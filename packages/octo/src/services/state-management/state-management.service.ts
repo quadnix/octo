@@ -1,4 +1,4 @@
-import { SerializationService } from '../../functions/serialization/serialization.service';
+import { SerializationService } from '../serialization/serialization.service';
 import { IStateProvider } from './state-provider.interface';
 
 export class StateManagementService {

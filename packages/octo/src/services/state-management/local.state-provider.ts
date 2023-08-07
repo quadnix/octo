@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
-import { SerializationService } from '../../functions/serialization/serialization.service';
+import { SerializationService } from '../serialization/serialization.service';
 import { IStateProvider } from './state-provider.interface';
 
 const readFileAsync = promisify(readFile);
