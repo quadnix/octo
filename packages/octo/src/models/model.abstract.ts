@@ -80,6 +80,25 @@ export abstract class Model<I, T> implements IModel<I, T> {
     });
   }
 
+  getAncestors(): Model<unknown, unknown>[] {
+    const members: Model<unknown, unknown>[] = [this];
+    const membersProcessed: Model<unknown, unknown>[] = [];
+
+    while (members.length > 0) {
+      const member = members.pop() as Model<unknown, unknown>;
+
+      for (const d of member.dependencies) {
+        if (!d.isParentRelationship() && !membersProcessed.some((m) => m.getContext() === d.to.getContext())) {
+          members.push(d.to);
+        }
+      }
+
+      membersProcessed.push(member);
+    }
+
+    return membersProcessed;
+  }
+
   getChild(modelName: string, filters: { key: string; value: any }[]): Model<unknown, unknown> | undefined {
     const dependency = this.getChildren(modelName)[modelName]?.find((d) =>
       filters.every((c) => d.to[c.key] === c.value),
