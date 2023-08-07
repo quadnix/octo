@@ -2,7 +2,7 @@ import { IAction } from '../../models/action.interface';
 import { App } from '../../models/app/app.model';
 import { Environment } from '../../models/environment/environment.model';
 import { Region } from '../../models/region/region.model';
-import { Diff, DiffAction } from './diff.model';
+import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { DiffService } from './diff.service';
 
 describe('DiffService UT', () => {

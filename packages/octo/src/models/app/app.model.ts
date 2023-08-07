@@ -1,4 +1,4 @@
-import { HookService } from '../../functions/hook/hook.service';
+import { HookService } from '../../services/hook/hook.service';
 import { HOOK_NAMES } from '../hook.interface';
 import { Image } from '../image/image.model';
 import { Model } from '../model.abstract';

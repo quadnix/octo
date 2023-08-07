@@ -1,8 +1,5 @@
 export { Diff, DiffAction } from './functions/diff/diff.model';
-export { DiffService } from './functions/diff/diff.service';
 export { DiffUtility } from './functions/diff/diff.utility';
-
-export { HookService } from './functions/hook/hook.service';
 
 export { App } from './models/app/app.model';
 export { IApp } from './models/app/app.interface';
@@ -29,6 +26,10 @@ export { IAction, IActionInputRequest, IActionInputResponse } from './models/act
 export { HOOK_NAMES, IHook } from './models/hook.interface';
 export { Model } from './models/model.abstract';
 export { IModel } from './models/model.interface';
+
+export { DiffService } from './services/diff/diff.service';
+
+export { HookService } from './services/hook/hook.service';
 
 export { SerializationService } from './services/serialization/serialization.service';
 

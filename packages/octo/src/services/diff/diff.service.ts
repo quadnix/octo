@@ -1,5 +1,5 @@
 import { IAction, IActionInputResponse } from '../../models/action.interface';
-import { Diff } from './diff.model';
+import { Diff } from '../../functions/diff/diff.model';
 
 export class DiffService {
   private readonly actions: IAction[] = [];

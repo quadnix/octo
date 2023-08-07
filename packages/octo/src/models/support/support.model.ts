@@ -1,4 +1,4 @@
-import { HookService } from '../../functions/hook/hook.service';
+import { HookService } from '../../services/hook/hook.service';
 import { Deployment } from '../deployment/deployment.model';
 import { HOOK_NAMES } from '../hook.interface';
 import { Model } from '../model.abstract';

@@ -1,6 +1,6 @@
 import { DiffUtility } from '../../functions/diff/diff.utility';
 import { Diff } from '../../functions/diff/diff.model';
-import { HookService } from '../../functions/hook/hook.service';
+import { HookService } from '../../services/hook/hook.service';
 import { Deployment } from '../deployment/deployment.model';
 import { Environment } from '../environment/environment.model';
 import { HOOK_NAMES } from '../hook.interface';
