@@ -152,6 +152,52 @@ describe('DiffService UT', () => {
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching action found to process diff!"`);
     });
 
+    it('should throw if at least one diff has no associated action matching filter', async () => {
+      const app = new App('test-app');
+      const region = new Region('region-1');
+      app.addRegion(region);
+
+      const actions: IAction[] = [
+        {
+          ACTION_NAME: 'test',
+          collectInput: () => [],
+          filter: (diff: Diff) => diff.model.hasAncestor(region),
+          handle: jest.fn(),
+          revert: jest.fn(),
+        },
+      ];
+      const diffs: Diff[] = [new Diff(app, DiffAction.ADD, 'name', 'test-app')];
+      const diffService = new DiffService();
+      diffService.registerActions(actions);
+
+      await expect(async () => {
+        await diffService.beginTransaction(diffs);
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching action found to process diff!"`);
+    });
+
+    it('should process if diff has associated actions matching filter', async () => {
+      const app = new App('test-app');
+      const region = new Region('region-1');
+      app.addRegion(region);
+
+      const testActionMock = jest.fn();
+      const actions: IAction[] = [
+        {
+          ACTION_NAME: 'test',
+          collectInput: () => [],
+          filter: (diff: Diff) => diff.model.hasAncestor(app),
+          handle: testActionMock,
+          revert: jest.fn(),
+        },
+      ];
+      const diffs: Diff[] = [new Diff(region, DiffAction.ADD, 'regionId', 'region-1')];
+      const diffService = new DiffService();
+      diffService.registerActions(actions);
+
+      await diffService.beginTransaction(diffs);
+      expect(testActionMock).toHaveBeenCalledTimes(1);
+    });
+
     it('should throw if at least one action has no associated input', async () => {
       const actions: IAction[] = [
         {

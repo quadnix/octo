@@ -136,5 +136,26 @@ export abstract class Model<I, T> implements IModel<I, T> {
       }, {});
   }
 
+  hasAncestor(model: Model<unknown, unknown>): boolean {
+    const modelParts = model
+      .getContext()
+      .split(',')
+      .map((p) => p.split('='));
+
+    const ancestors = this.getAncestors();
+    return ancestors.some((a) => {
+      const ancestorParts = a
+        .getContext()
+        .split(',')
+        .reduce((map, p) => {
+          const parts = p.split('=');
+          map[parts[0]] = parts[1];
+          return map;
+        }, {});
+
+      return modelParts.every((p) => ancestorParts[p[0]] === p[1]);
+    });
+  }
+
   abstract synth(): I;
 }
