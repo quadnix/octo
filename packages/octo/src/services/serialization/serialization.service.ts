@@ -94,11 +94,12 @@ export class SerializationService {
   }
 
   serialize(root: Model<unknown, unknown>): SerializedOutput {
+    const boundary = root.getBoundaryMembers();
     const dependencies: IDependency[] = [];
     const models: { [key: string]: { className: string; model: IModel<unknown, unknown> } } = {};
 
     const dependenciesToCheck: Dependency[] = [];
-    root.getAllDependenciesRecursivelyIn(dependenciesToCheck);
+    root.getAllDependenciesRecursivelyIn(dependenciesToCheck, boundary);
 
     dependenciesToCheck.forEach((d) => {
       const fromContext = d.from.getContext();

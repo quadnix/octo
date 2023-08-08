@@ -211,3 +211,372 @@ exports[`Serialization Service UT serialize() should serialize an empty app 1`] 
   "version": "v0",
 }
 `;
+
+exports[`Serialization Service UT serialize() should serialize only boundary members 1`] = `
+{
+  "dependencies": [
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "regionId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "regionId",
+          "toField": "name",
+        },
+      ],
+      "from": "region=region-1,app=test-app",
+      "relationship": {
+        "onField": "regionId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "regionId",
+          "toField": "environmentName",
+        },
+      ],
+      "from": "region=region-1,app=test-app",
+      "relationship": {
+        "onField": "regionId",
+        "toField": "environmentName",
+        "type": "parent",
+      },
+      "to": "environment=qa,region=region-1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "environmentName",
+          "toField": "regionId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "environmentName",
+          "toField": "regionId",
+        },
+      ],
+      "from": "environment=qa,region=region-1,app=test-app",
+      "relationship": {
+        "onField": "environmentName",
+        "toField": "regionId",
+        "type": "child",
+      },
+      "to": "region=region-1,app=test-app",
+    },
+  ],
+  "models": {
+    "app=test-app": {
+      "className": "App",
+      "model": {
+        "name": "test-app",
+      },
+    },
+    "environment=qa,region=region-1,app=test-app": {
+      "className": "Environment",
+      "model": {
+        "environmentName": "qa",
+        "environmentVariables": {},
+      },
+    },
+    "region=region-1,app=test-app": {
+      "className": "Region",
+      "model": {
+        "regionId": "region-1",
+      },
+    },
+  },
+  "version": "v0",
+}
+`;
+
+exports[`Serialization Service UT serialize() should serialize when multiple models have dependency on same model 1`] = `
+{
+  "dependencies": [
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
+          "toField": "imageId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "imageId",
+        "type": "parent",
+      },
+      "to": "image=backend-runner:0.0.1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "imageId",
+          "toField": "deploymentTag",
+        },
+      ],
+      "from": "image=backend-runner:0.0.1,app=test-app",
+      "relationship": undefined,
+      "to": "deployment=0.0.1,server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "imageId",
+          "toField": "deploymentTag",
+        },
+      ],
+      "from": "image=backend-runner:0.0.1,app=test-app",
+      "relationship": undefined,
+      "to": "deployment=0.0.2,server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+      ],
+      "from": "image=backend-runner:0.0.1,app=test-app",
+      "relationship": {
+        "onField": "imageId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "serverKey",
+        "type": "parent",
+      },
+      "to": "server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "serverKey",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "serverKey",
+          "toField": "name",
+        },
+      ],
+      "from": "server=backend,app=test-app",
+      "relationship": {
+        "onField": "serverKey",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "serverKey",
+          "toField": "deploymentTag",
+        },
+      ],
+      "from": "server=backend,app=test-app",
+      "relationship": {
+        "onField": "serverKey",
+        "toField": "deploymentTag",
+        "type": "parent",
+      },
+      "to": "deployment=0.0.1,server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "imageId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "imageId",
+        },
+      ],
+      "from": "deployment=0.0.1,server=backend,app=test-app",
+      "relationship": undefined,
+      "to": "image=backend-runner:0.0.1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "serverKey",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "deployment=0.0.1,server=backend,app=test-app",
+      "relationship": {
+        "onField": "deploymentTag",
+        "toField": "serverKey",
+        "type": "child",
+      },
+      "to": "server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "serverKey",
+          "toField": "deploymentTag",
+        },
+      ],
+      "from": "server=backend,app=test-app",
+      "relationship": {
+        "onField": "serverKey",
+        "toField": "deploymentTag",
+        "type": "parent",
+      },
+      "to": "deployment=0.0.2,server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "imageId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "imageId",
+        },
+      ],
+      "from": "deployment=0.0.2,server=backend,app=test-app",
+      "relationship": undefined,
+      "to": "image=backend-runner:0.0.1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "serverKey",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "deployment=0.0.2,server=backend,app=test-app",
+      "relationship": {
+        "onField": "deploymentTag",
+        "toField": "serverKey",
+        "type": "child",
+      },
+      "to": "server=backend,app=test-app",
+    },
+  ],
+  "models": {
+    "app=test-app": {
+      "className": "App",
+      "model": {
+        "name": "test-app",
+      },
+    },
+    "deployment=0.0.1,server=backend,app=test-app": {
+      "className": "Deployment",
+      "model": {
+        "deploymentTag": "0.0.1",
+        "image": {
+          "context": "image=backend-runner:0.0.1,app=test-app",
+        },
+      },
+    },
+    "deployment=0.0.2,server=backend,app=test-app": {
+      "className": "Deployment",
+      "model": {
+        "deploymentTag": "0.0.2",
+        "image": {
+          "context": "image=backend-runner:0.0.1,app=test-app",
+        },
+      },
+    },
+    "image=backend-runner:0.0.1,app=test-app": {
+      "className": "Image",
+      "model": {
+        "dockerOptions": {
+          "buildArgs": {},
+          "dockerFilePath": "/Dockerfile",
+          "quiet": undefined,
+        },
+        "imageId": "0.0.1",
+        "imageName": "backend-runner",
+        "imageTag": "0.0.1",
+      },
+    },
+    "server=backend,app=test-app": {
+      "className": "Server",
+      "model": {
+        "serverKey": "backend",
+      },
+    },
+  },
+  "version": "v0",
+}
+`;
