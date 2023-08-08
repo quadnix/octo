@@ -31,7 +31,7 @@ export { DiffService } from './services/diff/diff.service';
 
 export { HookService } from './services/hook/hook.service';
 
-export { SerializationService } from './services/serialization/serialization.service';
+export { SerializationService, SerializedOutput } from './services/serialization/serialization.service';
 
 export { LocalStateProvider } from './services/state-management/local.state-provider';
 export { StateManagementService } from './services/state-management/state-management.service';

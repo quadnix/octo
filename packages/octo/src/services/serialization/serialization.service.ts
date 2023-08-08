@@ -11,6 +11,12 @@ import { Server } from '../../models/server/server.model';
 import { Support } from '../../models/support/support.model';
 import { Dependency, IDependency } from '../../functions/dependency/dependency.model';
 
+export type SerializedOutput = {
+  dependencies: IDependency[];
+  models: { [p: string]: { className: string; model: IModel<unknown, unknown> } };
+  version: string;
+};
+
 export class SerializationService {
   readonly SERIALIZATION_VERSION = 'v0';
 
@@ -33,7 +39,7 @@ export class SerializationService {
     }
   }
 
-  async deserialize(serializedOutput: ReturnType<SerializationService['serialize']>): Promise<Model<unknown, unknown>> {
+  async deserialize(serializedOutput: SerializedOutput): Promise<Model<unknown, unknown>> {
     if (serializedOutput.version !== this.SERIALIZATION_VERSION) {
       throw new Error('Version mismatch on deserialization!');
     }
@@ -87,11 +93,7 @@ export class SerializationService {
     this.classMapping[className] = deserializationClass;
   }
 
-  serialize(root: Model<unknown, unknown>): {
-    dependencies: IDependency[];
-    models: { [p: string]: { className: string; model: IModel<unknown, unknown> } };
-    version: string;
-  } {
+  serialize(root: Model<unknown, unknown>): SerializedOutput {
     const dependencies: IDependency[] = [];
     const models: { [key: string]: { className: string; model: IModel<unknown, unknown> } } = {};
 

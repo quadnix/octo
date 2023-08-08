@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
-import { SerializationService } from '../serialization/serialization.service';
+import { SerializedOutput } from '../serialization/serialization.service';
 import { IStateProvider } from './state-provider.interface';
 
 const readFileAsync = promisify(readFile);
@@ -16,7 +16,7 @@ export class LocalStateProvider implements IStateProvider {
     this.localStateDirectoryPath = resolve(localStateDirectoryPath);
   }
 
-  async getApplicationState(): Promise<ReturnType<SerializationService['serialize']>> {
+  async getApplicationState(): Promise<SerializedOutput> {
     const contents = await readFileAsync(join(this.localStateDirectoryPath, APPLICATION_STATE_FILE_NAME));
     return JSON.parse(contents.toString());
   }
@@ -25,7 +25,7 @@ export class LocalStateProvider implements IStateProvider {
     return readFileAsync(join(this.localStateDirectoryPath, stateFileName));
   }
 
-  async saveApplicationState(serializedState: ReturnType<SerializationService['serialize']>): Promise<void> {
+  async saveApplicationState(serializedState: SerializedOutput): Promise<void> {
     await writeFileAsync(
       join(this.localStateDirectoryPath, APPLICATION_STATE_FILE_NAME),
       JSON.stringify(serializedState, null, 2),

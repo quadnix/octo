@@ -1,4 +1,4 @@
-import { SerializationService } from '../serialization/serialization.service';
+import { SerializedOutput } from '../serialization/serialization.service';
 import { IStateProvider } from './state-provider.interface';
 
 export class StateManagementService {
@@ -21,7 +21,7 @@ export class StateManagementService {
     return StateManagementService.instance;
   }
 
-  async getApplicationState(): Promise<ReturnType<SerializationService['serialize']>> {
+  async getApplicationState(): Promise<SerializedOutput> {
     return this.stateProvider.getApplicationState();
   }
 
@@ -29,7 +29,7 @@ export class StateManagementService {
     return this.stateProvider.getBufferState(stateFileName);
   }
 
-  async saveApplicationState(serializedState: ReturnType<SerializationService['serialize']>): Promise<void> {
+  async saveApplicationState(serializedState: SerializedOutput): Promise<void> {
     return this.stateProvider.saveApplicationState(serializedState);
   }
 

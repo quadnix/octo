@@ -4,19 +4,19 @@ import { Environment } from '../../models/environment/environment.model';
 import { Region } from '../../models/region/region.model';
 import { Server } from '../../models/server/server.model';
 import { Support } from '../../models/support/support.model';
-import { SerializationService } from './serialization.service';
+import { SerializationService, SerializedOutput } from './serialization.service';
 
 describe('Serialization Service UT', () => {
   describe('deserialize()', () => {
     it('should throw error when de-serializing with a different version', async () => {
       const serializationService = new SerializationService();
       await expect(async () => {
-        await serializationService.deserialize({ version: 'v1' } as ReturnType<SerializationService['serialize']>);
+        await serializationService.deserialize({ version: 'v1' } as SerializedOutput);
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"Version mismatch on deserialization!"`);
     });
 
     it('should throw error when de-serializing an unknown class', async () => {
-      const serializedOutput: ReturnType<SerializationService['serialize']> = {
+      const serializedOutput: SerializedOutput = {
         dependencies: [
           {
             from: 'App',
