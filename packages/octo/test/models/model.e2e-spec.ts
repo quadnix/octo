@@ -77,6 +77,10 @@ describe('Model E2E Test', () => {
         expect(data.model.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
       });
 
+      it('getBoundaryMembers()', () => {
+        expect(data.model.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
+      });
+
       it('getChildren()', () => {
         expect(Object.keys(data.model.getChildren())).toMatchSnapshot();
       });

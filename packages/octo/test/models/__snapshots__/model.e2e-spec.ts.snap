@@ -6,6 +6,21 @@ exports[`Model E2E Test common functions Test app getAncestors() 1`] = `
 ]
 `;
 
+exports[`Model E2E Test common functions Test app getBoundaryMembers() 1`] = `
+[
+  "app=test",
+  "support=nginx,app=test",
+  "deployment=v1,support=nginx,app=test",
+  "image=nginx:0.0.1,app=test",
+  "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
+  "environment=qa,region=region-1,app=test",
+  "region=region-1,app=test",
+  "service=testService,app=test",
+  "server=backend,app=test",
+  "pipeline=testPipeline,app=test",
+]
+`;
+
 exports[`Model E2E Test common functions Test app getChildren() 1`] = `
 [
   "image",
@@ -33,6 +48,18 @@ exports[`Model E2E Test common functions Test deployment getAncestors() 1`] = `
   "support=nginx,app=test",
   "app=test",
   "image=nginx:0.0.1,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test deployment getBoundaryMembers() 1`] = `
+[
+  "deployment=v1,support=nginx,app=test",
+  "support=nginx,app=test",
+  "app=test",
+  "image=nginx:0.0.1,app=test",
+  "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
+  "environment=qa,region=region-1,app=test",
+  "region=region-1,app=test",
 ]
 `;
 
@@ -67,6 +94,18 @@ exports[`Model E2E Test common functions Test environment getAncestors() 1`] = `
 ]
 `;
 
+exports[`Model E2E Test common functions Test environment getBoundaryMembers() 1`] = `
+[
+  "environment=qa,region=region-1,app=test",
+  "region=region-1,app=test",
+  "app=test",
+  "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
+  "deployment=v1,support=nginx,app=test",
+  "support=nginx,app=test",
+  "image=nginx:0.0.1,app=test",
+]
+`;
+
 exports[`Model E2E Test common functions Test environment getChildren() 1`] = `
 [
   "execution",
@@ -89,6 +128,18 @@ exports[`Model E2E Test common functions Test environment synth() 1`] = `
 `;
 
 exports[`Model E2E Test common functions Test execution getAncestors() 1`] = `
+[
+  "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
+  "environment=qa,region=region-1,app=test",
+  "region=region-1,app=test",
+  "app=test",
+  "deployment=v1,support=nginx,app=test",
+  "support=nginx,app=test",
+  "image=nginx:0.0.1,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test execution getBoundaryMembers() 1`] = `
 [
   "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
   "environment=qa,region=region-1,app=test",
@@ -127,8 +178,13 @@ exports[`Model E2E Test common functions Test image getAncestors() 1`] = `
 [
   "image=nginx:0.0.1,app=test",
   "app=test",
-  "deployment=v1,support=nginx,app=test",
-  "support=nginx,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test image getBoundaryMembers() 1`] = `
+[
+  "image=nginx:0.0.1,app=test",
+  "app=test",
 ]
 `;
 
@@ -162,6 +218,13 @@ exports[`Model E2E Test common functions Test pipeline getAncestors() 1`] = `
 ]
 `;
 
+exports[`Model E2E Test common functions Test pipeline getBoundaryMembers() 1`] = `
+[
+  "pipeline=testPipeline,app=test",
+  "app=test",
+]
+`;
+
 exports[`Model E2E Test common functions Test pipeline getChildren() 1`] = `[]`;
 
 exports[`Model E2E Test common functions Test pipeline getContext() 1`] = `"pipeline=testPipeline,app=test"`;
@@ -183,6 +246,18 @@ exports[`Model E2E Test common functions Test region getAncestors() 1`] = `
 [
   "region=region-1,app=test",
   "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test region getBoundaryMembers() 1`] = `
+[
+  "region=region-1,app=test",
+  "app=test",
+  "environment=qa,region=region-1,app=test",
+  "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
+  "deployment=v1,support=nginx,app=test",
+  "support=nginx,app=test",
+  "image=nginx:0.0.1,app=test",
 ]
 `;
 
@@ -213,6 +288,13 @@ exports[`Model E2E Test common functions Test server getAncestors() 1`] = `
 ]
 `;
 
+exports[`Model E2E Test common functions Test server getBoundaryMembers() 1`] = `
+[
+  "server=backend,app=test",
+  "app=test",
+]
+`;
+
 exports[`Model E2E Test common functions Test server getChildren() 1`] = `[]`;
 
 exports[`Model E2E Test common functions Test server getContext() 1`] = `"server=backend,app=test"`;
@@ -236,6 +318,13 @@ exports[`Model E2E Test common functions Test service getAncestors() 1`] = `
 ]
 `;
 
+exports[`Model E2E Test common functions Test service getBoundaryMembers() 1`] = `
+[
+  "service=testService,app=test",
+  "app=test",
+]
+`;
+
 exports[`Model E2E Test common functions Test service getChildren() 1`] = `[]`;
 
 exports[`Model E2E Test common functions Test service getContext() 1`] = `"service=testService,app=test"`;
@@ -252,6 +341,18 @@ exports[`Model E2E Test common functions Test support getAncestors() 1`] = `
 [
   "support=nginx,app=test",
   "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test support getBoundaryMembers() 1`] = `
+[
+  "support=nginx,app=test",
+  "app=test",
+  "deployment=v1,support=nginx,app=test",
+  "image=nginx:0.0.1,app=test",
+  "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
+  "environment=qa,region=region-1,app=test",
+  "region=region-1,app=test",
 ]
 `;
 

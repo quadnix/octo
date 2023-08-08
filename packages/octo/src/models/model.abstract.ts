@@ -80,6 +80,9 @@ export abstract class Model<I, T> implements IModel<I, T> {
     });
   }
 
+  /**
+   * Get an array of ancestors which must exist for self to exist.
+   */
   getAncestors(): Model<unknown, unknown>[] {
     const members: Model<unknown, unknown>[] = [this];
     const membersProcessed: Model<unknown, unknown>[] = [];
@@ -88,7 +91,13 @@ export abstract class Model<I, T> implements IModel<I, T> {
       const member = members.pop() as Model<unknown, unknown>;
 
       for (const d of member.dependencies) {
-        if (!d.isParentRelationship() && !membersProcessed.some((m) => m.getContext() === d.to.getContext())) {
+        // If in dependency I am not declared a parent, then d.to is either my parent or has a relationship to me.
+        // The behavior of that relationship should be that it must exist for me to exist.
+        if (
+          !d.isParentRelationship() &&
+          d.hasMatchingBehavior(undefined, DiffAction.ADD, undefined, DiffAction.ADD) &&
+          !membersProcessed.some((m) => m.getContext() === d.to.getContext())
+        ) {
           members.push(d.to);
         }
       }
@@ -97,6 +106,34 @@ export abstract class Model<I, T> implements IModel<I, T> {
     }
 
     return membersProcessed;
+  }
+
+  /**
+   * Get a boundary (sub graph) of a model, i.e. an array of models that must belong together.
+   */
+  getBoundaryMembers(): Model<unknown, unknown>[] {
+    const extenders: Model<unknown, unknown>[] = [this];
+    const members: Model<unknown, unknown>[] = [];
+    const pushToMembers = (model): void => {
+      if (!members.some((m) => m.getContext() === model.getContext())) {
+        members.push(model);
+      }
+    };
+
+    while (extenders.length > 0) {
+      const model = extenders.pop() as Model<unknown, unknown>;
+      const ancestors = model.getAncestors();
+      for (const ancestor of ancestors) {
+        pushToMembers(ancestor);
+      }
+
+      const children = model.getChildren();
+      for (const modelName of Object.keys(children)) {
+        extenders.push(...children[modelName].map((d) => d.to));
+      }
+    }
+
+    return members;
   }
 
   getChild(modelName: string, filters: { key: string; value: any }[]): Model<unknown, unknown> | undefined {
