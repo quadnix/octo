@@ -66,28 +66,6 @@ export abstract class Model<I, T> implements IModel<I, T> {
     return diffs;
   }
 
-  getAllDependenciesRecursivelyIn(seen: Dependency[] = [], boundary: Model<unknown, unknown>[]): void {
-    for (const d of this.dependencies) {
-      // Skip dependencies that are not part of boundary.
-      if (
-        !boundary.some((m) => m.getContext() === d.from.getContext()) ||
-        !boundary.some((m) => m.getContext() === d.to.getContext())
-      ) {
-        continue;
-      }
-
-      // Check circular dependency.
-      if (seen.some((s) => s.isEqual(d))) {
-        throw new Error('Found circular dependencies!');
-      }
-
-      seen.push(d);
-      if (d.isParentRelationship()) {
-        d.to.getAllDependenciesRecursivelyIn(seen, boundary);
-      }
-    }
-  }
-
   /**
    * Get an array of ancestors which must exist for self to exist.
    */

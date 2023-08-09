@@ -23,6 +23,86 @@ exports[`Serialization Service UT serialize() should serialize a non-empty app 1
     {
       "behaviors": [
         {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "serverKey",
+        "type": "parent",
+      },
+      "to": "server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "serverKey",
+        "type": "parent",
+      },
+      "to": "support=nginx,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "serverKey",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "serverKey",
+          "toField": "name",
+        },
+      ],
+      "from": "support=nginx,app=test-app",
+      "relationship": {
+        "onField": "serverKey",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "serverKey",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "serverKey",
+          "toField": "name",
+        },
+      ],
+      "from": "server=backend,app=test-app",
+      "relationship": {
+        "onField": "serverKey",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
           "forAction": "add",
           "onAction": "add",
           "onField": "regionId",
@@ -83,86 +163,6 @@ exports[`Serialization Service UT serialize() should serialize a non-empty app 1
       },
       "to": "region=region-1,app=test-app",
     },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "name",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "app=test-app",
-      "relationship": {
-        "onField": "name",
-        "toField": "serverKey",
-        "type": "parent",
-      },
-      "to": "server=backend,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "name",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "name",
-        },
-      ],
-      "from": "server=backend,app=test-app",
-      "relationship": {
-        "onField": "serverKey",
-        "toField": "name",
-        "type": "child",
-      },
-      "to": "app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "name",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "app=test-app",
-      "relationship": {
-        "onField": "name",
-        "toField": "serverKey",
-        "type": "parent",
-      },
-      "to": "support=nginx,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "name",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "name",
-        },
-      ],
-      "from": "support=nginx,app=test-app",
-      "relationship": {
-        "onField": "serverKey",
-        "toField": "name",
-        "type": "child",
-      },
-      "to": "app=test-app",
-    },
   ],
   "models": {
     "app=test-app": {
@@ -207,7 +207,14 @@ exports[`Serialization Service UT serialize() should serialize a non-empty app 1
 exports[`Serialization Service UT serialize() should serialize an empty app 1`] = `
 {
   "dependencies": [],
-  "models": {},
+  "models": {
+    "app=test-app": {
+      "className": "App",
+      "model": {
+        "name": "test-app",
+      },
+    },
+  },
   "version": "v0",
 }
 `;
@@ -254,6 +261,23 @@ exports[`Serialization Service UT serialize() should serialize only boundary mem
         "type": "parent",
       },
       "to": "environment=qa,region=region-1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
+          "toField": "regionId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "regionId",
+        "type": "parent",
+      },
+      "to": "region=region-1,app=test-app",
     },
     {
       "behaviors": [
@@ -329,55 +353,6 @@ exports[`Serialization Service UT serialize() should serialize when multiple mod
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "imageId",
-          "toField": "deploymentTag",
-        },
-      ],
-      "from": "image=backend-runner:0.0.1,app=test-app",
-      "relationship": undefined,
-      "to": "deployment=0.0.1,server=backend,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "imageId",
-          "toField": "deploymentTag",
-        },
-      ],
-      "from": "image=backend-runner:0.0.1,app=test-app",
-      "relationship": undefined,
-      "to": "deployment=0.0.2,server=backend,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "imageId",
-          "toField": "name",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "imageId",
-          "toField": "name",
-        },
-      ],
-      "from": "image=backend-runner:0.0.1,app=test-app",
-      "relationship": {
-        "onField": "imageId",
-        "toField": "name",
-        "type": "child",
-      },
-      "to": "app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
           "onField": "name",
           "toField": "serverKey",
         },
@@ -433,48 +408,6 @@ exports[`Serialization Service UT serialize() should serialize when multiple mod
     {
       "behaviors": [
         {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "imageId",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "imageId",
-        },
-      ],
-      "from": "deployment=0.0.1,server=backend,app=test-app",
-      "relationship": undefined,
-      "to": "image=backend-runner:0.0.1,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "serverKey",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "deployment=0.0.1,server=backend,app=test-app",
-      "relationship": {
-        "onField": "deploymentTag",
-        "toField": "serverKey",
-        "type": "child",
-      },
-      "to": "server=backend,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
           "forAction": "delete",
           "onAction": "delete",
           "onField": "serverKey",
@@ -524,6 +457,97 @@ exports[`Serialization Service UT serialize() should serialize when multiple mod
         },
       ],
       "from": "deployment=0.0.2,server=backend,app=test-app",
+      "relationship": {
+        "onField": "deploymentTag",
+        "toField": "serverKey",
+        "type": "child",
+      },
+      "to": "server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "imageId",
+          "toField": "deploymentTag",
+        },
+      ],
+      "from": "image=backend-runner:0.0.1,app=test-app",
+      "relationship": undefined,
+      "to": "deployment=0.0.1,server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "imageId",
+          "toField": "deploymentTag",
+        },
+      ],
+      "from": "image=backend-runner:0.0.1,app=test-app",
+      "relationship": undefined,
+      "to": "deployment=0.0.2,server=backend,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+      ],
+      "from": "image=backend-runner:0.0.1,app=test-app",
+      "relationship": {
+        "onField": "imageId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "imageId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "imageId",
+        },
+      ],
+      "from": "deployment=0.0.1,server=backend,app=test-app",
+      "relationship": undefined,
+      "to": "image=backend-runner:0.0.1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "serverKey",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "deployment=0.0.1,server=backend,app=test-app",
       "relationship": {
         "onField": "deploymentTag",
         "toField": "serverKey",

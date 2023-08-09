@@ -98,28 +98,27 @@ export class SerializationService {
     const dependencies: IDependency[] = [];
     const models: { [key: string]: { className: string; model: IModel<unknown, unknown> } } = {};
 
-    const dependenciesToCheck: Dependency[] = [];
-    root.getAllDependenciesRecursivelyIn(dependenciesToCheck, boundary);
+    for (const model of boundary) {
+      for (const d of model['dependencies']) {
+        // Skip dependencies that are not part of boundary.
+        if (
+          !boundary.some((m) => m.getContext() === d.from.getContext()) ||
+          !boundary.some((m) => m.getContext() === d.to.getContext())
+        ) {
+          continue;
+        }
 
-    dependenciesToCheck.forEach((d) => {
-      const fromContext = d.from.getContext();
-      if (!models[fromContext]) {
-        models[fromContext] = {
-          className: d.from.constructor.name,
-          model: d.from.synth() as IModel<unknown, unknown>,
-        };
+        dependencies.push(d.synth());
       }
 
-      const toContext = d.to.getContext();
-      if (!models[toContext]) {
-        models[toContext] = {
-          className: d.to.constructor.name,
-          model: d.to.synth() as IModel<unknown, unknown>,
+      const context = model.getContext();
+      if (!models[context]) {
+        models[context] = {
+          className: model.constructor.name,
+          model: model.synth() as IModel<unknown, unknown>,
         };
       }
-
-      dependencies.push(d.synth());
-    });
+    }
 
     return { dependencies, models, version: this.SERIALIZATION_VERSION };
   }
