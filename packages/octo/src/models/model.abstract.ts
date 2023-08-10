@@ -16,6 +16,10 @@ export abstract class Model<I, T> implements IModel<I, T> {
   addChild(onField: keyof T, child: Model<unknown, unknown>, toField: string): void {
     // Check if child already has a dependency to self.
     const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
+    if (cIndex !== -1 && child.dependencies[cIndex].isParentRelationship()) {
+      throw new Error('Found circular dependencies!');
+    }
+
     const childToParentDependency = cIndex === -1 ? new Dependency(child, this) : child.dependencies[cIndex];
     childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.ADD);
     childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.UPDATE);
@@ -26,6 +30,9 @@ export abstract class Model<I, T> implements IModel<I, T> {
 
     // Check if parent already has a dependency to child.
     const pIndex = this.dependencies.findIndex((d) => Object.is(d.to, child));
+    if (pIndex !== -1 && this.dependencies[pIndex].isChildRelationship()) {
+      throw new Error('Found circular dependencies!');
+    }
     const parentToChildDependency = pIndex === -1 ? new Dependency(this, child) : this.dependencies[pIndex];
     parentToChildDependency.addBehavior(onField as string, DiffAction.DELETE, toField, DiffAction.DELETE);
     if (pIndex === -1) {
@@ -96,21 +103,58 @@ export abstract class Model<I, T> implements IModel<I, T> {
 
   /**
    * Get a boundary (sub graph) of a model, i.e. an array of models that must belong together.
+   * To generate a boundary, we must process all children and grand-children of self.
    */
   getBoundaryMembers(): Model<unknown, unknown>[] {
     const extenders: Model<unknown, unknown>[] = [this];
     const members: Model<unknown, unknown>[] = [];
-    const pushToMembers = (model): void => {
-      if (!members.some((m) => m.getContext() === model.getContext())) {
-        members.push(model);
-      }
-    };
+    const parentOf: { [key: string]: string[] } = {};
 
     while (extenders.length > 0) {
       const model = extenders.pop() as Model<unknown, unknown>;
       const ancestors = model.getAncestors();
+
       for (const ancestor of ancestors) {
-        pushToMembers(ancestor);
+        // Skip processing an already processed ancestor.
+        if (members.some((m) => m.getContext() === ancestor.getContext())) {
+          continue;
+        }
+        members.push(ancestor);
+
+        // Check for circular dependencies on ancestor.
+        for (const d of ancestor.dependencies) {
+          let childContext;
+          let parentContext;
+          if (d.isParentRelationship()) {
+            childContext = d.to.getContext();
+            parentContext = d.from.getContext();
+          } else if (d.isChildRelationship()) {
+            childContext = d.from.getContext();
+            parentContext = d.to.getContext();
+          } else {
+            // A relationship that is neither parent or child, will not be reported in circular dependency!
+            continue;
+          }
+
+          const seen: { [key: string]: boolean } = {};
+          const toProcess: string[] = [parentContext];
+          while (toProcess.length > 0) {
+            const context = toProcess.pop() as string;
+            if (seen[context]) {
+              throw new Error('Found circular dependencies!');
+            } else {
+              seen[context] = true;
+            }
+            toProcess.push(...(parentOf[context] || []));
+          }
+
+          if (!parentOf[childContext]) {
+            parentOf[childContext] = [];
+            parentOf[childContext].push(parentContext);
+          } else if (!parentOf[childContext].some((p) => p === parentContext)) {
+            parentOf[childContext].push(parentContext);
+          }
+        }
       }
 
       const children = model.getChildren();

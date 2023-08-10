@@ -376,3 +376,12 @@ exports[`Model E2E Test common functions Test support synth() 1`] = `
   "serverKey": "nginx",
 }
 `;
+
+exports[`Model E2E Test getBoundaryMembers() should include the common model to the boundary in literal sense 1`] = `
+[
+  "region=region-0,app=test-app",
+  "app=test-app",
+  "environment=qa,region=region-0,app=test-app",
+  "region=region-1,app=test-app",
+]
+`;

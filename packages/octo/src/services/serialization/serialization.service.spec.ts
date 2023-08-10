@@ -88,22 +88,6 @@ describe('Serialization Service UT', () => {
       expect(serializationService.serialize(region0_1)).toMatchSnapshot();
     });
 
-    it('should throw error when trying to add same child to two parent', () => {
-      const app0 = new App('test-app');
-      const region0_0 = new Region('region-0');
-      const region0_1 = new Region('region-1');
-      const environment0 = new Environment('qa');
-      region0_0.addEnvironment(environment0);
-      region0_1.addEnvironment(environment0);
-      app0.addRegion(region0_0);
-      app0.addRegion(region0_1);
-
-      const serializationService = new SerializationService();
-      expect(() => serializationService.serialize(app0)).toThrowErrorMatchingInlineSnapshot(
-        `"Found circular dependencies!"`,
-      );
-    });
-
     it('should serialize when multiple models have dependency on same model', async () => {
       const serializationService = new SerializationService();
 

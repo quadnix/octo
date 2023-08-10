@@ -105,14 +105,14 @@ describe('DiffService UT', () => {
     it('should throw errors with 1 level of circular dependencies', () => {
       const app = new App('test');
       const region = new Region('region-1');
-      app.addRegion(region);
-      region.addChild('regionId', app, 'name');
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
       const diff2 = new Diff(app, DiffAction.ADD, 'name', 'test');
 
       expect(diff1.metadata.applyOrder).toBe(-1);
       expect(diff2.metadata.applyOrder).toBe(-1);
       expect(() => {
+        app.addRegion(region);
+        region.addChild('regionId', app, 'name');
         setApplyOrder(diff1, [diff1, diff2]);
       }).toThrowError('Found circular dependencies!');
       expect(diff1.metadata.applyOrder).toBe(-1);

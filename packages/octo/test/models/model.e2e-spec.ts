@@ -104,4 +104,46 @@ describe('Model E2E Test', () => {
       });
     });
   });
+
+  describe('getBoundaryMembers()', () => {
+    it('should include the common model to the boundary in literal sense', () => {
+      const app0 = new App('test-app');
+      const region0 = new Region('region-0');
+      const region1 = new Region('region-1');
+      const environment0 = new Environment('qa');
+
+      app0.addRegion(region0);
+      app0.addRegion(region1);
+      region0.addEnvironment(environment0);
+      region1.addEnvironment(environment0);
+
+      expect(region0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
+    });
+
+    describe('Circular Dependencies', () => {
+      it('should throw error on one level of circular dependency', () => {
+        const app0 = new App('test-app');
+        const region0 = new Region('region-0');
+
+        expect(() => {
+          app0.addRegion(region0);
+          region0.addChild('regionId', app0, 'name');
+          app0.getBoundaryMembers();
+        }).toThrowErrorMatchingInlineSnapshot(`"Found circular dependencies!"`);
+      });
+
+      it('should throw error on two levels of circular dependency', () => {
+        const app0 = new App('test-app');
+        const region0 = new Region('region-0');
+        const environment0 = new Environment('qa');
+
+        expect(() => {
+          app0.addRegion(region0);
+          region0.addEnvironment(environment0);
+          environment0.addChild('environmentName', app0, 'name');
+          app0.getBoundaryMembers();
+        }).toThrowErrorMatchingInlineSnapshot(`"Found circular dependencies!"`);
+      });
+    });
+  });
 });
