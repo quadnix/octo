@@ -1,3 +1,4 @@
+acl
 acls
 amazonaws
 arn
@@ -20,10 +21,12 @@ ecr
 ecs
 eslintrc
 Fallthrough
+Ipv
 ispec
 jsonc
 len
 lstat
+nacl
 nginx
 octo
 promisify
@@ -35,6 +38,9 @@ sdk
 serializable
 stdin
 sts
+subnet
+subnets
+tcp
 tsc
 tsconfig
 unlink

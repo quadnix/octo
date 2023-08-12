@@ -40,7 +40,7 @@ export class OctoAws {
   }
 
   getRegionActions(): IAction[] {
-    const addRegionAction = new AddRegionAction(this.ec2Client);
+    const addRegionAction = new AddRegionAction(this.ec2Client, this.region);
     return [addRegionAction];
   }
 

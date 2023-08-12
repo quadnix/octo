@@ -1,24 +1,52 @@
 import { Region } from '@quadnix/octo';
+import { IAwsRegion } from './aws.region.interface';
 
 export enum AWSRegionId {
-  AWS_AP_SOUTH_1 = 'aws-ap-south-1',
-  AWS_US_EAST_1 = 'aws-us-east-1',
-  AWS_US_WEST_1 = 'aws-us-west-1',
-  AWS_US_WEST_2 = 'aws-us-west-2',
+  AWS_AP_SOUTH_1A = 'aws-ap-south-1a',
+  AWS_AP_SOUTH_1B = 'aws-ap-south-1b',
+  AWS_AP_SOUTH_1C = 'aws-ap-south-1c',
+  AWS_US_EAST_1A = 'aws-us-east-1a',
+  AWS_US_EAST_1B = 'aws-us-east-1b',
+  AWS_US_EAST_1C = 'aws-us-east-1c',
+  AWS_US_EAST_1D = 'aws-us-east-1d',
+  AWS_US_EAST_1E = 'aws-us-east-1e',
+  AWS_US_EAST_1F = 'aws-us-east-1f',
+  AWS_US_WEST_1A = 'aws-us-west-1a',
+  AWS_US_WEST_1B = 'aws-us-west-1b',
+  AWS_US_WEST_2A = 'aws-us-west-2a',
+  AWS_US_WEST_2B = 'aws-us-west-2b',
+  AWS_US_WEST_2C = 'aws-us-west-2c',
+  AWS_US_WEST_2D = 'aws-us-west-2d',
 }
 
 export class AwsRegion extends Region {
-  override readonly regionId: AWSRegionId;
+  readonly nativeAwsRegionAZ: string;
 
   readonly nativeAwsRegionId: string;
+
+  override readonly regionId: AWSRegionId;
 
   constructor(regionId: AWSRegionId) {
     super(regionId);
 
-    this.regionId = regionId;
-
+    // Derive AWS regionId and AZ.
     const regionIdParts = regionId.split('-');
     regionIdParts.shift();
-    this.nativeAwsRegionId = regionIdParts.join('-');
+    this.nativeAwsRegionAZ = regionIdParts.join('-');
+    this.nativeAwsRegionId = this.nativeAwsRegionAZ.substring(0, this.nativeAwsRegionAZ.length - 1);
+
+    this.regionId = regionId;
+  }
+
+  override synth(): IAwsRegion {
+    return {
+      nativeAwsRegionAZ: this.nativeAwsRegionAZ,
+      nativeAwsRegionId: this.nativeAwsRegionId,
+      regionId: this.regionId,
+    };
+  }
+
+  static async unSynth(awsRegion: IAwsRegion): Promise<AwsRegion> {
+    return new AwsRegion(awsRegion.regionId as AWSRegionId);
   }
 }
