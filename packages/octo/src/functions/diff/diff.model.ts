@@ -1,4 +1,4 @@
-import { IAction } from '../../models/action.interface';
+import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface';
 import { Model } from '../../models/model.abstract';
 
 export enum DiffAction {
@@ -13,7 +13,7 @@ export class Diff {
   readonly field: string;
 
   readonly metadata: {
-    actions: IAction[];
+    actions: IAction<IActionInputs, IActionOutputs>[];
     applied: boolean;
     applyOrder: number;
   };

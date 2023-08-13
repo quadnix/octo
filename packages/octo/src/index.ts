@@ -22,7 +22,7 @@ export { IService } from './models/service/service.interface';
 export { Support } from './models/support/support.model';
 export { ISupport } from './models/support/support.interface';
 
-export { IAction, IActionInputRequest, IActionInputResponse } from './models/action.interface';
+export { IAction, IActionInputs, IActionOutputs } from './models/action.interface';
 export { HOOK_NAMES, IHook } from './models/hook.interface';
 export { Model } from './models/model.abstract';
 export { IModel } from './models/model.interface';

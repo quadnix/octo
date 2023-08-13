@@ -1,4 +1,4 @@
-import { IAction } from '../../models/action.interface';
+import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface';
 import { App } from '../../models/app/app.model';
 import { Environment } from '../../models/environment/environment.model';
 import { Region } from '../../models/region/region.model';
@@ -157,12 +157,13 @@ describe('DiffService UT', () => {
       const region = new Region('region-1');
       app.addRegion(region);
 
-      const actions: IAction[] = [
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'test',
           collectInput: () => [],
-          filter: (diff: Diff) => diff.model.hasAncestor(region),
-          handle: jest.fn(),
+          collectOutput: () => [],
+          filter: (diff: Diff) => diff.model.MODEL_NAME === 'region',
+          handle: jest.fn().mockResolvedValue({}),
           revert: jest.fn(),
         },
       ];
@@ -180,12 +181,13 @@ describe('DiffService UT', () => {
       const region = new Region('region-1');
       app.addRegion(region);
 
-      const testActionMock = jest.fn();
-      const actions: IAction[] = [
+      const testActionMock = jest.fn().mockResolvedValue({});
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'test',
           collectInput: () => [],
-          filter: (diff: Diff) => diff.model.hasAncestor(app),
+          collectOutput: () => [],
+          filter: (diff: Diff) => diff.model.MODEL_NAME === 'region',
           handle: testActionMock,
           revert: jest.fn(),
         },
@@ -198,25 +200,6 @@ describe('DiffService UT', () => {
       expect(testActionMock).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw if at least one action has no associated input', async () => {
-      const actions: IAction[] = [
-        {
-          ACTION_NAME: 'test',
-          collectInput: () => ['input.key'],
-          filter: () => true,
-          handle: jest.fn(),
-          revert: jest.fn(),
-        },
-      ];
-      const diffs: Diff[] = [new Diff(new App('app'), DiffAction.ADD, 'name', 'app')];
-      const diffService = new DiffService();
-      diffService.registerActions(actions);
-
-      await expect(async () => {
-        await diffService.beginTransaction(diffs);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching input found on action!"`);
-    });
-
     it('should call the handle for a single diff with no dependencies', async () => {
       const app = new App('test');
       const region = new Region('region-1');
@@ -225,11 +208,12 @@ describe('DiffService UT', () => {
       region.addEnvironment(environment);
       const diffs: Diff[] = [new Diff(environment, DiffAction.ADD, 'environmentName', 'qa')];
 
-      const testActionMock = jest.fn();
-      const actions: IAction[] = [
+      const testActionMock = jest.fn().mockResolvedValue({});
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'test',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: () => true,
           handle: testActionMock,
           revert: jest.fn(),
@@ -269,11 +253,12 @@ describe('DiffService UT', () => {
       region.addEnvironment(environment);
       const diffs: Diff[] = [new Diff(environment, DiffAction.ADD, 'environmentName', 'qa')];
 
-      const testActionMock = jest.fn();
-      const actions: IAction[] = [
+      const testActionMock = jest.fn().mockResolvedValue({});
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'test',
           collectInput: () => ['inputs.key'],
+          collectOutput: () => [],
           filter: () => true,
           handle: testActionMock,
           revert: jest.fn(),
@@ -292,6 +277,39 @@ describe('DiffService UT', () => {
       expect(testActionMock.mock.calls[0][1]).toEqual({ 'inputs.key': 'value' });
     });
 
+    it('should call the handle and produce outputs', async () => {
+      const app = new App('test');
+      const region = new Region('region-1');
+      const environment = new Environment('qa');
+      app.addRegion(region);
+      region.addEnvironment(environment);
+      const diffs: Diff[] = [new Diff(environment, DiffAction.ADD, 'environmentName', 'qa')];
+
+      const testActionMock = jest.fn().mockResolvedValue({ 'action.output': 'value' });
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
+        {
+          ACTION_NAME: 'test',
+          collectInput: () => [],
+          collectOutput: () => [],
+          filter: () => true,
+          handle: testActionMock,
+          revert: jest.fn(),
+        },
+      ];
+
+      const diffService = new DiffService();
+      diffService.registerActions(actions);
+
+      await diffService.beginTransaction(diffs);
+
+      expect(testActionMock).toHaveBeenCalledTimes(1);
+      expect(diffService.getActionOutputs()).toMatchInlineSnapshot(`
+        {
+          "action.output": "value",
+        }
+      `);
+    });
+
     it('should call the handles for each diff with no dependencies', async () => {
       const app = new App('test');
       const region = new Region('region-1');
@@ -303,12 +321,13 @@ describe('DiffService UT', () => {
         new Diff(environment, DiffAction.ADD, 'environmentVariables', { key: 'value' }),
       ];
 
-      const addEnvironmentNameActionMock = jest.fn();
-      const addEnvironmentVariablesActionMock = jest.fn();
-      const actions: IAction[] = [
+      const addEnvironmentNameActionMock = jest.fn().mockResolvedValue({});
+      const addEnvironmentVariablesActionMock = jest.fn().mockResolvedValue({});
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'addEnvironmentName',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: (diff: Diff) => diff.field === 'environmentName',
           handle: addEnvironmentNameActionMock,
           revert: jest.fn(),
@@ -316,6 +335,7 @@ describe('DiffService UT', () => {
         {
           ACTION_NAME: 'addEnvironmentVariables',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: (diff: Diff) => diff.field === 'environmentVariables',
           handle: addEnvironmentVariablesActionMock,
           revert: jest.fn(),
@@ -372,12 +392,13 @@ describe('DiffService UT', () => {
         new Diff(region, DiffAction.ADD, 'regionId', 'region-1'),
       ];
 
-      const addEnvironmentActionMock = jest.fn();
-      const addRegionActionMock = jest.fn();
-      const actions: IAction[] = [
+      const addEnvironmentActionMock = jest.fn().mockResolvedValue({});
+      const addRegionActionMock = jest.fn().mockResolvedValue({});
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'addEnvironment',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: (diff: Diff) => diff.field === 'environmentName',
           handle: addEnvironmentActionMock,
           revert: jest.fn(),
@@ -385,6 +406,7 @@ describe('DiffService UT', () => {
         {
           ACTION_NAME: 'addRegion',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: (diff: Diff) => diff.field === 'regionId',
           handle: addRegionActionMock,
           revert: jest.fn(),
@@ -446,13 +468,14 @@ describe('DiffService UT', () => {
         new Diff(app, DiffAction.ADD, 'name', 'test'),
       ];
 
-      const addEnvironmentActionMock = jest.fn();
-      const addRegionActionMock = jest.fn();
-      const addAppActionMock = jest.fn();
-      const actions: IAction[] = [
+      const addEnvironmentActionMock = jest.fn().mockResolvedValue({});
+      const addRegionActionMock = jest.fn().mockResolvedValue({});
+      const addAppActionMock = jest.fn().mockResolvedValue({});
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'addEnvironment',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: (diff: Diff) => diff.field === 'environmentName',
           handle: addEnvironmentActionMock,
           revert: jest.fn(),
@@ -460,6 +483,7 @@ describe('DiffService UT', () => {
         {
           ACTION_NAME: 'addRegion',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: (diff: Diff) => diff.field === 'regionId',
           handle: addRegionActionMock,
           revert: jest.fn(),
@@ -467,6 +491,7 @@ describe('DiffService UT', () => {
         {
           ACTION_NAME: 'addApp',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: (diff: Diff) => diff.field === 'name',
           handle: addAppActionMock,
           revert: jest.fn(),
@@ -545,12 +570,13 @@ describe('DiffService UT', () => {
         new Diff(region, DiffAction.ADD, 'regionId', 'region-1'),
       ];
 
-      const addEnvironmentActionMock = jest.fn();
-      const addRegionActionMock = jest.fn();
-      const actions: IAction[] = [
+      const addEnvironmentActionMock = jest.fn().mockResolvedValue({});
+      const addRegionActionMock = jest.fn().mockResolvedValue({});
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'addEnvironment',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: (diff: Diff) => diff.field === 'environmentName',
           handle: addEnvironmentActionMock,
           revert: jest.fn(),
@@ -558,6 +584,7 @@ describe('DiffService UT', () => {
         {
           ACTION_NAME: 'addRegion',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: (diff: Diff) => diff.field === 'regionId',
           handle: addRegionActionMock,
           revert: jest.fn(),
@@ -618,10 +645,11 @@ describe('DiffService UT', () => {
 
   describe('registerActions()', () => {
     it('should be able to register actions', () => {
-      const actions: IAction[] = [
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'test',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: () => true,
           handle: jest.fn(),
           revert: jest.fn(),
@@ -640,10 +668,11 @@ describe('DiffService UT', () => {
       const diff1 = new Diff(new Environment('qa'), DiffAction.ADD, 'environmentName', 'qa');
 
       const testActionMock = jest.fn();
-      const actions: IAction[] = [
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'test',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: () => true,
           handle: jest.fn(),
           revert: testActionMock,
@@ -669,10 +698,11 @@ describe('DiffService UT', () => {
       const diff2 = new Diff(new Environment('qa_2'), DiffAction.ADD, 'environmentName', 'qa_2');
 
       const testActionMock = jest.fn();
-      const actions: IAction[] = [
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'test',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: () => true,
           handle: jest.fn(),
           revert: testActionMock,
@@ -694,10 +724,11 @@ describe('DiffService UT', () => {
       const diff2 = new Diff(new Environment('qa_2'), DiffAction.ADD, 'environmentName', 'qa_2');
 
       const testActionMock = jest.fn();
-      const actions: IAction[] = [
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
         {
           ACTION_NAME: 'test',
           collectInput: () => [],
+          collectOutput: () => [],
           filter: () => true,
           handle: jest.fn(),
           revert: testActionMock,

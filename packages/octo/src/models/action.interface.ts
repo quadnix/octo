@@ -1,13 +1,13 @@
 import { Diff } from '../functions/diff/diff.model';
 
-export type IActionInputRequest = string[];
-export type IActionInputResponse = { [key: string]: string };
+export type IActionInputs = { [key: string]: string };
+export type IActionOutputs = { [key: string]: string };
 
 /**
  * Actions are translation functions between Diff and underlying infrastructure.
  * An action can translate a specific type of Diff into underlying infrastructure, and can revert it back.
  */
-export interface IAction {
+export interface IAction<I extends IActionInputs, O extends IActionOutputs> {
   /**
    * The name of the action.
    * It can be used to easily identify an action and its purpose.
@@ -16,8 +16,15 @@ export interface IAction {
 
   /**
    * This function contains the list of inputs to ask before processing the diff.
+   * A missing input key will not be populated in the inputs provided to the action.
    */
-  collectInput(diff: Diff): IActionInputRequest;
+  collectInput(diff: Diff): (keyof I)[];
+
+  /**
+   * This function contains the list of outputs to save after processing the diff.
+   * A missing output key will not be saved.
+   */
+  collectOutput(): (keyof O)[];
 
   /**
    * This function determines if the handle is applicable to the diff.
@@ -27,7 +34,7 @@ export interface IAction {
   /**
    * This function contains the logic to apply the diff(s) to the underlying infrastructure.
    */
-  handle(diff: Diff, actionInput: IActionInputResponse): Promise<void>;
+  handle(diff: Diff, actionInput: I): Promise<O>;
 
   /**
    * This function contains the logic to revert the diff(s) from the underlying infrastructure.

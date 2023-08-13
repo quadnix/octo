@@ -1,9 +1,10 @@
-import { IAction, IActionInputResponse } from '../../models/action.interface';
+import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface';
 import { Diff } from '../../functions/diff/diff.model';
 
 export class DiffService {
-  private readonly actions: IAction[] = [];
-  private readonly inputs: IActionInputResponse = {};
+  private readonly actions: IAction<IActionInputs, IActionOutputs>[] = [];
+  private readonly inputs: IActionInputs = {};
+  private readonly outputs: IActionOutputs = {};
 
   private getMatchingDiffs(diff: Diff, diffs: Diff[]): Diff[] {
     return diffs.filter(
@@ -53,13 +54,6 @@ export class DiffService {
       if (actions.length === 0) {
         throw new Error('No matching action found to process diff!');
       }
-
-      for (const action of actions) {
-        const requests = action.collectInput(diff);
-        if (!requests.every((r) => this.inputs[r])) {
-          throw new Error('No matching input found on action!');
-        }
-      }
     }
 
     for (const diff of diffs) {
@@ -71,7 +65,7 @@ export class DiffService {
     while (accountedFor < diffs.length) {
       const diffsInSameLevel = diffs.filter((d) => d.metadata.applyOrder === currentApplyOrder);
       const diffsProcessedInSameLevel: Diff[] = [];
-      const promisesToApplyDiffInSameLevel: Promise<void>[] = [];
+      const promisesToApplyDiffInSameLevel: Promise<IActionOutputs>[] = [];
 
       for (const diff of diffsInSameLevel) {
         const actions = this.actions.filter((a) => a.filter(diff));
@@ -90,12 +84,12 @@ export class DiffService {
 
         for (const a of actions) {
           // Resolve input requests.
-          const responses: IActionInputResponse = {};
-          const requests = a.collectInput(diffToProcess);
-          requests.map((r) => (responses[r] = this.inputs[r]));
+          const inputs: IActionInputs = {};
+          const keys = a.collectInput(diffToProcess);
+          keys.map((k) => (inputs[k] = this.inputs[k]));
 
           // Apply all actions on the diff.
-          promisesToApplyDiffInSameLevel.push(a.handle(diffToProcess, responses));
+          promisesToApplyDiffInSameLevel.push(a.handle(diffToProcess, inputs));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -105,7 +99,11 @@ export class DiffService {
       // Add all diff in same level to transaction.
       transaction.push(diffsProcessedInSameLevel);
 
-      await Promise.all(promisesToApplyDiffInSameLevel);
+      // Process all diff in same level, and save the action outputs.
+      const actionsOutputs = await Promise.all(promisesToApplyDiffInSameLevel);
+      for (const actionOutputs of actionsOutputs) {
+        Object.keys(actionOutputs).map((k) => (this.outputs[k] = actionOutputs[k]));
+      }
 
       accountedFor += diffsInSameLevel.length;
       currentApplyOrder += 1;
@@ -118,11 +116,15 @@ export class DiffService {
     return this.actions.map((a) => a.ACTION_NAME);
   }
 
-  registerActions(actions: IAction[]): void {
+  getActionOutputs(): IActionOutputs {
+    return this.outputs;
+  }
+
+  registerActions(actions: IAction<IActionInputs, IActionOutputs>[]): void {
     this.actions.push(...actions);
   }
 
-  registerInputs(inputs: IActionInputResponse): void {
+  registerInputs(inputs: IActionInputs): void {
     for (const key of Object.keys(inputs)) {
       this.inputs[key] = inputs[key];
     }
