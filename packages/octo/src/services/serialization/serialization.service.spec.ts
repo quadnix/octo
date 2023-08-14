@@ -36,7 +36,7 @@ describe('Serialization Service UT', () => {
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid class, no reference to unSynth static method!"`);
     });
 
-    it('should deserialize known classes', async () => {
+    it('should deserialize unknown classes when registered', async () => {
       const app0 = new App('test-app');
       const region0 = new Region('region-0');
       app0.addRegion(region0);
@@ -48,6 +48,32 @@ describe('Serialization Service UT', () => {
       const app1 = (await serializationService.deserialize(output)) as App;
 
       expect(app1.name).toBe('test-app');
+    });
+
+    it('should deserialize known classes', async () => {
+      const app0 = new App('test-app');
+      const region0 = new Region('region-0');
+      app0.addRegion(region0);
+
+      const serializationService = new SerializationService();
+
+      const output = serializationService.serialize(app0);
+      const app1 = (await serializationService.deserialize(output)) as App;
+
+      expect(app1.name).toBe('test-app');
+    });
+
+    it('should return the serialized root on deserialization', async () => {
+      const app0 = new App('test-app');
+      const region0 = new Region('region-0');
+      app0.addRegion(region0);
+
+      const serializationService = new SerializationService();
+
+      const output = serializationService.serialize(region0);
+      const region1 = (await serializationService.deserialize(output)) as Region;
+
+      expect(region1.regionId).toBe('region-0');
     });
   });
 
