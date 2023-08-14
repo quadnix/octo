@@ -1,11 +1,5 @@
-import { SerializedOutput } from '../serialization/serialization.service';
-
 export interface IStateProvider {
-  getApplicationState(): Promise<SerializedOutput>;
+  getState(stateFileName: string): Promise<Buffer>;
 
-  getBufferState(stateFileName: string): Promise<Buffer>;
-
-  saveApplicationState(serializedState: SerializedOutput): Promise<void>;
-
-  saveBufferState(stateFileName: string, data: Buffer): Promise<void>;
+  saveState(stateFileName: string, data: Buffer): Promise<void>;
 }
