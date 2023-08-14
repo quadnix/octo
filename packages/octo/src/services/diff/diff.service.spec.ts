@@ -1,8 +1,8 @@
+import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface';
 import { App } from '../../models/app/app.model';
 import { Environment } from '../../models/environment/environment.model';
 import { Region } from '../../models/region/region.model';
-import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { DiffService } from './diff.service';
 
 describe('DiffService UT', () => {
@@ -275,39 +275,6 @@ describe('DiffService UT', () => {
 
       expect(testActionMock).toHaveBeenCalledTimes(1);
       expect(testActionMock.mock.calls[0][1]).toEqual({ 'inputs.key': 'value' });
-    });
-
-    it('should call the handle and produce outputs', async () => {
-      const app = new App('test');
-      const region = new Region('region-1');
-      const environment = new Environment('qa');
-      app.addRegion(region);
-      region.addEnvironment(environment);
-      const diffs: Diff[] = [new Diff(environment, DiffAction.ADD, 'environmentName', 'qa')];
-
-      const testActionMock = jest.fn().mockResolvedValue({ 'action.output': 'value' });
-      const actions: IAction<IActionInputs, IActionOutputs>[] = [
-        {
-          ACTION_NAME: 'test',
-          collectInput: () => [],
-          collectOutput: () => [],
-          filter: () => true,
-          handle: testActionMock,
-          revert: jest.fn(),
-        },
-      ];
-
-      const diffService = new DiffService();
-      diffService.registerActions(actions);
-
-      await diffService.beginTransaction(diffs);
-
-      expect(testActionMock).toHaveBeenCalledTimes(1);
-      expect(diffService.getActionOutputs()).toMatchInlineSnapshot(`
-        {
-          "action.output": "value",
-        }
-      `);
     });
 
     it('should call the handles for each diff with no dependencies', async () => {
@@ -639,6 +606,151 @@ describe('DiffService UT', () => {
             },
           ],
         ]
+      `);
+    });
+  });
+
+  describe('getTransactionActionIO()', () => {
+    it('should get action IO', async () => {
+      const app = new App('test');
+      const region = new Region('region-1');
+      const environment = new Environment('qa');
+      app.addRegion(region);
+      region.addEnvironment(environment);
+
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
+        {
+          ACTION_NAME: 'test',
+          collectInput: () => ['input.key'],
+          collectOutput: () => ['output.key'],
+          filter: () => true,
+          handle: jest.fn().mockResolvedValue({ 'output.key': 'value' }),
+          revert: jest.fn(),
+        },
+      ];
+      const environmentDiff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+
+      const diffService = new DiffService();
+      diffService.registerActions(actions);
+      diffService.registerInputs({ 'input.key': 'value' });
+
+      const transaction = await diffService.beginTransaction([environmentDiff]);
+      expect(diffService.getTransactionActionIO(transaction)).toMatchInlineSnapshot(`
+        {
+          "test": [
+            {
+              "inputs": {
+                "input.key": "value",
+              },
+              "outputs": {
+                "output.key": "value",
+              },
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should collect input from output', async () => {
+      const app = new App('test');
+      const region = new Region('region-1');
+      const environment = new Environment('qa');
+      app.addRegion(region);
+      region.addEnvironment(environment);
+
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
+        {
+          ACTION_NAME: 'processRegion',
+          collectInput: () => [],
+          collectOutput: () => ['output.key'],
+          filter: (diff: Diff) => diff.model.MODEL_NAME === 'region',
+          handle: jest.fn().mockResolvedValue({ 'output.key': 'value' }),
+          revert: jest.fn(),
+        },
+        {
+          ACTION_NAME: 'processEnvironment',
+          collectInput: () => ['output.key'],
+          collectOutput: () => [],
+          filter: (diff: Diff) => diff.model.MODEL_NAME === 'environment',
+          handle: jest.fn().mockResolvedValue({}),
+          revert: jest.fn(),
+        },
+      ];
+      const regionDiff = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
+      const environmentDiff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+
+      const diffService = new DiffService();
+      diffService.registerActions(actions);
+
+      const transaction = await diffService.beginTransaction([regionDiff, environmentDiff]);
+      expect(diffService.getTransactionActionIO(transaction)).toMatchInlineSnapshot(`
+        {
+          "processEnvironment": [
+            {
+              "inputs": {
+                "output.key": "value",
+              },
+              "outputs": {},
+            },
+          ],
+          "processRegion": [
+            {
+              "inputs": {},
+              "outputs": {
+                "output.key": "value",
+              },
+            },
+          ],
+        }
+      `);
+    });
+
+    it('should collect multiple actions with same action name', async () => {
+      const app = new App('test');
+      const region = new Region('region-1');
+      const environment = new Environment('qa');
+      app.addRegion(region);
+      region.addEnvironment(environment);
+
+      const actions: IAction<IActionInputs, IActionOutputs>[] = [
+        {
+          ACTION_NAME: 'test',
+          collectInput: () => ['input.key'],
+          collectOutput: () => ['output.key'],
+          filter: () => true,
+          handle: jest.fn().mockResolvedValue({ 'output.key': 'value' }),
+          revert: jest.fn(),
+        },
+      ];
+      const regionDiff = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
+      const environmentDiff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+
+      const diffService = new DiffService();
+      diffService.registerActions(actions);
+      diffService.registerInputs({ 'input.key': 'value' });
+
+      const transaction = await diffService.beginTransaction([regionDiff, environmentDiff]);
+      expect(diffService.getTransactionActionIO(transaction)).toMatchInlineSnapshot(`
+        {
+          "test": [
+            {
+              "inputs": {
+                "input.key": "value",
+              },
+              "outputs": {
+                "output.key": "value",
+              },
+            },
+            {
+              "inputs": {
+                "input.key": "value",
+              },
+              "outputs": {
+                "output.key": "value",
+              },
+            },
+          ],
+        }
       `);
     });
   });

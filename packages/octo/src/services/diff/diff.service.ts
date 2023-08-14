@@ -86,7 +86,13 @@ export class DiffService {
           // Resolve input requests.
           const inputs: IActionInputs = {};
           const keys = a.collectInput(diffToProcess);
-          keys.map((k) => (inputs[k] = this.inputs[k]));
+          keys.map((k) => {
+            // Input can be from another output, but if provided specifically, input overrides output.
+            inputs[k] = this.outputs[k];
+            if (this.inputs[k]) {
+              inputs[k] = this.inputs[k];
+            }
+          });
 
           // Apply all actions on the diff.
           promisesToApplyDiffInSameLevel.push(a.handle(diffToProcess, inputs));
@@ -116,8 +122,44 @@ export class DiffService {
     return this.actions.map((a) => a.ACTION_NAME);
   }
 
-  getActionOutputs(): IActionOutputs {
-    return this.outputs;
+  getTransactionActionIO(transaction: Diff[][]): {
+    [key: string]: { inputs: IActionInputs; outputs: IActionOutputs }[];
+  } {
+    const actionIO = {};
+
+    for (const transactionLevel of transaction) {
+      for (const diff of transactionLevel) {
+        if (!diff.metadata.applied) {
+          continue;
+        }
+
+        for (const action of diff.metadata.actions) {
+          const actionInputs = {};
+          for (const inputKey of action.collectInput(diff)) {
+            // Input can be from another output, but if provided specifically, input overrides output.
+            actionInputs[inputKey] = this.outputs[inputKey];
+            if (this.inputs[inputKey]) {
+              actionInputs[inputKey] = this.inputs[inputKey];
+            }
+          }
+
+          const actionOutputs = {};
+          for (const outputKey of action.collectOutput()) {
+            actionOutputs[outputKey] = this.outputs[outputKey];
+          }
+
+          if (!actionIO[action.ACTION_NAME]) {
+            actionIO[action.ACTION_NAME] = [];
+          }
+          actionIO[action.ACTION_NAME].push({
+            inputs: actionInputs,
+            outputs: actionOutputs,
+          });
+        }
+      }
+    }
+
+    return actionIO;
   }
 
   registerActions(actions: IAction<IActionInputs, IActionOutputs>[]): void {
