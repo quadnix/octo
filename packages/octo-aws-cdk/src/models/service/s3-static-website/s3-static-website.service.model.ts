@@ -1,10 +1,10 @@
-import { Diff, DiffAction, Service } from '@quadnix/octo';
+import { Diff, DiffAction, Service, StateManagementService } from '@quadnix/octo';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
 import { FileUtility } from '../../../utilities/file/file.utility';
 import { IS3StaticWebsiteService } from './s3-static-website.service.interface';
 
-export type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
+type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
 
 export class S3StaticWebsiteService extends Service {
   readonly bucketName: string;
@@ -22,6 +22,35 @@ export class S3StaticWebsiteService extends Service {
     super(`${bucketName}-s3-static-website`);
 
     this.bucketName = bucketName;
+  }
+
+  private async generateSourceManifest(): Promise<IManifest> {
+    const manifest: IManifest = {};
+
+    for (const sourcePath of this.sourcePaths) {
+      if (!sourcePath.isDirectory) {
+        const filePath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
+        const digest = await FileUtility.hash(filePath);
+        manifest[sourcePath.remotePath] = { algorithm: 'sha1', digest, filePath };
+      } else {
+        const directoryPath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
+        const directoryFilePaths = await readdir(directoryPath);
+        for (const directoryFilePath of directoryFilePaths) {
+          if (
+            this.excludePaths.findIndex(
+              (p) => join(p.directoryPath, p.subDirectoryOrFilePath) === directoryFilePath,
+            ) === -1
+          ) {
+            const filePath = join(directoryPath, directoryFilePath);
+            const remotePath = join(sourcePath.remotePath, directoryFilePath);
+            const digest = await FileUtility.hash(filePath);
+            manifest[remotePath] = { algorithm: 'sha1', digest, filePath };
+          }
+        }
+      }
+    }
+
+    return manifest;
   }
 
   async addSource(
@@ -82,37 +111,57 @@ export class S3StaticWebsiteService extends Service {
   }
 
   override async diff(): Promise<Diff[]> {
-    // Generate new manifest.
-    const newManifestData: IManifest = {};
-    for (const sourcePath of this.sourcePaths) {
-      if (!sourcePath.isDirectory) {
-        const filePath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
-        const digest = await FileUtility.hash(filePath);
-        newManifestData[sourcePath.remotePath] = { algorithm: 'sha1', digest, filePath };
+    const manifestFileName = `${this.bucketName}-manifest.json`;
+
+    // Get old manifest.
+    let oldManifestData: IManifest;
+    try {
+      const oldManifestDataBuffer = await StateManagementService.getInstance().getState(manifestFileName);
+      oldManifestData = JSON.parse(oldManifestDataBuffer.toString());
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        oldManifestData = {};
       } else {
-        const directoryPath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
-        const directoryFilePaths = await readdir(directoryPath);
-        for (const directoryFilePath of directoryFilePaths) {
-          if (
-            this.excludePaths.findIndex(
-              (p) => join(p.directoryPath, p.subDirectoryOrFilePath) === directoryFilePath,
-            ) === -1
-          ) {
-            const filePath = join(directoryPath, directoryFilePath);
-            const remotePath = join(sourcePath.remotePath, directoryFilePath);
-            const digest = await FileUtility.hash(filePath);
-            newManifestData[remotePath] = { algorithm: 'sha1', digest, filePath };
-          }
-        }
+        throw error;
       }
     }
+
+    // Generate new manifest.
+    const newManifestData: IManifest = await this.generateSourceManifest();
 
     // Ensure error.html and index.html exists.
     if (this.sourcePaths.length > 0 && (!newManifestData['error.html'] || !newManifestData['index.html'])) {
       throw new Error('error.html/index.html missing in root of website!');
     }
 
-    return [new Diff(this, DiffAction.UPDATE, 'sourcePaths', newManifestData)];
+    // Generate difference in old/new manifest.
+    const manifestDiff = {};
+    for (const remotePath of Object.keys(oldManifestData)) {
+      if (remotePath in newManifestData) {
+        if (
+          oldManifestData[remotePath].algorithm !== newManifestData[remotePath].algorithm ||
+          oldManifestData[remotePath].digest !== newManifestData[remotePath].digest
+        ) {
+          manifestDiff[remotePath] = ['update', oldManifestData[remotePath].filePath];
+        }
+      } else {
+        manifestDiff[remotePath] = ['delete', oldManifestData[remotePath].filePath];
+      }
+    }
+    for (const remotePath of Object.keys(newManifestData)) {
+      if (!(remotePath in oldManifestData)) {
+        manifestDiff[remotePath] = ['add', newManifestData[remotePath].filePath];
+      }
+    }
+
+    return [new Diff(this, DiffAction.UPDATE, 'sourcePaths', manifestDiff)];
+  }
+
+  async saveSourceManifest(): Promise<void> {
+    const manifestFileName = `${this.bucketName}-manifest.json`;
+    const manifestData = await this.generateSourceManifest();
+
+    await StateManagementService.getInstance().saveState(manifestFileName, Buffer.from(JSON.stringify(manifestData)));
   }
 
   override synth(): IS3StaticWebsiteService {

@@ -1,17 +1,17 @@
-import { DeleteBucketCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
-import { Diff, DiffAction, IAction, IActionInputRequest } from '@quadnix/octo';
+import { Diff, DiffAction, IAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { S3Website } from '../../../../resources/s3/website/s3-website.resource';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model';
 
-export class DeleteS3StaticWebsiteAction implements IAction {
-  readonly ACTION_NAME: string = 'deleteS3StaticWebsiteAction';
+export class DeleteS3StaticWebsiteAction implements IAction<IActionInputs, IActionOutputs> {
+  readonly ACTION_NAME: string = 'DeleteS3StaticWebsiteAction';
 
-  private readonly s3Client: S3Client;
+  collectInput(diff: Diff): string[] {
+    const { bucketName } = diff.model as S3StaticWebsiteService;
 
-  constructor(s3Client: S3Client) {
-    this.s3Client = s3Client;
+    return [`resource.${bucketName}`];
   }
 
-  collectInput(): IActionInputRequest {
+  collectOutput(): string[] {
     return [];
   }
 
@@ -24,41 +24,18 @@ export class DeleteS3StaticWebsiteAction implements IAction {
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
-    // Delete objects.
-    let ContinuationToken: string | undefined = undefined;
-    do {
-      const data = await this.s3Client.send(
-        new ListObjectsV2Command({
-          Bucket: bucketName,
-          ContinuationToken,
-        }),
-      );
+    const s3Website = actionInputs[`resource.${bucketName}`] as S3Website;
 
-      await this.s3Client.send(
-        new DeleteObjectsCommand({
-          Bucket: bucketName,
-          Delete: {
-            Objects: data.Contents?.map((l) => ({ Key: l.Key })),
-            Quiet: true,
-          },
-        }),
-      );
+    // Delete S3 Website.
+    s3Website.markers.delete = true;
 
-      ContinuationToken = data.NextContinuationToken;
-    } while (ContinuationToken);
-
-    // Delete bucket.
-    await this.s3Client.send(
-      new DeleteBucketCommand({
-        Bucket: bucketName,
-      }),
-    );
+    return {};
   }
 
-  async revert(): Promise<void> {
+  revert(): IActionOutputs {
     throw new Error('Method not implemented!');
   }
 }
