@@ -1,7 +1,7 @@
 import { Region } from '@quadnix/octo';
 import { IAwsRegion } from './aws.region.interface';
 
-export enum AWSRegionId {
+export enum AwsRegionId {
   AWS_AP_SOUTH_1A = 'aws-ap-south-1a',
   AWS_AP_SOUTH_1B = 'aws-ap-south-1b',
   AWS_AP_SOUTH_1C = 'aws-ap-south-1c',
@@ -24,9 +24,9 @@ export class AwsRegion extends Region {
 
   readonly nativeAwsRegionId: string;
 
-  override readonly regionId: AWSRegionId;
+  override readonly regionId: AwsRegionId;
 
-  constructor(regionId: AWSRegionId) {
+  constructor(regionId: AwsRegionId) {
     super(regionId);
 
     // Derive AWS regionId and AZ.
@@ -47,6 +47,6 @@ export class AwsRegion extends Region {
   }
 
   static async unSynth(awsRegion: IAwsRegion): Promise<AwsRegion> {
-    return new AwsRegion(awsRegion.regionId as AWSRegionId);
+    return new AwsRegion(awsRegion.regionId as AwsRegionId);
   }
 }

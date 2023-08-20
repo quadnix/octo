@@ -1,34 +1,42 @@
-import {
-  AssociateRouteTableCommand,
-  AttachInternetGatewayCommand,
-  AuthorizeSecurityGroupEgressCommand,
-  AuthorizeSecurityGroupIngressCommand,
-  CreateInternetGatewayCommand,
-  CreateNetworkAclCommand,
-  CreateNetworkAclEntryCommand,
-  CreateRouteCommand,
-  CreateRouteTableCommand,
-  CreateSecurityGroupCommand,
-  CreateSubnetCommand,
-  CreateVpcCommand,
-  DescribeNetworkAclsCommand,
-  EC2Client,
-  ReplaceNetworkAclAssociationCommand,
-} from '@aws-sdk/client-ec2';
-import { Diff, DiffAction, IAction, IActionInputRequest, IActionInputResponse } from '@quadnix/octo';
+import { Diff, DiffAction, IAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource';
+import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource';
+import { RouteTable } from '../../../resources/route-table/route-table.resource';
+import { SecurityGroup } from '../../../resources/security-groups/security-group.resource';
+import { Subnet } from '../../../resources/subnet/subnet.resource';
+import { Vpc } from '../../../resources/vpc/vpc.resource';
 import { AwsRegion } from '../aws.region.model';
 
-export class AddRegionAction implements IAction {
-  readonly ACTION_NAME: string = 'addRegionAction';
+export class AddRegionAction implements IAction<IActionInputs, IActionOutputs> {
+  readonly ACTION_NAME: string = 'AddRegionAction';
 
-  constructor(private readonly ec2Client: EC2Client, private readonly awsRegion: AwsRegion) {}
-
-  collectInput(diff: Diff): IActionInputRequest {
+  collectInput(diff: Diff): string[] {
     const awsRegion = diff.model as AwsRegion;
+    const regionId = awsRegion.regionId;
+
     return [
-      `region.${awsRegion.nativeAwsRegionAZ}.subnet.private.CidrBlock`,
-      `region.${awsRegion.nativeAwsRegionAZ}.subnet.public.CidrBlock`,
-      'region.vpc.CidrBlock',
+      `input.region.${regionId}.subnet.private1.CidrBlock`,
+      `input.region.${regionId}.subnet.public1.CidrBlock`,
+      `input.region.${regionId}.vpc.CidrBlock`,
+    ];
+  }
+
+  collectOutput(diff: Diff): string[] {
+    const { regionId } = diff.model as AwsRegion;
+
+    return [
+      `${regionId}-vpc`,
+      `${regionId}-igw`,
+      `${regionId}-private-subnet-1`,
+      `${regionId}-public-subnet-1`,
+      `${regionId}-private-rt-1`,
+      `${regionId}-public-rt-1`,
+      `${regionId}-private-nacl-1`,
+      `${regionId}-public-nacl-1`,
+      `${regionId}-access-sg`,
+      `${regionId}-internal-open-sg`,
+      `${regionId}-private-closed-sg`,
+      `${regionId}-web-sg`,
     ];
   }
 
@@ -36,198 +44,203 @@ export class AddRegionAction implements IAction {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'region' && diff.field === 'regionId';
   }
 
-  async handle(diff: Diff, actionInput: IActionInputResponse): Promise<void> {
+  handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
     const awsRegion = diff.model as AwsRegion;
+    const regionId = awsRegion.regionId;
 
-    const privateSubnetCidrBlock = actionInput[`region.${awsRegion.nativeAwsRegionAZ}.subnet.private.CidrBlock`];
-    const publicSubnetCidrBlock = actionInput[`region.${awsRegion.nativeAwsRegionAZ}.subnet.public.CidrBlock`];
-    const vpcCidrBlock = actionInput['region.vpc.CidrBlock'];
+    const private1SubnetCidrBlock = actionInputs[`input.region.${regionId}.subnet.private1.CidrBlock`] as string;
+    const public1SubnetCidrBlock = actionInputs[`input.region.${regionId}.subnet.public1.CidrBlock`] as string;
+    const vpcCidrBlock = actionInputs[`input.region.${regionId}.vpc.CidrBlock`] as string;
 
     // Create VPC.
-    const vpcOutput = await this.ec2Client.send(
-      new CreateVpcCommand({
-        CidrBlock: vpcCidrBlock,
-        InstanceTenancy: 'default',
-      }),
+    const vpc = new Vpc(`${regionId}-vpc`, {
+      CidrBlock: vpcCidrBlock,
+      InstanceTenancy: 'default',
+    });
+
+    // Create Internet Gateway.
+    const internetGateway = new InternetGateway(`${regionId}-igw`, [vpc]);
+
+    // Create Subnets.
+    const privateSubnet1 = new Subnet(
+      `${regionId}-private-subnet-1`,
+      {
+        AvailabilityZone: awsRegion.nativeAwsRegionAZ,
+        CidrBlock: private1SubnetCidrBlock,
+      },
+      [vpc],
+    );
+    const publicSubnet1 = new Subnet(
+      `${regionId}-public-subnet-1`,
+      {
+        AvailabilityZone: awsRegion.nativeAwsRegionAZ,
+        CidrBlock: public1SubnetCidrBlock,
+      },
+      [vpc],
     );
 
-    // Create IGW.
-    const internetGWOutput = await this.ec2Client.send(new CreateInternetGatewayCommand({}));
-    await this.ec2Client.send(
-      new AttachInternetGatewayCommand({
-        InternetGatewayId: internetGWOutput!.InternetGateway!.InternetGatewayId,
-        VpcId: vpcOutput!.Vpc!.VpcId,
-      }),
-    );
+    // Create Route Tables.
+    const privateRT1 = new RouteTable(`${regionId}-private-rt-1`, [vpc, internetGateway, privateSubnet1]);
+    const publicRT1 = new RouteTable(`${regionId}-public-rt-1`, [vpc, internetGateway, publicSubnet1]);
 
-    // Create RouteTables (private + public).
-    const [privateRTOutput, publicRTOutput] = await Promise.all(
-      ['private', 'public'].map(() => {
-        return this.ec2Client.send(
-          new CreateRouteTableCommand({
-            VpcId: vpcOutput!.Vpc!.VpcId,
-          }),
-        );
-      }),
-    );
-
-    // Create Subnets (private + public).
-    const [privateSubnetOutput, publicSubnetOutput] = await Promise.all(
-      [privateSubnetCidrBlock, publicSubnetCidrBlock].map((CidrBlock) => {
-        return this.ec2Client.send(
-          new CreateSubnetCommand({
-            AvailabilityZone: this.awsRegion.nativeAwsRegionAZ,
-            CidrBlock,
-            VpcId: vpcOutput!.Vpc!.VpcId,
-          }),
-        );
-      }),
-    );
-
-    // Associate RouteTables to Subnets and IGW.
-    await Promise.all(
-      [
-        { routeTableOutput: privateRTOutput, subnetOutput: privateSubnetOutput },
-        { routeTableOutput: publicRTOutput, subnetOutput: publicSubnetOutput },
-      ].map((resources) => {
-        return Promise.all([
-          this.ec2Client.send(
-            new AssociateRouteTableCommand({
-              RouteTableId: resources.routeTableOutput!.RouteTable!.RouteTableId,
-              SubnetId: resources.subnetOutput!.Subnet!.SubnetId,
-            }),
-          ),
-          this.ec2Client.send(
-            new CreateRouteCommand({
-              DestinationCidrBlock: '0.0.0.0/0',
-              GatewayId: internetGWOutput!.InternetGateway!.InternetGatewayId,
-              RouteTableId: resources.routeTableOutput!.RouteTable!.RouteTableId,
-            }),
-          ),
-        ]);
-      }),
-    );
-
-    const defaultNACLOutput = await this.ec2Client.send(
-      new DescribeNetworkAclsCommand({
-        Filters: [
+    // Create Network ACLs.
+    const privateNAcl1 = new NetworkAcl(
+      `${regionId}-private-nacl-1`,
+      {
+        entries: [
           {
-            Name: 'association.subnet-id',
-            Values: [privateSubnetOutput!.Subnet!.SubnetId, publicSubnetOutput!.Subnet!.SubnetId] as string[],
+            CidrBlock: '0.0.0.0/0',
+            Egress: true,
+            PortRange: { From: -1, To: -1 },
+            Protocol: '-1', // All.
+            RuleAction: 'allow',
+            RuleNumber: 10,
+          },
+          {
+            CidrBlock: '0.0.0.0/0',
+            Egress: false,
+            PortRange: { From: -1, To: -1 },
+            Protocol: '-1', // All.
+            RuleAction: 'allow',
+            RuleNumber: 10,
           },
         ],
-      }),
+      },
+      [vpc, privateSubnet1],
     );
-
-    // Create NACLs (private + public).
-    await Promise.all(
-      [privateSubnetOutput, publicSubnetOutput].map(async (subnetOutput) => {
-        const naclOutput = await this.ec2Client.send(
-          new CreateNetworkAclCommand({
-            VpcId: vpcOutput!.Vpc!.VpcId,
-          }),
-        );
-
-        await Promise.all(
-          [true, false].map((isEgress) => {
-            return this.ec2Client.send(
-              new CreateNetworkAclEntryCommand({
-                CidrBlock: '0.0.0.0/0',
-                Egress: isEgress,
-                NetworkAclId: naclOutput!.NetworkAcl!.NetworkAclId,
-                PortRange: { From: -1, To: -1 },
-                Protocol: '-1', // All.
-                RuleAction: 'allow',
-                RuleNumber: 10,
-              }),
-            );
-          }),
-        );
-
-        const association = defaultNACLOutput!.NetworkAcls![0].Associations!.find(
-          (a) => a.SubnetId === subnetOutput!.Subnet!.SubnetId,
-        );
-        await this.ec2Client.send(
-          new ReplaceNetworkAclAssociationCommand({
-            AssociationId: association!.NetworkAclAssociationId,
-            NetworkAclId: naclOutput!.NetworkAcl!.NetworkAclId,
-          }),
-        );
-
-        return naclOutput;
-      }),
+    const publicNAcl1 = new NetworkAcl(
+      `${regionId}-public-nacl-1`,
+      {
+        entries: [
+          {
+            CidrBlock: '0.0.0.0/0',
+            Egress: true,
+            PortRange: { From: -1, To: -1 },
+            Protocol: '-1', // All.
+            RuleAction: 'allow',
+            RuleNumber: 10,
+          },
+          {
+            CidrBlock: '0.0.0.0/0',
+            Egress: false,
+            PortRange: { From: -1, To: -1 },
+            Protocol: '-1', // All.
+            RuleAction: 'allow',
+            RuleNumber: 10,
+          },
+        ],
+      },
+      [vpc, publicSubnet1],
     );
 
     // Create Security Groups.
-    const [accessSGOutput, internalOpenSGOutput, privateClosedSGOutput, webSGOutput] = await Promise.all(
-      ['AccessSG', 'InternalOpenSecurityGroup', 'PrivateClosedSecurityGroup', 'WebSG'].map((name) => {
-        return this.ec2Client.send(
-          new CreateSecurityGroupCommand({
-            Description: name,
-            GroupName: name,
-            VpcId: vpcOutput!.Vpc!.VpcId,
-          }),
-        );
-      }),
+    const accessSG = new SecurityGroup(
+      `${regionId}-access-sg`,
+      {
+        rules: [
+          // Access SSH from everywhere.
+          {
+            CidrBlock: '0.0.0.0/0',
+            Egress: false,
+            FromPort: 22,
+            IpProtocol: 'tcp',
+            ToPort: 22,
+          },
+          // Access Consul UI from everywhere.
+          {
+            CidrBlock: '0.0.0.0/0',
+            Egress: false,
+            FromPort: 8500,
+            IpProtocol: 'tcp',
+            ToPort: 8500,
+          },
+        ],
+      },
+      [vpc],
+    );
+    const internalOpenSG = new SecurityGroup(
+      `${regionId}-internal-open-sg`,
+      {
+        rules: [
+          // Allow all incoming connections from the same VPC.
+          {
+            CidrBlock: vpcCidrBlock,
+            Egress: false,
+            FromPort: -1,
+            IpProtocol: '-1',
+            ToPort: -1,
+          },
+        ],
+      },
+      [vpc],
+    );
+    const privateClosedSG = new SecurityGroup(
+      `${regionId}-private-closed-sg`,
+      {
+        rules: [
+          // Allow all incoming connections from self.
+          {
+            CidrBlock: private1SubnetCidrBlock,
+            Egress: false,
+            FromPort: -1,
+            IpProtocol: '-1',
+            ToPort: -1,
+          },
+          // Allow all incoming connections from the public subnet.
+          {
+            CidrBlock: public1SubnetCidrBlock,
+            Egress: false,
+            FromPort: -1,
+            IpProtocol: '-1',
+            ToPort: -1,
+          },
+        ],
+      },
+      [vpc],
+    );
+    const webSG = new SecurityGroup(
+      `${regionId}-web-sg`,
+      {
+        rules: [
+          // Access HTTP from everywhere.
+          {
+            CidrBlock: '0.0.0.0/0',
+            Egress: false,
+            FromPort: 80,
+            IpProtocol: 'tcp',
+            ToPort: 80,
+          },
+          // Access HTTPS from everywhere.
+          {
+            CidrBlock: '0.0.0.0/0',
+            Egress: false,
+            FromPort: 443,
+            IpProtocol: 'tcp',
+            ToPort: 443,
+          },
+        ],
+      },
+      [vpc],
     );
 
-    await Promise.all(
-      [
-        {
-          groupId: accessSGOutput.GroupId,
-          isEgress: false,
-          rules: [
-            { from: 22, protocol: 'tcp', range: '0.0.0.0/0', to: 22 }, // Access SSH from everywhere.
-            { from: 8500, protocol: 'tcp', range: '0.0.0.0/0', to: 8500 }, // Access Consul UI from everywhere.
-          ],
-        },
-        {
-          groupId: internalOpenSGOutput.GroupId,
-          isEgress: false,
-          rules: [{ from: -1, protocol: '-1', range: vpcCidrBlock, to: -1 }], // Allow all incoming connections from the same VPC.
-        },
-        {
-          groupId: privateClosedSGOutput.GroupId,
-          isEgress: false,
-          rules: [
-            { from: -1, protocol: '-1', range: publicSubnetCidrBlock, to: -1 }, // Allow all incoming connections from the public subnet.
-            { from: -1, protocol: '-1', range: privateSubnetCidrBlock, to: -1 }, // Allow all incoming connections from self.
-          ],
-        },
-        {
-          groupId: webSGOutput.GroupId,
-          isEgress: false,
-          rules: [
-            { from: 80, protocol: 'tcp', range: '0.0.0.0/0', to: 80 }, // Access HTTP from everywhere.
-            { from: 443, protocol: 'tcp', range: '0.0.0.0/0', to: 443 }, // Access HTTPS from everywhere.
-          ],
-        },
-      ].map((sgDetails) => {
-        const payload = sgDetails.rules.map((rule) => ({
-          FromPort: rule.from,
-          IpProtocol: rule.protocol,
-          IpRanges: [
-            {
-              CidrIp: rule.range,
-            },
-          ],
-          ToPort: rule.to,
-        }));
+    const output: IActionOutputs = {};
+    output[vpc.resourceId] = vpc;
+    output[internetGateway.resourceId] = internetGateway;
+    output[privateSubnet1.resourceId] = privateSubnet1;
+    output[publicSubnet1.resourceId] = publicSubnet1;
+    output[privateRT1.resourceId] = privateRT1;
+    output[publicRT1.resourceId] = publicRT1;
+    output[privateNAcl1.resourceId] = privateNAcl1;
+    output[publicNAcl1.resourceId] = publicNAcl1;
+    output[accessSG.resourceId] = accessSG;
+    output[internalOpenSG.resourceId] = internalOpenSG;
+    output[privateClosedSG.resourceId] = privateClosedSG;
+    output[webSG.resourceId] = webSG;
 
-        if (sgDetails.isEgress) {
-          return this.ec2Client.send(
-            new AuthorizeSecurityGroupEgressCommand({ GroupId: sgDetails.groupId, IpPermissions: payload }),
-          );
-        } else {
-          return this.ec2Client.send(
-            new AuthorizeSecurityGroupIngressCommand({ GroupId: sgDetails.groupId, IpPermissions: payload }),
-          );
-        }
-      }),
-    );
+    return output;
   }
 
-  async revert(): Promise<void> {
+  revert(): IActionOutputs {
     throw new Error('Method not implemented!');
   }
 }
