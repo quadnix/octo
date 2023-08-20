@@ -1,7 +1,8 @@
 import { Diff } from '../functions/diff/diff.model';
+import { Resource } from '../resources/resource.abstract';
 
-export type IActionInputs = { [key: string]: string };
-export type IActionOutputs = { [key: string]: string };
+export type IActionInputs = { [key: string]: string | Resource<unknown> };
+export type IActionOutputs = { [key: string]: Resource<unknown> };
 
 /**
  * Actions are translation functions between Diff and underlying infrastructure.
@@ -24,7 +25,7 @@ export interface IAction<I extends IActionInputs, O extends IActionOutputs> {
    * This function contains the list of outputs to save after processing the diff.
    * A missing output key will not be saved.
    */
-  collectOutput(): (keyof O)[];
+  collectOutput(diff: Diff): (keyof O)[];
 
   /**
    * This function determines if the handle is applicable to the diff.
@@ -34,10 +35,10 @@ export interface IAction<I extends IActionInputs, O extends IActionOutputs> {
   /**
    * This function contains the logic to apply the diff(s) to the underlying infrastructure.
    */
-  handle(diff: Diff, actionInput: I): Promise<O>;
+  handle(diff: Diff, actionInput: I): O;
 
   /**
    * This function contains the logic to revert the diff(s) from the underlying infrastructure.
    */
-  revert(diff: Diff): Promise<void>;
+  revert(diff: Diff): O;
 }

@@ -65,7 +65,6 @@ export class DiffService {
     while (accountedFor < diffs.length) {
       const diffsInSameLevel = diffs.filter((d) => d.metadata.applyOrder === currentApplyOrder);
       const diffsProcessedInSameLevel: Diff[] = [];
-      const promisesToApplyDiffInSameLevel: Promise<IActionOutputs>[] = [];
 
       for (const diff of diffsInSameLevel) {
         const actions = this.actions.filter((a) => a.filter(diff));
@@ -85,17 +84,20 @@ export class DiffService {
         for (const a of actions) {
           // Resolve input requests.
           const inputs: IActionInputs = {};
-          const keys = a.collectInput(diffToProcess);
-          keys.map((k) => {
-            // Input can be from another output, but if provided specifically, input overrides output.
-            inputs[k] = this.outputs[k];
-            if (this.inputs[k]) {
+          const inputKeys = a.collectInput(diffToProcess);
+          inputKeys.map((k) => {
+            if ((k as string).startsWith('resource')) {
+              inputs[k] = this.outputs[k];
+            } else {
               inputs[k] = this.inputs[k];
             }
           });
 
           // Apply all actions on the diff.
-          promisesToApplyDiffInSameLevel.push(a.handle(diffToProcess, inputs));
+          const outputs = a.handle(diffToProcess, inputs);
+          for (const output of a.collectOutput(diffToProcess)) {
+            this.outputs[output] = outputs[output];
+          }
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -104,12 +106,6 @@ export class DiffService {
 
       // Add all diff in same level to transaction.
       transaction.push(diffsProcessedInSameLevel);
-
-      // Process all diff in same level, and save the action outputs.
-      const actionsOutputs = await Promise.all(promisesToApplyDiffInSameLevel);
-      for (const actionOutputs of actionsOutputs) {
-        Object.keys(actionOutputs).map((k) => (this.outputs[k] = actionOutputs[k]));
-      }
 
       accountedFor += diffsInSameLevel.length;
       currentApplyOrder += 1;
@@ -120,46 +116,6 @@ export class DiffService {
 
   getActionNames(): string[] {
     return this.actions.map((a) => a.ACTION_NAME);
-  }
-
-  getTransactionActionIO(transaction: Diff[][]): {
-    [key: string]: { inputs: IActionInputs; outputs: IActionOutputs }[];
-  } {
-    const actionIO = {};
-
-    for (const transactionLevel of transaction) {
-      for (const diff of transactionLevel) {
-        if (!diff.metadata.applied) {
-          continue;
-        }
-
-        for (const action of diff.metadata.actions) {
-          const actionInputs = {};
-          for (const inputKey of action.collectInput(diff)) {
-            // Input can be from another output, but if provided specifically, input overrides output.
-            actionInputs[inputKey] = this.outputs[inputKey];
-            if (this.inputs[inputKey]) {
-              actionInputs[inputKey] = this.inputs[inputKey];
-            }
-          }
-
-          const actionOutputs = {};
-          for (const outputKey of action.collectOutput()) {
-            actionOutputs[outputKey] = this.outputs[outputKey];
-          }
-
-          if (!actionIO[action.ACTION_NAME]) {
-            actionIO[action.ACTION_NAME] = [];
-          }
-          actionIO[action.ACTION_NAME].push({
-            inputs: actionInputs,
-            outputs: actionOutputs,
-          });
-        }
-      }
-    }
-
-    return actionIO;
   }
 
   registerActions(actions: IAction<IActionInputs, IActionOutputs>[]): void {
@@ -175,16 +131,16 @@ export class DiffService {
   async rollbackAll(transaction: Diff[][]): Promise<void> {
     for (let i = transaction.length - 1; i >= 0; i--) {
       const diffsProcessedInSameLevel = transaction[i];
-      const promisesToRevertDiffInSameLevel: Promise<void>[] = [];
 
       for (const diff of diffsProcessedInSameLevel) {
         // Apply revert on all actions of the diff.
         diff.metadata.actions.forEach((a) => {
-          promisesToRevertDiffInSameLevel.push(a.revert(diff));
+          const outputs = a.revert(diff);
+          for (const output of a.collectOutput(diff)) {
+            this.outputs[output] = outputs[output];
+          }
         });
       }
-
-      await Promise.all(promisesToRevertDiffInSameLevel);
 
       // Mark each diff metadata as un-applied.
       diffsProcessedInSameLevel.forEach((d) => (d.metadata.applied = false));
