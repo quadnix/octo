@@ -10,6 +10,7 @@ import { IModel } from './model.interface';
  */
 export abstract class Model<I, T> implements IModel<I, T> {
   abstract readonly MODEL_NAME: string;
+  readonly MODEL_TYPE: IModel<I, T>['MODEL_TYPE'] = 'model';
 
   protected readonly dependencies: Dependency[] = [];
 

@@ -13,6 +13,11 @@ export interface IModel<I, T> {
   readonly MODEL_NAME: string;
 
   /**
+   * The type of model. Can only be either "model" or "resource".
+   */
+  readonly MODEL_TYPE: 'model' | 'resource';
+
+  /**
    * Generate a diff comparing all children of self with previous instance.
    * If previous does not exist, diff adds all children of self.
    *
