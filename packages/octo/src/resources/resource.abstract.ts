@@ -1,10 +1,13 @@
+import { Diff, DiffAction } from '../functions/diff/diff.model';
 import { Model } from '../models/model.abstract';
 import { IResource } from './resource.interface';
 
-type IResourceMarkers = { delete: boolean; replace: boolean; update: string | null };
+type IResourceMarkers = { delete: boolean; replace: boolean; update: { key: string; value: any } | null };
 
 export abstract class Resource<T> extends Model<IResource, T> {
-  readonly markers: IResourceMarkers = {
+  override readonly MODEL_TYPE = 'resource';
+
+  readonly diffMarkers: IResourceMarkers = {
     delete: false,
     replace: false,
     update: null,
@@ -38,18 +41,27 @@ export abstract class Resource<T> extends Model<IResource, T> {
     }
   }
 
-  getContext(): string {
-    const parts = [`${this.MODEL_NAME}=${this.resourceId}`];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  override async diff(previous?: T): Promise<Diff[]> {
+    const diffs: Diff[] = [];
 
-    const parents = this.getParents();
-    const parentKeys = Object.keys(parents);
-    for (const parentKey of parentKeys) {
-      for (const dependency of parents[parentKey]) {
-        parts.push(dependency.to.getContext());
-      }
+    // Diff markers gets precedence over property diff.
+    if (this.diffMarkers.delete) {
+      diffs.push(new Diff(this, DiffAction.DELETE, 'resourceId', this.resourceId));
+    } else if (this.diffMarkers.replace) {
+      diffs.push(new Diff(this, DiffAction.REPLACE, 'resourceId', this.resourceId));
+    } else if (this.diffMarkers.update !== null) {
+      diffs.push(new Diff(this, DiffAction.UPDATE, this.diffMarkers.update.key, this.diffMarkers.update.value));
     }
 
-    return parts.join(',');
+    // We defer calculating property diff to real resource implementations,
+    // since they have better context on how to handle their specific property CUD.
+
+    return diffs;
+  }
+
+  getContext(): string {
+    return `${this.MODEL_NAME}=${this.resourceId}`;
   }
 
   synth(): IResource {
