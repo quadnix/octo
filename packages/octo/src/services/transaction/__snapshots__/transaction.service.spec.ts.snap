@@ -1,0 +1,234 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`TransactionService UT applyModels() should call action and collect all input and output 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "value": "app",
+    },
+    {
+      "input.key1": "value1",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT applyModels() should call action and collect all input and output 2`] = `
+{
+  "resource.resource1": "resource1 object",
+}
+`;
+
+exports[`TransactionService UT applyModels() should call multiple actions and collect all input and output 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "value": "app",
+    },
+    {
+      "input.key1": "value1",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT applyModels() should call multiple actions and collect all input and output 2`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "value": "app",
+    },
+    {
+      "input.key2": "value2",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT applyModels() should call multiple actions and collect all input and output 3`] = `
+{
+  "resource.resource1": "resource1 object",
+  "resource.resource2": "resource2 object",
+}
+`;
+
+exports[`TransactionService UT applyModels() should not collect action output if not specified in collectOutput() 1`] = `{}`;
+
+exports[`TransactionService UT applyModels() should only process 1 matching diff 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "value": "app",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT applyModels() should process diffs in different levels 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "value": "app",
+    },
+  ],
+  [
+    {
+      "action": "add",
+      "field": "regionId",
+      "value": "region",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT applyModels() should return empty transaction if diffs is empty 1`] = `[]`;
+
+exports[`TransactionService UT applyModels() should update diff metadata with inputs and outputs 1`] = `
+{
+  "input.key1": "value1",
+}
+`;
+
+exports[`TransactionService UT applyModels() should update diff metadata with inputs and outputs 2`] = `
+{
+  "resource.resource1": "resource1 object",
+}
+`;
+
+exports[`TransactionService UT applyResources() should only process 1 matching diff 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-2",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT applyResources() should process diffs in different levels 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+  ],
+  [
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-2",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT applyResources() should return empty transaction if diffs is empty 1`] = `[]`;
+
+exports[`TransactionService UT diffResources() When resource class has an override on diff() should compare same resources on properties 1`] = `[]`;
+
+exports[`TransactionService UT diffResources() should compare distinct resources 1`] = `
+[
+  {
+    "action": "delete",
+    "field": "resourceId",
+    "value": "resource-1",
+  },
+  {
+    "action": "add",
+    "field": "resourceId",
+    "value": "resource-2",
+  },
+]
+`;
+
+exports[`TransactionService UT diffResources() should compare same resources 1`] = `[]`;
+
+exports[`TransactionService UT diffResources() should compare same resources with delete marker on new 1`] = `
+[
+  {
+    "action": "delete",
+    "field": "resourceId",
+    "value": "resource-1",
+  },
+]
+`;
+
+exports[`TransactionService UT diffResources() should compare same resources with replace marker on new 1`] = `
+[
+  {
+    "action": "replace",
+    "field": "resourceId",
+    "value": "resource-1",
+  },
+]
+`;
+
+exports[`TransactionService UT diffResources() should compare same resources with update marker on new 1`] = `
+[
+  {
+    "action": "update",
+    "field": "updateKey",
+    "value": "update value",
+  },
+]
+`;
+
+exports[`TransactionService UT rollbackTransaction() should apply all diff output on resources 1`] = `
+[
+  [
+    {
+      "action": "delete",
+      "field": "resourceId",
+      "value": "resource-2",
+    },
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT rollbackTransaction() should calculate diff of resources 1`] = `
+[
+  {
+    "action": "delete",
+    "field": "resourceId",
+    "value": "resource-2",
+  },
+  {
+    "action": "add",
+    "field": "resourceId",
+    "value": "resource-1",
+  },
+]
+`;
+
+exports[`TransactionService UT rollbackTransaction() should call revert() for every diff in transaction 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "value": "app",
+    },
+    {},
+    {},
+  ],
+]
+`;

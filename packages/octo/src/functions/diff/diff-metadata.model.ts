@@ -33,6 +33,14 @@ export class DiffMetadata {
     this.value = diff.value;
   }
 
+  toJSON(): ReturnType<Diff['toJSON']> {
+    return {
+      action: this.action,
+      field: this.field,
+      value: this.value,
+    };
+  }
+
   updateInputs(inputs: IActionInputs): void {
     Object.assign(this.inputs, inputs);
   }

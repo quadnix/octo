@@ -4,9 +4,9 @@ import { IAction, IActionInputs, IActionOutputs } from '../../models/action.inte
 import { IResourceAction } from '../../resources/resource-action.interface';
 
 export type TransactionOptions = {
-  yieldModelTransaction: boolean;
-  yieldResourceDiffs: boolean;
-  yieldResourceTransaction: boolean;
+  yieldModelTransaction?: boolean;
+  yieldResourceDiffs?: boolean;
+  yieldResourceTransaction?: boolean;
 };
 
 export class TransactionService {
@@ -25,6 +25,10 @@ export class TransactionService {
       const diffsProcessedInSameLevel: DiffMetadata[] = [];
 
       for (const diff of diffsInSameLevel) {
+        if (diff.applied) {
+          continue;
+        }
+
         // Check for similar diffs on the same model and same field.
         const matchingDiffs = this.getMatchingDiffs(diff, diffsInSameLevel);
 
@@ -54,8 +58,8 @@ export class TransactionService {
           const outputsKeyModified = {};
           for (const output of a.collectOutput(diffToProcess)) {
             outputsKeyModified[`resource.${output}`] = outputs[output];
+            resources[`resource.${output}`] = outputs[output];
           }
-          resources = { ...resources, ...outputsKeyModified };
 
           // Update diff metadata with inputs and outputs.
           matchingDiffs.forEach((d) => {
@@ -66,10 +70,10 @@ export class TransactionService {
 
         // Include the diff to process in the list of diffs processed in the same level.
         diffsProcessedInSameLevel.push(matchingDiffs[0]);
-      }
 
-      // Mark metadata of each matching-diffs as applied.
-      diffsInSameLevel.forEach((d) => (d.applied = true));
+        // Mark metadata of each matching-diffs as applied.
+        matchingDiffs.forEach((d) => (d.applied = true));
+      }
 
       // Add all diff in same level to transaction.
       transaction.push(diffsProcessedInSameLevel);
@@ -93,6 +97,10 @@ export class TransactionService {
       const promiseToApplyActions: Promise<void>[] = [];
 
       for (const diff of diffsInSameLevel) {
+        if (diff.applied) {
+          continue;
+        }
+
         // Check for similar diffs on the same model and same field.
         const matchingDiffs = this.getMatchingDiffs(diff, diffsInSameLevel);
 
@@ -105,13 +113,13 @@ export class TransactionService {
 
         // Include the diff to process in the list of diffs processed in the same level.
         diffsProcessedInSameLevel.push(matchingDiffs[0]);
+
+        // Mark metadata of each matching-diffs as applied.
+        matchingDiffs.forEach((d) => (d.applied = true));
       }
 
       // Apply all actions of same level, since they can be applied in parallel.
       await Promise.all(promiseToApplyActions);
-
-      // Mark metadata of each matching-diffs as applied.
-      diffsInSameLevel.forEach((d) => (d.applied = true));
 
       // Add all diff in same level to transaction.
       transaction.push(diffsProcessedInSameLevel);
@@ -139,8 +147,10 @@ export class TransactionService {
     }
 
     for (const newResourceId of newResourceKeys) {
-      const model = newResources[newResourceId];
-      diffs.push(new Diff(model, DiffAction.ADD, 'resourceId', model.resourceId));
+      if (!oldResources.hasOwnProperty(newResourceId)) {
+        const model = newResources[newResourceId];
+        diffs.push(new Diff(model, DiffAction.ADD, 'resourceId', model.resourceId));
+      }
     }
 
     return diffs;
@@ -257,7 +267,6 @@ export class TransactionService {
     oldResources: IActionOutputs = {},
     newResources: IActionOutputs = {},
     options: TransactionOptions = {
-      yieldModelTransaction: false,
       yieldResourceDiffs: false,
       yieldResourceTransaction: false,
     },
