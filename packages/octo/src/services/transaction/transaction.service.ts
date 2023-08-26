@@ -132,11 +132,9 @@ export class TransactionService {
   }
 
   private async diffResources(newResources: IActionOutputs, oldResources: IActionOutputs): Promise<Diff[]> {
-    const newResourceKeys = Object.keys(newResources);
-    const oldResourceKeys = Object.keys(oldResources);
     const diffs: Diff[] = [];
 
-    for (const oldResourceId of oldResourceKeys) {
+    for (const oldResourceId in oldResources) {
       if (newResources.hasOwnProperty(oldResourceId)) {
         const rDiff = await newResources[oldResourceId].diff(oldResources[oldResourceId]);
         diffs.push(...rDiff);
@@ -146,7 +144,7 @@ export class TransactionService {
       }
     }
 
-    for (const newResourceId of newResourceKeys) {
+    for (const newResourceId in newResources) {
       if (!oldResources.hasOwnProperty(newResourceId)) {
         const model = newResources[newResourceId];
         diffs.push(new Diff(model, DiffAction.ADD, 'resourceId', model.resourceId));
@@ -257,7 +255,7 @@ export class TransactionService {
   }
 
   registerInputs(inputs: IActionInputs): void {
-    for (const key of Object.keys(inputs)) {
+    for (const key in inputs) {
       this.inputs[key] = inputs[key];
     }
   }
@@ -278,8 +276,7 @@ export class TransactionService {
       for (const diff of diffsProcessedInSameLevel) {
         for (const a of diff.actions as IAction<IActionInputs, IActionOutputs>[]) {
           const outputs = a.revert(diff.diff, diff.inputs, diff.outputs);
-          const outputKeys = Object.keys(outputs);
-          for (const outputKey of outputKeys) {
+          for (const outputKey in outputs) {
             newResources[outputKey] = outputs[outputKey];
           }
         }

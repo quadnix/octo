@@ -35,7 +35,7 @@ export class AddImageAction implements IAction<IActionInputs, IActionOutputs> {
       buildCommand.push('--quiet');
     }
     if (dockerOptions.buildArgs) {
-      for (const key of Object.keys(dockerOptions.buildArgs)) {
+      for (const key in dockerOptions.buildArgs) {
         buildCommand.push(`--build-arg ${key}=${dockerOptions.buildArgs[key]}`);
       }
     }

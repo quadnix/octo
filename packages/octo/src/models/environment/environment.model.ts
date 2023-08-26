@@ -40,7 +40,7 @@ export class Environment extends Model<IEnvironment, Environment> {
   static async unSynth(environment: IEnvironment): Promise<Environment> {
     const newEnvironment = new Environment(environment.environmentName);
 
-    for (const key of Object.keys(environment.environmentVariables)) {
+    for (const key in environment.environmentVariables) {
       newEnvironment.environmentVariables.set(key, environment.environmentVariables[key]);
     }
 

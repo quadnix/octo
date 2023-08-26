@@ -49,7 +49,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
     const diffs: Diff[] = [];
     const modelsSeen: string[] = [];
 
-    for (const modelName of Object.keys(childrenByModel)) {
+    for (const modelName in childrenByModel) {
       const children = childrenByModel[modelName].map((d) => d.to);
       const childrenOfPrevious = childrenOfPreviousByModel[modelName]?.map((d) => d.to) ?? [];
       const field = childrenByModel[modelName][0].getRelationship()!.toField;
@@ -59,7 +59,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
       modelsSeen.push(modelName);
     }
 
-    for (const modelName of Object.keys(childrenOfPreviousByModel)) {
+    for (const modelName in childrenOfPreviousByModel) {
       if (modelsSeen.indexOf(modelName) !== -1) {
         continue;
       }
@@ -159,7 +159,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
       }
 
       const children = model.getChildren();
-      for (const modelName of Object.keys(children)) {
+      for (const modelName in children) {
         extenders.push(...children[modelName].map((d) => d.to));
       }
     }

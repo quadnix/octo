@@ -26,7 +26,7 @@ export class UpdateSourcePathsInS3WebsiteAction implements IResourceAction {
     const properties = s3Website.properties as unknown as IS3WebsiteProperties;
 
     // Synchronize files with S3.
-    for (const remotePath of Object.keys(manifestDiff)) {
+    for (const remotePath in manifestDiff) {
       const [operation, filePath] = manifestDiff[remotePath];
       if (operation === 'add' || operation === 'update') {
         const stream = createReadStream(filePath);

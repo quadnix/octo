@@ -75,7 +75,7 @@ export class Execution extends Model<IExecution, Execution> {
     const environment = (await deReferenceContext(execution.environment.context)) as Environment;
     const newExecution = new Execution(deployment, environment);
 
-    for (const key of Object.keys(execution.environmentVariables)) {
+    for (const key in execution.environmentVariables) {
       newExecution.environmentVariables.set(key, execution.environmentVariables[key]);
     }
 

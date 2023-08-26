@@ -136,7 +136,7 @@ export class S3StaticWebsiteService extends Service {
 
     // Generate difference in old/new manifest.
     const manifestDiff = {};
-    for (const remotePath of Object.keys(oldManifestData)) {
+    for (const remotePath in oldManifestData) {
       if (remotePath in newManifestData) {
         if (
           oldManifestData[remotePath].algorithm !== newManifestData[remotePath].algorithm ||
@@ -148,7 +148,7 @@ export class S3StaticWebsiteService extends Service {
         manifestDiff[remotePath] = ['delete', oldManifestData[remotePath].filePath];
       }
     }
-    for (const remotePath of Object.keys(newManifestData)) {
+    for (const remotePath in newManifestData) {
       if (!(remotePath in oldManifestData)) {
         manifestDiff[remotePath] = ['add', newManifestData[remotePath].filePath];
       }
