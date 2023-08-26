@@ -30,13 +30,12 @@ export class UpdateSourcePathsS3StaticWebsiteAction implements IAction<IActionIn
     const s3Website = actionInputs[`resource.${bucketName}`] as S3Website;
 
     // Update website source paths.
-    s3Website.markers.update = 'update-source-paths';
-    s3Website.properties.manifestDiff = JSON.stringify(diff.value);
+    s3Website.diffMarkers.update = { key: 'update-source-paths', value: diff.value };
 
     return {};
   }
 
   revert(): IActionOutputs {
-    throw new Error('Method not implemented!');
+    return {};
   }
 }

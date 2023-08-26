@@ -32,7 +32,6 @@ export class AddS3StaticWebsiteAction implements IAction<IActionInputs, IActionO
       Bucket: bucketName,
       ErrorDocument: 'error.html',
       IndexDocument: 'index.html',
-      manifestDiff: {},
     });
 
     const output: IActionOutputs = {};
@@ -42,6 +41,6 @@ export class AddS3StaticWebsiteAction implements IAction<IActionInputs, IActionO
   }
 
   revert(): IActionOutputs {
-    throw new Error('Method not implemented!');
+    return {};
   }
 }

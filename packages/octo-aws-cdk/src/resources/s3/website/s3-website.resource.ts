@@ -10,6 +10,5 @@ export class S3Website extends Resource<S3Website> {
     this.properties.Bucket = properties.Bucket;
     this.properties.ErrorDocument = properties.ErrorDocument;
     this.properties.IndexDocument = properties.IndexDocument;
-    this.properties.manifestDiff = JSON.stringify(properties.manifestDiff);
   }
 }

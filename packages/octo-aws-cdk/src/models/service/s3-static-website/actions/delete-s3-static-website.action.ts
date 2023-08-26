@@ -30,12 +30,12 @@ export class DeleteS3StaticWebsiteAction implements IAction<IActionInputs, IActi
     const s3Website = actionInputs[`resource.${bucketName}`] as S3Website;
 
     // Delete S3 Website.
-    s3Website.markers.delete = true;
+    s3Website.diffMarkers.delete = true;
 
     return {};
   }
 
   revert(): IActionOutputs {
-    throw new Error('Method not implemented!');
+    return {};
   }
 }

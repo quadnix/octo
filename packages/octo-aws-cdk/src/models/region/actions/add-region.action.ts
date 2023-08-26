@@ -241,6 +241,6 @@ export class AddRegionAction implements IAction<IActionInputs, IActionOutputs> {
   }
 
   revert(): IActionOutputs {
-    throw new Error('Method not implemented!');
+    return {};
   }
 }
