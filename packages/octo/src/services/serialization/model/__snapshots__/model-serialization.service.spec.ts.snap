@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Serialization Service UT serialize() should serialize a non-empty app 1`] = `
+exports[`Model Serialization Service UT serialize() should serialize a non-empty app 1`] = `
 {
   "dependencies": [
     {
@@ -200,11 +200,10 @@ exports[`Serialization Service UT serialize() should serialize a non-empty app 1
       },
     },
   },
-  "version": "v0",
 }
 `;
 
-exports[`Serialization Service UT serialize() should serialize an empty app 1`] = `
+exports[`Model Serialization Service UT serialize() should serialize an empty app 1`] = `
 {
   "dependencies": [],
   "models": {
@@ -215,11 +214,10 @@ exports[`Serialization Service UT serialize() should serialize an empty app 1`] 
       },
     },
   },
-  "version": "v0",
 }
 `;
 
-exports[`Serialization Service UT serialize() should serialize only boundary members 1`] = `
+exports[`Model Serialization Service UT serialize() should serialize only boundary members 1`] = `
 {
   "dependencies": [
     {
@@ -324,11 +322,10 @@ exports[`Serialization Service UT serialize() should serialize only boundary mem
       },
     },
   },
-  "version": "v0",
 }
 `;
 
-exports[`Serialization Service UT serialize() should serialize when multiple models have dependency on same model 1`] = `
+exports[`Model Serialization Service UT serialize() should serialize when multiple models have dependency on same model 1`] = `
 {
   "dependencies": [
     {
@@ -601,6 +598,5 @@ exports[`Serialization Service UT serialize() should serialize when multiple mod
       },
     },
   },
-  "version": "v0",
 }
 `;

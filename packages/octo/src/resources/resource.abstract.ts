@@ -71,4 +71,14 @@ export abstract class Resource<T> extends Model<IResource, T> {
       response: this.response,
     };
   }
+
+  unSynth(resource: IResource): void {
+    for (const key in resource.properties) {
+      this.properties[key] = resource.properties[key];
+    }
+
+    for (const key in resource.response) {
+      this.response[key] = resource.response[key];
+    }
+  }
 }

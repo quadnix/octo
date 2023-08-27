@@ -34,7 +34,14 @@ export { IResourceAction } from './resources/resource-action.interface';
 
 export { HookService } from './services/hook/hook.service';
 
-export { SerializationService, SerializedOutput } from './services/serialization/serialization.service';
+export {
+  ModelSerializationService,
+  ModelSerializedOutput,
+} from './services/serialization/model/model-serialization.service';
+export {
+  ResourceSerializationService,
+  ResourceSerializedOutput,
+} from './services/serialization/resource/resource-serialization.service';
 
 export { LocalStateProvider } from './services/state-management/local.state-provider';
 export { StateManagementService } from './services/state-management/state-management.service';

@@ -1,24 +1,17 @@
-import { IDependency } from '../../functions/dependency/dependency.model';
-import { App } from '../../models/app/app.model';
-import { Deployment } from '../../models/deployment/deployment.model';
-import { Environment } from '../../models/environment/environment.model';
-import { Image } from '../../models/image/image.model';
-import { Region } from '../../models/region/region.model';
-import { Server } from '../../models/server/server.model';
-import { Support } from '../../models/support/support.model';
-import { SerializationService, SerializedOutput } from './serialization.service';
+import { IDependency } from '../../../functions/dependency/dependency.model';
+import { App } from '../../../models/app/app.model';
+import { Deployment } from '../../../models/deployment/deployment.model';
+import { Environment } from '../../../models/environment/environment.model';
+import { Image } from '../../../models/image/image.model';
+import { Region } from '../../../models/region/region.model';
+import { Server } from '../../../models/server/server.model';
+import { Support } from '../../../models/support/support.model';
+import { ModelSerializationService, ModelSerializedOutput } from './model-serialization.service';
 
-describe('Serialization Service UT', () => {
+describe('Model Serialization Service UT', () => {
   describe('deserialize()', () => {
-    it('should throw error when de-serializing with a different version', async () => {
-      const serializationService = new SerializationService();
-      await expect(async () => {
-        await serializationService.deserialize({ version: 'v1' } as SerializedOutput);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Version mismatch on deserialization!"`);
-    });
-
     it('should throw error when de-serializing an unknown class', async () => {
-      const serializedOutput: SerializedOutput = {
+      const serializedOutput: ModelSerializedOutput = {
         dependencies: [
           {
             from: 'App',
@@ -27,12 +20,11 @@ describe('Serialization Service UT', () => {
         models: {
           App: { className: 'ClassNotExist', model: null },
         } as any,
-        version: 'v0',
       };
 
-      const serializationService = new SerializationService();
+      const service = new ModelSerializationService();
       await expect(async () => {
-        await serializationService.deserialize(serializedOutput);
+        await service.deserialize(serializedOutput);
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid class, no reference to unSynth static method!"`);
     });
 
@@ -41,11 +33,11 @@ describe('Serialization Service UT', () => {
       const region0 = new Region('region-0');
       app0.addRegion(region0);
 
-      const serializationService = new SerializationService();
-      serializationService.registerClass('App', App);
+      const service = new ModelSerializationService();
+      service.registerClass('App', App);
 
-      const output = serializationService.serialize(app0);
-      const app1 = (await serializationService.deserialize(output)) as App;
+      const output = service.serialize(app0);
+      const app1 = (await service.deserialize(output)) as App;
 
       expect(app1.name).toBe('test-app');
     });
@@ -55,10 +47,10 @@ describe('Serialization Service UT', () => {
       const region0 = new Region('region-0');
       app0.addRegion(region0);
 
-      const serializationService = new SerializationService();
+      const service = new ModelSerializationService();
 
-      const output = serializationService.serialize(app0);
-      const app1 = (await serializationService.deserialize(output)) as App;
+      const output = service.serialize(app0);
+      const app1 = (await service.deserialize(output)) as App;
 
       expect(app1.name).toBe('test-app');
     });
@@ -68,10 +60,10 @@ describe('Serialization Service UT', () => {
       const region0 = new Region('region-0');
       app0.addRegion(region0);
 
-      const serializationService = new SerializationService();
+      const service = new ModelSerializationService();
 
-      const output = serializationService.serialize(region0);
-      const region1 = (await serializationService.deserialize(output)) as Region;
+      const output = service.serialize(region0);
+      const region1 = (await service.deserialize(output)) as Region;
 
       expect(region1.regionId).toBe('region-0');
     });
@@ -81,8 +73,8 @@ describe('Serialization Service UT', () => {
     it('should serialize an empty app', () => {
       const app0 = new App('test-app');
 
-      const serializationService = new SerializationService();
-      expect(serializationService.serialize(app0)).toMatchSnapshot();
+      const service = new ModelSerializationService();
+      expect(service.serialize(app0)).toMatchSnapshot();
     });
 
     it('should serialize a non-empty app', () => {
@@ -95,8 +87,8 @@ describe('Serialization Service UT', () => {
       environment0.environmentVariables.set('key', 'value');
       region0.addEnvironment(environment0);
 
-      const serializationService = new SerializationService();
-      expect(serializationService.serialize(app0)).toMatchSnapshot();
+      const service = new ModelSerializationService();
+      expect(service.serialize(app0)).toMatchSnapshot();
     });
 
     it('should serialize only boundary members', () => {
@@ -110,12 +102,12 @@ describe('Serialization Service UT', () => {
       region0_1.addEnvironment(environment0_1);
       region0_2.addEnvironment(environment0_2);
 
-      const serializationService = new SerializationService();
-      expect(serializationService.serialize(region0_1)).toMatchSnapshot();
+      const service = new ModelSerializationService();
+      expect(service.serialize(region0_1)).toMatchSnapshot();
     });
 
     it('should serialize when multiple models have dependency on same model', async () => {
-      const serializationService = new SerializationService();
+      const service = new ModelSerializationService();
 
       const app0 = new App('test-app');
       const image0 = new Image('backend-runner', '0.0.1', { dockerFilePath: '/Dockerfile' });
@@ -127,7 +119,7 @@ describe('Serialization Service UT', () => {
       server0.addDeployment(deployment0);
       server0.addDeployment(deployment1);
 
-      expect(serializationService.serialize(app0)).toMatchSnapshot();
+      expect(service.serialize(app0)).toMatchSnapshot();
     });
   });
 });

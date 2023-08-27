@@ -1,8 +1,8 @@
-import { App, Deployment, Environment, Image, Region, SerializationService, Server, Support } from '../src';
+import { App, Deployment, Environment, Image, ModelSerializationService, Region, Server, Support } from '../src';
 
 describe('App E2E Test', () => {
   it('should generate app diff', async () => {
-    const serializationService = new SerializationService();
+    const serializationService = new ModelSerializationService();
 
     const app0 = new App('test-app');
     const image0 = new Image('image', 'tag', { dockerFilePath: '.' });

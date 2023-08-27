@@ -1,0 +1,119 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Resource Serialization Service UT deserialize() should deserialize a known class 1`] = `
+{
+  "test-resource-1": TestResource {
+    "MODEL_NAME": "test-resource",
+    "MODEL_TYPE": "resource",
+    "dependencies": [],
+    "diffMarkers": {
+      "delete": false,
+      "replace": false,
+      "update": null,
+    },
+    "properties": {
+      "key1": "value1",
+    },
+    "resourceId": "test-resource-1",
+    "response": {
+      "response-1": "value1",
+    },
+  },
+}
+`;
+
+exports[`Resource Serialization Service UT serialize() should serialize an empty array 1`] = `
+{
+  "dependencies": [],
+  "resources": {},
+}
+`;
+
+exports[`Resource Serialization Service UT serialize() should serialize dependencies and properties and resources 1`] = `
+{
+  "dependencies": [
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "resourceId",
+          "toField": "resourceId",
+        },
+      ],
+      "from": "test-resource=resource-1",
+      "relationship": {
+        "onField": "resourceId",
+        "toField": "resourceId",
+        "type": "parent",
+      },
+      "to": "test-resource=resource-2",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "resourceId",
+          "toField": "resourceId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "resourceId",
+          "toField": "resourceId",
+        },
+      ],
+      "from": "test-resource=resource-2",
+      "relationship": {
+        "onField": "resourceId",
+        "toField": "resourceId",
+        "type": "child",
+      },
+      "to": "test-resource=resource-1",
+    },
+  ],
+  "resources": {
+    "resource-1": {
+      "className": "TestResource",
+      "resource": {
+        "properties": {
+          "key1": "value1",
+        },
+        "resourceId": "resource-1",
+        "response": {
+          "response1": "value1",
+        },
+      },
+    },
+    "resource-2": {
+      "className": "TestResource",
+      "resource": {
+        "properties": {
+          "key2": "value2",
+        },
+        "resourceId": "resource-2",
+        "response": {
+          "response2": "value2",
+        },
+      },
+    },
+  },
+}
+`;
+
+exports[`Resource Serialization Service UT serialize() should serialize non-empty array 1`] = `
+{
+  "dependencies": [],
+  "resources": {
+    "resource-1": {
+      "className": "TestResource",
+      "resource": {
+        "properties": {},
+        "resourceId": "resource-1",
+        "response": {},
+      },
+    },
+  },
+}
+`;
