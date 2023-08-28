@@ -114,17 +114,8 @@ export class S3StaticWebsiteService extends Service {
     const manifestFileName = `${this.bucketName}-manifest.json`;
 
     // Get old manifest.
-    let oldManifestData: IManifest;
-    try {
-      const oldManifestDataBuffer = await StateManagementService.getInstance().getState(manifestFileName);
-      oldManifestData = JSON.parse(oldManifestDataBuffer.toString());
-    } catch (error) {
-      if (error.code === 'ENOENT') {
-        oldManifestData = {};
-      } else {
-        throw error;
-      }
-    }
+    const oldManifestDataBuffer = await StateManagementService.getInstance().getState(manifestFileName, '{}');
+    const oldManifestData: IManifest = JSON.parse(oldManifestDataBuffer.toString());
 
     // Generate new manifest.
     const newManifestData: IManifest = await this.generateSourceManifest();

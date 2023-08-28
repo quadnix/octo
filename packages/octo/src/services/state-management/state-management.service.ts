@@ -20,8 +20,16 @@ export class StateManagementService {
     return StateManagementService.instance;
   }
 
-  async getState(stateFileName: string): Promise<Buffer> {
-    return this.stateProvider.getState(stateFileName);
+  async getState(stateFileName: string, defaultValue?: any): Promise<Buffer> {
+    try {
+      return await this.stateProvider.getState(stateFileName);
+    } catch (error) {
+      if (error.code === 'ENOENT' && defaultValue) {
+        return defaultValue;
+      } else {
+        throw error;
+      }
+    }
   }
 
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
