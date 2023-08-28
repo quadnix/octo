@@ -120,6 +120,35 @@ describe('Model E2E Test', () => {
       expect(region0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });
 
+    it('should not include server in region boundary', () => {
+      const app0 = new App('test-app');
+      const region0 = new Region('region-0');
+      app0.addRegion(region0);
+
+      // Just adding a server won't correlate to region. Create an execution in order to correlate.
+      const server0 = new Server('server-0');
+      app0.addServer(server0);
+
+      expect(region0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
+    });
+
+    it('should include server in region boundary after an execution is added', () => {
+      const app0 = new App('test-app');
+      const image0 = new Image('test', 'test', { dockerFilePath: 'Dockerfile' });
+      app0.addImage(image0);
+      const region0 = new Region('region-0');
+      app0.addRegion(region0);
+      const environment0 = new Environment('env-0');
+      region0.addEnvironment(environment0);
+      const server0 = new Server('server-0');
+      app0.addServer(server0);
+      const deployment0 = new Deployment('deployment-0', image0);
+      server0.addDeployment(deployment0);
+      new Execution(deployment0, environment0);
+
+      expect(region0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
+    });
+
     describe('Circular Dependencies', () => {
       it('should throw error on one level of circular dependency', () => {
         const app0 = new App('test-app');
