@@ -194,7 +194,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
 
   getParents(modelName?: string): { [key: string]: Dependency[] } {
     return this.dependencies
-      .filter((d) => d.isChildRelationship() && (modelName ? d.from.MODEL_NAME === modelName : true))
+      .filter((d) => d.isChildRelationship() && (modelName ? d.to.MODEL_NAME === modelName : true))
       .reduce((accumulator, currentValue) => {
         if (!(currentValue.to.MODEL_NAME in accumulator)) {
           accumulator[currentValue.to.MODEL_NAME] = [];
