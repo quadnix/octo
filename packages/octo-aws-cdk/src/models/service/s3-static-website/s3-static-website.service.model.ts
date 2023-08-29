@@ -1,7 +1,9 @@
-import { Diff, DiffAction, Service, StateManagementService } from '@quadnix/octo';
+import { Diff, DiffAction, Model, Service, StateManagementService } from '@quadnix/octo';
+import { Dependency } from '@quadnix/octo/dist/functions/dependency/dependency.model';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
 import { FileUtility } from '../../../utilities/file/file.utility';
+import { AwsRegion } from '../../region/aws.region.model';
 import { IS3StaticWebsiteService } from './s3-static-website.service.interface';
 
 type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
@@ -11,6 +13,8 @@ export class S3StaticWebsiteService extends Service {
 
   readonly excludePaths: { directoryPath: string; subDirectoryOrFilePath: string }[] = [];
 
+  readonly region: AwsRegion;
+
   readonly sourcePaths: {
     directoryPath: string;
     isDirectory: boolean;
@@ -18,10 +22,19 @@ export class S3StaticWebsiteService extends Service {
     subDirectoryOrFilePath: string;
   }[] = [];
 
-  constructor(bucketName: string) {
+  constructor(region: AwsRegion, bucketName: string) {
     super(`${bucketName}-s3-static-website`);
 
+    this.region = region;
     this.bucketName = bucketName;
+
+    const serviceToRegionDependency = new Dependency(this, region);
+    serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
+    serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.UPDATE);
+    this.dependencies.push(serviceToRegionDependency);
+    const regionToServiceDependency = new Dependency(region, this);
+    regionToServiceDependency.addBehavior('regionId', DiffAction.DELETE, 'serviceId', DiffAction.DELETE);
+    region['dependencies'].push(regionToServiceDependency);
   }
 
   private async generateSourceManifest(): Promise<IManifest> {
@@ -159,13 +172,18 @@ export class S3StaticWebsiteService extends Service {
     return {
       bucketName: this.bucketName,
       excludePaths: this.excludePaths,
+      region: { context: this.region.getContext() },
       serviceId: `${this.bucketName}-s3-static-website`,
       sourcePaths: this.sourcePaths,
     };
   }
 
-  static async unSynth(s3StaticWebsite: IS3StaticWebsiteService): Promise<S3StaticWebsiteService> {
-    const service = new S3StaticWebsiteService(s3StaticWebsite.bucketName);
+  static async unSynth(
+    s3StaticWebsite: IS3StaticWebsiteService,
+    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
+  ): Promise<S3StaticWebsiteService> {
+    const region = (await deReferenceContext(s3StaticWebsite.region.context)) as AwsRegion;
+    const service = new S3StaticWebsiteService(region, s3StaticWebsite.bucketName);
     service.excludePaths.push(...s3StaticWebsite.excludePaths);
     service.sourcePaths.push(...s3StaticWebsite.sourcePaths);
     return service;

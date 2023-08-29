@@ -139,7 +139,13 @@ export class OctoAws {
 
   async *beginTransaction(diffs: Diff[], options: TransactionOptions): AsyncGenerator {
     // Get previous resources from saved state.
-    const previousState = await this.stateManageService.getState(this.resourceStateFileName, '{}');
+    const previousState = await this.stateManageService.getState(
+      this.resourceStateFileName,
+      JSON.stringify({
+        dependencies: [],
+        resources: {},
+      }),
+    );
     const serializedOutput = JSON.parse(previousState.toString());
     const oldResources = this.resourceSerializationService.deserialize(serializedOutput);
 
@@ -173,7 +179,13 @@ export class OctoAws {
 
   async diff(): Promise<Diff[]> {
     // Get previous app from saved state. It was saved with this region as boundary.
-    const previousState = await this.stateManageService.getState(this.modelStateFileName, '{}');
+    const previousState = await this.stateManageService.getState(
+      this.modelStateFileName,
+      JSON.stringify({
+        dependencies: [],
+        models: {},
+      }),
+    );
     const serializedOutput = JSON.parse(previousState.toString());
 
     // Get previousApp. If version mismatch, previousApp is void.
