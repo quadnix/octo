@@ -84,6 +84,11 @@ export abstract class Model<I, T> implements IModel<I, T> {
     while (members.length > 0) {
       const member = members.pop() as Model<unknown, unknown>;
 
+      // Skip processing an already processed member.
+      if (membersProcessed.some((m) => m.getContext() === member.getContext())) {
+        continue;
+      }
+
       for (const d of member.dependencies) {
         // If in dependency I am not declared a parent, then d.to is either my parent or has a relationship to me.
         // The behavior of that relationship should be that it must exist for me to exist.
@@ -110,6 +115,14 @@ export abstract class Model<I, T> implements IModel<I, T> {
     const extenders: Model<unknown, unknown>[] = [this];
     const members: Model<unknown, unknown>[] = [];
     const parentOf: { [key: string]: string[] } = {};
+
+    const pushToExtenders = (models: Model<unknown, unknown>[]): void => {
+      models.forEach((model) => {
+        if (!members.some((m) => m.getContext() === model.getContext())) {
+          extenders.push(model);
+        }
+      });
+    };
 
     while (extenders.length > 0) {
       const model = extenders.pop() as Model<unknown, unknown>;
@@ -160,8 +173,13 @@ export abstract class Model<I, T> implements IModel<I, T> {
 
       const children = model.getChildren();
       for (const modelName in children) {
-        extenders.push(...children[modelName].map((d) => d.to));
+        pushToExtenders(children[modelName].map((d) => d.to));
       }
+
+      const dependents = model.dependencies
+        .filter((d) => !d.isParentRelationship() && !d.isChildRelationship())
+        .map((d) => d.to);
+      pushToExtenders(dependents);
     }
 
     return members;

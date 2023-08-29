@@ -185,6 +185,11 @@ exports[`Model E2E Test common functions Test image getBoundaryMembers() 1`] = `
 [
   "image=nginx:0.0.1,app=test",
   "app=test",
+  "deployment=v1,support=nginx,app=test",
+  "support=nginx,app=test",
+  "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
+  "environment=qa,region=region-1,app=test",
+  "region=region-1,app=test",
 ]
 `;
 
@@ -375,6 +380,33 @@ exports[`Model E2E Test common functions Test support synth() 1`] = `
   "applicationType": "nginx",
   "serverKey": "nginx",
 }
+`;
+
+exports[`Model E2E Test getAncestors() should include region as ancestor of service when a dependency exists between them 1`] = `
+[
+  "service=service,app=app",
+  "region=region,app=app",
+  "app=app",
+]
+`;
+
+exports[`Model E2E Test getAncestors() should not include service as ancestor of region when a dependency exists between them 1`] = `
+[
+  "region=region,app=app",
+  "app=app",
+]
+`;
+
+exports[`Model E2E Test getBoundaryMembers() should include region in server boundary after an execution is added 1`] = `
+[
+  "server=server-0,app=test-app",
+  "app=test-app",
+  "deployment=deployment-0,server=server-0,app=test-app",
+  "image=test:test,app=test-app",
+  "execution=deployment-0_env-0,deployment=deployment-0,server=server-0,app=test-app,environment=env-0,region=region-0,app=test-app",
+  "environment=env-0,region=region-0,app=test-app",
+  "region=region-0,app=test-app",
+]
 `;
 
 exports[`Model E2E Test getBoundaryMembers() should include server in region boundary after an execution is added 1`] = `

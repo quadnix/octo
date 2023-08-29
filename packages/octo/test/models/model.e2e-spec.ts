@@ -1,6 +1,7 @@
 import {
   App,
   Deployment,
+  DiffAction,
   Environment,
   Execution,
   Image,
@@ -11,6 +12,7 @@ import {
   Service,
   Support,
 } from '../../src';
+import { Dependency } from '../../src/functions/dependency/dependency.model';
 
 describe('Model E2E Test', () => {
   describe('common functions', () => {
@@ -105,6 +107,44 @@ describe('Model E2E Test', () => {
     });
   });
 
+  describe('getAncestors()', () => {
+    it('should include region as ancestor of service when a dependency exists between them', () => {
+      const app = new App('app');
+      const region = new Region('region');
+      app.addRegion(region);
+      const service = new Service('service');
+      app.addService(service);
+
+      const serviceToRegionDependency = new Dependency(service, region);
+      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
+      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.UPDATE);
+      service['dependencies'].push(serviceToRegionDependency);
+      const regionToServiceDependency = new Dependency(region, service);
+      regionToServiceDependency.addBehavior('regionId', DiffAction.DELETE, 'serviceId', DiffAction.DELETE);
+      region['dependencies'].push(regionToServiceDependency);
+
+      expect(service.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
+    });
+
+    it('should not include service as ancestor of region when a dependency exists between them', () => {
+      const app = new App('app');
+      const region = new Region('region');
+      app.addRegion(region);
+      const service = new Service('service');
+      app.addService(service);
+
+      const serviceToRegionDependency = new Dependency(service, region);
+      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
+      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.UPDATE);
+      service['dependencies'].push(serviceToRegionDependency);
+      const regionToServiceDependency = new Dependency(region, service);
+      regionToServiceDependency.addBehavior('regionId', DiffAction.DELETE, 'serviceId', DiffAction.DELETE);
+      region['dependencies'].push(regionToServiceDependency);
+
+      expect(region.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
+    });
+  });
+
   describe('getBoundaryMembers()', () => {
     it('should include the common model to the boundary in literal sense', () => {
       const app0 = new App('test-app');
@@ -147,6 +187,47 @@ describe('Model E2E Test', () => {
       new Execution(deployment0, environment0);
 
       expect(region0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
+    });
+
+    it('should include region in server boundary after an execution is added', () => {
+      const app0 = new App('test-app');
+      const image0 = new Image('test', 'test', { dockerFilePath: 'Dockerfile' });
+      app0.addImage(image0);
+      const region0 = new Region('region-0');
+      app0.addRegion(region0);
+      const environment0 = new Environment('env-0');
+      region0.addEnvironment(environment0);
+      const server0 = new Server('server-0');
+      app0.addServer(server0);
+      const deployment0 = new Deployment('deployment-0', image0);
+      server0.addDeployment(deployment0);
+      new Execution(deployment0, environment0);
+
+      expect(server0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
+    });
+
+    it('should include service in region boundary when a dependency exists between them', () => {
+      const app = new App('app');
+      const region = new Region('region');
+      app.addRegion(region);
+      const service = new Service('service');
+      app.addService(service);
+
+      const serviceToRegionDependency = new Dependency(service, region);
+      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
+      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.UPDATE);
+      service['dependencies'].push(serviceToRegionDependency);
+      const regionToServiceDependency = new Dependency(region, service);
+      regionToServiceDependency.addBehavior('regionId', DiffAction.DELETE, 'serviceId', DiffAction.DELETE);
+      region['dependencies'].push(regionToServiceDependency);
+
+      expect(region.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
+        [
+          "region=region,app=app",
+          "app=app",
+          "service=service,app=app",
+        ]
+      `);
     });
 
     describe('Circular Dependencies', () => {
