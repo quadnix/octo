@@ -1,16 +1,32 @@
+import { App, LocalStateProvider } from '@quadnix/octo';
+import { existsSync, readFileSync, unlink, writeFile } from 'fs';
 import { join, resolve } from 'path';
-import { App, SerializationService } from '@quadnix/octo';
+import { promisify } from 'util';
+import { AwsRegion, AwsRegionId, OctoAws } from '../../../index';
 import { S3StaticWebsiteService } from './s3-static-website.service.model';
+
+const writeFileAsync = promisify(writeFile);
+const unlinkAsync = promisify(unlink);
 
 const resourcesPath = join(__dirname, '../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
 
 describe('S3StaticWebsiteService UT', () => {
+  const filePaths: string[] = [
+    join(__dirname, 'aws-us-east-1a-models.json'),
+    join(__dirname, 'aws-us-east-1a-resources.json'),
+    join(__dirname, 'test-bucket-manifest.json'),
+  ];
+
+  afterEach(async () => {
+    await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
+  });
+
   describe('addSource()', () => {
     let service: S3StaticWebsiteService;
 
     beforeEach(() => {
-      service = new S3StaticWebsiteService('test-bucket');
+      service = new S3StaticWebsiteService(new AwsRegion(AwsRegionId.AWS_US_EAST_1A), 'test-bucket');
     });
 
     describe('when called with directoryPath', () => {
@@ -124,6 +140,10 @@ describe('S3StaticWebsiteService UT', () => {
             directoryPath: resourcesPath,
             subDirectoryOrFilePath: 's3-static-website/error.html',
           },
+          {
+            directoryPath: resourcesPath,
+            subDirectoryOrFilePath: 's3-static-website/page-1.html',
+          },
         ]);
       });
     });
@@ -149,15 +169,23 @@ describe('S3StaticWebsiteService UT', () => {
   describe('diff()', () => {
     it('should generate an update on addition', async () => {
       const app = new App('test');
-      const service = new S3StaticWebsiteService('test-bucket');
+      const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
+      const service = new S3StaticWebsiteService(region, 'test-bucket');
       app.addService(service);
       await service.addSource(websiteSourcePath);
 
-      const diffs = await app.diff();
+      const localStateProvider = new LocalStateProvider(__dirname);
+      const octoAws = new OctoAws(region, localStateProvider);
+      const diffs = await octoAws.diff();
 
-      /* eslint-disable spellcheck/spell-checker */
       expect(diffs).toMatchInlineSnapshot(`
         [
+          {
+            "action": "add",
+            "field": "regionId",
+            "value": "aws-us-east-1a",
+          },
           {
             "action": "add",
             "field": "serviceId",
@@ -167,104 +195,108 @@ describe('S3StaticWebsiteService UT', () => {
             "action": "update",
             "field": "sourcePaths",
             "value": {
-              "error.html": {
-                "algorithm": "sha1",
-                "digest": "747c324737a310ff1c0ff1d3ab90d15cb00b585b",
-                "filePath": "${websiteSourcePath}/error.html",
-              },
-              "index.html": {
-                "algorithm": "sha1",
-                "digest": "aba92cd2086d7ab2f36d3bf5baa269478b941921",
-                "filePath": "${websiteSourcePath}/index.html",
-              },
+              "error.html": [
+                "add",
+                "${websiteSourcePath}/error.html",
+              ],
+              "index.html": [
+                "add",
+                "${websiteSourcePath}/index.html",
+              ],
+              "page-1.html": [
+                "add",
+                "${websiteSourcePath}/page-1.html",
+              ],
             },
           },
         ]
       `);
-      /* eslint-enable */
     });
 
     it('should generate an update on deletion', async () => {
-      const serializationService = new SerializationService();
-      serializationService.registerClass(S3StaticWebsiteService.name, S3StaticWebsiteService);
+      const app = new App('test');
+      const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
+      const service = new S3StaticWebsiteService(region, 'test-bucket');
+      app.addService(service);
+      await service.addSource(`${websiteSourcePath}/error.html`);
+      await service.addSource(`${websiteSourcePath}/index.html`);
+      await service.addSource(`${websiteSourcePath}/page-1.html`);
 
-      const app0 = new App('test');
-      const service0 = new S3StaticWebsiteService('test-bucket');
-      app0.addService(service0);
-      await service0.addSource(websiteSourcePath);
-      await service0.addSource(`${websiteSourcePath}/error.html`);
-      await service0.addSource(`${websiteSourcePath}/index.html`);
+      const localStateProvider = new LocalStateProvider(__dirname);
+      const octoAws = new OctoAws(region, localStateProvider);
+      const diffs1 = await octoAws.diff();
+
+      const generator = octoAws.beginTransaction(diffs1, { yieldModelTransaction: true });
+      await generator.next(); // Deliberately abandon execution for rest of generator.
+      await octoAws.commitTransaction([]);
+      await service.saveSourceManifest();
 
       // Remove a sourcePath from the service in a subsequent update to service.
-      const app1 = (await serializationService.deserialize(serializationService.serialize(app0))) as App;
-      const service1 = app1.getChild('service', [
-        { key: 'serviceId', value: service0.serviceId },
-      ]) as S3StaticWebsiteService;
-      service1.sourcePaths.forEach((p, index) => {
-        if (p.isDirectory) {
-          service1.sourcePaths.splice(index, 1);
+      service.sourcePaths.forEach((p, index) => {
+        if (p.remotePath === 'page-1.html') {
+          service.sourcePaths.splice(index, 1);
         }
       });
 
-      const diffs = await app1.diff(app0);
-      /* eslint-disable spellcheck/spell-checker */
-      expect(diffs).toMatchInlineSnapshot(`
+      const diffs2 = await octoAws.diff();
+      expect(diffs2).toMatchInlineSnapshot(`
         [
           {
             "action": "update",
             "field": "sourcePaths",
             "value": {
-              "error.html": {
-                "algorithm": "sha1",
-                "digest": "747c324737a310ff1c0ff1d3ab90d15cb00b585b",
-                "filePath": "${websiteSourcePath}/error.html",
-              },
-              "index.html": {
-                "algorithm": "sha1",
-                "digest": "aba92cd2086d7ab2f36d3bf5baa269478b941921",
-                "filePath": "${websiteSourcePath}/index.html",
-              },
+              "page-1.html": [
+                "delete",
+                "${websiteSourcePath}/page-1.html",
+              ],
             },
           },
         ]
       `);
-      /* eslint-enable */
     });
 
     it('should generate an update on update', async () => {
-      const serializationService = new SerializationService();
-      serializationService.registerClass(S3StaticWebsiteService.name, S3StaticWebsiteService);
+      const app = new App('test');
+      const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
+      const service = new S3StaticWebsiteService(region, 'test-bucket');
+      app.addService(service);
+      await service.addSource(websiteSourcePath);
 
-      const app0 = new App('test');
-      const service0 = new S3StaticWebsiteService('test-bucket');
-      app0.addService(service0);
-      await service0.addSource(websiteSourcePath);
+      const localStateProvider = new LocalStateProvider(__dirname);
+      const octoAws = new OctoAws(region, localStateProvider);
+      const diffs1 = await octoAws.diff();
 
-      const app1 = (await serializationService.deserialize(serializationService.serialize(app0))) as App;
+      const generator = octoAws.beginTransaction(diffs1, { yieldModelTransaction: true });
+      await generator.next(); // Deliberately abandon execution for rest of generator.
+      await octoAws.commitTransaction([]);
+      await service.saveSourceManifest();
 
-      const diffs = await app1.diff(app0);
-      /* eslint-disable spellcheck/spell-checker */
-      expect(diffs).toMatchInlineSnapshot(`
-        [
-          {
-            "action": "update",
-            "field": "sourcePaths",
-            "value": {
-              "error.html": {
-                "algorithm": "sha1",
-                "digest": "747c324737a310ff1c0ff1d3ab90d15cb00b585b",
-                "filePath": "${websiteSourcePath}/error.html",
-              },
-              "index.html": {
-                "algorithm": "sha1",
-                "digest": "aba92cd2086d7ab2f36d3bf5baa269478b941921",
-                "filePath": "${websiteSourcePath}/index.html",
+      // Update a sourcePath from the service in a subsequent update to service.
+      const originalErrorContent = readFileSync(`${websiteSourcePath}/error.html`);
+      await writeFileAsync(`${websiteSourcePath}/error.html`, 'New error content!');
+
+      try {
+        const diffs2 = await octoAws.diff();
+        expect(diffs2).toMatchInlineSnapshot(`
+          [
+            {
+              "action": "update",
+              "field": "sourcePaths",
+              "value": {
+                "error.html": [
+                  "update",
+                  "${websiteSourcePath}/error.html",
+                ],
               },
             },
-          },
-        ]
-      `);
-      /* eslint-enable */
+          ]
+        `);
+      } finally {
+        // Restore error.html
+        await writeFileAsync(`${websiteSourcePath}/error.html`, originalErrorContent);
+      }
     });
   });
 });
