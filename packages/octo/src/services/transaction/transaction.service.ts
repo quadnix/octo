@@ -41,7 +41,8 @@ export class TransactionService {
           const inputKeys = a.collectInput(diffToProcess);
           inputKeys.map((k) => {
             if ((k as string).startsWith('resource')) {
-              inputs[k] = resources[k];
+              const kTemp = (k as string).substring('resource.'.length);
+              inputs[k] = resources[k] || resources[kTemp];
             } else {
               inputs[k] = this.inputs[k];
             }
