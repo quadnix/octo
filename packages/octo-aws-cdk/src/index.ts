@@ -138,7 +138,10 @@ export class OctoAws {
     return packageJson.version;
   }
 
-  async beginTransaction(diffs: Diff[], options: TransactionOptions): Promise<AsyncGenerator> {
+  async beginTransaction(
+    diffs: Diff[],
+    options: TransactionOptions,
+  ): Promise<AsyncGenerator<DiffMetadata[][], DiffMetadata[][]>> {
     // Get previous resources from saved state.
     const previousState = await this.stateManageService.getState(
       this.resourceStateFileName,
@@ -148,10 +151,10 @@ export class OctoAws {
       }),
     );
     const serializedOutput = JSON.parse(previousState.toString());
-    const oldResources = this.resourceSerializationService.deserialize(serializedOutput);
+    const oldResources = await this.resourceSerializationService.deserialize(serializedOutput);
 
     // Declare new resources, starting with an exact copy of old resources.
-    const newResources = this.resourceSerializationService.deserialize(serializedOutput);
+    const newResources = await this.resourceSerializationService.deserialize(serializedOutput);
 
     return this.transactionService.beginTransaction(diffs, oldResources, newResources, options);
   }
