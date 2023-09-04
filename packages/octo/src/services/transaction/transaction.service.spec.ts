@@ -444,7 +444,11 @@ describe('TransactionService UT', () => {
     });
 
     it('should not set order for diff that already has an order defined', () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
+      app.addRegion(region);
+      region.addEnvironment(environment);
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, actions);
       diffMetadata.applyOrder = 1;
@@ -455,7 +459,11 @@ describe('TransactionService UT', () => {
     });
 
     it('should set order 0 for diff with no dependencies', () => {
+      const app = new App('test');
+      const region = new Region('region-1');
       const environment = new Environment('qa');
+      app.addRegion(region);
+      region.addEnvironment(environment);
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, actions);
 
@@ -580,6 +588,25 @@ describe('TransactionService UT', () => {
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
       expect(diffsMetadata[2].applyOrder).toBe(-1);
+    });
+
+    it('should throw errors add and update of model are in same transaction', () => {
+      const app = new App('app');
+      const region = new Region('region');
+      app.addRegion(region);
+      const environment = new Environment('env');
+      region.addEnvironment(environment);
+
+      const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
+      const diff2 = new Diff(environment, DiffAction.ADD, 'environmentName', 'env');
+      const diff3 = new Diff(environment, DiffAction.UPDATE, 'environmentVariables', '{}');
+      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, actions));
+
+      expect(() => {
+        setApplyOrder(diffsMetadata[0], diffsMetadata);
+        setApplyOrder(diffsMetadata[1], diffsMetadata);
+        setApplyOrder(diffsMetadata[2], diffsMetadata);
+      }).toThrowError('Found conflicting actions in same transaction!');
     });
   });
 

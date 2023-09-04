@@ -35,10 +35,10 @@ export interface IAction<I extends IActionInputs, O extends IActionOutputs> {
   /**
    * This function contains the logic to apply the diff(s) to the underlying infrastructure.
    */
-  handle(diff: Diff, actionInput: I): O;
+  handle(diff: Diff, actionInputs: I): O;
 
   /**
    * This function contains the logic to revert the diff(s) from the underlying infrastructure.
    */
-  revert(diff: Diff, actionInput: I, actionOutput: O): O;
+  revert(diff: Diff, actionInputs: I, actionOutputs: O): O;
 }

@@ -29,11 +29,11 @@ export class TransactionService {
           continue;
         }
 
-        // Check for similar diffs on the same model and same field.
-        const matchingDiffs = this.getMatchingDiffs(diff, diffsInSameLevel);
+        // Check for duplicate diffs on the same model and same field.
+        const duplicateDiffs = this.getDuplicateDiffs(diff, diffsInSameLevel);
 
-        // Only process the first diff, given all matching-diffs are the same.
-        const diffToProcess = matchingDiffs[0].diff;
+        // Only process the first diff, given all duplicate diffs are the same.
+        const diffToProcess = duplicateDiffs[0].diff;
 
         for (const a of diff.actions as IAction<IActionInputs, IActionOutputs>[]) {
           // Resolve input requests.
@@ -62,17 +62,17 @@ export class TransactionService {
           }
 
           // Update diff metadata with inputs and outputs.
-          matchingDiffs.forEach((d) => {
+          duplicateDiffs.forEach((d) => {
             d.updateInputs(inputs);
             d.updateOutputs(outputsKeyModified);
           });
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
-        diffsProcessedInSameLevel.push(matchingDiffs[0]);
+        diffsProcessedInSameLevel.push(duplicateDiffs[0]);
 
-        // Mark metadata of each matching-diffs as applied.
-        matchingDiffs.forEach((d) => (d.applied = true));
+        // Mark metadata of each duplicate diffs as applied.
+        duplicateDiffs.forEach((d) => (d.applied = true));
       }
 
       // Add all diff in same level to transaction.
@@ -101,21 +101,21 @@ export class TransactionService {
           continue;
         }
 
-        // Check for similar diffs on the same model and same field.
-        const matchingDiffs = this.getMatchingDiffs(diff, diffsInSameLevel);
+        // Check for duplicate diffs on the same model and same field.
+        const duplicateDiffs = this.getDuplicateDiffs(diff, diffsInSameLevel);
 
-        // Only process the first diff, given all matching-diffs are the same.
-        const diffToProcess = matchingDiffs[0].diff;
+        // Only process the first diff, given all duplicate diffs are the same.
+        const diffToProcess = duplicateDiffs[0].diff;
 
         for (const a of diff.actions as IResourceAction[]) {
           promiseToApplyActions.push(a.handle(diffToProcess));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
-        diffsProcessedInSameLevel.push(matchingDiffs[0]);
+        diffsProcessedInSameLevel.push(duplicateDiffs[0]);
 
-        // Mark metadata of each matching-diffs as applied.
-        matchingDiffs.forEach((d) => (d.applied = true));
+        // Mark metadata of each duplicate diffs as applied.
+        duplicateDiffs.forEach((d) => (d.applied = true));
       }
 
       // Apply all actions of same level, since they can be applied in parallel.
@@ -154,16 +154,38 @@ export class TransactionService {
     return diffs;
   }
 
-  private getMatchingDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
+  private getDuplicateDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
     return diffs.filter(
       (d) => d.model.getContext() === diff.model.getContext() && d.field === diff.field && d.action === diff.action,
     );
   }
 
+  private getMatchingDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
+    return diffs.filter((d) => d.model.getContext() === diff.model.getContext());
+  }
+
+  /**
+   * Before assigning order to a diff, all its model's parent diffs must be processed.
+   * E.g. diff to add environment, depends on region to exist, thus add region diff gets processed first.
+   */
   private setApplyOrder(diff: DiffMetadata, diffs: DiffMetadata[], seen: DiffMetadata[] = []): void {
     // Detect circular dependencies.
-    if (this.getMatchingDiffs(diff, seen).length > 0) {
+    if (this.getDuplicateDiffs(diff, seen).length > 0) {
       throw new Error('Found circular dependencies!');
+    }
+
+    // Detect conflicting actions in transaction.
+    const matchingDiffs = this.getMatchingDiffs(diff, diffs);
+    const diffActions = matchingDiffs.reduce((accumulator, currentValue) => {
+      accumulator[currentValue.action] = true;
+      return accumulator;
+    }, {});
+    if (
+      (diffActions[DiffAction.ADD] && diffActions[DiffAction.UPDATE]) ||
+      (diffActions[DiffAction.ADD] && diffActions[DiffAction.DELETE]) ||
+      (diffActions[DiffAction.DELETE] && diffActions[DiffAction.UPDATE])
+    ) {
+      throw new Error('Found conflicting actions in same transaction!');
     }
 
     // Skip processing diff that already has the applyOrder set.
@@ -171,8 +193,8 @@ export class TransactionService {
       return;
     }
 
-    // Get all dependencies where the subject model is a child. Resulting dependencies are parent.
-    const dependencies = diff.model.getMatchingDependencies(diff.field, diff.action);
+    // Get all dependencies where the subject model is a child or dependent.
+    const dependencies = diff.model['dependencies'].filter((d) => !d.isParentRelationship());
     const dependencyApplyOrders: number[] = [-1];
 
     dependencies.forEach((dependency) => {

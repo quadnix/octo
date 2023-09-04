@@ -206,10 +206,6 @@ export abstract class Model<I, T> implements IModel<I, T> {
 
   abstract getContext(): string;
 
-  getMatchingDependencies(onField: string, onAction: DiffAction): Dependency[] {
-    return this.dependencies.filter((d) => d.hasMatchingBehavior(onField, onAction));
-  }
-
   getParents(modelName?: string): { [key: string]: Dependency[] } {
     return this.dependencies
       .filter((d) => d.isChildRelationship() && (modelName ? d.to.MODEL_NAME === modelName : true))
