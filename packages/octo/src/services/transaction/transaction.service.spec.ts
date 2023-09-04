@@ -12,7 +12,7 @@ class TestResource extends Resource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
   constructor(resourceId: string) {
-    super(resourceId);
+    super(resourceId, {}, []);
   }
 }
 
@@ -20,7 +20,7 @@ class TestResourceWithDiffOverride extends Resource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
   constructor(resourceId: string) {
-    super(resourceId);
+    super(resourceId, {}, []);
   }
 
   override async diff(): Promise<Diff[]> {

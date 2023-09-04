@@ -13,15 +13,24 @@ export abstract class Resource<T> extends Model<IResource, T> {
     update: null,
   };
 
+  readonly parents: IResource['parents'] = [];
+
   readonly properties: IResource['properties'] = {};
 
   readonly resourceId: IResource['resourceId'];
 
   readonly response: IResource['response'] = {};
 
-  protected constructor(resourceId: string) {
+  protected constructor(
+    resourceId: IResource['resourceId'],
+    properties: IResource['properties'],
+    parents: Resource<unknown>[],
+  ) {
     super();
 
+    this.associateWith(parents);
+
+    this.properties = properties;
     this.resourceId = resourceId;
   }
 
@@ -37,7 +46,10 @@ export abstract class Resource<T> extends Model<IResource, T> {
       if (selfDependencies.find((r) => r.resourceId === this.resourceId)) {
         throw new Error('Resource already associated with!');
       }
+
+      // Add child.
       resource.addChild('resourceId' as never, this, 'resourceId');
+      this.parents.push(resource.resourceId);
     }
   }
 
@@ -66,19 +78,23 @@ export abstract class Resource<T> extends Model<IResource, T> {
 
   synth(): IResource {
     return {
+      parents: this.parents,
       properties: this.properties,
       resourceId: this.resourceId,
       response: this.response,
     };
   }
 
-  unSynth(resource: IResource): void {
-    for (const key in resource.properties) {
-      this.properties[key] = resource.properties[key];
-    }
-
+  static async unSynth(
+    deserializationClass: any,
+    resource: IResource,
+    deReferenceResource: (resourceId: string) => Promise<Resource<unknown>>,
+  ): Promise<Resource<unknown>> {
+    const parents = await Promise.all(resource.parents.map((p) => deReferenceResource(p)));
+    const deReferencedResource = new deserializationClass(resource.resourceId, resource.properties, parents);
     for (const key in resource.response) {
-      this.response[key] = resource.response[key];
+      deReferencedResource.response[key] = resource.response[key];
     }
+    return deReferencedResource;
   }
 }

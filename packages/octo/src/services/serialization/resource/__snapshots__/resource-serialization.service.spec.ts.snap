@@ -1,27 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Resource Serialization Service UT deserialize() should deserialize a known class 1`] = `
-{
-  "test-resource-1": TestResource {
-    "MODEL_NAME": "test-resource",
-    "MODEL_TYPE": "resource",
-    "dependencies": [],
-    "diffMarkers": {
-      "delete": false,
-      "replace": false,
-      "update": null,
-    },
-    "properties": {
-      "key1": "value1",
-    },
-    "resourceId": "test-resource-1",
-    "response": {
-      "response-1": "value1",
-    },
-  },
-}
-`;
-
 exports[`Resource Serialization Service UT serialize() should serialize an empty array 1`] = `
 {
   "dependencies": [],
@@ -77,6 +55,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
     "resource-1": {
       "className": "TestResource",
       "resource": {
+        "parents": [],
         "properties": {
           "key1": "value1",
         },
@@ -89,6 +68,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
     "resource-2": {
       "className": "TestResource",
       "resource": {
+        "parents": [],
         "properties": {
           "key2": "value2",
         },
@@ -109,6 +89,7 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
     "resource-1": {
       "className": "TestResource",
       "resource": {
+        "parents": [],
         "properties": {},
         "resourceId": "resource-1",
         "response": {},

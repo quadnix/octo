@@ -11,28 +11,59 @@ export type ResourceSerializedOutput = {
 export class ResourceSerializationService {
   private readonly classMapping: { [key: string]: any } = {};
 
-  deserialize(serializedOutput: ResourceSerializedOutput): IActionOutputs {
-    const resources: IActionOutputs = {};
-
-    // UnSynth resources.
-    for (const resourceId in serializedOutput.resources) {
-      const { className, resource } = serializedOutput.resources[resourceId];
-
-      const resourceObject: Resource<unknown> = new this.classMapping[className](resource.resourceId);
-      resourceObject.unSynth(resource);
-
-      resources[resource.resourceId] = resourceObject;
+  private throwErrorIfDeserializationClassInvalid(deserializationClass: any): void {
+    const isValid = typeof deserializationClass?.unSynth === 'function';
+    if (!isValid) {
+      throw new Error('Invalid class, no reference to unSynth static method!');
     }
+  }
 
-    // UnSynth resource dependencies.
+  async deserialize(serializedOutput: ResourceSerializedOutput): Promise<IActionOutputs> {
+    const deReferencePromises: { [p: string]: (value: boolean) => void } = {};
+    const seen: IActionOutputs = {};
+
+    const deReferenceResource = async (resourceId: string): Promise<Resource<unknown>> => {
+      if (!seen[resourceId]) {
+        const promise = new Promise<boolean>((resolve) => {
+          deReferencePromises[resourceId] = resolve;
+        });
+        await promise;
+      }
+
+      return seen[resourceId];
+    };
+
     for (const d of serializedOutput.dependencies) {
       const fromResourceId = d.from.split('=')[1];
       const toResourceId = d.to.split('=')[1];
-      const dependency = Dependency.unSynth(resources[fromResourceId], resources[toResourceId], d);
-      resources[fromResourceId]['dependencies'].push(dependency);
+
+      if (!seen[fromResourceId]) {
+        const { className, resource } = serializedOutput.resources[fromResourceId];
+        const deserializationClass = this.classMapping[className];
+        this.throwErrorIfDeserializationClassInvalid(deserializationClass);
+
+        seen[fromResourceId] = await deserializationClass.unSynth(deserializationClass, resource, deReferenceResource);
+        if (deReferencePromises[fromResourceId] !== undefined) {
+          deReferencePromises[fromResourceId](true);
+        }
+      }
+
+      if (!seen[toResourceId]) {
+        const { className, resource } = serializedOutput.resources[toResourceId];
+        const deserializationClass = this.classMapping[className];
+        this.throwErrorIfDeserializationClassInvalid(deserializationClass);
+
+        seen[toResourceId] = await deserializationClass.unSynth(deserializationClass, resource, deReferenceResource);
+        if (deReferencePromises[toResourceId] !== undefined) {
+          deReferencePromises[toResourceId](true);
+        }
+      }
+
+      const dependency = Dependency.unSynth(seen[fromResourceId], seen[toResourceId], d);
+      seen[fromResourceId]['dependencies'].push(dependency);
     }
 
-    return resources;
+    return seen;
   }
 
   registerClass(className: string, deserializationClass: any): void {
