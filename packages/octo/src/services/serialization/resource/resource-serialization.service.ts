@@ -33,6 +33,7 @@ export class ResourceSerializationService {
       return seen[resourceId];
     };
 
+    // Generate a cache of resources with dependencies.
     for (const d of serializedOutput.dependencies) {
       const fromResourceId = d.from.split('=')[1];
       const toResourceId = d.to.split('=')[1];
@@ -63,7 +64,26 @@ export class ResourceSerializationService {
       seen[fromResourceId]['dependencies'].push(dependency);
     }
 
-    return seen;
+    // Deserialize all serialized resources.
+    const resources: IActionOutputs = {};
+    for (const resourceId in serializedOutput.resources) {
+      if (seen[resourceId]) {
+        resources[resourceId] = seen[resourceId];
+        continue;
+      }
+
+      const { className, resource } = serializedOutput.resources[resourceId];
+      const deserializationClass = this.classMapping[className];
+      this.throwErrorIfDeserializationClassInvalid(deserializationClass);
+
+      resources[resource.resourceId] = await deserializationClass.unSynth(
+        deserializationClass,
+        resource,
+        deReferenceResource,
+      );
+    }
+
+    return resources;
   }
 
   registerClass(className: string, deserializationClass: any): void {

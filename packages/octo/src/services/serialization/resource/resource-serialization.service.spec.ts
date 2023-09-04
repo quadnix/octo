@@ -28,6 +28,20 @@ describe('Resource Serialization Service UT', () => {
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid class, no reference to unSynth static method!"`);
     });
 
+    it('should deserialize a single resource', async () => {
+      const resource1 = new TestResource('resource-1');
+      resource1.properties['key1'] = 'value1';
+      resource1.response['response1'] = 'value1';
+
+      const service = new ResourceSerializationService();
+      service.registerClass('TestResource', TestResource);
+
+      const serializedOutput = service.serialize([resource1]);
+      const resources = await service.deserialize(serializedOutput);
+
+      expect(resources).toMatchSnapshot();
+    });
+
     it('should deserialize dependencies', async () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';

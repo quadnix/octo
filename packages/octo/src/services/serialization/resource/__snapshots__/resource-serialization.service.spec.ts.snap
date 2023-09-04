@@ -1,5 +1,26 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Resource Serialization Service UT deserialize() should deserialize a single resource 1`] = `
+{
+  "resource-1": TestResource {
+    "MODEL_NAME": "test-resource",
+    "MODEL_TYPE": "resource",
+    "dependencies": [],
+    "diffMarkers": {
+      "delete": false,
+      "replace": false,
+      "update": null,
+    },
+    "parents": [],
+    "properties": {},
+    "resourceId": "resource-1",
+    "response": {
+      "response1": "value1",
+    },
+  },
+}
+`;
+
 exports[`Resource Serialization Service UT serialize() should serialize an empty array 1`] = `
 {
   "dependencies": [],
