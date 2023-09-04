@@ -1,18 +1,15 @@
-import { Diff, DiffAction, IAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
 import { S3Website } from '../../../../resources/s3/website/s3-website.resource';
+import { Action } from '../../../action.abstract';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model';
 
-export class UpdateSourcePathsS3StaticWebsiteAction implements IAction<IActionInputs, IActionOutputs> {
+export class UpdateSourcePathsS3StaticWebsiteAction extends Action {
   readonly ACTION_NAME: string = 'UpdateSourcePathsS3StaticWebsiteAction';
 
-  collectInput(diff: Diff): string[] {
+  override collectInput(diff: Diff): string[] {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
-    return [`resource.${bucketName}`];
-  }
-
-  collectOutput(): string[] {
-    return [];
+    return [`resource.bucket-${bucketName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -32,10 +29,6 @@ export class UpdateSourcePathsS3StaticWebsiteAction implements IAction<IActionIn
     // Update website source paths.
     s3Website.diffMarkers.update = { key: 'update-source-paths', value: diff.value };
 
-    return {};
-  }
-
-  revert(): IActionOutputs {
     return {};
   }
 }

@@ -1,18 +1,15 @@
-import { Diff, DiffAction, IAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
 import { S3Website } from '../../../../resources/s3/website/s3-website.resource';
+import { Action } from '../../../action.abstract';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model';
 
-export class DeleteS3StaticWebsiteAction implements IAction<IActionInputs, IActionOutputs> {
+export class DeleteS3StaticWebsiteAction extends Action {
   readonly ACTION_NAME: string = 'DeleteS3StaticWebsiteAction';
 
-  collectInput(diff: Diff): string[] {
+  override collectInput(diff: Diff): string[] {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
-    return [`resource.${bucketName}`];
-  }
-
-  collectOutput(): string[] {
-    return [];
+    return [`resource.bucket-${bucketName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -32,10 +29,6 @@ export class DeleteS3StaticWebsiteAction implements IAction<IActionInputs, IActi
     // Delete S3 Website.
     s3Website.diffMarkers.delete = true;
 
-    return {};
-  }
-
-  revert(): IActionOutputs {
     return {};
   }
 }

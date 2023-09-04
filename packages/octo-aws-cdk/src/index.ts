@@ -14,6 +14,7 @@ import {
   TransactionOptions,
   TransactionService,
 } from '@quadnix/octo';
+import { Action } from './models/action.abstract';
 import { AddImageAction } from './models/image/actions/add-image.action';
 import { AddRegionAction } from './models/region/actions/add-region.action';
 import { AwsRegion } from './models/region/aws.region.model';
@@ -137,7 +138,7 @@ export class OctoAws {
     return packageJson.version;
   }
 
-  async *beginTransaction(diffs: Diff[], options: TransactionOptions): AsyncGenerator {
+  async beginTransaction(diffs: Diff[], options: TransactionOptions): Promise<AsyncGenerator> {
     // Get previous resources from saved state.
     const previousState = await this.stateManageService.getState(
       this.resourceStateFileName,
@@ -155,7 +156,18 @@ export class OctoAws {
     return this.transactionService.beginTransaction(diffs, oldResources, newResources, options);
   }
 
-  async commitTransaction(resourceTransaction: DiffMetadata[][]): Promise<void> {
+  async commitTransaction(modelTransaction: DiffMetadata[][], resourceTransaction: DiffMetadata[][]): Promise<void> {
+    // Run post-transactions on actions.
+    for (const diffsProcessedInSameLevel of modelTransaction) {
+      const postTransactionPromises: Promise<void>[] = [];
+      diffsProcessedInSameLevel.forEach((d) => {
+        (d.actions as Action[]).forEach((a) => {
+          postTransactionPromises.push(a.postTransaction(d.diff));
+        });
+      });
+      await Promise.all(postTransactionPromises);
+    }
+
     // Generate new app with this region as boundary.
     const newRegionWithBoundary = await this.modelSerializationService.deserialize(
       this.modelSerializationService.serialize(this.region),
@@ -202,5 +214,9 @@ export class OctoAws {
 
     // Diff newApp with previousApp.
     return newAppWithBoundary.diff(previousAppWithBoundary);
+  }
+
+  getTransactionService(): TransactionService {
+    return this.transactionService;
   }
 }

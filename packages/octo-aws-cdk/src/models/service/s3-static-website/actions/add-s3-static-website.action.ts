@@ -1,15 +1,12 @@
-import { Diff, DiffAction, IAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { Diff, DiffAction, IActionOutputs } from '@quadnix/octo';
 import { S3Website } from '../../../../resources/s3/website/s3-website.resource';
+import { Action } from '../../../action.abstract';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model';
 
-export class AddS3StaticWebsiteAction implements IAction<IActionInputs, IActionOutputs> {
+export class AddS3StaticWebsiteAction extends Action {
   readonly ACTION_NAME: string = 'AddS3StaticWebsiteAction';
 
-  collectInput(): string[] {
-    return [];
-  }
-
-  collectOutput(diff: Diff): string[] {
+  override collectOutput(diff: Diff): string[] {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
     return [`bucket-${bucketName}`];
@@ -40,7 +37,8 @@ export class AddS3StaticWebsiteAction implements IAction<IActionInputs, IActionO
     return output;
   }
 
-  revert(): IActionOutputs {
-    return {};
+  override async postTransaction(diff: Diff): Promise<void> {
+    const model = diff.model as S3StaticWebsiteService;
+    await model.saveSourceManifest();
   }
 }

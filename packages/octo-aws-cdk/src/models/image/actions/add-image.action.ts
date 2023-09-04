@@ -1,17 +1,18 @@
-import { Diff, DiffAction, IAction, IActionInputs, IActionOutputs, Image } from '@quadnix/octo';
+import { Diff, DiffAction, IActionInputs, IActionOutputs, Image } from '@quadnix/octo';
 import { parse } from 'path';
 import { EcrImage } from '../../../resources/ecr/ecr-image.resource';
+import { Action } from '../../action.abstract';
 
-export class AddImageAction implements IAction<IActionInputs, IActionOutputs> {
+export class AddImageAction extends Action {
   readonly ACTION_NAME: string = 'AddImageAction';
 
-  collectInput(diff: Diff): string[] {
+  override collectInput(diff: Diff): string[] {
     const image = diff.model as Image;
 
     return [`input.image.${image.imageName}:${image.imageTag}.dockerExecutable`];
   }
 
-  collectOutput(diff: Diff): string[] {
+  override collectOutput(diff: Diff): string[] {
     const { imageName, imageTag } = diff.model as Image;
     const image = `${imageName}:${imageTag}`;
 
@@ -22,10 +23,10 @@ export class AddImageAction implements IAction<IActionInputs, IActionOutputs> {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'image' && diff.field === 'imageId';
   }
 
-  handle(diff: Diff, actionInput: IActionInputs): IActionOutputs {
+  handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
     const { dockerOptions, imageName, imageTag } = diff.model as Image;
 
-    const dockerExec = actionInput[`input.image.${imageName}:${imageTag}.dockerExecutable`] as string;
+    const dockerExec = actionInputs[`input.image.${imageName}:${imageTag}.dockerExecutable`] as string;
     const image = `${imageName}:${imageTag}`;
 
     // Build command to build image.
@@ -56,9 +57,5 @@ export class AddImageAction implements IAction<IActionInputs, IActionOutputs> {
     output[ecrImage.resourceId] = ecrImage;
 
     return output;
-  }
-
-  revert(): IActionOutputs {
-    return {};
   }
 }

@@ -1,16 +1,17 @@
-import { Diff, DiffAction, IAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource';
 import { RouteTable } from '../../../resources/route-table/route-table.resource';
 import { SecurityGroup } from '../../../resources/security-groups/security-group.resource';
 import { Subnet } from '../../../resources/subnet/subnet.resource';
 import { Vpc } from '../../../resources/vpc/vpc.resource';
+import { Action } from '../../action.abstract';
 import { AwsRegion } from '../aws.region.model';
 
-export class AddRegionAction implements IAction<IActionInputs, IActionOutputs> {
+export class AddRegionAction extends Action {
   readonly ACTION_NAME: string = 'AddRegionAction';
 
-  collectInput(diff: Diff): string[] {
+  override collectInput(diff: Diff): string[] {
     const awsRegion = diff.model as AwsRegion;
     const regionId = awsRegion.regionId;
 
@@ -21,7 +22,7 @@ export class AddRegionAction implements IAction<IActionInputs, IActionOutputs> {
     ];
   }
 
-  collectOutput(diff: Diff): string[] {
+  override collectOutput(diff: Diff): string[] {
     const { regionId } = diff.model as AwsRegion;
 
     return [
@@ -238,9 +239,5 @@ export class AddRegionAction implements IAction<IActionInputs, IActionOutputs> {
     output[webSG.resourceId] = webSG;
 
     return output;
-  }
-
-  revert(): IActionOutputs {
-    return {};
   }
 }
