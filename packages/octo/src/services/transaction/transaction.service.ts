@@ -224,7 +224,7 @@ export class TransactionService {
       yieldResourceDiffs: false,
       yieldResourceTransaction: false,
     },
-  ): AsyncGenerator {
+  ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
     // Set apply order on model diffs.
     const modelDiffs = diffs.map(
       (d) =>
@@ -245,11 +245,6 @@ export class TransactionService {
 
     // Generate diff on resources.
     diffs = await this.diffResources(newResources, oldResources);
-    if (options.yieldResourceDiffs) {
-      yield diffs;
-    }
-
-    // Set apply order on resource diffs.
     const resourceDiffs = diffs.map(
       (d) =>
         new DiffMetadata(
@@ -257,6 +252,11 @@ export class TransactionService {
           this.resourceActions.filter((a) => a.filter(d)),
         ),
     );
+    if (options.yieldResourceDiffs) {
+      yield [resourceDiffs];
+    }
+
+    // Set apply order on resource diffs.
     for (const diff of resourceDiffs) {
       this.setApplyOrder(diff, resourceDiffs);
     }
@@ -266,6 +266,8 @@ export class TransactionService {
     if (options.yieldResourceTransaction) {
       yield resourceTransaction;
     }
+
+    return resourceTransaction;
   }
 
   registerModelActions(actions: IAction<IActionInputs, IActionOutputs>[]): void {
@@ -290,7 +292,7 @@ export class TransactionService {
       yieldResourceDiffs: false,
       yieldResourceTransaction: false,
     },
-  ): AsyncGenerator {
+  ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
     // Set revert on model diffs.
     for (let i = modelTransaction.length - 1; i >= 0; i--) {
       const diffsProcessedInSameLevel = modelTransaction[i];
@@ -307,11 +309,6 @@ export class TransactionService {
 
     // Generate diff on resources.
     const diffs = await this.diffResources(oldResources, newResources);
-    if (options.yieldResourceDiffs) {
-      yield diffs;
-    }
-
-    // Set apply order on resource diffs.
     const resourceDiffs = diffs.map(
       (d) =>
         new DiffMetadata(
@@ -319,6 +316,11 @@ export class TransactionService {
           this.resourceActions.filter((a) => a.filter(d)),
         ),
     );
+    if (options.yieldResourceDiffs) {
+      yield [resourceDiffs];
+    }
+
+    // Set apply order on resource diffs.
     for (const diff of resourceDiffs) {
       this.setApplyOrder(diff, resourceDiffs);
     }
@@ -328,5 +330,7 @@ export class TransactionService {
     if (options.yieldResourceTransaction) {
       yield resourceTransaction;
     }
+
+    return resourceTransaction;
   }
 }

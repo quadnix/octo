@@ -34,7 +34,7 @@ describe('TransactionService UT', () => {
   });
 
   describe('applyModels()', () => {
-    const universalAction: IAction<IActionInputs, IActionOutputs> = {
+    const universalModelAction: IAction<IActionInputs, IActionOutputs> = {
       ACTION_NAME: 'universal',
       collectInput: () => [],
       collectOutput: () => [],
@@ -91,7 +91,7 @@ describe('TransactionService UT', () => {
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
 
       const service = new TransactionService();
-      service.registerModelActions([universalAction]);
+      service.registerModelActions([universalModelAction]);
       const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
 
       const result = await generator.next();
@@ -227,7 +227,7 @@ describe('TransactionService UT', () => {
       ];
 
       const service = new TransactionService();
-      service.registerModelActions([universalAction]);
+      service.registerModelActions([universalModelAction]);
       const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
 
       const result = await generator.next();
@@ -237,7 +237,7 @@ describe('TransactionService UT', () => {
   });
 
   describe('applyResources()', () => {
-    const universalAction: IResourceAction = {
+    const universalResourceAction: IResourceAction = {
       ACTION_NAME: 'universal',
       filter: () => true,
       handle: jest.fn(),
@@ -275,7 +275,7 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
-      service.registerResourceActions([universalAction]);
+      service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], oldResources, newResources, {
         yieldResourceDiffs: true,
         yieldResourceTransaction: true,
@@ -283,9 +283,8 @@ describe('TransactionService UT', () => {
 
       const resultResourceDiffs = await generator.next();
       // Append same resource to diff.
-      (resultResourceDiffs.value as Diff[]).push(
-        new Diff(new TestResource('resource-2'), DiffAction.ADD, 'resourceId', 'resource-2'),
-      );
+      const duplicateDiff = new Diff(new TestResource('resource-2'), DiffAction.ADD, 'resourceId', 'resource-2');
+      resultResourceDiffs.value[0].push(new DiffMetadata(duplicateDiff, [universalResourceAction]));
 
       const result = await generator.next();
 
@@ -304,7 +303,7 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
-      service.registerResourceActions([universalAction]);
+      service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], oldResources, newResources, {
         yieldResourceTransaction: true,
       });
@@ -316,6 +315,12 @@ describe('TransactionService UT', () => {
   });
 
   describe('diffResources()', () => {
+    const universalResourceAction: IResourceAction = {
+      ACTION_NAME: 'universal',
+      filter: () => true,
+      handle: jest.fn(),
+    };
+
     it('should compare distinct resources', async () => {
       const oldResources: IActionOutputs = {
         resource1: new TestResource('resource-1'),
@@ -325,6 +330,7 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
+      service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
 
       const result = await generator.next();
@@ -341,6 +347,7 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
+      service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
 
       const result = await generator.next();
@@ -360,6 +367,7 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
+      service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
 
       const result = await generator.next();
@@ -379,6 +387,7 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
+      service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
 
       const result = await generator.next();
@@ -398,6 +407,7 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
+      service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
 
       const result = await generator.next();
@@ -415,6 +425,7 @@ describe('TransactionService UT', () => {
         };
 
         const service = new TransactionService();
+        service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
 
         const result = await generator.next();
@@ -611,7 +622,7 @@ describe('TransactionService UT', () => {
   });
 
   describe('rollbackTransaction()', () => {
-    const universalAction: IAction<IActionInputs, IActionOutputs> = {
+    const universalModelAction: IAction<IActionInputs, IActionOutputs> = {
       ACTION_NAME: 'universal',
       collectInput: () => [],
       collectOutput: () => [],
@@ -621,12 +632,12 @@ describe('TransactionService UT', () => {
     };
 
     it('should call revert() for every diff in transaction', async () => {
-      (universalAction.revert as jest.Mock).mockReturnValue({});
+      (universalModelAction.revert as jest.Mock).mockReturnValue({});
 
       const diffs = [new Diff(new App('app'), DiffAction.ADD, 'name', 'app')];
 
       const service = new TransactionService();
-      service.registerModelActions([universalAction]);
+      service.registerModelActions([universalModelAction]);
 
       const transactionGenerator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
       const transactionResult = await transactionGenerator.next();
@@ -635,8 +646,8 @@ describe('TransactionService UT', () => {
       const generator = service.rollbackTransaction(modelTransaction, {}, {}, {});
       await generator.next();
 
-      expect(universalAction.revert).toHaveBeenCalledTimes(1);
-      expect((universalAction.revert as jest.Mock).mock.calls).toMatchSnapshot();
+      expect(universalModelAction.revert).toHaveBeenCalledTimes(1);
+      expect((universalModelAction.revert as jest.Mock).mock.calls).toMatchSnapshot();
     });
 
     it('should calculate diff of resources', async () => {
@@ -648,6 +659,14 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
+      service.registerResourceActions([
+        {
+          ACTION_NAME: 'test',
+          filter: (): boolean => true,
+          handle: jest.fn(),
+        },
+      ]);
+
       const generator = service.rollbackTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
       const result = await generator.next();
 

@@ -138,52 +138,68 @@ exports[`TransactionService UT applyResources() should process diffs in differen
 
 exports[`TransactionService UT applyResources() should return empty transaction if diffs is empty 1`] = `[]`;
 
-exports[`TransactionService UT diffResources() When resource class has an override on diff() should compare same resources on properties 1`] = `[]`;
-
-exports[`TransactionService UT diffResources() should compare distinct resources 1`] = `
+exports[`TransactionService UT diffResources() When resource class has an override on diff() should compare same resources on properties 1`] = `
 [
-  {
-    "action": "delete",
-    "field": "resourceId",
-    "value": "resource-1",
-  },
-  {
-    "action": "add",
-    "field": "resourceId",
-    "value": "resource-2",
-  },
+  [],
 ]
 `;
 
-exports[`TransactionService UT diffResources() should compare same resources 1`] = `[]`;
+exports[`TransactionService UT diffResources() should compare distinct resources 1`] = `
+[
+  [
+    {
+      "action": "delete",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-2",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT diffResources() should compare same resources 1`] = `
+[
+  [],
+]
+`;
 
 exports[`TransactionService UT diffResources() should compare same resources with delete marker on new 1`] = `
 [
-  {
-    "action": "delete",
-    "field": "resourceId",
-    "value": "resource-1",
-  },
+  [
+    {
+      "action": "delete",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+  ],
 ]
 `;
 
 exports[`TransactionService UT diffResources() should compare same resources with replace marker on new 1`] = `
 [
-  {
-    "action": "replace",
-    "field": "resourceId",
-    "value": "resource-1",
-  },
+  [
+    {
+      "action": "replace",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+  ],
 ]
 `;
 
 exports[`TransactionService UT diffResources() should compare same resources with update marker on new 1`] = `
 [
-  {
-    "action": "update",
-    "field": "updateKey",
-    "value": "update value",
-  },
+  [
+    {
+      "action": "update",
+      "field": "updateKey",
+      "value": "update value",
+    },
+  ],
 ]
 `;
 
@@ -206,16 +222,18 @@ exports[`TransactionService UT rollbackTransaction() should apply all diff outpu
 
 exports[`TransactionService UT rollbackTransaction() should calculate diff of resources 1`] = `
 [
-  {
-    "action": "delete",
-    "field": "resourceId",
-    "value": "resource-2",
-  },
-  {
-    "action": "add",
-    "field": "resourceId",
-    "value": "resource-1",
-  },
+  [
+    {
+      "action": "delete",
+      "field": "resourceId",
+      "value": "resource-2",
+    },
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+  ],
 ]
 `;
 
