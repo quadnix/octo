@@ -158,7 +158,11 @@ export class S3StaticWebsiteService extends Service {
       }
     }
 
-    return [new Diff(this, DiffAction.UPDATE, 'sourcePaths', manifestDiff)];
+    if (Object.keys(manifestDiff).length === 0) {
+      return [];
+    } else {
+      return [new Diff(this, DiffAction.UPDATE, 'sourcePaths', manifestDiff)];
+    }
   }
 
   async saveSourceManifest(): Promise<void> {

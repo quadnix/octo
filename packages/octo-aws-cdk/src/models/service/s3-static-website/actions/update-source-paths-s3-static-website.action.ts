@@ -24,11 +24,16 @@ export class UpdateSourcePathsS3StaticWebsiteAction extends Action {
   handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
-    const s3Website = actionInputs[`resource.${bucketName}`] as S3Website;
+    const s3Website = actionInputs[`resource.bucket-${bucketName}`] as S3Website;
 
     // Update website source paths.
     s3Website.diffMarkers.update = { key: 'update-source-paths', value: diff.value };
 
     return {};
+  }
+
+  override async postTransaction(diff: Diff): Promise<void> {
+    const model = diff.model as S3StaticWebsiteService;
+    await model.saveSourceManifest();
   }
 }

@@ -167,30 +167,46 @@ describe('S3StaticWebsiteService UT', () => {
   });
 
   describe('diff()', () => {
-    it('should generate an update on addition', async () => {
-      const app = new App('test');
-      const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
+    let app: App;
+    let region: AwsRegion;
+    let service: S3StaticWebsiteService;
+
+    let octoAws: OctoAws;
+
+    beforeEach(async () => {
+      app = new App('test');
+      region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
       app.addRegion(region);
-      const service = new S3StaticWebsiteService(region, 'test-bucket');
+      service = new S3StaticWebsiteService(region, 'test-bucket');
       app.addService(service);
-      await service.addSource(websiteSourcePath);
 
       const localStateProvider = new LocalStateProvider(__dirname);
-      const octoAws = new OctoAws(region, localStateProvider);
-      const diffs = await octoAws.diff();
+      octoAws = new OctoAws(region, localStateProvider);
+      octoAws.getTransactionService().registerInputs({
+        'input.region.aws-us-east-1a.subnet.private1.CidrBlock': '0.0.0.0/0',
+        'input.region.aws-us-east-1a.subnet.public1.CidrBlock': '0.0.0.0/0',
+        'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
+      });
 
-      expect(diffs).toMatchInlineSnapshot(`
+      const diffs0 = await octoAws.diff();
+      const generator = await octoAws.beginTransaction(diffs0, {
+        yieldModelTransaction: true,
+        yieldResourceDiffs: true,
+      });
+
+      // Avoid generator to run real resource actions.
+      const modelTransactionResult = await generator.next();
+      const resourceDiffsResult = await generator.next();
+      await octoAws.commitTransaction(modelTransactionResult.value, resourceDiffsResult.value);
+    });
+
+    it('should generate an update on addition', async () => {
+      await service.addSource(websiteSourcePath);
+
+      const diffs1 = await octoAws.diff();
+
+      expect(diffs1).toMatchInlineSnapshot(`
         [
-          {
-            "action": "add",
-            "field": "regionId",
-            "value": "aws-us-east-1a",
-          },
-          {
-            "action": "add",
-            "field": "serviceId",
-            "value": "test-bucket-s3-static-website",
-          },
           {
             "action": "update",
             "field": "sourcePaths",
@@ -214,23 +230,20 @@ describe('S3StaticWebsiteService UT', () => {
     });
 
     it('should generate an update on deletion', async () => {
-      const app = new App('test');
-      const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
-      const service = new S3StaticWebsiteService(region, 'test-bucket');
-      app.addService(service);
       await service.addSource(`${websiteSourcePath}/error.html`);
       await service.addSource(`${websiteSourcePath}/index.html`);
       await service.addSource(`${websiteSourcePath}/page-1.html`);
 
-      const localStateProvider = new LocalStateProvider(__dirname);
-      const octoAws = new OctoAws(region, localStateProvider);
       const diffs1 = await octoAws.diff();
+      const generator = await octoAws.beginTransaction(diffs1, {
+        yieldModelTransaction: true,
+        yieldResourceDiffs: true,
+      });
 
-      const generator = octoAws.beginTransaction(diffs1, { yieldModelTransaction: true });
-      await generator.next(); // Deliberately abandon execution for rest of generator.
-      await octoAws.commitTransaction([]);
-      await service.saveSourceManifest();
+      // Avoid generator to run real resource actions.
+      const modelTransactionResult = await generator.next();
+      const resourceDiffsResult = await generator.next();
+      await octoAws.commitTransaction(modelTransactionResult.value, resourceDiffsResult.value);
 
       // Remove a sourcePath from the service in a subsequent update to service.
       service.sourcePaths.forEach((p, index) => {
@@ -257,21 +270,20 @@ describe('S3StaticWebsiteService UT', () => {
     });
 
     it('should generate an update on update', async () => {
-      const app = new App('test');
-      const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
-      const service = new S3StaticWebsiteService(region, 'test-bucket');
-      app.addService(service);
-      await service.addSource(websiteSourcePath);
+      await service.addSource(`${websiteSourcePath}/error.html`);
+      await service.addSource(`${websiteSourcePath}/index.html`);
+      await service.addSource(`${websiteSourcePath}/page-1.html`);
 
-      const localStateProvider = new LocalStateProvider(__dirname);
-      const octoAws = new OctoAws(region, localStateProvider);
       const diffs1 = await octoAws.diff();
+      const generator = await octoAws.beginTransaction(diffs1, {
+        yieldModelTransaction: true,
+        yieldResourceDiffs: true,
+      });
 
-      const generator = octoAws.beginTransaction(diffs1, { yieldModelTransaction: true });
-      await generator.next(); // Deliberately abandon execution for rest of generator.
-      await octoAws.commitTransaction([]);
-      await service.saveSourceManifest();
+      // Avoid generator to run real resource actions.
+      const modelTransactionResult = await generator.next();
+      const resourceDiffsResult = await generator.next();
+      await octoAws.commitTransaction(modelTransactionResult.value, resourceDiffsResult.value);
 
       // Update a sourcePath from the service in a subsequent update to service.
       const originalErrorContent = readFileSync(`${websiteSourcePath}/error.html`);
