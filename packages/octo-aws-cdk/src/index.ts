@@ -6,6 +6,7 @@ import {
   App,
   Diff,
   DiffMetadata,
+  IActionInputs,
   IStateProvider,
   ModelSerializationService,
   Resource,
@@ -14,15 +15,15 @@ import {
   TransactionOptions,
   TransactionService,
 } from '@quadnix/octo';
+import * as packageJson from '../package.json';
 import { Action } from './models/action.abstract';
 import { AddImageAction } from './models/image/actions/add-image.action';
 import { AddRegionAction } from './models/region/actions/add-region.action';
-import { AwsRegion } from './models/region/aws.region.model';
+import { AwsRegion, AwsRegionId } from './models/region/aws.region.model';
 import { AddS3StaticWebsiteAction } from './models/service/s3-static-website/actions/add-s3-static-website.action';
 import { DeleteS3StaticWebsiteAction } from './models/service/s3-static-website/actions/delete-s3-static-website.action';
 import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/s3-static-website/actions/update-source-paths-s3-static-website.action';
 import { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model';
-import * as packageJson from '../package.json';
 import { AddEcrImageAction } from './resources/ecr/actions/add-ecr-image.action';
 import { DeleteEcrImageAction } from './resources/ecr/actions/delete-ecr-image.action';
 import { EcrImage } from './resources/ecr/ecr-image.resource';
@@ -60,7 +61,7 @@ export class OctoAws {
   private readonly modelSerializationService: ModelSerializationService;
   private readonly resourceSerializationService: ResourceSerializationService;
 
-  private readonly stateManageService: StateManagementService;
+  private readonly stateManagementService: StateManagementService;
 
   private readonly transactionService: TransactionService;
 
@@ -74,22 +75,10 @@ export class OctoAws {
     this.s3Client = new S3Client({ region: region.nativeAwsRegionId });
     this.stsClient = new STSClient({ region: region.nativeAwsRegionId });
 
-    // Register models.
-    this.modelSerializationService = new ModelSerializationService();
-    this.modelSerializationService.registerClass('AwsRegion', AwsRegion);
-    this.modelSerializationService.registerClass('S3StaticWebsiteService', S3StaticWebsiteService);
-    // Register resources.
-    this.resourceSerializationService = new ResourceSerializationService();
-    this.resourceSerializationService.registerClass('EcrImage', EcrImage);
-    this.resourceSerializationService.registerClass('InternetGateway', InternetGateway);
-    this.resourceSerializationService.registerClass('NetworkAcl', NetworkAcl);
-    this.resourceSerializationService.registerClass('RouteTable', RouteTable);
-    this.resourceSerializationService.registerClass('S3Website', S3Website);
-    this.resourceSerializationService.registerClass('SecurityGroup', SecurityGroup);
-    this.resourceSerializationService.registerClass('Subnet', Subnet);
-    this.resourceSerializationService.registerClass('Vpc', Vpc);
+    this.modelSerializationService = OctoAws.getModelSerializationService();
+    this.resourceSerializationService = OctoAws.getResourceSerializationService();
 
-    this.stateManageService = StateManagementService.getInstance(stateProvider, true);
+    this.stateManagementService = StateManagementService.getInstance(stateProvider, true);
 
     this.transactionService = new TransactionService();
     this.transactionService.registerModelActions([
@@ -134,8 +123,28 @@ export class OctoAws {
     ]);
   }
 
-  private getPackageVersion(): string {
+  private static getModelSerializationService(): ModelSerializationService {
+    const modelSerializationService = new ModelSerializationService();
+    modelSerializationService.registerClass('AwsRegion', AwsRegion);
+    modelSerializationService.registerClass('S3StaticWebsiteService', S3StaticWebsiteService);
+    return modelSerializationService;
+  }
+
+  private static getPackageVersion(): string {
     return packageJson.version;
+  }
+
+  private static getResourceSerializationService(): ResourceSerializationService {
+    const resourceSerializationService = new ResourceSerializationService();
+    resourceSerializationService.registerClass('EcrImage', EcrImage);
+    resourceSerializationService.registerClass('InternetGateway', InternetGateway);
+    resourceSerializationService.registerClass('NetworkAcl', NetworkAcl);
+    resourceSerializationService.registerClass('RouteTable', RouteTable);
+    resourceSerializationService.registerClass('S3Website', S3Website);
+    resourceSerializationService.registerClass('SecurityGroup', SecurityGroup);
+    resourceSerializationService.registerClass('Subnet', Subnet);
+    resourceSerializationService.registerClass('Vpc', Vpc);
+    return resourceSerializationService;
   }
 
   async beginTransaction(
@@ -143,7 +152,7 @@ export class OctoAws {
     options: TransactionOptions,
   ): Promise<AsyncGenerator<DiffMetadata[][], DiffMetadata[][]>> {
     // Get previous resources from saved state.
-    const previousState = await this.stateManageService.getState(
+    const previousState = await this.stateManagementService.getState(
       this.resourceStateFileName,
       JSON.stringify({
         dependencies: [],
@@ -179,14 +188,14 @@ export class OctoAws {
 
     // Save the state of the new app.
     const serializedOutput = this.modelSerializationService.serialize(newAppWithBoundary);
-    serializedOutput['version'] = this.getPackageVersion();
-    await this.stateManageService.saveState(this.modelStateFileName, Buffer.from(JSON.stringify(serializedOutput)));
+    serializedOutput['version'] = OctoAws.getPackageVersion();
+    await this.stateManagementService.saveState(this.modelStateFileName, Buffer.from(JSON.stringify(serializedOutput)));
 
     // Save the state of resources.
     const resources = resourceTransaction.flat().map((t) => t.model as Resource<unknown>);
     const resourceSerializedOutput = this.resourceSerializationService.serialize(resources);
-    resourceSerializedOutput['version'] = this.getPackageVersion();
-    await this.stateManageService.saveState(
+    resourceSerializedOutput['version'] = OctoAws.getPackageVersion();
+    await this.stateManagementService.saveState(
       this.resourceStateFileName,
       Buffer.from(JSON.stringify(resourceSerializedOutput)),
     );
@@ -194,7 +203,7 @@ export class OctoAws {
 
   async diff(): Promise<Diff[]> {
     // Get previous app from saved state. It was saved with this region as boundary.
-    const previousState = await this.stateManageService.getState(
+    const previousState = await this.stateManagementService.getState(
       this.modelStateFileName,
       JSON.stringify({
         dependencies: [],
@@ -205,7 +214,7 @@ export class OctoAws {
 
     // Get previousApp. If version mismatch, previousApp is void.
     const previousAppWithBoundary =
-      serializedOutput.version === this.getPackageVersion()
+      serializedOutput.version === OctoAws.getPackageVersion()
         ? ((await this.modelSerializationService.deserialize(serializedOutput)) as App)
         : undefined;
 
@@ -219,7 +228,31 @@ export class OctoAws {
     return newAppWithBoundary.diff(previousAppWithBoundary);
   }
 
-  getTransactionService(): TransactionService {
-    return this.transactionService;
+  static async getPreviousAppWithBoundary(
+    regionId: AwsRegionId,
+    stateProvider: IStateProvider,
+  ): Promise<App | undefined> {
+    const modelSerializationService = OctoAws.getModelSerializationService();
+    const modelStateFileName = `${regionId}-models.json`;
+    const stateManagementService = StateManagementService.getInstance(stateProvider, true);
+
+    // Get previous app from saved state. It was saved with this region as boundary.
+    const previousState = await stateManagementService.getState(
+      modelStateFileName,
+      JSON.stringify({
+        dependencies: [],
+        models: {},
+      }),
+    );
+    const serializedOutput = JSON.parse(previousState.toString());
+
+    // Get previousApp. If version mismatch, previousApp is void.
+    return serializedOutput.version === OctoAws.getPackageVersion()
+      ? ((await modelSerializationService.deserialize(serializedOutput)) as App)
+      : undefined;
+  }
+
+  registerInputs(inputs: IActionInputs): void {
+    this.transactionService.registerInputs(inputs);
   }
 }

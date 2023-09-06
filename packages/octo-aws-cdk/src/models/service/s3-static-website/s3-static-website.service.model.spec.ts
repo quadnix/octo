@@ -182,7 +182,7 @@ describe('S3StaticWebsiteService UT', () => {
 
       const localStateProvider = new LocalStateProvider(__dirname);
       octoAws = new OctoAws(region, localStateProvider);
-      octoAws.getTransactionService().registerInputs({
+      octoAws.registerInputs({
         'input.region.aws-us-east-1a.subnet.private1.CidrBlock': '0.0.0.0/0',
         'input.region.aws-us-east-1a.subnet.public1.CidrBlock': '0.0.0.0/0',
         'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
@@ -194,7 +194,7 @@ describe('S3StaticWebsiteService UT', () => {
         yieldResourceDiffs: true,
       });
 
-      // Avoid generator to run real resource actions.
+      // Prevent generator from running real resource actions.
       const modelTransactionResult = await generator.next();
       const resourceDiffsResult = await generator.next();
       await octoAws.commitTransaction(modelTransactionResult.value, resourceDiffsResult.value);
@@ -240,7 +240,7 @@ describe('S3StaticWebsiteService UT', () => {
         yieldResourceDiffs: true,
       });
 
-      // Avoid generator to run real resource actions.
+      // Prevent generator from running real resource actions.
       const modelTransactionResult = await generator.next();
       const resourceDiffsResult = await generator.next();
       await octoAws.commitTransaction(modelTransactionResult.value, resourceDiffsResult.value);
@@ -280,7 +280,7 @@ describe('S3StaticWebsiteService UT', () => {
         yieldResourceDiffs: true,
       });
 
-      // Avoid generator to run real resource actions.
+      // Prevent generator from running real resource actions.
       const modelTransactionResult = await generator.next();
       const resourceDiffsResult = await generator.next();
       await octoAws.commitTransaction(modelTransactionResult.value, resourceDiffsResult.value);
