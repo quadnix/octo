@@ -256,4 +256,64 @@ describe('Model E2E Test', () => {
       });
     });
   });
+
+  describe('remove()', () => {
+    it('should throw error when model being a parent cannot be removed', () => {
+      const app = new App('app');
+      const region = new Region('region');
+      app.addRegion(region);
+
+      expect(() => {
+        app.remove(true);
+      }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove model until dependent models exist!"`);
+    });
+
+    it('should throw error when model having a direct relationship cannot be removed', () => {
+      const app = new App('app');
+      const image = new Image('image', 'tag', { dockerFilePath: '/Dockerfile' });
+      app.addImage(image);
+      const support = new Support('support', 'nginx');
+      app.addSupport(support);
+      const deployment = new Deployment('deploymentTag', image);
+      support.addDeployment(deployment);
+
+      expect(() => {
+        deployment.remove();
+      }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove model until dependent models exist!"`);
+    });
+
+    it('should be able to remove leaf model', () => {
+      const app = new App('app');
+      const region = new Region('region');
+      app.addRegion(region);
+
+      expect(app.getChild('region', [{ key: 'regionId', value: 'region' }])).not.toBe(undefined);
+      region.remove();
+      expect(app.getChild('region', [{ key: 'regionId', value: 'region' }])).toBe(undefined);
+    });
+
+    it('should be able to remove leaf model with a direct relationship', () => {
+      const app = new App('app');
+      const image = new Image('image', 'tag', { dockerFilePath: '/Dockerfile' });
+      app.addImage(image);
+      const support = new Support('support', 'nginx');
+      app.addSupport(support);
+      const deployment = new Deployment('deploymentTag', image);
+      support.addDeployment(deployment);
+
+      // Image cannot be removed until deployment is removed.
+      expect(() => {
+        image.remove();
+      }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove model until dependent models exist!"`);
+
+      // Remove deployment.
+      expect(support.getChild('deployment', [{ key: 'deploymentTag', value: 'deploymentTag' }])).not.toBe(undefined);
+      deployment.remove(true);
+      expect(support.getChild('deployment', [{ key: 'deploymentTag', value: 'deploymentTag' }])).toBe(undefined);
+
+      // Remove image.
+      image.remove();
+      expect(app.getChild('image', [{ key: 'imageTag', value: 'tag' }])).toBe(undefined);
+    });
+  });
 });

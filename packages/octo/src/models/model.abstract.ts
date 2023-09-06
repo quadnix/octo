@@ -239,5 +239,25 @@ export abstract class Model<I, T> implements IModel<I, T> {
     });
   }
 
+  remove(ignoreDirectRelationships = false): void {
+    // Verify model can be removed.
+    for (const dependency of this.dependencies) {
+      // When direct relationship is not ignored, this model can't be a parent or have direct relationships.
+      // When direct relationship is ignored, this model can't be a parent.
+      if (
+        (!ignoreDirectRelationships && !dependency.isChildRelationship()) ||
+        (ignoreDirectRelationships && dependency.isParentRelationship())
+      ) {
+        throw new Error('Cannot remove model until dependent models exist!');
+      }
+    }
+
+    // In every dependency, this model is a child. Removing this from every parent.
+    for (const dependency of this.dependencies) {
+      const index = dependency.to.dependencies.findIndex((d) => d.to.getContext() === this.getContext());
+      dependency.to.dependencies.splice(index, 1);
+    }
+  }
+
   abstract synth(): I;
 }
