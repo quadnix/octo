@@ -30,53 +30,51 @@ export class AddS3WebsiteAction implements IResourceAction {
       }),
     );
 
-    await Promise.all([
-      // Add static website hosting to the bucket.
-      this.s3Client.send(
-        new PutBucketWebsiteCommand({
-          Bucket: properties.Bucket,
-          WebsiteConfiguration: {
-            ErrorDocument: {
-              Key: properties.ErrorDocument,
-            },
-            IndexDocument: {
-              Suffix: properties.IndexDocument,
-            },
+    // Add static website hosting to the bucket.
+    await this.s3Client.send(
+      new PutBucketWebsiteCommand({
+        Bucket: properties.Bucket,
+        WebsiteConfiguration: {
+          ErrorDocument: {
+            Key: properties.ErrorDocument,
           },
-        }),
-      ),
-
-      // Configure static website to be accessible to public.
-      this.s3Client.send(
-        new PutPublicAccessBlockCommand({
-          Bucket: properties.Bucket,
-          PublicAccessBlockConfiguration: {
-            BlockPublicAcls: false,
-            BlockPublicPolicy: false,
-            IgnorePublicAcls: false,
-            RestrictPublicBuckets: false,
+          IndexDocument: {
+            Suffix: properties.IndexDocument,
           },
-        }),
-      ),
+        },
+      }),
+    );
 
-      // Allow bucket files to be read by everyone.
-      this.s3Client.send(
-        new PutBucketPolicyCommand({
-          Bucket: properties.Bucket,
-          Policy: JSON.stringify({
-            Statement: [
-              {
-                Action: ['s3:GetObject'],
-                Effect: 'Allow',
-                Principal: '*',
-                Resource: [`arn:aws:s3:::${properties.Bucket}/*`],
-                Sid: 'PublicReadGetObject',
-              },
-            ],
-            Version: '2012-10-17',
-          }),
+    // Configure static website to be accessible to public.
+    await this.s3Client.send(
+      new PutPublicAccessBlockCommand({
+        Bucket: properties.Bucket,
+        PublicAccessBlockConfiguration: {
+          BlockPublicAcls: false,
+          BlockPublicPolicy: false,
+          IgnorePublicAcls: false,
+          RestrictPublicBuckets: false,
+        },
+      }),
+    );
+
+    // Allow bucket files to be read by everyone.
+    await this.s3Client.send(
+      new PutBucketPolicyCommand({
+        Bucket: properties.Bucket,
+        Policy: JSON.stringify({
+          Statement: [
+            {
+              Action: ['s3:GetObject'],
+              Effect: 'Allow',
+              Principal: '*',
+              Resource: [`arn:aws:s3:::${properties.Bucket}/*`],
+              Sid: 'PublicReadGetObject',
+            },
+          ],
+          Version: '2012-10-17',
         }),
-      ),
-    ]);
+      }),
+    );
   }
 }
