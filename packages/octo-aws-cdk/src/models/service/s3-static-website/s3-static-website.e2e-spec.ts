@@ -114,20 +114,21 @@ describe('S3StaticWebsite E2E Test', () => {
     }
 
     // Remove website.
-    // const app3 = new App('test-app');
-    // const diffs3 = await app3.diff(app2);
-    // const transaction3 = await diffService.beginTransaction(diffs3);
-    // await stateManagementService.saveApplicationState(serializationService.serialize(app3));
-    // expect(transaction3).toMatchInlineSnapshot(`
-    //   [
-    //     [
-    //       {
-    //         "action": "delete",
-    //         "field": "serviceId",
-    //         "value": "rash-new-bucket-test-1-s3-static-website",
-    //       },
-    //     ],
-    //   ]
-    // `);
+    service.remove(true);
+    const diffs4 = await octoAws.diff();
+
+    generator = await octoAws.beginTransaction(diffs4, {
+      yieldModelTransaction: true,
+      yieldResourceTransaction: true,
+    });
+
+    modelTransactionResult = await generator.next();
+    resourceTransactionResult = await generator.next();
+    await octoAws.commitTransaction(modelTransactionResult.value, resourceTransactionResult.value);
+
+    // Ensure website is not available.
+    await expect(async () => {
+      await axios.get(`http://${BUCKET_NAME}.s3-website-us-east-1.amazonaws.com/index.html`);
+    }).rejects.toThrowErrorMatchingInlineSnapshot(`"Request failed with status code 404"`);
   });
 });
