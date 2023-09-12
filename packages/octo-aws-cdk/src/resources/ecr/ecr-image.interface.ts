@@ -5,3 +5,10 @@ export interface IEcrImageProperties {
   imageName: string;
   imageTag: string;
 }
+
+export interface IEcrImageResponse {
+  registryId: string;
+  replicationRegions: string;
+  repositoryArn: string;
+  repositoryName: string;
+}

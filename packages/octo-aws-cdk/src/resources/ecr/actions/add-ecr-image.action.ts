@@ -7,7 +7,7 @@ import {
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
 import { FileUtility } from '../../../utilities/file/file.utility';
 import { ProcessUtility } from '../../../utilities/process/process.utility';
-import { IEcrImageProperties } from '../ecr-image.interface';
+import { IEcrImageProperties, IEcrImageResponse } from '../ecr-image.interface';
 import { EcrImage } from '../ecr-image.resource';
 
 export class AddEcrImageAction implements IResourceAction {
@@ -23,6 +23,7 @@ export class AddEcrImageAction implements IResourceAction {
     // Get properties.
     const ecrImage = diff.model as EcrImage;
     const properties = ecrImage.properties as unknown as IEcrImageProperties;
+    const response = ecrImage.response as unknown as IEcrImageResponse;
 
     const image = `${properties.imageName}:${properties.imageTag}`;
 
@@ -46,7 +47,7 @@ export class AddEcrImageAction implements IResourceAction {
       }
     } catch (describeImagesError) {
       if (describeImagesError.name === 'RepositoryNotFoundException') {
-        await this.ecrClient.send(
+        const data = await this.ecrClient.send(
           new CreateRepositoryCommand({
             imageScanningConfiguration: {
               scanOnPush: false,
@@ -55,6 +56,12 @@ export class AddEcrImageAction implements IResourceAction {
             repositoryName: properties.imageName,
           }),
         );
+
+        // Set response.
+        response.registryId = data.repository!.registryId as string;
+        response.replicationRegions = this.ecrClient.config.region as string;
+        response.repositoryArn = data.repository!.repositoryArn as string;
+        response.repositoryName = data.repository!.repositoryName as string;
       } else if (describeImagesError.name === 'ImageNotFoundException') {
         // Intentionally left blank.
       } else {
