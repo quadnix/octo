@@ -1,5 +1,4 @@
 import { Diff, DiffAction, Model, Service, StateManagementService } from '@quadnix/octo';
-import { Dependency } from '@quadnix/octo/dist/functions/dependency/dependency.model';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
 import { FileUtility } from '../../../utilities/file/file.utility';
@@ -28,13 +27,7 @@ export class S3StaticWebsiteService extends Service {
     this.region = region;
     this.bucketName = bucketName;
 
-    const serviceToRegionDependency = new Dependency(this, region);
-    serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
-    serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.UPDATE);
-    this.dependencies.push(serviceToRegionDependency);
-    const regionToServiceDependency = new Dependency(region, this);
-    regionToServiceDependency.addBehavior('regionId', DiffAction.DELETE, 'serviceId', DiffAction.DELETE);
-    region['dependencies'].push(regionToServiceDependency);
+    this.addRelationship('serviceId', region, 'regionId');
   }
 
   private async generateSourceManifest(): Promise<IManifest> {

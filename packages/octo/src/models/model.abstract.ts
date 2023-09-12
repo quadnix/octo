@@ -42,6 +42,16 @@ export abstract class Model<I, T> implements IModel<I, T> {
     }
   }
 
+  addRelationship(onField: keyof T, to: Model<unknown, unknown>, toField: string): void {
+    const thisToThatDependency = new Dependency(this, to);
+    thisToThatDependency.addBehavior(onField as string, DiffAction.ADD, toField, DiffAction.ADD);
+    thisToThatDependency.addBehavior(onField as string, DiffAction.ADD, toField, DiffAction.UPDATE);
+    this.dependencies.push(thisToThatDependency);
+    const thatToThisDependency = new Dependency(to, this);
+    thatToThisDependency.addBehavior(toField, DiffAction.DELETE, onField as string, DiffAction.DELETE);
+    to.dependencies.push(thatToThisDependency);
+  }
+
   async diff(previous?: T): Promise<Diff[]> {
     const childrenByModel = this.getChildren();
     const childrenOfPreviousByModel = (previous as Model<unknown, unknown>)?.getChildren() ?? {};

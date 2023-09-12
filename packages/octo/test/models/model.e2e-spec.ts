@@ -1,7 +1,6 @@
 import {
   App,
   Deployment,
-  DiffAction,
   Environment,
   Execution,
   Image,
@@ -12,7 +11,6 @@ import {
   Service,
   Support,
 } from '../../src';
-import { Dependency } from '../../src/functions/dependency/dependency.model';
 
 describe('Model E2E Test', () => {
   describe('common functions', () => {
@@ -115,13 +113,7 @@ describe('Model E2E Test', () => {
       const service = new Service('service');
       app.addService(service);
 
-      const serviceToRegionDependency = new Dependency(service, region);
-      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
-      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.UPDATE);
-      service['dependencies'].push(serviceToRegionDependency);
-      const regionToServiceDependency = new Dependency(region, service);
-      regionToServiceDependency.addBehavior('regionId', DiffAction.DELETE, 'serviceId', DiffAction.DELETE);
-      region['dependencies'].push(regionToServiceDependency);
+      service.addRelationship('serviceId', region, 'regionId');
 
       expect(service.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
     });
@@ -133,13 +125,7 @@ describe('Model E2E Test', () => {
       const service = new Service('service');
       app.addService(service);
 
-      const serviceToRegionDependency = new Dependency(service, region);
-      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
-      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.UPDATE);
-      service['dependencies'].push(serviceToRegionDependency);
-      const regionToServiceDependency = new Dependency(region, service);
-      regionToServiceDependency.addBehavior('regionId', DiffAction.DELETE, 'serviceId', DiffAction.DELETE);
-      region['dependencies'].push(regionToServiceDependency);
+      service.addRelationship('serviceId', region, 'regionId');
 
       expect(region.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
     });
@@ -213,13 +199,7 @@ describe('Model E2E Test', () => {
       const service = new Service('service');
       app.addService(service);
 
-      const serviceToRegionDependency = new Dependency(service, region);
-      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
-      serviceToRegionDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.UPDATE);
-      service['dependencies'].push(serviceToRegionDependency);
-      const regionToServiceDependency = new Dependency(region, service);
-      regionToServiceDependency.addBehavior('regionId', DiffAction.DELETE, 'serviceId', DiffAction.DELETE);
-      region['dependencies'].push(regionToServiceDependency);
+      service.addRelationship('serviceId', region, 'regionId');
 
       expect(region.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
         [

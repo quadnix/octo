@@ -1,5 +1,3 @@
-import { Dependency } from '../../functions/dependency/dependency.model';
-import { DiffAction } from '../../functions/diff/diff.model';
 import { Image } from '../image/image.model';
 import { Model } from '../model.abstract';
 import { IDeployment } from './deployment.interface';
@@ -16,13 +14,7 @@ export class Deployment extends Model<IDeployment, Deployment> {
     this.deploymentTag = deploymentTag;
     this.image = image;
 
-    const deploymentToImageDependency = new Dependency(this, image);
-    deploymentToImageDependency.addBehavior('deploymentTag', DiffAction.ADD, 'imageId', DiffAction.ADD);
-    deploymentToImageDependency.addBehavior('deploymentTag', DiffAction.ADD, 'imageId', DiffAction.UPDATE);
-    this.dependencies.push(deploymentToImageDependency);
-    const imageToDeploymentDependency = new Dependency(image, this);
-    imageToDeploymentDependency.addBehavior('imageId', DiffAction.DELETE, 'deploymentTag', DiffAction.DELETE);
-    image['dependencies'].push(imageToDeploymentDependency);
+    this.addRelationship('deploymentTag', image, 'imageId');
   }
 
   getContext(): string {
