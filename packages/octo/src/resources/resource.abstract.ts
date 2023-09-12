@@ -1,11 +1,12 @@
 import { Diff, DiffAction } from '../functions/diff/diff.model';
 import { Model } from '../models/model.abstract';
+import { IModel } from '../models/model.interface';
 import { IResource } from './resource.interface';
 
 type IResourceMarkers = { delete: boolean; replace: boolean; update: { key: string; value: any } | null };
 
 export abstract class Resource<T> extends Model<IResource, T> {
-  override readonly MODEL_TYPE = 'resource';
+  override readonly MODEL_TYPE: IModel<IResource, T>['MODEL_TYPE'] = 'resource';
 
   readonly diffMarkers: IResourceMarkers = {
     delete: false,

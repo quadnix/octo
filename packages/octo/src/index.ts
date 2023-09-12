@@ -31,6 +31,7 @@ export { IModel } from './models/model.interface';
 export { Resource } from './resources/resource.abstract';
 export { IResource } from './resources/resource.interface';
 export { IResourceAction } from './resources/resource-action.interface';
+export { SharedResource } from './resources/shared-resource.abstract';
 
 export { HookService } from './services/hook/hook.service';
 

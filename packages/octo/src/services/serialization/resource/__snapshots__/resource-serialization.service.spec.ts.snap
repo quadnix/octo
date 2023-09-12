@@ -25,6 +25,7 @@ exports[`Resource Serialization Service UT serialize() should serialize an empty
 {
   "dependencies": [],
   "resources": {},
+  "sharedResources": {},
 }
 `;
 
@@ -75,6 +76,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
   "resources": {
     "resource-1": {
       "className": "TestResource",
+      "isSharedResource": false,
       "resource": {
         "parents": [],
         "properties": {
@@ -88,6 +90,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
     },
     "resource-2": {
       "className": "TestResource",
+      "isSharedResource": false,
       "resource": {
         "parents": [],
         "properties": {
@@ -100,6 +103,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
       },
     },
   },
+  "sharedResources": {},
 }
 `;
 
@@ -109,6 +113,7 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
   "resources": {
     "resource-1": {
       "className": "TestResource",
+      "isSharedResource": false,
       "resource": {
         "parents": [],
         "properties": {},
@@ -117,5 +122,6 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
       },
     },
   },
+  "sharedResources": {},
 }
 `;

@@ -141,14 +141,27 @@ export class TransactionService {
         diffs.push(...rDiff);
       } else {
         const model = oldResources[oldResourceId];
-        diffs.push(new Diff(model, DiffAction.DELETE, 'resourceId', model.resourceId));
+
+        if (model.MODEL_TYPE === 'shared-resource') {
+          model.diffMarkers.delete = true;
+          const rDiff = await model.diff();
+          diffs.push(...rDiff);
+        } else {
+          diffs.push(new Diff(model, DiffAction.DELETE, 'resourceId', model.resourceId));
+        }
       }
     }
 
     for (const newResourceId in newResources) {
       if (!oldResources.hasOwnProperty(newResourceId)) {
         const model = newResources[newResourceId];
-        diffs.push(new Diff(model, DiffAction.ADD, 'resourceId', model.resourceId));
+
+        if (model.MODEL_TYPE === 'shared-resource') {
+          const rDiff = await model.diff();
+          diffs.push(...rDiff);
+        } else {
+          diffs.push(new Diff(model, DiffAction.ADD, 'resourceId', model.resourceId));
+        }
       }
     }
 

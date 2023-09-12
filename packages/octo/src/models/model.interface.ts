@@ -15,7 +15,7 @@ export interface IModel<I, T> {
   /**
    * The type of model. Can only be either "model" or "resource".
    */
-  readonly MODEL_TYPE: 'model' | 'resource';
+  readonly MODEL_TYPE: 'model' | 'resource' | 'shared-resource';
 
   /**
    * Generate a diff comparing all children of self with previous instance.
