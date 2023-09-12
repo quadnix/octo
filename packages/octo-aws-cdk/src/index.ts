@@ -11,6 +11,7 @@ import {
   ModelSerializationService,
   Resource,
   ResourceSerializationService,
+  ResourceSerializedOutput,
   StateManagementService,
   TransactionOptions,
   TransactionService,
@@ -51,6 +52,7 @@ export { S3StaticWebsiteService } from './models/service/s3-static-website/s3-st
 export class OctoAws {
   private readonly modelStateFileName: string;
   private readonly resourceStateFileName: string;
+  private readonly sharedResourceStateFileName: string;
   private readonly region: AwsRegion;
 
   private readonly ec2Client: EC2Client;
@@ -68,6 +70,7 @@ export class OctoAws {
   constructor(region: AwsRegion, stateProvider: IStateProvider) {
     this.modelStateFileName = `${region.regionId}-models.json`;
     this.resourceStateFileName = `${region.regionId}-resources.json`;
+    this.sharedResourceStateFileName = 'shared-resources.json';
     this.region = region;
 
     this.ec2Client = new EC2Client({ region: region.nativeAwsRegionId });
@@ -159,7 +162,15 @@ export class OctoAws {
         resources: {},
       }),
     );
-    const serializedOutput = JSON.parse(previousState.toString());
+    // Get previous shared-resources from saved state.
+    const previousSharedState = await this.stateManagementService.getState(
+      this.sharedResourceStateFileName,
+      JSON.stringify({
+        sharedResources: {},
+      }),
+    );
+    const serializedOutput: ResourceSerializedOutput = JSON.parse(previousState.toString());
+    serializedOutput.sharedResources = JSON.parse(previousSharedState.toString()).sharedResources;
     const oldResources = await this.resourceSerializationService.deserialize(serializedOutput);
 
     // Declare new resources, starting with an exact copy of old resources.
@@ -191,13 +202,29 @@ export class OctoAws {
     serializedOutput['version'] = OctoAws.getPackageVersion();
     await this.stateManagementService.saveState(this.modelStateFileName, Buffer.from(JSON.stringify(serializedOutput)));
 
-    // Save the state of resources.
+    // Serialize resources.
     const resources = resourceTransaction.flat().map((t) => t.model as Resource<unknown>);
     const resourceSerializedOutput = this.resourceSerializationService.serialize(resources);
-    resourceSerializedOutput['version'] = OctoAws.getPackageVersion();
+    // Save the state of shared-resources.
+    await this.stateManagementService.saveState(
+      this.sharedResourceStateFileName,
+      Buffer.from(
+        JSON.stringify({
+          sharedResources: { ...resourceSerializedOutput.sharedResources },
+          version: OctoAws.getPackageVersion(),
+        }),
+      ),
+    );
+    // Save the state of resources.
     await this.stateManagementService.saveState(
       this.resourceStateFileName,
-      Buffer.from(JSON.stringify(resourceSerializedOutput)),
+      Buffer.from(
+        JSON.stringify({
+          dependencies: [...resourceSerializedOutput.dependencies],
+          resources: { ...resourceSerializedOutput.resources },
+          version: OctoAws.getPackageVersion(),
+        }),
+      ),
     );
   }
 
