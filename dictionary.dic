@@ -15,12 +15,14 @@ commonjs
 cov
 dep
 dic
+dkr
 Dockerfile
 ec2
 ecr
 ecs
 eslintrc
 Fallthrough
+iam
 igw
 Ipv
 ispec
@@ -38,6 +40,7 @@ schemas
 sdk
 serializable
 stdin
+stringified
 sts
 subnet
 subnets
@@ -45,6 +48,7 @@ tcp
 tsc
 tsconfig
 unlink
+uri
 vpc
 workspace
 workspaces

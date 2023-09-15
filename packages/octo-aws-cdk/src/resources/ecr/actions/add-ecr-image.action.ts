@@ -7,7 +7,7 @@ import {
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
 import { FileUtility } from '../../../utilities/file/file.utility';
 import { ProcessUtility } from '../../../utilities/process/process.utility';
-import { IEcrImageProperties, IEcrImageResponse } from '../ecr-image.interface';
+import { IEcrImageMetadata, IEcrImageProperties, IEcrImageResponse } from '../ecr-image.interface';
 import { EcrImage } from '../ecr-image.resource';
 
 export class AddEcrImageAction implements IResourceAction {
@@ -58,10 +58,14 @@ export class AddEcrImageAction implements IResourceAction {
         );
 
         // Set response.
-        response.registryId = data.repository!.registryId as string;
-        response.replicationRegions = this.ecrClient.config.region as string;
-        response.repositoryArn = data.repository!.repositoryArn as string;
-        response.repositoryName = data.repository!.repositoryName as string;
+        const source: IEcrImageMetadata = {
+          awsRegion: this.ecrClient.config.region as string,
+          registryId: data.repository!.registryId as string,
+          repositoryArn: data.repository!.repositoryArn as string,
+          repositoryName: data.repository!.repositoryName as string,
+          repositoryUri: data.repository!.repositoryUri as string,
+        };
+        response.sourceStringified = JSON.stringify(source);
       } else if (describeImagesError.name === 'ImageNotFoundException') {
         // Intentionally left blank.
       } else {
