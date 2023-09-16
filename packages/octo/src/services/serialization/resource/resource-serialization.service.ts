@@ -95,15 +95,8 @@ export class ResourceSerializationService {
         continue;
       }
 
-      const { className, resource } = serializedOutput.resources[resourceId];
-      const deserializationClass = this.classMapping[className];
-      this.throwErrorIfDeserializationClassInvalid(deserializationClass);
-
-      resources[resource.resourceId] = await deserializationClass.unSynth(
-        deserializationClass,
-        resource,
-        deReferenceResource,
-      );
+      // Initialize resources/shared-resources that have no dependencies.
+      resources[resourceId] = await deserializeResource(resourceId);
     }
 
     return resources;

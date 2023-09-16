@@ -1,4 +1,5 @@
 import { Resource } from '../../../resources/resource.abstract';
+import { SharedResource } from '../../../resources/shared-resource.abstract';
 import { ResourceSerializationService } from './resource-serialization.service';
 
 class TestResource extends Resource<TestResource> {
@@ -6,6 +7,14 @@ class TestResource extends Resource<TestResource> {
 
   constructor(resourceId: string) {
     super(resourceId, {}, []);
+  }
+}
+
+class SharedTestResource extends SharedResource<TestResource> {
+  readonly MODEL_NAME: string = 'test-resource';
+
+  constructor(resource: TestResource) {
+    super(resource);
   }
 }
 
@@ -37,6 +46,22 @@ describe('Resource Serialization Service UT', () => {
       service.registerClass('TestResource', TestResource);
 
       const serializedOutput = service.serialize([resource1]);
+      const resources = await service.deserialize(serializedOutput);
+
+      expect(resources).toMatchSnapshot();
+    });
+
+    it('should deserialize a single shared resource', async () => {
+      const resource1 = new TestResource('resource-1');
+      resource1.properties['key1'] = 'value1';
+      resource1.response['response1'] = 'value1';
+      const sharedResource1 = new SharedTestResource(resource1);
+
+      const service = new ResourceSerializationService();
+      service.registerClass('TestResource', TestResource);
+      service.registerClass('SharedTestResource', SharedTestResource);
+
+      const serializedOutput = service.serialize([sharedResource1]);
       const resources = await service.deserialize(serializedOutput);
 
       expect(resources).toMatchSnapshot();
