@@ -284,7 +284,9 @@ describe('TransactionService UT', () => {
       const resultResourceDiffs = await generator.next();
       // Append same resource to diff.
       const duplicateDiff = new Diff(new TestResource('resource-2'), DiffAction.ADD, 'resourceId', 'resource-2');
-      resultResourceDiffs.value[0].push(new DiffMetadata(duplicateDiff, [universalResourceAction]));
+      (resultResourceDiffs.value as DiffMetadata[][])[0].push(
+        new DiffMetadata(duplicateDiff, [universalResourceAction]),
+      );
 
       const result = await generator.next();
 
@@ -618,6 +620,39 @@ describe('TransactionService UT', () => {
         setApplyOrder(diffsMetadata[1], diffsMetadata);
         setApplyOrder(diffsMetadata[2], diffsMetadata);
       }).toThrowError('Found conflicting actions in same transaction!');
+    });
+  });
+
+  describe('beginTransaction()', () => {
+    describe('yieldNewResources', () => {
+      const universalResourceAction: IResourceAction = {
+        ACTION_NAME: 'universal',
+        filter: () => true,
+        handle: jest.fn(),
+      };
+
+      it('should yield new resources', async () => {
+        const oldResources: IActionOutputs = {
+          resource1: new TestResource('resource-1'),
+        };
+        const newResources: IActionOutputs = {
+          resource1: new TestResource('resource-1'),
+          resource2: new TestResource('resource-2'),
+        };
+
+        const service = new TransactionService();
+        service.registerResourceActions([universalResourceAction]);
+        const generator = service.beginTransaction([], oldResources, newResources, { yieldNewResources: true });
+
+        const result = await generator.next();
+
+        expect(result.value.map((r) => r.resourceId)).toMatchInlineSnapshot(`
+        [
+          "resource-1",
+          "resource-2",
+        ]
+      `);
+      });
     });
   });
 

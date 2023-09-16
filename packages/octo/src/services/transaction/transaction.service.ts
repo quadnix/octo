@@ -2,9 +2,11 @@ import { DiffMetadata } from '../../functions/diff/diff-metadata.model';
 import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface';
 import { IResourceAction } from '../../resources/resource-action.interface';
+import { Resource } from '../../resources/resource.abstract';
 
 export type TransactionOptions = {
   yieldModelTransaction?: boolean;
+  yieldNewResources?: boolean;
   yieldResourceDiffs?: boolean;
   yieldResourceTransaction?: boolean;
 };
@@ -235,10 +237,11 @@ export class TransactionService {
     newResources: IActionOutputs = {},
     options: TransactionOptions = {
       yieldModelTransaction: false,
+      yieldNewResources: false,
       yieldResourceDiffs: false,
       yieldResourceTransaction: false,
     },
-  ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
+  ): AsyncGenerator<DiffMetadata[][] | Resource<unknown>[], DiffMetadata[][]> {
     // Set apply order on model diffs.
     const modelDiffs = diffs.map(
       (d) =>
@@ -255,6 +258,11 @@ export class TransactionService {
     const modelTransaction = this.applyModels(modelDiffs, newResources);
     if (options.yieldModelTransaction) {
       yield modelTransaction;
+    }
+
+    // Yield new resources.
+    if (options.yieldNewResources) {
+      yield Object.values(newResources);
     }
 
     // Generate diff on resources.
