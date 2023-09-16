@@ -1,4 +1,4 @@
-import { App, LocalStateProvider } from '@quadnix/octo';
+import { App, DiffMetadata, LocalStateProvider, Resource } from '@quadnix/octo';
 import { existsSync, readFileSync, unlink, writeFile } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
@@ -15,6 +15,7 @@ describe('S3StaticWebsiteService UT', () => {
   const filePaths: string[] = [
     join(__dirname, 'aws-us-east-1a-models.json'),
     join(__dirname, 'aws-us-east-1a-resources.json'),
+    join(__dirname, 'shared-resources.json'),
     join(__dirname, 'test-bucket-manifest.json'),
   ];
 
@@ -191,13 +192,13 @@ describe('S3StaticWebsiteService UT', () => {
       const diffs0 = await octoAws.diff();
       const generator = await octoAws.beginTransaction(diffs0, {
         yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldNewResources: true,
       });
 
       // Prevent generator from running real resource actions.
-      const modelTransactionResult = await generator.next();
-      const resourceDiffsResult = await generator.next();
-      await octoAws.commitTransaction(modelTransactionResult.value, resourceDiffsResult.value);
+      const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
+      const resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+      await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
     });
 
     it('should generate an update on addition', async () => {
@@ -237,13 +238,13 @@ describe('S3StaticWebsiteService UT', () => {
       const diffs1 = await octoAws.diff();
       const generator = await octoAws.beginTransaction(diffs1, {
         yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldNewResources: true,
       });
 
       // Prevent generator from running real resource actions.
-      const modelTransactionResult = await generator.next();
-      const resourceDiffsResult = await generator.next();
-      await octoAws.commitTransaction(modelTransactionResult.value, resourceDiffsResult.value);
+      const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
+      const resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+      await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
 
       // Remove a sourcePath from the service in a subsequent update to service.
       service.sourcePaths.forEach((p, index) => {
@@ -277,13 +278,13 @@ describe('S3StaticWebsiteService UT', () => {
       const diffs1 = await octoAws.diff();
       const generator = await octoAws.beginTransaction(diffs1, {
         yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldNewResources: true,
       });
 
       // Prevent generator from running real resource actions.
-      const modelTransactionResult = await generator.next();
-      const resourceDiffsResult = await generator.next();
-      await octoAws.commitTransaction(modelTransactionResult.value, resourceDiffsResult.value);
+      const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
+      const resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+      await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
 
       // Update a sourcePath from the service in a subsequent update to service.
       const originalErrorContent = readFileSync(`${websiteSourcePath}/error.html`);

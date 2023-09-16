@@ -155,7 +155,7 @@ export class OctoAws {
   async beginTransaction(
     diffs: Diff[],
     options: TransactionOptions,
-  ): Promise<AsyncGenerator<DiffMetadata[][], DiffMetadata[][]>> {
+  ): Promise<AsyncGenerator<DiffMetadata[][] | Resource<unknown>[], DiffMetadata[][]>> {
     // Get previous resources from saved state.
     const previousState = await this.stateManagementService.getState(
       this.resourceStateFileName,
@@ -181,7 +181,7 @@ export class OctoAws {
     return this.transactionService.beginTransaction(diffs, oldResources, newResources, options);
   }
 
-  async commitTransaction(modelTransaction: DiffMetadata[][], resourceTransaction: DiffMetadata[][]): Promise<void> {
+  async commitTransaction(modelTransaction: DiffMetadata[][], resources: Resource<unknown>[]): Promise<void> {
     // Run post-transactions on actions.
     for (const diffsProcessedInSameLevel of modelTransaction) {
       const postTransactionPromises: Promise<void>[] = [];
@@ -205,7 +205,6 @@ export class OctoAws {
     await this.stateManagementService.saveState(this.modelStateFileName, Buffer.from(JSON.stringify(serializedOutput)));
 
     // Serialize resources.
-    const resources = resourceTransaction.flat().map((t) => t.model as Resource<unknown>);
     const resourceSerializedOutput = this.resourceSerializationService.serialize(resources);
     // Save the state of shared-resources.
     await this.stateManagementService.saveState(
