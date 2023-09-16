@@ -168,10 +168,10 @@ export class S3StaticWebsiteService extends Service {
   override synth(): IS3StaticWebsiteService {
     return {
       bucketName: this.bucketName,
-      excludePaths: this.excludePaths,
+      excludePaths: [...this.excludePaths],
       region: { context: this.region.getContext() },
       serviceId: `${this.bucketName}-s3-static-website`,
-      sourcePaths: this.sourcePaths,
+      sourcePaths: [...this.sourcePaths],
     };
   }
 

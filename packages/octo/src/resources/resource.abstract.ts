@@ -79,10 +79,10 @@ export abstract class Resource<T> extends Model<IResource, T> {
 
   synth(): IResource {
     return {
-      parents: this.parents,
-      properties: this.properties,
+      parents: [...this.parents],
+      properties: { ...this.properties },
       resourceId: this.resourceId,
-      response: this.response,
+      response: { ...this.response },
     };
   }
 
