@@ -11,8 +11,6 @@ class TestResource extends Resource<TestResource> {
 }
 
 class SharedTestResource extends SharedResource<TestResource> {
-  readonly MODEL_NAME: string = 'test-resource';
-
   constructor(resource: TestResource) {
     super(resource);
   }
