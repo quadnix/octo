@@ -29,6 +29,7 @@ import { AddEcrImageAction } from './resources/ecr/actions/add-ecr-image.action'
 import { DeleteEcrImageAction } from './resources/ecr/actions/delete-ecr-image.action';
 import { UpdateReplicationInEcrImageAction } from './resources/ecr/actions/update-replication-in-ecr-image.action';
 import { EcrImage } from './resources/ecr/ecr-image.resource';
+import { SharedEcrImage } from './resources/ecr/ecr-image.shared-resource';
 import { AddInternetGatewayAction } from './resources/internet-gateway/actions/add-internet-gateway.action';
 import { InternetGateway } from './resources/internet-gateway/internet-gateway.resource';
 import { AddNetworkAclAction } from './resources/network-acl/actions/add-network-acl.action';
@@ -130,8 +131,11 @@ export class OctoAws {
 
   private static getModelSerializationService(): ModelSerializationService {
     const modelSerializationService = new ModelSerializationService();
+
     modelSerializationService.registerClass('AwsRegion', AwsRegion);
+
     modelSerializationService.registerClass('S3StaticWebsiteService', S3StaticWebsiteService);
+
     return modelSerializationService;
   }
 
@@ -141,14 +145,24 @@ export class OctoAws {
 
   private static getResourceSerializationService(): ResourceSerializationService {
     const resourceSerializationService = new ResourceSerializationService();
+
     resourceSerializationService.registerClass('EcrImage', EcrImage);
+    resourceSerializationService.registerClass('SharedEcrImage', SharedEcrImage);
+
     resourceSerializationService.registerClass('InternetGateway', InternetGateway);
+
     resourceSerializationService.registerClass('NetworkAcl', NetworkAcl);
+
     resourceSerializationService.registerClass('RouteTable', RouteTable);
+
     resourceSerializationService.registerClass('S3Website', S3Website);
+
     resourceSerializationService.registerClass('SecurityGroup', SecurityGroup);
+
     resourceSerializationService.registerClass('Subnet', Subnet);
+
     resourceSerializationService.registerClass('Vpc', Vpc);
+
     return resourceSerializationService;
   }
 

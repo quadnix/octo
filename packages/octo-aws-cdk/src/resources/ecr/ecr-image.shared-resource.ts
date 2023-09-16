@@ -3,8 +3,6 @@ import { IEcrImageMetadata } from './ecr-image.interface';
 import { EcrImage } from './ecr-image.resource';
 
 export class SharedEcrImage extends SharedResource<EcrImage> {
-  readonly MODEL_NAME: string = 'ecr-image';
-
   constructor(resource: EcrImage) {
     super(resource);
   }
