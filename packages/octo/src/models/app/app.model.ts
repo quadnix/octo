@@ -29,7 +29,7 @@ export class App extends Model<IApp, App> {
     // Check for duplicates.
     const images = childrenDependencies['image'].map((d) => d.to);
     if (images.find((i: Image) => i.imageId === image.imageId)) {
-      throw new Error('Environment already exists!');
+      throw new Error('Image already exists!');
     }
     this.addChild('name', image, 'imageId');
 

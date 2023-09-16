@@ -269,5 +269,21 @@ export abstract class Model<I, T> implements IModel<I, T> {
     }
   }
 
+  removeRelationship(model: Model<unknown, unknown>): void {
+    for (let i = this.dependencies.length - 1; i >= 0; i--) {
+      const dependency = this.dependencies[i];
+      if (dependency.to.getContext() === model.getContext()) {
+        this.dependencies.splice(i, 1);
+      }
+    }
+
+    for (let i = model.dependencies.length - 1; i >= 0; i--) {
+      const dependency = model.dependencies[i];
+      if (dependency.to.getContext() === this.getContext()) {
+        model.dependencies.splice(i, 1);
+      }
+    }
+  }
+
   abstract synth(): I;
 }

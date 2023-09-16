@@ -296,4 +296,26 @@ describe('Model E2E Test', () => {
       expect(app.getChild('image', [{ key: 'imageTag', value: 'tag' }])).toBe(undefined);
     });
   });
+
+  describe('removeRelationship()', () => {
+    it('should be able to remove relationship', () => {
+      const app = new App('app');
+      const region = new Region('region');
+      app.addRegion(region);
+      const image = new Image('image', 'tag', { dockerFilePath: '/Dockerfile' });
+      app.addImage(image);
+      image.addRelationship('imageId', region, 'regionId');
+
+      // Image cannot be removed since it has a relationship with region.
+      expect(() => {
+        image.remove();
+      }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove model until dependent models exist!"`);
+
+      image.removeRelationship(region);
+
+      // Remove image.
+      image.remove();
+      expect(app.getChild('image', [{ key: 'imageTag', value: 'tag' }])).toBe(undefined);
+    });
+  });
 });
