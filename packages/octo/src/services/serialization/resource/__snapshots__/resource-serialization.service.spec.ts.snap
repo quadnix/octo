@@ -50,10 +50,55 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
         "key1": "value1",
       },
       "resourceId": "resource-1",
-      "response": {},
+      "response": {
+        "response1": "value1",
+      },
     },
     "resourceId": "resource-1",
-    "response": {},
+    "response": {
+      "response1": "value1",
+    },
+  },
+}
+`;
+
+exports[`Resource Serialization Service UT deserialize() should deserialize a single shared resource even without corresponding resource 1`] = `
+{
+  "resource-1": SharedTestResource {
+    "MODEL_NAME": "test-resource",
+    "MODEL_TYPE": "shared-resource",
+    "dependencies": [],
+    "diffMarkers": {
+      "delete": false,
+      "replace": false,
+      "update": null,
+    },
+    "parents": [],
+    "properties": {
+      "key1": "value1",
+    },
+    "resource": TestResource {
+      "MODEL_NAME": "test-resource",
+      "MODEL_TYPE": "resource",
+      "dependencies": [],
+      "diffMarkers": {
+        "delete": false,
+        "replace": false,
+        "update": null,
+      },
+      "parents": [],
+      "properties": {
+        "key1": "value1",
+      },
+      "resourceId": "resource-1",
+      "response": {
+        "response1": "value1",
+      },
+    },
+    "resourceId": "resource-1",
+    "response": {
+      "response1": "value1",
+    },
   },
 }
 `;

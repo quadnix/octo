@@ -65,6 +65,24 @@ describe('Resource Serialization Service UT', () => {
       expect(resources).toMatchSnapshot();
     });
 
+    it('should deserialize a single shared resource even without corresponding resource', async () => {
+      const resource1 = new TestResource('resource-1');
+      resource1.properties['key1'] = 'value1';
+      resource1.response['response1'] = 'value1';
+      const sharedResource1 = new SharedTestResource(resource1);
+
+      const service = new ResourceSerializationService();
+      service.registerClass('TestResource', TestResource);
+      service.registerClass('SharedTestResource', SharedTestResource);
+
+      const serializedOutput = service.serialize([sharedResource1]);
+      serializedOutput.resources = {};
+
+      const resources = await service.deserialize(serializedOutput);
+
+      expect(resources).toMatchSnapshot();
+    });
+
     it('should deserialize dependencies', async () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';

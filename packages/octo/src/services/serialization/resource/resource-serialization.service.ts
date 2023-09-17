@@ -7,7 +7,7 @@ import { SharedResource } from '../../../resources/shared-resource.abstract';
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
   resources: { [p: string]: { className: string; isSharedResource: boolean; resource: IResource } };
-  sharedResources: { [p: string]: { className: string; resource: IResource } };
+  sharedResources: { [p: string]: { className: string; resourceClassName: string; sharedResource: IResource } };
 };
 
 export class ResourceSerializationService {
@@ -47,7 +47,7 @@ export class ResourceSerializationService {
       );
 
       if (isSharedResource) {
-        const { className: sharedClassName, resource: sharedResource } = serializedOutput.sharedResources[resourceId];
+        const { className: sharedClassName, sharedResource } = serializedOutput.sharedResources[resourceId];
         for (const key in sharedResource.properties) {
           deserializedResource.properties[key] = sharedResource.properties[key];
         }
@@ -95,7 +95,28 @@ export class ResourceSerializationService {
         continue;
       }
 
-      // Initialize resources/shared-resources that have no dependencies.
+      // Initialize resources that have no dependencies.
+      resources[resourceId] = await deserializeResource(resourceId);
+    }
+    for (const resourceId in serializedOutput.sharedResources) {
+      if (seen[resourceId]) {
+        resources[resourceId] = seen[resourceId];
+        continue;
+      }
+
+      // Initialize shared-resources that have no dependencies, and no corresponding resource.
+      // Such shared-resource must materialize an empty resource to wrap.
+      const { resourceClassName, sharedResource } = serializedOutput.sharedResources[resourceId];
+      serializedOutput.resources[sharedResource.resourceId] = {
+        className: resourceClassName,
+        isSharedResource: true,
+        resource: {
+          parents: [],
+          properties: {},
+          resourceId: sharedResource.resourceId,
+          response: {},
+        },
+      };
       resources[resourceId] = await deserializeResource(resourceId);
     }
 
@@ -147,7 +168,8 @@ export class ResourceSerializationService {
 
         sharedSerializedResources[resource.resourceId] = {
           className: resource.constructor.name,
-          resource: serializedSharedResource,
+          resourceClassName: (resource as SharedResource<unknown>).resource.constructor.name,
+          sharedResource: serializedSharedResource,
         };
       }
     }
