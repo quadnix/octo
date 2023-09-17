@@ -43,8 +43,8 @@ export class TransactionService {
           const inputKeys = a.collectInput(diffToProcess);
           inputKeys.map((k) => {
             if ((k as string).startsWith('resource')) {
-              const kTemp = (k as string).substring('resource.'.length);
-              inputs[k] = resources[k] || resources[kTemp];
+              const resourceId = (k as string).substring('resource.'.length);
+              inputs[k] = resources[resourceId];
             } else {
               inputs[k] = this.inputs[k];
             }
@@ -58,16 +58,14 @@ export class TransactionService {
           const outputs = a.handle(diffToProcess, inputs);
 
           // Collect new resources.
-          const outputsKeyModified = {};
-          for (const output of a.collectOutput(diffToProcess)) {
-            outputsKeyModified[`resource.${output}`] = outputs[output];
-            resources[`resource.${output}`] = outputs[output];
+          for (const resourceId of a.collectOutput(diffToProcess)) {
+            resources[resourceId] = outputs[resourceId];
           }
 
           // Update diff metadata with inputs and outputs.
           duplicateDiffs.forEach((d) => {
             d.updateInputs(inputs);
-            d.updateOutputs(outputsKeyModified);
+            d.updateOutputs(outputs);
           });
         }
 

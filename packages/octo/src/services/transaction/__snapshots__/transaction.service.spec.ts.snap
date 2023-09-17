@@ -17,7 +17,7 @@ exports[`TransactionService UT applyModels() should call action and collect all 
 
 exports[`TransactionService UT applyModels() should call action and collect all input and output 2`] = `
 {
-  "resource.resource1": "resource1 object",
+  "resource1": "resource1 object",
 }
 `;
 
@@ -53,8 +53,8 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
 
 exports[`TransactionService UT applyModels() should call multiple actions and collect all input and output 3`] = `
 {
-  "resource.resource1": "resource1 object",
-  "resource.resource2": "resource2 object",
+  "resource1": "resource1 object",
+  "resource2": "resource2 object",
 }
 `;
 
@@ -101,7 +101,7 @@ exports[`TransactionService UT applyModels() should update diff metadata with in
 
 exports[`TransactionService UT applyModels() should update diff metadata with inputs and outputs 2`] = `
 {
-  "resource.resource1": "resource1 object",
+  "resource1": "resource1 object",
 }
 `;
 
