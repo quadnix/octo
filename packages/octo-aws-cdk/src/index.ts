@@ -88,7 +88,7 @@ export class OctoAws {
     this.transactionService = new TransactionService();
     this.transactionService.registerModelActions([
       // models/image
-      new AddImageAction(),
+      new AddImageAction(this.region.nativeAwsRegionId),
 
       // models/region
       new AddRegionAction(),

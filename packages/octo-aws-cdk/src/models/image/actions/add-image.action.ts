@@ -7,6 +7,10 @@ import { Action } from '../../action.abstract';
 export class AddImageAction extends Action {
   readonly ACTION_NAME: string = 'AddImageAction';
 
+  constructor(private readonly awsRegionId: string) {
+    super();
+  }
+
   override collectInput(diff: Diff): string[] {
     const { imageName, imageTag } = diff.model as Image;
     const image = `${imageName}:${imageTag}`;
@@ -54,6 +58,7 @@ export class AddImageAction extends Action {
       imageName,
       imageTag,
     });
+    ecrImage.setAwsRegionId(this.awsRegionId);
     const sharedEcrImage = new SharedEcrImage(ecrImage);
 
     const output: IActionOutputs = {};
