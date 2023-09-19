@@ -27,7 +27,7 @@ export class DeleteS3StaticWebsiteAction extends Action {
     const s3Website = actionInputs[`resource.bucket-${bucketName}`] as S3Website;
 
     // Delete S3 Website.
-    s3Website.diffMarkers.delete = true;
+    s3Website.markDeleted();
 
     return {};
   }
