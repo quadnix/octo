@@ -359,7 +359,7 @@ describe('TransactionService UT', () => {
 
     it('should compare same resources with delete marker on new', async () => {
       const newTestResource = new TestResource('resource-1');
-      newTestResource.diffMarkers.delete = true;
+      newTestResource.markDeleted();
 
       const oldResources: IActionOutputs = {
         resource1: new TestResource('resource-1'),
@@ -379,7 +379,7 @@ describe('TransactionService UT', () => {
 
     it('should compare same resources with replace marker on new', async () => {
       const newTestResource = new TestResource('resource-1');
-      newTestResource.diffMarkers.replace = true;
+      newTestResource.markReplaced();
 
       const oldResources: IActionOutputs = {
         resource1: new TestResource('resource-1'),
@@ -399,7 +399,7 @@ describe('TransactionService UT', () => {
 
     it('should compare same resources with update marker on new', async () => {
       const newTestResource = new TestResource('resource-1');
-      newTestResource.diffMarkers.update = { key: 'updateKey', value: 'update value' };
+      newTestResource.markUpdated('updateKey', 'update value');
 
       const oldResources: IActionOutputs = {
         resource1: new TestResource('resource-1'),

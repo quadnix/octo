@@ -143,7 +143,7 @@ export class TransactionService {
         const model = oldResources[oldResourceId];
 
         if (model.MODEL_TYPE === 'shared-resource') {
-          model.diffMarkers.delete = true;
+          model.markDeleted();
           const rDiff = await model.diff();
           diffs.push(...rDiff);
         } else {

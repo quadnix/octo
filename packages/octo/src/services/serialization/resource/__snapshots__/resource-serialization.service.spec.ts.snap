@@ -11,8 +11,9 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
       "replace": false,
       "update": null,
     },
-    "parents": [],
-    "properties": {},
+    "properties": {
+      "key1": "value1",
+    },
     "resourceId": "resource-1",
     "response": {
       "response1": "value1",
@@ -32,7 +33,6 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
       "replace": false,
       "update": null,
     },
-    "parents": [],
     "properties": {
       "key1": "value1",
     },
@@ -45,7 +45,6 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
         "replace": false,
         "update": null,
       },
-      "parents": [],
       "properties": {
         "key1": "value1",
       },
@@ -73,7 +72,6 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
       "replace": false,
       "update": null,
     },
-    "parents": [],
     "properties": {
       "key1": "value1",
     },
@@ -86,7 +84,6 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
         "replace": false,
         "update": null,
       },
-      "parents": [],
       "properties": {
         "key1": "value1",
       },
@@ -100,6 +97,28 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
       "response1": "value1",
     },
   },
+}
+`;
+
+exports[`Resource Serialization Service UT serialize() should not serialize resources marked for deletion 1`] = `
+{
+  "dependencies": [],
+  "resources": {
+    "resource-1": {
+      "className": "TestResource",
+      "isSharedResource": false,
+      "resource": {
+        "properties": {
+          "key1": "value1",
+        },
+        "resourceId": "resource-1",
+        "response": {
+          "response1": "value1",
+        },
+      },
+    },
+  },
+  "sharedResources": {},
 }
 `;
 
@@ -160,7 +179,6 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
       "className": "TestResource",
       "isSharedResource": false,
       "resource": {
-        "parents": [],
         "properties": {
           "key1": "value1",
         },
@@ -174,7 +192,6 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
       "className": "TestResource",
       "isSharedResource": false,
       "resource": {
-        "parents": [],
         "properties": {
           "key2": "value2",
         },
@@ -197,7 +214,6 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
       "className": "TestResource",
       "isSharedResource": false,
       "resource": {
-        "parents": [],
         "properties": {},
         "resourceId": "resource-1",
         "response": {},

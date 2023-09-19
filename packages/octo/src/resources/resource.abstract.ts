@@ -2,19 +2,18 @@ import { Diff, DiffAction } from '../functions/diff/diff.model';
 import { Model } from '../models/model.abstract';
 import { IModel } from '../models/model.interface';
 import { IResource } from './resource.interface';
+import { SharedResource } from './shared-resource.abstract';
 
 type IResourceMarkers = { delete: boolean; replace: boolean; update: { key: string; value: any } | null };
 
 export abstract class Resource<T> extends Model<IResource, T> {
   override readonly MODEL_TYPE: IModel<IResource, T>['MODEL_TYPE'] = 'resource';
 
-  readonly diffMarkers: IResourceMarkers = {
+  private readonly diffMarkers: IResourceMarkers = {
     delete: false,
     replace: false,
     update: null,
   };
-
-  readonly parents: IResource['parents'] = [];
 
   readonly properties: IResource['properties'] = {};
 
@@ -50,12 +49,11 @@ export abstract class Resource<T> extends Model<IResource, T> {
 
       // Add child.
       resource.addChild('resourceId' as never, this, 'resourceId');
-      this.parents.push(resource.resourceId);
     }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  override async diff(previous?: T): Promise<Diff[]> {
+  override async diff(previous?: T | SharedResource<T>): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     // Diff markers gets precedence over property diff.
@@ -77,9 +75,25 @@ export abstract class Resource<T> extends Model<IResource, T> {
     return `${this.MODEL_NAME}=${this.resourceId}`;
   }
 
+  isMarkedDeleted(): boolean {
+    return this.diffMarkers.delete;
+  }
+
+  markDeleted(): void {
+    this.remove();
+    this.diffMarkers.delete = true;
+  }
+
+  markReplaced(): void {
+    this.diffMarkers.replace = true;
+  }
+
+  markUpdated(key: string, value: any): void {
+    this.diffMarkers.update = { key, value };
+  }
+
   synth(): IResource {
     return {
-      parents: [...this.parents],
       properties: { ...this.properties },
       resourceId: this.resourceId,
       response: { ...this.response },
@@ -89,9 +103,10 @@ export abstract class Resource<T> extends Model<IResource, T> {
   static async unSynth(
     deserializationClass: any,
     resource: IResource,
+    parentResourceIds: string[],
     deReferenceResource: (resourceId: string) => Promise<Resource<unknown>>,
   ): Promise<Resource<unknown>> {
-    const parents = await Promise.all(resource.parents.map((p) => deReferenceResource(p)));
+    const parents = await Promise.all(parentResourceIds.map((p) => deReferenceResource(p)));
     const deReferencedResource = new deserializationClass(resource.resourceId, resource.properties, parents);
     for (const key in resource.response) {
       deReferencedResource.response[key] = resource.response[key];

@@ -16,7 +16,7 @@ export abstract class SharedResource<T> extends Resource<T> {
     }
 
     // Separately initialize parents, without calling associateWith().
-    this.parents.push(...resource.parents);
+    this.dependencies.push(...resource['dependencies']);
   }
 
   static override async unSynth(
