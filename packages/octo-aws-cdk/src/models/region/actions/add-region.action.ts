@@ -60,7 +60,7 @@ export class AddRegionAction extends Action {
     });
 
     // Create Internet Gateway.
-    const internetGateway = new InternetGateway(`${regionId}-igw`, [vpc]);
+    const internetGateway = new InternetGateway(`${regionId}-igw`, {}, [vpc]);
 
     // Create Subnets.
     const privateSubnet1 = new Subnet(
@@ -81,8 +81,8 @@ export class AddRegionAction extends Action {
     );
 
     // Create Route Tables.
-    const privateRT1 = new RouteTable(`${regionId}-private-rt-1`, [vpc, internetGateway, privateSubnet1]);
-    const publicRT1 = new RouteTable(`${regionId}-public-rt-1`, [vpc, internetGateway, publicSubnet1]);
+    const privateRT1 = new RouteTable(`${regionId}-private-rt-1`, {}, [vpc, internetGateway, privateSubnet1]);
+    const publicRT1 = new RouteTable(`${regionId}-public-rt-1`, {}, [vpc, internetGateway, publicSubnet1]);
 
     // Create Network ACLs.
     const privateNAcl1 = new NetworkAcl(

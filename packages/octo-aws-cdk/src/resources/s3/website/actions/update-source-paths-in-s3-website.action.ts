@@ -15,14 +15,14 @@ export class UpdateSourcePathsInS3WebsiteAction implements IResourceAction {
     return (
       diff.action === DiffAction.UPDATE &&
       diff.model.MODEL_NAME === 's3-website' &&
-      (diff.model as S3Website).diffMarkers.update?.key === 'update-source-paths'
+      (diff.model as S3Website).getUpdateMarker()?.key === 'update-source-paths'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const s3Website = diff.model as S3Website;
-    const manifestDiff: { [key: string]: ['add' | 'delete' | 'update', string] } = s3Website.diffMarkers.update!.value;
+    const manifestDiff: { [key: string]: ['add' | 'delete' | 'update', string] } = s3Website.getUpdateMarker()!.value;
     const properties = s3Website.properties as unknown as IS3WebsiteProperties;
 
     // Synchronize files with S3.

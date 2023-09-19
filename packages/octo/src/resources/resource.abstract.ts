@@ -75,8 +75,16 @@ export abstract class Resource<T> extends Model<IResource, T> {
     return `${this.MODEL_NAME}=${this.resourceId}`;
   }
 
+  getUpdateMarker(): IResourceMarkers['update'] {
+    return this.diffMarkers.update;
+  }
+
   isMarkedDeleted(): boolean {
     return this.diffMarkers.delete;
+  }
+
+  isMarkedReplaced(): boolean {
+    return this.diffMarkers.replace;
   }
 
   markDeleted(): void {

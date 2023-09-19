@@ -18,14 +18,14 @@ export class UpdateReplicationInEcrImageAction implements IResourceAction {
     return (
       diff.action === DiffAction.UPDATE &&
       diff.model.MODEL_NAME === 'ecr-image' &&
-      (diff.model as EcrImage).diffMarkers.update?.key === 'replicationsStringified'
+      (diff.model as EcrImage).getUpdateMarker()?.key === 'replicationsStringified'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const ecrImage = diff.model as EcrImage;
-    const replicationAction = ecrImage.diffMarkers.update!.value;
+    const replicationAction = ecrImage.getUpdateMarker()!.value;
     const properties = ecrImage.properties as unknown as IEcrImageProperties;
     const response = ecrImage.response as unknown as IEcrImageResponse;
 

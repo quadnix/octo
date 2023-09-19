@@ -27,7 +27,7 @@ export class UpdateSourcePathsS3StaticWebsiteAction extends Action {
     const s3Website = actionInputs[`resource.bucket-${bucketName}`] as S3Website;
 
     // Update website source paths.
-    s3Website.diffMarkers.update = { key: 'update-source-paths', value: diff.value };
+    s3Website.markUpdated('update-source-paths', diff.value);
 
     return {};
   }
