@@ -5,8 +5,8 @@ import { ResourceSerializationService } from './resource-serialization.service';
 class TestResource extends Resource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
-  constructor(resourceId: string) {
-    super(resourceId, {}, []);
+  constructor(resourceId: string, properties: { [k: string]: string } = {}, parents: [TestResource?] = []) {
+    super(resourceId, properties, parents as Resource<TestResource>[]);
   }
 }
 
@@ -103,6 +103,28 @@ describe('Resource Serialization Service UT', () => {
         .to as Resource<TestResource>;
       expect(resource2Deserialized.resourceId).toBe('resource-2');
     });
+
+    it('should deserialize dependencies in reverse order', async () => {
+      const resource1 = new TestResource('resource-1');
+      resource1.properties['key1'] = 'value1';
+      resource1.response['response1'] = 'value1';
+      const resource2 = new TestResource('resource-2');
+      resource2.properties['key2'] = 'value2';
+      resource2.response['response2'] = 'value2';
+      resource2.associateWith([resource1]);
+
+      const service = new ResourceSerializationService();
+      service.registerClass('TestResource', TestResource);
+
+      // Reverse the list of resources, such that dependent resource is forced to be deserialized first.
+      const serializedOutput = service.serialize([resource2, resource1]);
+      const resources = await service.deserialize(serializedOutput);
+
+      const resource1Deserialized = resources['resource-1'];
+      const resource2Deserialized = resource1Deserialized.getChildren()['test-resource'][0]
+        .to as Resource<TestResource>;
+      expect(resource2Deserialized.resourceId).toBe('resource-2');
+    });
   });
 
   describe('serialize()', () => {
@@ -114,6 +136,21 @@ describe('Resource Serialization Service UT', () => {
     it('should serialize non-empty array', () => {
       const resources: Resource<unknown>[] = [new TestResource('resource-1')];
 
+      const service = new ResourceSerializationService();
+      expect(service.serialize(resources)).toMatchSnapshot();
+    });
+
+    it('should not serialize resources marked for deletion', () => {
+      const resource1 = new TestResource('resource-1');
+      resource1.properties['key1'] = 'value1';
+      resource1.response['response1'] = 'value1';
+      const resource2 = new TestResource('resource-2');
+      resource2.properties['key2'] = 'value2';
+      resource2.response['response2'] = 'value2';
+
+      resource2.markDeleted();
+
+      const resources: Resource<unknown>[] = [resource1, resource2];
       const service = new ResourceSerializationService();
       expect(service.serialize(resources)).toMatchSnapshot();
     });

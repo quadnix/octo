@@ -51,29 +51,27 @@ export class ModelSerializationService {
       return seen[context];
     };
 
+    const deserializeModel = async (context: string): Promise<Model<unknown, unknown>> => {
+      const { className, model } = serializedOutput.models[context];
+      const deserializationClass = this.classMapping[className];
+      this.throwErrorIfDeserializationClassInvalid(deserializationClass);
+
+      seen[context] = await deserializationClass.unSynth(model, deReferenceContext);
+      if (deReferencePromises[context] !== undefined) {
+        deReferencePromises[context](true);
+      }
+
+      return seen[context];
+    };
+
+    // Deserialize all serialized models.
+    const promiseToDeserializeModels: Promise<Model<unknown, unknown>>[] = [];
+    for (const context in serializedOutput.models) {
+      promiseToDeserializeModels.push(deserializeModel(context));
+    }
+    await Promise.all(promiseToDeserializeModels);
+
     for (const d of serializedOutput.dependencies) {
-      if (!seen[d.from]) {
-        const { className, model } = serializedOutput.models[d.from];
-        const deserializationClass = this.classMapping[className];
-        this.throwErrorIfDeserializationClassInvalid(deserializationClass);
-
-        seen[d.from] = await deserializationClass.unSynth(model, deReferenceContext);
-        if (deReferencePromises[d.from] !== undefined) {
-          deReferencePromises[d.from](true);
-        }
-      }
-
-      if (!seen[d.to]) {
-        const { className, model } = serializedOutput.models[d.to];
-        const deserializationClass = this.classMapping[className];
-        this.throwErrorIfDeserializationClassInvalid(deserializationClass);
-
-        seen[d.to] = await deserializationClass.unSynth(model, deReferenceContext);
-        if (deReferencePromises[d.to] !== undefined) {
-          deReferencePromises[d.to](true);
-        }
-      }
-
       const dependency = Dependency.unSynth(seen[d.from], seen[d.to], d);
       seen[d.from]['dependencies'].push(dependency);
     }

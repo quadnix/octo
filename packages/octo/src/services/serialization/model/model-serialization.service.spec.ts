@@ -14,11 +14,11 @@ describe('Model Serialization Service UT', () => {
       const serializedOutput: ModelSerializedOutput = {
         dependencies: [
           {
-            from: 'App',
+            from: 'app=name',
           } as IDependency,
         ],
         models: {
-          App: { className: 'ClassNotExist', model: null },
+          'app=name': { className: 'ClassNotExist', model: null },
         } as any,
       };
 
