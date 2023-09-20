@@ -42,10 +42,14 @@ export class ModelSerializationService {
 
     const deReferenceContext = async (context: string): Promise<Model<unknown, unknown>> => {
       if (!seen[context]) {
-        const promise = new Promise<boolean>((resolve) => {
-          deReferencePromises[context] = resolve;
-        });
-        await promise;
+        if (deReferencePromises[context]) {
+          await deReferencePromises[context];
+        } else {
+          const promise = new Promise<boolean>((resolve) => {
+            deReferencePromises[context] = resolve;
+          });
+          await promise;
+        }
       }
 
       return seen[context];

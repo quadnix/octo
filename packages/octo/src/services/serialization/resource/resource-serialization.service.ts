@@ -27,10 +27,14 @@ export class ResourceSerializationService {
 
     const deReferenceResource = async (resourceId: string): Promise<Resource<unknown>> => {
       if (!seen[resourceId]) {
-        const promise = new Promise<boolean>((resolve) => {
-          deReferencePromises[resourceId] = resolve;
-        });
-        await promise;
+        if (deReferencePromises[resourceId]) {
+          await deReferencePromises[resourceId];
+        } else {
+          const promise = new Promise<boolean>((resolve) => {
+            deReferencePromises[resourceId] = resolve;
+          });
+          await promise;
+        }
       }
 
       return seen[resourceId];
@@ -66,7 +70,7 @@ export class ResourceSerializationService {
         );
 
         seen[resourceId] = deserializedSharedResource;
-        if (deReferencePromises[resourceId] !== undefined) {
+        if (deReferencePromises[resourceId]) {
           deReferencePromises[resourceId](true);
         }
 
@@ -74,7 +78,7 @@ export class ResourceSerializationService {
       }
 
       seen[resourceId] = deserializedResource;
-      if (deReferencePromises[resourceId] !== undefined) {
+      if (deReferencePromises[resourceId]) {
         deReferencePromises[resourceId](true);
       }
 
