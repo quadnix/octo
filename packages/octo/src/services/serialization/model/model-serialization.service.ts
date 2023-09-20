@@ -37,17 +37,19 @@ export class ModelSerializationService {
   }
 
   async deserialize(serializedOutput: ModelSerializedOutput): Promise<Model<unknown, unknown>> {
-    const deReferencePromises: { [p: string]: (value: boolean) => void } = {};
+    const deReferencePromises: { [p: string]: [Promise<boolean>, (value: boolean) => void] } = {};
     const seen: { [p: string]: Model<unknown, unknown> } = {};
 
     const deReferenceContext = async (context: string): Promise<Model<unknown, unknown>> => {
       if (!seen[context]) {
         if (deReferencePromises[context]) {
-          await deReferencePromises[context];
+          await deReferencePromises[context][0];
         } else {
+          deReferencePromises[context] = [] as any;
           const promise = new Promise<boolean>((resolve) => {
-            deReferencePromises[context] = resolve;
+            deReferencePromises[context][1] = resolve;
           });
+          deReferencePromises[context][0] = promise;
           await promise;
         }
       }
@@ -62,7 +64,7 @@ export class ModelSerializationService {
 
       seen[context] = await deserializationClass.unSynth(model, deReferenceContext);
       if (deReferencePromises[context] !== undefined) {
-        deReferencePromises[context](true);
+        deReferencePromises[context][1](true);
       }
 
       return seen[context];

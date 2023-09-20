@@ -21,18 +21,20 @@ export class ResourceSerializationService {
   }
 
   async deserialize(serializedOutput: ResourceSerializedOutput): Promise<IActionOutputs> {
-    const deReferencePromises: { [p: string]: (value: boolean) => void } = {};
+    const deReferencePromises: { [p: string]: [Promise<boolean>, (value: boolean) => void] } = {};
     const parents: { [p: string]: string[] } = {};
     const seen: IActionOutputs = {};
 
     const deReferenceResource = async (resourceId: string): Promise<Resource<unknown>> => {
       if (!seen[resourceId]) {
         if (deReferencePromises[resourceId]) {
-          await deReferencePromises[resourceId];
+          await deReferencePromises[resourceId][0];
         } else {
+          deReferencePromises[resourceId] = [] as any;
           const promise = new Promise<boolean>((resolve) => {
-            deReferencePromises[resourceId] = resolve;
+            deReferencePromises[resourceId][1] = resolve;
           });
+          deReferencePromises[resourceId][0] = promise;
           await promise;
         }
       }
@@ -71,7 +73,7 @@ export class ResourceSerializationService {
 
         seen[resourceId] = deserializedSharedResource;
         if (deReferencePromises[resourceId]) {
-          deReferencePromises[resourceId](true);
+          deReferencePromises[resourceId][1](true);
         }
 
         return deserializedSharedResource;
@@ -79,7 +81,7 @@ export class ResourceSerializationService {
 
       seen[resourceId] = deserializedResource;
       if (deReferencePromises[resourceId]) {
-        deReferencePromises[resourceId](true);
+        deReferencePromises[resourceId][1](true);
       }
 
       return deserializedResource;
