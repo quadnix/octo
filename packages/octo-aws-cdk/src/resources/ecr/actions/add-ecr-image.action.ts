@@ -13,7 +13,7 @@ import { EcrImage } from '../ecr-image.resource';
 export class AddEcrImageAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEcrImageAction';
 
-  constructor(private readonly ecrClient: ECRClient) {}
+  constructor(private readonly ecrClient: ECRClient, private readonly awsRegionId: string) {}
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'ecr-image';
@@ -41,9 +41,15 @@ export class AddEcrImageAction implements IResourceAction {
       );
 
       if (data.imageDetails?.length) {
-        const error = new Error('Image already exists!');
-        error.name = 'ImageAlreadyExistsError';
-        throw error;
+        // Set response.
+        const source: IEcrImageMetadata = {
+          awsRegion: this.awsRegionId,
+          registryId: data.imageDetails[0].registryId as string,
+          repositoryArn: '',
+          repositoryName: data.imageDetails[0].repositoryName as string,
+          repositoryUri: '',
+        };
+        response.sourceStringified = JSON.stringify(source);
       }
     } catch (describeImagesError) {
       if (describeImagesError.name === 'RepositoryNotFoundException') {
@@ -59,7 +65,7 @@ export class AddEcrImageAction implements IResourceAction {
 
         // Set response.
         const source: IEcrImageMetadata = {
-          awsRegion: this.ecrClient.config.region as string,
+          awsRegion: this.awsRegionId,
           registryId: data.repository!.registryId as string,
           repositoryArn: data.repository!.repositoryArn as string,
           repositoryName: data.repository!.repositoryName as string,

@@ -100,9 +100,9 @@ export class OctoAws {
     ]);
     this.transactionService.registerResourceActions([
       // resources/ecr
-      new AddEcrImageAction(this.ecrClient),
+      new AddEcrImageAction(this.ecrClient, this.region.nativeAwsRegionId),
       new DeleteEcrImageAction(this.ecrClient),
-      new UpdateReplicationInEcrImageAction(this.ecrClient, this.stsClient),
+      new UpdateReplicationInEcrImageAction(this.ecrClient, this.stsClient, this.region.nativeAwsRegionId),
 
       // resources/internet-gateway
       new AddInternetGatewayAction(this.ec2Client),

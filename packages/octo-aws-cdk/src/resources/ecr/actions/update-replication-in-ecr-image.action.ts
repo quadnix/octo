@@ -12,7 +12,11 @@ import { EcrImage } from '../ecr-image.resource';
 export class UpdateReplicationInEcrImageAction implements IResourceAction {
   readonly ACTION_NAME: string = 'UpdateReplicationInEcrImageAction';
 
-  constructor(private readonly ecrClient: ECRClient, private readonly stsClient: STSClient) {}
+  constructor(
+    private readonly ecrClient: ECRClient,
+    private readonly stsClient: STSClient,
+    private readonly awsRegionId: string,
+  ) {}
 
   filter(diff: Diff): boolean {
     return (
@@ -29,7 +33,7 @@ export class UpdateReplicationInEcrImageAction implements IResourceAction {
     const properties = ecrImage.properties as unknown as IEcrImageProperties;
     const response = ecrImage.response as unknown as IEcrImageResponse;
 
-    const region = this.ecrClient.config.region as string;
+    const region = this.awsRegionId;
     let replicationRegions: IEcrImageReplicationMetadata['regions'] =
       (response?.replicationsStringified as string)?.length > 0
         ? JSON.parse(response.replicationsStringified).regions
