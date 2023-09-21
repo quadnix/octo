@@ -382,6 +382,14 @@ exports[`Model E2E Test common functions Test support synth() 1`] = `
 }
 `;
 
+exports[`Model E2E Test getAncestors() should include parent of parent as ancestors 1`] = `
+[
+  "environment=env-0,region=region-0,app=app",
+  "region=region-0,app=app",
+  "app=app",
+]
+`;
+
 exports[`Model E2E Test getAncestors() should include region as ancestor of service when a dependency exists between them 1`] = `
 [
   "service=service,app=app",

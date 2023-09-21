@@ -129,6 +129,16 @@ describe('Model E2E Test', () => {
 
       expect(region.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
     });
+
+    it('should include parent of parent as ancestors', () => {
+      const app = new App('app');
+      const region = new Region('region-0');
+      app.addRegion(region);
+      const environment = new Environment('env-0');
+      region.addEnvironment(environment);
+
+      expect(environment.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
+    });
   });
 
   describe('getBoundaryMembers()', () => {
@@ -206,6 +216,29 @@ describe('Model E2E Test', () => {
           "region=region,app=app",
           "app=app",
           "service=service,app=app",
+        ]
+      `);
+    });
+
+    it('should not include shared image with multiple boundaries', () => {
+      const app = new App('app');
+      const image = new Image('imageName', 'imageTag', {
+        dockerFilePath: 'path/to/Dockerfile',
+      });
+      app.addImage(image);
+      const region1 = new Region('region-1');
+      app.addRegion(region1);
+      const region2 = new Region('region-2');
+      app.addRegion(region2);
+
+      region1.addRelationship('regionId', image, 'imageId');
+      region2.addRelationship('regionId', image, 'imageId');
+
+      expect(region1.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
+        [
+          "region=region-1,app=app",
+          "image=imageName:imageTag,app=app",
+          "app=app",
         ]
       `);
     });
