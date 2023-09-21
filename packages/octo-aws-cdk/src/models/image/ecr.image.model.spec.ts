@@ -79,7 +79,7 @@ describe('ECRImage UT', () => {
         dockerFilePath: 'path/to/Dockerfile',
       });
       app.addImage(image);
-      image.addRelationship('imageId', region1, 'regionId');
+      region1.addRelationship('regionId', image, 'imageId');
 
       octoAws1.registerInputs({
         'input.image.quadnix/test:0.0.1.dockerExecutable': 'docker',
@@ -117,8 +117,7 @@ describe('ECRImage UT', () => {
       await octoAws1.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
 
       // Add the same image to another region.
-      image.removeRelationship(region1);
-      image.addRelationship('imageId', region2, 'regionId');
+      region2.addRelationship('regionId', image, 'imageId');
 
       octoAws2.registerInputs({
         'input.image.quadnix/test:0.0.1.dockerExecutable': 'docker',
