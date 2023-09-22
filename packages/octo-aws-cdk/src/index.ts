@@ -27,7 +27,6 @@ import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/s3-stat
 import { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model';
 import { AddEcrImageAction } from './resources/ecr/actions/add-ecr-image.action';
 import { DeleteEcrImageAction } from './resources/ecr/actions/delete-ecr-image.action';
-import { UpdateReplicationInEcrImageAction } from './resources/ecr/actions/update-replication-in-ecr-image.action';
 import { EcrImage } from './resources/ecr/ecr-image.resource';
 import { SharedEcrImage } from './resources/ecr/ecr-image.shared-resource';
 import { AddInternetGatewayAction } from './resources/internet-gateway/actions/add-internet-gateway.action';
@@ -102,7 +101,6 @@ export class OctoAws {
       // resources/ecr
       new AddEcrImageAction(this.ecrClient, this.region.nativeAwsRegionId),
       new DeleteEcrImageAction(this.ecrClient),
-      new UpdateReplicationInEcrImageAction(this.ecrClient, this.stsClient, this.region.nativeAwsRegionId),
 
       // resources/internet-gateway
       new AddInternetGatewayAction(this.ec2Client),

@@ -7,7 +7,7 @@ import {
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
 import { FileUtility } from '../../../utilities/file/file.utility';
 import { ProcessUtility } from '../../../utilities/process/process.utility';
-import { IEcrImageMetadata, IEcrImageProperties, IEcrImageResponse } from '../ecr-image.interface';
+import { IEcrImageProperties, IEcrImageReplicationMetadata, IEcrImageResponse } from '../ecr-image.interface';
 import { EcrImage } from '../ecr-image.resource';
 
 export class AddEcrImageAction implements IResourceAction {
@@ -27,6 +27,12 @@ export class AddEcrImageAction implements IResourceAction {
 
     const image = `${properties.imageName}:${properties.imageTag}`;
 
+    const ecrImageReplicationMetadata: IEcrImageReplicationMetadata =
+      (response?.replicationsStringified as string)?.length > 0
+        ? JSON.parse(response.replicationsStringified as string)
+        : {};
+    const replicationRegions = ecrImageReplicationMetadata.regions || [];
+
     // Create a new repository.
     try {
       const data = await this.ecrClient.send(
@@ -40,16 +46,17 @@ export class AddEcrImageAction implements IResourceAction {
         }),
       );
 
+      // If image already exists in this region, do nothing.
       if (data.imageDetails?.length) {
         // Set response.
-        const source: IEcrImageMetadata = {
+        replicationRegions.push({
           awsRegion: this.awsRegionId,
           registryId: data.imageDetails[0].registryId as string,
-          repositoryArn: '',
           repositoryName: data.imageDetails[0].repositoryName as string,
-          repositoryUri: '',
-        };
-        response.sourceStringified = JSON.stringify(source);
+        });
+        response.replicationsStringified = JSON.stringify({
+          regions: replicationRegions,
+        } as IEcrImageReplicationMetadata);
       }
     } catch (describeImagesError) {
       if (describeImagesError.name === 'RepositoryNotFoundException') {
@@ -64,14 +71,16 @@ export class AddEcrImageAction implements IResourceAction {
         );
 
         // Set response.
-        const source: IEcrImageMetadata = {
+        replicationRegions.push({
           awsRegion: this.awsRegionId,
           registryId: data.repository!.registryId as string,
           repositoryArn: data.repository!.repositoryArn as string,
           repositoryName: data.repository!.repositoryName as string,
           repositoryUri: data.repository!.repositoryUri as string,
-        };
-        response.sourceStringified = JSON.stringify(source);
+        });
+        response.replicationsStringified = JSON.stringify({
+          regions: replicationRegions,
+        } as IEcrImageReplicationMetadata);
       } else if (describeImagesError.name === 'ImageNotFoundException') {
         // Intentionally left blank.
       } else {
