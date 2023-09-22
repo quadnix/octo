@@ -2,7 +2,7 @@ import { App, DiffMetadata, Image, LocalStateProvider, Resource } from '@quadnix
 import { existsSync, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { AwsRegion, AwsRegionId, OctoAws } from '../../../index';
+import { AwsRegion, AwsRegionId, OctoAws } from '../../../src';
 
 const unlinkAsync = promisify(unlink);
 
@@ -74,7 +74,7 @@ describe('Image E2E Test', () => {
 
     it('should test working with an ECR image', async () => {
       const image = new Image('quadnix/test', '0.0.1', {
-        dockerFilePath: join(__dirname, '../../../../../../resources/images/quadnix/nginx/0.0.1/Dockerfile'),
+        dockerFilePath: join(__dirname, '../../../../../resources/images/quadnix/nginx/0.0.1/Dockerfile'),
       });
       app.addImage(image);
       region1.addRelationship('regionId', image, 'imageId');

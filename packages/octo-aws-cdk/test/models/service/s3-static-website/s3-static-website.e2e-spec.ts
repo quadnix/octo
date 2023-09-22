@@ -3,7 +3,7 @@ import axios from 'axios';
 import { existsSync, unlink, writeFile } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { AwsRegion, AwsRegionId, OctoAws, S3StaticWebsiteService } from '../../../index';
+import { AwsRegion, AwsRegionId, OctoAws, S3StaticWebsiteService } from '../../../../src';
 
 const writeFileAsync = promisify(writeFile);
 const unlinkAsync = promisify(unlink);
