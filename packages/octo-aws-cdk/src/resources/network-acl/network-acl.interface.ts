@@ -10,5 +10,7 @@ export interface INetworkAclProperties {
 }
 
 export interface INetworkAclResponse {
+  associationId: string;
+  defaultNetworkAclId: string;
   NetworkAclId: string;
 }

@@ -43,8 +43,8 @@ export class AddRouteTableAction implements IResourceAction {
       }),
     );
 
-    // Associate RouteTables to Subnets and IGW.
-    await Promise.all([
+    // Associate RouteTable to Subnet and IGW.
+    const data = await Promise.all([
       this.ec2Client.send(
         new AssociateRouteTableCommand({
           RouteTableId: routeTableOutput!.RouteTable!.RouteTableId,
@@ -62,5 +62,6 @@ export class AddRouteTableAction implements IResourceAction {
 
     // Set response.
     response.RouteTableId = routeTableOutput!.RouteTable!.RouteTableId as string;
+    response.subnetAssociationId = data[0].AssociationId as string;
   }
 }

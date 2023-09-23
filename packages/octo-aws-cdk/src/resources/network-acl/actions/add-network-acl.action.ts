@@ -72,8 +72,8 @@ export class AddNetworkAclAction implements IResourceAction {
       }),
     );
 
-    // Associate Network ACL with given Subnet.
-    await this.ec2Client.send(
+    // Associate Subnet with the new Network ACL.
+    const newAssociation = await this.ec2Client.send(
       new ReplaceNetworkAclAssociationCommand({
         AssociationId: association!.NetworkAclAssociationId,
         NetworkAclId: naclOutput!.NetworkAcl!.NetworkAclId,
@@ -81,6 +81,8 @@ export class AddNetworkAclAction implements IResourceAction {
     );
 
     // Set response.
+    response.associationId = newAssociation.NewAssociationId as string;
+    response.defaultNetworkAclId = defaultNACLOutput!.NetworkAcls![0].NetworkAclId as string;
     response.NetworkAclId = naclOutput!.NetworkAcl!.NetworkAclId as string;
   }
 }

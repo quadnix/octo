@@ -21,6 +21,7 @@ import { Action } from './models/action.abstract';
 import { AddImageAction } from './models/image/actions/add-image.action';
 import { DeleteImageAction } from './models/image/actions/delete-image.action';
 import { AddRegionAction } from './models/region/actions/add-region.action';
+import { DeleteRegionAction } from './models/region/actions/delete-region.action';
 import { AwsRegion, AwsRegionId } from './models/region/aws.region.model';
 import { AddS3StaticWebsiteAction } from './models/service/s3-static-website/actions/add-s3-static-website.action';
 import { DeleteS3StaticWebsiteAction } from './models/service/s3-static-website/actions/delete-s3-static-website.action';
@@ -31,20 +32,26 @@ import { DeleteEcrImageAction } from './resources/ecr/actions/delete-ecr-image.a
 import { EcrImage } from './resources/ecr/ecr-image.resource';
 import { SharedEcrImage } from './resources/ecr/ecr-image.shared-resource';
 import { AddInternetGatewayAction } from './resources/internet-gateway/actions/add-internet-gateway.action';
+import { DeleteInternetGatewayAction } from './resources/internet-gateway/actions/delete-internet-gateway.action';
 import { InternetGateway } from './resources/internet-gateway/internet-gateway.resource';
 import { AddNetworkAclAction } from './resources/network-acl/actions/add-network-acl.action';
+import { DeleteNetworkAclAction } from './resources/network-acl/actions/delete-network-acl.action';
 import { NetworkAcl } from './resources/network-acl/network-acl.resource';
 import { AddRouteTableAction } from './resources/route-table/actions/add-route-table.action';
+import { DeleteRouteTableAction } from './resources/route-table/actions/delete-route-table.action';
 import { RouteTable } from './resources/route-table/route-table.resource';
 import { AddS3WebsiteAction } from './resources/s3/website/actions/add-s3-website.action';
 import { DeleteS3WebsiteAction } from './resources/s3/website/actions/delete-s3-website.action';
 import { UpdateSourcePathsInS3WebsiteAction } from './resources/s3/website/actions/update-source-paths-in-s3-website.action';
 import { S3Website } from './resources/s3/website/s3-website.resource';
 import { AddSecurityGroupAction } from './resources/security-groups/actions/add-security-group.action';
+import { DeleteSecurityGroupAction } from './resources/security-groups/actions/delete-security-group.action';
 import { SecurityGroup } from './resources/security-groups/security-group.resource';
 import { AddSubnetAction } from './resources/subnet/actions/add-subnet.action';
+import { DeleteSubnetAction } from './resources/subnet/actions/delete-subnet.action';
 import { Subnet } from './resources/subnet/subnet.resource';
 import { AddVpcAction } from './resources/vpc/actions/add-vpc.action';
+import { DeleteVpcAction } from './resources/vpc/actions/delete-vpc.action';
 import { Vpc } from './resources/vpc/vpc.resource';
 
 export { AwsRegion, AwsRegionId } from './models/region/aws.region.model';
@@ -93,6 +100,7 @@ export class OctoAws {
 
       // models/region
       new AddRegionAction(),
+      new DeleteRegionAction(),
 
       // models/service/s3-static-website
       new AddS3StaticWebsiteAction(),
@@ -106,12 +114,15 @@ export class OctoAws {
 
       // resources/internet-gateway
       new AddInternetGatewayAction(this.ec2Client),
+      new DeleteInternetGatewayAction(this.ec2Client),
 
       // resources/network-acl
       new AddNetworkAclAction(this.ec2Client),
+      new DeleteNetworkAclAction(this.ec2Client),
 
       // resources/route-table
       new AddRouteTableAction(this.ec2Client),
+      new DeleteRouteTableAction(this.ec2Client),
 
       // resources/s3/website
       new AddS3WebsiteAction(this.s3Client),
@@ -120,12 +131,15 @@ export class OctoAws {
 
       // resources/security-groups
       new AddSecurityGroupAction(this.ec2Client),
+      new DeleteSecurityGroupAction(this.ec2Client),
 
       // resources/subnet
       new AddSubnetAction(this.ec2Client),
+      new DeleteSubnetAction(this.ec2Client),
 
       // resources/vpc
       new AddVpcAction(this.ec2Client),
+      new DeleteVpcAction(this.ec2Client),
     ]);
   }
 
