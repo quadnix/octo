@@ -5,6 +5,7 @@ import {
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
+import { AwsRegion } from '../../../models/region/aws.region.model';
 import { FileUtility } from '../../../utilities/file/file.utility';
 import { ProcessUtility } from '../../../utilities/process/process.utility';
 import { IEcrImageProperties, IEcrImageReplicationMetadata, IEcrImageResponse } from '../ecr-image.interface';
@@ -13,7 +14,7 @@ import { EcrImage } from '../ecr-image.resource';
 export class AddEcrImageAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEcrImageAction';
 
-  constructor(private readonly ecrClient: ECRClient, private readonly awsRegionId: string) {}
+  constructor(private readonly ecrClient: ECRClient, private readonly region: AwsRegion) {}
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'ecr-image';
@@ -50,7 +51,8 @@ export class AddEcrImageAction implements IResourceAction {
       if (data.imageDetails?.length) {
         // Set response.
         replicationRegions.push({
-          awsRegion: this.awsRegionId,
+          awsRegionId: this.region.nativeAwsRegionId,
+          regionId: this.region.regionId,
           registryId: data.imageDetails[0].registryId as string,
           repositoryName: data.imageDetails[0].repositoryName as string,
         });
@@ -72,7 +74,8 @@ export class AddEcrImageAction implements IResourceAction {
 
         // Set response.
         replicationRegions.push({
-          awsRegion: this.awsRegionId,
+          awsRegionId: this.region.nativeAwsRegionId,
+          regionId: this.region.regionId,
           registryId: data.repository!.registryId as string,
           repositoryArn: data.repository!.repositoryArn as string,
           repositoryName: data.repository!.repositoryName as string,

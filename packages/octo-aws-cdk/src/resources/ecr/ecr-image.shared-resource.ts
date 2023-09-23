@@ -10,23 +10,35 @@ export class SharedEcrImage extends SharedResource<EcrImage> {
   override async diff(previous?: SharedEcrImage): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
+    // Update marker for ECR shared resource is always set to regions.
+    const updateMarker = this.getUpdateMarker();
+    const [action, regionId] = updateMarker!.value.split(':');
+
     if (previous) {
       const ecrImageReplicationMetadata: IEcrImageReplicationMetadata =
         (previous.response?.replicationsStringified as string)?.length > 0
           ? JSON.parse(previous.response.replicationsStringified as string)
           : {};
-      const awsRegionId = (this.resource as EcrImage).getAwsRegionId();
       const replicationRegions = ecrImageReplicationMetadata.regions || [];
+      const replicationRegion = replicationRegions.find((r) => r.regionId === regionId);
 
-      // If region already has the image, skip resource diff. Else, continue with normal diff.
-      if (replicationRegions.find((r) => r.awsRegion === awsRegionId)) {
-        return diffs;
+      // Copy shared-resource response data from previous.
+      this.response.replicationsStringified = JSON.stringify({
+        regions: replicationRegions,
+      } as IEcrImageReplicationMetadata);
+
+      if (action.toUpperCase() === 'DELETE' && replicationRegion) {
+        diffs.push(new Diff(this, DiffAction.DELETE, 'resourceId', this.resourceId));
+      } else if (action.toUpperCase() === 'ADD' && !replicationRegion) {
+        diffs.push(new Diff(this, DiffAction.ADD, 'resourceId', this.resourceId));
       }
+
+      return diffs;
     }
 
-    if (this.isMarkedDeleted()) {
+    if (action.toUpperCase() === 'DELETE') {
       diffs.push(new Diff(this, DiffAction.DELETE, 'resourceId', this.resourceId));
-    } else {
+    } else if (action.toUpperCase() === 'ADD') {
       diffs.push(new Diff(this, DiffAction.ADD, 'resourceId', this.resourceId));
     }
 

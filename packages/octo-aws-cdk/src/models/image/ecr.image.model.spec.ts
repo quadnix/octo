@@ -3,6 +3,7 @@ import { existsSync, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
 import { AwsRegionId, OctoAws } from '../../index';
+import { IEcrImageReplicationMetadata } from '../../resources/ecr/ecr-image.interface';
 import { EcrImage } from '../../resources/ecr/ecr-image.resource';
 import { AwsRegion } from '../region/aws.region.model';
 
@@ -111,9 +112,9 @@ describe('ECRImage UT', () => {
       `);
 
       // Fabricate resource, as if resource transaction was applied.
-      (resourceDiffsResult1.value[0][0].model as Resource<EcrImage>).response.sourceStringified = JSON.stringify({
-        awsRegion: region1.nativeAwsRegionId,
-      });
+      (resourceDiffsResult1.value[0][0].model as Resource<EcrImage>).response.replicationsStringified = JSON.stringify({
+        regions: [{ awsRegionId: region1.nativeAwsRegionId, regionId: region1.regionId }],
+      } as IEcrImageReplicationMetadata);
       await octoAws1.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
 
       // Add the same image to another region.
@@ -125,10 +126,14 @@ describe('ECRImage UT', () => {
 
       const diffs2_1 = await octoAws2.diff();
       const generator2 = await octoAws2.beginTransaction(diffs2_1, {
+        yieldModelTransaction: true,
+        yieldNewResources: true,
         yieldResourceDiffs: true,
       });
 
       // Prevent generator2 from running real resource actions.
+      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
+      const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
       const resourceDiffsResult2 = await generator2.next();
 
       // Verify resource diff was as expected.
@@ -136,9 +141,59 @@ describe('ECRImage UT', () => {
         [
           [
             {
-              "action": "update",
-              "field": "replicationsStringified",
-              "value": "ADD",
+              "action": "add",
+              "field": "resourceId",
+              "value": "image-quadnix/test:0.0.1",
+            },
+          ],
+        ]
+      `);
+
+      // Fabricate resource, as if resource transaction was applied.
+      (resourceDiffsResult2.value[0][0].model as Resource<EcrImage>).response.replicationsStringified = JSON.stringify({
+        regions: [
+          { awsRegionId: region1.nativeAwsRegionId, regionId: region1.regionId },
+          { awsRegionId: region2.nativeAwsRegionId, regionId: region2.regionId },
+        ],
+      } as IEcrImageReplicationMetadata);
+      await octoAws2.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
+
+      // Remove image. Should remove from both regions.
+      image.remove(true);
+
+      const diffs1_2 = await octoAws1.diff();
+      const generator3 = await octoAws1.beginTransaction(diffs1_2, {
+        yieldResourceDiffs: true,
+      });
+      // Prevent generator3 from running real resource actions.
+      const resourceDiffsResult3 = await generator3.next();
+      // Verify resource diff was as expected.
+      expect(resourceDiffsResult3.value).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "image-quadnix/test:0.0.1",
+            },
+          ],
+        ]
+      `);
+
+      const diffs2_2 = await octoAws2.diff();
+      const generator4 = await octoAws2.beginTransaction(diffs2_2, {
+        yieldResourceDiffs: true,
+      });
+      // Prevent generator4 from running real resource actions.
+      const resourceDiffsResult4 = await generator4.next();
+      // Verify resource diff was as expected.
+      expect(resourceDiffsResult4.value).toMatchInlineSnapshot(`
+        [
+          [
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "image-quadnix/test:0.0.1",
             },
           ],
         ]

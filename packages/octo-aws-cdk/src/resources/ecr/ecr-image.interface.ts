@@ -15,7 +15,8 @@ export interface IEcrImageReplicationMetadata {
 }
 
 interface IEcrImageMetadata {
-  awsRegion: string;
+  awsRegionId: string;
+  regionId: string;
   registryId: string;
   repositoryArn?: string;
   repositoryName: string;

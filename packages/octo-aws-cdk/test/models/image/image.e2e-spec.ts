@@ -111,6 +111,29 @@ describe('Image E2E Test', () => {
       const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
       await generator2.next(); // Run real resource actions.
       await octoAws2.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
+
+      // Remove image. Should remove from both regions.
+      image.remove(true);
+
+      const diffs1_2 = await octoAws1.diff();
+      const generator3 = await octoAws1.beginTransaction(diffs1_2, {
+        yieldModelTransaction: true,
+        yieldNewResources: true,
+      });
+      const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
+      const resourcesResult3 = (await generator3.next()) as IteratorResult<Resource<unknown>[]>;
+      await generator3.next(); // Run real resource actions.
+      await octoAws1.commitTransaction(modelTransactionResult3.value, resourcesResult3.value);
+
+      const diffs2_2 = await octoAws2.diff();
+      const generator4 = await octoAws2.beginTransaction(diffs2_2, {
+        yieldModelTransaction: true,
+        yieldNewResources: true,
+      });
+      const modelTransactionResult4 = (await generator4.next()) as IteratorResult<DiffMetadata[][]>;
+      const resourcesResult4 = (await generator4.next()) as IteratorResult<Resource<unknown>[]>;
+      await generator4.next(); // Run real resource actions.
+      await octoAws2.commitTransaction(modelTransactionResult4.value, resourcesResult4.value);
     }, 60_000);
   });
 });

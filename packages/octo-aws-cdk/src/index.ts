@@ -19,6 +19,7 @@ import {
 import * as packageJson from '../package.json';
 import { Action } from './models/action.abstract';
 import { AddImageAction } from './models/image/actions/add-image.action';
+import { DeleteImageAction } from './models/image/actions/delete-image.action';
 import { AddRegionAction } from './models/region/actions/add-region.action';
 import { AwsRegion, AwsRegionId } from './models/region/aws.region.model';
 import { AddS3StaticWebsiteAction } from './models/service/s3-static-website/actions/add-s3-static-website.action';
@@ -87,7 +88,8 @@ export class OctoAws {
     this.transactionService = new TransactionService();
     this.transactionService.registerModelActions([
       // models/image
-      new AddImageAction(this.region.nativeAwsRegionId),
+      new AddImageAction(this.region),
+      new DeleteImageAction(this.region),
 
       // models/region
       new AddRegionAction(),
@@ -99,8 +101,8 @@ export class OctoAws {
     ]);
     this.transactionService.registerResourceActions([
       // resources/ecr
-      new AddEcrImageAction(this.ecrClient, this.region.nativeAwsRegionId),
-      new DeleteEcrImageAction(this.ecrClient),
+      new AddEcrImageAction(this.ecrClient, this.region),
+      new DeleteEcrImageAction(this.ecrClient, this.region),
 
       // resources/internet-gateway
       new AddInternetGatewayAction(this.ec2Client),

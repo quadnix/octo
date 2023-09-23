@@ -3,11 +3,12 @@ import { parse } from 'path';
 import { EcrImage } from '../../../resources/ecr/ecr-image.resource';
 import { SharedEcrImage } from '../../../resources/ecr/ecr-image.shared-resource';
 import { Action } from '../../action.abstract';
+import { AwsRegion } from '../../region/aws.region.model';
 
 export class AddImageAction extends Action {
   readonly ACTION_NAME: string = 'AddImageAction';
 
-  constructor(private readonly awsRegionId: string) {
+  constructor(private readonly region: AwsRegion) {
     super();
   }
 
@@ -58,8 +59,8 @@ export class AddImageAction extends Action {
       imageName,
       imageTag,
     });
-    ecrImage.setAwsRegionId(this.awsRegionId);
     const sharedEcrImage = new SharedEcrImage(ecrImage);
+    sharedEcrImage.markUpdated('regions', `ADD:${this.region.regionId}`);
 
     const output: IActionOutputs = {};
     output[ecrImage.resourceId] = sharedEcrImage;
