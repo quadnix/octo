@@ -272,13 +272,13 @@ export class TransactionService {
           this.resourceActions.filter((a) => a.filter(d)),
         ),
     );
-    if (options.yieldResourceDiffs) {
-      yield [resourceDiffs];
-    }
-
     // Set apply order on resource diffs.
     for (const diff of resourceDiffs) {
       this.setApplyOrder(diff, resourceDiffs);
+    }
+
+    if (options.yieldResourceDiffs) {
+      yield [resourceDiffs];
     }
 
     // Apply resource diffs.

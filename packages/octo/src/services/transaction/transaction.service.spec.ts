@@ -282,11 +282,12 @@ describe('TransactionService UT', () => {
       });
 
       const resultResourceDiffs = await generator.next();
+
       // Append same resource to diff.
       const duplicateDiff = new Diff(new TestResource('resource-2'), DiffAction.ADD, 'resourceId', 'resource-2');
-      (resultResourceDiffs.value as DiffMetadata[][])[0].push(
-        new DiffMetadata(duplicateDiff, [universalResourceAction]),
-      );
+      const duplicateDiffMetadata = new DiffMetadata(duplicateDiff, [universalResourceAction]);
+      duplicateDiffMetadata.applyOrder = 0;
+      (resultResourceDiffs.value as DiffMetadata[][])[0].push(duplicateDiffMetadata);
 
       const result = await generator.next();
 
