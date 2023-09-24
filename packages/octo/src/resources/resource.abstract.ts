@@ -52,13 +52,12 @@ export abstract class Resource<T> extends Model<IResource, T> {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   override async diff(previous?: T | SharedResource<T>): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     // Diff markers gets precedence over property diff.
     if (this.diffMarkers.delete) {
-      diffs.push(new Diff(this, DiffAction.DELETE, 'resourceId', this.resourceId));
+      diffs.push(new Diff(previous as Model<IResource, T>, DiffAction.DELETE, 'resourceId', this.resourceId));
     } else if (this.diffMarkers.replace) {
       diffs.push(new Diff(this, DiffAction.REPLACE, 'resourceId', this.resourceId));
     } else if (this.diffMarkers.update !== null) {

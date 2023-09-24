@@ -135,21 +135,11 @@ export class TransactionService {
   private async diffResources(newResources: IActionOutputs, oldResources: IActionOutputs): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
+    // All old resources are also always present as new resources.
+    // The new resources might have diff markers set to denote operations, such as delete.
     for (const oldResourceId in oldResources) {
-      if (newResources.hasOwnProperty(oldResourceId)) {
-        const rDiff = await newResources[oldResourceId].diff(oldResources[oldResourceId]);
-        diffs.push(...rDiff);
-      } else {
-        const model = oldResources[oldResourceId];
-
-        if (model.MODEL_TYPE === 'shared-resource') {
-          model.markDeleted();
-          const rDiff = await model.diff();
-          diffs.push(...rDiff);
-        } else {
-          diffs.push(new Diff(model, DiffAction.DELETE, 'resourceId', model.resourceId));
-        }
-      }
+      const rDiff = await newResources[oldResourceId].diff(oldResources[oldResourceId]);
+      diffs.push(...rDiff);
     }
 
     for (const newResourceId in newResources) {
@@ -336,13 +326,13 @@ export class TransactionService {
           this.resourceActions.filter((a) => a.filter(d)),
         ),
     );
-    if (options.yieldResourceDiffs) {
-      yield [resourceDiffs];
-    }
-
     // Set apply order on resource diffs.
     for (const diff of resourceDiffs) {
       this.setApplyOrder(diff, resourceDiffs);
+    }
+
+    if (options.yieldResourceDiffs) {
+      yield [resourceDiffs];
     }
 
     // Apply resource diffs.

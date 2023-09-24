@@ -102,6 +102,9 @@ describe('Resource Serialization Service UT', () => {
       const resource2Deserialized = resource1Deserialized.getChildren()['test-resource'][0]
         .to as Resource<TestResource>;
       expect(resource2Deserialized.resourceId).toBe('resource-2');
+      expect((resource2Deserialized.getParents()['test-resource'][0].to as Resource<TestResource>).resourceId).toBe(
+        'resource-1',
+      );
     });
 
     it('should deserialize dependencies in reverse order', async () => {
@@ -124,6 +127,9 @@ describe('Resource Serialization Service UT', () => {
       const resource2Deserialized = resource1Deserialized.getChildren()['test-resource'][0]
         .to as Resource<TestResource>;
       expect(resource2Deserialized.resourceId).toBe('resource-2');
+      expect((resource2Deserialized.getParents()['test-resource'][0].to as Resource<TestResource>).resourceId).toBe(
+        'resource-1',
+      );
     });
   });
 

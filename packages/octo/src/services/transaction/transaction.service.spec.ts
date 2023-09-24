@@ -329,8 +329,9 @@ describe('TransactionService UT', () => {
         resource1: new TestResource('resource-1'),
       };
       const newResources: IActionOutputs = {
-        resource2: new TestResource('resource-2'),
+        resource1: new TestResource('resource-1'),
       };
+      newResources.resource1.markDeleted();
 
       const service = new TransactionService();
       service.registerResourceActions([universalResourceAction]);
@@ -686,37 +687,18 @@ describe('TransactionService UT', () => {
       expect((universalModelAction.revert as jest.Mock).mock.calls).toMatchSnapshot();
     });
 
-    it('should calculate diff of resources', async () => {
+    it('should be able to revert addition of resources', async () => {
       const oldResources: IActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
       const newResources: IActionOutputs = {
-        resource2: new TestResource('resource-2'),
-      };
-
-      const service = new TransactionService();
-      service.registerResourceActions([
-        {
-          ACTION_NAME: 'test',
-          filter: (): boolean => true,
-          handle: jest.fn(),
-        },
-      ]);
-
-      const generator = service.rollbackTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
-      const result = await generator.next();
-
-      // Notice the results are in reverse order, i.e. on revert new resources are reverted.
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should apply all diff output on resources', async () => {
-      const oldResources: IActionOutputs = {
         resource1: new TestResource('resource-1'),
-      };
-      const newResources: IActionOutputs = {
         resource2: new TestResource('resource-2'),
       };
+
+      // Upon calling rollbackTransaction(), assume model's revert method marks the new resource as deleted.
+      oldResources['resource2'] = new TestResource('resource-2');
+      oldResources['resource2'].markDeleted();
 
       const service = new TransactionService();
       service.registerResourceActions([
@@ -728,6 +710,28 @@ describe('TransactionService UT', () => {
       ]);
 
       const generator = service.rollbackTransaction([], oldResources, newResources, { yieldResourceTransaction: true });
+      const result = await generator.next();
+
+      // Notice the results are in reverse order, i.e. on revert new resources are reverted.
+      expect(result.value).toMatchSnapshot();
+    });
+
+    it('should be able to revert deletion of resources', async () => {
+      const oldResources: IActionOutputs = {
+        resource1: new TestResource('resource-1'),
+      };
+      const newResources: IActionOutputs = {};
+
+      const service = new TransactionService();
+      service.registerResourceActions([
+        {
+          ACTION_NAME: 'test',
+          filter: (): boolean => true,
+          handle: jest.fn(),
+        },
+      ]);
+
+      const generator = service.rollbackTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
       const result = await generator.next();
 
       // Notice the results are in reverse order, i.e. on revert new resources are reverted.

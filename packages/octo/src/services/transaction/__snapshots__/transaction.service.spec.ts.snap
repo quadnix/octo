@@ -152,11 +152,6 @@ exports[`TransactionService UT diffResources() should compare distinct resources
       "field": "resourceId",
       "value": "resource-1",
     },
-    {
-      "action": "add",
-      "field": "resourceId",
-      "value": "resource-2",
-    },
   ],
 ]
 `;
@@ -203,31 +198,21 @@ exports[`TransactionService UT diffResources() should compare same resources wit
 ]
 `;
 
-exports[`TransactionService UT rollbackTransaction() should apply all diff output on resources 1`] = `
+exports[`TransactionService UT rollbackTransaction() should be able to revert addition of resources 1`] = `
 [
   [
     {
       "action": "delete",
       "field": "resourceId",
       "value": "resource-2",
-    },
-    {
-      "action": "add",
-      "field": "resourceId",
-      "value": "resource-1",
     },
   ],
 ]
 `;
 
-exports[`TransactionService UT rollbackTransaction() should calculate diff of resources 1`] = `
+exports[`TransactionService UT rollbackTransaction() should be able to revert deletion of resources 1`] = `
 [
   [
-    {
-      "action": "delete",
-      "field": "resourceId",
-      "value": "resource-2",
-    },
     {
       "action": "add",
       "field": "resourceId",
