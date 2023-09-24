@@ -15,7 +15,7 @@ export class DeleteRouteTableAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const routeTable = diff.model as RouteTable;
-    const response = routeTable.properties as unknown as IRouteTableResponse;
+    const response = routeTable.response as unknown as IRouteTableResponse;
 
     // Delete RouteTable to Subnet association.
     await this.ec2Client.send(
