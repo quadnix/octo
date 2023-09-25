@@ -117,7 +117,7 @@ exports[`TransactionService UT applyResources() should only process 1 matching d
 ]
 `;
 
-exports[`TransactionService UT applyResources() should process diffs in different levels 1`] = `
+exports[`TransactionService UT applyResources() should process diffs of adding resources per dependency graph 1`] = `
 [
   [
     {
@@ -131,6 +131,25 @@ exports[`TransactionService UT applyResources() should process diffs in differen
       "action": "add",
       "field": "resourceId",
       "value": "resource-2",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT applyResources() should process diffs of deleting resources per dependency graph 1`] = `
+[
+  [
+    {
+      "action": "delete",
+      "field": "resourceId",
+      "value": "resource-2",
+    },
+  ],
+  [
+    {
+      "action": "delete",
+      "field": "resourceId",
+      "value": "resource-1",
     },
   ],
 ]

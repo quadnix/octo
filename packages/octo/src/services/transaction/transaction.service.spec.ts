@@ -294,7 +294,7 @@ describe('TransactionService UT', () => {
       expect(result.value).toMatchSnapshot();
     });
 
-    it('should process diffs in different levels', async () => {
+    it('should process diffs of adding resources per dependency graph', async () => {
       const resource1 = new TestResource('resource-1');
       const resource2 = new TestResource('resource-2');
       resource1.addChild('resourceId', resource2, 'resourceId');
@@ -304,6 +304,38 @@ describe('TransactionService UT', () => {
         resource1: resource1,
         resource2: resource2,
       };
+
+      const service = new TransactionService();
+      service.registerResourceActions([universalResourceAction]);
+      const generator = service.beginTransaction([], oldResources, newResources, {
+        yieldResourceTransaction: true,
+      });
+
+      const result = await generator.next();
+
+      expect(result.value).toMatchSnapshot();
+    });
+
+    it('should process diffs of deleting resources per dependency graph', async () => {
+      const resource1_1 = new TestResource('resource-1');
+      const resource2_1 = new TestResource('resource-2');
+      resource1_1.addChild('resourceId', resource2_1, 'resourceId');
+      const resource1_2 = new TestResource('resource-1');
+      const resource2_2 = new TestResource('resource-2');
+      resource1_2.addChild('resourceId', resource2_2, 'resourceId');
+
+      const oldResources: IActionOutputs = {
+        resource1: resource1_1,
+        resource2: resource2_1,
+      };
+      const newResources: IActionOutputs = {
+        resource1: resource1_2,
+        resource2: resource2_2,
+      };
+
+      // Upon calling beginTransaction(), assume model's apply method marks the new resource as deleted.
+      resource2_2.markDeleted();
+      resource1_2.markDeleted();
 
       const service = new TransactionService();
       service.registerResourceActions([universalResourceAction]);
@@ -649,11 +681,11 @@ describe('TransactionService UT', () => {
         const result = await generator.next();
 
         expect(result.value.map((r) => r.resourceId)).toMatchInlineSnapshot(`
-        [
-          "resource-1",
-          "resource-2",
-        ]
-      `);
+          [
+            "resource-1",
+            "resource-2",
+          ]
+        `);
       });
     });
   });
