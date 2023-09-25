@@ -40,5 +40,90 @@ describe('AwsRegion E2E Test', () => {
     const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
     await generator1.next(); // Run real resource actions.
     await octoAws.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
+
+    // Remove region.
+    region.remove();
+
+    const diffs1_1 = await octoAws.diff();
+    const generator2 = await octoAws.beginTransaction(diffs1_1, {
+      yieldModelTransaction: true,
+      yieldNewResources: true,
+    });
+
+    const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
+    const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
+    const resourceTransaction = await generator2.next(); // Run real resource actions.
+    await octoAws.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
+
+    expect(resourceTransaction.value).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-access-sg",
+          },
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-internal-open-sg",
+          },
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-private-closed-sg",
+          },
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-web-sg",
+          },
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-private-rt-1",
+          },
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-private-nacl-1",
+          },
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-public-rt-1",
+          },
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-public-nacl-1",
+          },
+        ],
+        [
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-igw",
+          },
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-private-subnet-1",
+          },
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-public-subnet-1",
+          },
+        ],
+        [
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "aws-us-east-1a-vpc",
+          },
+        ],
+      ]
+    `);
   });
 });
