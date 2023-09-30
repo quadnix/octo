@@ -1,10 +1,10 @@
-import { App, Environment, HookService, Image, Region } from '@quadnix/octo';
+import { App, Environment, HookService, Image, ModelSerializationService, Region } from '@quadnix/octo';
 import { AddEnvironmentHook } from './add-environment.hook';
 
 describe('AddEnvironment Hook UT', () => {
-  it('should add nginx execution on add environment', () => {
+  it('should add nginx execution on add environment', async () => {
     const app = new App('test');
-    const newEnvironment = new Environment('qa');
+    const environment = new Environment('qa');
 
     const nginxImage = new Image('nginx', '0.0.1', {
       dockerFilePath: 'resources/images/quadnix/nginx/0.0.1',
@@ -12,13 +12,13 @@ describe('AddEnvironment Hook UT', () => {
     app.addImage(nginxImage);
 
     const hookService = HookService.getInstance();
-    hookService.registerHooks([new AddEnvironmentHook([app, nginxImage, newEnvironment])]);
+    hookService.registerHooks([new AddEnvironmentHook([app, nginxImage, environment])]);
 
     const region = new Region('region-1');
-    region.addEnvironment(newEnvironment);
+    region.addEnvironment(environment);
     app.addRegion(region);
 
-    const diffs = app.diff();
+    const diffs = await app.diff();
     expect(diffs).toMatchInlineSnapshot(`
       [
         {
@@ -55,41 +55,36 @@ describe('AddEnvironment Hook UT', () => {
     `);
   });
 
-  it('should be able to update nginx image', () => {
-    const oldApp = new App('test');
-    const oldEnvironment = new Environment('qa');
+  it('should be able to update nginx image', async () => {
+    // Prepare an app state with a region and environment using nginx V1 execution.
+    const app = new App('test');
+    const environment = new Environment('qa');
 
-    const oldNginxImage = new Image('nginx', '0.0.1', {
+    const nginxImageV1 = new Image('nginx', '0.0.1', {
       dockerFilePath: 'resources/images/quadnix/nginx/0.0.1',
     });
-    oldApp.addImage(oldNginxImage);
+    app.addImage(nginxImageV1);
 
-    const oldHookService = HookService.getInstance(true);
-    oldHookService.registerHooks([new AddEnvironmentHook([oldApp, oldNginxImage, oldEnvironment])]);
+    const hookService = HookService.getInstance(true);
+    hookService.registerHooks([new AddEnvironmentHook([app, nginxImageV1, environment])]);
 
-    const oldRegion = new Region('region-1');
-    oldRegion.addEnvironment(oldEnvironment);
-    oldApp.addRegion(oldRegion);
+    const region = new Region('region-1');
+    region.addEnvironment(environment);
+    app.addRegion(region);
 
-    // Do the exact same thing as above, but also add the update.
-    const newApp = new App('test');
-    const newEnvironment = new Environment('qa');
-
-    const newNginxImage = new Image('nginx', '0.0.2', {
+    // Add new nginx V2 image.
+    const modelSerializationService = new ModelSerializationService();
+    const app1 = (await modelSerializationService.deserialize(modelSerializationService.serialize(app))) as App;
+    const nginxImageV2 = new Image('nginx', '0.0.2', {
       dockerFilePath: 'resources/images/quadnix/nginx/0.0.2',
     });
-    newApp.addImage(oldNginxImage);
-    newApp.addImage(newNginxImage);
+    app1.addImage(nginxImageV2);
 
-    const newHookService = HookService.getInstance(true);
-    newHookService.registerHooks([new AddEnvironmentHook([newApp, oldNginxImage, newEnvironment])]);
-    newHookService.registerHooks([new AddEnvironmentHook([newApp, newNginxImage, newEnvironment])]);
+    // At present, we must invoke the hook manually.
+    const addEnvironmentHook = new AddEnvironmentHook([app1, nginxImageV2, environment]);
+    addEnvironmentHook.handle(app1, nginxImageV2, environment);
 
-    const newRegion = new Region('region-1');
-    newRegion.addEnvironment(newEnvironment);
-    newApp.addRegion(newRegion);
-
-    const diffs = newApp.diff(oldApp);
+    const diffs = await app1.diff(app);
 
     expect(diffs).toMatchInlineSnapshot(`
       [
