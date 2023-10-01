@@ -1,5 +1,6 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { ECRClient } from '@aws-sdk/client-ecr';
+import { ECSClient } from '@aws-sdk/client-ecs';
 import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
 import {
@@ -18,6 +19,8 @@ import {
 } from '@quadnix/octo';
 import * as packageJson from '../package.json';
 import { Action } from './models/action.abstract';
+import { AddEnvironmentAction } from './models/environment/actions/add-environment.action';
+import { DeleteEnvironmentAction } from './models/environment/actions/delete-environment.action';
 import { AddImageAction } from './models/image/actions/add-image.action';
 import { DeleteImageAction } from './models/image/actions/delete-image.action';
 import { AddRegionAction } from './models/region/actions/add-region.action';
@@ -31,6 +34,10 @@ import { AddEcrImageAction } from './resources/ecr/actions/add-ecr-image.action'
 import { DeleteEcrImageAction } from './resources/ecr/actions/delete-ecr-image.action';
 import { EcrImage } from './resources/ecr/ecr-image.resource';
 import { SharedEcrImage } from './resources/ecr/ecr-image.shared-resource';
+import { AddEcsClusterAction } from './resources/ecs/actions/add-ecs-cluster.action';
+import { DeleteEcsClusterAction } from './resources/ecs/actions/delete-ecs-cluster.action';
+import { EcsCluster } from './resources/ecs/ecs-cluster.resource';
+import { SharedEcsCluster } from './resources/ecs/ecs-cluster.shared-resource';
 import { AddInternetGatewayAction } from './resources/internet-gateway/actions/add-internet-gateway.action';
 import { DeleteInternetGatewayAction } from './resources/internet-gateway/actions/delete-internet-gateway.action';
 import { InternetGateway } from './resources/internet-gateway/internet-gateway.resource';
@@ -66,6 +73,7 @@ export class OctoAws {
 
   private readonly ec2Client: EC2Client;
   private readonly ecrClient: ECRClient;
+  private readonly ecsClient: ECSClient;
   private readonly s3Client: S3Client;
   private readonly stsClient: STSClient;
 
@@ -84,6 +92,7 @@ export class OctoAws {
 
     this.ec2Client = new EC2Client({ region: region.nativeAwsRegionId });
     this.ecrClient = new ECRClient({ region: region.nativeAwsRegionId });
+    this.ecsClient = new ECSClient({ region: region.nativeAwsRegionId });
     this.s3Client = new S3Client({ region: region.nativeAwsRegionId });
     this.stsClient = new STSClient({ region: region.nativeAwsRegionId });
 
@@ -94,6 +103,10 @@ export class OctoAws {
 
     this.transactionService = new TransactionService();
     this.transactionService.registerModelActions([
+      // models/environment
+      new AddEnvironmentAction(this.region),
+      new DeleteEnvironmentAction(this.region),
+
       // models/image
       new AddImageAction(this.region),
       new DeleteImageAction(this.region),
@@ -111,6 +124,10 @@ export class OctoAws {
       // resources/ecr
       new AddEcrImageAction(this.ecrClient, this.region),
       new DeleteEcrImageAction(this.ecrClient, this.region),
+
+      // resources/ecs
+      new AddEcsClusterAction(this.ecsClient, this.region),
+      new DeleteEcsClusterAction(this.ecsClient, this.region),
 
       // resources/internet-gateway
       new AddInternetGatewayAction(this.ec2Client),
@@ -162,6 +179,9 @@ export class OctoAws {
 
     resourceSerializationService.registerClass('EcrImage', EcrImage);
     resourceSerializationService.registerClass('SharedEcrImage', SharedEcrImage);
+
+    resourceSerializationService.registerClass('EcsCluster', EcsCluster);
+    resourceSerializationService.registerClass('SharedEcsCluster', SharedEcsCluster);
 
     resourceSerializationService.registerClass('InternetGateway', InternetGateway);
 
