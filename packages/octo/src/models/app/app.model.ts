@@ -1,5 +1,3 @@
-import { HookService } from '../../services/hook/hook.service';
-import { HOOK_NAMES } from '../hook.interface';
 import { Image } from '../image/image.model';
 import { Model } from '../model.abstract';
 import { Pipeline } from '../pipeline/pipeline.model';
@@ -14,12 +12,9 @@ export class App extends Model<IApp, App> {
 
   readonly name: string;
 
-  private readonly hookService: HookService;
-
   constructor(name: string) {
     super();
     this.name = name;
-    this.hookService = HookService.getInstance();
   }
 
   addImage(image: Image): void {
@@ -32,8 +27,6 @@ export class App extends Model<IApp, App> {
       throw new Error('Image already exists!');
     }
     this.addChild('name', image, 'imageId');
-
-    this.hookService.applyHooks(HOOK_NAMES.ADD_IMAGE);
   }
 
   addPipeline(pipeline: Pipeline): void {
@@ -46,8 +39,6 @@ export class App extends Model<IApp, App> {
       throw new Error('Pipeline already exists!');
     }
     this.addChild('name', pipeline, 'pipelineName');
-
-    this.hookService.applyHooks(HOOK_NAMES.ADD_PIPELINE);
   }
 
   addRegion(region: Region): void {
@@ -60,8 +51,6 @@ export class App extends Model<IApp, App> {
       throw new Error('Region already exists!');
     }
     this.addChild('name', region, 'regionId');
-
-    this.hookService.applyHooks(HOOK_NAMES.ADD_REGION);
   }
 
   addServer(server: Server): void {
@@ -74,8 +63,6 @@ export class App extends Model<IApp, App> {
       throw new Error('Server already exists!');
     }
     this.addChild('name', server, 'serverKey');
-
-    this.hookService.applyHooks(HOOK_NAMES.ADD_SERVER);
   }
 
   addService(service: Service): void {
@@ -88,8 +75,6 @@ export class App extends Model<IApp, App> {
       throw new Error('Service already exists!');
     }
     this.addChild('name', service, 'serviceId');
-
-    this.hookService.applyHooks(HOOK_NAMES.ADD_SERVICE);
   }
 
   addSupport(support: Support): void {
@@ -102,8 +87,6 @@ export class App extends Model<IApp, App> {
       throw new Error('Support already exists!');
     }
     this.addChild('name', support, 'serverKey');
-
-    this.hookService.applyHooks(HOOK_NAMES.ADD_SUPPORT);
   }
 
   getContext(): string {

@@ -1,6 +1,4 @@
-import { HookService } from '../../services/hook/hook.service';
 import { Environment } from '../environment/environment.model';
-import { HOOK_NAMES } from '../hook.interface';
 import { Model } from '../model.abstract';
 import { IRegion } from './region.interface';
 
@@ -9,12 +7,9 @@ export class Region extends Model<IRegion, Region> {
 
   readonly regionId: string;
 
-  private readonly hookService: HookService;
-
   constructor(regionId: string) {
     super();
     this.regionId = regionId;
-    this.hookService = HookService.getInstance();
   }
 
   addEnvironment(environment: Environment): void {
@@ -27,8 +22,6 @@ export class Region extends Model<IRegion, Region> {
       throw new Error('Environment already exists!');
     }
     this.addChild('regionId', environment, 'environmentName');
-
-    this.hookService.applyHooks(HOOK_NAMES.ADD_ENVIRONMENT);
   }
 
   getContext(): string {

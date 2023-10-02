@@ -1,4 +1,5 @@
-import { HOOK_NAMES, IHook } from '../../models/hook.interface';
+import { HOOK_ACTION, IHook } from '../../models/hook.interface';
+import { Model } from '../../models/model.abstract';
 
 export class HookService {
   private hooks: IHook[];
@@ -9,8 +10,8 @@ export class HookService {
     this.hooks = [];
   }
 
-  applyHooks(hookName: HOOK_NAMES): void {
-    this.hooks.filter((h) => h.HOOK_NAME === hookName).map((h) => h.handle(...h.args));
+  notifyHooks(hookAction: HOOK_ACTION, model: Model<unknown, unknown>): void {
+    this.hooks.filter((h) => h.filter(hookAction, model)).map((h) => h.handle(model));
   }
 
   static getInstance(forceNew?: boolean): HookService {

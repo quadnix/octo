@@ -1,6 +1,8 @@
 import { Dependency } from '../functions/dependency/dependency.model';
 import { Diff, DiffAction } from '../functions/diff/diff.model';
 import { DiffUtility } from '../functions/diff/diff.utility';
+import { HookService } from '../services/hook/hook.service';
+import { HOOK_ACTION } from './hook.interface';
 import { IModel } from './model.interface';
 
 /**
@@ -13,6 +15,12 @@ export abstract class Model<I, T> implements IModel<I, T> {
   readonly MODEL_TYPE: IModel<I, T>['MODEL_TYPE'] = 'model';
 
   protected readonly dependencies: Dependency[] = [];
+
+  private readonly hookService: HookService;
+
+  protected constructor() {
+    this.hookService = HookService.getInstance();
+  }
 
   addChild(onField: keyof T, child: Model<unknown, unknown>, toField: string): void {
     // Check if child already has a dependency to self.
@@ -40,6 +48,8 @@ export abstract class Model<I, T> implements IModel<I, T> {
       parentToChildDependency.addParentRelationship(onField as string, toField);
       this.dependencies.push(parentToChildDependency);
     }
+
+    this.hookService.notifyHooks(HOOK_ACTION.ADD, child);
   }
 
   addRelationship(onField: keyof T, to: Model<unknown, unknown>, toField: string): void {
@@ -267,6 +277,8 @@ export abstract class Model<I, T> implements IModel<I, T> {
       const index = dependency.to.dependencies.findIndex((d) => d.to.getContext() === this.getContext());
       dependency.to.dependencies.splice(index, 1);
     }
+
+    this.hookService.notifyHooks(HOOK_ACTION.REMOVE, this);
   }
 
   removeRelationship(model: Model<unknown, unknown>): void {

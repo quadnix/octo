@@ -1,9 +1,7 @@
 import { DiffUtility } from '../../functions/diff/diff.utility';
 import { Diff } from '../../functions/diff/diff.model';
-import { HookService } from '../../services/hook/hook.service';
 import { Deployment } from '../deployment/deployment.model';
 import { Environment } from '../environment/environment.model';
-import { HOOK_NAMES } from '../hook.interface';
 import { Model } from '../model.abstract';
 import { IExecution } from './execution.interface';
 
@@ -14,12 +12,9 @@ export class Execution extends Model<IExecution, Execution> {
 
   readonly executionId: string;
 
-  private readonly hookService: HookService;
-
   constructor(deployment: Deployment, environment: Environment) {
     super();
     this.executionId = [deployment.deploymentTag, environment.environmentName].join('_');
-    this.hookService = HookService.getInstance();
 
     // Check for duplicates.
     if (
@@ -33,7 +28,6 @@ export class Execution extends Model<IExecution, Execution> {
     // must claim it as their child. Doing it here, prevents the confusion.
     deployment.addChild('deploymentTag', this, 'executionId');
     environment.addChild('environmentName', this, 'executionId');
-    this.hookService.applyHooks(HOOK_NAMES.ADD_EXECUTION);
   }
 
   override async diff(previous?: Execution): Promise<Diff[]> {

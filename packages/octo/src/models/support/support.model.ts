@@ -1,6 +1,4 @@
-import { HookService } from '../../services/hook/hook.service';
 import { Deployment } from '../deployment/deployment.model';
-import { HOOK_NAMES } from '../hook.interface';
 import { Model } from '../model.abstract';
 import { ISupport } from './support.interface';
 
@@ -13,13 +11,10 @@ export class Support extends Model<ISupport, Support> {
 
   readonly serverKey: string;
 
-  private readonly hookService: HookService;
-
   constructor(serverKey: string, applicationType: ISupportApplicationType) {
     super();
     this.serverKey = serverKey;
     this.applicationType = applicationType;
-    this.hookService = HookService.getInstance();
   }
 
   addDeployment(deployment: Deployment): void {
@@ -32,8 +27,6 @@ export class Support extends Model<ISupport, Support> {
       throw new Error('Deployment already exists!');
     }
     this.addChild('serverKey', deployment, 'deploymentTag');
-
-    this.hookService.applyHooks(HOOK_NAMES.ADD_DEPLOYMENT);
   }
 
   getContext(): string {

@@ -1,5 +1,5 @@
-import { Environment } from '../../models/environment/environment.model';
-import { HOOK_NAMES } from '../../models/hook.interface';
+import { HOOK_ACTION } from '../../models/hook.interface';
+import { Model } from '../../models/model.abstract';
 import { Region } from '../../models/region/region.model';
 import { HookService } from './hook.service';
 
@@ -10,13 +10,12 @@ describe('HookService UT', () => {
     const testHookMock = jest.fn();
     hookService.registerHooks([
       {
-        HOOK_NAME: HOOK_NAMES.ADD_PIPELINE,
-        args: [],
+        filter: (): boolean => false,
         handle: testHookMock,
       },
     ]);
 
-    hookService.applyHooks('doesNotExist' as HOOK_NAMES);
+    hookService.notifyHooks(HOOK_ACTION.ADD, null as unknown as Model<unknown, unknown>);
 
     expect(testHookMock).toHaveBeenCalledTimes(0);
   });
@@ -24,21 +23,18 @@ describe('HookService UT', () => {
   it('should be able to apply the hook when registered', () => {
     const hookService = HookService.getInstance();
     const region = new Region('region-1');
-    const environment = new Environment('qa');
 
-    const test1HookMock = jest.fn();
+    const testHookMock = jest.fn();
     hookService.registerHooks([
       {
-        HOOK_NAME: HOOK_NAMES.ADD_ENVIRONMENT,
-        args: [region, environment],
-        handle: test1HookMock,
+        filter: (): boolean => true,
+        handle: testHookMock,
       },
     ]);
 
-    hookService.applyHooks(HOOK_NAMES.ADD_ENVIRONMENT);
+    hookService.notifyHooks(HOOK_ACTION.ADD, region);
 
-    expect(test1HookMock).toHaveBeenCalledTimes(1);
-    expect(test1HookMock.mock.calls[0][0].regionId).toBe('region-1');
-    expect(test1HookMock.mock.calls[0][1].environmentName).toBe('qa');
+    expect(testHookMock).toHaveBeenCalledTimes(1);
+    expect(testHookMock.mock.calls[0][0].regionId).toBe('region-1');
   });
 });
