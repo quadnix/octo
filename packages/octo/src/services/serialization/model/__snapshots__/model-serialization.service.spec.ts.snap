@@ -2,6 +2,7 @@
 
 exports[`Model Serialization Service UT serialize() should serialize a non-empty app 1`] = `
 {
+  "anchors": [],
   "dependencies": [
     {
       "behaviors": [
@@ -205,6 +206,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
 
 exports[`Model Serialization Service UT serialize() should serialize an empty app 1`] = `
 {
+  "anchors": [],
   "dependencies": [],
   "models": {
     "app=test-app": {
@@ -219,6 +221,7 @@ exports[`Model Serialization Service UT serialize() should serialize an empty ap
 
 exports[`Model Serialization Service UT serialize() should serialize only boundary members 1`] = `
 {
+  "anchors": [],
   "dependencies": [
     {
       "behaviors": [
@@ -327,6 +330,7 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
 
 exports[`Model Serialization Service UT serialize() should serialize when multiple models have dependency on same model 1`] = `
 {
+  "anchors": [],
   "dependencies": [
     {
       "behaviors": [

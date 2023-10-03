@@ -5,6 +5,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
   "resource-1": TestResource {
     "MODEL_NAME": "test-resource",
     "MODEL_TYPE": "resource",
+    "anchors": [],
     "dependencies": [],
     "diffMarkers": {
       "delete": false,
@@ -30,6 +31,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
   "resource-1": SharedTestResource {
     "MODEL_NAME": "test-resource",
     "MODEL_TYPE": "shared-resource",
+    "anchors": [],
     "dependencies": [],
     "diffMarkers": {
       "delete": false,
@@ -45,6 +47,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
     "resource": TestResource {
       "MODEL_NAME": "test-resource",
       "MODEL_TYPE": "resource",
+      "anchors": [],
       "dependencies": [],
       "diffMarkers": {
         "delete": false,
@@ -75,6 +78,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
   "resource-1": SharedTestResource {
     "MODEL_NAME": "test-resource",
     "MODEL_TYPE": "shared-resource",
+    "anchors": [],
     "dependencies": [],
     "diffMarkers": {
       "delete": false,
@@ -90,6 +94,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
     "resource": TestResource {
       "MODEL_NAME": "test-resource",
       "MODEL_TYPE": "resource",
+      "anchors": [],
       "dependencies": [],
       "diffMarkers": {
         "delete": false,

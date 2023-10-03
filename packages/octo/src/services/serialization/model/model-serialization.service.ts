@@ -1,3 +1,4 @@
+import { IAnchor } from '../../../functions/overlay/anchor.model';
 import { App } from '../../../models/app/app.model';
 import { Deployment } from '../../../models/deployment/deployment.model';
 import { Environment } from '../../../models/environment/environment.model';
@@ -12,6 +13,7 @@ import { Support } from '../../../models/support/support.model';
 import { Dependency, IDependency } from '../../../functions/dependency/dependency.model';
 
 export type ModelSerializedOutput = {
+  anchors: (IAnchor & { className: string })[];
   dependencies: IDependency[];
   models: { [p: string]: { className: string; model: IModel<unknown, unknown> } };
 };
@@ -77,6 +79,14 @@ export class ModelSerializationService {
     }
     await Promise.all(promiseToDeserializeModels);
 
+    for (const a of serializedOutput.anchors) {
+      const { className, parent } = a;
+      const deserializationClass = this.classMapping[className];
+      this.throwErrorIfDeserializationClassInvalid(deserializationClass);
+
+      seen[parent]['anchors'].push(deserializationClass.unSynth(a));
+    }
+
     for (const d of serializedOutput.dependencies) {
       const dependency = Dependency.unSynth(seen[d.from], seen[d.to], d);
       seen[d.from]['dependencies'].push(dependency);
@@ -92,10 +102,15 @@ export class ModelSerializationService {
 
   serialize(root: Model<unknown, unknown>): ModelSerializedOutput {
     const boundary = root.getBoundaryMembers();
+    const anchors: (IAnchor & { className: string })[] = [];
     const dependencies: IDependency[] = [];
     const models: { [key: string]: { className: string; model: IModel<unknown, unknown> } } = {};
 
     for (const model of boundary) {
+      for (const a of model['anchors']) {
+        anchors.push({ ...a.synth(), className: a.constructor.name });
+      }
+
       for (const d of model['dependencies']) {
         // Skip dependencies that are not part of boundary.
         if (
@@ -117,6 +132,6 @@ export class ModelSerializationService {
       }
     }
 
-    return { dependencies, models };
+    return { anchors, dependencies, models };
   }
 }

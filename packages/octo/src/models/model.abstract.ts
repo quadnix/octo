@@ -1,3 +1,4 @@
+import { Anchor } from '../functions/overlay/anchor.model';
 import { Dependency } from '../functions/dependency/dependency.model';
 import { Diff, DiffAction } from '../functions/diff/diff.model';
 import { DiffUtility } from '../functions/diff/diff.utility';
@@ -14,13 +15,11 @@ export abstract class Model<I, T> implements IModel<I, T> {
   abstract readonly MODEL_NAME: string;
   readonly MODEL_TYPE: IModel<I, T>['MODEL_TYPE'] = 'model';
 
+  protected readonly anchors: Anchor[] = [];
+
   protected readonly dependencies: Dependency[] = [];
 
-  private readonly hookService: HookService;
-
-  protected constructor() {
-    this.hookService = HookService.getInstance();
-  }
+  private readonly hookService: HookService = HookService.getInstance();
 
   addChild(onField: keyof T, child: Model<unknown, unknown>, toField: string): void {
     // Check if child already has a dependency to self.

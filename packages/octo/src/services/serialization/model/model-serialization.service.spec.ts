@@ -12,6 +12,7 @@ describe('Model Serialization Service UT', () => {
   describe('deserialize()', () => {
     it('should throw error when de-serializing an unknown class', async () => {
       const serializedOutput: ModelSerializedOutput = {
+        anchors: [],
         dependencies: [
           {
             from: 'app=name',
