@@ -18,6 +18,7 @@ import {
   TransactionService,
 } from '@quadnix/octo';
 import * as packageJson from '../package.json';
+import { IamRoleAnchor } from './anchors/iam-role.anchor.model';
 import { Action } from './models/action.abstract';
 import { AddEnvironmentAction } from './models/environment/actions/add-environment.action';
 import { DeleteEnvironmentAction } from './models/environment/actions/delete-environment.action';
@@ -30,6 +31,10 @@ import { AddS3StaticWebsiteAction } from './models/service/s3-static-website/act
 import { DeleteS3StaticWebsiteAction } from './models/service/s3-static-website/actions/delete-s3-static-website.action';
 import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/s3-static-website/actions/update-source-paths-s3-static-website.action';
 import { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model';
+import { S3StorageService } from './models/service/s3-storage/s3-storage.service.model';
+import { AddS3StorageAction as AddS3StorageModelAction } from './models/service/s3-storage/actions/add-s3-storage.action';
+import { DeleteS3StorageAction as DeleteS3StorageModelAction } from './models/service/s3-storage/actions/delete-s3-storage.action';
+import { UpdateDirectoriesS3StorageAction as UpdateDirectoriesS3StorageModelAction } from './models/service/s3-storage/actions/update-directories-s3-storage.action';
 import { AddEcrImageAction } from './resources/ecr/actions/add-ecr-image.action';
 import { DeleteEcrImageAction } from './resources/ecr/actions/delete-ecr-image.action';
 import { EcrImage } from './resources/ecr/ecr-image.resource';
@@ -47,6 +52,11 @@ import { NetworkAcl } from './resources/network-acl/network-acl.resource';
 import { AddRouteTableAction } from './resources/route-table/actions/add-route-table.action';
 import { DeleteRouteTableAction } from './resources/route-table/actions/delete-route-table.action';
 import { RouteTable } from './resources/route-table/route-table.resource';
+import { AddS3StorageAction } from './resources/s3/storage/actions/add-s3-storage.action';
+import { DeleteS3StorageAction } from './resources/s3/storage/actions/delete-s3-storage.action';
+import { UpdateAddDirectoriesInS3StorageAction } from './resources/s3/storage/actions/update-add-directories-in-s3-storage.action';
+import { UpdateRemoveDirectoriesInS3StorageAction } from './resources/s3/storage/actions/update-remove-directories-in-s3-storage.action';
+import { S3Storage } from './resources/s3/storage/s3-storage.resource';
 import { AddS3WebsiteAction } from './resources/s3/website/actions/add-s3-website.action';
 import { DeleteS3WebsiteAction } from './resources/s3/website/actions/delete-s3-website.action';
 import { UpdateSourcePathsInS3WebsiteAction } from './resources/s3/website/actions/update-source-paths-in-s3-website.action';
@@ -119,6 +129,11 @@ export class OctoAws {
       new AddS3StaticWebsiteAction(),
       new DeleteS3StaticWebsiteAction(),
       new UpdateSourcePathsS3StaticWebsiteAction(),
+
+      // models/service/s3-storage
+      new AddS3StorageModelAction(),
+      new DeleteS3StorageModelAction(),
+      new UpdateDirectoriesS3StorageModelAction(),
     ]);
     this.transactionService.registerResourceActions([
       // resources/ecr
@@ -140,6 +155,12 @@ export class OctoAws {
       // resources/route-table
       new AddRouteTableAction(this.ec2Client),
       new DeleteRouteTableAction(this.ec2Client),
+
+      // resources/s3/storage
+      new AddS3StorageAction(this.s3Client),
+      new DeleteS3StorageAction(this.s3Client),
+      new UpdateAddDirectoriesInS3StorageAction(this.s3Client),
+      new UpdateRemoveDirectoriesInS3StorageAction(this.s3Client),
 
       // resources/s3/website
       new AddS3WebsiteAction(this.s3Client),
@@ -163,9 +184,12 @@ export class OctoAws {
   private static getModelSerializationService(): ModelSerializationService {
     const modelSerializationService = new ModelSerializationService();
 
+    modelSerializationService.registerClass('IamRoleAnchor', IamRoleAnchor);
+
     modelSerializationService.registerClass('AwsRegion', AwsRegion);
 
     modelSerializationService.registerClass('S3StaticWebsiteService', S3StaticWebsiteService);
+    modelSerializationService.registerClass('S3StorageService', S3StorageService);
 
     return modelSerializationService;
   }
@@ -189,6 +213,7 @@ export class OctoAws {
 
     resourceSerializationService.registerClass('RouteTable', RouteTable);
 
+    resourceSerializationService.registerClass('S3Storage', S3Storage);
     resourceSerializationService.registerClass('S3Website', S3Website);
 
     resourceSerializationService.registerClass('SecurityGroup', SecurityGroup);
