@@ -36,10 +36,7 @@ export class Region extends Model<IRegion, Region> {
     };
   }
 
-  static async unSynth(
-    region: IRegion,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
-  ): Promise<Region> {
+  static override async unSynth(region: IRegion): Promise<Region> {
     return new Region(region.regionId);
   }
 }

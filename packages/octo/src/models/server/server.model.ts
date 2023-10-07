@@ -36,10 +36,7 @@ export class Server extends Model<IServer, Server> {
     };
   }
 
-  static async unSynth(
-    server: IServer,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
-  ): Promise<Server> {
+  static override async unSynth(server: IServer): Promise<Server> {
     return new Server(server.serverKey);
   }
 }

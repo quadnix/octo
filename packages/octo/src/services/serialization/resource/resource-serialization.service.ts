@@ -13,13 +13,6 @@ export type ResourceSerializedOutput = {
 export class ResourceSerializationService {
   private readonly classMapping: { [key: string]: any } = {};
 
-  private throwErrorIfDeserializationClassInvalid(deserializationClass: any): void {
-    const isValid = typeof deserializationClass?.unSynth === 'function';
-    if (!isValid) {
-      throw new Error('Invalid class, no reference to unSynth static method!');
-    }
-  }
-
   async deserialize(serializedOutput: ResourceSerializedOutput): Promise<IActionOutputs> {
     const deReferencePromises: { [p: string]: [Promise<boolean>, (value: boolean) => void] } = {};
     const parents: { [p: string]: string[] } = {};
@@ -45,7 +38,6 @@ export class ResourceSerializationService {
     const deserializeResource = async (resourceId: string, parents: string[]): Promise<Resource<unknown>> => {
       const { className, isSharedResource, resource } = serializedOutput.resources[resourceId];
       const deserializationClass = this.classMapping[className];
-      this.throwErrorIfDeserializationClassInvalid(deserializationClass);
 
       const deserializedResource = await deserializationClass.unSynth(
         deserializationClass,
@@ -64,7 +56,6 @@ export class ResourceSerializationService {
         }
 
         const deserializationSharedClass = this.classMapping[sharedClassName];
-        this.throwErrorIfDeserializationClassInvalid(deserializationSharedClass);
 
         const deserializedSharedResource = await deserializationSharedClass.unSynth(
           deserializationSharedClass,

@@ -20,4 +20,12 @@ export abstract class Anchor {
       parent: this.parent.getContext(),
     };
   }
+
+  static async unSynth(...args: unknown[]): Promise<unknown> {
+    if (args.length > 2) {
+      throw new Error('Too many args in unSynth()');
+    }
+
+    throw new Error('Method not implemented! Use derived class implementation');
+  }
 }

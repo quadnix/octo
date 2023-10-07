@@ -32,7 +32,7 @@ describe('Resource Serialization Service UT', () => {
       await expect(async () => {
         const serializedOutput = service.serialize([resource1, resource2]);
         await service.deserialize(serializedOutput);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid class, no reference to unSynth static method!"`);
+      }).rejects.toThrowError();
     });
 
     it('should deserialize a single resource', async () => {

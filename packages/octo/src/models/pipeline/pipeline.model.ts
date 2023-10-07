@@ -33,10 +33,7 @@ export class Pipeline extends Model<IPipeline, Pipeline> {
     };
   }
 
-  static async unSynth(
-    pipeline: IPipeline,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
-  ): Promise<Pipeline> {
+  static override async unSynth(pipeline: IPipeline): Promise<Pipeline> {
     const newPipeline = new Pipeline(pipeline.pipelineName);
     newPipeline.instructionSet.push(...pipeline.instructionSet);
     return newPipeline;

@@ -99,7 +99,7 @@ export class App extends Model<IApp, App> {
     };
   }
 
-  static async unSynth(app: IApp): Promise<App> {
+  static override async unSynth(app: IApp): Promise<App> {
     return new App(app.name);
   }
 }

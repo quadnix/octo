@@ -107,7 +107,7 @@ export abstract class Resource<T> extends Model<IResource, T> {
     };
   }
 
-  static async unSynth(
+  static override async unSynth(
     deserializationClass: any,
     resource: IResource,
     parentResourceIds: string[],

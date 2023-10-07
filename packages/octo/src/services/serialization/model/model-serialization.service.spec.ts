@@ -5,6 +5,7 @@ import { Environment } from '../../../models/environment/environment.model';
 import { Image } from '../../../models/image/image.model';
 import { Region } from '../../../models/region/region.model';
 import { Server } from '../../../models/server/server.model';
+import { Service } from '../../../models/service/service.model';
 import { Support } from '../../../models/support/support.model';
 import { ModelSerializationService, ModelSerializedOutput } from './model-serialization.service';
 
@@ -26,7 +27,28 @@ describe('Model Serialization Service UT', () => {
       const service = new ModelSerializationService();
       await expect(async () => {
         await service.deserialize(serializedOutput);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid class, no reference to unSynth static method!"`);
+      }).rejects.toThrowError();
+    });
+
+    it('should throw error when de-serializing a class with default unSynth', async () => {
+      const serializedOutput: ModelSerializedOutput = {
+        anchors: [],
+        dependencies: [
+          {
+            from: 'app=name',
+          } as IDependency,
+        ],
+        models: {
+          'app=name': { className: 'Service', model: null },
+        } as any,
+      };
+
+      const service = new ModelSerializationService();
+      service.registerClass('Service', Service);
+
+      await expect(async () => {
+        await service.deserialize(serializedOutput);
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Method not implemented! Use derived class implementation"`);
     });
 
     it('should deserialize unknown classes when registered', async () => {

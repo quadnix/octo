@@ -61,7 +61,7 @@ export class Execution extends Model<IExecution, Execution> {
     };
   }
 
-  static async unSynth(
+  static override async unSynth(
     execution: IExecution,
     deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
   ): Promise<Execution> {

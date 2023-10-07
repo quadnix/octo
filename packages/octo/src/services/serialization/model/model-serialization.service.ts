@@ -31,13 +31,6 @@ export class ModelSerializationService {
     Support,
   };
 
-  private throwErrorIfDeserializationClassInvalid(deserializationClass: any): void {
-    const isValid = typeof deserializationClass?.unSynth === 'function';
-    if (!isValid) {
-      throw new Error('Invalid class, no reference to unSynth static method!');
-    }
-  }
-
   async deserialize(serializedOutput: ModelSerializedOutput): Promise<Model<unknown, unknown>> {
     const deReferencePromises: { [p: string]: [Promise<boolean>, (value: boolean) => void] } = {};
     const seen: { [p: string]: Model<unknown, unknown> } = {};
@@ -62,7 +55,6 @@ export class ModelSerializationService {
     const deserializeModel = async (context: string): Promise<Model<unknown, unknown>> => {
       const { className, model } = serializedOutput.models[context];
       const deserializationClass = this.classMapping[className];
-      this.throwErrorIfDeserializationClassInvalid(deserializationClass);
 
       seen[context] = await deserializationClass.unSynth(model, deReferenceContext);
       if (deReferencePromises[context] !== undefined) {
@@ -82,7 +74,6 @@ export class ModelSerializationService {
     for (const a of serializedOutput.anchors) {
       const { className, parent } = a;
       const deserializationClass = this.classMapping[className];
-      this.throwErrorIfDeserializationClassInvalid(deserializationClass);
 
       const anchor = await deserializationClass.unSynth(a, deReferenceContext);
       seen[parent]['anchors'].push(anchor);
@@ -97,7 +88,6 @@ export class ModelSerializationService {
   }
 
   registerClass(className: string, deserializationClass: any): void {
-    this.throwErrorIfDeserializationClassInvalid(deserializationClass);
     this.classMapping[className] = deserializationClass;
   }
 

@@ -42,10 +42,7 @@ export class Support extends Model<ISupport, Support> {
     };
   }
 
-  static async unSynth(
-    support: ISupport,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
-  ): Promise<Support> {
+  static override async unSynth(support: ISupport): Promise<Support> {
     return new Support(support.serverKey, support.applicationType);
   }
 }

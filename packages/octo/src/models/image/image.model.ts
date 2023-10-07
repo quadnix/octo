@@ -48,10 +48,7 @@ export class Image extends Model<IImage, Image> {
     };
   }
 
-  static async unSynth(
-    image: IImage,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
-  ): Promise<Image> {
+  static override async unSynth(image: IImage): Promise<Image> {
     return new Image(image.imageName, image.imageTag, {
       ...image.dockerOptions,
     });

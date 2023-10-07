@@ -297,4 +297,12 @@ export abstract class Model<I, T> implements IModel<I, T> {
   }
 
   abstract synth(): I;
+
+  static async unSynth(...args: unknown[]): Promise<unknown> {
+    if (args.length > 4) {
+      throw new Error('Too many args in unSynth()');
+    }
+
+    throw new Error('Method not implemented! Use derived class implementation');
+  }
 }

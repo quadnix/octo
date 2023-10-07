@@ -30,7 +30,7 @@ export class Deployment extends Model<IDeployment, Deployment> {
     };
   }
 
-  static async unSynth(
+  static override async unSynth(
     deployment: IDeployment,
     deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
   ): Promise<Deployment> {
