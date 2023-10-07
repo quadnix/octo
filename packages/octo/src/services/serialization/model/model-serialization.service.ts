@@ -84,7 +84,8 @@ export class ModelSerializationService {
       const deserializationClass = this.classMapping[className];
       this.throwErrorIfDeserializationClassInvalid(deserializationClass);
 
-      seen[parent]['anchors'].push(deserializationClass.unSynth(a));
+      const anchor = await deserializationClass.unSynth(a, deReferenceContext);
+      seen[parent]['anchors'].push(anchor);
     }
 
     for (const d of serializedOutput.dependencies) {

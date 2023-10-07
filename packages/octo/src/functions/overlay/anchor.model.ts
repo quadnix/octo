@@ -12,8 +12,6 @@ export abstract class Anchor {
     if (parent['anchors'].find((a) => a.ANCHOR_NAME === this.ANCHOR_NAME)) {
       throw new Error('Anchor already exists!');
     }
-
-    parent['anchors'].push(this);
   }
 
   synth(): IAnchor {
