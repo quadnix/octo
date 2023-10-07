@@ -37,7 +37,10 @@ export class Environment extends Model<IEnvironment, Environment> {
     };
   }
 
-  static async unSynth(environment: IEnvironment): Promise<Environment> {
+  static async unSynth(
+    environment: IEnvironment,
+    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
+  ): Promise<Environment> {
     const newEnvironment = new Environment(environment.environmentName);
 
     for (const key in environment.environmentVariables) {
