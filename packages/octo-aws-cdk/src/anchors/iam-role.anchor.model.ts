@@ -8,7 +8,7 @@ export class IamRoleAnchor extends Anchor {
     this.ANCHOR_NAME = anchorName;
   }
 
-  static async unSynth(
+  static override async unSynth(
     anchor: IAnchor,
     deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
   ): Promise<IamRoleAnchor> {

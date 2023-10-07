@@ -46,7 +46,7 @@ export class AwsRegion extends Region {
     };
   }
 
-  static async unSynth(awsRegion: IAwsRegion): Promise<AwsRegion> {
+  static override async unSynth(awsRegion: IAwsRegion): Promise<AwsRegion> {
     return new AwsRegion(awsRegion.regionId as AwsRegionId);
   }
 }

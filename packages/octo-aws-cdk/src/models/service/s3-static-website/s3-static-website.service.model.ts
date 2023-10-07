@@ -175,7 +175,7 @@ export class S3StaticWebsiteService extends Service {
     };
   }
 
-  static async unSynth(
+  static override async unSynth(
     s3StaticWebsite: IS3StaticWebsiteService,
     deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
   ): Promise<S3StaticWebsiteService> {

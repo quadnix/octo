@@ -69,7 +69,7 @@ export class S3StorageService extends Service {
     };
   }
 
-  static async unSynth(
+  static override async unSynth(
     s3Storage: IS3StorageService,
     deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
   ): Promise<S3StorageService> {
