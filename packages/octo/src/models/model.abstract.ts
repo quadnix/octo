@@ -126,6 +126,10 @@ export abstract class Model<I, T> implements IModel<I, T> {
     return membersProcessed;
   }
 
+  getAnchors(filters: { key: string; value: any }[]): Anchor[] {
+    return this.anchors.filter((a) => filters.every((c) => a[c.key] === c.value));
+  }
+
   /**
    * Get a boundary (sub graph) of a model, i.e. an array of models that must belong together.
    * To generate a boundary, we must process all children and grand-children of self.

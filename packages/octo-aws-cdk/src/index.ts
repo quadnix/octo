@@ -1,6 +1,7 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { ECRClient } from '@aws-sdk/client-ecr';
 import { ECSClient } from '@aws-sdk/client-ecs';
+import { IAMClient } from '@aws-sdk/client-iam';
 import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
 import {
@@ -19,6 +20,7 @@ import {
 } from '@quadnix/octo';
 import * as packageJson from '../package.json';
 import { IamRoleAnchor } from './anchors/iam-role.anchor.model';
+import { IamUserAnchor } from './anchors/iam-user.anchor.model';
 import { Action } from './models/action.abstract';
 import { AddEnvironmentAction } from './models/environment/actions/add-environment.action';
 import { DeleteEnvironmentAction } from './models/environment/actions/delete-environment.action';
@@ -27,6 +29,9 @@ import { DeleteImageAction } from './models/image/actions/delete-image.action';
 import { AddRegionAction } from './models/region/actions/add-region.action';
 import { DeleteRegionAction } from './models/region/actions/delete-region.action';
 import { AwsRegion, AwsRegionId } from './models/region/aws.region.model';
+import { AddServerAction } from './models/server/actions/add-server.action';
+import { DeleteServerAction } from './models/server/actions/delete-server.action';
+import { AwsServer } from './models/server/aws.server.model';
 import { AddS3StaticWebsiteAction } from './models/service/s3-static-website/actions/add-s3-static-website.action';
 import { DeleteS3StaticWebsiteAction } from './models/service/s3-static-website/actions/delete-s3-static-website.action';
 import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/s3-static-website/actions/update-source-paths-s3-static-website.action';
@@ -43,6 +48,9 @@ import { AddEcsClusterAction } from './resources/ecs/actions/add-ecs-cluster.act
 import { DeleteEcsClusterAction } from './resources/ecs/actions/delete-ecs-cluster.action';
 import { EcsCluster } from './resources/ecs/ecs-cluster.resource';
 import { SharedEcsCluster } from './resources/ecs/ecs-cluster.shared-resource';
+import { AddIamUserAction } from './resources/iam/actions/add-iam-user.action';
+import { DeleteIamUserAction } from './resources/iam/actions/delete-iam-user.action';
+import { IamUser } from './resources/iam/iam-user.resource';
 import { AddInternetGatewayAction } from './resources/internet-gateway/actions/add-internet-gateway.action';
 import { DeleteInternetGatewayAction } from './resources/internet-gateway/actions/delete-internet-gateway.action';
 import { InternetGateway } from './resources/internet-gateway/internet-gateway.resource';
@@ -84,6 +92,7 @@ export class OctoAws {
   private readonly ec2Client: EC2Client;
   private readonly ecrClient: ECRClient;
   private readonly ecsClient: ECSClient;
+  private readonly iamClient: IAMClient;
   private readonly s3Client: S3Client;
   private readonly stsClient: STSClient;
 
@@ -103,6 +112,7 @@ export class OctoAws {
     this.ec2Client = new EC2Client({ region: region.nativeAwsRegionId });
     this.ecrClient = new ECRClient({ region: region.nativeAwsRegionId });
     this.ecsClient = new ECSClient({ region: region.nativeAwsRegionId });
+    this.iamClient = new IAMClient({});
     this.s3Client = new S3Client({ region: region.nativeAwsRegionId });
     this.stsClient = new STSClient({ region: region.nativeAwsRegionId });
 
@@ -125,6 +135,10 @@ export class OctoAws {
       new AddRegionAction(),
       new DeleteRegionAction(),
 
+      // models/server
+      new AddServerAction(),
+      new DeleteServerAction(),
+
       // models/service/s3-static-website
       new AddS3StaticWebsiteAction(),
       new DeleteS3StaticWebsiteAction(),
@@ -143,6 +157,10 @@ export class OctoAws {
       // resources/ecs
       new AddEcsClusterAction(this.ecsClient, this.region),
       new DeleteEcsClusterAction(this.ecsClient, this.region),
+
+      // resources/iam
+      new AddIamUserAction(this.iamClient),
+      new DeleteIamUserAction(this.iamClient),
 
       // resources/internet-gateway
       new AddInternetGatewayAction(this.ec2Client),
@@ -185,8 +203,11 @@ export class OctoAws {
     const modelSerializationService = new ModelSerializationService();
 
     modelSerializationService.registerClass('IamRoleAnchor', IamRoleAnchor);
+    modelSerializationService.registerClass('IamUserAnchor', IamUserAnchor);
 
     modelSerializationService.registerClass('AwsRegion', AwsRegion);
+
+    modelSerializationService.registerClass('AwsServer', AwsServer);
 
     modelSerializationService.registerClass('S3StaticWebsiteService', S3StaticWebsiteService);
     modelSerializationService.registerClass('S3StorageService', S3StorageService);
@@ -206,6 +227,8 @@ export class OctoAws {
 
     resourceSerializationService.registerClass('EcsCluster', EcsCluster);
     resourceSerializationService.registerClass('SharedEcsCluster', SharedEcsCluster);
+
+    resourceSerializationService.registerClass('IamUser', IamUser);
 
     resourceSerializationService.registerClass('InternetGateway', InternetGateway);
 
