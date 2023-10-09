@@ -1,4 +1,5 @@
 import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { SharedEfs } from '../../../resources/efs/efs.shared-resource';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource';
 import { RouteTable } from '../../../resources/route-table/route-table.resource';
@@ -27,6 +28,7 @@ export class DeleteRegionAction extends Action {
       `resource.${regionId}-internal-open-sg`,
       `resource.${regionId}-private-closed-sg`,
       `resource.${regionId}-web-sg`,
+      `resource.${regionId}-shared-efs-filesystem`,
     ];
   }
 
@@ -55,6 +57,9 @@ export class DeleteRegionAction extends Action {
 
   handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
     const { regionId } = diff.model as AwsRegion;
+
+    const sharedEfs = actionInputs[`resource.${regionId}-shared-efs-filesystem`] as SharedEfs;
+    sharedEfs.markUpdated('regions', `DELETE:${regionId}`);
 
     const accessSG = actionInputs[`resource.${regionId}-access-sg`] as SecurityGroup;
     accessSG.markDeleted();
@@ -99,6 +104,7 @@ export class DeleteRegionAction extends Action {
     output[internalOpenSG.resourceId] = internalOpenSG;
     output[privateClosedSG.resourceId] = privateClosedSG;
     output[webSG.resourceId] = webSG;
+    output[sharedEfs.resourceId] = sharedEfs;
 
     return output;
   }

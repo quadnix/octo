@@ -20,8 +20,10 @@ Dockerfile
 ec2
 ecr
 ecs
+efs
 eslintrc
 Fallthrough
+filesystem
 iam
 igw
 Ipv

@@ -1,6 +1,7 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { ECRClient } from '@aws-sdk/client-ecr';
 import { ECSClient } from '@aws-sdk/client-ecs';
+import { EFSClient } from '@aws-sdk/client-efs';
 import { IAMClient } from '@aws-sdk/client-iam';
 import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
@@ -48,6 +49,10 @@ import { AddEcsClusterAction } from './resources/ecs/actions/add-ecs-cluster.act
 import { DeleteEcsClusterAction } from './resources/ecs/actions/delete-ecs-cluster.action';
 import { EcsCluster } from './resources/ecs/ecs-cluster.resource';
 import { SharedEcsCluster } from './resources/ecs/ecs-cluster.shared-resource';
+import { AddEfsAction } from './resources/efs/actions/add-efs.action';
+import { DeleteEfsAction } from './resources/efs/actions/delete-efs-action';
+import { Efs } from './resources/efs/efs.resource';
+import { SharedEfs } from './resources/efs/efs.shared-resource';
 import { AddIamUserAction } from './resources/iam/actions/add-iam-user.action';
 import { DeleteIamUserAction } from './resources/iam/actions/delete-iam-user.action';
 import { IamUser } from './resources/iam/iam-user.resource';
@@ -92,6 +97,7 @@ export class OctoAws {
   private readonly ec2Client: EC2Client;
   private readonly ecrClient: ECRClient;
   private readonly ecsClient: ECSClient;
+  private readonly efsClient: EFSClient;
   private readonly iamClient: IAMClient;
   private readonly s3Client: S3Client;
   private readonly stsClient: STSClient;
@@ -112,6 +118,7 @@ export class OctoAws {
     this.ec2Client = new EC2Client({ region: region.nativeAwsRegionId });
     this.ecrClient = new ECRClient({ region: region.nativeAwsRegionId });
     this.ecsClient = new ECSClient({ region: region.nativeAwsRegionId });
+    this.efsClient = new EFSClient({ region: region.nativeAwsRegionId });
     this.iamClient = new IAMClient({});
     this.s3Client = new S3Client({ region: region.nativeAwsRegionId });
     this.stsClient = new STSClient({ region: region.nativeAwsRegionId });
@@ -157,6 +164,10 @@ export class OctoAws {
       // resources/ecs
       new AddEcsClusterAction(this.ecsClient, this.region),
       new DeleteEcsClusterAction(this.ecsClient, this.region),
+
+      // resources/efs
+      new AddEfsAction(this.efsClient, this.region),
+      new DeleteEfsAction(this.efsClient, this.region),
 
       // resources/iam
       new AddIamUserAction(this.iamClient),
@@ -227,6 +238,9 @@ export class OctoAws {
 
     resourceSerializationService.registerClass('EcsCluster', EcsCluster);
     resourceSerializationService.registerClass('SharedEcsCluster', SharedEcsCluster);
+
+    resourceSerializationService.registerClass('Efs', Efs);
+    resourceSerializationService.registerClass('SharedEfs', SharedEfs);
 
     resourceSerializationService.registerClass('IamUser', IamUser);
 

@@ -1,4 +1,6 @@
 import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { Efs } from '../../../resources/efs/efs.resource';
+import { SharedEfs } from '../../../resources/efs/efs.shared-resource';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource';
 import { RouteTable } from '../../../resources/route-table/route-table.resource';
@@ -38,6 +40,7 @@ export class AddRegionAction extends Action {
       `${regionId}-internal-open-sg`,
       `${regionId}-private-closed-sg`,
       `${regionId}-web-sg`,
+      `${regionId}-shared-efs-filesystem`,
     ];
   }
 
@@ -224,6 +227,11 @@ export class AddRegionAction extends Action {
       [vpc],
     );
 
+    // Create EFS.
+    const efs = new Efs(`${regionId}-shared-efs-filesystem`, {}, [privateSubnet1, internalOpenSG]);
+    const sharedEfs = new SharedEfs(efs);
+    sharedEfs.markUpdated('regions', `ADD:${regionId}`);
+
     const output: IActionOutputs = {};
     output[vpc.resourceId] = vpc;
     output[internetGateway.resourceId] = internetGateway;
@@ -237,6 +245,7 @@ export class AddRegionAction extends Action {
     output[internalOpenSG.resourceId] = internalOpenSG;
     output[privateClosedSG.resourceId] = privateClosedSG;
     output[webSG.resourceId] = webSG;
+    output[efs.resourceId] = sharedEfs;
 
     return output;
   }
