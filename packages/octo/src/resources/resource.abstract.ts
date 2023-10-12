@@ -28,8 +28,11 @@ export abstract class Resource<T> extends Model<IResource, T> {
   ) {
     super();
 
-    this.properties = properties;
     this.resourceId = resourceId;
+
+    for (const key in properties) {
+      this.properties[key] = properties[key];
+    }
 
     this.associateWith(parents);
   }

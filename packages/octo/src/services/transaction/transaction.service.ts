@@ -3,6 +3,7 @@ import { Diff, DiffAction } from '../../functions/diff/diff.model';
 import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface';
 import { IResourceAction } from '../../resources/resource-action.interface';
 import { Resource } from '../../resources/resource.abstract';
+import { SharedResource } from '../../resources/shared-resource.abstract';
 
 export type TransactionOptions = {
   yieldModelTransaction?: boolean;
@@ -59,7 +60,13 @@ export class TransactionService {
 
           // Collect new resources.
           for (const resourceId of a.collectOutput(diffToProcess)) {
-            resources[resourceId] = outputs[resourceId];
+            if (outputs[resourceId].MODEL_TYPE === 'shared-resource' && resources[resourceId]) {
+              resources[resourceId] = (resources[resourceId] as SharedResource<unknown>).merge(
+                outputs[resourceId] as SharedResource<unknown>,
+              );
+            } else {
+              resources[resourceId] = outputs[resourceId];
+            }
           }
 
           // Update diff metadata with inputs and outputs.
