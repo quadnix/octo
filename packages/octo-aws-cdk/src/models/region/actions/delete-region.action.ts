@@ -28,7 +28,7 @@ export class DeleteRegionAction extends Action {
       `resource.${regionId}-internal-open-sg`,
       `resource.${regionId}-private-closed-sg`,
       `resource.${regionId}-web-sg`,
-      `resource.${regionId}-shared-efs-filesystem`,
+      'resource.shared-efs-filesystem',
     ];
   }
 
@@ -58,12 +58,16 @@ export class DeleteRegionAction extends Action {
   handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
     const { regionId } = diff.model as AwsRegion;
 
-    const sharedEfs = actionInputs[`resource.${regionId}-shared-efs-filesystem`] as SharedEfs;
+    const internalOpenSG = actionInputs[`resource.${regionId}-internal-open-sg`] as SecurityGroup;
+    const privateSubnet1 = actionInputs[`resource.${regionId}-private-subnet-1`] as Subnet;
+
+    const sharedEfs = actionInputs['resource.shared-efs-filesystem'] as SharedEfs;
     sharedEfs.markUpdated('regions', `DELETE:${regionId}`);
+    sharedEfs.removeRelationship(privateSubnet1);
+    sharedEfs.removeRelationship(internalOpenSG);
 
     const accessSG = actionInputs[`resource.${regionId}-access-sg`] as SecurityGroup;
     accessSG.markDeleted();
-    const internalOpenSG = actionInputs[`resource.${regionId}-internal-open-sg`] as SecurityGroup;
     internalOpenSG.markDeleted();
     const privateClosedSG = actionInputs[`resource.${regionId}-private-closed-sg`] as SecurityGroup;
     privateClosedSG.markDeleted();
@@ -80,7 +84,6 @@ export class DeleteRegionAction extends Action {
     const publicRT1 = actionInputs[`resource.${regionId}-public-rt-1`] as RouteTable;
     publicRT1.markDeleted();
 
-    const privateSubnet1 = actionInputs[`resource.${regionId}-private-subnet-1`] as Subnet;
     privateSubnet1.markDeleted();
     const publicSubnet1 = actionInputs[`resource.${regionId}-public-subnet-1`] as Subnet;
     publicSubnet1.markDeleted();

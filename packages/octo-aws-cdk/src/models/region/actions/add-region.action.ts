@@ -40,7 +40,7 @@ export class AddRegionAction extends Action {
       `${regionId}-internal-open-sg`,
       `${regionId}-private-closed-sg`,
       `${regionId}-web-sg`,
-      `${regionId}-shared-efs-filesystem`,
+      'shared-efs-filesystem',
     ];
   }
 
@@ -228,7 +228,7 @@ export class AddRegionAction extends Action {
     );
 
     // Create EFS.
-    const efs = new Efs(`${regionId}-shared-efs-filesystem`, {}, [privateSubnet1, internalOpenSG]);
+    const efs = new Efs('shared-efs-filesystem', {}, [privateSubnet1, internalOpenSG]);
     const sharedEfs = new SharedEfs(efs);
     sharedEfs.markUpdated('regions', `ADD:${regionId}`);
 
