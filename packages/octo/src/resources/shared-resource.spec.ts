@@ -387,7 +387,7 @@ describe('SharedResource UT', () => {
               "toField": "resourceId",
               "type": "child",
             },
-            "to": "parent-resource=parent-1",
+            "to": "parent-resource=parent-2",
           },
           {
             "behaviors": [
@@ -410,7 +410,7 @@ describe('SharedResource UT', () => {
               "toField": "resourceId",
               "type": "child",
             },
-            "to": "parent-resource=parent-2",
+            "to": "parent-resource=parent-1",
           },
           {
             "behaviors": [

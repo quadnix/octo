@@ -109,6 +109,11 @@ describe('AwsRegion UT', () => {
               "field": "resourceId",
               "value": "aws-us-east-1a-web-sg",
             },
+            {
+              "action": "add",
+              "field": "resourceId",
+              "value": "shared-efs-filesystem",
+            },
           ],
         ]
       `);
