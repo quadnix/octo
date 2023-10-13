@@ -10,6 +10,10 @@ export class SharedEcrImage extends SharedResource<EcrImage> {
   override async diff(previous?: SharedEcrImage): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
+    if (!this.getUpdateMarker()) {
+      return diffs;
+    }
+
     // Update marker for ECR shared resource is always set to regions.
     const updateMarker = this.getUpdateMarker();
     const [action, regionId] = updateMarker!.value.split(':');

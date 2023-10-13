@@ -10,6 +10,10 @@ export class SharedEcsCluster extends SharedResource<EcsCluster> {
   override async diff(previous?: SharedEcsCluster): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
+    if (!this.getUpdateMarker()) {
+      return diffs;
+    }
+
     // Update marker for ECS shared resource is always set to regions.
     const updateMarker = this.getUpdateMarker();
     const [action, regionId] = updateMarker!.value.split(':');

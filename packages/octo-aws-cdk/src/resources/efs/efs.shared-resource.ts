@@ -10,6 +10,10 @@ export class SharedEfs extends SharedResource<Efs> {
   override async diff(previous?: SharedEfs): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
+    if (!this.getUpdateMarker()) {
+      return diffs;
+    }
+
     // Update marker for EFS shared resource is always set to regions.
     const updateMarker = this.getUpdateMarker();
     const [action, regionId] = updateMarker!.value.split(':');
