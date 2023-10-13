@@ -21,18 +21,18 @@ export abstract class SharedResource<T> extends Resource<T> {
   }
 
   merge(sharedResource: SharedResource<T>): SharedResource<T> {
-    for (const key in sharedResource.properties) {
-      this.properties[key] = sharedResource.properties[key];
+    for (const key in this.properties) {
+      sharedResource.properties[key] = this.properties[key];
     }
 
-    for (const key in sharedResource.response) {
-      this.response[key] = sharedResource.response[key];
+    for (const key in this.response) {
+      sharedResource.response[key] = this.response[key];
     }
 
     // Separately initialize parents, without calling associateWith().
-    this.dependencies.push(...sharedResource['dependencies']);
+    sharedResource['dependencies'].push(...this.dependencies);
 
-    return this;
+    return sharedResource;
   }
 
   static override async unSynth(
