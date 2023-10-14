@@ -12,8 +12,8 @@ export class Deployment extends Model<IDeployment, Deployment> {
   constructor(deploymentTag: string, image: Image) {
     super();
     this.deploymentTag = deploymentTag;
-    this.image = image;
 
+    this.image = image;
     this.addRelationship('deploymentTag', image, 'imageId');
   }
 

@@ -1,15 +1,21 @@
 import { Deployment } from '../deployment/deployment.model';
+import { Image } from '../image/image.model';
 import { Model } from '../model.abstract';
 import { IServer } from './server.interface';
 
 export class Server extends Model<IServer, Server> {
   readonly MODEL_NAME: string = 'server';
 
+  readonly image: Image;
+
   readonly serverKey: string;
 
-  constructor(serverKey: string) {
+  constructor(serverKey: string, image: Image) {
     super();
     this.serverKey = serverKey;
+
+    this.image = image;
+    this.addRelationship('serverKey', image, 'imageId');
   }
 
   addDeployment(deployment: Deployment): void {
@@ -32,11 +38,16 @@ export class Server extends Model<IServer, Server> {
 
   synth(): IServer {
     return {
+      image: { context: this.image.getContext() },
       serverKey: this.serverKey,
     };
   }
 
-  static override async unSynth(server: IServer): Promise<Server> {
-    return new Server(server.serverKey);
+  static override async unSynth(
+    server: IServer,
+    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
+  ): Promise<Server> {
+    const image = (await deReferenceContext(server.image.context)) as Image;
+    return new Server(server.serverKey, image);
   }
 }

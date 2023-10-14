@@ -20,7 +20,7 @@ describe('Model E2E Test', () => {
     });
     const pipeline = new Pipeline('testPipeline');
     const region = new Region('region-1');
-    const server = new Server('backend');
+    const server = new Server('backend', image);
     const service = new Service('testService');
     const support = new Support('nginx', 'nginx');
     const deployment = new Deployment('v1', image);
@@ -158,11 +158,15 @@ describe('Model E2E Test', () => {
 
     it('should not include server in region boundary', () => {
       const app0 = new App('test-app');
+      const image0 = new Image('nginx', '0.0.1', {
+        dockerFilePath: '/Dockerfile',
+      });
       const region0 = new Region('region-0');
+      app0.addImage(image0);
       app0.addRegion(region0);
 
       // Just adding a server won't correlate to region. Create an execution in order to correlate.
-      const server0 = new Server('server-0');
+      const server0 = new Server('server-0', image0);
       app0.addServer(server0);
 
       expect(region0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
@@ -176,7 +180,7 @@ describe('Model E2E Test', () => {
       app0.addRegion(region0);
       const environment0 = new Environment('env-0');
       region0.addEnvironment(environment0);
-      const server0 = new Server('server-0');
+      const server0 = new Server('server-0', image0);
       app0.addServer(server0);
       const deployment0 = new Deployment('deployment-0', image0);
       server0.addDeployment(deployment0);
@@ -193,7 +197,7 @@ describe('Model E2E Test', () => {
       app0.addRegion(region0);
       const environment0 = new Environment('env-0');
       region0.addEnvironment(environment0);
-      const server0 = new Server('server-0');
+      const server0 = new Server('server-0', image0);
       app0.addServer(server0);
       const deployment0 = new Deployment('deployment-0', image0);
       server0.addDeployment(deployment0);

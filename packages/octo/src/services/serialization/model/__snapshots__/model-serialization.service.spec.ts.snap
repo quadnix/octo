@@ -10,6 +10,23 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "forAction": "delete",
           "onAction": "delete",
           "onField": "name",
+          "toField": "imageId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "imageId",
+        "type": "parent",
+      },
+      "to": "image=nginx:0.0.1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
           "toField": "regionId",
         },
       ],
@@ -84,6 +101,25 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "forAction": "add",
           "onAction": "add",
           "onField": "serverKey",
+          "toField": "imageId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "serverKey",
+          "toField": "imageId",
+        },
+      ],
+      "from": "server=backend,app=test-app",
+      "relationship": undefined,
+      "to": "image=nginx:0.0.1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "serverKey",
           "toField": "name",
         },
         {
@@ -100,6 +136,42 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "type": "child",
       },
       "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+      ],
+      "from": "image=nginx:0.0.1,app=test-app",
+      "relationship": {
+        "onField": "imageId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "imageId",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "image=nginx:0.0.1,app=test-app",
+      "relationship": undefined,
+      "to": "server=backend,app=test-app",
     },
     {
       "behaviors": [
@@ -181,6 +253,19 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         },
       },
     },
+    "image=nginx:0.0.1,app=test-app": {
+      "className": "Image",
+      "model": {
+        "dockerOptions": {
+          "buildArgs": {},
+          "dockerFilePath": "/Dockerfile",
+          "quiet": undefined,
+        },
+        "imageId": "0.0.1",
+        "imageName": "nginx",
+        "imageTag": "0.0.1",
+      },
+    },
     "region=region-1,app=test-app": {
       "className": "Region",
       "model": {
@@ -190,6 +275,9 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
     "server=backend,app=test-app": {
       "className": "Server",
       "model": {
+        "image": {
+          "context": "image=nginx:0.0.1,app=test-app",
+        },
         "serverKey": "backend",
       },
     },
@@ -372,6 +460,25 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
           "forAction": "add",
           "onAction": "add",
           "onField": "serverKey",
+          "toField": "imageId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "serverKey",
+          "toField": "imageId",
+        },
+      ],
+      "from": "server=backend,app=test-app",
+      "relationship": undefined,
+      "to": "image=backend-runner:0.0.1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "serverKey",
           "toField": "name",
         },
         {
@@ -426,43 +533,14 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
     {
       "behaviors": [
         {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "imageId",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "imageId",
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "imageId",
+          "toField": "serverKey",
         },
       ],
-      "from": "deployment=0.0.2,server=backend,app=test-app",
+      "from": "image=backend-runner:0.0.1,app=test-app",
       "relationship": undefined,
-      "to": "image=backend-runner:0.0.1,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "serverKey",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "deployment=0.0.2,server=backend,app=test-app",
-      "relationship": {
-        "onField": "deploymentTag",
-        "toField": "serverKey",
-        "type": "child",
-      },
       "to": "server=backend,app=test-app",
     },
     {
@@ -513,6 +591,48 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
         "type": "child",
       },
       "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "imageId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "imageId",
+        },
+      ],
+      "from": "deployment=0.0.2,server=backend,app=test-app",
+      "relationship": undefined,
+      "to": "image=backend-runner:0.0.1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "serverKey",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "deploymentTag",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "deployment=0.0.2,server=backend,app=test-app",
+      "relationship": {
+        "onField": "deploymentTag",
+        "toField": "serverKey",
+        "type": "child",
+      },
+      "to": "server=backend,app=test-app",
     },
     {
       "behaviors": [
@@ -598,6 +718,9 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
     "server=backend,app=test-app": {
       "className": "Server",
       "model": {
+        "image": {
+          "context": "image=backend-runner:0.0.1,app=test-app",
+        },
         "serverKey": "backend",
       },
     },

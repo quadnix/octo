@@ -190,6 +190,7 @@ exports[`Model E2E Test common functions Test image getBoundaryMembers() 1`] = `
   "execution=v1_qa,deployment=v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
   "environment=qa,region=region-1,app=test",
   "region=region-1,app=test",
+  "server=backend,app=test",
 ]
 `;
 
@@ -290,6 +291,7 @@ exports[`Model E2E Test common functions Test server getAncestors() 1`] = `
 [
   "server=backend,app=test",
   "app=test",
+  "image=nginx:0.0.1,app=test",
 ]
 `;
 
@@ -297,6 +299,7 @@ exports[`Model E2E Test common functions Test server getBoundaryMembers() 1`] = 
 [
   "server=backend,app=test",
   "app=test",
+  "image=nginx:0.0.1,app=test",
 ]
 `;
 
@@ -312,6 +315,9 @@ exports[`Model E2E Test common functions Test server getParents() 1`] = `
 
 exports[`Model E2E Test common functions Test server synth() 1`] = `
 {
+  "image": {
+    "context": "image=nginx:0.0.1,app=test",
+  },
   "serverKey": "backend",
 }
 `;
@@ -409,8 +415,8 @@ exports[`Model E2E Test getBoundaryMembers() should include region in server bou
 [
   "server=server-0,app=test-app",
   "app=test-app",
-  "deployment=deployment-0,server=server-0,app=test-app",
   "image=test:test,app=test-app",
+  "deployment=deployment-0,server=server-0,app=test-app",
   "execution=deployment-0_env-0,deployment=deployment-0,server=server-0,app=test-app,environment=env-0,region=region-0,app=test-app",
   "environment=env-0,region=region-0,app=test-app",
   "region=region-0,app=test-app",
