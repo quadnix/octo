@@ -4,7 +4,7 @@ import { Region } from '../../models/region/region.model';
 import { HookService } from './hook.service';
 
 describe('HookService UT', () => {
-  it('should not be able to apply the hook when not registered', () => {
+  it('should not be able to apply the hook when not filtered', () => {
     const hookService = HookService.getInstance();
 
     const testHookMock = jest.fn();
@@ -20,7 +20,7 @@ describe('HookService UT', () => {
     expect(testHookMock).toHaveBeenCalledTimes(0);
   });
 
-  it('should be able to apply the hook when registered', () => {
+  it('should be able to apply the hook when filtered', () => {
     const hookService = HookService.getInstance();
     const region = new Region('region-1');
 

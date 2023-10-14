@@ -3,6 +3,28 @@ import { Environment } from './environment.model';
 describe('Environment UT', () => {
   describe('diff()', () => {
     describe('when diff of environmentVariables', () => {
+      it('should capture addition', async () => {
+        const environment0 = new Environment('qa');
+
+        const environment1 = new Environment('qa');
+        environment1.environmentVariables.set('key', 'value');
+
+        const diff = await environment1.diff(environment0);
+
+        expect(diff).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "add",
+            "field": "environmentVariables",
+            "value": {
+              "key": "key",
+              "value": "value",
+            },
+          },
+        ]
+      `);
+      });
+
       it('should capture update', async () => {
         const environment0 = new Environment('qa');
         environment0.environmentVariables.set('key', 'value 1');
@@ -20,50 +42,6 @@ describe('Environment UT', () => {
             "value": {
               "key": "key",
               "value": "value 2",
-            },
-          },
-        ]
-      `);
-      });
-
-      it('should capture deletion', async () => {
-        const environment0 = new Environment('qa');
-        environment0.environmentVariables.set('key', 'value');
-
-        const environment1 = new Environment('qa');
-
-        const diff = await environment1.diff(environment0);
-
-        expect(diff).toMatchInlineSnapshot(`
-        [
-          {
-            "action": "delete",
-            "field": "environmentVariables",
-            "value": {
-              "key": "key",
-              "value": "value",
-            },
-          },
-        ]
-      `);
-      });
-
-      it('should capture addition', async () => {
-        const environment0 = new Environment('qa');
-
-        const environment1 = new Environment('qa');
-        environment1.environmentVariables.set('key', 'value');
-
-        const diff = await environment1.diff(environment0);
-
-        expect(diff).toMatchInlineSnapshot(`
-        [
-          {
-            "action": "add",
-            "field": "environmentVariables",
-            "value": {
-              "key": "key",
-              "value": "value",
             },
           },
         ]
@@ -95,6 +73,28 @@ describe('Environment UT', () => {
             "value": {
               "key": "key2",
               "value": "value 2",
+            },
+          },
+        ]
+      `);
+      });
+
+      it('should capture deletion', async () => {
+        const environment0 = new Environment('qa');
+        environment0.environmentVariables.set('key', 'value');
+
+        const environment1 = new Environment('qa');
+
+        const diff = await environment1.diff(environment0);
+
+        expect(diff).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "delete",
+            "field": "environmentVariables",
+            "value": {
+              "key": "key",
+              "value": "value",
             },
           },
         ]

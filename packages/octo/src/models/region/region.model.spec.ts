@@ -15,50 +15,6 @@ describe('Region UT', () => {
 
   describe('diff()', () => {
     describe('when diff of environment', () => {
-      it('should capture update', async () => {
-        const region0 = new Region('region-1');
-        region0.addEnvironment(new Environment('qa'));
-
-        const region1 = new Region('region-1');
-        const environment1 = new Environment('qa');
-        environment1.environmentVariables.set('key', 'value');
-        region1.addEnvironment(environment1);
-
-        const diff = await region1.diff(region0);
-
-        expect(diff).toMatchInlineSnapshot(`
-        [
-          {
-            "action": "add",
-            "field": "environmentVariables",
-            "value": {
-              "key": "key",
-              "value": "value",
-            },
-          },
-        ]
-      `);
-      });
-
-      it('should capture deletion', async () => {
-        const region0 = new Region('region-1');
-        region0.addEnvironment(new Environment('qa'));
-
-        const region1 = new Region('region-1');
-
-        const diff = await region1.diff(region0);
-
-        expect(diff).toMatchInlineSnapshot(`
-        [
-          {
-            "action": "delete",
-            "field": "environmentName",
-            "value": "qa",
-          },
-        ]
-      `);
-      });
-
       it('should capture addition', async () => {
         const region0 = new Region('region-1');
 
@@ -97,6 +53,31 @@ describe('Region UT', () => {
       `);
       });
 
+      it('should capture update', async () => {
+        const region0 = new Region('region-1');
+        region0.addEnvironment(new Environment('qa'));
+
+        const region1 = new Region('region-1');
+        const environment1 = new Environment('qa');
+        environment1.environmentVariables.set('key', 'value');
+        region1.addEnvironment(environment1);
+
+        const diff = await region1.diff(region0);
+
+        expect(diff).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "add",
+            "field": "environmentVariables",
+            "value": {
+              "key": "key",
+              "value": "value",
+            },
+          },
+        ]
+      `);
+      });
+
       it('should capture replace', async () => {
         const region0 = new Region('region-1');
         region0.addEnvironment(new Environment('qa'));
@@ -117,6 +98,25 @@ describe('Region UT', () => {
             "action": "add",
             "field": "environmentName",
             "value": "staging",
+          },
+        ]
+      `);
+      });
+
+      it('should capture deletion', async () => {
+        const region0 = new Region('region-1');
+        region0.addEnvironment(new Environment('qa'));
+
+        const region1 = new Region('region-1');
+
+        const diff = await region1.diff(region0);
+
+        expect(diff).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "delete",
+            "field": "environmentName",
+            "value": "qa",
           },
         ]
       `);

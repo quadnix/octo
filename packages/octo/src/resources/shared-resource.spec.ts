@@ -1,3 +1,4 @@
+import { Dependency } from '../functions/dependency/dependency.model';
 import {
   App,
   Diff,
@@ -177,6 +178,11 @@ describe('SharedResource UT', () => {
     expect(resources['resource-1']['dependencies'].length).toBe(1);
   });
 
+  /**
+   * In practice, shared resources will most likely have more than 1 parent, often spanning across multiple regions.
+   * E.g. an image being shared across multiple regions. The shared resource model internally manages the real
+   * resources across many regions, but from the model's perspective, the shared resource model is global.
+   */
   it('should serialize and deserialize shared-resources with different parents', async () => {
     const app = new App('app');
 
@@ -478,5 +484,47 @@ describe('SharedResource UT', () => {
         },
       }
     `);
+  });
+
+  describe('merge()', () => {
+    it('should merge new shared resource with self and return new shared resource', () => {
+      const resource1 = new ParentResource('resource-1');
+
+      const sharedResource1 = new SharedTestResource(resource1);
+      sharedResource1['dependencies'].push(new Dependency(resource1, resource1));
+      sharedResource1['properties']['property-1'] = 'property-value-1';
+      sharedResource1['response']['response-1'] = 'response-value-1';
+
+      const sharedResource2 = new SharedTestResource(resource1);
+      sharedResource2['dependencies'].push(new Dependency(resource1, resource1));
+      sharedResource2['properties']['property-2'] = 'property-value-2';
+      sharedResource2['response']['response-2'] = 'response-value-2';
+
+      // We place an additional identifier in sharedResource2, since these identifiers do not partake in merge.
+      // If the mergedSharedResource contains this identifier,
+      // then we ensure that the mergedSharedResource is same as sharedResource2.
+      sharedResource2.markUpdated('update-1', 'update-value-1');
+      const mergedSharedResource = sharedResource1.merge(sharedResource2);
+
+      expect(mergedSharedResource['dependencies'].length).toBe(2);
+      expect(mergedSharedResource.properties).toMatchInlineSnapshot(`
+        {
+          "property-1": "property-value-1",
+          "property-2": "property-value-2",
+        }
+      `);
+      expect(mergedSharedResource.response).toMatchInlineSnapshot(`
+        {
+          "response-1": "response-value-1",
+          "response-2": "response-value-2",
+        }
+      `);
+      expect(mergedSharedResource.getUpdateMarker()).toMatchInlineSnapshot(`
+        {
+          "key": "update-1",
+          "value": "update-value-1",
+        }
+      `);
+    });
   });
 });
