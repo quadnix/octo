@@ -102,7 +102,7 @@ describe('Model Serialization Service UT', () => {
 
     it('should serialize a non-empty app', () => {
       const app0 = new App('test-app');
-      const image0 = new Image('nginx', '0.0.1', {
+      const image0 = new Image('image', '0.0.1', {
         dockerFilePath: '/Dockerfile',
       });
       const region0 = new Region('region-1');
@@ -137,7 +137,7 @@ describe('Model Serialization Service UT', () => {
       const service = new ModelSerializationService();
 
       const app0 = new App('test-app');
-      const image0 = new Image('backend-runner', '0.0.1', { dockerFilePath: '/Dockerfile' });
+      const image0 = new Image('image', '0.0.1', { dockerFilePath: '/Dockerfile' });
       const server0 = new Server('backend', image0);
       const deployment0 = new Deployment('0.0.1', image0);
       const deployment1 = new Deployment('0.0.2', image0);

@@ -19,7 +19,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "toField": "imageId",
         "type": "parent",
       },
-      "to": "image=nginx:0.0.1,app=test-app",
+      "to": "image=image:0.0.1,app=test-app",
     },
     {
       "behaviors": [
@@ -112,7 +112,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       ],
       "from": "server=backend,app=test-app",
       "relationship": undefined,
-      "to": "image=nginx:0.0.1,app=test-app",
+      "to": "image=image:0.0.1,app=test-app",
     },
     {
       "behaviors": [
@@ -152,7 +152,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "toField": "name",
         },
       ],
-      "from": "image=nginx:0.0.1,app=test-app",
+      "from": "image=image:0.0.1,app=test-app",
       "relationship": {
         "onField": "imageId",
         "toField": "name",
@@ -169,7 +169,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "toField": "serverKey",
         },
       ],
-      "from": "image=nginx:0.0.1,app=test-app",
+      "from": "image=image:0.0.1,app=test-app",
       "relationship": undefined,
       "to": "server=backend,app=test-app",
     },
@@ -253,7 +253,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         },
       },
     },
-    "image=nginx:0.0.1,app=test-app": {
+    "image=image:0.0.1,app=test-app": {
       "className": "Image",
       "model": {
         "dockerOptions": {
@@ -262,7 +262,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "quiet": undefined,
         },
         "imageId": "0.0.1",
-        "imageName": "nginx",
+        "imageName": "image",
         "imageTag": "0.0.1",
       },
     },
@@ -276,7 +276,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       "className": "Server",
       "model": {
         "image": {
-          "context": "image=nginx:0.0.1,app=test-app",
+          "context": "image=image:0.0.1,app=test-app",
         },
         "serverKey": "backend",
       },
@@ -435,7 +435,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
         "toField": "imageId",
         "type": "parent",
       },
-      "to": "image=backend-runner:0.0.1,app=test-app",
+      "to": "image=image:0.0.1,app=test-app",
     },
     {
       "behaviors": [
@@ -471,7 +471,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
       ],
       "from": "server=backend,app=test-app",
       "relationship": undefined,
-      "to": "image=backend-runner:0.0.1,app=test-app",
+      "to": "image=image:0.0.1,app=test-app",
     },
     {
       "behaviors": [
@@ -539,7 +539,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
           "toField": "serverKey",
         },
       ],
-      "from": "image=backend-runner:0.0.1,app=test-app",
+      "from": "image=image:0.0.1,app=test-app",
       "relationship": undefined,
       "to": "server=backend,app=test-app",
     },
@@ -552,7 +552,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
           "toField": "deploymentTag",
         },
       ],
-      "from": "image=backend-runner:0.0.1,app=test-app",
+      "from": "image=image:0.0.1,app=test-app",
       "relationship": undefined,
       "to": "deployment=0.0.1,server=backend,app=test-app",
     },
@@ -565,7 +565,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
           "toField": "deploymentTag",
         },
       ],
-      "from": "image=backend-runner:0.0.1,app=test-app",
+      "from": "image=image:0.0.1,app=test-app",
       "relationship": undefined,
       "to": "deployment=0.0.2,server=backend,app=test-app",
     },
@@ -584,7 +584,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
           "toField": "name",
         },
       ],
-      "from": "image=backend-runner:0.0.1,app=test-app",
+      "from": "image=image:0.0.1,app=test-app",
       "relationship": {
         "onField": "imageId",
         "toField": "name",
@@ -609,7 +609,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
       ],
       "from": "deployment=0.0.2,server=backend,app=test-app",
       "relationship": undefined,
-      "to": "image=backend-runner:0.0.1,app=test-app",
+      "to": "image=image:0.0.1,app=test-app",
     },
     {
       "behaviors": [
@@ -651,7 +651,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
       ],
       "from": "deployment=0.0.1,server=backend,app=test-app",
       "relationship": undefined,
-      "to": "image=backend-runner:0.0.1,app=test-app",
+      "to": "image=image:0.0.1,app=test-app",
     },
     {
       "behaviors": [
@@ -689,7 +689,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
       "model": {
         "deploymentTag": "0.0.1",
         "image": {
-          "context": "image=backend-runner:0.0.1,app=test-app",
+          "context": "image=image:0.0.1,app=test-app",
         },
       },
     },
@@ -698,11 +698,11 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
       "model": {
         "deploymentTag": "0.0.2",
         "image": {
-          "context": "image=backend-runner:0.0.1,app=test-app",
+          "context": "image=image:0.0.1,app=test-app",
         },
       },
     },
-    "image=backend-runner:0.0.1,app=test-app": {
+    "image=image:0.0.1,app=test-app": {
       "className": "Image",
       "model": {
         "dockerOptions": {
@@ -711,7 +711,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
           "quiet": undefined,
         },
         "imageId": "0.0.1",
-        "imageName": "backend-runner",
+        "imageName": "image",
         "imageTag": "0.0.1",
       },
     },
@@ -719,7 +719,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
       "className": "Server",
       "model": {
         "image": {
-          "context": "image=backend-runner:0.0.1,app=test-app",
+          "context": "image=image:0.0.1,app=test-app",
         },
         "serverKey": "backend",
       },

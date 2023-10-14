@@ -15,7 +15,7 @@ import {
 describe('Model E2E Test', () => {
   describe('common functions', () => {
     const app = new App('test');
-    const image = new Image('nginx', '0.0.1', {
+    const image = new Image('image', '0.0.1', {
       dockerFilePath: '/Dockerfile',
     });
     const pipeline = new Pipeline('testPipeline');
@@ -158,7 +158,7 @@ describe('Model E2E Test', () => {
 
     it('should not include server in region boundary', () => {
       const app0 = new App('test-app');
-      const image0 = new Image('nginx', '0.0.1', {
+      const image0 = new Image('image', '0.0.1', {
         dockerFilePath: '/Dockerfile',
       });
       const region0 = new Region('region-0');
