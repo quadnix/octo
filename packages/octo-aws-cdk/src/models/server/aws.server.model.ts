@@ -1,4 +1,4 @@
-import { Model, Server } from '@quadnix/octo';
+import { Image, Model, Server } from '@quadnix/octo';
 import { IamUserAnchor } from '../../anchors/iam-user.anchor.model';
 import { AwsRegion } from '../region/aws.region.model';
 import { IAwsServer } from './aws.server.interface';
@@ -6,8 +6,8 @@ import { IAwsServer } from './aws.server.interface';
 export class AwsServer extends Server {
   readonly region: AwsRegion;
 
-  constructor(region: AwsRegion, serverKey: string) {
-    super(serverKey);
+  constructor(region: AwsRegion, serverKey: string, image: Image) {
+    super(serverKey, image);
 
     this.region = region;
 
@@ -17,6 +17,7 @@ export class AwsServer extends Server {
 
   override synth(): IAwsServer {
     return {
+      image: { context: this.image.getContext() },
       region: { context: this.region.getContext() },
       serverKey: this.serverKey,
     };
@@ -31,7 +32,8 @@ export class AwsServer extends Server {
       throw new Error('No deReferenceContext passed during un-synth');
     }
 
+    const image = (await deReferenceContext(awsServer.image.context)) as Image;
     const region = (await deReferenceContext(awsServer.region.context)) as AwsRegion;
-    return new AwsServer(region, awsServer.serverKey);
+    return new AwsServer(region, awsServer.serverKey, image);
   }
 }
