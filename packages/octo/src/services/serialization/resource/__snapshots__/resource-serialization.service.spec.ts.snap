@@ -12,9 +12,6 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
       "replace": false,
       "update": null,
     },
-    "hookService": HookService {
-      "hooks": [],
-    },
     "properties": {
       "key1": "value1",
     },
@@ -38,9 +35,6 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
       "replace": false,
       "update": null,
     },
-    "hookService": HookService {
-      "hooks": [],
-    },
     "properties": {
       "key1": "value1",
     },
@@ -53,9 +47,6 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
         "delete": false,
         "replace": false,
         "update": null,
-      },
-      "hookService": HookService {
-        "hooks": [],
       },
       "properties": {
         "key1": "value1",
@@ -85,9 +76,6 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
       "replace": false,
       "update": null,
     },
-    "hookService": HookService {
-      "hooks": [],
-    },
     "properties": {
       "key1": "value1",
     },
@@ -100,9 +88,6 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
         "delete": false,
         "replace": false,
         "update": null,
-      },
-      "hookService": HookService {
-        "hooks": [],
       },
       "properties": {
         "key1": "value1",
