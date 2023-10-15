@@ -19,7 +19,7 @@ describe('App E2E Test', () => {
     const backendServer1 = app1.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
     const qaEnvironment1 = region1.getChild('environment', [{ key: 'environmentName', value: 'qa' }]) as Environment;
     // Add a deployment to backend server.
-    backendServer1.addDeployment(new Deployment('v0.0.1', image0));
+    backendServer1.addDeployment(new Deployment('backend@v0.0.1', image0));
     // Add a new staging environment.
     const stagingEnvironment1 = new Environment('staging');
     stagingEnvironment1.environmentVariables.set('env', 'staging');
@@ -28,11 +28,11 @@ describe('App E2E Test', () => {
     qaEnvironment1.environmentVariables.set('env', 'qa');
     // Add new server.
     const databaseServer1 = new Server('database', image0);
-    databaseServer1.addDeployment(new Deployment('v0.0.1', image0));
+    databaseServer1.addDeployment(new Deployment('database@v0.0.1', image0));
     app1.addServer(databaseServer1);
     // Add new support.
     const nginxSupport1 = new Support('nginx', 'nginx');
-    nginxSupport1.addDeployment(new Deployment('v1', image0));
+    nginxSupport1.addDeployment(new Deployment('nginx@v1', image0));
     app1.addSupport(nginxSupport1);
 
     const diffs = await app1.diff(app0);
@@ -62,7 +62,7 @@ describe('App E2E Test', () => {
         {
           "action": "add",
           "field": "deploymentTag",
-          "value": "v0.0.1",
+          "value": "backend@v0.0.1",
         },
         {
           "action": "add",
@@ -72,7 +72,7 @@ describe('App E2E Test', () => {
         {
           "action": "add",
           "field": "deploymentTag",
-          "value": "v0.0.1",
+          "value": "database@v0.0.1",
         },
         {
           "action": "add",
@@ -82,7 +82,7 @@ describe('App E2E Test', () => {
         {
           "action": "add",
           "field": "deploymentTag",
-          "value": "v1",
+          "value": "nginx@v1",
         },
       ]
     `);

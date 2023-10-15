@@ -23,7 +23,7 @@ describe('Model E2E Test', () => {
     const server = new Server('backend', image);
     const service = new Service('testService');
     const support = new Support('nginx', 'nginx');
-    const deployment = new Deployment('v1', image);
+    const deployment = new Deployment('nginx@v1', image);
     const environment = new Environment('qa');
     const execution = new Execution(deployment, environment);
 

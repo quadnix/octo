@@ -139,8 +139,8 @@ describe('Model Serialization Service UT', () => {
       const app0 = new App('test-app');
       const image0 = new Image('image', '0.0.1', { dockerFilePath: '/Dockerfile' });
       const server0 = new Server('backend', image0);
-      const deployment0 = new Deployment('0.0.1', image0);
-      const deployment1 = new Deployment('0.0.2', image0);
+      const deployment0 = new Deployment('backend@0.0.1', image0);
+      const deployment1 = new Deployment('backend@0.0.2', image0);
       app0.addImage(image0);
       app0.addServer(server0);
       server0.addDeployment(deployment0);
