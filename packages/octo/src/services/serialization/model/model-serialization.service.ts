@@ -1,3 +1,5 @@
+import { Module } from '../../../functions/module/module.abstract';
+import { IModule } from '../../../functions/module/module.interface';
 import { IAnchor } from '../../../functions/overlay/anchor.model';
 import { App } from '../../../models/app/app.model';
 import { Deployment } from '../../../models/deployment/deployment.model';
@@ -16,6 +18,7 @@ export type ModelSerializedOutput = {
   anchors: (IAnchor & { className: string })[];
   dependencies: IDependency[];
   models: { [p: string]: { className: string; model: IModel<unknown, unknown> } };
+  modules: { className: string; module: IModule }[];
 };
 
 export class ModelSerializationService {
@@ -30,6 +33,8 @@ export class ModelSerializationService {
     Server,
     Support,
   };
+
+  private readonly modules: Module[] = [];
 
   async deserialize(serializedOutput: ModelSerializedOutput): Promise<Model<unknown, unknown>> {
     const deReferencePromises: { [p: string]: [Promise<boolean>, (value: boolean) => void] } = {};
@@ -84,6 +89,15 @@ export class ModelSerializationService {
       seen[d.from]['dependencies'].push(dependency);
     }
 
+    // Deserialize all modules.
+    this.modules.splice(0, this.modules.length); // Empty modules array.
+    for (const { className, module } of serializedOutput.modules) {
+      const deserializationClass = this.classMapping[className];
+
+      const newModule = await deserializationClass.unSynth(deserializationClass, module, deReferenceContext);
+      this.modules.push(newModule);
+    }
+
     return seen[serializedOutput.dependencies[0].from];
   }
 
@@ -91,11 +105,16 @@ export class ModelSerializationService {
     this.classMapping[className] = deserializationClass;
   }
 
+  registerModule(module: Module): void {
+    this.modules.push(module);
+  }
+
   serialize(root: Model<unknown, unknown>): ModelSerializedOutput {
     const boundary = root.getBoundaryMembers();
     const anchors: (IAnchor & { className: string })[] = [];
     const dependencies: IDependency[] = [];
     const models: { [key: string]: { className: string; model: IModel<unknown, unknown> } } = {};
+    const modules: { className: string; module: IModule }[] = [];
 
     for (const model of boundary) {
       for (const a of model['anchors']) {
@@ -123,6 +142,10 @@ export class ModelSerializationService {
       }
     }
 
-    return { anchors, dependencies, models };
+    for (const module of this.modules) {
+      modules.push({ className: module.constructor.name, module: module.synth() });
+    }
+
+    return { anchors, dependencies, models, modules };
   }
 }

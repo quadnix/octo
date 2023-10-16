@@ -256,7 +256,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
     });
   }
 
-  remove(ignoreDirectRelationships = false): void {
+  remove(ignoreDirectRelationships = false, dryRun = false): void {
     // Verify model can be removed.
     for (const dependency of this.dependencies) {
       // When direct relationship is not ignored, this model can't be a parent or have direct relationships.
@@ -267,6 +267,10 @@ export abstract class Model<I, T> implements IModel<I, T> {
       ) {
         throw new Error('Cannot remove model until dependent models exist!');
       }
+    }
+
+    if (dryRun) {
+      return;
     }
 
     // In every dependency, this model is a child. Removing this from every parent.

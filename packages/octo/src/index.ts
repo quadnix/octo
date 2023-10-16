@@ -2,6 +2,8 @@ export { Diff, DiffAction } from './functions/diff/diff.model';
 export { DiffMetadata } from './functions/diff/diff-metadata.model';
 export { DiffUtility } from './functions/diff/diff.utility';
 export { Anchor, IAnchor } from './functions/overlay/anchor.model';
+export { Module } from './functions/module/module.abstract';
+export { IModule } from './functions/module/module.interface';
 export { Overlay } from './functions/overlay/overlay.model';
 
 export { App } from './models/app/app.model';

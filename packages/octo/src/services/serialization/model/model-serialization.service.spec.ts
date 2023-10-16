@@ -22,6 +22,7 @@ describe('Model Serialization Service UT', () => {
         models: {
           'app=name': { className: 'ClassNotExist', model: null },
         } as any,
+        modules: [],
       };
 
       const service = new ModelSerializationService();
@@ -41,6 +42,7 @@ describe('Model Serialization Service UT', () => {
         models: {
           'app=name': { className: 'Service', model: null },
         } as any,
+        modules: [],
       };
 
       const service = new ModelSerializationService();

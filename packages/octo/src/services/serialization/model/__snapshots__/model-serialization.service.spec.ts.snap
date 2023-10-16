@@ -289,6 +289,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       },
     },
   },
+  "modules": [],
 }
 `;
 
@@ -304,6 +305,7 @@ exports[`Model Serialization Service UT serialize() should serialize an empty ap
       },
     },
   },
+  "modules": [],
 }
 `;
 
@@ -413,6 +415,7 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
       },
     },
   },
+  "modules": [],
 }
 `;
 
@@ -725,5 +728,6 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
       },
     },
   },
+  "modules": [],
 }
 `;
