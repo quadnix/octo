@@ -12,6 +12,7 @@ import {
   IActionInputs,
   IStateProvider,
   ModelSerializationService,
+  Module,
   Resource,
   ResourceSerializationService,
   ResourceSerializedOutput,
@@ -41,6 +42,7 @@ import { S3StorageService } from './models/service/s3-storage/s3-storage.service
 import { AddS3StorageAction as AddS3StorageModelAction } from './models/service/s3-storage/actions/add-s3-storage.action';
 import { DeleteS3StorageAction as DeleteS3StorageModelAction } from './models/service/s3-storage/actions/delete-s3-storage.action';
 import { UpdateDirectoriesS3StorageAction as UpdateDirectoriesS3StorageModelAction } from './models/service/s3-storage/actions/update-directories-s3-storage.action';
+import { NginxRouterModule } from './modules/routers/nginx.router.module';
 import { AddEcrImageAction } from './resources/ecr/actions/add-ecr-image.action';
 import { DeleteEcrImageAction } from './resources/ecr/actions/delete-ecr-image.action';
 import { EcrImage } from './resources/ecr/ecr-image.resource';
@@ -215,6 +217,8 @@ export class OctoAws {
 
     modelSerializationService.registerClass('IamRoleAnchor', IamRoleAnchor);
     modelSerializationService.registerClass('IamUserAnchor', IamUserAnchor);
+
+    modelSerializationService.registerClass('NginxRouterModule', NginxRouterModule);
 
     modelSerializationService.registerClass('AwsRegion', AwsRegion);
 
@@ -392,5 +396,9 @@ export class OctoAws {
 
   registerInputs(inputs: IActionInputs): void {
     this.transactionService.registerInputs(inputs);
+  }
+
+  registerModule(module: Module): void {
+    this.modelSerializationService.registerModule(module);
   }
 }
