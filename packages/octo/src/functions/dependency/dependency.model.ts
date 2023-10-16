@@ -152,9 +152,7 @@ export class Dependency {
     const newDependency = new Dependency(from, to);
 
     dependency.behaviors.forEach((b) => {
-      newDependency.behaviors.push({
-        ...b,
-      });
+      newDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
     });
 
     if (dependency.relationship) {
