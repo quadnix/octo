@@ -131,6 +131,32 @@ describe('Resource Serialization Service UT', () => {
         'resource-1',
       );
     });
+
+    it('should have exact same dependencies on deserialized object as original object', async () => {
+      const resource1 = new TestResource('resource-1');
+      resource1.properties['key1'] = 'value1';
+      resource1.response['response1'] = 'value1';
+      const resource2 = new TestResource('resource-2');
+      resource2.properties['key2'] = 'value2';
+      resource2.response['response2'] = 'value2';
+      resource2.associateWith([resource1]);
+      const sharedResource1 = new SharedTestResource(resource1);
+
+      const service = new ResourceSerializationService();
+      service.registerClass('TestResource', TestResource);
+      service.registerClass('SharedTestResource', SharedTestResource);
+
+      const resourcesSerialized = service.serialize([sharedResource1, resource2]);
+      const resourcesDeserialized = await service.deserialize(resourcesSerialized);
+
+      const newResourcesDependencies = service
+        .serialize(Object.values(resourcesDeserialized))
+        .dependencies.sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
+      const oldResourcesDependencies = resourcesSerialized.dependencies.sort((a, b) =>
+        a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
+      );
+      expect(newResourcesDependencies).toEqual(oldResourcesDependencies);
+    });
   });
 
   describe('serialize()', () => {

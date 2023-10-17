@@ -86,7 +86,9 @@ export class ModelSerializationService {
 
     for (const d of serializedOutput.dependencies) {
       const dependency = Dependency.unSynth(seen[d.from], seen[d.to], d);
-      seen[d.from]['dependencies'].push(dependency);
+      if (!seen[d.from]['dependencies'].some((d) => d.from === dependency.from && d.to === dependency.to)) {
+        seen[d.from]['dependencies'].push(dependency);
+      }
     }
 
     // Deserialize all modules.

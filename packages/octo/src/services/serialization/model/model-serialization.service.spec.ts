@@ -92,6 +92,30 @@ describe('Model Serialization Service UT', () => {
 
       expect(region1.regionId).toBe('region-0');
     });
+
+    it('should have exact same dependencies on deserialized object as original object', async () => {
+      const app = new App('test');
+      const image = new Image('test', '0.0.1', {
+        dockerFilePath: 'path/to/Dockerfile',
+      });
+      app.addImage(image);
+      const support = new Support('support-1', 'nginx');
+      app.addSupport(support);
+      const deployment = new Deployment('support-1@0.0.1', image);
+      support.addDeployment(deployment);
+
+      const service = new ModelSerializationService();
+      const appSerialized = service.serialize(app);
+      const appDeserialized = (await service.deserialize(appSerialized)) as App;
+
+      const newAppDependencies = service
+        .serialize(appDeserialized)
+        .dependencies.sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
+      const oldAppDependencies = appSerialized.dependencies.sort((a, b) =>
+        a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
+      );
+      expect(newAppDependencies).toEqual(oldAppDependencies);
+    });
   });
 
   describe('serialize()', () => {
