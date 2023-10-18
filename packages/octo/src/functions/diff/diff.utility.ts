@@ -2,6 +2,22 @@ import { Model } from '../../models/model.abstract';
 import { Diff, DiffAction } from './diff.model';
 
 export class DiffUtility {
+  private static generateDeleteDiff(model: Model<unknown, unknown>, field: string): Diff[] {
+    const diff: Diff[] = [];
+
+    const children = model.getChildren();
+    for (const modelName of Object.keys(children)) {
+      for (const dependency of children[modelName]) {
+        const child = dependency.to;
+        const childField = dependency.getRelationship()!.toField;
+        diff.push(...DiffUtility.generateDeleteDiff(child, childField));
+      }
+    }
+
+    diff.push(new Diff(model, DiffAction.DELETE, field, model[field]));
+    return diff;
+  }
+
   /**
    * Generate a deep diff of an array of basic types from the previous model vs the latest model.
    * @param a previous model.
@@ -54,7 +70,7 @@ export class DiffUtility {
       if (b[field].some((bObject) => compare(aObject, bObject))) {
         diff.push(new Diff(b, DiffAction.UPDATE, field, aObject));
       } else {
-        diff.push(new Diff(a, DiffAction.DELETE, field, aObject));
+        diff.push(...DiffUtility.generateDeleteDiff(a, field));
       }
     }
 
@@ -117,7 +133,7 @@ export class DiffUtility {
         const pDiff = await y.diff(x);
         diff.push(...pDiff);
       } else {
-        diff.push(new Diff(x, DiffAction.DELETE, field, x[field]));
+        diff.push(...DiffUtility.generateDeleteDiff(x, field));
       }
     }
 
