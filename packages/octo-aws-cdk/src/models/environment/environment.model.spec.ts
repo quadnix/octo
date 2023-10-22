@@ -1,11 +1,13 @@
 import { App, DiffMetadata, Environment, LocalStateProvider, Resource } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { AwsRegion, AwsRegionId, OctoAws } from '../../index.js';
 import { IEcsClusterSharedMetadata } from '../../resources/ecs/ecs-cluster.interface.js';
 import { EcsCluster } from '../../resources/ecs/ecs-cluster.resource.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('ECRImage UT', () => {

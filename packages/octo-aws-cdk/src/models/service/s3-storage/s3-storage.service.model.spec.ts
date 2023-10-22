@@ -1,11 +1,13 @@
 import { App, DiffMetadata, LocalStateProvider, Resource } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { AwsRegionId, OctoAws } from '../../../index.js';
 import { AwsRegion } from '../../region/aws.region.model.js';
 import { S3StorageService } from './s3-storage.service.model.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('S3StorageService UT', () => {

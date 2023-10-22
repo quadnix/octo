@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
 import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
@@ -39,8 +40,8 @@ describe('TransactionService UT', () => {
       collectInput: () => [],
       collectOutput: () => [],
       filter: () => true,
-      handle: jest.fn(),
-      revert: jest.fn(),
+      handle: jest.fn() as jest.Mocked<any>,
+      revert: jest.fn() as jest.Mocked<any>,
     };
 
     it('should return empty transaction if diffs is empty', async () => {
@@ -73,8 +74,8 @@ describe('TransactionService UT', () => {
         collectInput: () => ['input.key1'],
         collectOutput: () => [],
         filter: () => true,
-        handle: jest.fn(),
-        revert: jest.fn(),
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
       };
 
       const service = new TransactionService();
@@ -108,8 +109,8 @@ describe('TransactionService UT', () => {
         collectInput: () => ['input.key1'],
         collectOutput: () => ['resource1'],
         filter: () => true,
-        handle: jest.fn(),
-        revert: jest.fn(),
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
       };
       (action.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
 
@@ -136,8 +137,8 @@ describe('TransactionService UT', () => {
         collectInput: () => [],
         collectOutput: () => [],
         filter: () => true,
-        handle: jest.fn(),
-        revert: jest.fn(),
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
       };
       (action.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
 
@@ -162,8 +163,8 @@ describe('TransactionService UT', () => {
         collectInput: () => ['input.key1'],
         collectOutput: () => ['resource1'],
         filter: () => true,
-        handle: jest.fn(),
-        revert: jest.fn(),
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
       };
       (action.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
 
@@ -187,8 +188,8 @@ describe('TransactionService UT', () => {
         collectInput: () => ['input.key1'],
         collectOutput: () => ['resource1'],
         filter: () => true,
-        handle: jest.fn(),
-        revert: jest.fn(),
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
       };
       (action1.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
       const action2: IAction<IActionInputs, IActionOutputs> = {
@@ -196,8 +197,8 @@ describe('TransactionService UT', () => {
         collectInput: () => ['input.key2'],
         collectOutput: () => ['resource2'],
         filter: () => true,
-        handle: jest.fn(),
-        revert: jest.fn(),
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
       };
       (action2.handle as jest.Mock).mockReturnValue({ resource2: 'resource2 object' });
 
@@ -240,7 +241,7 @@ describe('TransactionService UT', () => {
     const universalResourceAction: IResourceAction = {
       ACTION_NAME: 'universal',
       filter: () => true,
-      handle: jest.fn(),
+      handle: jest.fn() as jest.Mocked<any>,
     };
 
     it('should return empty transaction if diffs is empty', async () => {
@@ -353,7 +354,7 @@ describe('TransactionService UT', () => {
     const universalResourceAction: IResourceAction = {
       ACTION_NAME: 'universal',
       filter: () => true,
-      handle: jest.fn(),
+      handle: jest.fn() as jest.Mocked<any>,
     };
 
     it('should compare distinct resources', async () => {
@@ -478,8 +479,8 @@ describe('TransactionService UT', () => {
         collectInput: () => [],
         collectOutput: () => [],
         filter: () => true,
-        handle: jest.fn(),
-        revert: jest.fn(),
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
       },
     ];
     let setApplyOrder: TransactionService['setApplyOrder'];
@@ -662,7 +663,7 @@ describe('TransactionService UT', () => {
       const universalResourceAction: IResourceAction = {
         ACTION_NAME: 'universal',
         filter: () => true,
-        handle: jest.fn(),
+        handle: jest.fn() as jest.Mocked<any>,
       };
 
       it('should yield new resources', async () => {
@@ -696,8 +697,8 @@ describe('TransactionService UT', () => {
       collectInput: () => [],
       collectOutput: () => [],
       filter: () => true,
-      handle: jest.fn(),
-      revert: jest.fn(),
+      handle: jest.fn() as jest.Mocked<any>,
+      revert: jest.fn() as jest.Mocked<any>,
     };
 
     it('should call revert() for every diff in transaction', async () => {
@@ -737,7 +738,7 @@ describe('TransactionService UT', () => {
         {
           ACTION_NAME: 'test',
           filter: (): boolean => true,
-          handle: jest.fn(),
+          handle: jest.fn() as jest.Mocked<any>,
         },
       ]);
 
@@ -759,7 +760,7 @@ describe('TransactionService UT', () => {
         {
           ACTION_NAME: 'test',
           filter: (): boolean => true,
-          handle: jest.fn(),
+          handle: jest.fn() as jest.Mocked<any>,
         },
       ]);
 

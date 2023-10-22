@@ -1,12 +1,14 @@
 import { App, DiffMetadata, Image, LocalStateProvider, Resource } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { AwsRegionId, OctoAws } from '../../index.js';
 import { IEcrImageReplicationMetadata } from '../../resources/ecr/ecr-image.interface.js';
 import { EcrImage } from '../../resources/ecr/ecr-image.resource.js';
 import { AwsRegion } from '../region/aws.region.model.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('ECRImage UT', () => {

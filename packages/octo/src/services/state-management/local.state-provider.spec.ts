@@ -1,9 +1,11 @@
 import { unlink } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { LocalStateProvider } from './local.state-provider.js';
 import { StateManagementService } from './state-management.service.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('LocalStateProvider UT', () => {

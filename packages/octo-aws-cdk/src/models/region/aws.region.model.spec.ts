@@ -1,10 +1,12 @@
 import { App, DiffMetadata, LocalStateProvider, Resource } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { OctoAws } from '../../index.js';
 import { AwsRegion, AwsRegionId } from './aws.region.model.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('AwsRegion UT', () => {

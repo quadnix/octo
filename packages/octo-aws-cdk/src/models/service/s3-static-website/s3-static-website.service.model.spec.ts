@@ -1,10 +1,12 @@
 import { App, DiffMetadata, LocalStateProvider, Resource } from '@quadnix/octo';
 import { existsSync, readFileSync, unlink, writeFile } from 'fs';
-import { join, resolve } from 'path';
+import { dirname, join, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { AwsRegion, AwsRegionId, OctoAws } from '../../../index.js';
 import { S3StaticWebsiteService } from './s3-static-website.service.model.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const writeFileAsync = promisify(writeFile);
 const unlinkAsync = promisify(unlink);
 

@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import {
   App,
@@ -51,7 +52,7 @@ class SharedTestResource extends SharedResource<TestResource> {
 const universalResourceAction: IResourceAction = {
   ACTION_NAME: 'universal',
   filter: () => true,
-  handle: jest.fn(),
+  handle: jest.fn() as jest.Mocked<any>,
 };
 
 describe('SharedResource UT', () => {
@@ -210,11 +211,11 @@ describe('SharedResource UT', () => {
       filter: (diff: Diff) => {
         return diff.value === 'region-1';
       },
-      handle: jest.fn().mockReturnValue({
+      handle: (jest.fn() as jest.Mocked<any>).mockReturnValue({
         'parent-1': parentResource1,
         'shared-resource': sharedTestResource1,
       }),
-      revert: jest.fn(),
+      revert: jest.fn() as jest.Mocked<any>,
     };
 
     const service = new TransactionService();
@@ -326,11 +327,11 @@ describe('SharedResource UT', () => {
       filter: (diff: Diff) => {
         return diff.value === 'region-2';
       },
-      handle: jest.fn().mockReturnValue({
+      handle: (jest.fn() as jest.Mocked<any>).mockReturnValue({
         'parent-2': parentResource2,
         'shared-resource': sharedTestResource2,
       }),
-      revert: jest.fn(),
+      revert: jest.fn() as jest.Mocked<any>,
     };
 
     service.registerModelActions([addRegion2Action]);
