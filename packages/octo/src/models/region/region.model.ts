@@ -1,6 +1,6 @@
-import { Environment } from '../environment/environment.model';
-import { Model } from '../model.abstract';
-import { IRegion } from './region.interface';
+import { Environment } from '../environment/environment.model.js';
+import { Model } from '../model.abstract.js';
+import { IRegion } from './region.interface.js';
 
 export class Region extends Model<IRegion, Region> {
   readonly MODEL_NAME: string = 'region';

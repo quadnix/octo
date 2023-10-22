@@ -1,4 +1,4 @@
-import { Environment } from './environment.model';
+import { Environment } from './environment.model.js';
 
 describe('Environment UT', () => {
   describe('diff()', () => {

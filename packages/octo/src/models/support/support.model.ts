@@ -1,6 +1,6 @@
-import { Deployment } from '../deployment/deployment.model';
-import { Model } from '../model.abstract';
-import { ISupport } from './support.interface';
+import { Deployment } from '../deployment/deployment.model.js';
+import { Model } from '../model.abstract.js';
+import { ISupport } from './support.interface.js';
 
 export type ISupportApplicationType = 'nginx';
 

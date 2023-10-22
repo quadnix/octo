@@ -1,4 +1,4 @@
-import { Dependency } from '../functions/dependency/dependency.model';
+import { Dependency } from '../functions/dependency/dependency.model.js';
 import {
   App,
   Diff,
@@ -12,7 +12,7 @@ import {
   ResourceSerializationService,
   SharedResource,
   TransactionService,
-} from '../index';
+} from '../index.js';
 
 class ParentResource extends Resource<ParentResource> {
   readonly MODEL_NAME: string = 'parent-resource';

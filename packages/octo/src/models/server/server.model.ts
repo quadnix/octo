@@ -1,7 +1,7 @@
-import { Deployment } from '../deployment/deployment.model';
-import { Image } from '../image/image.model';
-import { Model } from '../model.abstract';
-import { IServer } from './server.interface';
+import { Deployment } from '../deployment/deployment.model.js';
+import { Image } from '../image/image.model.js';
+import { Model } from '../model.abstract.js';
+import { IServer } from './server.interface.js';
 
 export class Server extends Model<IServer, Server> {
   readonly MODEL_NAME: string = 'server';

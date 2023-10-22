@@ -1,5 +1,5 @@
-import { Model } from '../../models/model.abstract';
-import { DiffAction } from '../diff/diff.model';
+import { Model } from '../../models/model.abstract.js';
+import { DiffAction } from '../diff/diff.model.js';
 
 class DependencyBehavior {
   forAction: DiffAction;

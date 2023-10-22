@@ -1,6 +1,6 @@
-import { Image } from '../image/image.model';
-import { Model } from '../model.abstract';
-import { IDeployment } from './deployment.interface';
+import { Image } from '../image/image.model.js';
+import { Model } from '../model.abstract.js';
+import { IDeployment } from './deployment.interface.js';
 
 export class Deployment extends Model<IDeployment, Deployment> {
   readonly MODEL_NAME: string = 'deployment';

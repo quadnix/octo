@@ -1,4 +1,4 @@
-import { Diff } from '../functions/diff/diff.model';
+import { Diff } from '../functions/diff/diff.model.js';
 
 /**
  * Models are the building blocks that can be combined to create any infrastructure.

@@ -1,5 +1,5 @@
-import { IModelReference } from '../model.interface';
-import { Server } from './server.model';
+import { IModelReference } from '../model.interface.js';
+import { Server } from './server.model.js';
 
 export interface IServer {
   image: IModelReference;

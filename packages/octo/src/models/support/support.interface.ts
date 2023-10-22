@@ -1,4 +1,4 @@
-import { Support } from './support.model';
+import { Support } from './support.model.js';
 
 export interface ISupport {
   applicationType: Support['applicationType'];

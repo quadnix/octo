@@ -1,6 +1,6 @@
 import { resolve } from 'path';
-import { Model } from '../model.abstract';
-import { IImage } from './image.interface';
+import { Model } from '../model.abstract.js';
+import { IImage } from './image.interface.js';
 
 export interface IImageDockerOptions {
   dockerFilePath: string;

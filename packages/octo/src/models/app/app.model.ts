@@ -1,11 +1,11 @@
-import { Image } from '../image/image.model';
-import { Model } from '../model.abstract';
-import { Pipeline } from '../pipeline/pipeline.model';
-import { Region } from '../region/region.model';
-import { Server } from '../server/server.model';
-import { Service } from '../service/service.model';
-import { Support } from '../support/support.model';
-import { IApp } from './app.interface';
+import { Image } from '../image/image.model.js';
+import { Model } from '../model.abstract.js';
+import { Pipeline } from '../pipeline/pipeline.model.js';
+import { Region } from '../region/region.model.js';
+import { Server } from '../server/server.model.js';
+import { Service } from '../service/service.model.js';
+import { Support } from '../support/support.model.js';
+import { IApp } from './app.interface.js';
 
 export class App extends Model<IApp, App> {
   readonly MODEL_NAME: string = 'app';

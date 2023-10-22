@@ -1,9 +1,9 @@
-import { DiffMetadata } from '../../functions/diff/diff-metadata.model';
-import { Diff, DiffAction } from '../../functions/diff/diff.model';
-import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface';
-import { IResourceAction } from '../../resources/resource-action.interface';
-import { Resource } from '../../resources/resource.abstract';
-import { SharedResource } from '../../resources/shared-resource.abstract';
+import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
+import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
+import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
+import { IResourceAction } from '../../resources/resource-action.interface.js';
+import { Resource } from '../../resources/resource.abstract.js';
+import { SharedResource } from '../../resources/shared-resource.abstract.js';
 
 export type TransactionOptions = {
   yieldModelTransaction?: boolean;

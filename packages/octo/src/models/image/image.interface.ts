@@ -1,4 +1,4 @@
-import { Image } from './image.model';
+import { Image } from './image.model.js';
 
 export interface IImage {
   dockerOptions: Image['dockerOptions'];

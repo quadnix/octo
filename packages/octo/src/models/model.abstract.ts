@@ -1,8 +1,8 @@
-import { Anchor } from '../functions/overlay/anchor.model';
-import { Dependency } from '../functions/dependency/dependency.model';
-import { Diff, DiffAction } from '../functions/diff/diff.model';
-import { DiffUtility } from '../functions/diff/diff.utility';
-import { IModel } from './model.interface';
+import { Anchor } from '../functions/overlay/anchor.model.js';
+import { Dependency } from '../functions/dependency/dependency.model.js';
+import { Diff, DiffAction } from '../functions/diff/diff.model.js';
+import { DiffUtility } from '../functions/diff/diff.utility.js';
+import { IModel } from './model.interface.js';
 
 /**
  * This is the first implementation of the Model's interface,

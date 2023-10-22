@@ -1,4 +1,4 @@
-import { Model } from '../../models/model.abstract';
+import { Model } from '../../models/model.abstract.js';
 
 export enum DiffAction {
   ADD = 'add',

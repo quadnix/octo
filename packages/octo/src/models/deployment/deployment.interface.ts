@@ -1,5 +1,5 @@
-import { IModelReference } from '../model.interface';
-import { Deployment } from './deployment.model';
+import { IModelReference } from '../model.interface.js';
+import { Deployment } from './deployment.model.js';
 
 export interface IDeployment {
   deploymentTag: Deployment['deploymentTag'];

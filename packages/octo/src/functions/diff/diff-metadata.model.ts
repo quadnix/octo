@@ -1,8 +1,8 @@
-import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface';
-import { Model } from '../../models/model.abstract';
-import { IResourceAction } from '../../resources/resource-action.interface';
-import { Resource } from '../../resources/resource.abstract';
-import { Diff, DiffAction } from './diff.model';
+import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
+import { Model } from '../../models/model.abstract.js';
+import { IResourceAction } from '../../resources/resource-action.interface.js';
+import { Resource } from '../../resources/resource.abstract.js';
+import { Diff, DiffAction } from './diff.model.js';
 
 export class DiffMetadata {
   readonly actions: IAction<IActionInputs, IActionOutputs>[] | IResourceAction[];

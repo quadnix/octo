@@ -1,4 +1,4 @@
-import { IStateProvider } from './state-provider.interface';
+import { IStateProvider } from './state-provider.interface.js';
 
 export class StateManagementService {
   private readonly stateProvider: IStateProvider;

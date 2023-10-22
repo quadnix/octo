@@ -1,7 +1,8 @@
 module.exports = {
-  extends: ['../../.eslintrc.js'],
+  extends: ['../../.eslintrc.cjs'],
   ignorePatterns: ['coverage', 'dist', 'node_modules'],
   parserOptions: {
+    ecmaVersion: '2022',
     extraFileExtensions: ['.json'],
     project: 'tsconfig.json',
     sourceType: 'module',

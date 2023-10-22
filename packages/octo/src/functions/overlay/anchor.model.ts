@@ -1,4 +1,4 @@
-import { Model } from '../../models/model.abstract';
+import { Model } from '../../models/model.abstract.js';
 
 export interface IAnchor {
   name: Anchor['ANCHOR_NAME'];

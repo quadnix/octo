@@ -1,7 +1,7 @@
-import { DiffUtility } from '../../functions/diff/diff.utility';
-import { Model } from '../model.abstract';
-import { Diff } from '../../functions/diff/diff.model';
-import { IPipeline } from './pipeline.interface';
+import { DiffUtility } from '../../functions/diff/diff.utility.js';
+import { Model } from '../model.abstract.js';
+import { Diff } from '../../functions/diff/diff.model.js';
+import { IPipeline } from './pipeline.interface.js';
 
 export class Pipeline extends Model<IPipeline, Pipeline> {
   readonly MODEL_NAME: string = 'pipeline';

@@ -1,5 +1,5 @@
-import { Model } from '../model.abstract';
-import { IService } from './service.interface';
+import { Model } from '../model.abstract.js';
+import { IService } from './service.interface.js';
 
 export class Service extends Model<IService, Service> {
   readonly MODEL_NAME: string = 'service';

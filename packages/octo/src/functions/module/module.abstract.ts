@@ -1,5 +1,5 @@
-import { Model } from '../../models/model.abstract';
-import { IModule } from './module.interface';
+import { Model } from '../../models/model.abstract.js';
+import { IModule } from './module.interface.js';
 
 export abstract class Module {
   private readonly members: Model<unknown, unknown>[] = [];

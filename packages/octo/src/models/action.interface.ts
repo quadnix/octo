@@ -1,5 +1,5 @@
-import { Diff } from '../functions/diff/diff.model';
-import { Resource } from '../resources/resource.abstract';
+import { Diff } from '../functions/diff/diff.model.js';
+import { Resource } from '../resources/resource.abstract.js';
 
 export type IActionInputs = { [key: string]: string | Resource<unknown> };
 export type IActionOutputs = { [key: string]: Resource<unknown> };

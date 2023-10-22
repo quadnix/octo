@@ -1,9 +1,9 @@
-import { DiffUtility } from '../../functions/diff/diff.utility';
-import { Diff } from '../../functions/diff/diff.model';
-import { Deployment } from '../deployment/deployment.model';
-import { Environment } from '../environment/environment.model';
-import { Model } from '../model.abstract';
-import { IExecution } from './execution.interface';
+import { DiffUtility } from '../../functions/diff/diff.utility.js';
+import { Diff } from '../../functions/diff/diff.model.js';
+import { Deployment } from '../deployment/deployment.model.js';
+import { Environment } from '../environment/environment.model.js';
+import { Model } from '../model.abstract.js';
+import { IExecution } from './execution.interface.js';
 
 export class Execution extends Model<IExecution, Execution> {
   readonly MODEL_NAME: string = 'execution';

@@ -1,4 +1,4 @@
-import { Pipeline } from './pipeline.model';
+import { Pipeline } from './pipeline.model.js';
 
 export interface IPipeline {
   instructionSet: Pipeline['instructionSet'];

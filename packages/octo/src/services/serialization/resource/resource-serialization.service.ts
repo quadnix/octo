@@ -1,8 +1,8 @@
-import { IDependency } from '../../../functions/dependency/dependency.model';
-import { IActionOutputs } from '../../../models/action.interface';
-import { Resource } from '../../../resources/resource.abstract';
-import { IResource } from '../../../resources/resource.interface';
-import { SharedResource } from '../../../resources/shared-resource.abstract';
+import { IDependency } from '../../../functions/dependency/dependency.model.js';
+import { IActionOutputs } from '../../../models/action.interface.js';
+import { Resource } from '../../../resources/resource.abstract.js';
+import { IResource } from '../../../resources/resource.interface.js';
+import { SharedResource } from '../../../resources/shared-resource.abstract.js';
 
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];

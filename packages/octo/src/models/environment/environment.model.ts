@@ -1,7 +1,7 @@
-import { DiffUtility } from '../../functions/diff/diff.utility';
-import { Diff } from '../../functions/diff/diff.model';
-import { Model } from '../model.abstract';
-import { IEnvironment } from './environment.interface';
+import { DiffUtility } from '../../functions/diff/diff.utility.js';
+import { Diff } from '../../functions/diff/diff.model.js';
+import { Model } from '../model.abstract.js';
+import { IEnvironment } from './environment.interface.js';
 
 export class Environment extends Model<IEnvironment, Environment> {
   readonly MODEL_NAME: string = 'environment';

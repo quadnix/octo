@@ -1,8 +1,8 @@
 import { unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { LocalStateProvider } from './local.state-provider';
-import { StateManagementService } from './state-management.service';
+import { LocalStateProvider } from './local.state-provider.js';
+import { StateManagementService } from './state-management.service.js';
 
 const unlinkAsync = promisify(unlink);
 

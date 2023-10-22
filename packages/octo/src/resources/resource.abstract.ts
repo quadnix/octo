@@ -1,8 +1,8 @@
-import { Diff, DiffAction } from '../functions/diff/diff.model';
-import { Model } from '../models/model.abstract';
-import { IModel } from '../models/model.interface';
-import { IResource } from './resource.interface';
-import { SharedResource } from './shared-resource.abstract';
+import { Diff, DiffAction } from '../functions/diff/diff.model.js';
+import { Model } from '../models/model.abstract.js';
+import { IModel } from '../models/model.interface.js';
+import { IResource } from './resource.interface.js';
+import { SharedResource } from './shared-resource.abstract.js';
 
 type IResourceMarkers = { delete: boolean; replace: boolean; update: { key: string; value: any } | null };
 

@@ -10,7 +10,7 @@ import {
   Server,
   Service,
   Support,
-} from '../../src';
+} from '../../src/index.js';
 
 describe('Model E2E Test', () => {
   describe('common functions', () => {

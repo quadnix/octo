@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
-import { IStateProvider } from './state-provider.interface';
+import { IStateProvider } from './state-provider.interface.js';
 
 const readFileAsync = promisify(readFile);
 const writeFileAsync = promisify(writeFile);

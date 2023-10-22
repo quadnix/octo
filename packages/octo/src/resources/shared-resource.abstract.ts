@@ -1,4 +1,4 @@
-import { Resource } from './resource.abstract';
+import { Resource } from './resource.abstract.js';
 
 export abstract class SharedResource<T> extends Resource<T> {
   override readonly MODEL_NAME;

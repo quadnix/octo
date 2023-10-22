@@ -1,18 +1,18 @@
-import { Module } from '../../../functions/module/module.abstract';
-import { IModule } from '../../../functions/module/module.interface';
-import { IAnchor } from '../../../functions/overlay/anchor.model';
-import { App } from '../../../models/app/app.model';
-import { Deployment } from '../../../models/deployment/deployment.model';
-import { Environment } from '../../../models/environment/environment.model';
-import { Execution } from '../../../models/execution/execution.model';
-import { Image } from '../../../models/image/image.model';
-import { Model } from '../../../models/model.abstract';
-import { IModel } from '../../../models/model.interface';
-import { Pipeline } from '../../../models/pipeline/pipeline.model';
-import { Region } from '../../../models/region/region.model';
-import { Server } from '../../../models/server/server.model';
-import { Support } from '../../../models/support/support.model';
-import { Dependency, IDependency } from '../../../functions/dependency/dependency.model';
+import { Module } from '../../../functions/module/module.abstract.js';
+import { IModule } from '../../../functions/module/module.interface.js';
+import { IAnchor } from '../../../functions/overlay/anchor.model.js';
+import { App } from '../../../models/app/app.model.js';
+import { Deployment } from '../../../models/deployment/deployment.model.js';
+import { Environment } from '../../../models/environment/environment.model.js';
+import { Execution } from '../../../models/execution/execution.model.js';
+import { Image } from '../../../models/image/image.model.js';
+import { Model } from '../../../models/model.abstract.js';
+import { IModel } from '../../../models/model.interface.js';
+import { Pipeline } from '../../../models/pipeline/pipeline.model.js';
+import { Region } from '../../../models/region/region.model.js';
+import { Server } from '../../../models/server/server.model.js';
+import { Support } from '../../../models/support/support.model.js';
+import { Dependency, IDependency } from '../../../functions/dependency/dependency.model.js';
 
 export type ModelSerializedOutput = {
   anchors: (IAnchor & { className: string })[];

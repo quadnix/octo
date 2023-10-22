@@ -1,4 +1,4 @@
-import { Anchor } from './anchor.model';
+import { Anchor } from './anchor.model.js';
 
 export class Overlay {
   private readonly participants: Anchor[];

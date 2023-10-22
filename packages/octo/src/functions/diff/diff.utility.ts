@@ -1,5 +1,5 @@
-import { Model } from '../../models/model.abstract';
-import { Diff, DiffAction } from './diff.model';
+import { Model } from '../../models/model.abstract.js';
+import { Diff, DiffAction } from './diff.model.js';
 
 export class DiffUtility {
   private static generateDeleteDiff(model: Model<unknown, unknown>, field: string): Diff[] {

@@ -1,12 +1,12 @@
-import { DiffMetadata } from '../../functions/diff/diff-metadata.model';
-import { Diff, DiffAction } from '../../functions/diff/diff.model';
-import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface';
-import { App } from '../../models/app/app.model';
-import { Environment } from '../../models/environment/environment.model';
-import { Region } from '../../models/region/region.model';
-import { IResourceAction } from '../../resources/resource-action.interface';
-import { Resource } from '../../resources/resource.abstract';
-import { TransactionService } from './transaction.service';
+import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
+import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
+import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
+import { App } from '../../models/app/app.model.js';
+import { Environment } from '../../models/environment/environment.model.js';
+import { Region } from '../../models/region/region.model.js';
+import { IResourceAction } from '../../resources/resource-action.interface.js';
+import { Resource } from '../../resources/resource.abstract.js';
+import { TransactionService } from './transaction.service.js';
 
 class TestResource extends Resource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';

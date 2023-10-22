@@ -1,4 +1,4 @@
-import { Resource } from './resource.abstract';
+import { Resource } from './resource.abstract.js';
 
 class TestResource extends Resource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';

@@ -1,6 +1,6 @@
-import { Resource } from '../../../resources/resource.abstract';
-import { SharedResource } from '../../../resources/shared-resource.abstract';
-import { ResourceSerializationService } from './resource-serialization.service';
+import { Resource } from '../../../resources/resource.abstract.js';
+import { SharedResource } from '../../../resources/shared-resource.abstract.js';
+import { ResourceSerializationService } from './resource-serialization.service.js';
 
 class TestResource extends Resource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';

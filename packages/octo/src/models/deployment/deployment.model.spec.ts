@@ -1,10 +1,10 @@
-import { App } from '../app/app.model';
-import { Environment } from '../environment/environment.model';
-import { Execution } from '../execution/execution.model';
-import { Image } from '../image/image.model';
-import { Region } from '../region/region.model';
-import { Support } from '../support/support.model';
-import { Deployment } from './deployment.model';
+import { App } from '../app/app.model.js';
+import { Environment } from '../environment/environment.model.js';
+import { Execution } from '../execution/execution.model.js';
+import { Image } from '../image/image.model.js';
+import { Region } from '../region/region.model.js';
+import { Support } from '../support/support.model.js';
+import { Deployment } from './deployment.model.js';
 
 describe('Deployment UT', () => {
   describe('diff()', () => {

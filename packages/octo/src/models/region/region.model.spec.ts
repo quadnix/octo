@@ -1,5 +1,5 @@
-import { Environment } from '../environment/environment.model';
-import { Region } from './region.model';
+import { Environment } from '../environment/environment.model.js';
+import { Region } from './region.model.js';
 
 describe('Region UT', () => {
   describe('addEnvironment()', () => {
