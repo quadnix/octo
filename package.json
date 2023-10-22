@@ -5,8 +5,8 @@
   "dependencies": {},
   "description": "The Octo CDK is an opinionated cloud infrastructure management and CICD tool.",
   "devDependencies": {
-    "@nx/eslint-plugin": "~16.5.5",
     "@nx/devkit": "~16.5.5",
+    "@nx/eslint-plugin": "~16.5.5",
     "@types/jest": "~29.5.5",
     "@types/node": "~18.15.3",
     "@typescript-eslint/eslint-plugin": "~5.59.6",
@@ -57,6 +57,7 @@
     "test:integration": "nx run-many -t test:integration",
     "test:watch": "nx run-many -t test:watch"
   },
+  "type": "module",
   "version": "0.0.0",
   "workspaces": [
     "packages/*"
