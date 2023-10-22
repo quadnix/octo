@@ -1,0 +1,62 @@
+{
+  "bin": {
+    "octob": "./dist/index.js"
+  },
+  "dependencies": {
+    "chalk": "~5.3.0",
+    "yargs": "~17.7.2"
+  },
+  "description": "Octo-Build is a CLI tool to build Octo projects.",
+  "devDependencies": {
+    "@types/yargs": "~17.0.29"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "jest": {
+    "coverageDirectory": "./coverage",
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "moduleNameMapper": {
+      "(.+)\\.js": "$1"
+    },
+    "preset": "ts-jest/presets/default-esm",
+    "rootDir": ".",
+    "testEnvironment": "node",
+    "testRegex": ".*spec\\.ts$",
+    "transform": {
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
+    }
+  },
+  "name": "@quadnix/octo-build",
+  "nx": {
+    "tags": [
+      "scope:octo-build"
+    ]
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "lint": "eslint .",
+    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",
+    "test:cov": "jest --coverage --testRegex=\"\\.spec.ts$\"",
+    "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:e2e": "jest --testRegex=\"\\.e2e-spec.ts$\"",
+    "test:integration": "jest --testRegex=\"\\.ispec.ts$\"",
+    "test:watch": "jest --watch"
+  },
+  "type": "module",
+  "version": "0.0.1"
+}

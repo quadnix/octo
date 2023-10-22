@@ -1,6 +1,7 @@
 acl
 acls
 amazonaws
+argv
 arn
 ascii
 aws
@@ -37,6 +38,7 @@ lstat
 nacl
 nginx
 octo
+octob
 promisify
 quadnix
 readdir
@@ -54,6 +56,8 @@ tsc
 tsconfig
 unlink
 uri
+usr
 vpc
 workspace
 workspaces
+yargs
