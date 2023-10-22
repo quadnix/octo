@@ -8,6 +8,9 @@
   "exports": "./dist/index.js",
   "jest": {
     "coverageDirectory": "./coverage",
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
     "moduleFileExtensions": [
       "js",
       "json",
@@ -16,14 +19,17 @@
     "moduleNameMapper": {
       "(.+)\\.js": "$1"
     },
+    "preset": "ts-jest/presets/default-esm",
     "rootDir": ".",
-    "setupFilesAfterEnv": [
-      "./test/jest.setup.ts"
-    ],
     "testEnvironment": "node",
     "testRegex": ".*spec\\.ts$",
     "transform": {
-      "^.+\\.ts$": "ts-jest"
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
     }
   },
   "name": "@quadnix/octo",
@@ -37,7 +43,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest --testRegex=\"\\.spec.ts$\"",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",
     "test:cov": "jest --coverage --testRegex=\"\\.spec.ts$\"",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --testRegex=\"\\.e2e-spec.ts$\"",
