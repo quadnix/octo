@@ -1,6 +1,6 @@
 import { Diff, DiffAction, SharedResource } from '@quadnix/octo';
-import { IEcrImageReplicationMetadata } from './ecr-image.interface';
-import { EcrImage } from './ecr-image.resource';
+import { IEcrImageReplicationMetadata } from './ecr-image.interface.js';
+import { EcrImage } from './ecr-image.resource.js';
 
 export class SharedEcrImage extends SharedResource<EcrImage> {
   constructor(resource: EcrImage) {

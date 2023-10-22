@@ -2,10 +2,10 @@ import { App, DiffMetadata, Image, LocalStateProvider, Resource } from '@quadnix
 import { existsSync, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { AwsRegionId, OctoAws } from '../../index';
-import { IEcrImageReplicationMetadata } from '../../resources/ecr/ecr-image.interface';
-import { EcrImage } from '../../resources/ecr/ecr-image.resource';
-import { AwsRegion } from '../region/aws.region.model';
+import { AwsRegionId, OctoAws } from '../../index.js';
+import { IEcrImageReplicationMetadata } from '../../resources/ecr/ecr-image.interface.js';
+import { EcrImage } from '../../resources/ecr/ecr-image.resource.js';
+import { AwsRegion } from '../region/aws.region.model.js';
 
 const unlinkAsync = promisify(unlink);
 

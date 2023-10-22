@@ -1,14 +1,14 @@
 import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
-import { Efs } from '../../../resources/efs/efs.resource';
-import { SharedEfs } from '../../../resources/efs/efs.shared-resource';
-import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource';
-import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource';
-import { RouteTable } from '../../../resources/route-table/route-table.resource';
-import { SecurityGroup } from '../../../resources/security-groups/security-group.resource';
-import { Subnet } from '../../../resources/subnet/subnet.resource';
-import { Vpc } from '../../../resources/vpc/vpc.resource';
-import { Action } from '../../action.abstract';
-import { AwsRegion } from '../aws.region.model';
+import { Efs } from '../../../resources/efs/efs.resource.js';
+import { SharedEfs } from '../../../resources/efs/efs.shared-resource.js';
+import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
+import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
+import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
+import { SecurityGroup } from '../../../resources/security-groups/security-group.resource.js';
+import { Subnet } from '../../../resources/subnet/subnet.resource.js';
+import { Vpc } from '../../../resources/vpc/vpc.resource.js';
+import { Action } from '../../action.abstract.js';
+import { AwsRegion } from '../aws.region.model.js';
 
 export class AddRegionAction extends Action {
   readonly ACTION_NAME: string = 'AddRegionAction';

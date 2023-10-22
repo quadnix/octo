@@ -1,7 +1,7 @@
 import { Image, Model, Server } from '@quadnix/octo';
-import { IamUserAnchor } from '../../anchors/iam-user.anchor.model';
-import { AwsRegion } from '../region/aws.region.model';
-import { IAwsServer } from './aws.server.interface';
+import { IamUserAnchor } from '../../anchors/iam-user.anchor.model.js';
+import { AwsRegion } from '../region/aws.region.model.js';
+import { IAwsServer } from './aws.server.interface.js';
 
 export class AwsServer extends Server {
   readonly region: AwsRegion;

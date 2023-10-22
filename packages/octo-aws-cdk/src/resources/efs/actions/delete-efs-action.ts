@@ -1,8 +1,8 @@
 import { DeleteFileSystemCommand, DeleteMountTargetCommand, EFSClient } from '@aws-sdk/client-efs';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { AwsRegion } from '../../../models/region/aws.region.model';
-import { IEfsResponse, IEfsSharedMetadata } from '../efs.interface';
-import { Efs } from '../efs.resource';
+import { AwsRegion } from '../../../models/region/aws.region.model.js';
+import { IEfsResponse, IEfsSharedMetadata } from '../efs.interface.js';
+import { Efs } from '../efs.resource.js';
 
 export class DeleteEfsAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEfsAction';

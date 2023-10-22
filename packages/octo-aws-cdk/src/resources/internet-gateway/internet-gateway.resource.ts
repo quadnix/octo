@@ -1,6 +1,6 @@
 import { Resource } from '@quadnix/octo';
-import { Vpc } from '../vpc/vpc.resource';
-import { IInternetGatewayProperties } from './internet-gateway.interface';
+import { Vpc } from '../vpc/vpc.resource.js';
+import { IInternetGatewayProperties } from './internet-gateway.interface.js';
 
 export class InternetGateway extends Resource<InternetGateway> {
   readonly MODEL_NAME: string = 'internet-gateway';

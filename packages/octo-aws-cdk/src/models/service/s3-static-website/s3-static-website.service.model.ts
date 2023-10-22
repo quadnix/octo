@@ -1,9 +1,9 @@
 import { Diff, DiffAction, Model, Service, StateManagementService } from '@quadnix/octo';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
-import { FileUtility } from '../../../utilities/file/file.utility';
-import { AwsRegion } from '../../region/aws.region.model';
-import { IS3StaticWebsiteService } from './s3-static-website.service.interface';
+import { FileUtility } from '../../../utilities/file/file.utility.js';
+import { AwsRegion } from '../../region/aws.region.model.js';
+import { IS3StaticWebsiteService } from './s3-static-website.service.interface.js';
 
 type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
 

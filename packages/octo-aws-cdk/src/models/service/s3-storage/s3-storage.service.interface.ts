@@ -1,6 +1,5 @@
-import { IService } from '@quadnix/octo';
-import { IModelReference } from '@quadnix/octo/dist/models/model.interface';
-import { S3StorageService } from './s3-storage.service.model';
+import { IModelReference, IService } from '@quadnix/octo';
+import { S3StorageService } from './s3-storage.service.model.js';
 
 export interface IS3StorageService extends IService {
   bucketName: S3StorageService['bucketName'];

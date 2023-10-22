@@ -1,7 +1,7 @@
 import { DeleteBucketCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { IS3StorageProperties } from '../s3-storage.interface';
-import { S3Storage } from '../s3-storage.resource';
+import { IS3StorageProperties } from '../s3-storage.interface.js';
+import { S3Storage } from '../s3-storage.resource.js';
 
 export class DeleteS3StorageAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteS3StorageAction';

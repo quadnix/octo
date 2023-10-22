@@ -1,7 +1,7 @@
 import { Diff, DiffAction, Environment, IActionInputs, IActionOutputs } from '@quadnix/octo';
-import { SharedEcsCluster } from '../../../resources/ecs/ecs-cluster.shared-resource';
-import { Action } from '../../action.abstract';
-import { AwsRegion } from '../../region/aws.region.model';
+import { SharedEcsCluster } from '../../../resources/ecs/ecs-cluster.shared-resource.js';
+import { Action } from '../../action.abstract.js';
+import { AwsRegion } from '../../region/aws.region.model.js';
 
 export class DeleteEnvironmentAction extends Action {
   readonly ACTION_NAME: string = 'DeleteEnvironmentAction';

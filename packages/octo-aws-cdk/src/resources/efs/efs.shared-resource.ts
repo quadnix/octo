@@ -1,6 +1,6 @@
 import { Diff, DiffAction, SharedResource } from '@quadnix/octo';
-import { IEfsSharedMetadata } from './efs.interface';
-import { Efs } from './efs.resource';
+import { IEfsSharedMetadata } from './efs.interface.js';
+import { Efs } from './efs.resource.js';
 
 export class SharedEfs extends SharedResource<Efs> {
   constructor(resource: Efs) {

@@ -1,7 +1,7 @@
 import { DeleteNetworkAclCommand, EC2Client, ReplaceNetworkAclAssociationCommand } from '@aws-sdk/client-ec2';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { INetworkAclResponse } from '../network-acl.interface';
-import { NetworkAcl } from '../network-acl.resource';
+import { INetworkAclResponse } from '../network-acl.interface.js';
+import { NetworkAcl } from '../network-acl.resource.js';
 
 export class DeleteNetworkAclAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteNetworkAclAction';

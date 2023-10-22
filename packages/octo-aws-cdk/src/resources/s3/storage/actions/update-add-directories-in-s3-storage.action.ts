@@ -1,11 +1,8 @@
-import { S3Client } from '@aws-sdk/client-s3';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { S3Website } from '../../website/s3-website.resource';
+import { S3Website } from '../../website/s3-website.resource.js';
 
 export class UpdateAddDirectoriesInS3StorageAction implements IResourceAction {
   readonly ACTION_NAME: string = 'UpdateAddDirectoriesInS3StorageAction';
-
-  constructor(private readonly s3Client: S3Client) {}
 
   filter(diff: Diff): boolean {
     return (
@@ -15,7 +12,7 @@ export class UpdateAddDirectoriesInS3StorageAction implements IResourceAction {
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(): Promise<void> {
     throw new Error('Method not implemented!');
   }
 }

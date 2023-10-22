@@ -1,8 +1,8 @@
 import { Diff, DiffAction, Model, Service } from '@quadnix/octo';
 import { basename } from 'path';
-import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.model';
-import { AwsRegion } from '../../region/aws.region.model';
-import { IS3StorageService } from './s3-storage.service.interface';
+import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.model.js';
+import { AwsRegion } from '../../region/aws.region.model.js';
+import { IS3StorageService } from './s3-storage.service.interface.js';
 
 export class S3StorageService extends Service {
   readonly bucketName: string;

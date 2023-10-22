@@ -2,9 +2,9 @@ import { App, DiffMetadata, LocalStateProvider, Resource } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { AwsRegionId, OctoAws } from '../../../index';
-import { AwsRegion } from '../../region/aws.region.model';
-import { S3StorageService } from './s3-storage.service.model';
+import { AwsRegionId, OctoAws } from '../../../index.js';
+import { AwsRegion } from '../../region/aws.region.model.js';
+import { S3StorageService } from './s3-storage.service.model.js';
 
 const unlinkAsync = promisify(unlink);
 

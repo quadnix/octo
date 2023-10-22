@@ -29,7 +29,7 @@ export { ISupport } from './models/support/support.interface.js';
 
 export { IAction, IActionInputs, IActionOutputs } from './models/action.interface.js';
 export { Model } from './models/model.abstract.js';
-export { IModel } from './models/model.interface.js';
+export { IModel, IModelReference } from './models/model.interface.js';
 
 export { Resource } from './resources/resource.abstract.js';
 export { IResource } from './resources/resource.interface.js';

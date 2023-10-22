@@ -1,8 +1,8 @@
 import { DeleteClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { AwsRegion } from '../../../models/region/aws.region.model';
-import { IEcsClusterProperties, IEcsClusterResponse, IEcsClusterSharedMetadata } from '../ecs-cluster.interface';
-import { EcsCluster } from '../ecs-cluster.resource';
+import { AwsRegion } from '../../../models/region/aws.region.model.js';
+import { IEcsClusterProperties, IEcsClusterResponse, IEcsClusterSharedMetadata } from '../ecs-cluster.interface.js';
+import { EcsCluster } from '../ecs-cluster.resource.js';
 
 export class DeleteEcsClusterAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEcsClusterAction';

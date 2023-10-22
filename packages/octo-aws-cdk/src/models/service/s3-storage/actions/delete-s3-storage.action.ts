@@ -1,7 +1,7 @@
 import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
-import { S3Storage } from '../../../../resources/s3/storage/s3-storage.resource';
-import { Action } from '../../../action.abstract';
-import { S3StorageService } from '../s3-storage.service.model';
+import { S3Storage } from '../../../../resources/s3/storage/s3-storage.resource.js';
+import { Action } from '../../../action.abstract.js';
+import { S3StorageService } from '../s3-storage.service.model.js';
 
 export class DeleteS3StorageAction extends Action {
   readonly ACTION_NAME: string = 'DeleteS3StorageAction';

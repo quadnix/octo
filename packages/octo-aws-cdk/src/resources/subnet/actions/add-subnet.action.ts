@@ -1,9 +1,9 @@
 import { CreateSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { ISubnetProperties, ISubnetResponse } from '../subnet.interface';
-import { Subnet } from '../subnet.resource';
-import { IVpcResponse } from '../../vpc/vpc.interface';
-import { Vpc } from '../../vpc/vpc.resource';
+import { ISubnetProperties, ISubnetResponse } from '../subnet.interface.js';
+import { Subnet } from '../subnet.resource.js';
+import { IVpcResponse } from '../../vpc/vpc.interface.js';
+import { Vpc } from '../../vpc/vpc.resource.js';
 
 export class AddSubnetAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddSubnetAction';

@@ -1,5 +1,5 @@
 import { IResource, Resource } from '@quadnix/octo';
-import { IEcsClusterProperties } from './ecs-cluster.interface';
+import { IEcsClusterProperties } from './ecs-cluster.interface.js';
 
 export class EcsCluster extends Resource<EcsCluster> {
   readonly MODEL_NAME: string = 'ecs-cluster';

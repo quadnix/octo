@@ -6,14 +6,14 @@ import {
   EFSClient,
 } from '@aws-sdk/client-efs';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { AwsRegion } from '../../../models/region/aws.region.model';
-import { RetryUtility } from '../../../utilities/retry/retry.utility';
-import { ISecurityGroupResponse } from '../../security-groups/security-group.interface';
-import { SecurityGroup } from '../../security-groups/security-group.resource';
-import { ISubnetResponse } from '../../subnet/subnet.interface';
-import { Subnet } from '../../subnet/subnet.resource';
-import { IEfsResponse, IEfsSharedMetadata } from '../efs.interface';
-import { Efs } from '../efs.resource';
+import { AwsRegion } from '../../../models/region/aws.region.model.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { ISecurityGroupResponse } from '../../security-groups/security-group.interface.js';
+import { SecurityGroup } from '../../security-groups/security-group.resource.js';
+import { ISubnetResponse } from '../../subnet/subnet.interface.js';
+import { Subnet } from '../../subnet/subnet.resource.js';
+import { IEfsResponse, IEfsSharedMetadata } from '../efs.interface.js';
+import { Efs } from '../efs.resource.js';
 
 export class AddEfsAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEfsAction';

@@ -1,7 +1,7 @@
 import { IResource, Resource } from '@quadnix/octo';
-import { Subnet } from '../subnet/subnet.resource';
-import { Vpc } from '../vpc/vpc.resource';
-import { INetworkAclProperties } from './network-acl.interface';
+import { Subnet } from '../subnet/subnet.resource.js';
+import { Vpc } from '../vpc/vpc.resource.js';
+import { INetworkAclProperties } from './network-acl.interface.js';
 
 export class NetworkAcl extends Resource<NetworkAcl> {
   readonly MODEL_NAME: string = 'network-acl';

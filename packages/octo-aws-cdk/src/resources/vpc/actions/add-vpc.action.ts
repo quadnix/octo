@@ -1,7 +1,7 @@
 import { CreateVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { IVpcProperties, IVpcResponse } from '../vpc.interface';
-import { Vpc } from '../vpc.resource';
+import { IVpcProperties, IVpcResponse } from '../vpc.interface.js';
+import { Vpc } from '../vpc.resource.js';
 
 export class AddVpcAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddVpcAction';

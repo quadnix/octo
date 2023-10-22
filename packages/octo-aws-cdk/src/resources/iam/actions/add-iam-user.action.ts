@@ -1,7 +1,7 @@
 import { CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { IIamUserProperties, IIamUserResponse } from '../iam-user.interface';
-import { IamUser } from '../iam-user.resource';
+import { IIamUserProperties, IIamUserResponse } from '../iam-user.interface.js';
+import { IamUser } from '../iam-user.resource.js';
 
 export class AddIamUserAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddIamUserAction';

@@ -1,7 +1,7 @@
 import { DeleteVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { IVpcResponse } from '../vpc.interface';
-import { Vpc } from '../vpc.resource';
+import { IVpcResponse } from '../vpc.interface.js';
+import { Vpc } from '../vpc.resource.js';
 
 export class DeleteVpcAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteVpcAction';

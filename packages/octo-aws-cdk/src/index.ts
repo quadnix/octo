@@ -20,75 +20,74 @@ import {
   TransactionOptions,
   TransactionService,
 } from '@quadnix/octo';
-import * as packageJson from '../package.json';
-import { IamRoleAnchor } from './anchors/iam-role.anchor.model';
-import { IamUserAnchor } from './anchors/iam-user.anchor.model';
-import { Action } from './models/action.abstract';
-import { AddEnvironmentAction } from './models/environment/actions/add-environment.action';
-import { DeleteEnvironmentAction } from './models/environment/actions/delete-environment.action';
-import { AddImageAction } from './models/image/actions/add-image.action';
-import { DeleteImageAction } from './models/image/actions/delete-image.action';
-import { AddRegionAction } from './models/region/actions/add-region.action';
-import { DeleteRegionAction } from './models/region/actions/delete-region.action';
-import { AwsRegion, AwsRegionId } from './models/region/aws.region.model';
-import { AddServerAction } from './models/server/actions/add-server.action';
-import { DeleteServerAction } from './models/server/actions/delete-server.action';
-import { AwsServer } from './models/server/aws.server.model';
-import { AddS3StaticWebsiteAction } from './models/service/s3-static-website/actions/add-s3-static-website.action';
-import { DeleteS3StaticWebsiteAction } from './models/service/s3-static-website/actions/delete-s3-static-website.action';
-import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/s3-static-website/actions/update-source-paths-s3-static-website.action';
-import { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model';
-import { S3StorageService } from './models/service/s3-storage/s3-storage.service.model';
-import { AddS3StorageAction as AddS3StorageModelAction } from './models/service/s3-storage/actions/add-s3-storage.action';
-import { DeleteS3StorageAction as DeleteS3StorageModelAction } from './models/service/s3-storage/actions/delete-s3-storage.action';
-import { UpdateDirectoriesS3StorageAction as UpdateDirectoriesS3StorageModelAction } from './models/service/s3-storage/actions/update-directories-s3-storage.action';
-import { NginxRouterModule } from './modules/routers/nginx.router.module';
-import { AddEcrImageAction } from './resources/ecr/actions/add-ecr-image.action';
-import { DeleteEcrImageAction } from './resources/ecr/actions/delete-ecr-image.action';
-import { EcrImage } from './resources/ecr/ecr-image.resource';
-import { SharedEcrImage } from './resources/ecr/ecr-image.shared-resource';
-import { AddEcsClusterAction } from './resources/ecs/actions/add-ecs-cluster.action';
-import { DeleteEcsClusterAction } from './resources/ecs/actions/delete-ecs-cluster.action';
-import { EcsCluster } from './resources/ecs/ecs-cluster.resource';
-import { SharedEcsCluster } from './resources/ecs/ecs-cluster.shared-resource';
-import { AddEfsAction } from './resources/efs/actions/add-efs.action';
-import { DeleteEfsAction } from './resources/efs/actions/delete-efs-action';
-import { Efs } from './resources/efs/efs.resource';
-import { SharedEfs } from './resources/efs/efs.shared-resource';
-import { AddIamUserAction } from './resources/iam/actions/add-iam-user.action';
-import { DeleteIamUserAction } from './resources/iam/actions/delete-iam-user.action';
-import { IamUser } from './resources/iam/iam-user.resource';
-import { AddInternetGatewayAction } from './resources/internet-gateway/actions/add-internet-gateway.action';
-import { DeleteInternetGatewayAction } from './resources/internet-gateway/actions/delete-internet-gateway.action';
-import { InternetGateway } from './resources/internet-gateway/internet-gateway.resource';
-import { AddNetworkAclAction } from './resources/network-acl/actions/add-network-acl.action';
-import { DeleteNetworkAclAction } from './resources/network-acl/actions/delete-network-acl.action';
-import { NetworkAcl } from './resources/network-acl/network-acl.resource';
-import { AddRouteTableAction } from './resources/route-table/actions/add-route-table.action';
-import { DeleteRouteTableAction } from './resources/route-table/actions/delete-route-table.action';
-import { RouteTable } from './resources/route-table/route-table.resource';
-import { AddS3StorageAction } from './resources/s3/storage/actions/add-s3-storage.action';
-import { DeleteS3StorageAction } from './resources/s3/storage/actions/delete-s3-storage.action';
-import { UpdateAddDirectoriesInS3StorageAction } from './resources/s3/storage/actions/update-add-directories-in-s3-storage.action';
-import { UpdateRemoveDirectoriesInS3StorageAction } from './resources/s3/storage/actions/update-remove-directories-in-s3-storage.action';
-import { S3Storage } from './resources/s3/storage/s3-storage.resource';
-import { AddS3WebsiteAction } from './resources/s3/website/actions/add-s3-website.action';
-import { DeleteS3WebsiteAction } from './resources/s3/website/actions/delete-s3-website.action';
-import { UpdateSourcePathsInS3WebsiteAction } from './resources/s3/website/actions/update-source-paths-in-s3-website.action';
-import { S3Website } from './resources/s3/website/s3-website.resource';
-import { AddSecurityGroupAction } from './resources/security-groups/actions/add-security-group.action';
-import { DeleteSecurityGroupAction } from './resources/security-groups/actions/delete-security-group.action';
-import { SecurityGroup } from './resources/security-groups/security-group.resource';
-import { AddSubnetAction } from './resources/subnet/actions/add-subnet.action';
-import { DeleteSubnetAction } from './resources/subnet/actions/delete-subnet.action';
-import { Subnet } from './resources/subnet/subnet.resource';
-import { AddVpcAction } from './resources/vpc/actions/add-vpc.action';
-import { DeleteVpcAction } from './resources/vpc/actions/delete-vpc.action';
-import { Vpc } from './resources/vpc/vpc.resource';
+import { IamRoleAnchor } from './anchors/iam-role.anchor.model.js';
+import { IamUserAnchor } from './anchors/iam-user.anchor.model.js';
+import { Action } from './models/action.abstract.js';
+import { AddEnvironmentAction } from './models/environment/actions/add-environment.action.js';
+import { DeleteEnvironmentAction } from './models/environment/actions/delete-environment.action.js';
+import { AddImageAction } from './models/image/actions/add-image.action.js';
+import { DeleteImageAction } from './models/image/actions/delete-image.action.js';
+import { AddRegionAction } from './models/region/actions/add-region.action.js';
+import { DeleteRegionAction } from './models/region/actions/delete-region.action.js';
+import { AwsRegion, AwsRegionId } from './models/region/aws.region.model.js';
+import { AddServerAction } from './models/server/actions/add-server.action.js';
+import { DeleteServerAction } from './models/server/actions/delete-server.action.js';
+import { AwsServer } from './models/server/aws.server.model.js';
+import { AddS3StaticWebsiteAction } from './models/service/s3-static-website/actions/add-s3-static-website.action.js';
+import { DeleteS3StaticWebsiteAction } from './models/service/s3-static-website/actions/delete-s3-static-website.action.js';
+import { UpdateSourcePathsS3StaticWebsiteAction } from './models/service/s3-static-website/actions/update-source-paths-s3-static-website.action.js';
+import { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model.js';
+import { S3StorageService } from './models/service/s3-storage/s3-storage.service.model.js';
+import { AddS3StorageAction as AddS3StorageModelAction } from './models/service/s3-storage/actions/add-s3-storage.action.js';
+import { DeleteS3StorageAction as DeleteS3StorageModelAction } from './models/service/s3-storage/actions/delete-s3-storage.action.js';
+import { UpdateDirectoriesS3StorageAction as UpdateDirectoriesS3StorageModelAction } from './models/service/s3-storage/actions/update-directories-s3-storage.action.js';
+import { NginxRouterModule } from './modules/routers/nginx.router.module.js';
+import { AddEcrImageAction } from './resources/ecr/actions/add-ecr-image.action.js';
+import { DeleteEcrImageAction } from './resources/ecr/actions/delete-ecr-image.action.js';
+import { EcrImage } from './resources/ecr/ecr-image.resource.js';
+import { SharedEcrImage } from './resources/ecr/ecr-image.shared-resource.js';
+import { AddEcsClusterAction } from './resources/ecs/actions/add-ecs-cluster.action.js';
+import { DeleteEcsClusterAction } from './resources/ecs/actions/delete-ecs-cluster.action.js';
+import { EcsCluster } from './resources/ecs/ecs-cluster.resource.js';
+import { SharedEcsCluster } from './resources/ecs/ecs-cluster.shared-resource.js';
+import { AddEfsAction } from './resources/efs/actions/add-efs.action.js';
+import { DeleteEfsAction } from './resources/efs/actions/delete-efs-action.js';
+import { Efs } from './resources/efs/efs.resource.js';
+import { SharedEfs } from './resources/efs/efs.shared-resource.js';
+import { AddIamUserAction } from './resources/iam/actions/add-iam-user.action.js';
+import { DeleteIamUserAction } from './resources/iam/actions/delete-iam-user.action.js';
+import { IamUser } from './resources/iam/iam-user.resource.js';
+import { AddInternetGatewayAction } from './resources/internet-gateway/actions/add-internet-gateway.action.js';
+import { DeleteInternetGatewayAction } from './resources/internet-gateway/actions/delete-internet-gateway.action.js';
+import { InternetGateway } from './resources/internet-gateway/internet-gateway.resource.js';
+import { AddNetworkAclAction } from './resources/network-acl/actions/add-network-acl.action.js';
+import { DeleteNetworkAclAction } from './resources/network-acl/actions/delete-network-acl.action.js';
+import { NetworkAcl } from './resources/network-acl/network-acl.resource.js';
+import { AddRouteTableAction } from './resources/route-table/actions/add-route-table.action.js';
+import { DeleteRouteTableAction } from './resources/route-table/actions/delete-route-table.action.js';
+import { RouteTable } from './resources/route-table/route-table.resource.js';
+import { AddS3StorageAction } from './resources/s3/storage/actions/add-s3-storage.action.js';
+import { DeleteS3StorageAction } from './resources/s3/storage/actions/delete-s3-storage.action.js';
+import { UpdateAddDirectoriesInS3StorageAction } from './resources/s3/storage/actions/update-add-directories-in-s3-storage.action.js';
+import { UpdateRemoveDirectoriesInS3StorageAction } from './resources/s3/storage/actions/update-remove-directories-in-s3-storage.action.js';
+import { S3Storage } from './resources/s3/storage/s3-storage.resource.js';
+import { AddS3WebsiteAction } from './resources/s3/website/actions/add-s3-website.action.js';
+import { DeleteS3WebsiteAction } from './resources/s3/website/actions/delete-s3-website.action.js';
+import { UpdateSourcePathsInS3WebsiteAction } from './resources/s3/website/actions/update-source-paths-in-s3-website.action.js';
+import { S3Website } from './resources/s3/website/s3-website.resource.js';
+import { AddSecurityGroupAction } from './resources/security-groups/actions/add-security-group.action.js';
+import { DeleteSecurityGroupAction } from './resources/security-groups/actions/delete-security-group.action.js';
+import { SecurityGroup } from './resources/security-groups/security-group.resource.js';
+import { AddSubnetAction } from './resources/subnet/actions/add-subnet.action.js';
+import { DeleteSubnetAction } from './resources/subnet/actions/delete-subnet.action.js';
+import { Subnet } from './resources/subnet/subnet.resource.js';
+import { AddVpcAction } from './resources/vpc/actions/add-vpc.action.js';
+import { DeleteVpcAction } from './resources/vpc/actions/delete-vpc.action.js';
+import { Vpc } from './resources/vpc/vpc.resource.js';
 
-export { AwsRegion, AwsRegionId } from './models/region/aws.region.model';
-export { IS3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.interface';
-export { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model';
+export { AwsRegion, AwsRegionId } from './models/region/aws.region.model.js';
+export { IS3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.interface.js';
+export { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model.js';
 
 export class OctoAws {
   private readonly modelStateFileName: string;
@@ -190,8 +189,8 @@ export class OctoAws {
       // resources/s3/storage
       new AddS3StorageAction(this.s3Client),
       new DeleteS3StorageAction(this.s3Client),
-      new UpdateAddDirectoriesInS3StorageAction(this.s3Client),
-      new UpdateRemoveDirectoriesInS3StorageAction(this.s3Client),
+      new UpdateAddDirectoriesInS3StorageAction(),
+      new UpdateRemoveDirectoriesInS3StorageAction(),
 
       // resources/s3/website
       new AddS3WebsiteAction(this.s3Client),
@@ -231,7 +230,7 @@ export class OctoAws {
   }
 
   private static getPackageVersion(): string {
-    return packageJson.version;
+    return '0.0.1';
   }
 
   private static getResourceSerializationService(): ResourceSerializationService {

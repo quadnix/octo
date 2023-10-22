@@ -6,8 +6,8 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { IS3WebsiteProperties } from '../s3-website.interface';
-import { S3Website } from '../s3-website.resource';
+import { IS3WebsiteProperties } from '../s3-website.interface.js';
+import { S3Website } from '../s3-website.resource.js';
 
 export class AddS3WebsiteAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddS3WebsiteAction';

@@ -1,8 +1,8 @@
 import { BatchDeleteImageCommand, ECRClient } from '@aws-sdk/client-ecr';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { AwsRegion } from '../../../models/region/aws.region.model';
-import { IEcrImageProperties, IEcrImageReplicationMetadata, IEcrImageResponse } from '../ecr-image.interface';
-import { EcrImage } from '../ecr-image.resource';
+import { AwsRegion } from '../../../models/region/aws.region.model.js';
+import { IEcrImageProperties, IEcrImageReplicationMetadata, IEcrImageResponse } from '../ecr-image.interface.js';
+import { EcrImage } from '../ecr-image.resource.js';
 
 export class DeleteEcrImageAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEcrImageAction';

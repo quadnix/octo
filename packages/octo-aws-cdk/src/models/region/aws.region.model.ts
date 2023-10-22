@@ -1,5 +1,5 @@
 import { Region } from '@quadnix/octo';
-import { IAwsRegion } from './aws.region.interface';
+import { IAwsRegion } from './aws.region.interface.js';
 
 export enum AwsRegionId {
   AWS_AP_SOUTH_1A = 'aws-ap-south-1a',

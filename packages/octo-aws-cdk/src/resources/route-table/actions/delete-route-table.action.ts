@@ -1,7 +1,7 @@
 import { DeleteRouteTableCommand, DisassociateRouteTableCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { IRouteTableResponse } from '../route-table.interface';
-import { RouteTable } from '../route-table.resource';
+import { IRouteTableResponse } from '../route-table.interface.js';
+import { RouteTable } from '../route-table.resource.js';
 
 export class DeleteRouteTableAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteRouteTableAction';

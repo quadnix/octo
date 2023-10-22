@@ -1,6 +1,5 @@
-import { IService } from '@quadnix/octo';
-import { IModelReference } from '@quadnix/octo/dist/models/model.interface';
-import { S3StaticWebsiteService } from './s3-static-website.service.model';
+import { IModelReference, IService } from '@quadnix/octo';
+import { S3StaticWebsiteService } from './s3-static-website.service.model.js';
 
 export interface IS3StaticWebsiteService extends IService {
   bucketName: S3StaticWebsiteService['bucketName'];

@@ -1,5 +1,4 @@
-import { IServer } from '@quadnix/octo';
-import { IModelReference } from '@quadnix/octo/dist/models/model.interface';
+import { IModelReference, IServer } from '@quadnix/octo';
 
 export interface IAwsServer extends IServer {
   region: IModelReference;

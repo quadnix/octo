@@ -13,6 +13,10 @@
   },
   "description": "Octo-AWS-CDK is an AWS specific implementation of the Octo interface.",
   "devDependencies": {},
+  "engines": {
+    "node": ">=16"
+  },
+  "exports": "./dist/index.js",
   "jest": {
     "coverageDirectory": "./coverage",
     "moduleFileExtensions": [
@@ -20,6 +24,9 @@
       "json",
       "ts"
     ],
+    "moduleNameMapper": {
+      "(.+)\\.js": "$1"
+    },
     "rootDir": ".",
     "setupFilesAfterEnv": [
       "./test/jest.setup.ts"
@@ -30,7 +37,6 @@
       "^.+\\.ts$": "ts-jest"
     }
   },
-  "main": "dist/index.js",
   "name": "@quadnix/octo-aws-cdk",
   "nx": {
     "tags": [
@@ -49,5 +55,6 @@
     "test:integration": "jest --testRegex=\"\\.ispec.ts$\"",
     "test:watch": "jest --watch"
   },
+  "type": "module",
   "version": "0.0.1"
 }

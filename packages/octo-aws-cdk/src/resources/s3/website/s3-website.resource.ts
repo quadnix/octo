@@ -1,5 +1,5 @@
 import { IResource, Resource } from '@quadnix/octo';
-import { IS3WebsiteProperties } from './s3-website.interface';
+import { IS3WebsiteProperties } from './s3-website.interface.js';
 
 export class S3Website extends Resource<S3Website> {
   readonly MODEL_NAME: string = 's3-website';

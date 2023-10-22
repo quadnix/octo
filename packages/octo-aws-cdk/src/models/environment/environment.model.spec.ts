@@ -2,9 +2,9 @@ import { App, DiffMetadata, Environment, LocalStateProvider, Resource } from '@q
 import { existsSync, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { AwsRegion, AwsRegionId, OctoAws } from '../../index';
-import { IEcsClusterSharedMetadata } from '../../resources/ecs/ecs-cluster.interface';
-import { EcsCluster } from '../../resources/ecs/ecs-cluster.resource';
+import { AwsRegion, AwsRegionId, OctoAws } from '../../index.js';
+import { IEcsClusterSharedMetadata } from '../../resources/ecs/ecs-cluster.interface.js';
+import { EcsCluster } from '../../resources/ecs/ecs-cluster.resource.js';
 
 const unlinkAsync = promisify(unlink);
 

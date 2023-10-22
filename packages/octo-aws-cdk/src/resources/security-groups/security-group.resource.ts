@@ -1,6 +1,6 @@
 import { IResource, Resource } from '@quadnix/octo';
-import { Vpc } from '../vpc/vpc.resource';
-import { ISecurityGroupProperties } from './security-group.interface';
+import { Vpc } from '../vpc/vpc.resource.js';
+import { ISecurityGroupProperties } from './security-group.interface.js';
 
 export class SecurityGroup extends Resource<SecurityGroup> {
   readonly MODEL_NAME: string = 'security-group';

@@ -5,10 +5,10 @@ import {
   EC2Client,
 } from '@aws-sdk/client-ec2';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { IVpcResponse } from '../../vpc/vpc.interface';
-import { Vpc } from '../../vpc/vpc.resource';
-import { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface';
-import { SecurityGroup } from '../security-group.resource';
+import { IVpcResponse } from '../../vpc/vpc.interface.js';
+import { Vpc } from '../../vpc/vpc.resource.js';
+import { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface.js';
+import { SecurityGroup } from '../security-group.resource.js';
 
 export class AddSecurityGroupAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddSecurityGroupAction';

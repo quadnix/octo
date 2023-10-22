@@ -1,5 +1,5 @@
 import { App, Environment, Image, ModelSerializationService, Region } from '@quadnix/octo';
-import { NginxRouterModule } from './nginx.router.module';
+import { NginxRouterModule } from './nginx.router.module.js';
 
 describe('NginxRouterModule UT', () => {
   it('should test add and delete operations', async () => {

@@ -3,8 +3,8 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import * as mime from 'mime';
-import { IS3WebsiteProperties } from '../s3-website.interface';
-import { S3Website } from '../s3-website.resource';
+import { IS3WebsiteProperties } from '../s3-website.interface.js';
+import { S3Website } from '../s3-website.resource.js';
 
 export class UpdateSourcePathsInS3WebsiteAction implements IResourceAction {
   readonly ACTION_NAME: string = 'UpdateSourcePathsInS3WebsiteAction';

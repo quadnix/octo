@@ -1,7 +1,7 @@
 import { Diff, DiffAction, IActionInputs, IActionOutputs, Image } from '@quadnix/octo';
-import { SharedEcrImage } from '../../../resources/ecr/ecr-image.shared-resource';
-import { Action } from '../../action.abstract';
-import { AwsRegion } from '../../region/aws.region.model';
+import { SharedEcrImage } from '../../../resources/ecr/ecr-image.shared-resource.js';
+import { Action } from '../../action.abstract.js';
+import { AwsRegion } from '../../region/aws.region.model.js';
 
 export class DeleteImageAction extends Action {
   readonly ACTION_NAME: string = 'DeleteImageAction';

@@ -1,6 +1,6 @@
 import { Diff, DiffAction, SharedResource } from '@quadnix/octo';
-import { IEcsClusterSharedMetadata } from './ecs-cluster.interface';
-import { EcsCluster } from './ecs-cluster.resource';
+import { IEcsClusterSharedMetadata } from './ecs-cluster.interface.js';
+import { EcsCluster } from './ecs-cluster.resource.js';
 
 export class SharedEcsCluster extends SharedResource<EcsCluster> {
   constructor(resource: EcsCluster) {

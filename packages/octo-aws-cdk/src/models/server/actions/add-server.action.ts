@@ -1,7 +1,7 @@
 import { Diff, DiffAction, IActionOutputs } from '@quadnix/octo';
-import { IamUser } from '../../../resources/iam/iam-user.resource';
-import { Action } from '../../action.abstract';
-import { AwsServer } from '../aws.server.model';
+import { IamUser } from '../../../resources/iam/iam-user.resource.js';
+import { Action } from '../../action.abstract.js';
+import { AwsServer } from '../aws.server.model.js';
 
 export class AddServerAction extends Action {
   readonly ACTION_NAME: string = 'AddServerAction';

@@ -5,14 +5,14 @@ import {
   EC2Client,
 } from '@aws-sdk/client-ec2';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { IInternetGatewayResponse } from '../../internet-gateway/internet-gateway.interface';
-import { InternetGateway } from '../../internet-gateway/internet-gateway.resource';
-import { ISubnetResponse } from '../../subnet/subnet.interface';
-import { Subnet } from '../../subnet/subnet.resource';
-import { IVpcResponse } from '../../vpc/vpc.interface';
-import { Vpc } from '../../vpc/vpc.resource';
-import { IRouteTableResponse } from '../route-table.interface';
-import { RouteTable } from '../route-table.resource';
+import { IInternetGatewayResponse } from '../../internet-gateway/internet-gateway.interface.js';
+import { InternetGateway } from '../../internet-gateway/internet-gateway.resource.js';
+import { ISubnetResponse } from '../../subnet/subnet.interface.js';
+import { Subnet } from '../../subnet/subnet.resource.js';
+import { IVpcResponse } from '../../vpc/vpc.interface.js';
+import { Vpc } from '../../vpc/vpc.resource.js';
+import { IRouteTableResponse } from '../route-table.interface.js';
+import { RouteTable } from '../route-table.resource.js';
 
 export class AddRouteTableAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddRouteTableAction';

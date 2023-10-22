@@ -1,7 +1,7 @@
 import { DeleteSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { ISubnetResponse } from '../subnet.interface';
-import { Subnet } from '../subnet.resource';
+import { ISubnetResponse } from '../subnet.interface.js';
+import { Subnet } from '../subnet.resource.js';
 
 export class DeleteSubnetAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteSubnetAction';

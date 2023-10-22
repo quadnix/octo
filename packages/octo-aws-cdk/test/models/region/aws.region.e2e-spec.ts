@@ -2,7 +2,7 @@ import { App, DiffMetadata, LocalStateProvider, Resource } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { join } from 'path';
 import { promisify } from 'util';
-import { AwsRegion, AwsRegionId, OctoAws } from '../../../src';
+import { AwsRegion, AwsRegionId, OctoAws } from '../../../src/index.js';
 
 const unlinkAsync = promisify(unlink);
 

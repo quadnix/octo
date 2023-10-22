@@ -6,12 +6,12 @@ import {
   ReplaceNetworkAclAssociationCommand,
 } from '@aws-sdk/client-ec2';
 import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { ISubnetResponse } from '../../subnet/subnet.interface';
-import { Subnet } from '../../subnet/subnet.resource';
-import { IVpcResponse } from '../../vpc/vpc.interface';
-import { Vpc } from '../../vpc/vpc.resource';
-import { INetworkAclProperties, INetworkAclResponse } from '../network-acl.interface';
-import { NetworkAcl } from '../network-acl.resource';
+import { ISubnetResponse } from '../../subnet/subnet.interface.js';
+import { Subnet } from '../../subnet/subnet.resource.js';
+import { IVpcResponse } from '../../vpc/vpc.interface.js';
+import { Vpc } from '../../vpc/vpc.resource.js';
+import { INetworkAclProperties, INetworkAclResponse } from '../network-acl.interface.js';
+import { NetworkAcl } from '../network-acl.resource.js';
 
 export class AddNetworkAclAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddNetworkAclAction';

@@ -1,6 +1,6 @@
 import { IResource, Resource } from '@quadnix/octo';
-import { Vpc } from '../vpc/vpc.resource';
-import { ISubnetProperties } from './subnet.interface';
+import { Vpc } from '../vpc/vpc.resource.js';
+import { ISubnetProperties } from './subnet.interface.js';
 
 export class Subnet extends Resource<Subnet> {
   readonly MODEL_NAME: string = 'subnet';
