@@ -4,7 +4,7 @@ describe('ProcessUtility Test', () => {
   describe('runDetachedProcess()', () => {
     it('should run process and return stream with error', (done) => {
       const options = { env: {}, shell: true };
-      const stream = ProcessUtility.runDetachedProcess('ls -z', options, 'pipe');
+      const stream = ProcessUtility.runDetachedProcess('bad_program', options, 'pipe');
 
       stream.on('close', (exitCode) => {
         if (exitCode === 0) {

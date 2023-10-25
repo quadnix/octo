@@ -1,6 +1,6 @@
+import { ChildProcessWithoutNullStreams } from 'child_process';
 import pLimit from 'p-limit';
 import { join, resolve } from 'path';
-import { Readable } from 'stream';
 import { IBuildConfiguration } from './models/build-configuration.interface.js';
 import { IRunArguments } from './models/run-arguments.interface.js';
 import { StreamManager } from './streams/stream-manager.js';
@@ -9,30 +9,22 @@ import { ProcessUtility } from './utilities/process/process.utility.js';
 export function runCommand(
   command: string,
   options: { env: { [key: string]: string }; sourcePath: string },
-  stream: Readable,
-): Promise<void> {
+): [ChildProcessWithoutNullStreams, Promise<void>] {
   const spawnProcessOptions = { cwd: options.sourcePath, env: options.env, shell: true };
+  const runner = ProcessUtility.runDetachedProcess(command, spawnProcessOptions, 'pipe');
 
-  return new Promise((resolve, reject) => {
-    const runner = ProcessUtility.runDetachedProcess(command, spawnProcessOptions, 'pipe');
-
+  const promiseToFinishCommand = new Promise<void>((resolve, reject) => {
     runner.stderr.on('error', (error) => {
-      stream.emit('error', error);
-
       runner.kill();
       reject(error);
     });
-    runner.stdout.on('data', (data) => {
-      stream.push(data);
-    });
     runner.on('close', (exitCode) => {
-      stream.push(null);
       runner.removeAllListeners();
 
       if (exitCode === 0) {
         resolve();
       } else {
-        const error = new Error('Command returned non-zero exit code');
+        const error = new Error('Command returned non-zero exit code!');
         error['data'] = {
           command,
           exitCode,
@@ -41,6 +33,8 @@ export function runCommand(
       }
     });
   });
+
+  return [runner, promiseToFinishCommand];
 }
 
 export function scheduleJobs(args: IRunArguments, configuration: IBuildConfiguration): Promise<void>[] {
@@ -80,9 +74,12 @@ export function scheduleJobs(args: IRunArguments, configuration: IBuildConfigura
                     : undefined;
 
                 try {
-                  const stream = new Readable();
+                  const [stream, promiseToFinishCommand] = runCommand(job.command, {
+                    env,
+                    sourcePath: args.sourcePath,
+                  });
                   streamManager.registerStream(jobName, stream, { logsPathPrefix });
-                  await runCommand(job.command, { env, sourcePath: args.sourcePath }, stream);
+                  await promiseToFinishCommand;
                   resolve();
                 } catch (error) {
                   job.onError === 'throw' ? reject(error) : resolve();
