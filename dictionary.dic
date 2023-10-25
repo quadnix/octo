@@ -15,6 +15,7 @@ cidr
 cjs
 commonjs
 cov
+cpus
 dep
 devkit
 dic
@@ -45,6 +46,7 @@ readdir
 rimraf
 schemas
 sdk
+sep
 serializable
 stdin
 stringified
@@ -57,7 +59,9 @@ tsconfig
 unlink
 uri
 usr
+utf
 vpc
 workspace
 workspaces
 yargs
+yml
