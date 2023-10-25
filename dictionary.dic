@@ -48,7 +48,9 @@ schemas
 sdk
 sep
 serializable
+stderr
 stdin
+stdout
 stringified
 sts
 subnet

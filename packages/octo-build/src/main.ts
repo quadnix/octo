@@ -16,16 +16,16 @@ export function runCommand(
   return new Promise((resolve, reject) => {
     const runner = ProcessUtility.runDetachedProcess(command, spawnProcessOptions, 'pipe');
 
-    runner.on('error', (error) => {
+    runner.stderr.on('error', (error) => {
       stream.emit('error', error);
 
       runner.kill();
       reject(error);
     });
-    runner.on('message', (data) => {
+    runner.stdout.on('data', (data) => {
       stream.push(data);
     });
-    runner.on('exit', (exitCode) => {
+    runner.on('close', (exitCode) => {
       stream.push(null);
       runner.removeAllListeners();
 
