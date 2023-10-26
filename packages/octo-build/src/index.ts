@@ -6,7 +6,7 @@ import { load } from 'js-yaml';
 import { join, resolve, sep } from 'path';
 import * as process from 'process';
 import yargs from 'yargs/yargs';
-import { start } from './main.js';
+import { Main } from './main.js';
 import { IRunArguments } from './models/run-arguments.interface.js';
 import { BuildFileParser } from './parsers/build-file.parser.js';
 
@@ -102,7 +102,8 @@ try {
 const buildConfiguration = BuildFileParser.parse(json);
 
 try {
-  await start(args, buildConfiguration);
+  const main = new Main(args, buildConfiguration);
+  await main.start();
   console.log(chalk.green('Success'));
 } catch (error) {
   console.log(chalk.red(error));
