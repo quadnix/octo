@@ -51,6 +51,10 @@ export function scheduleJobs(args: IRunArguments, configuration: IBuildConfigura
   let jobsScheduled = 0;
   while (jobsScheduled !== jobList.length && i < jobList.length) {
     for (const jobName of jobList) {
+      if (jobName in jobPromises) {
+        continue;
+      }
+
       const job = configuration.jobs[jobName];
 
       if (job.dependsOn.every((j) => j in jobPromises)) {
