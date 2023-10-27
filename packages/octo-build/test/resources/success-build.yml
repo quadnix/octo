@@ -1,0 +1,21 @@
+dist: 'dist'
+env:
+  variables:
+    KEY1: 'value1'
+    key2: 'value2'
+    Key3: 'value3'
+jobs:
+  job1:
+    command: 'command1'
+  job2:
+    command: 'command2'
+    dependsOn:
+      - 'job1'
+    onError: 'ignore'
+    retry: 1
+    timeout: 1000
+  job3:
+    command: 'command3'
+    dependsOn:
+      - 'job1'
+      - 'job2'

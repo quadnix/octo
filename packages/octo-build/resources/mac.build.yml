@@ -1,0 +1,8 @@
+env:
+  variables:
+    OS: 'mac'
+jobs:
+  job1:
+    command: 'echo "hello world!"'
+  job2:
+    command: 'echo "My Operating System is: $OS"'
