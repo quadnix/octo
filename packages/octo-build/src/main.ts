@@ -64,15 +64,11 @@ export class Main {
           jobPromises[jobName] = limit(
             () =>
               new Promise(async (resolve, reject) => {
-                const dependentPromiseResults = await Promise.allSettled(job.dependsOn.map((j) => jobPromises[j]));
-                for (const [index, result] of dependentPromiseResults.entries()) {
-                  if (
-                    result.status === 'rejected' &&
-                    this.configuration.jobs[job.dependsOn[index]].onError === 'throw'
-                  ) {
-                    reject(result.reason);
-                    return;
-                  }
+                try {
+                  await Promise.all(job.dependsOn.map((j) => jobPromises[j]));
+                } catch (error) {
+                  reject(error);
+                  return;
                 }
 
                 for (let i = 0; i <= job.retry; i++) {
@@ -84,15 +80,21 @@ export class Main {
                       : undefined;
 
                   try {
-                    const [stream, promiseToFinishCommand] = this.runCommand(job.command, {
-                      env,
-                      sourcePath: this.args.sourcePath,
-                    });
-                    streamManager.registerStream(jobName, stream, { logsPathPrefix });
-                    await promiseToFinishCommand;
+                    if (!this.args.dryRun) {
+                      const [stream, promiseToFinishCommand] = this.runCommand(job.command, {
+                        env,
+                        sourcePath: this.args.sourcePath,
+                      });
+                      streamManager.registerStream(jobName, stream, { logsPathPrefix });
+                      await promiseToFinishCommand;
+                    }
+
                     resolve();
+                    break;
                   } catch (error) {
-                    job.onError === 'throw' ? reject(error) : resolve();
+                    if (i === job.retry) {
+                      job.onError === 'throw' ? reject(error) : resolve();
+                    }
                   } finally {
                     if (timeout) {
                       clearTimeout(timeout);
@@ -118,24 +120,23 @@ export class Main {
 
   start(): Promise<void> {
     return new Promise(async (resolve, reject) => {
+      const timeout =
+        this.args.timeout > 0
+          ? setTimeout(() => {
+              reject(new Error(`Reached timeout of ${this.args.timeout} ms!`));
+            }, this.args.timeout)
+          : undefined;
+
       try {
         const jobPromises = this.scheduleJobs();
-
-        if (this.args.dryRun) {
-          resolve();
-          return;
-        }
-
-        if (this.args.timeout > 0) {
-          setTimeout(() => {
-            reject(new Error(`Reached timeout of ${this.args.timeout} ms!`));
-          }, this.args.timeout);
-        }
-
         await Promise.all(jobPromises);
         resolve();
       } catch (error) {
         reject(error);
+      } finally {
+        if (timeout) {
+          clearTimeout(timeout);
+        }
       }
     });
   }
