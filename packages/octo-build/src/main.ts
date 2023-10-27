@@ -1,4 +1,5 @@
 import { ChildProcessWithoutNullStreams } from 'child_process';
+import { mkdirSync } from 'fs';
 import pLimit from 'p-limit';
 import { join, resolve } from 'path';
 import { IBuildConfiguration } from './models/build-configuration.interface.js';
@@ -43,7 +44,12 @@ export class Main {
   scheduleJobs(): Promise<void>[] {
     const streamManager = new StreamManager();
     const timestamp = Date.now();
+
+    // Ensure logsDir exists, and is writable.
     const logsPathPrefix = this.args.logsDir ? resolve(join(this.args.logsDir, `${timestamp}`)) : undefined;
+    if (logsPathPrefix) {
+      mkdirSync(logsPathPrefix, '0744');
+    }
 
     const env = this.configuration.env;
     const jobList = Object.keys(this.configuration.jobs);

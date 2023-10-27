@@ -28,7 +28,7 @@ export class StreamManager {
 
     if (options.logsPathPrefix) {
       const writeStream = createWriteStream(resolve(join(options.logsPathPrefix, `${jobName}.log`)), {
-        flags: 'a',
+        flags: 'w',
       });
       stream.stdout.pipe(writeStream);
       stream.stderr.pipe(writeStream);
