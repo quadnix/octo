@@ -24,6 +24,7 @@ export class DeleteS3WebsiteAction implements IResourceAction {
         new ListObjectsV2Command({
           Bucket: properties.Bucket,
           ContinuationToken,
+          MaxKeys: 1000,
         }),
       );
 
