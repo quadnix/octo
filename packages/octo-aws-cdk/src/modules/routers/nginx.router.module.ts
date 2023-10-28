@@ -17,7 +17,7 @@ export class NginxRouterModule extends Module {
       { key: 'deploymentTag', value: nginxDeploymentTag },
     ]) as Deployment;
     if (!nginxDeployment) {
-      nginxDeployment = new Deployment(nginxDeploymentTag, nginxImage);
+      nginxDeployment = new Deployment(nginxDeploymentTag);
       nginxSupport.addDeployment(nginxDeployment);
       this.addMember(nginxDeployment);
     }
@@ -26,7 +26,7 @@ export class NginxRouterModule extends Module {
       { key: 'executionId', value: [nginxDeployment.deploymentTag, environment.environmentName].join('_') },
     ]) as Execution;
     if (!nginxExecution) {
-      nginxExecution = new Execution(nginxDeployment, environment);
+      nginxExecution = new Execution(nginxDeployment, environment, nginxImage);
       this.addMember(nginxExecution);
     }
   }
@@ -43,13 +43,13 @@ export class NginxRouterModule extends Module {
     ]) as Execution;
 
     if (nginxExecution) {
-      nginxExecution.remove();
+      nginxExecution.remove(true); // ignoring execution and image relationship.
       this.removeMember(nginxExecution);
     }
 
     const nginxDeploymentChildren = nginxDeployment?.getChildren();
     if (nginxDeployment && Object.keys(nginxDeploymentChildren).length === 0) {
-      nginxDeployment.remove(true); // ignoring deployment and image relationship.
+      nginxDeployment.remove();
       this.removeMember(nginxDeployment);
     }
 
