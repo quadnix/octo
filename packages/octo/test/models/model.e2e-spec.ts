@@ -23,9 +23,9 @@ describe('Model E2E Test', () => {
     const server = new Server('backend', image);
     const service = new Service('testService');
     const support = new Support('nginx', 'nginx');
-    const deployment = new Deployment('nginx@v1', image);
+    const deployment = new Deployment('nginx@v1');
     const environment = new Environment('qa');
-    const execution = new Execution(deployment, environment);
+    const execution = new Execution(deployment, environment, image);
 
     app.addImage(image);
     app.addPipeline(pipeline);
@@ -182,9 +182,9 @@ describe('Model E2E Test', () => {
       region0.addEnvironment(environment0);
       const server0 = new Server('server-0', image0);
       app0.addServer(server0);
-      const deployment0 = new Deployment('deployment-0', image0);
+      const deployment0 = new Deployment('deployment-0');
       server0.addDeployment(deployment0);
-      new Execution(deployment0, environment0);
+      new Execution(deployment0, environment0, image0);
 
       expect(region0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });
@@ -199,9 +199,9 @@ describe('Model E2E Test', () => {
       region0.addEnvironment(environment0);
       const server0 = new Server('server-0', image0);
       app0.addServer(server0);
-      const deployment0 = new Deployment('deployment-0', image0);
+      const deployment0 = new Deployment('deployment-0');
       server0.addDeployment(deployment0);
-      new Execution(deployment0, environment0);
+      new Execution(deployment0, environment0, image0);
 
       expect(server0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });
@@ -289,13 +289,11 @@ describe('Model E2E Test', () => {
       const app = new App('app');
       const image = new Image('image', 'tag', { dockerFilePath: '/Dockerfile' });
       app.addImage(image);
-      const support = new Support('support', 'nginx');
-      app.addSupport(support);
-      const deployment = new Deployment('deploymentTag', image);
-      support.addDeployment(deployment);
+      const server = new Server('server', image);
+      app.addServer(server);
 
       expect(() => {
-        deployment.remove();
+        server.remove();
       }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove model until dependent models exist!"`);
     });
 
@@ -313,20 +311,16 @@ describe('Model E2E Test', () => {
       const app = new App('app');
       const image = new Image('image', 'tag', { dockerFilePath: '/Dockerfile' });
       app.addImage(image);
-      const support = new Support('support', 'nginx');
-      app.addSupport(support);
-      const deployment = new Deployment('deploymentTag', image);
-      support.addDeployment(deployment);
+      const server = new Server('server', image);
+      app.addServer(server);
 
-      // Image cannot be removed until deployment is removed.
+      // Image cannot be removed until server is removed.
       expect(() => {
         image.remove();
       }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove model until dependent models exist!"`);
 
-      // Remove deployment.
-      expect(support.getChild('deployment', [{ key: 'deploymentTag', value: 'deploymentTag' }])).not.toBe(undefined);
-      deployment.remove(true);
-      expect(support.getChild('deployment', [{ key: 'deploymentTag', value: 'deploymentTag' }])).toBe(undefined);
+      // Remove server.
+      server.remove(true);
 
       // Remove image.
       image.remove();

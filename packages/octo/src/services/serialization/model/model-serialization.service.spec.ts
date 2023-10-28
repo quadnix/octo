@@ -1,6 +1,5 @@
 import { IDependency } from '../../../functions/dependency/dependency.model.js';
 import { App } from '../../../models/app/app.model.js';
-import { Deployment } from '../../../models/deployment/deployment.model.js';
 import { Environment } from '../../../models/environment/environment.model.js';
 import { Image } from '../../../models/image/image.model.js';
 import { Region } from '../../../models/region/region.model.js';
@@ -99,10 +98,8 @@ describe('Model Serialization Service UT', () => {
         dockerFilePath: 'path/to/Dockerfile',
       });
       app.addImage(image);
-      const support = new Support('support-1', 'nginx');
-      app.addSupport(support);
-      const deployment = new Deployment('support-1@0.0.1', image);
-      support.addDeployment(deployment);
+      const server = new Server('server-1', image);
+      app.addServer(server);
 
       const service = new ModelSerializationService();
       const appSerialized = service.serialize(app);
@@ -164,13 +161,11 @@ describe('Model Serialization Service UT', () => {
 
       const app0 = new App('test-app');
       const image0 = new Image('image', '0.0.1', { dockerFilePath: '/Dockerfile' });
-      const server0 = new Server('backend', image0);
-      const deployment0 = new Deployment('backend@0.0.1', image0);
-      const deployment1 = new Deployment('backend@0.0.2', image0);
       app0.addImage(image0);
+      const server0 = new Server('server-0', image0);
       app0.addServer(server0);
-      server0.addDeployment(deployment0);
-      server0.addDeployment(deployment1);
+      const server1 = new Server('server-1', image0);
+      app0.addServer(server1);
 
       expect(service.serialize(app0)).toMatchSnapshot();
     });

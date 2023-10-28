@@ -455,7 +455,24 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
         "toField": "serverKey",
         "type": "parent",
       },
-      "to": "server=backend,app=test-app",
+      "to": "server=server-0,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "serverKey",
+        "type": "parent",
+      },
+      "to": "server=server-1,app=test-app",
     },
     {
       "behaviors": [
@@ -472,7 +489,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
           "toField": "imageId",
         },
       ],
-      "from": "server=backend,app=test-app",
+      "from": "server=server-1,app=test-app",
       "relationship": undefined,
       "to": "image=image:0.0.1,app=test-app",
     },
@@ -491,86 +508,13 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
           "toField": "name",
         },
       ],
-      "from": "server=backend,app=test-app",
+      "from": "server=server-1,app=test-app",
       "relationship": {
         "onField": "serverKey",
         "toField": "name",
         "type": "child",
       },
       "to": "app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "serverKey",
-          "toField": "deploymentTag",
-        },
-      ],
-      "from": "server=backend,app=test-app",
-      "relationship": {
-        "onField": "serverKey",
-        "toField": "deploymentTag",
-        "type": "parent",
-      },
-      "to": "deployment=backend@0.0.1,server=backend,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "serverKey",
-          "toField": "deploymentTag",
-        },
-      ],
-      "from": "server=backend,app=test-app",
-      "relationship": {
-        "onField": "serverKey",
-        "toField": "deploymentTag",
-        "type": "parent",
-      },
-      "to": "deployment=backend@0.0.2,server=backend,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "imageId",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "image=image:0.0.1,app=test-app",
-      "relationship": undefined,
-      "to": "server=backend,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "imageId",
-          "toField": "deploymentTag",
-        },
-      ],
-      "from": "image=image:0.0.1,app=test-app",
-      "relationship": undefined,
-      "to": "deployment=backend@0.0.1,server=backend,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "imageId",
-          "toField": "deploymentTag",
-        },
-      ],
-      "from": "image=image:0.0.1,app=test-app",
-      "relationship": undefined,
-      "to": "deployment=backend@0.0.2,server=backend,app=test-app",
     },
     {
       "behaviors": [
@@ -598,19 +542,45 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
     {
       "behaviors": [
         {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "imageId",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "image=image:0.0.1,app=test-app",
+      "relationship": undefined,
+      "to": "server=server-0,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "imageId",
+          "toField": "serverKey",
+        },
+      ],
+      "from": "image=image:0.0.1,app=test-app",
+      "relationship": undefined,
+      "to": "server=server-1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
           "forAction": "add",
           "onAction": "add",
-          "onField": "deploymentTag",
+          "onField": "serverKey",
           "toField": "imageId",
         },
         {
           "forAction": "update",
           "onAction": "add",
-          "onField": "deploymentTag",
+          "onField": "serverKey",
           "toField": "imageId",
         },
       ],
-      "from": "deployment=backend@0.0.2,server=backend,app=test-app",
+      "from": "server=server-0,app=test-app",
       "relationship": undefined,
       "to": "image=image:0.0.1,app=test-app",
     },
@@ -619,65 +589,23 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
         {
           "forAction": "add",
           "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "serverKey",
+          "onField": "serverKey",
+          "toField": "name",
         },
         {
           "forAction": "update",
           "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "serverKey",
+          "onField": "serverKey",
+          "toField": "name",
         },
       ],
-      "from": "deployment=backend@0.0.2,server=backend,app=test-app",
+      "from": "server=server-0,app=test-app",
       "relationship": {
-        "onField": "deploymentTag",
-        "toField": "serverKey",
+        "onField": "serverKey",
+        "toField": "name",
         "type": "child",
       },
-      "to": "server=backend,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "imageId",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "imageId",
-        },
-      ],
-      "from": "deployment=backend@0.0.1,server=backend,app=test-app",
-      "relationship": undefined,
-      "to": "image=image:0.0.1,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "serverKey",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "deploymentTag",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "deployment=backend@0.0.1,server=backend,app=test-app",
-      "relationship": {
-        "onField": "deploymentTag",
-        "toField": "serverKey",
-        "type": "child",
-      },
-      "to": "server=backend,app=test-app",
+      "to": "app=test-app",
     },
   ],
   "models": {
@@ -685,24 +613,6 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
       "className": "App",
       "model": {
         "name": "test-app",
-      },
-    },
-    "deployment=backend@0.0.1,server=backend,app=test-app": {
-      "className": "Deployment",
-      "model": {
-        "deploymentTag": "backend@0.0.1",
-        "image": {
-          "context": "image=image:0.0.1,app=test-app",
-        },
-      },
-    },
-    "deployment=backend@0.0.2,server=backend,app=test-app": {
-      "className": "Deployment",
-      "model": {
-        "deploymentTag": "backend@0.0.2",
-        "image": {
-          "context": "image=image:0.0.1,app=test-app",
-        },
       },
     },
     "image=image:0.0.1,app=test-app": {
@@ -718,13 +628,22 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
         "imageTag": "0.0.1",
       },
     },
-    "server=backend,app=test-app": {
+    "server=server-0,app=test-app": {
       "className": "Server",
       "model": {
         "image": {
           "context": "image=image:0.0.1,app=test-app",
         },
-        "serverKey": "backend",
+        "serverKey": "server-0",
+      },
+    },
+    "server=server-1,app=test-app": {
+      "className": "Server",
+      "model": {
+        "image": {
+          "context": "image=image:0.0.1,app=test-app",
+        },
+        "serverKey": "server-1",
       },
     },
   },
