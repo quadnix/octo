@@ -1,5 +1,6 @@
 import { Diff, DiffAction, IActionOutputs } from '@quadnix/octo';
 import { S3Website } from '../../../../resources/s3/website/s3-website.resource.js';
+import { SharedS3Website } from '../../../../resources/s3/website/s3-website.shared-resource.js';
 import { Action } from '../../../action.abstract.js';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model.js';
 
@@ -30,9 +31,11 @@ export class AddS3StaticWebsiteAction extends Action {
       ErrorDocument: 'error.html',
       IndexDocument: 'index.html',
     });
+    const sharedS3Website = new SharedS3Website(s3Website);
+    sharedS3Website.markUpdated('regions', 'ADD');
 
     const output: IActionOutputs = {};
-    output[s3Website.resourceId] = s3Website;
+    output[s3Website.resourceId] = sharedS3Website;
 
     return output;
   }

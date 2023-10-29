@@ -75,6 +75,7 @@ import { AddS3WebsiteAction } from './resources/s3/website/actions/add-s3-websit
 import { DeleteS3WebsiteAction } from './resources/s3/website/actions/delete-s3-website.action.js';
 import { UpdateSourcePathsInS3WebsiteAction } from './resources/s3/website/actions/update-source-paths-in-s3-website.action.js';
 import { S3Website } from './resources/s3/website/s3-website.resource.js';
+import { SharedS3Website } from './resources/s3/website/s3-website.shared-resource.js';
 import { AddSecurityGroupAction } from './resources/security-groups/actions/add-security-group.action.js';
 import { DeleteSecurityGroupAction } from './resources/security-groups/actions/delete-security-group.action.js';
 import { SecurityGroup } from './resources/security-groups/security-group.resource.js';
@@ -193,9 +194,9 @@ export class OctoAws {
       new UpdateRemoveDirectoriesInS3StorageAction(),
 
       // resources/s3/website
-      new AddS3WebsiteAction(this.s3Client),
-      new DeleteS3WebsiteAction(this.s3Client),
-      new UpdateSourcePathsInS3WebsiteAction(this.s3Client),
+      new AddS3WebsiteAction(this.s3Client, this.region),
+      new DeleteS3WebsiteAction(this.s3Client, this.region),
+      new UpdateSourcePathsInS3WebsiteAction(this.s3Client, this.region),
 
       // resources/security-groups
       new AddSecurityGroupAction(this.ec2Client),
@@ -255,6 +256,7 @@ export class OctoAws {
 
     resourceSerializationService.registerClass('S3Storage', S3Storage);
     resourceSerializationService.registerClass('S3Website', S3Website);
+    resourceSerializationService.registerClass('SharedS3Website', SharedS3Website);
 
     resourceSerializationService.registerClass('SecurityGroup', SecurityGroup);
 

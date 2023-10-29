@@ -1,5 +1,5 @@
 import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
-import { S3Website } from '../../../../resources/s3/website/s3-website.resource.js';
+import { SharedS3Website } from '../../../../resources/s3/website/s3-website.shared-resource.js';
 import { Action } from '../../../action.abstract.js';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model.js';
 
@@ -10,6 +10,12 @@ export class UpdateSourcePathsS3StaticWebsiteAction extends Action {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
     return [`resource.bucket-${bucketName}`];
+  }
+
+  override collectOutput(diff: Diff): string[] {
+    const { bucketName } = diff.model as S3StaticWebsiteService;
+
+    return [`bucket-${bucketName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -24,12 +30,13 @@ export class UpdateSourcePathsS3StaticWebsiteAction extends Action {
   handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
-    const s3Website = actionInputs[`resource.bucket-${bucketName}`] as S3Website;
+    const sharedS3Website = actionInputs[`resource.bucket-${bucketName}`] as SharedS3Website;
+    sharedS3Website.markUpdated('update-source-paths', diff.value);
 
-    // Update website source paths.
-    s3Website.markUpdated('update-source-paths', diff.value);
+    const output: IActionOutputs = {};
+    output[sharedS3Website.resourceId] = sharedS3Website;
 
-    return {};
+    return output;
   }
 
   override async postTransaction(diff: Diff): Promise<void> {
