@@ -1,5 +1,11 @@
 import { Diff } from '../functions/diff/diff.model.js';
 
+export enum ModelType {
+  MODEL = 'model',
+  RESOURCE = 'resource',
+  SHARED_RESOURCE = 'shared-resource',
+}
+
 /**
  * Models are the building blocks that can be combined to create any infrastructure.
  * This interface outlines the basic structure that any model must have.
@@ -15,7 +21,7 @@ export interface IModel<I, T> {
   /**
    * The type of model. Can only be either "model" or "resource".
    */
-  readonly MODEL_TYPE: 'model' | 'resource' | 'shared-resource';
+  readonly MODEL_TYPE: ModelType;
 
   /**
    * Generate a diff comparing all children of self with previous instance.

@@ -1,9 +1,11 @@
+import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import { Diff } from '../../functions/diff/diff.model.js';
-import { Model } from '../model.abstract.js';
+import { AModel } from '../model.abstract.js';
 import { IEnvironment } from './environment.interface.js';
 
-export class Environment extends Model<IEnvironment, Environment> {
+@Model(Environment)
+export class Environment extends AModel<IEnvironment, Environment> {
   readonly MODEL_NAME: string = 'environment';
 
   readonly environmentName: string;

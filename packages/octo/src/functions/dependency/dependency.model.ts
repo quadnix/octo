@@ -1,4 +1,4 @@
-import { Model } from '../../models/model.abstract.js';
+import { AModel } from '../../models/model.abstract.js';
 import { DiffAction } from '../diff/diff.model.js';
 
 class DependencyBehavior {
@@ -45,13 +45,13 @@ export interface IDependency {
 export class Dependency {
   private readonly behaviors: DependencyBehavior[] = [];
 
-  readonly from: Model<unknown, unknown>;
+  readonly from: AModel<unknown, unknown>;
 
   private relationship: { onField: string; toField: string; type: DependencyRelationship };
 
-  readonly to: Model<unknown, unknown>;
+  readonly to: AModel<unknown, unknown>;
 
-  constructor(from: Model<unknown, unknown>, to: Model<unknown, unknown>) {
+  constructor(from: AModel<unknown, unknown>, to: AModel<unknown, unknown>) {
     this.from = from;
     this.to = to;
   }
@@ -148,7 +148,7 @@ export class Dependency {
     };
   }
 
-  static unSynth(from: Model<unknown, unknown>, to: Model<unknown, unknown>, dependency: IDependency): Dependency {
+  static unSynth(from: AModel<unknown, unknown>, to: AModel<unknown, unknown>, dependency: IDependency): Dependency {
     const newDependency = new Dependency(from, to);
 
     dependency.behaviors.forEach((b) => {

@@ -1,13 +1,13 @@
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
-import { Model } from '../models/model.abstract.js';
-import { IModel } from '../models/model.interface.js';
+import { AModel } from '../models/model.abstract.js';
+import { ModelType } from '../models/model.interface.js';
 import { IResource } from './resource.interface.js';
-import { SharedResource } from './shared-resource.abstract.js';
+import { ASharedResource } from './shared-resource.abstract.js';
 
 type IResourceMarkers = { delete: boolean; replace: boolean; update: { key: string; value: any } | null };
 
-export abstract class Resource<T> extends Model<IResource, T> {
-  override readonly MODEL_TYPE: IModel<IResource, T>['MODEL_TYPE'] = 'resource';
+export abstract class AResource<T> extends AModel<IResource, T> {
+  override readonly MODEL_TYPE: ModelType = ModelType.RESOURCE;
 
   private readonly diffMarkers: IResourceMarkers = {
     delete: false,
@@ -24,7 +24,7 @@ export abstract class Resource<T> extends Model<IResource, T> {
   protected constructor(
     resourceId: IResource['resourceId'],
     properties: IResource['properties'],
-    parents: Resource<unknown>[],
+    parents: AResource<unknown>[],
   ) {
     super();
 
@@ -37,7 +37,7 @@ export abstract class Resource<T> extends Model<IResource, T> {
     this.associateWith(parents);
   }
 
-  associateWith(resources: Resource<unknown>[]): void {
+  associateWith(resources: AResource<unknown>[]): void {
     for (const resource of resources) {
       const childrenDependencies = resource.getChildren(this.MODEL_NAME);
       if (!childrenDependencies[this.MODEL_NAME]) {
@@ -45,7 +45,7 @@ export abstract class Resource<T> extends Model<IResource, T> {
       }
 
       // Check for duplicates.
-      const selfDependencies = childrenDependencies[this.MODEL_NAME].map((d) => d.to as Resource<unknown>);
+      const selfDependencies = childrenDependencies[this.MODEL_NAME].map((d) => d.to as AResource<unknown>);
       if (selfDependencies.find((r) => r.resourceId === this.resourceId)) {
         throw new Error('Resource already associated with!');
       }
@@ -55,12 +55,12 @@ export abstract class Resource<T> extends Model<IResource, T> {
     }
   }
 
-  override async diff(previous?: T | SharedResource<T>): Promise<Diff[]> {
+  override async diff(previous?: T | ASharedResource<T>): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     // Diff markers gets precedence over property diff.
     if (this.diffMarkers.delete) {
-      diffs.push(new Diff(previous as Model<IResource, T>, DiffAction.DELETE, 'resourceId', this.resourceId));
+      diffs.push(new Diff(previous as AModel<IResource, T>, DiffAction.DELETE, 'resourceId', this.resourceId));
     } else if (this.diffMarkers.replace) {
       diffs.push(new Diff(this, DiffAction.REPLACE, 'resourceId', this.resourceId));
     } else if (this.diffMarkers.update !== null) {
@@ -114,8 +114,8 @@ export abstract class Resource<T> extends Model<IResource, T> {
     deserializationClass: any,
     resource: IResource,
     parentResourceIds: string[],
-    deReferenceResource: (resourceId: string) => Promise<Resource<unknown>>,
-  ): Promise<Resource<unknown>> {
+    deReferenceResource: (resourceId: string) => Promise<AResource<unknown>>,
+  ): Promise<AResource<unknown>> {
     const parents = await Promise.all(parentResourceIds.map((p) => deReferenceResource(p)));
     const deReferencedResource = new deserializationClass(resource.resourceId, resource.properties, parents);
     for (const key in resource.response) {

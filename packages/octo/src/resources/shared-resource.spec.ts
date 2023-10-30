@@ -1,21 +1,19 @@
-import { jest } from '@jest/globals';
-import { Dependency } from '../functions/dependency/dependency.model.js';
-import {
-  App,
-  Diff,
-  DiffAction,
-  IAction,
-  IActionInputs,
-  IActionOutputs,
-  IResourceAction,
-  Region,
-  Resource,
-  ResourceSerializationService,
-  SharedResource,
-  TransactionService,
-} from '../index.js';
+import 'reflect-metadata';
 
-class ParentResource extends Resource<ParentResource> {
+import { jest } from '@jest/globals';
+import { Container } from 'typedi';
+import { Dependency } from '../functions/dependency/dependency.model.js';
+import { Diff, DiffAction } from '../functions/diff/diff.model.js';
+import { IAction, IActionInputs, IActionOutputs } from '../models/action.interface.js';
+import { App } from '../models/app/app.model.js';
+import { Region } from '../models/region/region.model.js';
+import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
+import { TransactionService } from '../services/transaction/transaction.service.js';
+import { IResourceAction } from './resource-action.interface.js';
+import { AResource } from './resource.abstract.js';
+import { ASharedResource } from './shared-resource.abstract.js';
+
+class ParentResource extends AResource<ParentResource> {
   readonly MODEL_NAME: string = 'parent-resource';
 
   constructor(resourceId: string) {
@@ -23,7 +21,7 @@ class ParentResource extends Resource<ParentResource> {
   }
 }
 
-class TestResource extends Resource<TestResource> {
+class TestResource extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
   constructor(resourceId: string, properties: { [key: string]: string }, parents: [ParentResource]) {
@@ -31,7 +29,7 @@ class TestResource extends Resource<TestResource> {
   }
 }
 
-class SharedTestResource extends SharedResource<TestResource> {
+class SharedTestResource extends ASharedResource<TestResource> {
   constructor(resource: TestResource) {
     super(resource);
   }
@@ -57,7 +55,7 @@ const universalResourceAction: IResourceAction = {
 
 describe('SharedResource UT', () => {
   it('should serialize and deserialize empty shared-resources', async () => {
-    const service = new ResourceSerializationService();
+    const service = Container.get(ResourceSerializationService);
     service.registerClass('ParentResource', ParentResource);
     service.registerClass('TestResource', TestResource);
     service.registerClass('SharedTestResource', SharedTestResource);
@@ -78,7 +76,7 @@ describe('SharedResource UT', () => {
     testResource.response['response1'] = 'response-value-1';
     const sharedTestResource = new SharedTestResource(testResource);
 
-    const service = new ResourceSerializationService();
+    const service = Container.get(ResourceSerializationService);
     service.registerClass('ParentResource', ParentResource);
     service.registerClass('TestResource', TestResource);
     service.registerClass('SharedTestResource', SharedTestResource);
@@ -187,7 +185,7 @@ describe('SharedResource UT', () => {
   it('should serialize and deserialize shared-resources with different parents', async () => {
     const app = new App('app');
 
-    const serializationService = new ResourceSerializationService();
+    const serializationService = Container.get(ResourceSerializationService);
     serializationService.registerClass('ParentResource', ParentResource);
     serializationService.registerClass('TestResource', TestResource);
     serializationService.registerClass('SharedTestResource', SharedTestResource);
@@ -205,7 +203,7 @@ describe('SharedResource UT', () => {
     sharedTestResource1.response['response1'] = 'response-value-1';
 
     const addRegion1Action: IAction<IActionInputs, IActionOutputs> = {
-      ACTION_NAME: 'test',
+      ACTION_NAME: 'test1',
       collectInput: () => [],
       collectOutput: () => ['parent-1', 'shared-resource'],
       filter: (diff: Diff) => {
@@ -225,7 +223,7 @@ describe('SharedResource UT', () => {
 
     // Validate shared resources properties, responses, and dependencies are serialized correctly.
     const newResources1 = await generator1.next();
-    const serializedOutput1 = serializationService.serialize(newResources1.value as Resource<unknown>[]);
+    const serializedOutput1 = serializationService.serialize(newResources1.value as AResource<unknown>[]);
     expect(serializedOutput1).toMatchInlineSnapshot(`
       {
         "dependencies": [
@@ -321,7 +319,7 @@ describe('SharedResource UT', () => {
     sharedTestResource2.response['response2'] = 'response-value-2';
 
     const addRegion2Action: IAction<IActionInputs, IActionOutputs> = {
-      ACTION_NAME: 'test',
+      ACTION_NAME: 'test2',
       collectInput: () => [],
       collectOutput: () => ['parent-2', 'shared-resource'],
       filter: (diff: Diff) => {
@@ -352,7 +350,7 @@ describe('SharedResource UT', () => {
 
     // Validate shared resources properties, responses, and dependencies are serialized correctly.
     const newResources2 = await generator2.next();
-    const serializedOutput2 = serializationService.serialize(newResources2.value as Resource<unknown>[]);
+    const serializedOutput2 = serializationService.serialize(newResources2.value as AResource<unknown>[]);
     expect(serializedOutput2).toMatchInlineSnapshot(`
       {
         "dependencies": [

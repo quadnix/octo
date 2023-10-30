@@ -1,17 +1,9 @@
-import { Module } from '../../../functions/module/module.abstract.js';
+import { Service } from 'typedi';
+import { AModule } from '../../../functions/module/module.abstract.js';
 import { IModule } from '../../../functions/module/module.interface.js';
-import { IAnchor } from '../../../functions/overlay/anchor.model.js';
-import { App } from '../../../models/app/app.model.js';
-import { Deployment } from '../../../models/deployment/deployment.model.js';
-import { Environment } from '../../../models/environment/environment.model.js';
-import { Execution } from '../../../models/execution/execution.model.js';
-import { Image } from '../../../models/image/image.model.js';
-import { Model } from '../../../models/model.abstract.js';
+import { IAnchor } from '../../../functions/overlay/anchor.interface.js';
+import { AModel } from '../../../models/model.abstract.js';
 import { IModel } from '../../../models/model.interface.js';
-import { Pipeline } from '../../../models/pipeline/pipeline.model.js';
-import { Region } from '../../../models/region/region.model.js';
-import { Server } from '../../../models/server/server.model.js';
-import { Support } from '../../../models/support/support.model.js';
 import { Dependency, IDependency } from '../../../functions/dependency/dependency.model.js';
 
 export type ModelSerializedOutput = {
@@ -21,26 +13,17 @@ export type ModelSerializedOutput = {
   modules: { className: string; module: IModule }[];
 };
 
+@Service()
 export class ModelSerializationService {
-  private readonly classMapping: { [key: string]: any } = {
-    App,
-    Deployment,
-    Environment,
-    Execution,
-    Image,
-    Pipeline,
-    Region,
-    Server,
-    Support,
-  };
+  private readonly classMapping: { [key: string]: any } = {};
 
-  private readonly modules: Module[] = [];
+  private readonly modules: AModule[] = [];
 
-  async deserialize(serializedOutput: ModelSerializedOutput): Promise<Model<unknown, unknown>> {
+  async deserialize(serializedOutput: ModelSerializedOutput): Promise<AModel<unknown, unknown>> {
     const deReferencePromises: { [p: string]: [Promise<boolean>, (value: boolean) => void] } = {};
-    const seen: { [p: string]: Model<unknown, unknown> } = {};
+    const seen: { [p: string]: AModel<unknown, unknown> } = {};
 
-    const deReferenceContext = async (context: string): Promise<Model<unknown, unknown>> => {
+    const deReferenceContext = async (context: string): Promise<AModel<unknown, unknown>> => {
       if (!seen[context]) {
         if (deReferencePromises[context]) {
           await deReferencePromises[context][0];
@@ -57,7 +40,7 @@ export class ModelSerializationService {
       return seen[context];
     };
 
-    const deserializeModel = async (context: string): Promise<Model<unknown, unknown>> => {
+    const deserializeModel = async (context: string): Promise<AModel<unknown, unknown>> => {
       const { className, model } = serializedOutput.models[context];
       const deserializationClass = this.classMapping[className];
 
@@ -70,7 +53,7 @@ export class ModelSerializationService {
     };
 
     // Deserialize all serialized models.
-    const promiseToDeserializeModels: Promise<Model<unknown, unknown>>[] = [];
+    const promiseToDeserializeModels: Promise<AModel<unknown, unknown>>[] = [];
     for (const context in serializedOutput.models) {
       promiseToDeserializeModels.push(deserializeModel(context));
     }
@@ -107,11 +90,11 @@ export class ModelSerializationService {
     this.classMapping[className] = deserializationClass;
   }
 
-  registerModule(module: Module): void {
+  registerModule(module: AModule): void {
     this.modules.push(module);
   }
 
-  serialize(root: Model<unknown, unknown>): ModelSerializedOutput {
+  serialize(root: AModel<unknown, unknown>): ModelSerializedOutput {
     const boundary = root.getBoundaryMembers();
     const anchors: (IAnchor & { className: string })[] = [];
     const dependencies: IDependency[] = [];

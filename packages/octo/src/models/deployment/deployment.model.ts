@@ -1,7 +1,9 @@
-import { Model } from '../model.abstract.js';
+import { Model } from '../../decorators/model.decorator.js';
+import { AModel } from '../model.abstract.js';
 import { IDeployment } from './deployment.interface.js';
 
-export class Deployment extends Model<IDeployment, Deployment> {
+@Model(Deployment)
+export class Deployment extends AModel<IDeployment, Deployment> {
   readonly MODEL_NAME: string = 'deployment';
 
   readonly deploymentTag: string;

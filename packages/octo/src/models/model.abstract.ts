@@ -1,23 +1,23 @@
-import { Anchor } from '../functions/overlay/anchor.model.js';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
-import { IModel } from './model.interface.js';
+import { AAnchor } from '../functions/overlay/anchor.abstract.js';
+import { IModel, ModelType } from './model.interface.js';
 
 /**
- * This is the first implementation of the Model's interface,
+ * This is the base implementation of the Model's interface,
  * and is used to define common functionality between all models.
  * All models are an extension of this class.
  */
-export abstract class Model<I, T> implements IModel<I, T> {
+export abstract class AModel<I, T> implements IModel<I, T> {
   abstract readonly MODEL_NAME: string;
-  readonly MODEL_TYPE: IModel<I, T>['MODEL_TYPE'] = 'model';
+  readonly MODEL_TYPE: ModelType = ModelType.MODEL;
 
-  protected readonly anchors: Anchor[] = [];
+  protected readonly anchors: AAnchor[] = [];
 
   protected readonly dependencies: Dependency[] = [];
 
-  addChild(onField: keyof T, child: Model<unknown, unknown>, toField: string): void {
+  addChild(onField: keyof T, child: AModel<unknown, unknown>, toField: string): void {
     // Check if child already has a dependency to self.
     const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
     if (cIndex !== -1 && child.dependencies[cIndex].isParentRelationship()) {
@@ -45,7 +45,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
     }
   }
 
-  addRelationship(onField: keyof T, to: Model<unknown, unknown>, toField: string): void {
+  addRelationship(onField: keyof T, to: AModel<unknown, unknown>, toField: string): void {
     const thisToThatDependency = new Dependency(this, to);
     thisToThatDependency.addBehavior(onField as string, DiffAction.ADD, toField, DiffAction.ADD);
     thisToThatDependency.addBehavior(onField as string, DiffAction.ADD, toField, DiffAction.UPDATE);
@@ -57,7 +57,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
 
   async diff(previous?: T): Promise<Diff[]> {
     const childrenByModel = this.getChildren();
-    const childrenOfPreviousByModel = (previous as Model<unknown, unknown>)?.getChildren() ?? {};
+    const childrenOfPreviousByModel = (previous as AModel<unknown, unknown>)?.getChildren() ?? {};
 
     const diffs: Diff[] = [];
     const modelsSeen: string[] = [];
@@ -90,12 +90,12 @@ export abstract class Model<I, T> implements IModel<I, T> {
   /**
    * Get an array of ancestors which must exist for self to exist.
    */
-  getAncestors(): Model<unknown, unknown>[] {
-    const members: Model<unknown, unknown>[] = [this];
-    const membersProcessed: Model<unknown, unknown>[] = [];
+  getAncestors(): AModel<unknown, unknown>[] {
+    const members: AModel<unknown, unknown>[] = [this];
+    const membersProcessed: AModel<unknown, unknown>[] = [];
 
     while (members.length > 0) {
-      const member = members.pop() as Model<unknown, unknown>;
+      const member = members.pop() as AModel<unknown, unknown>;
 
       // Skip processing an already processed member.
       if (membersProcessed.some((m) => m.getContext() === member.getContext())) {
@@ -120,7 +120,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
     return membersProcessed;
   }
 
-  getAnchors(filters: { key: string; value: any }[]): Anchor[] {
+  getAnchors(filters: { key: string; value: any }[]): AAnchor[] {
     return this.anchors.filter((a) => filters.every((c) => a[c.key] === c.value));
   }
 
@@ -128,12 +128,12 @@ export abstract class Model<I, T> implements IModel<I, T> {
    * Get a boundary (sub graph) of a model, i.e. an array of models that must belong together.
    * To generate a boundary, we must process all children and grand-children of self.
    */
-  getBoundaryMembers(): Model<unknown, unknown>[] {
-    const extenders: Model<unknown, unknown>[] = [this];
-    const members: Model<unknown, unknown>[] = [];
+  getBoundaryMembers(): AModel<unknown, unknown>[] {
+    const extenders: AModel<unknown, unknown>[] = [this];
+    const members: AModel<unknown, unknown>[] = [];
     const parentOf: { [key: string]: string[] } = {};
 
-    const pushToExtenders = (models: Model<unknown, unknown>[]): void => {
+    const pushToExtenders = (models: AModel<unknown, unknown>[]): void => {
       models.forEach((model) => {
         if (!members.some((m) => m.getContext() === model.getContext())) {
           extenders.push(model);
@@ -142,7 +142,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
     };
 
     while (extenders.length > 0) {
-      const model = extenders.pop() as Model<unknown, unknown>;
+      const model = extenders.pop() as AModel<unknown, unknown>;
       const ancestors = model.getAncestors();
 
       for (const ancestor of ancestors) {
@@ -202,7 +202,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
     return members;
   }
 
-  getChild(modelName: string, filters: { key: string; value: any }[]): Model<unknown, unknown> | undefined {
+  getChild(modelName: string, filters: { key: string; value: any }[]): AModel<unknown, unknown> | undefined {
     const dependency = this.getChildren(modelName)[modelName]?.find((d) =>
       filters.every((c) => d.to[c.key] === c.value),
     );
@@ -235,7 +235,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
       }, {});
   }
 
-  hasAncestor(model: Model<unknown, unknown>): boolean {
+  hasAncestor(model: AModel<unknown, unknown>): boolean {
     const modelParts = model
       .getContext()
       .split(',')
@@ -280,7 +280,7 @@ export abstract class Model<I, T> implements IModel<I, T> {
     }
   }
 
-  removeRelationship(model: Model<unknown, unknown>): void {
+  removeRelationship(model: AModel<unknown, unknown>): void {
     for (let i = this.dependencies.length - 1; i >= 0; i--) {
       const dependency = this.dependencies[i];
       if (dependency.to.getContext() === model.getContext()) {

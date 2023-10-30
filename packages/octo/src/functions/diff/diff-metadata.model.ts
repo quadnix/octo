@@ -1,7 +1,7 @@
 import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
-import { Model } from '../../models/model.abstract.js';
+import { AModel } from '../../models/model.abstract.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
-import { Resource } from '../../resources/resource.abstract.js';
+import { AResource } from '../../resources/resource.abstract.js';
 import { Diff, DiffAction } from './diff.model.js';
 
 export class DiffMetadata {
@@ -12,7 +12,7 @@ export class DiffMetadata {
   readonly diff: Diff;
   readonly action: DiffAction;
   readonly field: string;
-  readonly model: Model<unknown, unknown> | Resource<unknown>;
+  readonly model: AModel<unknown, unknown> | AResource<unknown>;
   readonly value: unknown;
 
   readonly inputs: IActionInputs = {};

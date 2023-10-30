@@ -1,8 +1,8 @@
 import { Diff } from '../functions/diff/diff.model.js';
-import { Resource } from '../resources/resource.abstract.js';
+import { AResource } from '../resources/resource.abstract.js';
 
-export type IActionInputs = { [key: string]: string | Resource<unknown> };
-export type IActionOutputs = { [key: string]: Resource<unknown> };
+export type IActionInputs = { [key: string]: string | AResource<unknown> };
+export type IActionOutputs = { [key: string]: AResource<unknown> };
 
 /**
  * Actions are translation functions between Diff and underlying infrastructure.

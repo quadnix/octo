@@ -1,12 +1,13 @@
-import { Resource } from './resource.abstract.js';
+import { ModelType } from '../models/model.interface.js';
+import { AResource } from './resource.abstract.js';
 
-export abstract class SharedResource<T> extends Resource<T> {
+export abstract class ASharedResource<T> extends AResource<T> {
   override readonly MODEL_NAME;
-  override readonly MODEL_TYPE = 'shared-resource';
+  override readonly MODEL_TYPE: ModelType = ModelType.SHARED_RESOURCE;
 
-  readonly resource: Resource<T>;
+  readonly resource: AResource<T>;
 
-  protected constructor(resource: Resource<T>) {
+  protected constructor(resource: AResource<T>) {
     super(resource.resourceId, resource.properties, []);
 
     this.MODEL_NAME = resource.MODEL_NAME;
@@ -16,11 +17,12 @@ export abstract class SharedResource<T> extends Resource<T> {
       this.response[key] = resource.response[key];
     }
 
-    // Separately initialize parents, without calling associateWith().
+    // Separately initialize parents, without calling associateWith(),
+    // since that would generate duplicate dependencies.
     this.dependencies.push(...resource['dependencies']);
   }
 
-  merge(sharedResource: SharedResource<T>): SharedResource<T> {
+  merge(sharedResource: ASharedResource<T>): ASharedResource<T> {
     for (const key in this.properties) {
       sharedResource.properties[key] = this.properties[key];
     }
@@ -37,8 +39,8 @@ export abstract class SharedResource<T> extends Resource<T> {
 
   static override async unSynth(
     deserializationClass: any,
-    resource: Resource<unknown>,
-  ): Promise<SharedResource<unknown>> {
+    resource: AResource<unknown>,
+  ): Promise<ASharedResource<unknown>> {
     return new deserializationClass(resource);
   }
 }

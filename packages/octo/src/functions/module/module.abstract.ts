@@ -1,10 +1,10 @@
-import { Model } from '../../models/model.abstract.js';
+import { AModel } from '../../models/model.abstract.js';
 import { IModule } from './module.interface.js';
 
-export abstract class Module {
-  private readonly members: Model<unknown, unknown>[] = [];
+export abstract class AModule {
+  private readonly members: AModel<unknown, unknown>[] = [];
 
-  protected addMember(member: Model<unknown, unknown>): void {
+  protected addMember(member: AModel<unknown, unknown>): void {
     const index = this.members.findIndex((m) => m.getContext() === member.getContext());
 
     if (index === -1) {
@@ -12,9 +12,9 @@ export abstract class Module {
     }
   }
 
-  abstract apply(...args: Model<unknown, unknown>[]): void;
+  abstract apply(...args: AModel<unknown, unknown>[]): void;
 
-  abstract remove(...args: Model<unknown, unknown>[]): void;
+  abstract remove(...args: AModel<unknown, unknown>[]): void;
 
   removeAll(): void {
     for (const member of this.members) {
@@ -26,7 +26,7 @@ export abstract class Module {
     }
   }
 
-  protected removeMember(member: Model<unknown, unknown>): void {
+  protected removeMember(member: AModel<unknown, unknown>): void {
     const index = this.members.findIndex((m) => m.getContext() === member.getContext());
 
     if (index !== -1) {
@@ -45,8 +45,8 @@ export abstract class Module {
   static async unSynth(
     deserializationClass: any,
     module: IModule,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
-  ): Promise<Module> {
+    deReferenceContext: (context: string) => Promise<AModel<unknown, unknown>>,
+  ): Promise<AModule> {
     const newModule = new deserializationClass();
 
     for (const member of module.members) {

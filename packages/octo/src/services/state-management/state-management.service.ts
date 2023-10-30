@@ -1,5 +1,7 @@
+import { Service } from 'typedi';
 import { IStateProvider } from './state-provider.interface.js';
 
+@Service()
 export class StateManagementService {
   private readonly stateProvider: IStateProvider;
 

@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import { Environment } from '../environment/environment.model.js';
 import { Region } from './region.model.js';
 

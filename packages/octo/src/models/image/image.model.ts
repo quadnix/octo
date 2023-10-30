@@ -1,5 +1,6 @@
 import { resolve } from 'path';
-import { Model } from '../model.abstract.js';
+import { Model } from '../../decorators/model.decorator.js';
+import { AModel } from '../model.abstract.js';
 import { IImage } from './image.interface.js';
 
 export interface IImageDockerOptions {
@@ -8,7 +9,8 @@ export interface IImageDockerOptions {
   quiet?: boolean;
 }
 
-export class Image extends Model<IImage, Image> {
+@Model(Image)
+export class Image extends AModel<IImage, Image> {
   readonly MODEL_NAME: string = 'image';
 
   readonly dockerOptions: IImageDockerOptions;

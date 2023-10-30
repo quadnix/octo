@@ -1,3 +1,4 @@
+import { Container } from 'typedi';
 import {
   App,
   Deployment,
@@ -11,7 +12,7 @@ import {
 
 describe('App E2E Test', () => {
   it('should generate app diff', async () => {
-    const serializationService = new ModelSerializationService();
+    const serializationService = Container.get(ModelSerializationService);
 
     const app0 = new App('test-app');
     const image0 = new Image('image', 'tag', { dockerFilePath: '.' });

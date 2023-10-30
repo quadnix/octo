@@ -1,9 +1,9 @@
-import { Anchor } from './anchor.model.js';
+import { AAnchor } from './anchor.abstract.js';
 
 export class Overlay {
-  private readonly participants: Anchor[];
+  private readonly participants: AAnchor[];
 
-  constructor(participants: Anchor[]) {
+  constructor(participants: AAnchor[]) {
     this.participants = [...participants];
   }
 }

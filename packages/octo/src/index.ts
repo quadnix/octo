@@ -1,9 +1,16 @@
+import 'reflect-metadata';
+
+export { Action } from './decorators/action.decorator.js';
+export { Model } from './decorators/model.decorator.js';
+export { Resource } from './decorators/resource.decorator.js';
+
 export { Diff, DiffAction } from './functions/diff/diff.model.js';
-export { DiffMetadata } from './functions/diff/diff-metadata.model.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
-export { Anchor, IAnchor } from './functions/overlay/anchor.model.js';
-export { Module } from './functions/module/module.abstract.js';
+export { DiffMetadata } from './functions/diff/diff-metadata.model.js';
+export { AModule } from './functions/module/module.abstract.js';
 export { IModule } from './functions/module/module.interface.js';
+export { AAnchor } from './functions/overlay/anchor.abstract.js';
+export { IAnchor } from './functions/overlay/anchor.interface.js';
 export { Overlay } from './functions/overlay/overlay.model.js';
 
 export { App } from './models/app/app.model.js';
@@ -28,13 +35,13 @@ export { Support } from './models/support/support.model.js';
 export { ISupport } from './models/support/support.interface.js';
 
 export { IAction, IActionInputs, IActionOutputs } from './models/action.interface.js';
-export { Model } from './models/model.abstract.js';
-export { IModel, IModelReference } from './models/model.interface.js';
+export { AModel } from './models/model.abstract.js';
+export { ModelType, IModel, IModelReference } from './models/model.interface.js';
 
-export { Resource } from './resources/resource.abstract.js';
+export { AResource } from './resources/resource.abstract.js';
 export { IResource } from './resources/resource.interface.js';
 export { IResourceAction } from './resources/resource-action.interface.js';
-export { SharedResource } from './resources/shared-resource.abstract.js';
+export { ASharedResource } from './resources/shared-resource.abstract.js';
 
 export {
   ModelSerializationService,
@@ -45,7 +52,7 @@ export {
   ResourceSerializedOutput,
 } from './services/serialization/resource/resource-serialization.service.js';
 
-export { LocalStateProvider } from './services/state-management/local.state-provider.js';
+export { LocalStateProviderContext, LocalStateProvider } from './services/state-management/local.state-provider.js';
 export { StateManagementService } from './services/state-management/state-management.service.js';
 export { IStateProvider } from './services/state-management/state-provider.interface.js';
 

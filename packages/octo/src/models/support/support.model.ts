@@ -1,10 +1,12 @@
+import { Model } from '../../decorators/model.decorator.js';
 import { Deployment } from '../deployment/deployment.model.js';
-import { Model } from '../model.abstract.js';
+import { AModel } from '../model.abstract.js';
 import { ISupport } from './support.interface.js';
 
 export type ISupportApplicationType = 'nginx';
 
-export class Support extends Model<ISupport, Support> {
+@Model(Support)
+export class Support extends AModel<ISupport, Support> {
   readonly MODEL_NAME: string = 'support';
 
   readonly applicationType: ISupportApplicationType;

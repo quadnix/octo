@@ -1,4 +1,7 @@
+import 'reflect-metadata';
+
 import { jest } from '@jest/globals';
+import { Resource } from '../../decorators/resource.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
 import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
@@ -6,10 +9,11 @@ import { App } from '../../models/app/app.model.js';
 import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
-import { Resource } from '../../resources/resource.abstract.js';
+import { AResource } from '../../resources/resource.abstract.js';
 import { TransactionService } from './transaction.service.js';
 
-class TestResource extends Resource<TestResource> {
+@Resource(TestResource)
+class TestResource extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
   constructor(resourceId: string) {
@@ -17,7 +21,8 @@ class TestResource extends Resource<TestResource> {
   }
 }
 
-class TestResourceWithDiffOverride extends Resource<TestResource> {
+@Resource(TestResourceWithDiffOverride)
+class TestResourceWithDiffOverride extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
   constructor(resourceId: string) {
@@ -184,7 +189,7 @@ describe('TransactionService UT', () => {
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
       const action1: IAction<IActionInputs, IActionOutputs> = {
-        ACTION_NAME: 'test',
+        ACTION_NAME: 'test1',
         collectInput: () => ['input.key1'],
         collectOutput: () => ['resource1'],
         filter: () => true,
@@ -193,7 +198,7 @@ describe('TransactionService UT', () => {
       };
       (action1.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
       const action2: IAction<IActionInputs, IActionOutputs> = {
-        ACTION_NAME: 'test',
+        ACTION_NAME: 'test2',
         collectInput: () => ['input.key2'],
         collectOutput: () => ['resource2'],
         filter: () => true,

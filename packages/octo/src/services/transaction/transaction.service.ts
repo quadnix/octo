@@ -1,9 +1,10 @@
+import { Service } from 'typedi';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
 import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
-import { Resource } from '../../resources/resource.abstract.js';
-import { SharedResource } from '../../resources/shared-resource.abstract.js';
+import { AResource } from '../../resources/resource.abstract.js';
+import { ASharedResource } from '../../resources/shared-resource.abstract.js';
 
 export type TransactionOptions = {
   yieldModelTransaction?: boolean;
@@ -12,6 +13,7 @@ export type TransactionOptions = {
   yieldResourceTransaction?: boolean;
 };
 
+@Service()
 export class TransactionService {
   private readonly inputs: IActionInputs = {};
   private readonly modelActions: IAction<IActionInputs, IActionOutputs>[] = [];
@@ -61,8 +63,8 @@ export class TransactionService {
           // Collect new resources.
           for (const resourceId of a.collectOutput(diffToProcess)) {
             if (outputs[resourceId].MODEL_TYPE === 'shared-resource' && resources[resourceId]) {
-              resources[resourceId] = (resources[resourceId] as SharedResource<unknown>).merge(
-                outputs[resourceId] as SharedResource<unknown>,
+              resources[resourceId] = (resources[resourceId] as ASharedResource<unknown>).merge(
+                outputs[resourceId] as ASharedResource<unknown>,
               );
             } else {
               resources[resourceId] = outputs[resourceId];
@@ -236,7 +238,7 @@ export class TransactionService {
       yieldResourceDiffs: false,
       yieldResourceTransaction: false,
     },
-  ): AsyncGenerator<DiffMetadata[][] | Resource<unknown>[], DiffMetadata[][]> {
+  ): AsyncGenerator<DiffMetadata[][] | AResource<unknown>[], DiffMetadata[][]> {
     // Set apply order on model diffs.
     const modelDiffs = diffs.map(
       (d) =>
@@ -288,17 +290,37 @@ export class TransactionService {
   }
 
   registerModelActions(actions: IAction<IActionInputs, IActionOutputs>[]): void {
-    this.modelActions.push(...actions);
+    for (const action of actions) {
+      if (!this.modelActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
+        this.modelActions.push(action);
+      }
+    }
   }
 
   registerResourceActions(actions: IResourceAction[]): void {
-    this.resourceActions.push(...actions);
+    for (const action of actions) {
+      if (!this.resourceActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
+        this.resourceActions.push(action);
+      }
+    }
   }
 
   registerInputs(inputs: IActionInputs): void {
     for (const key in inputs) {
       this.inputs[key] = inputs[key];
     }
+  }
+
+  resetInputs(): void {
+    Object.keys(this.inputs).forEach((key) => delete this.inputs[key]);
+  }
+
+  resetModelActions(): void {
+    this.modelActions.splice(0, this.modelActions.length);
+  }
+
+  resetResourceActions(): void {
+    this.resourceActions.splice(0, this.resourceActions.length);
   }
 
   async *rollbackTransaction(

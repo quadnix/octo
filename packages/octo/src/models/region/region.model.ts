@@ -1,8 +1,10 @@
+import { Model } from '../../decorators/model.decorator.js';
 import { Environment } from '../environment/environment.model.js';
-import { Model } from '../model.abstract.js';
+import { AModel } from '../model.abstract.js';
 import { IRegion } from './region.interface.js';
 
-export class Region extends Model<IRegion, Region> {
+@Model(Region)
+export class Region extends AModel<IRegion, Region> {
   readonly MODEL_NAME: string = 'region';
 
   readonly regionId: string;

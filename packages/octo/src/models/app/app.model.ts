@@ -1,5 +1,6 @@
+import { Model } from '../../decorators/model.decorator.js';
 import { Image } from '../image/image.model.js';
-import { Model } from '../model.abstract.js';
+import { AModel } from '../model.abstract.js';
 import { Pipeline } from '../pipeline/pipeline.model.js';
 import { Region } from '../region/region.model.js';
 import { Server } from '../server/server.model.js';
@@ -7,7 +8,8 @@ import { Service } from '../service/service.model.js';
 import { Support } from '../support/support.model.js';
 import { IApp } from './app.interface.js';
 
-export class App extends Model<IApp, App> {
+@Model(App)
+export class App extends AModel<IApp, App> {
   readonly MODEL_NAME: string = 'app';
 
   readonly name: string;

@@ -1,8 +1,8 @@
-import { Model } from '../../models/model.abstract.js';
+import { AModel } from '../../models/model.abstract.js';
 import { Diff, DiffAction } from './diff.model.js';
 
 export class DiffUtility {
-  private static generateDeleteDiff(model: Model<unknown, unknown>, field: string): Diff[] {
+  private static generateDeleteDiff(model: AModel<unknown, unknown>, field: string): Diff[] {
     const diff: Diff[] = [];
 
     const children = model.getChildren();
@@ -24,7 +24,7 @@ export class DiffUtility {
    * @param b latest model.
    * @param field string representing the field parent uses to reference the array.
    */
-  static diffArray(a: Model<unknown, unknown>, b: Model<unknown, unknown>, field: string): Diff[] {
+  static diffArray(a: AModel<unknown, unknown>, b: AModel<unknown, unknown>, field: string): Diff[] {
     const diff: Diff[] = [];
     const aSet = new Set(a[field]);
     const bSet = new Set(b[field]);
@@ -57,8 +57,8 @@ export class DiffUtility {
    * @param compare function to check if two objects are equal.
    */
   static diffArrayOfObjects(
-    a: Model<unknown, unknown>,
-    b: Model<unknown, unknown>,
+    a: AModel<unknown, unknown>,
+    b: AModel<unknown, unknown>,
     field: string,
     compare: (object1, object2) => boolean,
   ): Diff[] {
@@ -90,7 +90,7 @@ export class DiffUtility {
    * @param b latest model.
    * @param field string representing the field parent uses to reference the map.
    */
-  static diffMap(a: Model<unknown, unknown>, b: Model<unknown, unknown>, field: string): Diff[] {
+  static diffMap(a: AModel<unknown, unknown>, b: AModel<unknown, unknown>, field: string): Diff[] {
     const diff: Diff[] = [];
 
     // Iterate fields of previous (a). If found in latest (b), consider it an UPDATE.
@@ -122,7 +122,11 @@ export class DiffUtility {
    * @param b array of latest models.
    * @param field string representing the unique identifier of the model.
    */
-  static async diffModels(a: Model<unknown, unknown>[], b: Model<unknown, unknown>[], field: string): Promise<Diff[]> {
+  static async diffModels(
+    a: AModel<unknown, unknown>[],
+    b: AModel<unknown, unknown>[],
+    field: string,
+  ): Promise<Diff[]> {
     const diff: Diff[] = [];
 
     // Iterate fields of previous (a). If found in latest (b), get recursive diff of children of b vs a.

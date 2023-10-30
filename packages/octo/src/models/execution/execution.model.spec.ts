@@ -1,3 +1,6 @@
+import 'reflect-metadata';
+
+import { Container } from 'typedi';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 import { App } from '../app/app.model.js';
 import { Deployment } from '../deployment/deployment.model.js';
@@ -11,7 +14,7 @@ describe('Execution UT', () => {
   describe('diff()', () => {
     describe('when diff of object with children', () => {
       it('should capture delete of children', async () => {
-        const modelSerializationService = new ModelSerializationService();
+        const modelSerializationService = Container.get(ModelSerializationService);
 
         const app0_0 = new App('test');
         const image0_0 = new Image('test', 'imageTag', {

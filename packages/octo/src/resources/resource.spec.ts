@@ -1,6 +1,6 @@
-import { Resource } from './resource.abstract.js';
+import { AResource } from './resource.abstract.js';
 
-class TestResource extends Resource<TestResource> {
+class TestResource extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
   constructor(resourceId: string) {
@@ -27,7 +27,7 @@ describe('Resource UT', () => {
 
       resource1.associateWith([resource2]);
 
-      expect((resource2.getChildren()['test-resource'][0].to as Resource<TestResource>).resourceId).toBe('resource-1');
+      expect((resource2.getChildren()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe('resource-1');
     });
   });
 

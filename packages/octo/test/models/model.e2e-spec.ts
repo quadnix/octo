@@ -1,10 +1,10 @@
 import {
+  AModel,
   App,
   Deployment,
   Environment,
   Execution,
   Image,
-  Model,
   Pipeline,
   Region,
   Server,
@@ -37,7 +37,7 @@ describe('Model E2E Test', () => {
     region.addEnvironment(environment);
 
     const testCases: {
-      model: Model<unknown, unknown>;
+      model: AModel<unknown, unknown>;
       synth?: any;
     }[] = [
       {

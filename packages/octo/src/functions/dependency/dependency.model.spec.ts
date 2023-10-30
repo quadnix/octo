@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
 import { DiffAction } from '../diff/diff.model.js';

@@ -1,12 +1,14 @@
+import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import { Diff } from '../../functions/diff/diff.model.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Environment } from '../environment/environment.model.js';
 import { Image } from '../image/image.model.js';
-import { Model } from '../model.abstract.js';
+import { AModel } from '../model.abstract.js';
 import { IExecution } from './execution.interface.js';
 
-export class Execution extends Model<IExecution, Execution> {
+@Model(Execution)
+export class Execution extends AModel<IExecution, Execution> {
   readonly MODEL_NAME: string = 'execution';
 
   readonly environmentVariables: Map<string, string> = new Map();
@@ -70,7 +72,7 @@ export class Execution extends Model<IExecution, Execution> {
 
   static override async unSynth(
     execution: IExecution,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
+    deReferenceContext: (context: string) => Promise<AModel<unknown, unknown>>,
   ): Promise<Execution> {
     const deployment = (await deReferenceContext(execution.deployment.context)) as Deployment;
     const environment = (await deReferenceContext(execution.environment.context)) as Environment;

@@ -1,9 +1,11 @@
+import { Model } from '../../decorators/model.decorator.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Image } from '../image/image.model.js';
-import { Model } from '../model.abstract.js';
+import { AModel } from '../model.abstract.js';
 import { IServer } from './server.interface.js';
 
-export class Server extends Model<IServer, Server> {
+@Model(Server)
+export class Server extends AModel<IServer, Server> {
   readonly MODEL_NAME: string = 'server';
 
   readonly image: Image;
@@ -45,7 +47,7 @@ export class Server extends Model<IServer, Server> {
 
   static override async unSynth(
     server: IServer,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
+    deReferenceContext: (context: string) => Promise<AModel<unknown, unknown>>,
   ): Promise<Server> {
     const image = (await deReferenceContext(server.image.context)) as Image;
     return new Server(server.serverKey, image);

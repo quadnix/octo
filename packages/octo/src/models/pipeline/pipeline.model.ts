@@ -1,9 +1,11 @@
+import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
-import { Model } from '../model.abstract.js';
+import { AModel } from '../model.abstract.js';
 import { Diff } from '../../functions/diff/diff.model.js';
 import { IPipeline } from './pipeline.interface.js';
 
-export class Pipeline extends Model<IPipeline, Pipeline> {
+@Model(Pipeline)
+export class Pipeline extends AModel<IPipeline, Pipeline> {
   readonly MODEL_NAME: string = 'pipeline';
 
   readonly instructionSet: string[] = [];

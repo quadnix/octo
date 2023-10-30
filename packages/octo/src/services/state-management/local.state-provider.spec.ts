@@ -1,8 +1,11 @@
+import 'reflect-metadata';
+
 import { unlink } from 'fs';
 import { dirname, join } from 'path';
+import { Container } from 'typedi';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { LocalStateProvider } from './local.state-provider.js';
+import { LocalStateProvider, LocalStateProviderContext } from './local.state-provider.js';
 import { StateManagementService } from './state-management.service.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -20,7 +23,8 @@ describe('LocalStateProvider UT', () => {
   it('should be able to save state', async () => {
     filePath = join(__dirname, 'manifest.json');
 
-    const localStateProvider = new LocalStateProvider(__dirname);
+    Container.set(LocalStateProviderContext, { localStateDirectoryPath: __dirname });
+    const localStateProvider = Container.get(LocalStateProvider);
     const stateManagementService = StateManagementService.getInstance(localStateProvider);
 
     const data = Buffer.from(
