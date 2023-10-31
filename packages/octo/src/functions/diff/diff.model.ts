@@ -1,4 +1,4 @@
-import { AModel } from '../../models/model.abstract.js';
+import { UnknownModel } from '../../app.type.js';
 
 export enum DiffAction {
   ADD = 'add',
@@ -12,7 +12,7 @@ export class Diff {
 
   readonly field: string;
 
-  readonly model: AModel<unknown, unknown>;
+  readonly model: UnknownModel;
 
   readonly value: unknown;
 

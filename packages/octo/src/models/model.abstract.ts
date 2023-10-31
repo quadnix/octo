@@ -1,8 +1,9 @@
+import { ModelType, UnknownModel } from '../app.type.js';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AAnchor } from '../functions/overlay/anchor.abstract.js';
-import { IModel, ModelType } from './model.interface.js';
+import { IModel } from './model.interface.js';
 
 /**
  * This is the base implementation of the Model's interface,
@@ -17,7 +18,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
 
   protected readonly dependencies: Dependency[] = [];
 
-  addChild(onField: keyof T, child: AModel<unknown, unknown>, toField: string): void {
+  addChild(onField: keyof T, child: UnknownModel, toField: string): void {
     // Check if child already has a dependency to self.
     const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
     if (cIndex !== -1 && child.dependencies[cIndex].isParentRelationship()) {
@@ -45,7 +46,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     }
   }
 
-  addRelationship(onField: keyof T, to: AModel<unknown, unknown>, toField: string): void {
+  addRelationship(onField: keyof T, to: UnknownModel, toField: string): void {
     const thisToThatDependency = new Dependency(this, to);
     thisToThatDependency.addBehavior(onField as string, DiffAction.ADD, toField, DiffAction.ADD);
     thisToThatDependency.addBehavior(onField as string, DiffAction.ADD, toField, DiffAction.UPDATE);
@@ -57,7 +58,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
 
   async diff(previous?: T): Promise<Diff[]> {
     const childrenByModel = this.getChildren();
-    const childrenOfPreviousByModel = (previous as AModel<unknown, unknown>)?.getChildren() ?? {};
+    const childrenOfPreviousByModel = (previous as UnknownModel)?.getChildren() ?? {};
 
     const diffs: Diff[] = [];
     const modelsSeen: string[] = [];
@@ -90,12 +91,12 @@ export abstract class AModel<I, T> implements IModel<I, T> {
   /**
    * Get an array of ancestors which must exist for self to exist.
    */
-  getAncestors(): AModel<unknown, unknown>[] {
-    const members: AModel<unknown, unknown>[] = [this];
-    const membersProcessed: AModel<unknown, unknown>[] = [];
+  getAncestors(): UnknownModel[] {
+    const members: UnknownModel[] = [this];
+    const membersProcessed: UnknownModel[] = [];
 
     while (members.length > 0) {
-      const member = members.pop() as AModel<unknown, unknown>;
+      const member = members.pop() as UnknownModel;
 
       // Skip processing an already processed member.
       if (membersProcessed.some((m) => m.getContext() === member.getContext())) {
@@ -128,12 +129,12 @@ export abstract class AModel<I, T> implements IModel<I, T> {
    * Get a boundary (sub graph) of a model, i.e. an array of models that must belong together.
    * To generate a boundary, we must process all children and grand-children of self.
    */
-  getBoundaryMembers(): AModel<unknown, unknown>[] {
-    const extenders: AModel<unknown, unknown>[] = [this];
-    const members: AModel<unknown, unknown>[] = [];
+  getBoundaryMembers(): UnknownModel[] {
+    const extenders: UnknownModel[] = [this];
+    const members: UnknownModel[] = [];
     const parentOf: { [key: string]: string[] } = {};
 
-    const pushToExtenders = (models: AModel<unknown, unknown>[]): void => {
+    const pushToExtenders = (models: UnknownModel[]): void => {
       models.forEach((model) => {
         if (!members.some((m) => m.getContext() === model.getContext())) {
           extenders.push(model);
@@ -142,7 +143,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     };
 
     while (extenders.length > 0) {
-      const model = extenders.pop() as AModel<unknown, unknown>;
+      const model = extenders.pop() as UnknownModel;
       const ancestors = model.getAncestors();
 
       for (const ancestor of ancestors) {
@@ -202,7 +203,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return members;
   }
 
-  getChild(modelName: string, filters: { key: string; value: any }[]): AModel<unknown, unknown> | undefined {
+  getChild(modelName: string, filters: { key: string; value: any }[]): UnknownModel | undefined {
     const dependency = this.getChildren(modelName)[modelName]?.find((d) =>
       filters.every((c) => d.to[c.key] === c.value),
     );
@@ -235,7 +236,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       }, {});
   }
 
-  hasAncestor(model: AModel<unknown, unknown>): boolean {
+  hasAncestor(model: UnknownModel): boolean {
     const modelParts = model
       .getContext()
       .split(',')
@@ -280,7 +281,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     }
   }
 
-  removeRelationship(model: AModel<unknown, unknown>): void {
+  removeRelationship(model: UnknownModel): void {
     for (let i = this.dependencies.length - 1; i >= 0; i--) {
       const dependency = this.dependencies[i];
       if (dependency.to.getContext() === model.getContext()) {
@@ -298,7 +299,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
 
   abstract synth(): I;
 
-  static async unSynth(...args: unknown[]): Promise<unknown> {
+  static async unSynth(...args: unknown[]): Promise<UnknownModel> {
     if (args.length > 4) {
       throw new Error('Too many args in unSynth()');
     }

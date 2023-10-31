@@ -1,14 +1,11 @@
+import { ActionInputs, ActionOutputs } from '../app.type.js';
 import { Diff } from '../functions/diff/diff.model.js';
-import { AResource } from '../resources/resource.abstract.js';
-
-export type IActionInputs = { [key: string]: string | AResource<unknown> };
-export type IActionOutputs = { [key: string]: AResource<unknown> };
 
 /**
  * Actions are translation functions between Diff and underlying infrastructure.
  * An action can translate a specific type of Diff into underlying infrastructure, and can revert it back.
  */
-export interface IAction<I extends IActionInputs, O extends IActionOutputs> {
+export interface IAction<I extends ActionInputs, O extends ActionOutputs> {
   /**
    * The name of the action.
    * It can be used to easily identify an action and its purpose.

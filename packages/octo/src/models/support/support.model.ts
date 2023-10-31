@@ -1,19 +1,18 @@
+import { SupportApplicationType } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { AModel } from '../model.abstract.js';
 import { ISupport } from './support.interface.js';
 
-export type ISupportApplicationType = 'nginx';
-
 @Model(Support)
 export class Support extends AModel<ISupport, Support> {
   readonly MODEL_NAME: string = 'support';
 
-  readonly applicationType: ISupportApplicationType;
+  readonly applicationType: SupportApplicationType;
 
   readonly serverKey: string;
 
-  constructor(serverKey: string, applicationType: ISupportApplicationType) {
+  constructor(serverKey: string, applicationType: SupportApplicationType) {
     super();
     this.serverKey = serverKey;
     this.applicationType = applicationType;

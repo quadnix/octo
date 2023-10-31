@@ -1,26 +1,17 @@
 import { Service } from 'typedi';
+import { ActionOutputs, ResourceSerializedOutput, UnknownResource, UnknownSharedResource } from '../../../app.type.js';
 import { IDependency } from '../../../functions/dependency/dependency.model.js';
-import { IActionOutputs } from '../../../models/action.interface.js';
-import { AResource } from '../../../resources/resource.abstract.js';
-import { IResource } from '../../../resources/resource.interface.js';
-import { ASharedResource } from '../../../resources/shared-resource.abstract.js';
-
-export type ResourceSerializedOutput = {
-  dependencies: IDependency[];
-  resources: { [p: string]: { className: string; isSharedResource: boolean; resource: IResource } };
-  sharedResources: { [p: string]: { className: string; resourceClassName: string; sharedResource: IResource } };
-};
 
 @Service()
 export class ResourceSerializationService {
   private readonly classMapping: { [key: string]: any } = {};
 
-  async deserialize(serializedOutput: ResourceSerializedOutput): Promise<IActionOutputs> {
+  async deserialize(serializedOutput: ResourceSerializedOutput): Promise<ActionOutputs> {
     const deReferencePromises: { [p: string]: [Promise<boolean>, (value: boolean) => void] } = {};
     const parents: { [p: string]: string[] } = {};
-    const seen: IActionOutputs = {};
+    const seen: ActionOutputs = {};
 
-    const deReferenceResource = async (resourceId: string): Promise<AResource<unknown>> => {
+    const deReferenceResource = async (resourceId: string): Promise<UnknownResource> => {
       if (!seen[resourceId]) {
         if (deReferencePromises[resourceId]) {
           await deReferencePromises[resourceId][0];
@@ -37,7 +28,7 @@ export class ResourceSerializationService {
       return seen[resourceId];
     };
 
-    const deserializeResource = async (resourceId: string, parents: string[]): Promise<AResource<unknown>> => {
+    const deserializeResource = async (resourceId: string, parents: string[]): Promise<UnknownResource> => {
       const { className, isSharedResource, resource } = serializedOutput.resources[resourceId];
       const deserializationClass = this.classMapping[className];
 
@@ -101,7 +92,7 @@ export class ResourceSerializationService {
     }
 
     // Deserialize all serialized resources.
-    const promiseToDeserializeResources: Promise<AResource<unknown>>[] = [];
+    const promiseToDeserializeResources: Promise<UnknownResource>[] = [];
     for (const resourceId in serializedOutput.resources) {
       promiseToDeserializeResources.push(deserializeResource(resourceId, parents[resourceId]));
     }
@@ -136,7 +127,7 @@ export class ResourceSerializationService {
     this.classMapping[className] = deserializationClass;
   }
 
-  serialize(resources: AResource<unknown>[]): ResourceSerializedOutput {
+  serialize(resources: UnknownResource[]): ResourceSerializedOutput {
     const dependencies: IDependency[] = [];
     const serializedResources: ResourceSerializedOutput['resources'] = {};
     const sharedSerializedResources: ResourceSerializedOutput['sharedResources'] = {};
@@ -169,7 +160,7 @@ export class ResourceSerializationService {
 
       serializedResources[resource.resourceId] = {
         className: isSharedResource
-          ? (resource as ASharedResource<unknown>).resource.constructor.name
+          ? (resource as UnknownSharedResource).resource.constructor.name
           : resource.constructor.name,
         isSharedResource,
         resource: serializedResource,
@@ -179,7 +170,7 @@ export class ResourceSerializationService {
         const serializedSharedResource = resource.synth();
         sharedSerializedResources[resource.resourceId] = {
           className: resource.constructor.name,
-          resourceClassName: (resource as ASharedResource<unknown>).resource.constructor.name,
+          resourceClassName: (resource as UnknownSharedResource).resource.constructor.name,
           sharedResource: serializedSharedResource,
         };
       }

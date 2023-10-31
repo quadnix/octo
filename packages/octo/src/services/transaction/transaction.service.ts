@@ -1,25 +1,23 @@
 import { Service } from 'typedi';
+import {
+  ActionInputs,
+  ActionOutputs,
+  TransactionOptions,
+  UnknownResource,
+  UnknownSharedResource,
+} from '../../app.type.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
-import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
+import { IAction } from '../../models/action.interface.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
-import { AResource } from '../../resources/resource.abstract.js';
-import { ASharedResource } from '../../resources/shared-resource.abstract.js';
-
-export type TransactionOptions = {
-  yieldModelTransaction?: boolean;
-  yieldNewResources?: boolean;
-  yieldResourceDiffs?: boolean;
-  yieldResourceTransaction?: boolean;
-};
 
 @Service()
 export class TransactionService {
-  private readonly inputs: IActionInputs = {};
-  private readonly modelActions: IAction<IActionInputs, IActionOutputs>[] = [];
+  private readonly inputs: ActionInputs = {};
+  private readonly modelActions: IAction<ActionInputs, ActionOutputs>[] = [];
   private readonly resourceActions: IResourceAction[] = [];
 
-  private applyModels(diffs: DiffMetadata[], resources: IActionOutputs): DiffMetadata[][] {
+  private applyModels(diffs: DiffMetadata[], resources: ActionOutputs): DiffMetadata[][] {
     const transaction: DiffMetadata[][] = [];
 
     let currentApplyOrder = 0;
@@ -40,9 +38,9 @@ export class TransactionService {
         // Only process the first diff, given all duplicate diffs are the same.
         const diffToProcess = duplicateDiffs[0].diff;
 
-        for (const a of diff.actions as IAction<IActionInputs, IActionOutputs>[]) {
+        for (const a of diff.actions as IAction<ActionInputs, ActionOutputs>[]) {
           // Resolve input requests.
-          const inputs: IActionInputs = {};
+          const inputs: ActionInputs = {};
           const inputKeys = a.collectInput(diffToProcess);
           inputKeys.map((k) => {
             if ((k as string).startsWith('resource')) {
@@ -63,8 +61,8 @@ export class TransactionService {
           // Collect new resources.
           for (const resourceId of a.collectOutput(diffToProcess)) {
             if (outputs[resourceId].MODEL_TYPE === 'shared-resource' && resources[resourceId]) {
-              resources[resourceId] = (resources[resourceId] as ASharedResource<unknown>).merge(
-                outputs[resourceId] as ASharedResource<unknown>,
+              resources[resourceId] = (resources[resourceId] as UnknownSharedResource).merge(
+                outputs[resourceId] as UnknownSharedResource,
               );
             } else {
               resources[resourceId] = outputs[resourceId];
@@ -141,7 +139,7 @@ export class TransactionService {
     return transaction;
   }
 
-  private async diffResources(newResources: IActionOutputs, oldResources: IActionOutputs): Promise<Diff[]> {
+  private async diffResources(newResources: ActionOutputs, oldResources: ActionOutputs): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     // All old resources are also always present as new resources.
@@ -230,15 +228,15 @@ export class TransactionService {
 
   async *beginTransaction(
     diffs: Diff[],
-    oldResources: IActionOutputs = {},
-    newResources: IActionOutputs = {},
+    oldResources: ActionOutputs = {},
+    newResources: ActionOutputs = {},
     options: TransactionOptions = {
       yieldModelTransaction: false,
       yieldNewResources: false,
       yieldResourceDiffs: false,
       yieldResourceTransaction: false,
     },
-  ): AsyncGenerator<DiffMetadata[][] | AResource<unknown>[], DiffMetadata[][]> {
+  ): AsyncGenerator<DiffMetadata[][] | UnknownResource[], DiffMetadata[][]> {
     // Set apply order on model diffs.
     const modelDiffs = diffs.map(
       (d) =>
@@ -289,7 +287,7 @@ export class TransactionService {
     return resourceTransaction;
   }
 
-  registerModelActions(actions: IAction<IActionInputs, IActionOutputs>[]): void {
+  registerModelActions(actions: IAction<ActionInputs, ActionOutputs>[]): void {
     for (const action of actions) {
       if (!this.modelActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
         this.modelActions.push(action);
@@ -305,7 +303,7 @@ export class TransactionService {
     }
   }
 
-  registerInputs(inputs: IActionInputs): void {
+  registerInputs(inputs: ActionInputs): void {
     for (const key in inputs) {
       this.inputs[key] = inputs[key];
     }
@@ -325,8 +323,8 @@ export class TransactionService {
 
   async *rollbackTransaction(
     modelTransaction: DiffMetadata[][],
-    oldResources: IActionOutputs = {},
-    newResources: IActionOutputs = {},
+    oldResources: ActionOutputs = {},
+    newResources: ActionOutputs = {},
     options: TransactionOptions = {
       yieldResourceDiffs: false,
       yieldResourceTransaction: false,
@@ -337,7 +335,7 @@ export class TransactionService {
       const diffsProcessedInSameLevel = modelTransaction[i];
 
       for (const diff of diffsProcessedInSameLevel) {
-        for (const a of diff.actions as IAction<IActionInputs, IActionOutputs>[]) {
+        for (const a of diff.actions as IAction<ActionInputs, ActionOutputs>[]) {
           const outputs = a.revert(diff.diff, diff.inputs, diff.outputs);
           for (const outputKey in outputs) {
             newResources[outputKey] = outputs[outputKey];

@@ -2,9 +2,10 @@ import 'reflect-metadata';
 
 import { jest } from '@jest/globals';
 import { Container } from 'typedi';
+import { ActionInputs, ActionOutputs, UnknownResource } from '../app.type.js';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
-import { IAction, IActionInputs, IActionOutputs } from '../models/action.interface.js';
+import { IAction } from '../models/action.interface.js';
 import { App } from '../models/app/app.model.js';
 import { Region } from '../models/region/region.model.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
@@ -202,7 +203,7 @@ describe('SharedResource UT', () => {
     // Assume the shared resource is applied, and response is collected.
     sharedTestResource1.response['response1'] = 'response-value-1';
 
-    const addRegion1Action: IAction<IActionInputs, IActionOutputs> = {
+    const addRegion1Action: IAction<ActionInputs, ActionOutputs> = {
       ACTION_NAME: 'test1',
       collectInput: () => [],
       collectOutput: () => ['parent-1', 'shared-resource'],
@@ -223,7 +224,7 @@ describe('SharedResource UT', () => {
 
     // Validate shared resources properties, responses, and dependencies are serialized correctly.
     const newResources1 = await generator1.next();
-    const serializedOutput1 = serializationService.serialize(newResources1.value as AResource<unknown>[]);
+    const serializedOutput1 = serializationService.serialize(newResources1.value as UnknownResource[]);
     expect(serializedOutput1).toMatchInlineSnapshot(`
       {
         "dependencies": [
@@ -318,7 +319,7 @@ describe('SharedResource UT', () => {
     // Assume the shared resource is applied, and response is collected.
     sharedTestResource2.response['response2'] = 'response-value-2';
 
-    const addRegion2Action: IAction<IActionInputs, IActionOutputs> = {
+    const addRegion2Action: IAction<ActionInputs, ActionOutputs> = {
       ACTION_NAME: 'test2',
       collectInput: () => [],
       collectOutput: () => ['parent-2', 'shared-resource'],
@@ -350,7 +351,7 @@ describe('SharedResource UT', () => {
 
     // Validate shared resources properties, responses, and dependencies are serialized correctly.
     const newResources2 = await generator2.next();
-    const serializedOutput2 = serializationService.serialize(newResources2.value as AResource<unknown>[]);
+    const serializedOutput2 = serializationService.serialize(newResources2.value as UnknownResource[]);
     expect(serializedOutput2).toMatchInlineSnapshot(`
       {
         "dependencies": [

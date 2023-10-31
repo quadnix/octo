@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 
 import { Container } from 'typedi';
+import { UnknownResource } from '../../../app.type.js';
 import { AResource } from '../../../resources/resource.abstract.js';
 import { ASharedResource } from '../../../resources/shared-resource.abstract.js';
 import { ResourceSerializationService } from './resource-serialization.service.js';
@@ -169,7 +170,7 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should serialize non-empty array', () => {
-      const resources: AResource<unknown>[] = [new TestResource('resource-1')];
+      const resources: UnknownResource[] = [new TestResource('resource-1')];
 
       const service = Container.get(ResourceSerializationService);
       expect(service.serialize(resources)).toMatchSnapshot();
@@ -185,7 +186,7 @@ describe('Resource Serialization Service UT', () => {
 
       resource2.markDeleted();
 
-      const resources: AResource<unknown>[] = [resource1, resource2];
+      const resources: UnknownResource[] = [resource1, resource2];
       const service = Container.get(ResourceSerializationService);
       expect(service.serialize(resources)).toMatchSnapshot();
     });
@@ -198,7 +199,7 @@ describe('Resource Serialization Service UT', () => {
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
       resource1.addChild('resourceId', resource2, 'resourceId');
-      const resources: AResource<unknown>[] = [resource1, resource2];
+      const resources: UnknownResource[] = [resource1, resource2];
 
       const service = Container.get(ResourceSerializationService);
       expect(service.serialize(resources)).toMatchSnapshot();

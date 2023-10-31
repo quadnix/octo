@@ -1,15 +1,13 @@
+import { ModelType, ResourceMarkers, UnknownResource } from '../app.type.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
 import { AModel } from '../models/model.abstract.js';
-import { ModelType } from '../models/model.interface.js';
 import { IResource } from './resource.interface.js';
 import { ASharedResource } from './shared-resource.abstract.js';
-
-type IResourceMarkers = { delete: boolean; replace: boolean; update: { key: string; value: any } | null };
 
 export abstract class AResource<T> extends AModel<IResource, T> {
   override readonly MODEL_TYPE: ModelType = ModelType.RESOURCE;
 
-  private readonly diffMarkers: IResourceMarkers = {
+  private readonly diffMarkers: ResourceMarkers = {
     delete: false,
     replace: false,
     update: null,
@@ -24,7 +22,7 @@ export abstract class AResource<T> extends AModel<IResource, T> {
   protected constructor(
     resourceId: IResource['resourceId'],
     properties: IResource['properties'],
-    parents: AResource<unknown>[],
+    parents: UnknownResource[],
   ) {
     super();
 
@@ -37,7 +35,7 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     this.associateWith(parents);
   }
 
-  associateWith(resources: AResource<unknown>[]): void {
+  associateWith(resources: UnknownResource[]): void {
     for (const resource of resources) {
       const childrenDependencies = resource.getChildren(this.MODEL_NAME);
       if (!childrenDependencies[this.MODEL_NAME]) {
@@ -45,7 +43,7 @@ export abstract class AResource<T> extends AModel<IResource, T> {
       }
 
       // Check for duplicates.
-      const selfDependencies = childrenDependencies[this.MODEL_NAME].map((d) => d.to as AResource<unknown>);
+      const selfDependencies = childrenDependencies[this.MODEL_NAME].map((d) => d.to as UnknownResource);
       if (selfDependencies.find((r) => r.resourceId === this.resourceId)) {
         throw new Error('Resource already associated with!');
       }
@@ -77,7 +75,7 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     return `${this.MODEL_NAME}=${this.resourceId}`;
   }
 
-  getUpdateMarker(): IResourceMarkers['update'] {
+  getUpdateMarker(): ResourceMarkers['update'] {
     return this.diffMarkers.update;
   }
 
@@ -114,8 +112,8 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     deserializationClass: any,
     resource: IResource,
     parentResourceIds: string[],
-    deReferenceResource: (resourceId: string) => Promise<AResource<unknown>>,
-  ): Promise<AResource<unknown>> {
+    deReferenceResource: (resourceId: string) => Promise<UnknownResource>,
+  ): Promise<UnknownResource> {
     const parents = await Promise.all(parentResourceIds.map((p) => deReferenceResource(p)));
     const deReferencedResource = new deserializationClass(resource.resourceId, resource.properties, parents);
     for (const key in resource.response) {

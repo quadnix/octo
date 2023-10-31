@@ -1,4 +1,4 @@
-import { ModelType } from '../models/model.interface.js';
+import { ModelType, UnknownResource, UnknownSharedResource } from '../app.type.js';
 import { AResource } from './resource.abstract.js';
 
 export abstract class ASharedResource<T> extends AResource<T> {
@@ -37,10 +37,7 @@ export abstract class ASharedResource<T> extends AResource<T> {
     return sharedResource;
   }
 
-  static override async unSynth(
-    deserializationClass: any,
-    resource: AResource<unknown>,
-  ): Promise<ASharedResource<unknown>> {
+  static override async unSynth(deserializationClass: any, resource: UnknownResource): Promise<UnknownSharedResource> {
     return new deserializationClass(resource);
   }
 }

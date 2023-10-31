@@ -1,10 +1,10 @@
-import { AModel } from '../../models/model.abstract.js';
+import { UnknownModel } from '../../app.type.js';
 import { IAnchor } from './anchor.interface.js';
 
 export abstract class AAnchor {
   abstract readonly ANCHOR_NAME: string;
 
-  protected constructor(private readonly parent: AModel<unknown, unknown>) {
+  protected constructor(private readonly parent: UnknownModel) {
     if (parent['anchors'].find((a) => a.ANCHOR_NAME === this.ANCHOR_NAME)) {
       throw new Error('Anchor already exists!');
     }
@@ -17,7 +17,7 @@ export abstract class AAnchor {
     };
   }
 
-  static async unSynth(...args: unknown[]): Promise<unknown> {
+  static async unSynth(...args: unknown[]): Promise<AAnchor> {
     if (args.length > 2) {
       throw new Error('Too many args in unSynth()');
     }

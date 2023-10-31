@@ -1,10 +1,5 @@
+import { ModelType } from '../app.type.js';
 import { Diff } from '../functions/diff/diff.model.js';
-
-export enum ModelType {
-  MODEL = 'model',
-  RESOURCE = 'resource',
-  SHARED_RESOURCE = 'shared-resource',
-}
 
 /**
  * Models are the building blocks that can be combined to create any infrastructure.
@@ -18,9 +13,6 @@ export interface IModel<I, T> {
    */
   readonly MODEL_NAME: string;
 
-  /**
-   * The type of model. Can only be either "model" or "resource".
-   */
   readonly MODEL_TYPE: ModelType;
 
   /**

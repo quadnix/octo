@@ -1,3 +1,4 @@
+import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import { Diff } from '../../functions/diff/diff.model.js';
@@ -72,7 +73,7 @@ export class Execution extends AModel<IExecution, Execution> {
 
   static override async unSynth(
     execution: IExecution,
-    deReferenceContext: (context: string) => Promise<AModel<unknown, unknown>>,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Execution> {
     const deployment = (await deReferenceContext(execution.deployment.context)) as Deployment;
     const environment = (await deReferenceContext(execution.environment.context)) as Environment;

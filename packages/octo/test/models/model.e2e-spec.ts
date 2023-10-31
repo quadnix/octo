@@ -1,5 +1,4 @@
 import {
-  AModel,
   App,
   Deployment,
   Environment,
@@ -10,6 +9,7 @@ import {
   Server,
   Service,
   Support,
+  UnknownModel,
 } from '../../src/index.js';
 
 describe('Model E2E Test', () => {
@@ -37,7 +37,7 @@ describe('Model E2E Test', () => {
     region.addEnvironment(environment);
 
     const testCases: {
-      model: AModel<unknown, unknown>;
+      model: UnknownModel;
       synth?: any;
     }[] = [
       {

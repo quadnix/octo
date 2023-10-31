@@ -34,26 +34,22 @@ export { IService } from './models/service/service.interface.js';
 export { Support } from './models/support/support.model.js';
 export { ISupport } from './models/support/support.interface.js';
 
-export { IAction, IActionInputs, IActionOutputs } from './models/action.interface.js';
+export { IAction } from './models/action.interface.js';
 export { AModel } from './models/model.abstract.js';
-export { ModelType, IModel, IModelReference } from './models/model.interface.js';
+export { IModel, IModelReference } from './models/model.interface.js';
 
 export { AResource } from './resources/resource.abstract.js';
 export { IResource } from './resources/resource.interface.js';
 export { IResourceAction } from './resources/resource-action.interface.js';
 export { ASharedResource } from './resources/shared-resource.abstract.js';
 
-export {
-  ModelSerializationService,
-  ModelSerializedOutput,
-} from './services/serialization/model/model-serialization.service.js';
-export {
-  ResourceSerializationService,
-  ResourceSerializedOutput,
-} from './services/serialization/resource/resource-serialization.service.js';
+export { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
+export { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
 
 export { LocalStateProviderContext, LocalStateProvider } from './services/state-management/local.state-provider.js';
 export { StateManagementService } from './services/state-management/state-management.service.js';
 export { IStateProvider } from './services/state-management/state-provider.interface.js';
 
-export { TransactionOptions, TransactionService } from './services/transaction/transaction.service.js';
+export { TransactionService } from './services/transaction/transaction.service.js';
+
+export * from './app.type.js';

@@ -1,3 +1,4 @@
+import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Image } from '../image/image.model.js';
@@ -47,7 +48,7 @@ export class Server extends AModel<IServer, Server> {
 
   static override async unSynth(
     server: IServer,
-    deReferenceContext: (context: string) => Promise<AModel<unknown, unknown>>,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Server> {
     const image = (await deReferenceContext(server.image.context)) as Image;
     return new Server(server.serverKey, image);

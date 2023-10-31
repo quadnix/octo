@@ -1,24 +1,23 @@
-import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
-import { AModel } from '../../models/model.abstract.js';
+import { ActionInputs, ActionOutputs, UnknownModel, UnknownResource } from '../../app.type.js';
+import { IAction } from '../../models/action.interface.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
-import { AResource } from '../../resources/resource.abstract.js';
 import { Diff, DiffAction } from './diff.model.js';
 
 export class DiffMetadata {
-  readonly actions: IAction<IActionInputs, IActionOutputs>[] | IResourceAction[];
+  readonly actions: IAction<ActionInputs, ActionOutputs>[] | IResourceAction[];
   applied: boolean;
   applyOrder: number;
 
   readonly diff: Diff;
   readonly action: DiffAction;
   readonly field: string;
-  readonly model: AModel<unknown, unknown> | AResource<unknown>;
+  readonly model: UnknownModel | UnknownResource;
   readonly value: unknown;
 
-  readonly inputs: IActionInputs = {};
-  readonly outputs: IActionOutputs = {};
+  readonly inputs: ActionInputs = {};
+  readonly outputs: ActionOutputs = {};
 
-  constructor(diff: Diff, actions: IAction<IActionInputs, IActionOutputs>[] | IResourceAction[]) {
+  constructor(diff: Diff, actions: IAction<ActionInputs, ActionOutputs>[] | IResourceAction[]) {
     if (!actions?.length) {
       throw new Error('No matching action given for diff!');
     }
@@ -42,11 +41,11 @@ export class DiffMetadata {
     };
   }
 
-  updateInputs(inputs: IActionInputs): void {
+  updateInputs(inputs: ActionInputs): void {
     Object.assign(this.inputs, inputs);
   }
 
-  updateOutputs(outputs: IActionOutputs): void {
+  updateOutputs(outputs: ActionOutputs): void {
     Object.assign(this.outputs, outputs);
   }
 }

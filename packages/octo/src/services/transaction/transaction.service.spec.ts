@@ -1,10 +1,11 @@
 import 'reflect-metadata';
 
 import { jest } from '@jest/globals';
+import { ActionInputs, ActionOutputs } from '../../app.type.js';
 import { Resource } from '../../decorators/resource.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
-import { IAction, IActionInputs, IActionOutputs } from '../../models/action.interface.js';
+import { IAction } from '../../models/action.interface.js';
 import { App } from '../../models/app/app.model.js';
 import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
@@ -40,7 +41,7 @@ describe('TransactionService UT', () => {
   });
 
   describe('applyModels()', () => {
-    const universalModelAction: IAction<IActionInputs, IActionOutputs> = {
+    const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
       ACTION_NAME: 'universal',
       collectInput: () => [],
       collectOutput: () => [],
@@ -74,7 +75,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action: IAction<IActionInputs, IActionOutputs> = {
+      const action: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
         collectOutput: () => [],
@@ -109,7 +110,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action: IAction<IActionInputs, IActionOutputs> = {
+      const action: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
         collectOutput: () => ['resource1'],
@@ -137,7 +138,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action: IAction<IActionInputs, IActionOutputs> = {
+      const action: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test',
         collectInput: () => [],
         collectOutput: () => [],
@@ -163,7 +164,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action: IAction<IActionInputs, IActionOutputs> = {
+      const action: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
         collectOutput: () => ['resource1'],
@@ -188,7 +189,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action1: IAction<IActionInputs, IActionOutputs> = {
+      const action1: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test1',
         collectInput: () => ['input.key1'],
         collectOutput: () => ['resource1'],
@@ -197,7 +198,7 @@ describe('TransactionService UT', () => {
         revert: jest.fn() as jest.Mocked<any>,
       };
       (action1.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
-      const action2: IAction<IActionInputs, IActionOutputs> = {
+      const action2: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test2',
         collectInput: () => ['input.key2'],
         collectOutput: () => ['resource2'],
@@ -259,8 +260,8 @@ describe('TransactionService UT', () => {
     });
 
     it('should throw error when matching action not found', async () => {
-      const oldResources: IActionOutputs = {};
-      const newResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {};
+      const newResources: ActionOutputs = {
         resource2: new TestResource('resource-2'),
       };
 
@@ -275,8 +276,8 @@ describe('TransactionService UT', () => {
     });
 
     it('should only process 1 matching diff', async () => {
-      const oldResources: IActionOutputs = {};
-      const newResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {};
+      const newResources: ActionOutputs = {
         resource2: new TestResource('resource-2'),
       };
 
@@ -305,8 +306,8 @@ describe('TransactionService UT', () => {
       const resource2 = new TestResource('resource-2');
       resource1.addChild('resourceId', resource2, 'resourceId');
 
-      const oldResources: IActionOutputs = {};
-      const newResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {};
+      const newResources: ActionOutputs = {
         resource1: resource1,
         resource2: resource2,
       };
@@ -330,11 +331,11 @@ describe('TransactionService UT', () => {
       const resource2_2 = new TestResource('resource-2');
       resource1_2.addChild('resourceId', resource2_2, 'resourceId');
 
-      const oldResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {
         resource1: resource1_1,
         resource2: resource2_1,
       };
-      const newResources: IActionOutputs = {
+      const newResources: ActionOutputs = {
         resource1: resource1_2,
         resource2: resource2_2,
       };
@@ -363,10 +364,10 @@ describe('TransactionService UT', () => {
     };
 
     it('should compare distinct resources', async () => {
-      const oldResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
-      const newResources: IActionOutputs = {
+      const newResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
       newResources.resource1.markDeleted();
@@ -381,10 +382,10 @@ describe('TransactionService UT', () => {
     });
 
     it('should compare same resources', async () => {
-      const oldResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
-      const newResources: IActionOutputs = {
+      const newResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
 
@@ -401,10 +402,10 @@ describe('TransactionService UT', () => {
       const newTestResource = new TestResource('resource-1');
       newTestResource.markDeleted();
 
-      const oldResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
-      const newResources: IActionOutputs = {
+      const newResources: ActionOutputs = {
         resource1: newTestResource,
       };
 
@@ -421,10 +422,10 @@ describe('TransactionService UT', () => {
       const newTestResource = new TestResource('resource-1');
       newTestResource.markReplaced();
 
-      const oldResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
-      const newResources: IActionOutputs = {
+      const newResources: ActionOutputs = {
         resource1: newTestResource,
       };
 
@@ -441,10 +442,10 @@ describe('TransactionService UT', () => {
       const newTestResource = new TestResource('resource-1');
       newTestResource.markUpdated('updateKey', 'update value');
 
-      const oldResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
-      const newResources: IActionOutputs = {
+      const newResources: ActionOutputs = {
         resource1: newTestResource,
       };
 
@@ -459,10 +460,10 @@ describe('TransactionService UT', () => {
 
     describe('When resource class has an override on diff()', () => {
       it('should compare same resources on properties', async () => {
-        const oldResources: IActionOutputs = {
+        const oldResources: ActionOutputs = {
           resource1: new TestResource('resource-1'),
         };
-        const newResources: IActionOutputs = {
+        const newResources: ActionOutputs = {
           resource1: new TestResourceWithDiffOverride('resource-1'),
         };
 
@@ -478,7 +479,7 @@ describe('TransactionService UT', () => {
   });
 
   describe('setApplyOrder()', () => {
-    const actions: IAction<IActionInputs, IActionOutputs>[] = [
+    const actions: IAction<ActionInputs, ActionOutputs>[] = [
       {
         ACTION_NAME: 'test',
         collectInput: () => [],
@@ -672,10 +673,10 @@ describe('TransactionService UT', () => {
       };
 
       it('should yield new resources', async () => {
-        const oldResources: IActionOutputs = {
+        const oldResources: ActionOutputs = {
           resource1: new TestResource('resource-1'),
         };
-        const newResources: IActionOutputs = {
+        const newResources: ActionOutputs = {
           resource1: new TestResource('resource-1'),
           resource2: new TestResource('resource-2'),
         };
@@ -697,7 +698,7 @@ describe('TransactionService UT', () => {
   });
 
   describe('rollbackTransaction()', () => {
-    const universalModelAction: IAction<IActionInputs, IActionOutputs> = {
+    const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
       ACTION_NAME: 'universal',
       collectInput: () => [],
       collectOutput: () => [],
@@ -726,10 +727,10 @@ describe('TransactionService UT', () => {
     });
 
     it('should be able to revert addition of resources', async () => {
-      const oldResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
-      const newResources: IActionOutputs = {
+      const newResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
         resource2: new TestResource('resource-2'),
       };
@@ -755,10 +756,10 @@ describe('TransactionService UT', () => {
     });
 
     it('should be able to revert deletion of resources', async () => {
-      const oldResources: IActionOutputs = {
+      const oldResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),
       };
-      const newResources: IActionOutputs = {};
+      const newResources: ActionOutputs = {};
 
       const service = new TransactionService();
       service.registerResourceActions([
