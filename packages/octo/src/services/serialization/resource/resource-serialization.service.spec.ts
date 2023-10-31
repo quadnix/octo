@@ -1,6 +1,5 @@
 import 'reflect-metadata';
 
-import { Container } from 'typedi';
 import { UnknownResource } from '../../../app.type.js';
 import { AResource } from '../../../resources/resource.abstract.js';
 import { ASharedResource } from '../../../resources/shared-resource.abstract.js';
@@ -31,7 +30,7 @@ describe('Resource Serialization Service UT', () => {
       resource2.response['response2'] = 'value2';
       resource2.associateWith([resource1]);
 
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
 
       await expect(async () => {
         const serializedOutput = service.serialize([resource1, resource2]);
@@ -44,7 +43,7 @@ describe('Resource Serialization Service UT', () => {
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
 
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
 
       const serializedOutput = service.serialize([resource1]);
@@ -59,7 +58,7 @@ describe('Resource Serialization Service UT', () => {
       resource1.response['response1'] = 'value1';
       const sharedResource1 = new SharedTestResource(resource1);
 
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
 
@@ -75,7 +74,7 @@ describe('Resource Serialization Service UT', () => {
       resource1.response['response1'] = 'value1';
       const sharedResource1 = new SharedTestResource(resource1);
 
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
 
@@ -96,7 +95,7 @@ describe('Resource Serialization Service UT', () => {
       resource2.response['response2'] = 'value2';
       resource2.associateWith([resource1]);
 
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
 
       const serializedOutput = service.serialize([resource1, resource2]);
@@ -120,7 +119,7 @@ describe('Resource Serialization Service UT', () => {
       resource2.response['response2'] = 'value2';
       resource2.associateWith([resource1]);
 
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
 
       // Reverse the list of resources, such that dependent resource is forced to be deserialized first.
@@ -146,7 +145,7 @@ describe('Resource Serialization Service UT', () => {
       resource2.associateWith([resource1]);
       const sharedResource1 = new SharedTestResource(resource1);
 
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
 
@@ -165,14 +164,14 @@ describe('Resource Serialization Service UT', () => {
 
   describe('serialize()', () => {
     it('should serialize an empty array', () => {
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       expect(service.serialize([])).toMatchSnapshot();
     });
 
     it('should serialize non-empty array', () => {
       const resources: UnknownResource[] = [new TestResource('resource-1')];
 
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       expect(service.serialize(resources)).toMatchSnapshot();
     });
 
@@ -187,7 +186,7 @@ describe('Resource Serialization Service UT', () => {
       resource2.markDeleted();
 
       const resources: UnknownResource[] = [resource1, resource2];
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       expect(service.serialize(resources)).toMatchSnapshot();
     });
 
@@ -201,7 +200,7 @@ describe('Resource Serialization Service UT', () => {
       resource1.addChild('resourceId', resource2, 'resourceId');
       const resources: UnknownResource[] = [resource1, resource2];
 
-      const service = Container.get(ResourceSerializationService);
+      const service = new ResourceSerializationService();
       expect(service.serialize(resources)).toMatchSnapshot();
     });
   });

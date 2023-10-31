@@ -12,7 +12,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('LocalStateProvider UT', () => {
-  let filePath;
+  let filePath: string;
+  let localStateProvider: LocalStateProvider;
+
+  beforeAll(() => {
+    Container.set(LocalStateProviderContext, { localStateDirectoryPath: __dirname });
+    localStateProvider = Container.get(LocalStateProvider);
+  });
 
   afterEach(async () => {
     if (filePath) {
@@ -20,11 +26,13 @@ describe('LocalStateProvider UT', () => {
     }
   });
 
+  afterAll(() => {
+    Container.reset();
+  });
+
   it('should be able to save state', async () => {
     filePath = join(__dirname, 'manifest.json');
 
-    Container.set(LocalStateProviderContext, { localStateDirectoryPath: __dirname });
-    const localStateProvider = Container.get(LocalStateProvider);
     const stateManagementService = StateManagementService.getInstance(localStateProvider);
 
     const data = Buffer.from(

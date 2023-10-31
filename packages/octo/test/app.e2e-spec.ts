@@ -11,9 +11,17 @@ import {
 } from '../src/index.js';
 
 describe('App E2E Test', () => {
-  it('should generate app diff', async () => {
-    const serializationService = Container.get(ModelSerializationService);
+  let modelSerializationService: ModelSerializationService;
 
+  beforeAll(() => {
+    modelSerializationService = Container.get(ModelSerializationService);
+  });
+
+  afterAll(() => {
+    Container.reset();
+  });
+
+  it('should generate app diff', async () => {
     const app0 = new App('test-app');
     const image0 = new Image('image', 'tag', { dockerFilePath: '.' });
     app0.addImage(image0);
@@ -24,7 +32,7 @@ describe('App E2E Test', () => {
     region0.addEnvironment(qaEnvironment0);
     app0.addServer(new Server('backend', image0));
 
-    const app1 = (await serializationService.deserialize(serializationService.serialize(app0))) as App;
+    const app1 = (await modelSerializationService.deserialize(modelSerializationService.serialize(app0))) as App;
     const region1 = app1.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
     const backendServer1 = app1.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
     const qaEnvironment1 = region1.getChild('environment', [{ key: 'environmentName', value: 'qa' }]) as Environment;

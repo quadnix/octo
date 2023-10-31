@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 
 import { jest } from '@jest/globals';
-import { Container } from 'typedi';
 import { ActionInputs, ActionOutputs, UnknownResource } from '../app.type.js';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
@@ -56,7 +55,7 @@ const universalResourceAction: IResourceAction = {
 
 describe('SharedResource UT', () => {
   it('should serialize and deserialize empty shared-resources', async () => {
-    const service = Container.get(ResourceSerializationService);
+    const service = new ResourceSerializationService();
     service.registerClass('ParentResource', ParentResource);
     service.registerClass('TestResource', TestResource);
     service.registerClass('SharedTestResource', SharedTestResource);
@@ -77,7 +76,7 @@ describe('SharedResource UT', () => {
     testResource.response['response1'] = 'response-value-1';
     const sharedTestResource = new SharedTestResource(testResource);
 
-    const service = Container.get(ResourceSerializationService);
+    const service = new ResourceSerializationService();
     service.registerClass('ParentResource', ParentResource);
     service.registerClass('TestResource', TestResource);
     service.registerClass('SharedTestResource', SharedTestResource);
@@ -186,7 +185,7 @@ describe('SharedResource UT', () => {
   it('should serialize and deserialize shared-resources with different parents', async () => {
     const app = new App('app');
 
-    const serializationService = Container.get(ResourceSerializationService);
+    const serializationService = new ResourceSerializationService();
     serializationService.registerClass('ParentResource', ParentResource);
     serializationService.registerClass('TestResource', TestResource);
     serializationService.registerClass('SharedTestResource', SharedTestResource);

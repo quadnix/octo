@@ -11,11 +11,19 @@ import { Region } from '../region/region.model.js';
 import { Support } from './support.model.js';
 
 describe('Support UT', () => {
+  let modelSerializationService: ModelSerializationService;
+
+  beforeAll(() => {
+    modelSerializationService = Container.get(ModelSerializationService);
+  });
+
+  afterAll(() => {
+    Container.reset();
+  });
+
   describe('diff()', () => {
     describe('when diff of object with children', () => {
       it('should capture delete of children', async () => {
-        const modelSerializationService = Container.get(ModelSerializationService);
-
         const app0_0 = new App('test');
         const image0_0 = new Image('test', 'imageTag', {
           dockerFilePath: 'path/to/Dockerfile',
