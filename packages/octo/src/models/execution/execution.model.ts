@@ -8,7 +8,7 @@ import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { IExecution } from './execution.interface.js';
 
-@Model(Execution)
+@Model()
 export class Execution extends AModel<IExecution, Execution> {
   readonly MODEL_NAME: string = 'execution';
 

@@ -4,7 +4,7 @@ import { Diff } from '../../functions/diff/diff.model.js';
 import { AModel } from '../model.abstract.js';
 import { IEnvironment } from './environment.interface.js';
 
-@Model(Environment)
+@Model()
 export class Environment extends AModel<IEnvironment, Environment> {
   readonly MODEL_NAME: string = 'environment';
 

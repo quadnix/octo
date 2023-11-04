@@ -1,9 +1,10 @@
-import { Container } from 'typedi';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
+import { Container } from './container.js';
 
-export function Resource(registerAs: any): (constructor: any) => void {
+export function Resource(): (constructor: any) => void {
   return function (constructor: any) {
-    const resourceSerializationService = Container.get(ResourceSerializationService);
-    resourceSerializationService.registerClass(constructor.name, registerAs);
+    Container.get(ResourceSerializationService).then((resourceSerializationService) => {
+      resourceSerializationService.registerClass(constructor.name, constructor);
+    });
   };
 }

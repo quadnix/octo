@@ -1,25 +1,12 @@
-import { Service } from 'typedi';
+import { Container } from '../../decorators/container.js';
+import { Factory } from '../../decorators/factory.decorator.js';
 import { IStateProvider } from './state-provider.interface.js';
 
-@Service()
 export class StateManagementService {
   private readonly stateProvider: IStateProvider;
 
-  private static instance: StateManagementService;
-
-  private constructor(stateProvider: IStateProvider) {
+  constructor(stateProvider: IStateProvider) {
     this.stateProvider = stateProvider;
-  }
-
-  static getInstance(stateProvider?: IStateProvider, forceNew?: boolean): StateManagementService {
-    if (!StateManagementService.instance || forceNew) {
-      if (!stateProvider) {
-        throw new Error('No state provider!');
-      }
-      StateManagementService.instance = new StateManagementService(stateProvider);
-    }
-
-    return StateManagementService.instance;
   }
 
   async getState(stateFileName: string, defaultValue?: any): Promise<Buffer> {
@@ -36,5 +23,18 @@ export class StateManagementService {
 
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
     return this.stateProvider.saveState(stateFileName, data);
+  }
+}
+
+@Factory<StateManagementService>(StateManagementService)
+export class StateManagementServiceFactory {
+  private static instance: StateManagementService;
+
+  static async create(): Promise<StateManagementService> {
+    if (!this.instance) {
+      const stateProvider = await Container.get<IStateProvider>('IStateProvider');
+      this.instance = new StateManagementService(stateProvider);
+    }
+    return this.instance;
   }
 }

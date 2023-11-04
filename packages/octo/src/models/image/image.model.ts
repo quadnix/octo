@@ -9,7 +9,7 @@ export interface IImageDockerOptions {
   quiet?: boolean;
 }
 
-@Model(Image)
+@Model()
 export class Image extends AModel<IImage, Image> {
   readonly MODEL_NAME: string = 'image';
 

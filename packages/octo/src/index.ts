@@ -1,6 +1,6 @@
-import 'reflect-metadata';
-
 export { Action } from './decorators/action.decorator.js';
+export { Container } from './decorators/container.js';
+export { Factory } from './decorators/factory.decorator.js';
 export { Model } from './decorators/model.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
 
@@ -43,13 +43,22 @@ export { IResource } from './resources/resource.interface.js';
 export { IResourceAction } from './resources/resource-action.interface.js';
 export { ASharedResource } from './resources/shared-resource.abstract.js';
 
-export { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
-export { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
+export {
+  ModelSerializationService,
+  ModelSerializationServiceFactory,
+} from './services/serialization/model/model-serialization.service.js';
+export {
+  ResourceSerializationService,
+  ResourceSerializationServiceFactory,
+} from './services/serialization/resource/resource-serialization.service.js';
 
-export { LocalStateProviderContext, LocalStateProvider } from './services/state-management/local.state-provider.js';
-export { StateManagementService } from './services/state-management/state-management.service.js';
+export { LocalStateProvider } from './services/state-management/local.state-provider.js';
+export {
+  StateManagementService,
+  StateManagementServiceFactory,
+} from './services/state-management/state-management.service.js';
 export { IStateProvider } from './services/state-management/state-provider.interface.js';
 
-export { TransactionService } from './services/transaction/transaction.service.js';
+export { TransactionService, TransactionServiceFactory } from './services/transaction/transaction.service.js';
 
 export * from './app.type.js';

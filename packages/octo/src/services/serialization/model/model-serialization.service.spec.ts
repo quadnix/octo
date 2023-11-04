@@ -1,5 +1,3 @@
-import 'reflect-metadata';
-
 import { ModelSerializedOutput } from '../../../app.type.js';
 import { IDependency } from '../../../functions/dependency/dependency.model.js';
 import { App } from '../../../models/app/app.model.js';

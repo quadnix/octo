@@ -1,4 +1,3 @@
-import { Service } from 'typedi';
 import {
   ActionInputs,
   ActionOutputs,
@@ -6,12 +5,12 @@ import {
   UnknownResource,
   UnknownSharedResource,
 } from '../../app.type.js';
+import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
 import { IAction } from '../../models/action.interface.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 
-@Service()
 export class TransactionService {
   private readonly inputs: ActionInputs = {};
   private readonly modelActions: IAction<ActionInputs, ActionOutputs>[] = [];
@@ -309,18 +308,6 @@ export class TransactionService {
     }
   }
 
-  resetInputs(): void {
-    Object.keys(this.inputs).forEach((key) => delete this.inputs[key]);
-  }
-
-  resetModelActions(): void {
-    this.modelActions.splice(0, this.modelActions.length);
-  }
-
-  resetResourceActions(): void {
-    this.resourceActions.splice(0, this.resourceActions.length);
-  }
-
   async *rollbackTransaction(
     modelTransaction: DiffMetadata[][],
     oldResources: ActionOutputs = {},
@@ -369,5 +356,17 @@ export class TransactionService {
     }
 
     return resourceTransaction;
+  }
+}
+
+@Factory<TransactionService>(TransactionService)
+export class TransactionServiceFactory {
+  private static instance: TransactionService;
+
+  static async create(): Promise<TransactionService> {
+    if (!this.instance) {
+      this.instance = new TransactionService();
+    }
+    return this.instance;
   }
 }

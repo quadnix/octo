@@ -1,8 +1,7 @@
-import { Service } from 'typedi';
 import { ActionOutputs, ResourceSerializedOutput, UnknownResource, UnknownSharedResource } from '../../../app.type.js';
+import { Factory } from '../../../decorators/factory.decorator.js';
 import { IDependency } from '../../../functions/dependency/dependency.model.js';
 
-@Service()
 export class ResourceSerializationService {
   private readonly classMapping: { [key: string]: any } = {};
 
@@ -177,5 +176,17 @@ export class ResourceSerializationService {
     }
 
     return { dependencies, resources: serializedResources, sharedResources: sharedSerializedResources };
+  }
+}
+
+@Factory<ResourceSerializationService>(ResourceSerializationService)
+export class ResourceSerializationServiceFactory {
+  private static instance: ResourceSerializationService;
+
+  static async create(): Promise<ResourceSerializationService> {
+    if (!this.instance) {
+      this.instance = new ResourceSerializationService();
+    }
+    return this.instance;
   }
 }

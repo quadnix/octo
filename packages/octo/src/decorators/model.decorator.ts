@@ -1,9 +1,10 @@
-import { Container } from 'typedi';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
+import { Container } from './container.js';
 
-export function Model(registerAs: any): (constructor: any) => void {
+export function Model(): (constructor: any) => void {
   return function (constructor: any) {
-    const modelSerializationService = Container.get(ModelSerializationService);
-    modelSerializationService.registerClass(constructor.name, registerAs);
+    Container.get(ModelSerializationService).then((modelSerializationService) => {
+      modelSerializationService.registerClass(constructor.name, constructor);
+    });
   };
 }

@@ -17,6 +17,8 @@ export type ActionInputs = { [key: string]: string | UnknownResource };
 
 export type ActionOutputs = { [key: string]: UnknownResource };
 
+export type Constructable<T> = new (...args: any[]) => T;
+
 export type ModelSerializedOutput = {
   anchors: (IAnchor & { className: string })[];
   dependencies: IDependency[];

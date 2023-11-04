@@ -1,5 +1,3 @@
-import 'reflect-metadata';
-
 import { jest } from '@jest/globals';
 import { ActionInputs, ActionOutputs } from '../../app.type.js';
 import { Resource } from '../../decorators/resource.decorator.js';
@@ -13,7 +11,7 @@ import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import { TransactionService } from './transaction.service.js';
 
-@Resource(TestResource)
+@Resource()
 class TestResource extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
@@ -22,7 +20,7 @@ class TestResource extends AResource<TestResource> {
   }
 }
 
-@Resource(TestResourceWithDiffOverride)
+@Resource()
 class TestResourceWithDiffOverride extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 

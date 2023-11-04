@@ -1,7 +1,7 @@
-import 'reflect-metadata';
-
 import { jest } from '@jest/globals';
 import { ActionInputs, ActionOutputs, UnknownResource } from '../app.type.js';
+import { Container } from '../decorators/container.js';
+import { Resource } from '../decorators/resource.decorator.js';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
 import { IAction } from '../models/action.interface.js';
@@ -13,6 +13,7 @@ import { IResourceAction } from './resource-action.interface.js';
 import { AResource } from './resource.abstract.js';
 import { ASharedResource } from './shared-resource.abstract.js';
 
+@Resource()
 class ParentResource extends AResource<ParentResource> {
   readonly MODEL_NAME: string = 'parent-resource';
 
@@ -21,6 +22,7 @@ class ParentResource extends AResource<ParentResource> {
   }
 }
 
+@Resource()
 class TestResource extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
@@ -29,6 +31,7 @@ class TestResource extends AResource<TestResource> {
   }
 }
 
+@Resource()
 class SharedTestResource extends ASharedResource<TestResource> {
   constructor(resource: TestResource) {
     super(resource);
@@ -54,13 +57,16 @@ const universalResourceAction: IResourceAction = {
 };
 
 describe('SharedResource UT', () => {
-  it('should serialize and deserialize empty shared-resources', async () => {
-    const service = new ResourceSerializationService();
-    service.registerClass('ParentResource', ParentResource);
-    service.registerClass('TestResource', TestResource);
-    service.registerClass('SharedTestResource', SharedTestResource);
+  let resourceSerializationService: ResourceSerializationService;
+  let transactionService: TransactionService;
 
-    const serializedOutput = service.serialize([]);
+  beforeAll(async () => {
+    resourceSerializationService = await Container.get(ResourceSerializationService);
+    transactionService = await Container.get(TransactionService);
+  });
+
+  it('should serialize and deserialize empty shared-resources', async () => {
+    const serializedOutput = resourceSerializationService.serialize([]);
     expect(serializedOutput).toMatchInlineSnapshot(`
       {
         "dependencies": [],
@@ -76,12 +82,7 @@ describe('SharedResource UT', () => {
     testResource.response['response1'] = 'response-value-1';
     const sharedTestResource = new SharedTestResource(testResource);
 
-    const service = new ResourceSerializationService();
-    service.registerClass('ParentResource', ParentResource);
-    service.registerClass('TestResource', TestResource);
-    service.registerClass('SharedTestResource', SharedTestResource);
-
-    const serializedOutput = service.serialize([parentResource, sharedTestResource]);
+    const serializedOutput = resourceSerializationService.serialize([parentResource, sharedTestResource]);
     expect(serializedOutput).toMatchInlineSnapshot(`
       {
         "dependencies": [
@@ -164,7 +165,7 @@ describe('SharedResource UT', () => {
       }
     `);
 
-    const resources = await service.deserialize(serializedOutput);
+    const resources = await resourceSerializationService.deserialize(serializedOutput);
 
     expect(resources['parent-1'].resourceId).toBe('parent-1');
     expect(resources['parent-1'].properties).toEqual({});
@@ -184,11 +185,6 @@ describe('SharedResource UT', () => {
    */
   it('should serialize and deserialize shared-resources with different parents', async () => {
     const app = new App('app');
-
-    const serializationService = new ResourceSerializationService();
-    serializationService.registerClass('ParentResource', ParentResource);
-    serializationService.registerClass('TestResource', TestResource);
-    serializationService.registerClass('SharedTestResource', SharedTestResource);
 
     // Assume a region is being created.
     const region1 = new Region('region-1');
@@ -216,14 +212,13 @@ describe('SharedResource UT', () => {
       revert: jest.fn() as jest.Mocked<any>,
     };
 
-    const service = new TransactionService();
-    service.registerModelActions([addRegion1Action]);
-    service.registerResourceActions([universalResourceAction]);
-    const generator1 = service.beginTransaction(diffs1, {}, {}, { yieldNewResources: true });
+    transactionService.registerModelActions([addRegion1Action]);
+    transactionService.registerResourceActions([universalResourceAction]);
+    const generator1 = transactionService.beginTransaction(diffs1, {}, {}, { yieldNewResources: true });
 
     // Validate shared resources properties, responses, and dependencies are serialized correctly.
     const newResources1 = await generator1.next();
-    const serializedOutput1 = serializationService.serialize(newResources1.value as UnknownResource[]);
+    const serializedOutput1 = resourceSerializationService.serialize(newResources1.value as UnknownResource[]);
     expect(serializedOutput1).toMatchInlineSnapshot(`
       {
         "dependencies": [
@@ -332,8 +327,8 @@ describe('SharedResource UT', () => {
       revert: jest.fn() as jest.Mocked<any>,
     };
 
-    service.registerModelActions([addRegion2Action]);
-    const generator2 = service.beginTransaction(
+    transactionService.registerModelActions([addRegion2Action]);
+    const generator2 = transactionService.beginTransaction(
       diffs2,
       {
         'parent-1': parentResource1,
@@ -350,7 +345,7 @@ describe('SharedResource UT', () => {
 
     // Validate shared resources properties, responses, and dependencies are serialized correctly.
     const newResources2 = await generator2.next();
-    const serializedOutput2 = serializationService.serialize(newResources2.value as UnknownResource[]);
+    const serializedOutput2 = resourceSerializationService.serialize(newResources2.value as UnknownResource[]);
     expect(serializedOutput2).toMatchInlineSnapshot(`
       {
         "dependencies": [

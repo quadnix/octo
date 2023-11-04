@@ -1,11 +1,10 @@
-import { Service } from 'typedi';
 import { IUnknownModel, ModelSerializedOutput, UnknownModel } from '../../../app.type.js';
+import { Factory } from '../../../decorators/factory.decorator.js';
 import { AModule } from '../../../functions/module/module.abstract.js';
 import { IModule } from '../../../functions/module/module.interface.js';
 import { IAnchor } from '../../../functions/overlay/anchor.interface.js';
 import { Dependency, IDependency } from '../../../functions/dependency/dependency.model.js';
 
-@Service()
 export class ModelSerializationService {
   private readonly classMapping: { [key: string]: any } = {};
 
@@ -124,5 +123,17 @@ export class ModelSerializationService {
     }
 
     return { anchors, dependencies, models, modules };
+  }
+}
+
+@Factory<ModelSerializationService>(ModelSerializationService)
+export class ModelSerializationServiceFactory {
+  private static instance: ModelSerializationService;
+
+  static async create(): Promise<ModelSerializationService> {
+    if (!this.instance) {
+      this.instance = new ModelSerializationService();
+    }
+    return this.instance;
   }
 }

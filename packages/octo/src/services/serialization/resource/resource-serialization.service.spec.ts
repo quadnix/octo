@@ -1,5 +1,3 @@
-import 'reflect-metadata';
-
 import { UnknownResource } from '../../../app.type.js';
 import { AResource } from '../../../resources/resource.abstract.js';
 import { ASharedResource } from '../../../resources/shared-resource.abstract.js';

@@ -2,7 +2,7 @@ import { Model } from '../../decorators/model.decorator.js';
 import { AModel } from '../model.abstract.js';
 import { IService } from './service.interface.js';
 
-@Model(Service)
+@Model()
 export class Service extends AModel<IService, Service> {
   readonly MODEL_NAME: string = 'service';
 

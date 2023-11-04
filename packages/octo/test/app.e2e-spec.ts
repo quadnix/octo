@@ -1,6 +1,6 @@
-import { Container } from 'typedi';
 import {
   App,
+  Container,
   Deployment,
   Environment,
   Image,
@@ -13,12 +13,8 @@ import {
 describe('App E2E Test', () => {
   let modelSerializationService: ModelSerializationService;
 
-  beforeAll(() => {
-    modelSerializationService = Container.get(ModelSerializationService);
-  });
-
-  afterAll(() => {
-    Container.reset();
+  beforeAll(async () => {
+    modelSerializationService = await Container.get(ModelSerializationService);
   });
 
   it('should generate app diff', async () => {

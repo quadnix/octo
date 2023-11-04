@@ -4,7 +4,7 @@ import { Deployment } from '../deployment/deployment.model.js';
 import { AModel } from '../model.abstract.js';
 import { ISupport } from './support.interface.js';
 
-@Model(Support)
+@Model()
 export class Support extends AModel<ISupport, Support> {
   readonly MODEL_NAME: string = 'support';
 

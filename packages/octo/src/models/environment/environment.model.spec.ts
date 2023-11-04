@@ -1,5 +1,3 @@
-import 'reflect-metadata';
-
 import { Environment } from './environment.model.js';
 
 describe('Environment UT', () => {

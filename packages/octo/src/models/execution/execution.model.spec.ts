@@ -1,6 +1,4 @@
-import 'reflect-metadata';
-
-import { Container } from 'typedi';
+import { Container } from '../../decorators/container.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 import { App } from '../app/app.model.js';
 import { Deployment } from '../deployment/deployment.model.js';
@@ -13,12 +11,8 @@ import { Execution } from './execution.model.js';
 describe('Execution UT', () => {
   let modelSerializationService: ModelSerializationService;
 
-  beforeAll(() => {
-    modelSerializationService = Container.get(ModelSerializationService);
-  });
-
-  afterAll(() => {
-    Container.reset();
+  beforeAll(async () => {
+    modelSerializationService = await Container.get(ModelSerializationService);
   });
 
   describe('diff()', () => {

@@ -1,8 +1,5 @@
 {
-  "dependencies": {
-    "reflect-metadata": "~0.1.13",
-    "typedi": "~0.10.0"
-  },
+  "dependencies": {},
   "description": "Octo is an opinionated interface of a cloud infrastructure.",
   "devDependencies": {},
   "engines": {

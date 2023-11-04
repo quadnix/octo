@@ -3,7 +3,7 @@ import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
 import { IRegion } from './region.interface.js';
 
-@Model(Region)
+@Model()
 export class Region extends AModel<IRegion, Region> {
   readonly MODEL_NAME: string = 'region';
 

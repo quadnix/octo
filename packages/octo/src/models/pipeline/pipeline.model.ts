@@ -4,7 +4,7 @@ import { AModel } from '../model.abstract.js';
 import { Diff } from '../../functions/diff/diff.model.js';
 import { IPipeline } from './pipeline.interface.js';
 
-@Model(Pipeline)
+@Model()
 export class Pipeline extends AModel<IPipeline, Pipeline> {
   readonly MODEL_NAME: string = 'pipeline';
 

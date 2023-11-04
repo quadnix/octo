@@ -5,7 +5,7 @@ import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { IServer } from './server.interface.js';
 
-@Model(Server)
+@Model()
 export class Server extends AModel<IServer, Server> {
   readonly MODEL_NAME: string = 'server';
 

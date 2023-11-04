@@ -8,7 +8,7 @@ import { Service } from '../service/service.model.js';
 import { Support } from '../support/support.model.js';
 import { IApp } from './app.interface.js';
 
-@Model(App)
+@Model()
 export class App extends AModel<IApp, App> {
   readonly MODEL_NAME: string = 'app';
 
