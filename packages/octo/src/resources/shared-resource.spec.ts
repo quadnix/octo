@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 import { ActionInputs, ActionOutputs, UnknownResource } from '../app.type.js';
 import { Container } from '../decorators/container.js';
+import { Factory } from '../decorators/factory.decorator.js';
 import { Resource } from '../decorators/resource.decorator.js';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
@@ -12,6 +13,13 @@ import { TransactionService } from '../services/transaction/transaction.service.
 import { IResourceAction } from './resource-action.interface.js';
 import { AResource } from './resource.abstract.js';
 import { ASharedResource } from './shared-resource.abstract.js';
+
+@Factory<TransactionService>(TransactionService, { key: 'test' })
+class TransactionServiceTestFactory {
+  static async create(): Promise<TransactionService> {
+    return new TransactionService();
+  }
+}
 
 @Resource()
 class ParentResource extends AResource<ParentResource> {
@@ -61,8 +69,17 @@ describe('SharedResource UT', () => {
   let transactionService: TransactionService;
 
   beforeAll(async () => {
+    Container.setDefault(TransactionService, TransactionServiceTestFactory);
+
     resourceSerializationService = await Container.get(ResourceSerializationService);
+  });
+
+  beforeEach(async () => {
     transactionService = await Container.get(TransactionService);
+  });
+
+  afterAll(() => {
+    Container.reset();
   });
 
   it('should serialize and deserialize empty shared-resources', async () => {
