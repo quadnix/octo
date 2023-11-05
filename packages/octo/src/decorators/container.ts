@@ -4,25 +4,33 @@ type Factory<T> = { create: () => Promise<T> };
 type FactoryValue<T> = Factory<T> | [Promise<Factory<T>>, (factory: Factory<T>) => void];
 
 export class Container {
+  private static FACTORY_TIMEOUT_IN_MS = 5000;
+
   private static readonly factories: {
     [key: string]: {
+      default: boolean;
       factory: FactoryValue<any>;
       metadata: { [key: string]: string };
     }[];
   } = {};
 
-  static async get<T>(type: Constructable<T> | string, metadata: { [key: string]: string } = {}): Promise<T> {
+  static async get<T>(type: Constructable<T> | string, metadata?: { [key: string]: string }): Promise<T> {
     const name = typeof type === 'string' ? type : type.name;
 
     if (!(name in this.factories)) {
       this.factories[name] = [];
     }
 
-    const filters: { key: string; value: string }[] = [];
-    for (const key in metadata) {
-      filters.push({ key, value: metadata[key] });
+    let factoryContainer: (typeof Container.factories)[keyof typeof Container.factories][0] | undefined;
+    if (!metadata) {
+      factoryContainer = this.factories[name].find((f) => f.default);
+    } else {
+      const filters: { key: string; value: string }[] = [];
+      for (const key in metadata) {
+        filters.push({ key, value: metadata[key] });
+      }
+      factoryContainer = this.factories[name].find((f) => filters.every((c) => f.metadata[c.key] === c.value));
     }
-    const factoryContainer = this.factories[name].find((f) => filters.every((c) => f.metadata[c.key] === c.value));
 
     if (factoryContainer?.factory) {
       if (!Array.isArray(factoryContainer.factory)) {
@@ -34,25 +42,32 @@ export class Container {
     }
 
     const newFactoryContainer: (typeof Container.factories)[keyof typeof Container.factories][0] = {
+      default: false,
       metadata,
     } as (typeof Container.factories)[keyof typeof Container.factories][0];
     this.factories[name].push(newFactoryContainer);
 
     let promiseResolver;
-    const promise = new Promise<Factory<T>>((resolve) => {
+    let promiseTimeout;
+    const promise = new Promise<Factory<T>>((resolve, reject) => {
+      promiseTimeout = setTimeout(() => {
+        reject(new Error(`Timed out waiting for factory ${name} to resolve!`));
+      }, this.FACTORY_TIMEOUT_IN_MS);
       promiseResolver = resolve;
     });
     newFactoryContainer.factory = [promise, promiseResolver];
 
     const factory = await promise;
-    newFactoryContainer.factory = factory;
+    if (promiseTimeout) {
+      clearTimeout(promiseTimeout);
+    }
     return factory.create();
   }
 
   static registerFactory<T>(
     type: Constructable<T> | string,
     factory: Factory<T>,
-    metadata: { [key: string]: string },
+    metadata: { [key: string]: string } = {},
   ): void {
     const name = typeof type === 'string' ? type : type.name;
 
@@ -73,9 +88,34 @@ export class Container {
 
       const resolve = factoryContainer.factory[1] as (factory: Factory<T>) => void;
       resolve(factory);
+
+      factoryContainer.factory = factory;
+      this.setDefault(type, factory);
+
       return;
     }
 
-    this.factories[name].push({ factory, metadata });
+    this.factories[name].push({ default: false, factory, metadata });
+    this.setDefault(type, factory);
+  }
+
+  static reset(): void {
+    this.FACTORY_TIMEOUT_IN_MS = 5000;
+
+    for (const name in this.factories) {
+      delete this.factories[name];
+    }
+  }
+
+  static setDefault<T>(type: Constructable<T> | string, factory: Factory<T>): void {
+    const name = typeof type === 'string' ? type : type.name;
+
+    this.factories[name]?.forEach((f) => {
+      f.default = (f.factory as unknown as Constructable<T>).name === (factory as unknown as Constructable<T>).name;
+    });
+  }
+
+  static setFactoryTimeout(timeoutInMs: number): void {
+    this.FACTORY_TIMEOUT_IN_MS = timeoutInMs;
   }
 }
