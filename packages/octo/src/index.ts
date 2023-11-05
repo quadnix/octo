@@ -1,7 +1,9 @@
+export { Anchor } from './decorators/anchor.decorator.js';
 export { Action } from './decorators/action.decorator.js';
 export { Container } from './decorators/container.js';
 export { Factory } from './decorators/factory.decorator.js';
 export { Model } from './decorators/model.decorator.js';
+export { Module } from './decorators/module.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
 
 export { Diff, DiffAction } from './functions/diff/diff.model.js';
