@@ -1,4 +1,3 @@
-import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { IStateProvider } from './state-provider.interface.js';
 
@@ -30,11 +29,15 @@ export class StateManagementService {
 export class StateManagementServiceFactory {
   private static instance: StateManagementService;
 
-  static async create(): Promise<StateManagementService> {
-    if (!this.instance) {
-      const stateProvider = await Container.get<IStateProvider>('IStateProvider');
-      this.instance = new StateManagementService(stateProvider);
+  static async create(stateProvider: IStateProvider): Promise<StateManagementService> {
+    if (this.instance) {
+      return this.instance;
     }
+
+    if (!stateProvider) {
+      throw new Error(`Failed to create instance of ${StateManagementService.name} due to insufficient arguments!`);
+    }
+    this.instance = new StateManagementService(stateProvider);
     return this.instance;
   }
 }

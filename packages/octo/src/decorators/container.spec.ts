@@ -32,7 +32,7 @@ describe('Container UT', () => {
   it('should be able to register factory of a class', async () => {
     Container.registerFactory(Test, TestFactory);
 
-    const test = await Container.get(Test, {});
+    const test = await Container.get(Test, { metadata: {} });
     expect(test.property).toBe('value');
   });
 
@@ -46,24 +46,24 @@ describe('Container UT', () => {
   it('should be able to register factory of an interface', async () => {
     Container.registerFactory('ITest', TestFactory);
 
-    const test = await Container.get<Test>('ITest', {});
+    const test = await Container.get<Test>('ITest', { metadata: {} });
     expect(test.property).toBe('value');
   });
 
   it('should be able to register factory with a metadata', async () => {
     Container.registerFactory(Test, TestFactory);
-    Container.registerFactory(Test, TestFactoryWithMetadata, { type: 'metadata' });
+    Container.registerFactory(Test, TestFactoryWithMetadata, { metadata: { type: 'metadata' } });
 
-    const test1 = await Container.get(Test, {});
+    const test1 = await Container.get(Test, { metadata: {} });
     expect(test1.property).toBe('value');
 
-    const test2 = await Container.get(Test, { type: 'metadata' });
+    const test2 = await Container.get(Test, { metadata: { type: 'metadata' } });
     expect(test2.property).toBe('valueWithMetadata');
   });
 
   it('should be able to get a default factory', async () => {
     Container.registerFactory(Test, TestFactory);
-    Container.registerFactory(Test, TestFactoryWithMetadata, { type: 'metadata' });
+    Container.registerFactory(Test, TestFactoryWithMetadata, { metadata: { type: 'metadata' } });
 
     const test1 = await Container.get(Test);
     expect(test1.property).toBe('valueWithMetadata');
@@ -83,8 +83,8 @@ describe('Container UT', () => {
   });
 
   it('should wait multiple times on same promise for factory to be created when factory does not exist', async () => {
-    const promiseToGetTest1 = Container.get(Test, {});
-    const promiseToGetTest2 = Container.get(Test, {});
+    const promiseToGetTest1 = Container.get(Test, { metadata: {} });
+    const promiseToGetTest2 = Container.get(Test, { metadata: {} });
     Container.registerFactory(Test, TestFactory);
 
     const test1 = await promiseToGetTest1;

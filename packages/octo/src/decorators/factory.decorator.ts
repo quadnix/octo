@@ -3,9 +3,11 @@ import { Container } from './container.js';
 
 export function Factory<T>(
   type: Constructable<T> | string,
-  metadata?: { [key: string]: string },
-): (constructor: { create: () => Promise<T> }) => void {
-  return function (constructor: { create: () => Promise<T> }) {
-    Container.registerFactory<T>(type, constructor, metadata || {});
+  options?: {
+    metadata?: { [key: string]: string };
+  },
+): (constructor: { create: (...args: unknown[]) => Promise<T> }) => void {
+  return function (constructor: { create: (...args: unknown[]) => Promise<T> }) {
+    Container.registerFactory<T>(type, constructor, options);
   };
 }

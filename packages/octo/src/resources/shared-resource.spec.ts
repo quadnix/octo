@@ -14,7 +14,7 @@ import { IResourceAction } from './resource-action.interface.js';
 import { AResource } from './resource.abstract.js';
 import { ASharedResource } from './shared-resource.abstract.js';
 
-@Factory<TransactionService>(TransactionService, { key: 'test' })
+@Factory<TransactionService>(TransactionService, { metadata: { key: 'test' } })
 class TransactionServiceTestFactory {
   static async create(): Promise<TransactionService> {
     return new TransactionService();

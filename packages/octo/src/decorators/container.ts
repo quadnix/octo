@@ -1,6 +1,6 @@
 import { Constructable } from '../app.type.js';
 
-type Factory<T> = { create: () => Promise<T> };
+type Factory<T> = { create: (...args: unknown[]) => Promise<T> };
 type FactoryValue<T> = Factory<T> | [Promise<Factory<T>>, (factory: Factory<T>) => void];
 
 export class Container {
@@ -14,7 +14,15 @@ export class Container {
     }[];
   } = {};
 
-  static async get<T>(type: Constructable<T> | string, metadata?: { [key: string]: string }): Promise<T> {
+  static async get<T>(
+    type: Constructable<T> | string,
+    options?: {
+      args?: unknown[];
+      metadata?: { [key: string]: string };
+    },
+  ): Promise<T> {
+    const args = options?.args || [];
+    const metadata = options?.metadata;
     const name = typeof type === 'string' ? type : type.name;
 
     if (!(name in this.factories)) {
@@ -34,14 +42,14 @@ export class Container {
 
     if (factoryContainer?.factory) {
       if (!Array.isArray(factoryContainer.factory)) {
-        return (factoryContainer.factory as Factory<T>).create();
+        return (factoryContainer.factory as Factory<T>).create(...args);
       } else {
         const factory = await (factoryContainer.factory[0] as Promise<Factory<T>>);
-        return factory.create();
+        return factory.create(...args);
       }
     }
 
-    const newFactoryContainer: (typeof Container.factories)[keyof typeof Container.factories][0] = {
+    const newFactoryContainer = {
       default: false,
       metadata,
     } as (typeof Container.factories)[keyof typeof Container.factories][0];
@@ -61,14 +69,17 @@ export class Container {
     if (promiseTimeout) {
       clearTimeout(promiseTimeout);
     }
-    return factory.create();
+    return factory.create(...args);
   }
 
   static registerFactory<T>(
     type: Constructable<T> | string,
     factory: Factory<T>,
-    metadata: { [key: string]: string } = {},
+    options?: {
+      metadata?: { [key: string]: string };
+    },
   ): void {
+    const metadata = options?.metadata || {};
     const name = typeof type === 'string' ? type : type.name;
 
     if (!(name in this.factories)) {
@@ -86,9 +97,9 @@ export class Container {
         throw new Error(`Factory ${name} is already registered with given metadata!`);
       }
 
+      factoryContainer.metadata = metadata;
       const resolve = factoryContainer.factory[1] as (factory: Factory<T>) => void;
       resolve(factory);
-
       factoryContainer.factory = factory;
       this.setDefault(type, factory);
 
