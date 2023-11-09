@@ -199,7 +199,7 @@ describe('S3StaticWebsiteService UT', () => {
 
       // Prevent generator from running real resource actions.
       const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
       await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
     });
 
@@ -245,7 +245,7 @@ describe('S3StaticWebsiteService UT', () => {
 
       // Prevent generator from running real resource actions.
       const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
       await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
 
       // Remove a sourcePath from the service in a subsequent update to service.
@@ -285,7 +285,7 @@ describe('S3StaticWebsiteService UT', () => {
 
       // Prevent generator from running real resource actions.
       const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
       await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
 
       // Update a sourcePath from the service in a subsequent update to service.

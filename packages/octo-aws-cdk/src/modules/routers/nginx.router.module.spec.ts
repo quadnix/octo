@@ -1,10 +1,19 @@
-import { App, Environment, Image, ModelSerializationService, Region } from '@quadnix/octo';
+import { App, Container, Environment, Image, ModelSerializationService, Region } from '@quadnix/octo';
 import { NginxRouterModule } from './nginx.router.module.js';
 
 describe('NginxRouterModule UT', () => {
+  let modelSerializationService: ModelSerializationService;
+
+  beforeAll(() => {
+    modelSerializationService = Container.get(ModelSerializationService);
+  });
+
+  afterAll(() => {
+    Container.reset();
+  });
+
   it('should test add and delete operations', async () => {
     const nginxRouterModule = new NginxRouterModule();
-    const service = new ModelSerializationService();
 
     const app1 = new App('test');
     const nginxImage1 = new Image('quadnix/nginx', '0.0.1', {
@@ -23,7 +32,7 @@ describe('NginxRouterModule UT', () => {
     expect(diffs1).toMatchSnapshot();
     expect(nginxRouterModule.synth()).toMatchSnapshot();
 
-    const app2 = (await service.deserialize(service.serialize(app1))) as App;
+    const app2 = (await modelSerializationService.deserialize(modelSerializationService.serialize(app1))) as App;
     const nginxImage2 = new Image('quadnix/nginx', '0.0.2', {
       dockerFilePath: 'resources/images/quadnix/nginx/0.0.2',
     });
@@ -38,7 +47,7 @@ describe('NginxRouterModule UT', () => {
     expect(diffs2).toMatchSnapshot();
     expect(nginxRouterModule.synth()).toMatchSnapshot();
 
-    const app3 = (await service.deserialize(service.serialize(app2))) as App;
+    const app3 = (await modelSerializationService.deserialize(modelSerializationService.serialize(app2))) as App;
     const nginxImage3 = app3.getChild('image', [{ key: 'imageTag', value: '0.0.1' }]) as Image;
     const region3 = app3.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
     const environment3 = region3.getChild('environment', [{ key: 'environmentName', value: 'qa' }]) as Environment;

@@ -48,7 +48,7 @@ describe('S3StorageService UT', () => {
 
       // Prevent generator from running real resource actions.
       const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
       await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
     });
 
@@ -66,7 +66,7 @@ describe('S3StorageService UT', () => {
 
       // Prevent generator1 from running real resource actions.
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
       const resourceDiffsResult1 = await generator1.next();
       await octoAws.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
 
@@ -94,7 +94,7 @@ describe('S3StorageService UT', () => {
 
       // Prevent generator1 from running real resource actions.
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
       const resourceDiffsResult2 = await generator2.next();
       await octoAws.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
 
@@ -126,7 +126,7 @@ describe('S3StorageService UT', () => {
 
       // Prevent generator1 from running real resource actions.
       const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult3 = (await generator3.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult3 = (await generator3.next()) as IteratorResult<UnknownResource[]>;
       const resourceDiffsResult3 = await generator3.next();
       await octoAws.commitTransaction(modelTransactionResult3.value, resourcesResult3.value);
 

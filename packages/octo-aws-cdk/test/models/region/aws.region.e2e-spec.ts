@@ -37,7 +37,7 @@ describe('AwsRegion E2E Test', () => {
     });
 
     const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-    const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
+    const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
     await generator1.next(); // Run real resource actions.
     await octoAws.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
 
@@ -51,7 +51,7 @@ describe('AwsRegion E2E Test', () => {
     });
 
     const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-    const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
+    const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
     const resourceTransaction = await generator2.next(); // Run real resource actions.
     await octoAws.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
 

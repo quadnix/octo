@@ -8,10 +8,8 @@ const unlinkAsync = promisify(unlink);
 
 describe('Image E2E Test', () => {
   const filePaths: string[] = [
-    join(__dirname, 'aws-ap-south-1a-models.json'),
-    join(__dirname, 'aws-ap-south-1a-resources.json'),
-    join(__dirname, 'aws-us-east-1a-models.json'),
-    join(__dirname, 'aws-us-east-1a-resources.json'),
+    join(__dirname, 'models.json'),
+    join(__dirname, 'resources.json'),
     join(__dirname, 'shared-resources.json'),
   ];
 
@@ -50,7 +48,7 @@ describe('Image E2E Test', () => {
 
       // Prevent generator1 from running real resource actions.
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
       await octoAws1.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
 
       octoAws2 = new OctoAws(region2, localStateProvider);
@@ -68,7 +66,7 @@ describe('Image E2E Test', () => {
 
       // Prevent generator2 from running real resource actions.
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
       await octoAws2.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
     });
 
@@ -90,7 +88,7 @@ describe('Image E2E Test', () => {
       });
 
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
       await generator1.next(); // Run real resource actions.
       await octoAws1.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
 
@@ -108,7 +106,7 @@ describe('Image E2E Test', () => {
       });
 
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
       await generator2.next(); // Run real resource actions.
       await octoAws2.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
 
@@ -121,7 +119,7 @@ describe('Image E2E Test', () => {
         yieldNewResources: true,
       });
       const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult3 = (await generator3.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult3 = (await generator3.next()) as IteratorResult<UnknownResource[]>;
       await generator3.next(); // Run real resource actions.
       await octoAws1.commitTransaction(modelTransactionResult3.value, resourcesResult3.value);
 
@@ -131,7 +129,7 @@ describe('Image E2E Test', () => {
         yieldNewResources: true,
       });
       const modelTransactionResult4 = (await generator4.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult4 = (await generator4.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult4 = (await generator4.next()) as IteratorResult<UnknownResource[]>;
       await generator4.next(); // Run real resource actions.
       await octoAws2.commitTransaction(modelTransactionResult4.value, resourcesResult4.value);
     }, 60_000);

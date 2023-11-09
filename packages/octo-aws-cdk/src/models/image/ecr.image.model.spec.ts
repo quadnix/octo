@@ -55,7 +55,7 @@ describe('ECRImage UT', () => {
 
       // Prevent generator1 from running real resource actions.
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
       await octoAws1.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
 
       octoAws2 = new OctoAws(region2, localStateProvider);
@@ -73,7 +73,7 @@ describe('ECRImage UT', () => {
 
       // Prevent generator2 from running real resource actions.
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
       await octoAws2.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
     });
 
@@ -97,7 +97,7 @@ describe('ECRImage UT', () => {
 
       // Prevent generator1 from running real resource actions.
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
       const resourceDiffsResult1 = await generator1.next();
 
       // Verify resource diff was as expected.
@@ -135,7 +135,7 @@ describe('ECRImage UT', () => {
 
       // Prevent generator2 from running real resource actions.
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
       const resourceDiffsResult2 = await generator2.next();
 
       // Verify resource diff was as expected.

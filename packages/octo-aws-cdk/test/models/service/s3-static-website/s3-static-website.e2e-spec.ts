@@ -42,7 +42,7 @@ describe('S3StaticWebsite E2E Test', () => {
 
     // Prevent generator from running real resource actions.
     const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-    const resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+    const resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
     await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
   });
 
@@ -71,7 +71,7 @@ describe('S3StaticWebsite E2E Test', () => {
     });
 
     let modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-    let resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+    let resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
     await generator.next(); // Run real resource actions.
     await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
 
@@ -87,7 +87,7 @@ describe('S3StaticWebsite E2E Test', () => {
     });
 
     modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-    resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+    resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
     await generator.next(); // Run real resource actions.
     await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
 
@@ -109,7 +109,7 @@ describe('S3StaticWebsite E2E Test', () => {
       });
 
       modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-      resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+      resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
       await generator.next(); // Run real resource actions.
       await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
 
@@ -131,7 +131,7 @@ describe('S3StaticWebsite E2E Test', () => {
     });
 
     modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-    resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
+    resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
     await generator.next(); // Run real resource actions.
     await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
 
