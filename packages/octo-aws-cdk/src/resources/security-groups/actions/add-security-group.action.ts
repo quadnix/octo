@@ -4,16 +4,15 @@ import {
   CreateSecurityGroupCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
-import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
 import { IVpcResponse } from '../../vpc/vpc.interface.js';
 import { Vpc } from '../../vpc/vpc.resource.js';
 import { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
+@Action(ModelType.RESOURCE)
 export class AddSecurityGroupAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddSecurityGroupAction';
-
-  constructor(private readonly ec2Client: EC2Client) {}
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'security-group';
@@ -28,8 +27,11 @@ export class AddSecurityGroupAction implements IResourceAction {
     const vpc = securityGroup.getParents('vpc')['vpc'][0].to as Vpc;
     const vpcResponse = vpc.response as unknown as IVpcResponse;
 
+    // Get instances.
+    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+
     // Create Security Group.
-    const securityGroupOutput = await this.ec2Client.send(
+    const securityGroupOutput = await ec2Client.send(
       new CreateSecurityGroupCommand({
         Description: securityGroup.resourceId,
         GroupName: securityGroup.resourceId,
@@ -51,7 +53,7 @@ export class AddSecurityGroupAction implements IResourceAction {
         ToPort: rule.ToPort,
       }));
     if (egressPermissions.length > 0) {
-      await this.ec2Client.send(
+      await ec2Client.send(
         new AuthorizeSecurityGroupEgressCommand({
           GroupId: securityGroupOutput.GroupId,
           IpPermissions: egressPermissions,
@@ -71,7 +73,7 @@ export class AddSecurityGroupAction implements IResourceAction {
         ToPort: rule.ToPort,
       }));
     if (ingressPermissions.length > 0) {
-      await this.ec2Client.send(
+      await ec2Client.send(
         new AuthorizeSecurityGroupIngressCommand({
           GroupId: securityGroupOutput.GroupId,
           IpPermissions: ingressPermissions,
@@ -81,5 +83,12 @@ export class AddSecurityGroupAction implements IResourceAction {
 
     // Set response.
     response.GroupId = securityGroupOutput.GroupId as string;
+  }
+}
+
+@Factory<AddSecurityGroupAction>(AddSecurityGroupAction)
+export class AddSecurityGroupActionFactory {
+  static async create(): Promise<AddSecurityGroupAction> {
+    return new AddSecurityGroupAction();
   }
 }

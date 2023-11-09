@@ -1,4 +1,4 @@
-import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
 import { Efs } from '../../../resources/efs/efs.resource.js';
 import { SharedEfs } from '../../../resources/efs/efs.shared-resource.js';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
@@ -7,10 +7,11 @@ import { RouteTable } from '../../../resources/route-table/route-table.resource.
 import { SecurityGroup } from '../../../resources/security-groups/security-group.resource.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { Vpc } from '../../../resources/vpc/vpc.resource.js';
-import { Action } from '../../action.abstract.js';
+import { AAction } from '../../action.abstract.js';
 import { AwsRegion } from '../aws.region.model.js';
 
-export class AddRegionAction extends Action {
+@Action(ModelType.MODEL)
+export class AddRegionAction extends AAction {
   readonly ACTION_NAME: string = 'AddRegionAction';
 
   override collectInput(diff: Diff): string[] {
@@ -48,7 +49,7 @@ export class AddRegionAction extends Action {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'region' && diff.field === 'regionId';
   }
 
-  handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
+  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
     const awsRegion = diff.model as AwsRegion;
     const regionId = awsRegion.regionId;
 
@@ -58,18 +59,20 @@ export class AddRegionAction extends Action {
 
     // Create VPC.
     const vpc = new Vpc(`${regionId}-vpc`, {
+      awsRegionId: awsRegion.nativeAwsRegionId,
       CidrBlock: vpcCidrBlock,
       InstanceTenancy: 'default',
     });
 
     // Create Internet Gateway.
-    const internetGateway = new InternetGateway(`${regionId}-igw`, {}, [vpc]);
+    const internetGateway = new InternetGateway(`${regionId}-igw`, { awsRegionId: awsRegion.nativeAwsRegionId }, [vpc]);
 
     // Create Subnets.
     const privateSubnet1 = new Subnet(
       `${regionId}-private-subnet-1`,
       {
         AvailabilityZone: awsRegion.nativeAwsRegionAZ,
+        awsRegionId: awsRegion.nativeAwsRegionId,
         CidrBlock: private1SubnetCidrBlock,
       },
       [vpc],
@@ -78,19 +81,29 @@ export class AddRegionAction extends Action {
       `${regionId}-public-subnet-1`,
       {
         AvailabilityZone: awsRegion.nativeAwsRegionAZ,
+        awsRegionId: awsRegion.nativeAwsRegionId,
         CidrBlock: public1SubnetCidrBlock,
       },
       [vpc],
     );
 
     // Create Route Tables.
-    const privateRT1 = new RouteTable(`${regionId}-private-rt-1`, {}, [vpc, internetGateway, privateSubnet1]);
-    const publicRT1 = new RouteTable(`${regionId}-public-rt-1`, {}, [vpc, internetGateway, publicSubnet1]);
+    const privateRT1 = new RouteTable(`${regionId}-private-rt-1`, { awsRegionId: awsRegion.nativeAwsRegionId }, [
+      vpc,
+      internetGateway,
+      privateSubnet1,
+    ]);
+    const publicRT1 = new RouteTable(`${regionId}-public-rt-1`, { awsRegionId: awsRegion.nativeAwsRegionId }, [
+      vpc,
+      internetGateway,
+      publicSubnet1,
+    ]);
 
     // Create Network ACLs.
     const privateNAcl1 = new NetworkAcl(
       `${regionId}-private-nacl-1`,
       {
+        awsRegionId: awsRegion.nativeAwsRegionId,
         entries: [
           {
             CidrBlock: '0.0.0.0/0',
@@ -115,6 +128,7 @@ export class AddRegionAction extends Action {
     const publicNAcl1 = new NetworkAcl(
       `${regionId}-public-nacl-1`,
       {
+        awsRegionId: awsRegion.nativeAwsRegionId,
         entries: [
           {
             CidrBlock: '0.0.0.0/0',
@@ -141,6 +155,7 @@ export class AddRegionAction extends Action {
     const accessSG = new SecurityGroup(
       `${regionId}-access-sg`,
       {
+        awsRegionId: awsRegion.nativeAwsRegionId,
         rules: [
           // Access SSH from everywhere.
           {
@@ -165,6 +180,7 @@ export class AddRegionAction extends Action {
     const internalOpenSG = new SecurityGroup(
       `${regionId}-internal-open-sg`,
       {
+        awsRegionId: awsRegion.nativeAwsRegionId,
         rules: [
           // Allow all incoming connections from the same VPC.
           {
@@ -181,6 +197,7 @@ export class AddRegionAction extends Action {
     const privateClosedSG = new SecurityGroup(
       `${regionId}-private-closed-sg`,
       {
+        awsRegionId: awsRegion.nativeAwsRegionId,
         rules: [
           // Allow all incoming connections from self.
           {
@@ -205,6 +222,7 @@ export class AddRegionAction extends Action {
     const webSG = new SecurityGroup(
       `${regionId}-web-sg`,
       {
+        awsRegionId: awsRegion.nativeAwsRegionId,
         rules: [
           // Access HTTP from everywhere.
           {
@@ -228,11 +246,15 @@ export class AddRegionAction extends Action {
     );
 
     // Create EFS.
-    const efs = new Efs('shared-efs-filesystem', {}, [privateSubnet1, internalOpenSG]);
+    const efs = new Efs(
+      'shared-efs-filesystem',
+      { awsRegionId: awsRegion.nativeAwsRegionId, regionId: awsRegion.regionId },
+      [privateSubnet1, internalOpenSG],
+    );
     const sharedEfs = new SharedEfs(efs);
     sharedEfs.markUpdated('regions', `ADD:${regionId}`);
 
-    const output: IActionOutputs = {};
+    const output: ActionOutputs = {};
     output[vpc.resourceId] = vpc;
     output[internetGateway.resourceId] = internetGateway;
     output[privateSubnet1.resourceId] = privateSubnet1;
@@ -248,5 +270,12 @@ export class AddRegionAction extends Action {
     output[efs.resourceId] = sharedEfs;
 
     return output;
+  }
+}
+
+@Factory<AddRegionAction>(AddRegionAction)
+export class AddRegionActionFactory {
+  static async create(): Promise<AddRegionAction> {
+    return new AddRegionAction();
   }
 }

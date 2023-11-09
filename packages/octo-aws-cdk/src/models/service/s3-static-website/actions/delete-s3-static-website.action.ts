@@ -1,9 +1,10 @@
-import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
-import { SharedS3Website } from '../../../../resources/s3/website/s3-website.shared-resource.js';
-import { Action } from '../../../action.abstract.js';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { S3Website } from '../../../../resources/s3/website/s3-website.resource.js';
+import { AAction } from '../../../action.abstract.js';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model.js';
 
-export class DeleteS3StaticWebsiteAction extends Action {
+@Action(ModelType.MODEL)
+export class DeleteS3StaticWebsiteAction extends AAction {
   readonly ACTION_NAME: string = 'DeleteS3StaticWebsiteAction';
 
   override collectInput(diff: Diff): string[] {
@@ -27,14 +28,14 @@ export class DeleteS3StaticWebsiteAction extends Action {
     );
   }
 
-  handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
+  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
-    const sharedS3Website = actionInputs[`resource.bucket-${bucketName}`] as SharedS3Website;
-    sharedS3Website.markUpdated('regions', 'DELETE');
+    const s3Website = actionInputs[`resource.bucket-${bucketName}`] as S3Website;
+    s3Website.markDeleted();
 
-    const output: IActionOutputs = {};
-    output[sharedS3Website.resourceId] = sharedS3Website;
+    const output: ActionOutputs = {};
+    output[s3Website.resourceId] = s3Website;
 
     return output;
   }
@@ -42,5 +43,12 @@ export class DeleteS3StaticWebsiteAction extends Action {
   override async postTransaction(diff: Diff): Promise<void> {
     const model = diff.model as S3StaticWebsiteService;
     await model.saveSourceManifest();
+  }
+}
+
+@Factory<DeleteS3StaticWebsiteAction>(DeleteS3StaticWebsiteAction)
+export class DeleteS3StaticWebsiteActionFactory {
+  static async create(): Promise<DeleteS3StaticWebsiteAction> {
+    return new DeleteS3StaticWebsiteAction();
   }
 }

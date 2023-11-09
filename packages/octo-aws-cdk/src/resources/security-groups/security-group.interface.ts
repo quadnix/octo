@@ -1,4 +1,5 @@
 export interface ISecurityGroupProperties {
+  awsRegionId: string;
   rules: {
     CidrBlock: string;
     Egress: boolean;

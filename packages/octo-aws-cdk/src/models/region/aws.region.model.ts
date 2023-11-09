@@ -1,4 +1,4 @@
-import { Region } from '@quadnix/octo';
+import { Model, Region } from '@quadnix/octo';
 import { IAwsRegion } from './aws.region.interface.js';
 
 export enum AwsRegionId {
@@ -19,6 +19,7 @@ export enum AwsRegionId {
   AWS_US_WEST_2D = 'aws-us-west-2d',
 }
 
+@Model()
 export class AwsRegion extends Region {
   readonly nativeAwsRegionAZ: string;
 

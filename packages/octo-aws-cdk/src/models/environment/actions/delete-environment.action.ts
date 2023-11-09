@@ -1,25 +1,28 @@
-import { Diff, DiffAction, Environment, IActionInputs, IActionOutputs } from '@quadnix/octo';
-import { SharedEcsCluster } from '../../../resources/ecs/ecs-cluster.shared-resource.js';
-import { Action } from '../../action.abstract.js';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Environment, Factory, ModelType } from '@quadnix/octo';
+import { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
+import { AAction } from '../../action.abstract.js';
 import { AwsRegion } from '../../region/aws.region.model.js';
 
-export class DeleteEnvironmentAction extends Action {
+@Action(ModelType.MODEL)
+export class DeleteEnvironmentAction extends AAction {
   readonly ACTION_NAME: string = 'DeleteEnvironmentAction';
 
-  constructor(private readonly region: AwsRegion) {
-    super();
-  }
-
   override collectInput(diff: Diff): string[] {
-    const { environmentName } = diff.model as Environment;
+    const environment = diff.model as Environment;
+    const environmentName = environment.environmentName;
+    const region = environment.getParents()['region'][0].to as AwsRegion;
+    const clusterName = [region.regionId, environmentName].join('-');
 
-    return [`resource.ecs-cluster-${environmentName}`];
+    return [`resource.ecs-cluster-${clusterName}`];
   }
 
   override collectOutput(diff: Diff): string[] {
-    const { environmentName } = diff.model as Environment;
+    const environment = diff.model as Environment;
+    const environmentName = environment.environmentName;
+    const region = environment.getParents()['region'][0].to as AwsRegion;
+    const clusterName = [region.regionId, environmentName].join('-');
 
-    return [`ecs-cluster-${environmentName}`];
+    return [`ecs-cluster-${clusterName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -28,15 +31,25 @@ export class DeleteEnvironmentAction extends Action {
     );
   }
 
-  handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
-    const { environmentName } = diff.model as Environment;
+  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
+    const environment = diff.model as Environment;
+    const environmentName = environment.environmentName;
+    const region = environment.getParents()['region'][0].to as AwsRegion;
+    const clusterName = [region.regionId, environmentName].join('-');
 
-    const sharedEcsCluster = actionInputs[`resource.ecs-cluster-${environmentName}`] as SharedEcsCluster;
-    sharedEcsCluster.markUpdated('regions', `DELETE:${this.region.regionId}`);
+    const ecsCluster = actionInputs[`resource.ecs-cluster-${clusterName}`] as EcsCluster;
+    ecsCluster.markDeleted();
 
-    const output: IActionOutputs = {};
-    output[sharedEcsCluster.resourceId] = sharedEcsCluster;
+    const output: ActionOutputs = {};
+    output[ecsCluster.resourceId] = ecsCluster;
 
     return output;
+  }
+}
+
+@Factory<DeleteEnvironmentAction>(DeleteEnvironmentAction)
+export class DeleteEnvironmentActionFactory {
+  static async create(): Promise<DeleteEnvironmentAction> {
+    return new DeleteEnvironmentAction();
   }
 }

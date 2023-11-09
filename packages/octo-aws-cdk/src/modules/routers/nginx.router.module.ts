@@ -1,6 +1,6 @@
-import { App, Deployment, Environment, Execution, Image, Module, Support } from '@quadnix/octo';
+import { AModule, App, Deployment, Environment, Execution, Image, Support } from '@quadnix/octo';
 
-export class NginxRouterModule extends Module {
+export class NginxRouterModule extends AModule {
   private nginxServerKey = 'nginx';
 
   apply(app: App, nginxImage: Image, environment: Environment): void {

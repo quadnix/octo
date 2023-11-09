@@ -1,5 +1,7 @@
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface IEfsProperties {}
+export interface IEfsProperties {
+  awsRegionId: string;
+  regionId: string;
+}
 
 export interface IEfsResponse {
   sharedMetadataStringified: string;

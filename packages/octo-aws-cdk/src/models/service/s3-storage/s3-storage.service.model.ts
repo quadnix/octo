@@ -1,10 +1,12 @@
 import { Diff, DiffAction, Model, Service } from '@quadnix/octo';
 import { basename } from 'path';
 import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.model.js';
-import { AwsRegion } from '../../region/aws.region.model.js';
 import { IS3StorageService } from './s3-storage.service.interface.js';
 
+@Model()
 export class S3StorageService extends Service {
+  readonly awsRegionId: string;
+
   readonly bucketName: string;
 
   readonly directories: {
@@ -13,15 +15,11 @@ export class S3StorageService extends Service {
     remoteDirectoryPath: string;
   }[] = [];
 
-  readonly region: AwsRegion;
-
-  constructor(region: AwsRegion, bucketName: string) {
+  constructor(awsRegionId: string, bucketName: string) {
     super(`${bucketName}-s3-storage`);
 
-    this.region = region;
+    this.awsRegionId = awsRegionId;
     this.bucketName = bucketName;
-
-    this.addRelationship('serviceId', region, 'regionId');
   }
 
   addDirectory(remoteDirectoryPath: string): IamRoleAnchor[] {
@@ -62,19 +60,15 @@ export class S3StorageService extends Service {
 
   override synth(): IS3StorageService {
     return {
+      awsRegionId: this.awsRegionId,
       bucketName: this.bucketName,
       directories: [...this.directories],
-      region: { context: this.region.getContext() },
       serviceId: `${this.bucketName}-s3-storage`,
     };
   }
 
-  static override async unSynth(
-    s3Storage: IS3StorageService,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
-  ): Promise<S3StorageService> {
-    const region = (await deReferenceContext(s3Storage.region.context)) as AwsRegion;
-    const service = new S3StorageService(region, s3Storage.bucketName);
+  static override async unSynth(s3Storage: IS3StorageService): Promise<S3StorageService> {
+    const service = new S3StorageService(s3Storage.awsRegionId, s3Storage.bucketName);
     service.directories.push(...s3Storage.directories);
     return service;
   }

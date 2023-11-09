@@ -1,4 +1,4 @@
-import { Diff, DiffAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
 import { SharedEfs } from '../../../resources/efs/efs.shared-resource.js';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
@@ -6,10 +6,11 @@ import { RouteTable } from '../../../resources/route-table/route-table.resource.
 import { SecurityGroup } from '../../../resources/security-groups/security-group.resource.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { Vpc } from '../../../resources/vpc/vpc.resource.js';
-import { Action } from '../../action.abstract.js';
+import { AAction } from '../../action.abstract.js';
 import { AwsRegion } from '../aws.region.model.js';
 
-export class DeleteRegionAction extends Action {
+@Action(ModelType.MODEL)
+export class DeleteRegionAction extends AAction {
   readonly ACTION_NAME: string = 'DeleteRegionAction';
 
   override collectInput(diff: Diff): string[] {
@@ -55,7 +56,7 @@ export class DeleteRegionAction extends Action {
     return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'region' && diff.field === 'regionId';
   }
 
-  handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
+  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
     const { regionId } = diff.model as AwsRegion;
 
     const internalOpenSG = actionInputs[`resource.${regionId}-internal-open-sg`] as SecurityGroup;
@@ -94,7 +95,7 @@ export class DeleteRegionAction extends Action {
     const vpc = actionInputs[`resource.${regionId}-vpc`] as Vpc;
     vpc.markDeleted();
 
-    const output: IActionOutputs = {};
+    const output: ActionOutputs = {};
     output[vpc.resourceId] = vpc;
     output[internetGateway.resourceId] = internetGateway;
     output[privateSubnet1.resourceId] = privateSubnet1;
@@ -110,5 +111,12 @@ export class DeleteRegionAction extends Action {
     output[sharedEfs.resourceId] = sharedEfs;
 
     return output;
+  }
+}
+
+@Factory<DeleteRegionAction>(DeleteRegionAction)
+export class DeleteRegionActionFactory {
+  static async create(): Promise<DeleteRegionAction> {
+    return new DeleteRegionAction();
   }
 }

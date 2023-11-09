@@ -1,6 +1,6 @@
-import { Diff, IAction, IActionInputs, IActionOutputs } from '@quadnix/octo';
+import { ActionInputs, ActionOutputs, Diff, IAction } from '@quadnix/octo';
 
-export abstract class Action implements IAction<IActionInputs, IActionOutputs> {
+export abstract class AAction implements IAction<ActionInputs, ActionOutputs> {
   abstract readonly ACTION_NAME: string;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -15,7 +15,7 @@ export abstract class Action implements IAction<IActionInputs, IActionOutputs> {
 
   abstract filter(diff: Diff): boolean;
 
-  abstract handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs;
+  abstract handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async postTransaction(diff: Diff): Promise<void> {
@@ -23,7 +23,7 @@ export abstract class Action implements IAction<IActionInputs, IActionOutputs> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  revert(diff: Diff, actionInputs: IActionInputs, actionOutputs: IActionOutputs): IActionOutputs {
+  revert(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): ActionOutputs {
     return {};
   }
 }

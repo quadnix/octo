@@ -1,13 +1,11 @@
 import { DeleteClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { AwsRegion } from '../../../models/region/aws.region.model.js';
-import { IEcsClusterProperties, IEcsClusterResponse, IEcsClusterSharedMetadata } from '../ecs-cluster.interface.js';
+import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import { IEcsClusterProperties } from '../ecs-cluster.interface.js';
 import { EcsCluster } from '../ecs-cluster.resource.js';
 
+@Action(ModelType.RESOURCE)
 export class DeleteEcsClusterAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEcsClusterAction';
-
-  constructor(private readonly ecsClient: ECSClient, private readonly region: AwsRegion) {}
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'ecs-cluster';
@@ -17,26 +15,21 @@ export class DeleteEcsClusterAction implements IResourceAction {
     // Get properties.
     const ecsCluster = diff.model as EcsCluster;
     const properties = ecsCluster.properties as unknown as IEcsClusterProperties;
-    const response = ecsCluster.response as unknown as IEcsClusterResponse;
 
-    const ecsClusterSharedMetadata: IEcsClusterSharedMetadata =
-      (response?.sharedMetadataStringified as string)?.length > 0
-        ? JSON.parse(response.sharedMetadataStringified as string)
-        : {};
-    const sharedRegions = ecsClusterSharedMetadata.regions || [];
+    // Get instances.
+    const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
 
-    // Cluster should only be deleted when there are no other AWS regions referencing it.
-    if (sharedRegions.filter((r) => r.awsRegionId === this.region.nativeAwsRegionId).length === 1) {
-      await this.ecsClient.send(
-        new DeleteClusterCommand({
-          cluster: properties.clusterName,
-        }),
-      );
-    }
+    await ecsClient.send(
+      new DeleteClusterCommand({
+        cluster: properties.clusterName,
+      }),
+    );
+  }
+}
 
-    // Set response.
-    response.sharedMetadataStringified = JSON.stringify({
-      regions: sharedRegions.filter((r) => r.regionId !== this.region.regionId),
-    } as IEcsClusterSharedMetadata);
+@Factory<DeleteEcsClusterAction>(DeleteEcsClusterAction)
+export class DeleteEcsClusterActionFactory {
+  static async create(): Promise<DeleteEcsClusterAction> {
+    return new DeleteEcsClusterAction();
   }
 }

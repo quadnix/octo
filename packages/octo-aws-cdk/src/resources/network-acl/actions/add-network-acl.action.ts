@@ -5,7 +5,7 @@ import {
   EC2Client,
   ReplaceNetworkAclAssociationCommand,
 } from '@aws-sdk/client-ec2';
-import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
 import { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import { Subnet } from '../../subnet/subnet.resource.js';
 import { IVpcResponse } from '../../vpc/vpc.interface.js';
@@ -13,10 +13,9 @@ import { Vpc } from '../../vpc/vpc.resource.js';
 import { INetworkAclProperties, INetworkAclResponse } from '../network-acl.interface.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
+@Action(ModelType.RESOURCE)
 export class AddNetworkAclAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddNetworkAclAction';
-
-  constructor(private readonly ec2Client: EC2Client) {}
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'network-acl';
@@ -29,6 +28,9 @@ export class AddNetworkAclAction implements IResourceAction {
     properties.entries = JSON.parse(properties.entries as unknown as string);
     const response = networkAcl.response as unknown as INetworkAclResponse;
 
+    // Get instances.
+    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+
     const parents = networkAcl.getParents();
     const vpc = parents['vpc'][0].to as Vpc;
     const vpcResponse = vpc.response as unknown as IVpcResponse;
@@ -36,7 +38,7 @@ export class AddNetworkAclAction implements IResourceAction {
     const subnetResponse = subnet.response as unknown as ISubnetResponse;
 
     // Get default NACL.
-    const defaultNACLOutput = await this.ec2Client.send(
+    const defaultNACLOutput = await ec2Client.send(
       new DescribeNetworkAclsCommand({
         Filters: [
           {
@@ -51,14 +53,14 @@ export class AddNetworkAclAction implements IResourceAction {
     );
 
     // Create Network ACL.
-    const naclOutput = await this.ec2Client.send(
+    const naclOutput = await ec2Client.send(
       new CreateNetworkAclCommand({
         VpcId: vpcResponse.VpcId,
       }),
     );
     await Promise.all(
       properties.entries.map((p) => {
-        return this.ec2Client.send(
+        return ec2Client.send(
           new CreateNetworkAclEntryCommand({
             CidrBlock: p.CidrBlock,
             Egress: p.Egress,
@@ -73,7 +75,7 @@ export class AddNetworkAclAction implements IResourceAction {
     );
 
     // Associate Subnet with the new Network ACL.
-    const newAssociation = await this.ec2Client.send(
+    const newAssociation = await ec2Client.send(
       new ReplaceNetworkAclAssociationCommand({
         AssociationId: association!.NetworkAclAssociationId,
         NetworkAclId: naclOutput!.NetworkAcl!.NetworkAclId,
@@ -84,5 +86,12 @@ export class AddNetworkAclAction implements IResourceAction {
     response.associationId = newAssociation.NewAssociationId as string;
     response.defaultNetworkAclId = defaultNACLOutput!.NetworkAcls![0].NetworkAclId as string;
     response.NetworkAclId = naclOutput!.NetworkAcl!.NetworkAclId as string;
+  }
+}
+
+@Factory<AddNetworkAclAction>(AddNetworkAclAction)
+export class AddNetworkAclActionFactory {
+  static async create(): Promise<AddNetworkAclAction> {
+    return new AddNetworkAclAction();
   }
 }

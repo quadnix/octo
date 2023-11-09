@@ -5,15 +5,13 @@ import {
   PutPublicAccessBlockCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { AwsRegion } from '../../../../models/region/aws.region.model.js';
-import { IS3WebsiteProperties, IS3WebsiteReplicationMetadata, IS3WebsiteResponse } from '../s3-website.interface.js';
+import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import { IS3WebsiteProperties, IS3WebsiteResponse } from '../s3-website.interface.js';
 import { S3Website } from '../s3-website.resource.js';
 
+@Action(ModelType.RESOURCE)
 export class AddS3WebsiteAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddS3WebsiteAction';
-
-  constructor(private readonly s3Client: S3Client, private readonly region: AwsRegion) {}
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 's3-website';
@@ -25,15 +23,18 @@ export class AddS3WebsiteAction implements IResourceAction {
     const properties = s3Website.properties as unknown as IS3WebsiteProperties;
     const response = s3Website.response as unknown as IS3WebsiteResponse;
 
+    // Get instances.
+    const s3Client = await Container.get(S3Client, { args: [properties.awsRegionId] });
+
     // Create a new bucket.
-    await this.s3Client.send(
+    await s3Client.send(
       new CreateBucketCommand({
         Bucket: properties.Bucket,
       }),
     );
 
     // Add static website hosting to the bucket.
-    await this.s3Client.send(
+    await s3Client.send(
       new PutBucketWebsiteCommand({
         Bucket: properties.Bucket,
         WebsiteConfiguration: {
@@ -48,7 +49,7 @@ export class AddS3WebsiteAction implements IResourceAction {
     );
 
     // Configure static website to be accessible to public.
-    await this.s3Client.send(
+    await s3Client.send(
       new PutPublicAccessBlockCommand({
         Bucket: properties.Bucket,
         PublicAccessBlockConfiguration: {
@@ -61,7 +62,7 @@ export class AddS3WebsiteAction implements IResourceAction {
     );
 
     // Allow bucket files to be read by everyone.
-    await this.s3Client.send(
+    await s3Client.send(
       new PutBucketPolicyCommand({
         Bucket: properties.Bucket,
         Policy: JSON.stringify({
@@ -80,9 +81,13 @@ export class AddS3WebsiteAction implements IResourceAction {
     );
 
     // Set response.
-    response.replicationsStringified = JSON.stringify({
-      awsRegionId: this.region.nativeAwsRegionId,
-      regionId: this.region.regionId,
-    } as IS3WebsiteReplicationMetadata);
+    response.awsRegionId = properties.awsRegionId;
+  }
+}
+
+@Factory<AddS3WebsiteAction>(AddS3WebsiteAction)
+export class AddS3WebsiteActionFactory {
+  static async create(): Promise<AddS3WebsiteAction> {
+    return new AddS3WebsiteAction();
   }
 }

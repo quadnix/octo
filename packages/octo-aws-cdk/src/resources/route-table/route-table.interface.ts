@@ -1,5 +1,6 @@
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface IRouteTableProperties {}
+export interface IRouteTableProperties {
+  awsRegionId: string;
+}
 
 export interface IRouteTableResponse {
   RouteTableId: string;

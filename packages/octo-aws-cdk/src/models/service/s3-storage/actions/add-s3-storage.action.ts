@@ -1,9 +1,10 @@
-import { Diff, DiffAction, IActionOutputs } from '@quadnix/octo';
+import { Action, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
 import { S3Storage } from '../../../../resources/s3/storage/s3-storage.resource.js';
-import { Action } from '../../../action.abstract.js';
+import { AAction } from '../../../action.abstract.js';
 import { S3StorageService } from '../s3-storage.service.model.js';
 
-export class AddS3StorageAction extends Action {
+@Action(ModelType.MODEL)
+export class AddS3StorageAction extends AAction {
   readonly ACTION_NAME: string = 'AddS3StorageAction';
 
   override collectOutput(diff: Diff): string[] {
@@ -21,17 +22,25 @@ export class AddS3StorageAction extends Action {
     );
   }
 
-  handle(diff: Diff): IActionOutputs {
-    const { bucketName } = diff.model as S3StorageService;
+  handle(diff: Diff): ActionOutputs {
+    const { awsRegionId, bucketName } = diff.model as S3StorageService;
 
     // Create S3 Bucket.
     const s3Storage = new S3Storage(`bucket-${bucketName}`, {
+      awsRegionId,
       Bucket: bucketName,
     });
 
-    const output: IActionOutputs = {};
+    const output: ActionOutputs = {};
     output[s3Storage.resourceId] = s3Storage;
 
     return output;
+  }
+}
+
+@Factory<AddS3StorageAction>(AddS3StorageAction)
+export class AddS3StorageActionFactory {
+  static async create(): Promise<AddS3StorageAction> {
+    return new AddS3StorageAction();
   }
 }

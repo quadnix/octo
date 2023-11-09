@@ -1,7 +1,8 @@
-import { IResource, Resource } from '@quadnix/octo';
+import { AResource, IResource, Resource } from '@quadnix/octo';
 import { IIamUserProperties } from './iam-user.interface.js';
 
-export class IamUser extends Resource<IamUser> {
+@Resource()
+export class IamUser extends AResource<IamUser> {
   readonly MODEL_NAME: string = 'iam-user';
 
   constructor(resourceId: string, properties: IIamUserProperties) {

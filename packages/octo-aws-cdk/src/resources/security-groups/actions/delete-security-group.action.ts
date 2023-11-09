@@ -1,12 +1,11 @@
 import { DeleteSecurityGroupCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { ISecurityGroupResponse } from '../security-group.interface.js';
+import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
+@Action(ModelType.RESOURCE)
 export class DeleteSecurityGroupAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteSecurityGroupAction';
-
-  constructor(private readonly ec2Client: EC2Client) {}
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'security-group';
@@ -15,13 +14,24 @@ export class DeleteSecurityGroupAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const securityGroup = diff.model as SecurityGroup;
+    const properties = securityGroup.properties as unknown as ISecurityGroupProperties;
     const response = securityGroup.response as unknown as ISecurityGroupResponse;
 
+    // Get instances.
+    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+
     // Delete Security Group.
-    await this.ec2Client.send(
+    await ec2Client.send(
       new DeleteSecurityGroupCommand({
         GroupId: response.GroupId,
       }),
     );
+  }
+}
+
+@Factory<DeleteSecurityGroupAction>(DeleteSecurityGroupAction)
+export class DeleteSecurityGroupActionFactory {
+  static async create(): Promise<DeleteSecurityGroupAction> {
+    return new DeleteSecurityGroupAction();
   }
 }

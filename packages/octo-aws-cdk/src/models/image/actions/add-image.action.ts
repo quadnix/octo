@@ -1,26 +1,23 @@
-import { Diff, DiffAction, IActionInputs, IActionOutputs, Image } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
 import { parse } from 'path';
+import { EcrImage as EcrImageModel } from '../ecr.image.model.js';
 import { EcrImage } from '../../../resources/ecr/ecr-image.resource.js';
 import { SharedEcrImage } from '../../../resources/ecr/ecr-image.shared-resource.js';
-import { Action } from '../../action.abstract.js';
-import { AwsRegion } from '../../region/aws.region.model.js';
+import { AAction } from '../../action.abstract.js';
 
-export class AddImageAction extends Action {
+@Action(ModelType.MODEL)
+export class AddImageAction extends AAction {
   readonly ACTION_NAME: string = 'AddImageAction';
 
-  constructor(private readonly region: AwsRegion) {
-    super();
-  }
-
   override collectInput(diff: Diff): string[] {
-    const { imageName, imageTag } = diff.model as Image;
+    const { imageName, imageTag } = diff.model as EcrImageModel;
     const image = `${imageName}:${imageTag}`;
 
     return [`input.image.${image}.dockerExecutable`];
   }
 
   override collectOutput(diff: Diff): string[] {
-    const { imageName, imageTag } = diff.model as Image;
+    const { imageName, imageTag } = diff.model as EcrImageModel;
     const image = `${imageName}:${imageTag}`;
 
     return [`image-${image}`];
@@ -30,8 +27,8 @@ export class AddImageAction extends Action {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'image' && diff.field === 'imageId';
   }
 
-  handle(diff: Diff, actionInputs: IActionInputs): IActionOutputs {
-    const { dockerOptions, imageName, imageTag } = diff.model as Image;
+  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
+    const { awsRegionId, dockerOptions, imageName, imageTag } = diff.model as EcrImageModel;
 
     const image = `${imageName}:${imageTag}`;
     const dockerExec = actionInputs[`input.image.${image}.dockerExecutable`] as string;
@@ -53,6 +50,7 @@ export class AddImageAction extends Action {
 
     // Create a new Image.
     const ecrImage = new EcrImage(`image-${image}`, {
+      awsRegionId,
       buildCommand: buildCommand.join(' '),
       dockerExec,
       dockerFileDirectory: dockerFileParts.dir,
@@ -60,11 +58,18 @@ export class AddImageAction extends Action {
       imageTag,
     });
     const sharedEcrImage = new SharedEcrImage(ecrImage);
-    sharedEcrImage.markUpdated('regions', `ADD:${this.region.regionId}`);
+    sharedEcrImage.markUpdated('regions', `ADD:${awsRegionId}`);
 
-    const output: IActionOutputs = {};
+    const output: ActionOutputs = {};
     output[ecrImage.resourceId] = sharedEcrImage;
 
     return output;
+  }
+}
+
+@Factory<AddImageAction>(AddImageAction)
+export class AddImageActionFactory {
+  static async create(): Promise<AddImageAction> {
+    return new AddImageAction();
   }
 }

@@ -1,4 +1,5 @@
 export interface IVpcProperties {
+  awsRegionId: string;
   CidrBlock: string;
   InstanceTenancy: 'default';
 }

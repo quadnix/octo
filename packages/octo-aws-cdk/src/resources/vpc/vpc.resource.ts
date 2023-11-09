@@ -1,7 +1,8 @@
-import { IResource, Resource } from '@quadnix/octo';
+import { AResource, IResource, Resource } from '@quadnix/octo';
 import { IVpcProperties } from './vpc.interface.js';
 
-export class Vpc extends Resource<Vpc> {
+@Resource()
+export class Vpc extends AResource<Vpc> {
   readonly MODEL_NAME: string = 'vpc';
 
   constructor(resourceId: string, properties: IVpcProperties) {

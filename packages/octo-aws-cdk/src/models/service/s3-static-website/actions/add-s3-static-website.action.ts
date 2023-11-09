@@ -1,10 +1,10 @@
-import { Diff, DiffAction, IActionOutputs } from '@quadnix/octo';
+import { Action, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
 import { S3Website } from '../../../../resources/s3/website/s3-website.resource.js';
-import { SharedS3Website } from '../../../../resources/s3/website/s3-website.shared-resource.js';
-import { Action } from '../../../action.abstract.js';
+import { AAction } from '../../../action.abstract.js';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model.js';
 
-export class AddS3StaticWebsiteAction extends Action {
+@Action(ModelType.MODEL)
+export class AddS3StaticWebsiteAction extends AAction {
   readonly ACTION_NAME: string = 'AddS3StaticWebsiteAction';
 
   override collectOutput(diff: Diff): string[] {
@@ -22,20 +22,19 @@ export class AddS3StaticWebsiteAction extends Action {
     );
   }
 
-  handle(diff: Diff): IActionOutputs {
-    const { bucketName } = diff.model as S3StaticWebsiteService;
+  handle(diff: Diff): ActionOutputs {
+    const { awsRegionId, bucketName } = diff.model as S3StaticWebsiteService;
 
     // Create S3 Website.
     const s3Website = new S3Website(`bucket-${bucketName}`, {
+      awsRegionId,
       Bucket: bucketName,
       ErrorDocument: 'error.html',
       IndexDocument: 'index.html',
     });
-    const sharedS3Website = new SharedS3Website(s3Website);
-    sharedS3Website.markUpdated('regions', 'ADD');
 
-    const output: IActionOutputs = {};
-    output[s3Website.resourceId] = sharedS3Website;
+    const output: ActionOutputs = {};
+    output[s3Website.resourceId] = s3Website;
 
     return output;
   }
@@ -43,5 +42,12 @@ export class AddS3StaticWebsiteAction extends Action {
   override async postTransaction(diff: Diff): Promise<void> {
     const model = diff.model as S3StaticWebsiteService;
     await model.saveSourceManifest();
+  }
+}
+
+@Factory<AddS3StaticWebsiteAction>(AddS3StaticWebsiteAction)
+export class AddS3StaticWebsiteActionFactory {
+  static async create(): Promise<AddS3StaticWebsiteAction> {
+    return new AddS3StaticWebsiteAction();
   }
 }

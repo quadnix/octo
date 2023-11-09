@@ -1,18 +1,18 @@
-import { Diff, DiffAction, Model, Service, StateManagementService } from '@quadnix/octo';
+import { Container, Diff, DiffAction, Model, Service, StateManagementService } from '@quadnix/octo';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
-import { AwsRegion } from '../../region/aws.region.model.js';
 import { IS3StaticWebsiteService } from './s3-static-website.service.interface.js';
 
 type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
 
+@Model()
 export class S3StaticWebsiteService extends Service {
+  readonly awsRegionId: string;
+
   readonly bucketName: string;
 
   readonly excludePaths: { directoryPath: string; subDirectoryOrFilePath: string }[] = [];
-
-  readonly region: AwsRegion;
 
   readonly sourcePaths: {
     directoryPath: string;
@@ -21,13 +21,11 @@ export class S3StaticWebsiteService extends Service {
     subDirectoryOrFilePath: string;
   }[] = [];
 
-  constructor(region: AwsRegion, bucketName: string) {
+  constructor(awsRegionId: string, bucketName: string) {
     super(`${bucketName}-s3-static-website`);
 
-    this.region = region;
+    this.awsRegionId = awsRegionId;
     this.bucketName = bucketName;
-
-    this.addRelationship('serviceId', region, 'regionId');
   }
 
   private async generateSourceManifest(): Promise<IManifest> {
@@ -117,10 +115,12 @@ export class S3StaticWebsiteService extends Service {
   }
 
   override async diff(): Promise<Diff[]> {
+    const stateManagementService = await Container.get(StateManagementService);
+
     const manifestFileName = `${this.bucketName}-manifest.json`;
 
     // Get old manifest.
-    const oldManifestDataBuffer = await StateManagementService.getInstance().getState(manifestFileName, '{}');
+    const oldManifestDataBuffer = await stateManagementService.getState(manifestFileName, '{}');
     const oldManifestData: IManifest = JSON.parse(oldManifestDataBuffer.toString());
 
     // Generate new manifest.
@@ -159,28 +159,26 @@ export class S3StaticWebsiteService extends Service {
   }
 
   async saveSourceManifest(): Promise<void> {
+    const stateManagementService = await Container.get(StateManagementService);
+
     const manifestFileName = `${this.bucketName}-manifest.json`;
     const manifestData = await this.generateSourceManifest();
 
-    await StateManagementService.getInstance().saveState(manifestFileName, Buffer.from(JSON.stringify(manifestData)));
+    await stateManagementService.saveState(manifestFileName, Buffer.from(JSON.stringify(manifestData)));
   }
 
   override synth(): IS3StaticWebsiteService {
     return {
+      awsRegionId: this.awsRegionId,
       bucketName: this.bucketName,
       excludePaths: [...this.excludePaths],
-      region: { context: this.region.getContext() },
       serviceId: `${this.bucketName}-s3-static-website`,
       sourcePaths: [...this.sourcePaths],
     };
   }
 
-  static override async unSynth(
-    s3StaticWebsite: IS3StaticWebsiteService,
-    deReferenceContext: (context: string) => Promise<Model<unknown, unknown>>,
-  ): Promise<S3StaticWebsiteService> {
-    const region = (await deReferenceContext(s3StaticWebsite.region.context)) as AwsRegion;
-    const service = new S3StaticWebsiteService(region, s3StaticWebsite.bucketName);
+  static override async unSynth(s3StaticWebsite: IS3StaticWebsiteService): Promise<S3StaticWebsiteService> {
+    const service = new S3StaticWebsiteService(s3StaticWebsite.awsRegionId, s3StaticWebsite.bucketName);
     service.excludePaths.push(...s3StaticWebsite.excludePaths);
     service.sourcePaths.push(...s3StaticWebsite.sourcePaths);
     return service;

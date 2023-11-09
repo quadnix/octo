@@ -1,13 +1,11 @@
 import { CreateClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { AwsRegion } from '../../../models/region/aws.region.model.js';
-import { IEcsClusterProperties, IEcsClusterResponse, IEcsClusterSharedMetadata } from '../ecs-cluster.interface.js';
+import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import { IEcsClusterProperties, IEcsClusterResponse } from '../ecs-cluster.interface.js';
 import { EcsCluster } from '../ecs-cluster.resource.js';
 
+@Action(ModelType.RESOURCE)
 export class AddEcsClusterAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEcsClusterAction';
-
-  constructor(private readonly ecsClient: ECSClient, private readonly region: AwsRegion) {}
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'ecs-cluster';
@@ -19,27 +17,24 @@ export class AddEcsClusterAction implements IResourceAction {
     const properties = ecsCluster.properties as unknown as IEcsClusterProperties;
     const response = ecsCluster.response as unknown as IEcsClusterResponse;
 
-    const ecsClusterSharedMetadata: IEcsClusterSharedMetadata =
-      (response?.sharedMetadataStringified as string)?.length > 0
-        ? JSON.parse(response.sharedMetadataStringified as string)
-        : {};
-    const sharedRegions = ecsClusterSharedMetadata.regions || [];
+    // Get instances.
+    const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
 
     // Create a new cluster.
-    const data = await this.ecsClient.send(
+    const data = await ecsClient.send(
       new CreateClusterCommand({
         clusterName: properties.clusterName,
       }),
     );
 
     // Set response.
-    sharedRegions.push({
-      awsRegionId: this.region.nativeAwsRegionId,
-      clusterArn: data.cluster!.clusterArn as string,
-      regionId: this.region.regionId,
-    });
-    response.sharedMetadataStringified = JSON.stringify({
-      regions: sharedRegions,
-    } as IEcsClusterSharedMetadata);
+    response.clusterArn = data.cluster!.clusterArn as string;
+  }
+}
+
+@Factory<AddEcsClusterAction>(AddEcsClusterAction)
+export class AddEcsClusterActionFactory {
+  static async create(): Promise<AddEcsClusterAction> {
+    return new AddEcsClusterAction();
   }
 }

@@ -1,4 +1,5 @@
 export interface INetworkAclProperties {
+  awsRegionId: string;
   entries: {
     CidrBlock: string;
     Egress: boolean;

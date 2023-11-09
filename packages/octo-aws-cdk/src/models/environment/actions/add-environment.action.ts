@@ -1,20 +1,19 @@
-import { Diff, DiffAction, Environment, IActionOutputs } from '@quadnix/octo';
+import { Action, ActionOutputs, Diff, DiffAction, Environment, Factory, ModelType } from '@quadnix/octo';
 import { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
-import { SharedEcsCluster } from '../../../resources/ecs/ecs-cluster.shared-resource.js';
-import { Action } from '../../action.abstract.js';
+import { AAction } from '../../action.abstract.js';
 import { AwsRegion } from '../../region/aws.region.model.js';
 
-export class AddEnvironmentAction extends Action {
+@Action(ModelType.MODEL)
+export class AddEnvironmentAction extends AAction {
   readonly ACTION_NAME: string = 'AddEnvironmentAction';
 
-  constructor(private readonly region: AwsRegion) {
-    super();
-  }
-
   override collectOutput(diff: Diff): string[] {
-    const { environmentName } = diff.model as Environment;
+    const environment = diff.model as Environment;
+    const environmentName = environment.environmentName;
+    const region = environment.getParents()['region'][0].to as AwsRegion;
+    const clusterName = [region.regionId, environmentName].join('-');
 
-    return [`ecs-cluster-${environmentName}`];
+    return [`ecs-cluster-${clusterName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -23,18 +22,28 @@ export class AddEnvironmentAction extends Action {
     );
   }
 
-  handle(diff: Diff): IActionOutputs {
-    const { environmentName } = diff.model as Environment;
+  handle(diff: Diff): ActionOutputs {
+    const environment = diff.model as Environment;
+    const environmentName = environment.environmentName;
+    const region = environment.getParents()['region'][0].to as AwsRegion;
+    const clusterName = [region.regionId, environmentName].join('-');
 
-    const ecsCluster = new EcsCluster(`ecs-cluster-${environmentName}`, {
-      clusterName: environmentName,
+    const ecsCluster = new EcsCluster(`ecs-cluster-${clusterName}`, {
+      awsRegionId: region.nativeAwsRegionId,
+      clusterName,
+      regionId: region.regionId,
     });
-    const sharedEcsCluster = new SharedEcsCluster(ecsCluster);
-    sharedEcsCluster.markUpdated('regions', `ADD:${this.region.regionId}`);
 
-    const output: IActionOutputs = {};
-    output[ecsCluster.resourceId] = sharedEcsCluster;
+    const output: ActionOutputs = {};
+    output[ecsCluster.resourceId] = ecsCluster;
 
     return output;
+  }
+}
+
+@Factory<AddEnvironmentAction>(AddEnvironmentAction)
+export class AddEnvironmentActionFactory {
+  static async create(): Promise<AddEnvironmentAction> {
+    return new AddEnvironmentAction();
   }
 }

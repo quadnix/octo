@@ -1,8 +1,9 @@
-import { Diff, DiffAction, SharedResource } from '@quadnix/octo';
+import { ASharedResource, Diff, DiffAction, Resource } from '@quadnix/octo';
 import { IEcrImageReplicationMetadata } from './ecr-image.interface.js';
 import { EcrImage } from './ecr-image.resource.js';
 
-export class SharedEcrImage extends SharedResource<EcrImage> {
+@Resource()
+export class SharedEcrImage extends ASharedResource<EcrImage> {
   constructor(resource: EcrImage) {
     super(resource);
   }
@@ -14,9 +15,9 @@ export class SharedEcrImage extends SharedResource<EcrImage> {
       return diffs;
     }
 
-    // Update marker for ECR shared resource is always set to regions.
+    // Update marker for ECR shared resource is always set to awsRegionId.
     const updateMarker = this.getUpdateMarker();
-    const [action, regionId] = updateMarker!.value.split(':');
+    const [action, awsRegionId] = updateMarker!.value.split(':');
 
     if (previous) {
       const ecrImageReplicationMetadata: IEcrImageReplicationMetadata =
@@ -24,7 +25,7 @@ export class SharedEcrImage extends SharedResource<EcrImage> {
           ? JSON.parse(previous.response.replicationsStringified as string)
           : {};
       const replicationRegions = ecrImageReplicationMetadata.regions || [];
-      const replicationRegion = replicationRegions.find((r) => r.regionId === regionId);
+      const replicationRegion = replicationRegions.find((r) => r.awsRegionId === awsRegionId);
 
       // Copy shared-resource response data from previous.
       this.response.replicationsStringified = JSON.stringify({

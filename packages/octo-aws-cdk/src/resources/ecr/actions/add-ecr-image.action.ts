@@ -4,17 +4,15 @@ import {
   ECRClient,
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr';
-import { Diff, DiffAction, IResourceAction } from '@quadnix/octo';
-import { AwsRegion } from '../../../models/region/aws.region.model.js';
+import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
 import { IEcrImageProperties, IEcrImageReplicationMetadata, IEcrImageResponse } from '../ecr-image.interface.js';
 import { EcrImage } from '../ecr-image.resource.js';
 
+@Action(ModelType.RESOURCE)
 export class AddEcrImageAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEcrImageAction';
-
-  constructor(private readonly ecrClient: ECRClient, private readonly region: AwsRegion) {}
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'ecr-image';
@@ -26,6 +24,9 @@ export class AddEcrImageAction implements IResourceAction {
     const properties = ecrImage.properties as unknown as IEcrImageProperties;
     const response = ecrImage.response as unknown as IEcrImageResponse;
 
+    // Get instances.
+    const ecrClient = await Container.get(ECRClient, { args: [properties.awsRegionId] });
+
     const image = `${properties.imageName}:${properties.imageTag}`;
 
     const ecrImageReplicationMetadata: IEcrImageReplicationMetadata =
@@ -34,9 +35,9 @@ export class AddEcrImageAction implements IResourceAction {
         : {};
     const replicationRegions = ecrImageReplicationMetadata.regions || [];
 
-    // Create a new repository.
     try {
-      const data = await this.ecrClient.send(
+      // Try and fetch image.
+      const data = await ecrClient.send(
         new DescribeImagesCommand({
           imageIds: [
             {
@@ -51,8 +52,7 @@ export class AddEcrImageAction implements IResourceAction {
       if (data.imageDetails?.length) {
         // Set response.
         replicationRegions.push({
-          awsRegionId: this.region.nativeAwsRegionId,
-          regionId: this.region.regionId,
+          awsRegionId: properties.awsRegionId,
           registryId: data.imageDetails[0].registryId as string,
           repositoryName: data.imageDetails[0].repositoryName as string,
         });
@@ -62,7 +62,8 @@ export class AddEcrImageAction implements IResourceAction {
       }
     } catch (describeImagesError) {
       if (describeImagesError.name === 'RepositoryNotFoundException') {
-        const data = await this.ecrClient.send(
+        // Create a new repository.
+        const data = await ecrClient.send(
           new CreateRepositoryCommand({
             imageScanningConfiguration: {
               scanOnPush: false,
@@ -74,8 +75,7 @@ export class AddEcrImageAction implements IResourceAction {
 
         // Set response.
         replicationRegions.push({
-          awsRegionId: this.region.nativeAwsRegionId,
-          regionId: this.region.regionId,
+          awsRegionId: properties.awsRegionId,
           registryId: data.repository!.registryId as string,
           repositoryArn: data.repository!.repositoryArn as string,
           repositoryName: data.repository!.repositoryName as string,
@@ -115,7 +115,7 @@ export class AddEcrImageAction implements IResourceAction {
       });
 
       // Get authorization token to push image.
-      const tokenResponse = await this.ecrClient.send(new GetAuthorizationTokenCommand({}));
+      const tokenResponse = await ecrClient.send(new GetAuthorizationTokenCommand({}));
       const token = FileUtility.base64Decode(tokenResponse.authorizationData![0].authorizationToken as string);
       const proxyEndpoint = new URL(tokenResponse.authorizationData![0].proxyEndpoint as string).host;
 
@@ -157,5 +157,12 @@ export class AddEcrImageAction implements IResourceAction {
         });
       });
     }
+  }
+}
+
+@Factory<AddEcrImageAction>(AddEcrImageAction)
+export class AddEcrImageActionFactory {
+  static async create(): Promise<AddEcrImageAction> {
+    return new AddEcrImageAction();
   }
 }
