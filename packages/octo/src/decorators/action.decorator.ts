@@ -6,15 +6,13 @@ import { Container } from './container.js';
 
 export function Action(type: ModelType): (constructor: any) => void {
   return function (constructor: any) {
-    Container.get(TransactionService).then((transactionService) => {
+    Container.get(TransactionService).then(async (transactionService) => {
       if (type === ModelType.MODEL) {
-        Container.get<IAction<ActionInputs, ActionOutputs>>(constructor.name).then((modelAction) => {
-          transactionService.registerModelActions([modelAction]);
-        });
+        const modelAction = await Container.get<IAction<ActionInputs, ActionOutputs>>(constructor.name);
+        transactionService.registerModelActions([modelAction]);
       } else if (type === ModelType.RESOURCE || type === ModelType.SHARED_RESOURCE) {
-        Container.get<IResourceAction>(constructor.name).then((resourceAction) => {
-          transactionService.registerResourceActions([resourceAction]);
-        });
+        const resourceAction = await Container.get<IResourceAction>(constructor.name);
+        transactionService.registerResourceActions([resourceAction]);
       }
     });
   };
