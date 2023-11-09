@@ -121,7 +121,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return membersProcessed;
   }
 
-  getAnchors(filters: { key: string; value: any }[]): AAnchor[] {
+  getAnchors(filters: { key: string; value: any }[] = []): AAnchor[] {
     return this.anchors.filter((a) => filters.every((c) => a[c.key] === c.value));
   }
 

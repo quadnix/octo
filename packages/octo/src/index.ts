@@ -23,7 +23,7 @@ export { Environment } from './models/environment/environment.model.js';
 export { IEnvironment } from './models/environment/environment.interface.js';
 export { Execution } from './models/execution/execution.model.js';
 export { IExecution } from './models/execution/execution.interface.js';
-export { Image } from './models/image/image.model.js';
+export { IImageDockerOptions, Image } from './models/image/image.model.js';
 export { IImage } from './models/image/image.interface.js';
 export { Pipeline } from './models/pipeline/pipeline.model.js';
 export { IPipeline } from './models/pipeline/pipeline.interface.js';
