@@ -23,6 +23,7 @@ const config: Config = {
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: getBrand(BRAND_VARIATION.ORG, BRAND_FORMAT.CAPITALIZE),
+  plugins: ['docusaurus-plugin-sass'],
   presets: [
     [
       'classic',
@@ -40,7 +41,7 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
         },
         theme: {
-          customCss: './src/css/custom.css',
+          customCss: './src/css/custom.scss',
         },
       } satisfies Preset.Options,
     ],
