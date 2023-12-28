@@ -1,0 +1,17 @@
+{
+  "breadcrumbs.enabled": false,
+  "editor.fontFamily": "Office Code Pro",
+  "editor.fontSize": 14,
+  "editor.minimap.enabled": false,
+  "editor.rulers": [120],
+  "editor.scrollBeyondLastLine": false,
+  "editor.wordWrapColumn": 120,
+  "explorer.confirmDelete": false,
+  "extensions.ignoreRecommendations": true,
+  "files.insertFinalNewline": true,
+  "workbench.colorCustomizations": {
+    "editor.selectionBackground": "#ca5cb4",
+    "editor.selectionHighlightBackground": "#7F0C6B"
+  },
+  "workbench.tree.indent": 25
+}

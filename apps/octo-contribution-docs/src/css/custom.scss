@@ -28,3 +28,15 @@
   --ifm-color-primary-lightest: #4fddbf;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
+
+.layout_text_wrap_image {
+  overflow: scroll;
+  img {
+    float: left;
+    margin: 5px;
+  }
+
+  div {
+    text-align: justify;
+  }
+}
