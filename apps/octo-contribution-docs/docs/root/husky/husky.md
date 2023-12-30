@@ -7,7 +7,8 @@ title: Husky & Git Hooks
 Before we make any commit, husky enables us to run hooks that check the "correctness" of the commit.
 
 ## Setup
-* > npm install husky --save-dev
+* Below dev dependencies were installed to `<root>/package.json`
+  * **husky**: base package.
 * Added the `prepare` script in `package.json` for initialization.
 * For first time contributors, you need to run `npm run prepare` script to initialize husky.
 * A `<root>/.husky/_` directory is created with some husky scripts.

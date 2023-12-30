@@ -29,6 +29,11 @@
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
 }
 
+/* Custom style for all blockquotes */
+blockquote {
+  background-color: #ffffe0;
+}
+
 .layout_text_wrap_image {
   overflow: scroll;
   img {
