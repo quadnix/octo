@@ -74,7 +74,8 @@ export class ModelSerializationService {
       this.modules.push(newModule);
     }
 
-    return seen[serializedOutput.dependencies[0].from];
+    // If no dependencies to serialize, return the first seen model.
+    return serializedOutput.dependencies.length > 0 ? seen[serializedOutput.dependencies[0].from] : seen[0];
   }
 
   registerClass(className: string, deserializationClass: any): void {

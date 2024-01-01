@@ -93,8 +93,9 @@ export class Container {
     const factoryContainer = this.factories[name].find((f) => filters.every((c) => f.metadata[c.key] === c.value));
 
     if (factoryContainer?.factory) {
+      // If factory is not a promise set by get() above, it has already been registered.
       if (!Array.isArray(factoryContainer.factory)) {
-        throw new Error(`Factory ${name} is already registered with given metadata!`);
+        return;
       }
 
       factoryContainer.metadata = metadata;

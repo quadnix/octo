@@ -1,150 +1,72 @@
-import {
-  ActionInputs,
-  App,
-  Container,
-  Diff,
-  DiffMetadata,
-  IStateProvider,
-  ModelSerializationService,
-  ResourceSerializationService,
-  ResourceSerializedOutput,
-  StateManagementService,
-  TransactionOptions,
-  TransactionService,
-  UnknownResource,
-} from '@quadnix/octo';
-import { AAction } from './models/action.abstract.js';
+import './anchors/iam-role.anchor.model.js';
+import './anchors/iam-user.anchor.model.js';
+
+import './models/environment/actions/add-environment.action.js';
+import './models/environment/actions/delete-environment.action.js';
 
 export { EcrImage } from './models/image/ecr.image.model.js';
+import './models/image/actions/add-image.action.js';
+import './models/image/actions/delete-image.action.js';
+
 export { AwsRegion, AwsRegionId } from './models/region/aws.region.model.js';
+import './models/region/actions/add-region.action.js';
+import './models/region/actions/delete-region.action.js';
+
 export { AwsServer } from './models/server/aws.server.model.js';
+import './models/server/actions/add-server.action.js';
+import './models/server/actions/delete-server.action.js';
+
 export { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model.js';
+import './models/service/s3-static-website/actions/add-s3-static-website.action.js';
+import './models/service/s3-static-website/actions/delete-s3-static-website.action.js';
+import './models/service/s3-static-website/actions/update-source-paths-s3-static-website.action.js';
+
 export { S3StorageService } from './models/service/s3-storage/s3-storage.service.model.js';
+import './models/service/s3-storage/actions/add-s3-storage.action.js';
+import './models/service/s3-storage/actions/delete-s3-storage.action.js';
+import './models/service/s3-storage/actions/update-directories-s3-storage.action.js';
 
-export class OctoAws {
-  private readonly modelStateFileName: string = 'models.json';
-  private readonly resourceStateFileName: string = 'resources.json';
-  private readonly sharedResourceStateFileName: string = 'shared-resources.json';
+export { AAction } from './models/action.abstract.js';
 
-  private previousApp: App | undefined;
+export { NginxRouterModule } from './modules/routers/nginx.router.module.js';
 
-  private modelSerializationService: ModelSerializationService;
-  private resourceSerializationService: ResourceSerializationService;
-  private stateManagementService: StateManagementService;
-  private transactionService: TransactionService;
+import './resources/ecr/actions/add-ecr-image.action.js';
+import './resources/ecr/actions/delete-ecr-image.action.js';
 
-  private static getPackageVersion(): string {
-    return '0.0.1';
-  }
+import './resources/ecs/actions/add-ecs-cluster.action.js';
+import './resources/ecs/actions/delete-ecs-cluster.action.js';
 
-  async beginTransaction(
-    diffs: Diff[],
-    options: TransactionOptions,
-  ): Promise<AsyncGenerator<DiffMetadata[][] | UnknownResource[], DiffMetadata[][]>> {
-    // Get previous resources from saved state.
-    const previousState = await this.stateManagementService.getState(
-      this.resourceStateFileName,
-      JSON.stringify({
-        dependencies: [],
-        resources: {},
-      }),
-    );
-    // Get previous shared-resources from saved state.
-    const previousSharedState = await this.stateManagementService.getState(
-      this.sharedResourceStateFileName,
-      JSON.stringify({
-        sharedResources: {},
-      }),
-    );
+import './resources/efs/actions/add-efs.action.js';
+import './resources/efs/actions/delete-efs-action.js';
 
-    // Get old resources.
-    const serializedOutput: ResourceSerializedOutput = JSON.parse(previousState.toString());
-    serializedOutput.sharedResources = JSON.parse(previousSharedState.toString()).sharedResources;
-    const oldResources = await this.resourceSerializationService.deserialize(serializedOutput);
-    // Declare new resources, starting with an exact copy of old resources.
-    const newResources = await this.resourceSerializationService.deserialize(serializedOutput);
+import './resources/iam/actions/add-iam-user.action.js';
+import './resources/iam/actions/delete-iam-user.action.js';
 
-    return this.transactionService.beginTransaction(diffs, oldResources, newResources, options);
-  }
+import './resources/internet-gateway/actions/add-internet-gateway.action.js';
+import './resources/internet-gateway/actions/delete-internet-gateway.action.js';
 
-  async commitTransaction(app: App, modelTransaction: DiffMetadata[][], resources: UnknownResource[]): Promise<void> {
-    // Run post-transactions on actions.
-    for (const diffsProcessedInSameLevel of modelTransaction) {
-      const postTransactionPromises: Promise<void>[] = [];
-      diffsProcessedInSameLevel.forEach((d) => {
-        (d.actions as AAction[]).forEach((a) => {
-          postTransactionPromises.push(a.postTransaction(d.diff));
-        });
-      });
-      await Promise.all(postTransactionPromises);
-    }
+import './resources/network-acl/actions/add-network-acl.action.js';
+import './resources/network-acl/actions/delete-network-acl.action.js';
 
-    // Save the state of the new app.
-    const serializedOutput = this.modelSerializationService.serialize(app);
-    serializedOutput['version'] = OctoAws.getPackageVersion();
-    await this.stateManagementService.saveState(this.modelStateFileName, Buffer.from(JSON.stringify(serializedOutput)));
+import './resources/route-table/actions/add-route-table.action.js';
+import './resources/route-table/actions/delete-route-table.action.js';
 
-    // Serialize resources.
-    const resourceSerializedOutput = this.resourceSerializationService.serialize(resources);
-    // Save the state of shared-resources.
-    await this.stateManagementService.saveState(
-      this.sharedResourceStateFileName,
-      Buffer.from(
-        JSON.stringify({
-          sharedResources: { ...resourceSerializedOutput.sharedResources },
-          version: OctoAws.getPackageVersion(),
-        }),
-      ),
-    );
-    // Save the state of resources.
-    await this.stateManagementService.saveState(
-      this.resourceStateFileName,
-      Buffer.from(
-        JSON.stringify({
-          dependencies: [...resourceSerializedOutput.dependencies],
-          resources: { ...resourceSerializedOutput.resources },
-          version: OctoAws.getPackageVersion(),
-        }),
-      ),
-    );
+import './resources/s3/storage/actions/add-s3-storage.action.js';
+import './resources/s3/storage/actions/delete-s3-storage.action.js';
+import './resources/s3/storage/actions/update-add-directories-in-s3-storage.action.js';
+import './resources/s3/storage/actions/update-remove-directories-in-s3-storage.action.js';
 
-    // Save local copy of App.
-    this.previousApp = (await this.modelSerializationService.deserialize(
-      this.modelSerializationService.serialize(app),
-    )) as App;
-  }
+// import './resources/s3/website/actions/add-s3-website.action.js';
+// import './resources/s3/website/actions/delete-s3-website.action.js';
+// import './resources/s3/website/actions/update-source-paths-in-s3-website.action.js';
 
-  async diff(app: App): Promise<Diff[]> {
-    return app.diff(this.previousApp);
-  }
+import './resources/security-groups/actions/add-security-group.action.js';
+import './resources/security-groups/actions/delete-security-group.action.js';
 
-  async initialize(stateProvider: IStateProvider): Promise<App | undefined> {
-    this.modelSerializationService = await Container.get(ModelSerializationService);
-    this.resourceSerializationService = await Container.get(ResourceSerializationService);
-    this.stateManagementService = await Container.get(StateManagementService, { args: [stateProvider] });
-    this.transactionService = await Container.get(TransactionService);
+import './resources/subnet/actions/add-subnet.action.js';
+import './resources/subnet/actions/delete-subnet.action.js';
 
-    // Get previous app from saved state.
-    const previousState = await this.stateManagementService.getState(
-      this.modelStateFileName,
-      JSON.stringify({
-        dependencies: [],
-        models: {},
-      }),
-    );
-    const serializedOutput = JSON.parse(previousState.toString());
+import './resources/vpc/actions/add-vpc.action.js';
+import './resources/vpc/actions/delete-vpc.action.js';
 
-    // Save local copy of App. If version mismatch, previousApp is void.
-    this.previousApp =
-      serializedOutput.version === OctoAws.getPackageVersion()
-        ? ((await this.modelSerializationService.deserialize(serializedOutput)) as App)
-        : undefined;
-
-    // Return a new copy of App for modifications.
-    return this.previousApp ? ((await this.modelSerializationService.deserialize(serializedOutput)) as App) : undefined;
-  }
-
-  registerInputs(inputs: ActionInputs): void {
-    this.transactionService.registerInputs(inputs);
-  }
-}
+export { OctoAws } from './main.js';

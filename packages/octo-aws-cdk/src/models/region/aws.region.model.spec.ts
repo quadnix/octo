@@ -1,18 +1,17 @@
-import { App, DiffMetadata, LocalStateProvider, Resource } from '@quadnix/octo';
+import { App, DiffMetadata, LocalStateProvider, UnknownResource } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { OctoAws } from '../../index.js';
-import { AwsRegion, AwsRegionId } from './aws.region.model.js';
+import { AwsRegion, AwsRegionId, OctoAws } from '../../index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('AwsRegion UT', () => {
   const filePaths: string[] = [
-    join(__dirname, 'aws-us-east-1a-models.json'),
-    join(__dirname, 'aws-us-east-1a-resources.json'),
+    join(__dirname, 'models.json'),
+    join(__dirname, 'resources.json'),
     join(__dirname, 'shared-resources.json'),
   ];
 
@@ -22,20 +21,20 @@ describe('AwsRegion UT', () => {
 
   describe('diff()', () => {
     it('should create new region and delete it', async () => {
-      const app = new App('test');
-      const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
-
-      const localStateProvider = new LocalStateProvider(__dirname);
-      const octoAws = new OctoAws(region, localStateProvider);
+      const octoAws = new OctoAws();
+      await octoAws.initialize(new LocalStateProvider(__dirname));
       octoAws.registerInputs({
         'input.region.aws-us-east-1a.subnet.private1.CidrBlock': '0.0.0.0/0',
         'input.region.aws-us-east-1a.subnet.public1.CidrBlock': '0.0.0.0/0',
         'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
       });
 
-      const diffs1_0 = await octoAws.diff();
-      const generator1 = await octoAws.beginTransaction(diffs1_0, {
+      const app = new App('test');
+      const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
+
+      const diffs1 = await octoAws.diff(app);
+      const generator1 = await octoAws.beginTransaction(diffs1, {
         yieldModelTransaction: true,
         yieldNewResources: true,
         yieldResourceDiffs: true,
@@ -43,9 +42,20 @@ describe('AwsRegion UT', () => {
 
       // Prevent generator1 from running real resource actions.
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
+      // Since we prevented real resource actions to run, we need to manually generate appropriate responses.
+      resourcesResult1.value.find((r) => r.resourceId === 'shared-efs-filesystem').response = {
+        sharedMetadataStringified: JSON.stringify({
+          regions: [
+            {
+              awsRegionId: 'us-east-1',
+              regionId: AwsRegionId.AWS_US_EAST_1A,
+            },
+          ],
+        }),
+      };
       const resourceDiffsResult1 = await generator1.next();
-      await octoAws.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
+      await octoAws.commitTransaction(app, modelTransactionResult1.value, resourcesResult1.value);
 
       // Verify resource diff was as expected.
       expect(resourceDiffsResult1.value).toMatchInlineSnapshot(`
@@ -123,8 +133,8 @@ describe('AwsRegion UT', () => {
       // Remove region.
       region.remove();
 
-      const diffs1_1 = await octoAws.diff();
-      const generator2 = await octoAws.beginTransaction(diffs1_1, {
+      const diffs2 = await octoAws.diff(app);
+      const generator2 = await octoAws.beginTransaction(diffs2, {
         yieldModelTransaction: true,
         yieldNewResources: true,
         yieldResourceDiffs: true,
@@ -132,9 +142,9 @@ describe('AwsRegion UT', () => {
 
       // Prevent generator2 from running real resource actions.
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
       const resourceDiffsResult2 = await generator2.next();
-      await octoAws.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
+      await octoAws.commitTransaction(app, modelTransactionResult2.value, resourcesResult2.value);
 
       // Verify resource diff was as expected.
       expect(resourceDiffsResult2.value).toMatchInlineSnapshot(`
@@ -199,6 +209,11 @@ describe('AwsRegion UT', () => {
               "action": "delete",
               "field": "resourceId",
               "value": "aws-us-east-1a-public-nacl-1",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "shared-efs-filesystem",
             },
           ],
         ]
