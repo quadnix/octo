@@ -26,12 +26,10 @@ export type ModelSerializedOutput = {
   modules: { className: string; module: IModule }[];
 };
 
-export type ResourceMarkers = { delete: boolean; replace: boolean; update: { key: string; value: any } | null };
-
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
-  resources: { [p: string]: { className: string; isSharedResource: boolean; resource: IResource } };
-  sharedResources: { [p: string]: { className: string; resourceClassName: string; sharedResource: IResource } };
+  resources: { [p: string]: { className: string; resource: IResource } };
+  sharedResources: { [p: string]: { className: string; resource: IResource } };
 };
 
 export type SupportApplicationType = 'nginx';

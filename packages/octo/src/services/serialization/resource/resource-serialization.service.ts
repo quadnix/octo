@@ -1,12 +1,16 @@
-import { ActionOutputs, ResourceSerializedOutput, UnknownResource, UnknownSharedResource } from '../../../app.type.js';
+import { ActionOutputs, ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import { IDependency } from '../../../functions/dependency/dependency.model.js';
 
 export class ResourceSerializationService {
+  private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
+
   private readonly classMapping: { [key: string]: any } = {};
 
   async deserialize(serializedOutput: ResourceSerializedOutput): Promise<ActionOutputs> {
-    const deReferencePromises: { [p: string]: [Promise<boolean>, (value: boolean) => void] } = {};
+    const deReferencePromises: {
+      [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
+    } = {};
     const parents: { [p: string]: string[] } = {};
     const seen: ActionOutputs = {};
 
@@ -16,10 +20,15 @@ export class ResourceSerializationService {
           await deReferencePromises[resourceId][0];
         } else {
           deReferencePromises[resourceId] = [] as any;
-          const promise = new Promise<boolean>((resolve) => {
+          const promise = new Promise<boolean>((resolve, reject) => {
             deReferencePromises[resourceId][1] = resolve;
+            deReferencePromises[resourceId][2] = reject;
           });
           deReferencePromises[resourceId][0] = promise;
+
+          deReferencePromises[resourceId][3] = setTimeout(() => {
+            deReferencePromises[resourceId][2](new Error('DeReferencing resource operation timed out!'));
+          }, this.RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS);
           await promise;
         }
       }
@@ -27,8 +36,14 @@ export class ResourceSerializationService {
       return seen[resourceId];
     };
 
-    const deserializeResource = async (resourceId: string, parents: string[]): Promise<UnknownResource> => {
-      const { className, isSharedResource, resource } = serializedOutput.resources[resourceId];
+    const deserializeResource = async (
+      resourceId: string,
+      parents: string[],
+      isSharedResource: boolean,
+    ): Promise<UnknownResource> => {
+      const { className, resource } = isSharedResource
+        ? serializedOutput.sharedResources[resourceId]
+        : serializedOutput.resources[resourceId];
       const deserializationClass = this.classMapping[className];
 
       const deserializedResource = await deserializationClass.unSynth(
@@ -38,33 +53,10 @@ export class ResourceSerializationService {
         deReferenceResource,
       );
 
-      if (isSharedResource) {
-        const { className: sharedClassName, sharedResource } = serializedOutput.sharedResources[resourceId];
-        for (const key in sharedResource.properties) {
-          deserializedResource.properties[key] = sharedResource.properties[key];
-        }
-        for (const key in sharedResource.response) {
-          deserializedResource.response[key] = sharedResource.response[key];
-        }
-
-        const deserializationSharedClass = this.classMapping[sharedClassName];
-
-        const deserializedSharedResource = await deserializationSharedClass.unSynth(
-          deserializationSharedClass,
-          deserializedResource,
-        );
-
-        seen[resourceId] = deserializedSharedResource;
-        if (deReferencePromises[resourceId]) {
-          deReferencePromises[resourceId][1](true);
-        }
-
-        return deserializedSharedResource;
-      }
-
       seen[resourceId] = deserializedResource;
       if (deReferencePromises[resourceId]) {
         deReferencePromises[resourceId][1](true);
+        clearTimeout(deReferencePromises[resourceId][3]);
       }
 
       return deserializedResource;
@@ -93,31 +85,16 @@ export class ResourceSerializationService {
     // Deserialize all serialized resources.
     const promiseToDeserializeResources: Promise<UnknownResource>[] = [];
     for (const resourceId in serializedOutput.resources) {
-      promiseToDeserializeResources.push(deserializeResource(resourceId, parents[resourceId]));
+      promiseToDeserializeResources.push(deserializeResource(resourceId, parents[resourceId], false));
     }
     await Promise.all(promiseToDeserializeResources);
 
     // Deserialize all serialized shared-resources.
+    const promiseToDeserializeSharedResources: Promise<UnknownResource>[] = [];
     for (const resourceId in serializedOutput.sharedResources) {
-      // Skip processing resources that are already processed.
-      if (seen[resourceId]) {
-        continue;
-      }
-
-      // Deserialize shared-resources that have no dependencies, and no corresponding resource.
-      // Such shared-resource must materialize an empty resource to wrap.
-      const { resourceClassName, sharedResource } = serializedOutput.sharedResources[resourceId];
-      serializedOutput.resources[sharedResource.resourceId] = {
-        className: resourceClassName,
-        isSharedResource: true,
-        resource: {
-          properties: {},
-          resourceId: sharedResource.resourceId,
-          response: {},
-        },
-      };
-      await deserializeResource(resourceId, []);
+      promiseToDeserializeSharedResources.push(deserializeResource(resourceId, parents[resourceId], true));
     }
+    await Promise.all(promiseToDeserializeSharedResources);
 
     return seen;
   }
@@ -137,45 +114,27 @@ export class ResourceSerializationService {
         continue;
       }
 
-      const isSharedResource = resource.MODEL_TYPE === 'shared-resource';
-
       const resourceDependencies = resource['dependencies'].map((d) => d.synth());
       dependencies.push(...resourceDependencies);
 
-      // Prepare resource, and empty "properties" and "response" objects if they are shared.
-      const serializedResource = resource.synth();
-      if (isSharedResource) {
-        for (const key in serializedResource.properties) {
-          if (serializedResource.properties.hasOwnProperty(key)) {
-            delete serializedResource.properties[key];
-          }
-        }
-        for (const key in serializedResource.response) {
-          if (serializedResource.response.hasOwnProperty(key)) {
-            delete serializedResource.response[key];
-          }
-        }
-      }
-
-      serializedResources[resource.resourceId] = {
-        className: isSharedResource
-          ? (resource as UnknownSharedResource).resource.constructor.name
-          : resource.constructor.name,
-        isSharedResource,
-        resource: serializedResource,
-      };
-
-      if (isSharedResource) {
-        const serializedSharedResource = resource.synth();
+      if (resource.MODEL_TYPE === 'shared-resource') {
         sharedSerializedResources[resource.resourceId] = {
           className: resource.constructor.name,
-          resourceClassName: (resource as UnknownSharedResource).resource.constructor.name,
-          sharedResource: serializedSharedResource,
+          resource: resource.synth(),
+        };
+      } else {
+        serializedResources[resource.resourceId] = {
+          className: resource.constructor.name,
+          resource: resource.synth(),
         };
       }
     }
 
     return { dependencies, resources: serializedResources, sharedResources: sharedSerializedResources };
+  }
+
+  setResourceDeserializationTimeout(timeoutInMs: number): void {
+    this.RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
   }
 }
 

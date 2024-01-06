@@ -9,26 +9,22 @@ class TestResource extends AResource<TestResource> {
 }
 
 describe('Resource UT', () => {
-  describe('associateWith()', () => {
-    it('should not be allowed to associate with same resource twice', () => {
-      const resource1 = new TestResource('resource-1');
-      const resource2 = new TestResource('resource-2');
+  it('should be able to associate with another resource as its child', () => {
+    const resource1 = new TestResource('resource-1');
+    const resource2 = new TestResource('resource-2');
 
-      resource1.associateWith([resource2]);
+    resource2.addChild('resourceId', resource1, 'resourceId');
 
-      expect(() => {
-        resource1.associateWith([resource2]);
-      }).toThrowErrorMatchingInlineSnapshot(`"Resource already associated with!"`);
-    });
+    expect((resource2.getChildren()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe('resource-1');
+  });
 
-    it('should be able to associate with another resource as its child', () => {
-      const resource1 = new TestResource('resource-1');
-      const resource2 = new TestResource('resource-2');
+  it('should be able to associate with another resource multiple times', () => {
+    const resource1 = new TestResource('resource-1');
+    const resource2 = new TestResource('resource-2');
 
-      resource1.associateWith([resource2]);
-
-      expect((resource2.getChildren()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe('resource-1');
-    });
+    resource2.addChild('resourceId', resource1, 'resourceId');
+    resource2.addChild('resourceId', resource1, 'resourceId');
+    expect(resource2.getChildren()['test-resource'].length).toBe(1);
   });
 
   describe('markDeleted()', () => {

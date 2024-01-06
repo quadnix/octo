@@ -6,12 +6,16 @@ import { IAnchor } from '../../../functions/overlay/anchor.interface.js';
 import { Dependency, IDependency } from '../../../functions/dependency/dependency.model.js';
 
 export class ModelSerializationService {
+  private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
+
   private readonly classMapping: { [key: string]: any } = {};
 
   private readonly modules: AModule[] = [];
 
   async deserialize(serializedOutput: ModelSerializedOutput): Promise<UnknownModel> {
-    const deReferencePromises: { [p: string]: [Promise<boolean>, (value: boolean) => void] } = {};
+    const deReferencePromises: {
+      [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
+    } = {};
     const seen: { [p: string]: UnknownModel } = {};
 
     const deReferenceContext = async (context: string): Promise<UnknownModel> => {
@@ -20,10 +24,15 @@ export class ModelSerializationService {
           await deReferencePromises[context][0];
         } else {
           deReferencePromises[context] = [] as any;
-          const promise = new Promise<boolean>((resolve) => {
+          const promise = new Promise<boolean>((resolve, reject) => {
             deReferencePromises[context][1] = resolve;
+            deReferencePromises[context][2] = reject;
           });
           deReferencePromises[context][0] = promise;
+
+          deReferencePromises[context][3] = setTimeout(() => {
+            deReferencePromises[context][2](new Error('DeReferencing model operation timed out!'));
+          }, this.MODEL_DESERIALIZATION_TIMEOUT_IN_MS);
           await promise;
         }
       }
@@ -38,6 +47,7 @@ export class ModelSerializationService {
       seen[context] = await deserializationClass.unSynth(model, deReferenceContext);
       if (deReferencePromises[context] !== undefined) {
         deReferencePromises[context][1](true);
+        clearTimeout(deReferencePromises[context][3]);
       }
 
       return seen[context];

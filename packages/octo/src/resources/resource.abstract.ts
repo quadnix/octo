@@ -1,5 +1,6 @@
-import { ModelType, ResourceMarkers, UnknownResource } from '../app.type.js';
+import { ModelType, UnknownResource } from '../app.type.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
+import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
 import { IResource } from './resource.interface.js';
 import { ASharedResource } from './shared-resource.abstract.js';
@@ -7,11 +8,12 @@ import { ASharedResource } from './shared-resource.abstract.js';
 export abstract class AResource<T> extends AModel<IResource, T> {
   override readonly MODEL_TYPE: ModelType = ModelType.RESOURCE;
 
-  private readonly diffMarkers: ResourceMarkers = {
-    delete: false,
-    replace: false,
-    update: null,
-  };
+  /*
+   * While model graph are well connected, resource graph can contain nodes that are completely disassociated.
+   * For this reason, we traverse the resource graph using an array. Thus, even after calling remove()
+   * on a resource node, it will be traversed, and there needs to be a marker to identify that it has been deleted.
+   * */
+  private _deleteMarker = false;
 
   readonly properties: IResource['properties'] = {};
 
@@ -32,41 +34,26 @@ export abstract class AResource<T> extends AModel<IResource, T> {
       this.properties[key] = properties[key];
     }
 
-    this.associateWith(parents);
-  }
-
-  associateWith(resources: UnknownResource[]): void {
-    for (const resource of resources) {
-      const childrenDependencies = resource.getChildren(this.MODEL_NAME);
-      if (!childrenDependencies[this.MODEL_NAME]) {
-        childrenDependencies[this.MODEL_NAME] = [];
-      }
-
-      // Check for duplicates.
-      const selfDependencies = childrenDependencies[this.MODEL_NAME].map((d) => d.to as UnknownResource);
-      if (selfDependencies.find((r) => r.resourceId === this.resourceId)) {
-        throw new Error('Resource already associated with!');
-      }
-
-      // Add child.
-      resource.addChild('resourceId' as never, this, 'resourceId');
+    for (const parent of parents) {
+      parent.addChild('resourceId' as never, this, 'resourceId');
     }
   }
 
-  override async diff(previous?: T | ASharedResource<T>): Promise<Diff[]> {
+  async diff(previous?: T): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
-    // Diff markers gets precedence over property diff.
-    if (this.diffMarkers.delete) {
+    if (this.isMarkedDeleted()) {
       diffs.push(new Diff(previous as AModel<IResource, T>, DiffAction.DELETE, 'resourceId', this.resourceId));
-    } else if (this.diffMarkers.replace) {
-      diffs.push(new Diff(this, DiffAction.REPLACE, 'resourceId', this.resourceId));
-    } else if (this.diffMarkers.update !== null) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, this.diffMarkers.update.key, this.diffMarkers.update.value));
+      return diffs;
     }
 
-    // We defer calculating property diff to real resource implementations,
-    // since they have better context on how to handle their specific property CUD.
+    if (previous) {
+      if (!DiffUtility.isObjectDeepEquals(this.properties, (previous as unknown as AResource<T>).properties)) {
+        diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', this.resourceId));
+      }
+    } else {
+      diffs.push(new Diff(this, DiffAction.ADD, 'resourceId', this.resourceId));
+    }
 
     return diffs;
   }
@@ -75,29 +62,23 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     return `${this.MODEL_NAME}=${this.resourceId}`;
   }
 
-  getUpdateMarker(): ResourceMarkers['update'] {
-    return this.diffMarkers.update;
+  getSharedResource(): ASharedResource<T> | undefined {
+    const sameModelDependencies = this.getChildren(this.MODEL_NAME)[this.MODEL_NAME];
+    const sharedResourceDependency = sameModelDependencies.find((d) => d.to.MODEL_TYPE === ModelType.SHARED_RESOURCE);
+    return sharedResourceDependency?.to as ASharedResource<T>;
   }
 
   isMarkedDeleted(): boolean {
-    return this.diffMarkers.delete;
-  }
-
-  isMarkedReplaced(): boolean {
-    return this.diffMarkers.replace;
+    return this._deleteMarker;
   }
 
   markDeleted(): void {
-    this.remove();
-    this.diffMarkers.delete = true;
+    super.remove();
+    this._deleteMarker = true;
   }
 
-  markReplaced(): void {
-    this.diffMarkers.replace = true;
-  }
-
-  markUpdated(key: string, value: any): void {
-    this.diffMarkers.update = { key, value };
+  override remove(): void {
+    throw new Error('Cannot use remove() on resources! Use a delete marker instead.');
   }
 
   synth(): IResource {

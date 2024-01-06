@@ -18,6 +18,16 @@ export class DiffUtility {
     return diff;
   }
 
+  // Source: https://stackoverflow.com/a/32922084/1834562
+  static isObjectDeepEquals(x: object, y: object): boolean {
+    const ok = Object.keys,
+      tx = typeof x,
+      ty = typeof y;
+    return x && y && tx === 'object' && tx === ty
+      ? ok(x).length === ok(y).length && ok(x).every((key) => this.isObjectDeepEquals(x[key], y[key]))
+      : x === y;
+  }
+
   /**
    * Generate a deep diff of an array of basic types from the previous model vs the latest model.
    * @param a previous model.

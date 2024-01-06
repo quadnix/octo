@@ -193,30 +193,6 @@ exports[`TransactionService UT diffResources() should compare same resources wit
 ]
 `;
 
-exports[`TransactionService UT diffResources() should compare same resources with replace marker on new 1`] = `
-[
-  [
-    {
-      "action": "replace",
-      "field": "resourceId",
-      "value": "resource-1",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT diffResources() should compare same resources with update marker on new 1`] = `
-[
-  [
-    {
-      "action": "update",
-      "field": "updateKey",
-      "value": "update value",
-    },
-  ],
-]
-`;
-
 exports[`TransactionService UT rollbackTransaction() should be able to revert addition of resources 1`] = `
 [
   [

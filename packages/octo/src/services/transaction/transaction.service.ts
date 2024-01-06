@@ -60,8 +60,8 @@ export class TransactionService {
           // Collect new resources.
           for (const resourceId of a.collectOutput(diffToProcess)) {
             if (outputs[resourceId].MODEL_TYPE === 'shared-resource' && resources[resourceId]) {
-              resources[resourceId] = (resources[resourceId] as UnknownSharedResource).merge(
-                outputs[resourceId] as UnknownSharedResource,
+              resources[resourceId] = (outputs[resourceId] as UnknownSharedResource).merge(
+                resources[resourceId] as UnknownSharedResource,
               );
             } else {
               resources[resourceId] = outputs[resourceId];
@@ -141,8 +141,6 @@ export class TransactionService {
   private async diffResources(newResources: ActionOutputs, oldResources: ActionOutputs): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
-    // All old resources are also always present as new resources.
-    // The new resources might have diff markers set to denote operations, such as delete.
     for (const oldResourceId in oldResources) {
       const rDiff = await newResources[oldResourceId].diff(oldResources[oldResourceId]);
       diffs.push(...rDiff);

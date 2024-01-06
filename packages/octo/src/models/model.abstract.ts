@@ -274,7 +274,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       return;
     }
 
-    // In every dependency, this model is a child. Removing this from every parent.
+    // Removing all dependencies that points to this.
     for (const dependency of this.dependencies) {
       const index = dependency.to.dependencies.findIndex((d) => d.to.getContext() === this.getContext());
       dependency.to.dependencies.splice(index, 1);

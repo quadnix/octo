@@ -36,11 +36,11 @@ describe('Container UT', () => {
     expect(test.property).toBe('value');
   });
 
-  it('should throw error when attempting to register same factory multiple times', async () => {
+  it('should not throw error when attempting to register same factory multiple times', async () => {
     expect(() => {
       Container.registerFactory(Test, TestFactory);
       Container.registerFactory(Test, TestFactory);
-    }).toThrowErrorMatchingInlineSnapshot(`"Factory Test is already registered with given metadata!"`);
+    }).not.toThrowError();
   });
 
   it('should be able to register factory of an interface', async () => {

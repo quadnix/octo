@@ -27,10 +27,6 @@ class TestResourceWithDiffOverride extends AResource<TestResource> {
   constructor(resourceId: string) {
     super(resourceId, {}, []);
   }
-
-  override async diff(): Promise<Diff[]> {
-    return [];
-  }
 }
 
 describe('TransactionService UT', () => {
@@ -399,46 +395,6 @@ describe('TransactionService UT', () => {
     it('should compare same resources with delete marker on new', async () => {
       const newTestResource = new TestResource('resource-1');
       newTestResource.markDeleted();
-
-      const oldResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
-      };
-      const newResources: ActionOutputs = {
-        resource1: newTestResource,
-      };
-
-      const service = new TransactionService();
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should compare same resources with replace marker on new', async () => {
-      const newTestResource = new TestResource('resource-1');
-      newTestResource.markReplaced();
-
-      const oldResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
-      };
-      const newResources: ActionOutputs = {
-        resource1: newTestResource,
-      };
-
-      const service = new TransactionService();
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should compare same resources with update marker on new', async () => {
-      const newTestResource = new TestResource('resource-1');
-      newTestResource.markUpdated('updateKey', 'update value');
 
       const oldResources: ActionOutputs = {
         resource1: new TestResource('resource-1'),

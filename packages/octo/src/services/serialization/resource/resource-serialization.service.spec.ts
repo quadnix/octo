@@ -12,8 +12,10 @@ class TestResource extends AResource<TestResource> {
 }
 
 class SharedTestResource extends ASharedResource<TestResource> {
-  constructor(resource: TestResource) {
-    super(resource);
+  readonly MODEL_NAME: string = 'shared-test-resource';
+
+  constructor(resourceId: string, properties: object, parents: [TestResource?]) {
+    super(resourceId, {}, parents as AResource<TestResource>[]);
   }
 }
 
@@ -23,15 +25,11 @@ describe('Resource Serialization Service UT', () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
-      const resource2 = new TestResource('resource-2');
-      resource2.properties['key2'] = 'value2';
-      resource2.response['response2'] = 'value2';
-      resource2.associateWith([resource1]);
 
       const service = new ResourceSerializationService();
 
       await expect(async () => {
-        const serializedOutput = service.serialize([resource1, resource2]);
+        const serializedOutput = service.serialize([resource1]);
         await service.deserialize(serializedOutput);
       }).rejects.toThrowError();
     });
@@ -54,34 +52,35 @@ describe('Resource Serialization Service UT', () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
-      const sharedResource1 = new SharedTestResource(resource1);
+      const resource2 = new SharedTestResource('resource-2', {}, [resource1]);
 
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
 
-      const serializedOutput = service.serialize([sharedResource1]);
+      const serializedOutput = service.serialize([resource1, resource2]);
       const resources = await service.deserialize(serializedOutput);
 
       expect(resources).toMatchSnapshot();
     });
 
-    it('should deserialize a single shared resource even without corresponding resource', async () => {
+    it('should throw error trying to deserialize a shared resource without corresponding resource', async () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
-      const sharedResource1 = new SharedTestResource(resource1);
+      const resource2 = new SharedTestResource('resource-2', {}, [resource1]);
 
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
+      service.setResourceDeserializationTimeout(50);
 
-      const serializedOutput = service.serialize([sharedResource1]);
+      const serializedOutput = service.serialize([resource2]);
       serializedOutput.resources = {};
 
-      const resources = await service.deserialize(serializedOutput);
-
-      expect(resources).toMatchSnapshot();
+      await expect(async () => {
+        await service.deserialize(serializedOutput);
+      }).rejects.toMatchInlineSnapshot(`[Error: DeReferencing resource operation timed out!]`);
     });
 
     it('should deserialize dependencies', async () => {
@@ -91,7 +90,7 @@ describe('Resource Serialization Service UT', () => {
       const resource2 = new TestResource('resource-2');
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
-      resource2.associateWith([resource1]);
+      resource1.addChild('resourceId', resource2, 'resourceId');
 
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
@@ -115,7 +114,7 @@ describe('Resource Serialization Service UT', () => {
       const resource2 = new TestResource('resource-2');
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
-      resource2.associateWith([resource1]);
+      resource1.addChild('resourceId', resource2, 'resourceId');
 
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
@@ -140,14 +139,14 @@ describe('Resource Serialization Service UT', () => {
       const resource2 = new TestResource('resource-2');
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
-      resource2.associateWith([resource1]);
-      const sharedResource1 = new SharedTestResource(resource1);
+      resource1.addChild('resourceId', resource2, 'resourceId');
+      const resource3 = new SharedTestResource('resource-3', {}, [resource1]);
 
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
 
-      const resourcesSerialized = service.serialize([sharedResource1, resource2]);
+      const resourcesSerialized = service.serialize([resource1, resource2, resource3]);
       const resourcesDeserialized = await service.deserialize(resourcesSerialized);
 
       const newResourcesDependencies = service
@@ -196,6 +195,18 @@ describe('Resource Serialization Service UT', () => {
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
       resource1.addChild('resourceId', resource2, 'resourceId');
+      const resources: UnknownResource[] = [resource1, resource2];
+
+      const service = new ResourceSerializationService();
+      expect(service.serialize(resources)).toMatchSnapshot();
+    });
+
+    it('should serialize shared resources', () => {
+      const resource1 = new TestResource('resource-1');
+      const resource2 = new SharedTestResource('resource-2', {}, [resource1]);
+      resource2.properties['key2'] = 'value2';
+      resource2.response['response2'] = 'value2';
+
       const resources: UnknownResource[] = [resource1, resource2];
 
       const service = new ResourceSerializationService();

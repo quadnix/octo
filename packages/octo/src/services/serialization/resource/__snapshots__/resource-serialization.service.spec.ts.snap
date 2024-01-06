@@ -5,13 +5,9 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
   "resource-1": TestResource {
     "MODEL_NAME": "test-resource",
     "MODEL_TYPE": "resource",
+    "_deleteMarker": false,
     "anchors": [],
     "dependencies": [],
-    "diffMarkers": {
-      "delete": false,
-      "replace": false,
-      "update": null,
-    },
     "properties": {
       "key1": "value1",
     },
@@ -25,82 +21,135 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
 
 exports[`Resource Serialization Service UT deserialize() should deserialize a single shared resource 1`] = `
 {
-  "resource-1": SharedTestResource {
+  "resource-1": TestResource {
     "MODEL_NAME": "test-resource",
-    "MODEL_TYPE": "shared-resource",
+    "MODEL_TYPE": "resource",
+    "_deleteMarker": false,
     "anchors": [],
-    "dependencies": [],
-    "diffMarkers": {
-      "delete": false,
-      "replace": false,
-      "update": null,
-    },
+    "dependencies": [
+      Dependency {
+        "behaviors": [
+          DependencyBehavior {
+            "forAction": "delete",
+            "onAction": "delete",
+            "onField": "resourceId",
+            "toField": "resourceId",
+          },
+        ],
+        "from": [Circular],
+        "relationship": {
+          "onField": "resourceId",
+          "toField": "resourceId",
+          "type": "parent",
+        },
+        "to": SharedTestResource {
+          "MODEL_NAME": "shared-test-resource",
+          "MODEL_TYPE": "shared-resource",
+          "_deleteMarker": false,
+          "anchors": [],
+          "dependencies": [
+            Dependency {
+              "behaviors": [
+                DependencyBehavior {
+                  "forAction": "add",
+                  "onAction": "add",
+                  "onField": "resourceId",
+                  "toField": "resourceId",
+                },
+                DependencyBehavior {
+                  "forAction": "update",
+                  "onAction": "add",
+                  "onField": "resourceId",
+                  "toField": "resourceId",
+                },
+              ],
+              "from": [Circular],
+              "relationship": {
+                "onField": "resourceId",
+                "toField": "resourceId",
+                "type": "child",
+              },
+              "to": [Circular],
+            },
+          ],
+          "properties": {},
+          "resourceId": "resource-2",
+          "response": {},
+        },
+      },
+    ],
     "properties": {
       "key1": "value1",
-    },
-    "resource": TestResource {
-      "MODEL_NAME": "test-resource",
-      "MODEL_TYPE": "resource",
-      "anchors": [],
-      "dependencies": [],
-      "diffMarkers": {
-        "delete": false,
-        "replace": false,
-        "update": null,
-      },
-      "properties": {
-        "key1": "value1",
-      },
-      "resourceId": "resource-1",
-      "response": {
-        "response1": "value1",
-      },
     },
     "resourceId": "resource-1",
     "response": {
       "response1": "value1",
     },
   },
-}
-`;
-
-exports[`Resource Serialization Service UT deserialize() should deserialize a single shared resource even without corresponding resource 1`] = `
-{
-  "resource-1": SharedTestResource {
-    "MODEL_NAME": "test-resource",
+  "resource-2": SharedTestResource {
+    "MODEL_NAME": "shared-test-resource",
     "MODEL_TYPE": "shared-resource",
+    "_deleteMarker": false,
     "anchors": [],
-    "dependencies": [],
-    "diffMarkers": {
-      "delete": false,
-      "replace": false,
-      "update": null,
-    },
-    "properties": {
-      "key1": "value1",
-    },
-    "resource": TestResource {
-      "MODEL_NAME": "test-resource",
-      "MODEL_TYPE": "resource",
-      "anchors": [],
-      "dependencies": [],
-      "diffMarkers": {
-        "delete": false,
-        "replace": false,
-        "update": null,
+    "dependencies": [
+      Dependency {
+        "behaviors": [
+          DependencyBehavior {
+            "forAction": "add",
+            "onAction": "add",
+            "onField": "resourceId",
+            "toField": "resourceId",
+          },
+          DependencyBehavior {
+            "forAction": "update",
+            "onAction": "add",
+            "onField": "resourceId",
+            "toField": "resourceId",
+          },
+        ],
+        "from": [Circular],
+        "relationship": {
+          "onField": "resourceId",
+          "toField": "resourceId",
+          "type": "child",
+        },
+        "to": TestResource {
+          "MODEL_NAME": "test-resource",
+          "MODEL_TYPE": "resource",
+          "_deleteMarker": false,
+          "anchors": [],
+          "dependencies": [
+            Dependency {
+              "behaviors": [
+                DependencyBehavior {
+                  "forAction": "delete",
+                  "onAction": "delete",
+                  "onField": "resourceId",
+                  "toField": "resourceId",
+                },
+              ],
+              "from": [Circular],
+              "relationship": {
+                "onField": "resourceId",
+                "toField": "resourceId",
+                "type": "parent",
+              },
+              "to": [Circular],
+            },
+          ],
+          "properties": {
+            "key1": "value1",
+          },
+          "resourceId": "resource-1",
+          "response": {
+            "response1": "value1",
+          },
+        },
       },
-      "properties": {
-        "key1": "value1",
-      },
-      "resourceId": "resource-1",
-      "response": {
-        "response1": "value1",
-      },
-    },
-    "resourceId": "resource-1",
-    "response": {
-      "response1": "value1",
-    },
+    ],
+    "properties": {},
+    "resourceId": "resource-2",
+    "response": {},
   },
 }
 `;
@@ -111,7 +160,6 @@ exports[`Resource Serialization Service UT serialize() should not serialize reso
   "resources": {
     "resource-1": {
       "className": "TestResource",
-      "isSharedResource": false,
       "resource": {
         "properties": {
           "key1": "value1",
@@ -182,7 +230,6 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
   "resources": {
     "resource-1": {
       "className": "TestResource",
-      "isSharedResource": false,
       "resource": {
         "properties": {
           "key1": "value1",
@@ -195,7 +242,6 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
     },
     "resource-2": {
       "className": "TestResource",
-      "isSharedResource": false,
       "resource": {
         "properties": {
           "key2": "value2",
@@ -217,7 +263,6 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
   "resources": {
     "resource-1": {
       "className": "TestResource",
-      "isSharedResource": false,
       "resource": {
         "properties": {},
         "resourceId": "resource-1",
@@ -226,5 +271,76 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
     },
   },
   "sharedResources": {},
+}
+`;
+
+exports[`Resource Serialization Service UT serialize() should serialize shared resources 1`] = `
+{
+  "dependencies": [
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "resourceId",
+          "toField": "resourceId",
+        },
+      ],
+      "from": "test-resource=resource-1",
+      "relationship": {
+        "onField": "resourceId",
+        "toField": "resourceId",
+        "type": "parent",
+      },
+      "to": "shared-test-resource=resource-2",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "resourceId",
+          "toField": "resourceId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "resourceId",
+          "toField": "resourceId",
+        },
+      ],
+      "from": "shared-test-resource=resource-2",
+      "relationship": {
+        "onField": "resourceId",
+        "toField": "resourceId",
+        "type": "child",
+      },
+      "to": "test-resource=resource-1",
+    },
+  ],
+  "resources": {
+    "resource-1": {
+      "className": "TestResource",
+      "resource": {
+        "properties": {},
+        "resourceId": "resource-1",
+        "response": {},
+      },
+    },
+  },
+  "sharedResources": {
+    "resource-2": {
+      "className": "SharedTestResource",
+      "resource": {
+        "properties": {
+          "key2": "value2",
+        },
+        "resourceId": "resource-2",
+        "response": {
+          "response2": "value2",
+        },
+      },
+    },
+  },
 }
 `;
