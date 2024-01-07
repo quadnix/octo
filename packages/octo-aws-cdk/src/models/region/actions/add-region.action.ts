@@ -41,6 +41,7 @@ export class AddRegionAction extends AAction {
       `${regionId}-internal-open-sg`,
       `${regionId}-private-closed-sg`,
       `${regionId}-web-sg`,
+      `${regionId}-efs-filesystem`,
       'shared-efs-filesystem',
     ];
   }
@@ -247,12 +248,11 @@ export class AddRegionAction extends AAction {
 
     // Create EFS.
     const efs = new Efs(
-      'shared-efs-filesystem',
+      `${regionId}-efs-filesystem`,
       { awsRegionId: awsRegion.nativeAwsRegionId, regionId: awsRegion.regionId },
       [privateSubnet1, internalOpenSG],
     );
-    const sharedEfs = new SharedEfs(efs);
-    sharedEfs.markUpdated('regions', `ADD:${regionId}`);
+    const sharedEfs = new SharedEfs('shared-efs-filesystem', {}, [efs]);
 
     const output: ActionOutputs = {};
     output[vpc.resourceId] = vpc;
@@ -267,7 +267,8 @@ export class AddRegionAction extends AAction {
     output[internalOpenSG.resourceId] = internalOpenSG;
     output[privateClosedSG.resourceId] = privateClosedSG;
     output[webSG.resourceId] = webSG;
-    output[efs.resourceId] = sharedEfs;
+    output[efs.resourceId] = efs;
+    output[sharedEfs.resourceId] = sharedEfs;
 
     return output;
   }

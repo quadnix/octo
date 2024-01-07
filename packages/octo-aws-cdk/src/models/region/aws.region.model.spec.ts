@@ -43,16 +43,10 @@ describe('AwsRegion UT', () => {
       // Prevent generator1 from running real resource actions.
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
       const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
-      // Since we prevented real resource actions to run, we need to manually generate appropriate responses.
-      resourcesResult1.value.find((r) => r.resourceId === 'shared-efs-filesystem').response = {
-        sharedMetadataStringified: JSON.stringify({
-          regions: [
-            {
-              awsRegionId: 'us-east-1',
-              regionId: AwsRegionId.AWS_US_EAST_1A,
-            },
-          ],
-        }),
+      // Fabricate resource, as if resource actions ran.
+      resourcesResult1.value.find((r) => r.MODEL_NAME === 'efs' && r.MODEL_TYPE === 'resource').response = {
+        awsRegionId: 'us-east-1',
+        regionId: AwsRegionId.AWS_US_EAST_1A,
       };
       const resourceDiffsResult1 = await generator1.next();
       await octoAws.commitTransaction(app, modelTransactionResult1.value, resourcesResult1.value);
@@ -124,7 +118,7 @@ describe('AwsRegion UT', () => {
             {
               "action": "add",
               "field": "resourceId",
-              "value": "shared-efs-filesystem",
+              "value": "aws-us-east-1a-efs-filesystem",
             },
           ],
         ]
@@ -213,7 +207,7 @@ describe('AwsRegion UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
-              "value": "shared-efs-filesystem",
+              "value": undefined,
             },
           ],
         ]

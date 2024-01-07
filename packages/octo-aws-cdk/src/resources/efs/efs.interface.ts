@@ -4,14 +4,6 @@ export interface IEfsProperties {
 }
 
 export interface IEfsResponse {
-  sharedMetadataStringified: string;
-}
-
-export interface IEfsSharedMetadata {
-  regions: IEfsMetadata[];
-}
-
-interface IEfsMetadata {
   awsRegionId: string;
   FileSystemId: string;
   FileSystemArn: string;

@@ -1,4 +1,5 @@
 import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { Efs } from '../../../resources/efs/efs.resource.js';
 import { SharedEfs } from '../../../resources/efs/efs.shared-resource.js';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
@@ -29,6 +30,7 @@ export class DeleteRegionAction extends AAction {
       `resource.${regionId}-internal-open-sg`,
       `resource.${regionId}-private-closed-sg`,
       `resource.${regionId}-web-sg`,
+      `resource.${regionId}-efs-filesystem`,
       'resource.shared-efs-filesystem',
     ];
   }
@@ -49,6 +51,7 @@ export class DeleteRegionAction extends AAction {
       `${regionId}-internal-open-sg`,
       `${regionId}-private-closed-sg`,
       `${regionId}-web-sg`,
+      `${regionId}-efs-filesystem`,
     ];
   }
 
@@ -62,10 +65,12 @@ export class DeleteRegionAction extends AAction {
     const internalOpenSG = actionInputs[`resource.${regionId}-internal-open-sg`] as SecurityGroup;
     const privateSubnet1 = actionInputs[`resource.${regionId}-private-subnet-1`] as Subnet;
 
+    const efs = actionInputs[`resource.${regionId}-efs-filesystem`] as Efs;
     const sharedEfs = actionInputs['resource.shared-efs-filesystem'] as SharedEfs;
-    sharedEfs.markUpdated('regions', `DELETE:${regionId}`);
-    sharedEfs.removeRelationship(privateSubnet1);
-    sharedEfs.removeRelationship(internalOpenSG);
+    efs.removeRelationship(privateSubnet1);
+    efs.removeRelationship(internalOpenSG);
+    efs.removeRelationship(sharedEfs);
+    efs.markDeleted();
 
     const accessSG = actionInputs[`resource.${regionId}-access-sg`] as SecurityGroup;
     accessSG.markDeleted();
@@ -108,7 +113,7 @@ export class DeleteRegionAction extends AAction {
     output[internalOpenSG.resourceId] = internalOpenSG;
     output[privateClosedSG.resourceId] = privateClosedSG;
     output[webSG.resourceId] = webSG;
-    output[sharedEfs.resourceId] = sharedEfs;
+    output[efs.resourceId] = efs;
 
     return output;
   }

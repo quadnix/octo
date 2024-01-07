@@ -11,7 +11,7 @@ import { ISecurityGroupResponse } from '../../security-groups/security-group.int
 import { SecurityGroup } from '../../security-groups/security-group.resource.js';
 import { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import { Subnet } from '../../subnet/subnet.resource.js';
-import { IEfsProperties, IEfsResponse, IEfsSharedMetadata } from '../efs.interface.js';
+import { IEfsProperties, IEfsResponse } from '../efs.interface.js';
 import { Efs } from '../efs.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -25,6 +25,7 @@ export class AddEfsAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const efs = diff.model as Efs;
+    const efsSharedMetadata = diff.value as { FileSystemArn: string; FileSystemId: string } | undefined;
     const properties = efs.properties as unknown as IEfsProperties;
     const response = efs.response as unknown as IEfsResponse;
     const privateSubnet1 = efs.getParents('subnet')['subnet'][0].to as Subnet;
@@ -35,15 +36,8 @@ export class AddEfsAction implements IResourceAction {
     // Get instances.
     const efsClient = await Container.get(EFSClient, { args: [properties.awsRegionId] });
 
-    const efsSharedMetadata: IEfsSharedMetadata =
-      (response?.sharedMetadataStringified as string)?.length > 0
-        ? JSON.parse(response.sharedMetadataStringified as string)
-        : {};
-    const sharedRegions = efsSharedMetadata.regions || [];
-    const sharedAwsRegion = sharedRegions.find((r) => r.awsRegionId === properties.awsRegionId);
-    // todo: something wrong here! we should create mount target only when it does not exist on that subnet.
     let filesystemData: { FileSystemArn: string; FileSystemId: string };
-    if (!sharedAwsRegion) {
+    if (!efsSharedMetadata) {
       // Create a new EFS.
       const data = await efsClient.send(
         new CreateFileSystemCommand({
@@ -84,8 +78,8 @@ export class AddEfsAction implements IResourceAction {
       };
     } else {
       filesystemData = {
-        FileSystemArn: sharedAwsRegion.FileSystemArn,
-        FileSystemId: sharedAwsRegion.FileSystemId,
+        FileSystemArn: efsSharedMetadata.FileSystemArn,
+        FileSystemId: efsSharedMetadata.FileSystemId,
       };
     }
 
@@ -124,18 +118,13 @@ export class AddEfsAction implements IResourceAction {
     );
 
     // Set response.
-    sharedRegions.push({
-      awsRegionId: properties.awsRegionId,
-      FileSystemArn: filesystemData.FileSystemArn as string,
-      FileSystemId: filesystemData.FileSystemId as string,
-      IpAddress: data.IpAddress as string,
-      MountTargetId: data.MountTargetId as string,
-      NetworkInterfaceId: data.NetworkInterfaceId as string,
-      regionId: properties.regionId,
-    });
-    response.sharedMetadataStringified = JSON.stringify({
-      regions: sharedRegions,
-    } as IEfsSharedMetadata);
+    response.awsRegionId = properties.awsRegionId;
+    response.FileSystemArn = filesystemData.FileSystemArn;
+    response.FileSystemId = filesystemData.FileSystemId;
+    response.IpAddress = data.IpAddress as string;
+    response.MountTargetId = data.MountTargetId as string;
+    response.NetworkInterfaceId = data.NetworkInterfaceId as string;
+    response.regionId = properties.regionId;
   }
 }
 
