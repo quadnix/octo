@@ -25,18 +25,18 @@ export class Efs extends AResource<Efs> {
 
     const resource = this.isMarkedDeleted() ? previous! : this;
     const sharedResource: SharedEfs | undefined = resource.getSharedResource();
-    const efsSharingRegion = sharedResource?.findParentByProperty([
+    const efsSharingRegions = sharedResource?.findParentsByProperty([
       { key: 'awsRegionId', value: this.properties.awsRegionId },
     ]);
-    const diffValue =
-      efsSharingRegion?.resourceId !== this.resourceId
-        ? {
-            FileSystemArn: efsSharingRegion!.response.FileSystemArn,
-            FileSystemId: efsSharingRegion!.response.FileSystemId,
-          }
-        : undefined;
 
     if (this.isMarkedDeleted()) {
+      const efsSharingRegion = efsSharingRegions?.find((r) => r.resourceId === this.resourceId);
+      const diffValue = efsSharingRegion
+        ? {
+            FileSystemArn: efsSharingRegion.response.FileSystemArn,
+            FileSystemId: efsSharingRegion.response.FileSystemId,
+          }
+        : undefined;
       diffs.push(new Diff(previous as AModel<IResource, Efs>, DiffAction.DELETE, 'resourceId', diffValue));
       return diffs;
     }
@@ -45,6 +45,13 @@ export class Efs extends AResource<Efs> {
       // None of EFS properties are configurable. No UPDATE required.
       return diffs;
     } else {
+      const efsSharingRegion = efsSharingRegions?.find((r) => r.resourceId !== this.resourceId);
+      const diffValue = efsSharingRegion
+        ? {
+            FileSystemArn: efsSharingRegion.response.FileSystemArn,
+            FileSystemId: efsSharingRegion.response.FileSystemId,
+          }
+        : undefined;
       diffs.push(new Diff(this, DiffAction.ADD, 'resourceId', diffValue));
       return diffs;
     }

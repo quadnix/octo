@@ -9,14 +9,16 @@ export abstract class ASharedResource<T> extends AResource<T> {
     return [];
   }
 
-  findParentByProperty(filters: { key: keyof AResource<T>['properties']; value: any }[]): AResource<T> | undefined {
+  findParentsByProperty(filters: { key: keyof AResource<T>['properties']; value: any }[]): AResource<T>[] {
+    const parents: AResource<T>[] = [];
     const dependencies = Object.values(this.getParents()).flat();
     for (const d of dependencies) {
       const resource = d.to as AResource<T>;
       if (filters.every((c) => resource.properties[c.key] === c.value)) {
-        return resource;
+        parents.push(resource);
       }
     }
+    return parents;
   }
 
   override getSharedResource(): ASharedResource<T> | undefined {

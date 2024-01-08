@@ -1,16 +1,19 @@
 export class AwsFactory {
-  private static instances: { [key: string]: any } = {};
+  private static instances: { [key: string]: { [key: string]: any } } = {};
 
   static async create<T>(awsRegionId: string): Promise<T> {
     if (!awsRegionId) {
       throw new Error(`Failed to create instance of ${this.name} due to insufficient arguments!`);
     }
+    if (!this.instances[this.name]) {
+      this.instances[this.name] = {};
+    }
 
-    let instance: T = this.instances[awsRegionId];
+    let instance: T = this.instances[this.name][awsRegionId];
 
     if (!instance) {
       instance = this.createInstance(awsRegionId);
-      this.instances[awsRegionId] = instance;
+      this.instances[this.name][awsRegionId] = instance;
     }
 
     return instance;

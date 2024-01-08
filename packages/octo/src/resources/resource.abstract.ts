@@ -64,7 +64,7 @@ export abstract class AResource<T> extends AModel<IResource, T> {
 
   getSharedResource(): ASharedResource<T> | undefined {
     const sameModelDependencies = this.getChildren(this.MODEL_NAME)[this.MODEL_NAME];
-    const sharedResourceDependency = sameModelDependencies.find((d) => d.to.MODEL_TYPE === ModelType.SHARED_RESOURCE);
+    const sharedResourceDependency = sameModelDependencies?.find((d) => d.to.MODEL_TYPE === ModelType.SHARED_RESOURCE);
     return sharedResourceDependency?.to as ASharedResource<T>;
   }
 

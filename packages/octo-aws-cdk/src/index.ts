@@ -1,6 +1,14 @@
 import './anchors/iam-role.anchor.model.js';
 import './anchors/iam-user.anchor.model.js';
 
+import './factories/aws/ec2.aws.factory.js';
+import './factories/aws/ecr.aws.factory.js';
+import './factories/aws/ecs.aws.factory.js';
+import './factories/aws/efs.aws.factory.js';
+import './factories/aws/iam.aws.factory.js';
+import './factories/aws/s3.aws.factory.js';
+import './factories/aws/sts.aws.factory.js';
+
 import './models/environment/actions/add-environment.action.js';
 import './models/environment/actions/delete-environment.action.js';
 

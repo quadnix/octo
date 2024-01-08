@@ -1,4 +1,4 @@
-import { AResource, Resource } from '@quadnix/octo';
+import { AResource, IResource, Resource } from '@quadnix/octo';
 import { Vpc } from '../vpc/vpc.resource.js';
 import { IInternetGatewayProperties } from './internet-gateway.interface.js';
 
@@ -7,6 +7,6 @@ export class InternetGateway extends AResource<InternetGateway> {
   readonly MODEL_NAME: string = 'internet-gateway';
 
   constructor(resourceId: string, properties: IInternetGatewayProperties, parents: [Vpc]) {
-    super(resourceId, {}, parents);
+    super(resourceId, properties as unknown as IResource['properties'], parents);
   }
 }

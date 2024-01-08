@@ -46,6 +46,8 @@ describe('AwsRegion UT', () => {
       // Fabricate resource, as if resource actions ran.
       resourcesResult1.value.find((r) => r.MODEL_NAME === 'efs' && r.MODEL_TYPE === 'resource').response = {
         awsRegionId: 'us-east-1',
+        FileSystemArn: 'arn',
+        FileSystemId: 'id',
         regionId: AwsRegionId.AWS_US_EAST_1A,
       };
       const resourceDiffsResult1 = await generator1.next();
@@ -118,7 +120,7 @@ describe('AwsRegion UT', () => {
             {
               "action": "add",
               "field": "resourceId",
-              "value": "aws-us-east-1a-efs-filesystem",
+              "value": undefined,
             },
           ],
         ]
@@ -207,7 +209,10 @@ describe('AwsRegion UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
-              "value": undefined,
+              "value": {
+                "FileSystemArn": "arn",
+                "FileSystemId": "id",
+              },
             },
           ],
         ]

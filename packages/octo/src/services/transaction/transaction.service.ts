@@ -150,7 +150,7 @@ export class TransactionService {
       if (!oldResources.hasOwnProperty(newResourceId)) {
         const model = newResources[newResourceId];
 
-        if (model.MODEL_TYPE === 'shared-resource') {
+        if (model.MODEL_TYPE === 'shared-resource' || model.getSharedResource() !== undefined) {
           const rDiff = await model.diff();
           diffs.push(...rDiff);
         } else {
