@@ -57,18 +57,19 @@ export class AddEfsAction implements IResourceAction {
             }),
           );
 
-          if (!result.FileSystems!.length) {
+          const fileSystem = result.FileSystems?.find((f) => f.FileSystemId === data.FileSystemId);
+          if (!fileSystem) {
             throw new Error('EFS FileSystem does not exist!');
           }
-          const state = result.FileSystems![0].LifeCycleState!;
-          if (state.toLowerCase() === 'error') {
+          if (fileSystem.LifeCycleState!.toLowerCase() === 'error') {
             throw new Error('EFS FileSystem could not be created!');
           }
 
-          return state.toLowerCase() === 'available';
+          return fileSystem.LifeCycleState!.toLowerCase() === 'available';
         },
         {
-          retryDelayInMs: 2000,
+          maxRetries: 5,
+          retryDelayInMs: 5000,
         },
       );
 
@@ -97,23 +98,23 @@ export class AddEfsAction implements IResourceAction {
       async (): Promise<boolean> => {
         const result = await efsClient.send(
           new DescribeMountTargetsCommand({
-            FileSystemId: filesystemData.FileSystemId,
             MountTargetId: data.MountTargetId,
           }),
         );
 
-        if (!result.MountTargets!.length) {
+        const mountTarget = result.MountTargets?.find((m) => m.FileSystemId === filesystemData.FileSystemId);
+        if (!mountTarget) {
           throw new Error('EFS FileSystem MountTarget does not exist!');
         }
-        const state = result.MountTargets![0].LifeCycleState!;
-        if (state.toLowerCase() === 'error') {
+        if (mountTarget.LifeCycleState!.toLowerCase() === 'error') {
           throw new Error('EFS FileSystem MountTarget could not be created!');
         }
 
-        return state.toLowerCase() === 'available';
+        return mountTarget.LifeCycleState!.toLowerCase() === 'available';
       },
       {
-        retryDelayInMs: 2000,
+        maxRetries: 36,
+        retryDelayInMs: 5000,
       },
     );
 

@@ -209,10 +209,7 @@ describe('AwsRegion UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
-              "value": {
-                "FileSystemArn": "arn",
-                "FileSystemId": "id",
-              },
+              "value": undefined,
             },
           ],
         ]

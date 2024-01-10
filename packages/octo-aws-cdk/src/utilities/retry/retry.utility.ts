@@ -1,15 +1,23 @@
+interface IRetryOptions {
+  backOffFactor?: number;
+  initialDelayInMs?: number;
+  maxRetries?: number;
+  retryDelayInMs?: number;
+  throwOnError?: boolean;
+}
+
 export class RetryUtility {
   static async retryPromise(
     operation: () => Promise<boolean>,
-    options: {
-      backOffFactor?: number;
-      initialDelayInMs?: number;
-      maxRetries?: number;
-      retryDelayInMs?: number;
-      throwOnError?: boolean;
-    } = { backOffFactor: 1, initialDelayInMs: 10000, maxRetries: 3, retryDelayInMs: 10000, throwOnError: true },
+    {
+      backOffFactor = 1,
+      initialDelayInMs = 10000,
+      maxRetries = 3,
+      retryDelayInMs = 10000,
+      throwOnError = true,
+    }: IRetryOptions = {},
   ): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, options.initialDelayInMs));
+    await new Promise((resolve) => setTimeout(resolve, initialDelayInMs));
 
     do {
       try {
@@ -18,15 +26,19 @@ export class RetryUtility {
           return;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, options.retryDelayInMs));
+        await new Promise((resolve) => setTimeout(resolve, retryDelayInMs));
 
-        options.maxRetries! -= 1;
-        options.retryDelayInMs! *= options.backOffFactor!;
+        maxRetries! -= 1;
+        retryDelayInMs! *= backOffFactor!;
       } catch (error) {
-        if (options.throwOnError) {
+        if (throwOnError) {
           throw error;
         }
       }
-    } while (options.maxRetries! >= 0);
+    } while (maxRetries! >= 0);
+
+    if (throwOnError) {
+      throw new Error('Exhausted all retries for the operation!');
+    }
   }
 }
