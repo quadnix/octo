@@ -1,8 +1,6 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, Image, ModelType } from '@quadnix/octo';
 import { parse } from 'path';
-import { EcrImage as EcrImageModel } from '../ecr.image.model.js';
-import { EcrImage } from '../../../resources/ecr/ecr-image.resource.js';
-import { SharedEcrImage } from '../../../resources/ecr/ecr-image.shared-resource.js';
+import { ProcessUtility } from '../../../utilities/process/process.utility.js';
 import { AAction } from '../../action.abstract.js';
 
 @Action(ModelType.MODEL)
@@ -10,25 +8,18 @@ export class AddImageAction extends AAction {
   readonly ACTION_NAME: string = 'AddImageAction';
 
   override collectInput(diff: Diff): string[] {
-    const { imageName, imageTag } = diff.model as EcrImageModel;
+    const { imageName, imageTag } = diff.model as Image;
     const image = `${imageName}:${imageTag}`;
 
     return [`input.image.${image}.dockerExecutable`];
-  }
-
-  override collectOutput(diff: Diff): string[] {
-    const { imageName, imageTag } = diff.model as EcrImageModel;
-    const image = `${imageName}:${imageTag}`;
-
-    return [`image-${image}`];
   }
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'image' && diff.field === 'imageId';
   }
 
-  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
-    const { awsRegionId, dockerOptions, imageName, imageTag } = diff.model as EcrImageModel;
+  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+    const { dockerOptions, imageName, imageTag } = diff.model as Image;
 
     const image = `${imageName}:${imageTag}`;
     const dockerExec = actionInputs[`input.image.${image}.dockerExecutable`] as string;
@@ -48,22 +39,31 @@ export class AddImageAction extends AAction {
     buildCommand.push(`-f ${dockerFileParts.base}`);
     buildCommand.push('.');
 
-    // Create a new Image.
-    const ecrImage = new EcrImage(`image-${image}`, {
-      awsRegionId,
-      buildCommand: buildCommand.join(' '),
-      dockerExec,
-      dockerFileDirectory: dockerFileParts.dir,
-      imageName,
-      imageTag,
+    // Build image.
+    const buildRunner = ProcessUtility.runDetachedProcess(
+      buildCommand.join(' '),
+      { cwd: dockerFileParts.dir, shell: true },
+      'pipe',
+    );
+    await new Promise<void>((resolve, reject) => {
+      buildRunner.on('error', (error) => {
+        buildRunner.removeAllListeners();
+
+        buildRunner.kill();
+        reject(error);
+      });
+      buildRunner.on('exit', (code) => {
+        buildRunner.removeAllListeners();
+
+        if (code !== 0) {
+          reject(new Error(`Build failed with exit code: ${code}`));
+        } else {
+          resolve();
+        }
+      });
     });
-    const sharedEcrImage = new SharedEcrImage(ecrImage);
-    sharedEcrImage.markUpdated('regions', `ADD:${awsRegionId}`);
 
-    const output: ActionOutputs = {};
-    output[ecrImage.resourceId] = sharedEcrImage;
-
-    return output;
+    return {};
   }
 }
 
