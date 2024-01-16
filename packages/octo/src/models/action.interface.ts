@@ -31,5 +31,5 @@ export interface IAction<I extends ActionInputs, O extends ActionOutputs> {
   /**
    * This function contains the logic to revert the diff(s) from the underlying infrastructure.
    */
-  revert(diff: Diff, actionInputs: I, actionOutputs: O): O;
+  revert(diff: Diff, actionInputs: I, actionOutputs: O): Promise<O>;
 }

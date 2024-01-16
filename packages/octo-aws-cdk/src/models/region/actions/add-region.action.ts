@@ -25,27 +25,6 @@ export class AddRegionAction extends AAction {
     ];
   }
 
-  override collectOutput(diff: Diff): string[] {
-    const { regionId } = diff.model as AwsRegion;
-
-    return [
-      `${regionId}-vpc`,
-      `${regionId}-igw`,
-      `${regionId}-private-subnet-1`,
-      `${regionId}-public-subnet-1`,
-      `${regionId}-private-rt-1`,
-      `${regionId}-public-rt-1`,
-      `${regionId}-private-nacl-1`,
-      `${regionId}-public-nacl-1`,
-      `${regionId}-access-sg`,
-      `${regionId}-internal-open-sg`,
-      `${regionId}-private-closed-sg`,
-      `${regionId}-web-sg`,
-      `${regionId}-efs-filesystem`,
-      'shared-efs-filesystem',
-    ];
-  }
-
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'region' && diff.field === 'regionId';
   }
