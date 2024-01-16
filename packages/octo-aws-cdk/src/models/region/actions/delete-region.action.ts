@@ -59,7 +59,7 @@ export class DeleteRegionAction extends AAction {
     return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'region' && diff.field === 'regionId';
   }
 
-  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
+  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const { regionId } = diff.model as AwsRegion;
 
     const internalOpenSG = actionInputs[`resource.${regionId}-internal-open-sg`] as SecurityGroup;

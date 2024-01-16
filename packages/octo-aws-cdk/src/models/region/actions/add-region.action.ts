@@ -50,7 +50,7 @@ export class AddRegionAction extends AAction {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'region' && diff.field === 'regionId';
   }
 
-  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
+  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const awsRegion = diff.model as AwsRegion;
     const regionId = awsRegion.regionId;
 
