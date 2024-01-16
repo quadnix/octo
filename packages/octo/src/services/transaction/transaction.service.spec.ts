@@ -31,14 +31,13 @@ class TestResourceWithDiffOverride extends AResource<TestResource> {
 
 describe('TransactionService UT', () => {
   afterEach(() => {
-    jest.resetAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('applyModels()', () => {
     const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
       ACTION_NAME: 'universal',
       collectInput: () => [],
-      collectOutput: () => [],
       filter: () => true,
       handle: jest.fn() as jest.Mocked<any>,
       revert: jest.fn() as jest.Mocked<any>,
@@ -72,7 +71,6 @@ describe('TransactionService UT', () => {
       const action: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
-        collectOutput: () => [],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
@@ -88,6 +86,8 @@ describe('TransactionService UT', () => {
     });
 
     it('should only process 1 matching diff', async () => {
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
 
@@ -107,12 +107,11 @@ describe('TransactionService UT', () => {
       const action: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
-        collectOutput: () => ['resource1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
+      (action.handle as jest.Mocked<any>).mockResolvedValue({ resource1: 'resource1 object' });
 
       const service = new TransactionService();
       service.registerInputs({ 'input.key1': 'value1' });
@@ -128,32 +127,6 @@ describe('TransactionService UT', () => {
       expect(newResources).toMatchSnapshot();
     });
 
-    it('should not collect action output if not specified in collectOutput()', async () => {
-      const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
-      const action: IAction<ActionInputs, ActionOutputs> = {
-        ACTION_NAME: 'test',
-        collectInput: () => [],
-        collectOutput: () => [],
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-        revert: jest.fn() as jest.Mocked<any>,
-      };
-      (action.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
-
-      const service = new TransactionService();
-      service.registerModelActions([action]);
-
-      const newResources = {};
-      const generator = service.beginTransaction(diffs, {}, newResources, { yieldModelTransaction: true });
-
-      await generator.next();
-
-      expect(action.handle).toHaveBeenCalledTimes(1);
-      expect(newResources).toMatchSnapshot();
-    });
-
     it('should update diff metadata with inputs and outputs', async () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
@@ -161,12 +134,11 @@ describe('TransactionService UT', () => {
       const action: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
-        collectOutput: () => ['resource1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
+      (action.handle as jest.Mocked<any>).mockResolvedValue({ resource1: 'resource1 object' });
 
       const service = new TransactionService();
       service.registerInputs({ 'input.key1': 'value1' });
@@ -186,21 +158,19 @@ describe('TransactionService UT', () => {
       const action1: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test1',
         collectInput: () => ['input.key1'],
-        collectOutput: () => ['resource1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action1.handle as jest.Mock).mockReturnValue({ resource1: 'resource1 object' });
+      (action1.handle as jest.Mocked<any>).mockResolvedValue({ resource1: 'resource1 object' });
       const action2: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test2',
         collectInput: () => ['input.key2'],
-        collectOutput: () => ['resource2'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action2.handle as jest.Mock).mockReturnValue({ resource2: 'resource2 object' });
+      (action2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: 'resource2 object' });
 
       const service = new TransactionService();
       service.registerInputs({ 'input.key1': 'value1', 'input.key2': 'value2' });
@@ -219,6 +189,8 @@ describe('TransactionService UT', () => {
     });
 
     it('should process diffs in different levels', async () => {
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+
       const app = new App('app');
       const region = new Region('region');
       app.addRegion(region);
@@ -437,7 +409,6 @@ describe('TransactionService UT', () => {
       {
         ACTION_NAME: 'test',
         collectInput: () => [],
-        collectOutput: () => [],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
@@ -655,14 +626,14 @@ describe('TransactionService UT', () => {
     const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
       ACTION_NAME: 'universal',
       collectInput: () => [],
-      collectOutput: () => [],
       filter: () => true,
       handle: jest.fn() as jest.Mocked<any>,
       revert: jest.fn() as jest.Mocked<any>,
     };
 
     it('should call revert() for every diff in transaction', async () => {
-      (universalModelAction.revert as jest.Mock).mockReturnValue({});
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+      (universalModelAction.revert as jest.Mocked<any>).mockResolvedValue({});
 
       const diffs = [new Diff(new App('app'), DiffAction.ADD, 'name', 'app')];
 

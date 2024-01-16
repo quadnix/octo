@@ -123,11 +123,10 @@ describe('SharedResource UT', () => {
     const addRegion1Action: IAction<ActionInputs, ActionOutputs> = {
       ACTION_NAME: 'test1',
       collectInput: () => [],
-      collectOutput: () => ['parent-1', 'resource-1', 'shared-test-resource'],
       filter: (diff: Diff) => {
         return diff.value === 'region-1';
       },
-      handle: (jest.fn() as jest.Mocked<any>).mockReturnValue({
+      handle: (jest.fn() as jest.Mocked<any>).mockResolvedValue({
         'parent-1': parentResource1,
         'resource-1': testResource1,
         'shared-test-resource': sharedTestResource1,
@@ -157,11 +156,10 @@ describe('SharedResource UT', () => {
     const addRegion2Action: IAction<ActionInputs, ActionOutputs> = {
       ACTION_NAME: 'test2',
       collectInput: () => [],
-      collectOutput: () => ['parent-2', 'resource-2', 'shared-test-resource'],
       filter: (diff: Diff) => {
         return diff.value === 'region-2';
       },
-      handle: (jest.fn() as jest.Mocked<any>).mockReturnValue({
+      handle: (jest.fn() as jest.Mocked<any>).mockResolvedValue({
         'parent-2': parentResource2,
         'resource-2': testResource2,
         'shared-test-resource': sharedTestResource2,

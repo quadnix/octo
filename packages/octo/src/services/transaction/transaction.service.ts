@@ -16,7 +16,7 @@ export class TransactionService {
   private readonly modelActions: IAction<ActionInputs, ActionOutputs>[] = [];
   private readonly resourceActions: IResourceAction[] = [];
 
-  private applyModels(diffs: DiffMetadata[], resources: ActionOutputs): DiffMetadata[][] {
+  private async applyModels(diffs: DiffMetadata[], resources: ActionOutputs): Promise<DiffMetadata[][]> {
     const transaction: DiffMetadata[][] = [];
 
     let currentApplyOrder = 0;
@@ -25,6 +25,7 @@ export class TransactionService {
     while (processed < diffs.length) {
       const diffsInSameLevel = diffs.filter((d) => d.applyOrder === currentApplyOrder);
       const diffsProcessedInSameLevel: DiffMetadata[] = [];
+      const promiseToApplyActions: Promise<ActionOutputs>[] = [];
 
       for (const diff of diffsInSameLevel) {
         if (diff.applied) {
@@ -54,25 +55,16 @@ export class TransactionService {
             }
           });
 
-          // Apply all actions on the diff.
-          const outputs = a.handle(diffToProcess, inputs);
+          // Apply all actions on the diff, then update diff metadata with inputs and outputs.
+          const promiseToApplyAction = a.handle(diffToProcess, inputs).then((outputs) => {
+            duplicateDiffs.forEach((d) => {
+              d.updateInputs(inputs);
+              d.updateOutputs(outputs);
+            });
 
-          // Collect new resources.
-          for (const resourceId of a.collectOutput(diffToProcess)) {
-            if (outputs[resourceId].MODEL_TYPE === 'shared-resource' && resources[resourceId]) {
-              resources[resourceId] = (outputs[resourceId] as UnknownSharedResource).merge(
-                resources[resourceId] as UnknownSharedResource,
-              );
-            } else {
-              resources[resourceId] = outputs[resourceId];
-            }
-          }
-
-          // Update diff metadata with inputs and outputs.
-          duplicateDiffs.forEach((d) => {
-            d.updateInputs(inputs);
-            d.updateOutputs(outputs);
+            return outputs;
           });
+          promiseToApplyActions.push(promiseToApplyAction);
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -80,6 +72,23 @@ export class TransactionService {
 
         // Mark metadata of each duplicate diffs as applied.
         duplicateDiffs.forEach((d) => (d.applied = true));
+      }
+
+      // Apply all actions of same level, since they can be applied in parallel.
+      const actionsOutputs = await Promise.all(promiseToApplyActions);
+
+      // Overwrite previous resources with new resources, except for shared resources,
+      // which can be merged if it exists.
+      for (const outputs of actionsOutputs) {
+        for (const [resourceId, resource] of Object.entries(outputs)) {
+          if (resource.MODEL_TYPE === 'shared-resource' && resources[resourceId]) {
+            resources[resourceId] = (resource as UnknownSharedResource).merge(
+              resources[resourceId] as UnknownSharedResource,
+            );
+          } else {
+            resources[resourceId] = resource;
+          }
+        }
       }
 
       // Add all diff in same level to transaction.
@@ -247,7 +256,7 @@ export class TransactionService {
     }
 
     // Apply model diffs.
-    const modelTransaction = this.applyModels(modelDiffs, newResources);
+    const modelTransaction = await this.applyModels(modelDiffs, newResources);
     if (options.yieldModelTransaction) {
       yield modelTransaction;
     }

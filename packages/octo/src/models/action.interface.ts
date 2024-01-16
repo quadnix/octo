@@ -19,12 +19,6 @@ export interface IAction<I extends ActionInputs, O extends ActionOutputs> {
   collectInput(diff: Diff): (keyof I)[];
 
   /**
-   * This function contains the list of outputs to save after processing the diff.
-   * A missing output key will not be saved.
-   */
-  collectOutput(diff: Diff): (keyof O)[];
-
-  /**
    * This function determines if the handle is applicable to the diff.
    */
   filter(diff: Diff): boolean;
@@ -32,7 +26,7 @@ export interface IAction<I extends ActionInputs, O extends ActionOutputs> {
   /**
    * This function contains the logic to apply the diff(s) to the underlying infrastructure.
    */
-  handle(diff: Diff, actionInputs: I): O;
+  handle(diff: Diff, actionInputs: I): Promise<O>;
 
   /**
    * This function contains the logic to revert the diff(s) from the underlying infrastructure.

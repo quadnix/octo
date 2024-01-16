@@ -58,8 +58,6 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
 }
 `;
 
-exports[`TransactionService UT applyModels() should not collect action output if not specified in collectOutput() 1`] = `{}`;
-
 exports[`TransactionService UT applyModels() should only process 1 matching diff 1`] = `
 [
   [
