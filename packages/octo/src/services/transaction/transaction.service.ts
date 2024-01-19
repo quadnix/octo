@@ -173,7 +173,11 @@ export class TransactionService {
 
   private getDuplicateDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
     return diffs.filter(
-      (d) => d.model.getContext() === diff.model.getContext() && d.field === diff.field && d.action === diff.action,
+      (d) =>
+        d.model.getContext() === diff.model.getContext() &&
+        d.field === diff.field &&
+        d.action === diff.action &&
+        d.value === diff.value,
     );
   }
 
