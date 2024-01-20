@@ -8,7 +8,7 @@ describe('NginxRouterModule UT', () => {
 
     const app1 = new App('test');
     const nginxImage1 = new Image('quadnix/nginx', '0.0.1', {
-      dockerFilePath: 'resources/images/quadnix/nginx/0.0.1',
+      dockerfilePath: 'resources/images/quadnix/nginx/0.0.1',
     });
     app1.addImage(nginxImage1);
     const region1 = new Region('region-1');
@@ -25,7 +25,7 @@ describe('NginxRouterModule UT', () => {
 
     const app2 = (await service.deserialize(service.serialize(app1))) as App;
     const nginxImage2 = new Image('quadnix/nginx', '0.0.2', {
-      dockerFilePath: 'resources/images/quadnix/nginx/0.0.2',
+      dockerfilePath: 'resources/images/quadnix/nginx/0.0.2',
     });
     app2.addImage(nginxImage2);
     const region2 = app2.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;

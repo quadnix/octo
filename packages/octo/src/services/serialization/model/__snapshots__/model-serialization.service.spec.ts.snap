@@ -258,7 +258,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       "model": {
         "dockerOptions": {
           "buildArgs": {},
-          "dockerFilePath": "/Dockerfile",
+          "dockerfilePath": "/Dockerfile",
           "quiet": undefined,
         },
         "imageId": "0.0.1",
@@ -620,7 +620,7 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
       "model": {
         "dockerOptions": {
           "buildArgs": {},
-          "dockerFilePath": "/Dockerfile",
+          "dockerfilePath": "/Dockerfile",
           "quiet": undefined,
         },
         "imageId": "0.0.1",

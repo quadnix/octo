@@ -19,7 +19,7 @@ describe('App E2E Test', () => {
 
   it('should generate app diff', async () => {
     const app0 = new App('test-app');
-    const image0 = new Image('image', 'tag', { dockerFilePath: '.' });
+    const image0 = new Image('image', 'tag', { dockerfilePath: '.' });
     app0.addImage(image0);
     const region0 = new Region('region-1');
     app0.addRegion(region0);

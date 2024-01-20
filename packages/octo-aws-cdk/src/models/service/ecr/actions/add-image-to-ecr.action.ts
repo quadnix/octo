@@ -28,13 +28,13 @@ export class AddImageToEcrAction extends AAction {
     const { awsRegionId, image } = diff.value as { awsRegionId: string; image: Image };
 
     const dockerExec = actionInputs[`input.image.${image.imageId}.dockerExecutable`] as string;
-    const dockerFileParts = parse(image.dockerOptions.dockerFilePath);
+    const dockerfileParts = parse(image.dockerOptions.dockerfilePath);
 
     // Create ECR.
     const ecrImage = new EcrImage(`${awsRegionId}-${image.imageId}-ecr`, {
       awsRegionId,
       dockerExec,
-      dockerFileDirectory: dockerFileParts.dir,
+      dockerfileDirectory: dockerfileParts.dir,
       imageName: image.imageName,
       imageTag: image.imageTag,
     });

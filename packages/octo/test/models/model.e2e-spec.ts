@@ -16,7 +16,7 @@ describe('Model E2E Test', () => {
   describe('common functions', () => {
     const app = new App('test');
     const image = new Image('image', '0.0.1', {
-      dockerFilePath: '/Dockerfile',
+      dockerfilePath: '/Dockerfile',
     });
     const pipeline = new Pipeline('testPipeline');
     const region = new Region('region-1');
@@ -159,7 +159,7 @@ describe('Model E2E Test', () => {
     it('should not include server in region boundary', () => {
       const app0 = new App('test-app');
       const image0 = new Image('image', '0.0.1', {
-        dockerFilePath: '/Dockerfile',
+        dockerfilePath: '/Dockerfile',
       });
       const region0 = new Region('region-0');
       app0.addImage(image0);
@@ -174,7 +174,7 @@ describe('Model E2E Test', () => {
 
     it('should include server in region boundary after an execution is added', () => {
       const app0 = new App('test-app');
-      const image0 = new Image('test', 'test', { dockerFilePath: 'Dockerfile' });
+      const image0 = new Image('test', 'test', { dockerfilePath: 'Dockerfile' });
       app0.addImage(image0);
       const region0 = new Region('region-0');
       app0.addRegion(region0);
@@ -191,7 +191,7 @@ describe('Model E2E Test', () => {
 
     it('should include region in server boundary after an execution is added', () => {
       const app0 = new App('test-app');
-      const image0 = new Image('test', 'test', { dockerFilePath: 'Dockerfile' });
+      const image0 = new Image('test', 'test', { dockerfilePath: 'Dockerfile' });
       app0.addImage(image0);
       const region0 = new Region('region-0');
       app0.addRegion(region0);
@@ -227,7 +227,7 @@ describe('Model E2E Test', () => {
     it('should not include shared image with multiple boundaries', () => {
       const app = new App('app');
       const image = new Image('imageName', 'imageTag', {
-        dockerFilePath: 'path/to/Dockerfile',
+        dockerfilePath: 'path/to/Dockerfile',
       });
       app.addImage(image);
       const region1 = new Region('region-1');
@@ -287,7 +287,7 @@ describe('Model E2E Test', () => {
 
     it('should throw error when model having a direct relationship cannot be removed', () => {
       const app = new App('app');
-      const image = new Image('image', 'tag', { dockerFilePath: '/Dockerfile' });
+      const image = new Image('image', 'tag', { dockerfilePath: '/Dockerfile' });
       app.addImage(image);
       const server = new Server('server', image);
       app.addServer(server);
@@ -309,7 +309,7 @@ describe('Model E2E Test', () => {
 
     it('should be able to remove leaf model with a direct relationship', () => {
       const app = new App('app');
-      const image = new Image('image', 'tag', { dockerFilePath: '/Dockerfile' });
+      const image = new Image('image', 'tag', { dockerfilePath: '/Dockerfile' });
       app.addImage(image);
       const server = new Server('server', image);
       app.addServer(server);
@@ -333,7 +333,7 @@ describe('Model E2E Test', () => {
       const app = new App('app');
       const region = new Region('region');
       app.addRegion(region);
-      const image = new Image('image', 'tag', { dockerFilePath: '/Dockerfile' });
+      const image = new Image('image', 'tag', { dockerfilePath: '/Dockerfile' });
       app.addImage(image);
       image.addRelationship('imageId', region, 'regionId');
 

@@ -46,7 +46,7 @@ describe('Image UT', () => {
 
       const app = new App('test');
       const image1 = new Image('quadnix/test', '0.0.1', {
-        dockerFilePath: 'path/to/Dockerfile',
+        dockerfilePath: 'path/to/Dockerfile',
       });
       app.addImage(image1);
 

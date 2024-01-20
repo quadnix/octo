@@ -20,7 +20,7 @@ describe('Support UT', () => {
       it('should capture delete of children', async () => {
         const app0_0 = new App('test');
         const image0_0 = new Image('test', 'imageTag', {
-          dockerFilePath: 'path/to/Dockerfile',
+          dockerfilePath: 'path/to/Dockerfile',
         });
         app0_0.addImage(image0_0);
         const region0_0 = new Region('region');

@@ -1,7 +1,7 @@
 export interface IEcrImageProperties {
   awsRegionId: string;
   dockerExec: string;
-  dockerFileDirectory: string;
+  dockerfileDirectory: string;
   imageName: string;
   imageTag: string;
 }

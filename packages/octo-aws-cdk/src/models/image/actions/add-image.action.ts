@@ -23,7 +23,7 @@ export class AddImageAction extends AAction {
     const dockerExec = actionInputs[`input.image.${imageId}.dockerExecutable`] as string;
 
     // Build command to build image.
-    const dockerFileParts = parse(dockerOptions.dockerFilePath);
+    const dockerfileParts = parse(dockerOptions.dockerfilePath);
     const buildCommand = [dockerExec, 'build'];
     if (dockerOptions.quiet) {
       buildCommand.push('--quiet');
@@ -34,13 +34,13 @@ export class AddImageAction extends AAction {
       }
     }
     buildCommand.push(`-t ${imageId}`);
-    buildCommand.push(`-f ${dockerFileParts.base}`);
+    buildCommand.push(`-f ${dockerfileParts.base}`);
     buildCommand.push('.');
 
     // Build image.
     const buildRunner = ProcessUtility.runDetachedProcess(
       buildCommand.join(' '),
-      { cwd: dockerFileParts.dir, shell: true },
+      { cwd: dockerfileParts.dir, shell: true },
       'pipe',
     );
     await new Promise<void>((resolve, reject) => {

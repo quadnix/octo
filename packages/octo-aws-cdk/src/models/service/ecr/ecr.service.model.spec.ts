@@ -24,7 +24,7 @@ describe('EcrService UT', () => {
   describe('addImage()', () => {
     it('should throw error trying to add an image to a service without region', () => {
       const service = new EcrService('test');
-      const image = new Image('test', '0.0.1', { dockerFilePath: '/dockerExec' });
+      const image = new Image('test', '0.0.1', { dockerfilePath: '/dockerExec' });
 
       expect(() => {
         service.addImage(image);
@@ -36,7 +36,7 @@ describe('EcrService UT', () => {
     it('should throw error trying to add an image to another service', () => {
       const service = new EcrService('test');
       service.addRegion(AwsRegionId.AWS_US_EAST_1A);
-      const image = new Image('another', '0.0.1', { dockerFilePath: '/dockerExec' });
+      const image = new Image('another', '0.0.1', { dockerfilePath: '/dockerExec' });
 
       expect(() => {
         service.addImage(image);
@@ -47,10 +47,10 @@ describe('EcrService UT', () => {
       const service = new EcrService('test');
       service.addRegion(AwsRegionId.AWS_US_EAST_1A);
 
-      const image1 = new Image('test', '0.0.1', { dockerFilePath: '/dockerExec' });
+      const image1 = new Image('test', '0.0.1', { dockerfilePath: '/dockerExec' });
       service.addImage(image1);
 
-      const image2 = new Image('test', '0.0.1', { dockerFilePath: '/dockerExec' });
+      const image2 = new Image('test', '0.0.1', { dockerfilePath: '/dockerExec' });
       service.addImage(image2);
 
       expect(service.images.length).toBe(1);
@@ -92,9 +92,9 @@ describe('EcrService UT', () => {
       });
 
       const app = new App('test');
-      const image1 = new Image('imageName', '0.0.1', { dockerFilePath: 'Dockerfile' });
+      const image1 = new Image('imageName', '0.0.1', { dockerfilePath: 'Dockerfile' });
       app.addImage(image1);
-      const image2 = new Image('imageName', '0.0.2', { dockerFilePath: 'Dockerfile' });
+      const image2 = new Image('imageName', '0.0.2', { dockerfilePath: 'Dockerfile' });
       app.addImage(image2);
       const service = new EcrService('imageName');
       service.addRegion(AwsRegionId.AWS_US_EAST_1A);

@@ -207,7 +207,7 @@ exports[`Model E2E Test common functions Test image synth() 1`] = `
 {
   "dockerOptions": {
     "buildArgs": {},
-    "dockerFilePath": "/Dockerfile",
+    "dockerfilePath": "/Dockerfile",
     "quiet": undefined,
   },
   "imageId": "0.0.1",

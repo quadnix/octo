@@ -101,7 +101,7 @@ describe('Model Serialization Service UT', () => {
     it('should have exact same dependencies on deserialized object as original object', async () => {
       const app = new App('test');
       const image = new Image('test', '0.0.1', {
-        dockerFilePath: 'path/to/Dockerfile',
+        dockerfilePath: 'path/to/Dockerfile',
       });
       app.addImage(image);
       const server = new Server('server-1', image);
@@ -136,7 +136,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize a non-empty app', () => {
       const app0 = new App('test-app');
       const image0 = new Image('image', '0.0.1', {
-        dockerFilePath: '/Dockerfile',
+        dockerfilePath: '/Dockerfile',
       });
       const region0 = new Region('region-1');
       const environment0 = new Environment('qa');
@@ -170,7 +170,7 @@ describe('Model Serialization Service UT', () => {
       const service = new ModelSerializationService();
 
       const app0 = new App('test-app');
-      const image0 = new Image('image', '0.0.1', { dockerFilePath: '/Dockerfile' });
+      const image0 = new Image('image', '0.0.1', { dockerfilePath: '/Dockerfile' });
       app0.addImage(image0);
       const server0 = new Server('server-0', image0);
       app0.addServer(server0);

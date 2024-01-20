@@ -4,7 +4,7 @@ import { AModel } from '../model.abstract.js';
 import { IImage } from './image.interface.js';
 
 export interface IImageDockerOptions {
-  dockerFilePath: string;
+  dockerfilePath: string;
   buildArgs?: { [key: string]: string };
   quiet?: boolean;
 }
@@ -27,7 +27,7 @@ export class Image extends AModel<IImage, Image> {
     this.imageName = imageName;
     this.imageTag = imageTag;
 
-    options.dockerFilePath = resolve(options.dockerFilePath);
+    options.dockerfilePath = resolve(options.dockerfilePath);
     this.dockerOptions = options;
   }
 
@@ -41,7 +41,7 @@ export class Image extends AModel<IImage, Image> {
     return {
       dockerOptions: {
         buildArgs: { ...this.dockerOptions.buildArgs },
-        dockerFilePath: this.dockerOptions.dockerFilePath,
+        dockerfilePath: this.dockerOptions.dockerfilePath,
         quiet: this.dockerOptions.quiet,
       },
       imageId: this.imageTag,

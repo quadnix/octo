@@ -29,7 +29,7 @@ export class AddEcrImageAction implements IResourceAction {
 
     const image = `${properties.imageName}:${properties.imageTag}`;
     const dockerExec = properties.dockerExec;
-    const dockerFileDirectory = properties.dockerFileDirectory;
+    const dockerfileDirectory = properties.dockerfileDirectory;
 
     try {
       // Try and fetch image.
@@ -98,7 +98,7 @@ export class AddEcrImageAction implements IResourceAction {
       // Push image.
       const pushRunner = ProcessUtility.runDetachedProcess(
         `${dockerLoginCommand} && ${dockerTagCommand} && ${dockerPushCommand}`,
-        { cwd: dockerFileDirectory, shell: true },
+        { cwd: dockerfileDirectory, shell: true },
         'pipe',
       );
       await new Promise<void>((resolve, reject) => {
