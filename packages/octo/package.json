@@ -32,6 +32,7 @@
       ]
     }
   },
+  "main": "./dist/index.js",
   "name": "@quadnix/octo",
   "nx": {
     "tags": [
@@ -51,5 +52,6 @@
     "test:watch": "jest --watch"
   },
   "type": "module",
+  "types": "./dist/index.d.ts",
   "version": "0.0.1"
 }

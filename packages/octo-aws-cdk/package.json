@@ -43,6 +43,7 @@
       ]
     }
   },
+  "main": "./dist/index.js",
   "name": "@quadnix/octo-aws-cdk",
   "nx": {
     "tags": [
@@ -62,5 +63,6 @@
     "test:watch": "jest --watch"
   },
   "type": "module",
+  "types": "./dist/index.d.ts",
   "version": "0.0.1"
 }
