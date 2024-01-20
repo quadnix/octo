@@ -8,10 +8,9 @@ export class AddImageAction extends AAction {
   readonly ACTION_NAME: string = 'AddImageAction';
 
   override collectInput(diff: Diff): string[] {
-    const { imageName, imageTag } = diff.model as Image;
-    const image = `${imageName}:${imageTag}`;
+    const { imageId } = diff.model as Image;
 
-    return [`input.image.${image}.dockerExecutable`];
+    return [`input.image.${imageId}.dockerExecutable`];
   }
 
   filter(diff: Diff): boolean {
@@ -19,10 +18,9 @@ export class AddImageAction extends AAction {
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
-    const { dockerOptions, imageName, imageTag } = diff.model as Image;
+    const { dockerOptions, imageId } = diff.model as Image;
 
-    const image = `${imageName}:${imageTag}`;
-    const dockerExec = actionInputs[`input.image.${image}.dockerExecutable`] as string;
+    const dockerExec = actionInputs[`input.image.${imageId}.dockerExecutable`] as string;
 
     // Build command to build image.
     const dockerFileParts = parse(dockerOptions.dockerFilePath);
@@ -35,7 +33,7 @@ export class AddImageAction extends AAction {
         buildCommand.push(`--build-arg ${key}=${dockerOptions.buildArgs[key]}`);
       }
     }
-    buildCommand.push(`-t ${image}`);
+    buildCommand.push(`-t ${imageId}`);
     buildCommand.push(`-f ${dockerFileParts.base}`);
     buildCommand.push('.');
 

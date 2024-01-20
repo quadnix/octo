@@ -1,6 +1,5 @@
 export interface IEcrImageProperties {
   awsRegionId: string;
-  buildCommand: string;
   dockerExec: string;
   dockerFileDirectory: string;
   imageName: string;
@@ -8,14 +7,6 @@ export interface IEcrImageProperties {
 }
 
 export interface IEcrImageResponse {
-  replicationsStringified: string;
-}
-
-export interface IEcrImageReplicationMetadata {
-  regions: IEcrImageMetadata[];
-}
-
-interface IEcrImageMetadata {
   awsRegionId: string;
   registryId: string;
   repositoryArn?: string;
