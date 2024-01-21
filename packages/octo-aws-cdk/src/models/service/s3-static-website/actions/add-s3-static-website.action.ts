@@ -7,12 +7,6 @@ import { S3StaticWebsiteService } from '../s3-static-website.service.model.js';
 export class AddS3StaticWebsiteAction extends AAction {
   readonly ACTION_NAME: string = 'AddS3StaticWebsiteAction';
 
-  override collectOutput(diff: Diff): string[] {
-    const { bucketName } = diff.model as S3StaticWebsiteService;
-
-    return [`bucket-${bucketName}`];
-  }
-
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -22,7 +16,7 @@ export class AddS3StaticWebsiteAction extends AAction {
     );
   }
 
-  handle(diff: Diff): ActionOutputs {
+  async handle(diff: Diff): Promise<ActionOutputs> {
     const { awsRegionId, bucketName } = diff.model as S3StaticWebsiteService;
 
     // Create S3 Website.

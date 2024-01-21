@@ -13,12 +13,6 @@ export class UpdateSourcePathsS3StaticWebsiteAction extends AAction {
     return [`resource.bucket-${bucketName}`];
   }
 
-  override collectOutput(diff: Diff): string[] {
-    const { bucketName } = diff.model as S3StaticWebsiteService;
-
-    return [`bucket-${bucketName}`];
-  }
-
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
@@ -28,11 +22,11 @@ export class UpdateSourcePathsS3StaticWebsiteAction extends AAction {
     );
   }
 
-  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
+  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
     const s3Website = actionInputs[`resource.bucket-${bucketName}`] as S3Website;
-    s3Website.markUpdated('update-source-paths', diff.value);
+    s3Website.updateManifestDiff(diff.value as S3Website['manifestDiff']);
 
     const output: ActionOutputs = {};
     output[s3Website.resourceId] = s3Website;

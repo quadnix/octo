@@ -2,6 +2,7 @@ import { Container, Diff, DiffAction, Model, Service, StateManagementService } f
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
+import { AwsRegion, AwsRegionId } from '../../region/aws.region.model.js';
 import { IS3StaticWebsiteService } from './s3-static-website.service.interface.js';
 
 type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
@@ -21,10 +22,10 @@ export class S3StaticWebsiteService extends Service {
     subDirectoryOrFilePath: string;
   }[] = [];
 
-  constructor(awsRegionId: string, bucketName: string) {
+  constructor(regionId: AwsRegionId, bucketName: string) {
     super(`${bucketName}-s3-static-website`);
 
-    this.awsRegionId = awsRegionId;
+    this.awsRegionId = AwsRegion.getAwsRegionIdParts(regionId).nativeAwsRegionId;
     this.bucketName = bucketName;
   }
 
@@ -178,7 +179,8 @@ export class S3StaticWebsiteService extends Service {
   }
 
   static override async unSynth(s3StaticWebsite: IS3StaticWebsiteService): Promise<S3StaticWebsiteService> {
-    const service = new S3StaticWebsiteService(s3StaticWebsite.awsRegionId, s3StaticWebsite.bucketName);
+    const awsRegionId = AwsRegion.getRandomAwsRegionIdFromNativeAwsRegionId(s3StaticWebsite.awsRegionId);
+    const service = new S3StaticWebsiteService(awsRegionId!, s3StaticWebsite.bucketName);
     service.excludePaths.push(...s3StaticWebsite.excludePaths);
     service.sourcePaths.push(...s3StaticWebsite.sourcePaths);
     return service;
