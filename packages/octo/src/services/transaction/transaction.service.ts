@@ -156,14 +156,14 @@ export class TransactionService {
     }
 
     for (const newResourceId in newResources) {
-      if (!oldResources.hasOwnProperty(newResourceId)) {
-        const model = newResources[newResourceId];
+      if (!oldResources[newResourceId]) {
+        const newResource = newResources[newResourceId];
 
-        if (model.MODEL_TYPE === 'shared-resource' || model.getSharedResource() !== undefined) {
-          const rDiff = await model.diff();
+        if (newResource.MODEL_TYPE === 'shared-resource' || newResource.getSharedResource() !== undefined) {
+          const rDiff = await newResource.diff();
           diffs.push(...rDiff);
         } else {
-          diffs.push(new Diff(model, DiffAction.ADD, 'resourceId', model.resourceId));
+          diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResource.resourceId));
         }
       }
     }

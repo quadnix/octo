@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { ActionInputs, ActionOutputs } from '../../app.type.js';
+import { ActionInputs, ActionOutputs, UnknownResource } from '../../app.type.js';
 import { Resource } from '../../decorators/resource.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
@@ -9,6 +9,7 @@ import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { AResource } from '../../resources/resource.abstract.js';
+import { ASharedResource } from '../../resources/shared-resource.abstract.js';
 import { TransactionService } from './transaction.service.js';
 
 @Resource()
@@ -26,6 +27,19 @@ class TestResourceWithDiffOverride extends AResource<TestResource> {
 
   constructor(resourceId: string) {
     super(resourceId, {}, []);
+  }
+
+  override async diff(): Promise<Diff[]> {
+    return [];
+  }
+}
+
+@Resource()
+class SharedTestResource extends ASharedResource<TestResource> {
+  readonly MODEL_NAME: string = 'test-resource';
+
+  constructor(resourceId: string, properties: object, parents: [TestResource?]) {
+    super(resourceId, {}, parents as AResource<TestResource>[]);
   }
 }
 
@@ -85,7 +99,42 @@ describe('TransactionService UT', () => {
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching input found to process action!"`);
     });
 
-    it('should only process 1 matching diff', async () => {
+    it('should throw error when action resource inputs are not found', async () => {
+      const app = new App('app');
+      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
+
+      const action: IAction<ActionInputs, ActionOutputs> = {
+        ACTION_NAME: 'test',
+        collectInput: () => ['resource.key1'],
+        filter: () => true,
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
+      };
+
+      const service = new TransactionService();
+      service.registerModelActions([action]);
+      const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+
+      await expect(async () => {
+        await generator.next();
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching input found to process action!"`);
+    });
+
+    it('should skip processing diffs that are already applied', async () => {
+      const app = new App('app');
+
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
+      diffMetadata.applied = true;
+      diffMetadata.applyOrder = 0;
+
+      const service = new TransactionService();
+      const result = await service['applyModels']([diffMetadata], {});
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should only process 1 matching diff when duplicates found', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
       const app = new App('app');
@@ -207,6 +256,54 @@ describe('TransactionService UT', () => {
 
       expect(result.value).toMatchSnapshot();
     });
+
+    it('should add the shared-resource to set of resources if it does not exist', async () => {
+      const app = new App('app');
+      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
+
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({
+        resource1: { MODEL_TYPE: 'shared-resource', properties: { key1: 'value-1' } },
+      });
+
+      const service = new TransactionService();
+      service.registerModelActions([universalModelAction]);
+
+      const newResources = {};
+      const generator = service.beginTransaction(diffs, {}, newResources, { yieldModelTransaction: true });
+
+      await generator.next();
+
+      expect(newResources).toMatchSnapshot();
+    });
+
+    it('should merge the shared-resource with existing set of resources', async () => {
+      const app = new App('app');
+      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
+
+      const mergeFunction = jest.fn().mockReturnValue('merged shared-resource' as never);
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({
+        resource1: { merge: mergeFunction, MODEL_TYPE: 'shared-resource', properties: { key1: 'value-1' } },
+      });
+
+      const service = new TransactionService();
+      service.registerModelActions([universalModelAction]);
+
+      const newResources = {
+        resource1: {
+          MODEL_TYPE: 'shared-resource',
+          properties: { key2: 'value-2' },
+        } as unknown as UnknownResource,
+      };
+      const generator = service.beginTransaction(diffs, {}, newResources, { yieldModelTransaction: true });
+
+      await generator.next();
+
+      expect(newResources).toMatchSnapshot();
+      expect(mergeFunction).toHaveBeenCalledTimes(1);
+
+      const mergeFunctionArg0 = mergeFunction.mock.calls[0][0] as UnknownResource;
+      expect(mergeFunctionArg0.properties.key2).toBe('value-2');
+    });
   });
 
   describe('applyResources()', () => {
@@ -241,7 +338,20 @@ describe('TransactionService UT', () => {
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching action given for diff!"`);
     });
 
-    it('should only process 1 matching diff', async () => {
+    it('should skip processing diffs that are already applied', async () => {
+      const resource1 = new TestResource('resource-1');
+      const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+      const diffMetadata = new DiffMetadata(diff, [universalResourceAction]);
+      diffMetadata.applied = true;
+      diffMetadata.applyOrder = 0;
+
+      const service = new TransactionService();
+      const result = await service['applyResources']([diffMetadata]);
+
+      expect(result).toMatchSnapshot();
+    });
+
+    it('should only process 1 matching diff when duplicates found', async () => {
       const oldResources: ActionOutputs = {};
       const newResources: ActionOutputs = {
         resource2: new TestResource('resource-2'),
@@ -329,14 +439,34 @@ describe('TransactionService UT', () => {
       handle: jest.fn() as jest.Mocked<any>,
     };
 
-    it('should compare distinct resources', async () => {
+    it('should compare resources using diff()', async () => {
       const oldResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
+        'resource-1': new TestResource('resource-1'),
       };
       const newResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
+        'resource-1': new TestResourceWithDiffOverride('resource-1'),
       };
-      newResources.resource1.markDeleted();
+
+      const diffOverrideSpy = jest.spyOn(newResources['resource-1'], 'diff');
+
+      const service = new TransactionService();
+      service.registerResourceActions([universalResourceAction]);
+      const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
+
+      const result = await generator.next();
+
+      expect(diffOverrideSpy).toHaveBeenCalledTimes(1);
+      expect(result.value).toMatchSnapshot();
+    });
+
+    it('should compare distinct resources', async () => {
+      const oldResources: ActionOutputs = {
+        'resource-1': new TestResource('resource-1'),
+      };
+      const newResources: ActionOutputs = {
+        'resource-1': new TestResource('resource-1'),
+      };
+      newResources['resource-1'].markDeleted();
 
       const service = new TransactionService();
       service.registerResourceActions([universalResourceAction]);
@@ -349,10 +479,10 @@ describe('TransactionService UT', () => {
 
     it('should compare same resources', async () => {
       const oldResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
+        'resource-1': new TestResource('resource-1'),
       };
       const newResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
+        'resource-1': new TestResource('resource-1'),
       };
 
       const service = new TransactionService();
@@ -369,10 +499,10 @@ describe('TransactionService UT', () => {
       newTestResource.markDeleted();
 
       const oldResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
+        'resource-1': new TestResource('resource-1'),
       };
       const newResources: ActionOutputs = {
-        resource1: newTestResource,
+        'resource-1': newTestResource,
       };
 
       const service = new TransactionService();
@@ -384,23 +514,36 @@ describe('TransactionService UT', () => {
       expect(result.value).toMatchSnapshot();
     });
 
-    describe('When resource class has an override on diff()', () => {
-      it('should compare same resources on properties', async () => {
-        const oldResources: ActionOutputs = {
-          resource1: new TestResource('resource-1'),
-        };
-        const newResources: ActionOutputs = {
-          resource1: new TestResourceWithDiffOverride('resource-1'),
-        };
+    it('should add resource if cannot compare', async () => {
+      const newResources: ActionOutputs = {
+        'resource-1': new TestResource('resource-1'),
+      };
 
-        const service = new TransactionService();
-        service.registerResourceActions([universalResourceAction]);
-        const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
+      const service = new TransactionService();
+      service.registerResourceActions([universalResourceAction]);
+      const generator = service.beginTransaction([], {}, newResources, { yieldResourceDiffs: true });
 
-        const result = await generator.next();
+      const result = await generator.next();
 
-        expect(result.value).toMatchSnapshot();
-      });
+      expect(result.value).toMatchSnapshot();
+    });
+
+    it('should skip adding shared-resource as the diff() is overridden to empty', async () => {
+      const resource1 = new TestResource('resource-1');
+      const sharedResource1 = new SharedTestResource('shared-test-resource', {}, [resource1]);
+
+      const newResources: ActionOutputs = {
+        'resource-1': resource1,
+        'shared-test-resource': sharedResource1,
+      };
+
+      const service = new TransactionService();
+      service.registerResourceActions([universalResourceAction]);
+      const generator = service.beginTransaction([], {}, newResources, { yieldResourceDiffs: true });
+
+      const result = await generator.next();
+
+      expect(result.value).toMatchSnapshot();
     });
   });
 
@@ -590,6 +733,31 @@ describe('TransactionService UT', () => {
   });
 
   describe('beginTransaction()', () => {
+    describe('yieldModelTransaction', () => {
+      const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
+        ACTION_NAME: 'universal',
+        collectInput: () => [],
+        filter: () => true,
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
+      };
+
+      it('should yield model transaction', async () => {
+        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+
+        const app = new App('app');
+        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
+
+        const service = new TransactionService();
+        service.registerModelActions([universalModelAction]);
+        const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+
+        const result = await generator.next();
+
+        expect(result.value).toMatchSnapshot();
+      });
+    });
+
     describe('yieldNewResources', () => {
       const universalResourceAction: IResourceAction = {
         ACTION_NAME: 'universal',
@@ -618,6 +786,112 @@ describe('TransactionService UT', () => {
             "resource-2",
           ]
         `);
+      });
+    });
+
+    describe('yieldResourceDiffs', () => {
+      const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
+        ACTION_NAME: 'universal',
+        collectInput: () => [],
+        filter: () => true,
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
+      };
+      const universalResourceAction: IResourceAction = {
+        ACTION_NAME: 'universal',
+        filter: () => true,
+        handle: jest.fn() as jest.Mocked<any>,
+      };
+
+      it('should yield resource diffs', async () => {
+        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+
+        const app = new App('app');
+        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
+
+        const oldResources: ActionOutputs = {
+          resource1: new TestResource('resource-1'),
+        };
+        const newResources: ActionOutputs = {
+          resource1: new TestResource('resource-1'),
+          resource2: new TestResource('resource-2'),
+        };
+
+        const service = new TransactionService();
+        service.registerModelActions([universalModelAction]);
+        service.registerResourceActions([universalResourceAction]);
+        const generator = service.beginTransaction(diffs, oldResources, newResources, { yieldResourceDiffs: true });
+
+        const result = await generator.next();
+
+        expect(result.value).toMatchSnapshot();
+      });
+    });
+
+    describe('yieldResourceTransaction', () => {
+      const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
+        ACTION_NAME: 'universal',
+        collectInput: () => [],
+        filter: () => true,
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
+      };
+      const universalResourceAction: IResourceAction = {
+        ACTION_NAME: 'universal',
+        filter: () => true,
+        handle: jest.fn() as jest.Mocked<any>,
+      };
+
+      it('should yield resource diffs', async () => {
+        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue({});
+
+        const app = new App('app');
+        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
+
+        const oldResources: ActionOutputs = {
+          resource1: new TestResource('resource-1'),
+        };
+        const newResources: ActionOutputs = {
+          resource1: new TestResource('resource-1'),
+          resource2: new TestResource('resource-2'),
+        };
+
+        const service = new TransactionService();
+        service.registerModelActions([universalModelAction]);
+        service.registerResourceActions([universalResourceAction]);
+        const generator = service.beginTransaction(diffs, oldResources, newResources, {
+          yieldResourceTransaction: true,
+        });
+
+        const result = await generator.next();
+
+        expect(result.value).toMatchSnapshot();
+      });
+
+      it('should return resource diffs', async () => {
+        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue({});
+
+        const app = new App('app');
+        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
+
+        const oldResources: ActionOutputs = {
+          resource1: new TestResource('resource-1'),
+        };
+        const newResources: ActionOutputs = {
+          resource1: new TestResource('resource-1'),
+          resource2: new TestResource('resource-2'),
+        };
+
+        const service = new TransactionService();
+        service.registerModelActions([universalModelAction]);
+        service.registerResourceActions([universalResourceAction]);
+        const generator = service.beginTransaction(diffs, oldResources, newResources);
+
+        const result = await generator.next();
+
+        expect(result.value).toMatchSnapshot();
       });
     });
   });

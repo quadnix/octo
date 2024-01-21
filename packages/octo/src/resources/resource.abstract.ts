@@ -43,7 +43,9 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     const diffs: Diff[] = [];
 
     if (this.isMarkedDeleted()) {
-      diffs.push(new Diff(previous as AModel<IResource, T>, DiffAction.DELETE, 'resourceId', this.resourceId));
+      diffs.push(
+        new Diff((previous || this) as AModel<IResource, T>, DiffAction.DELETE, 'resourceId', this.resourceId),
+      );
       return diffs;
     }
 

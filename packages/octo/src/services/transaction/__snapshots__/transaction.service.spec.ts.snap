@@ -1,5 +1,16 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`TransactionService UT applyModels() should add the shared-resource to set of resources if it does not exist 1`] = `
+{
+  "resource1": {
+    "MODEL_TYPE": "shared-resource",
+    "properties": {
+      "key1": "value-1",
+    },
+  },
+}
+`;
+
 exports[`TransactionService UT applyModels() should call action and collect all input and output 1`] = `
 [
   [
@@ -58,7 +69,13 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
 }
 `;
 
-exports[`TransactionService UT applyModels() should only process 1 matching diff 1`] = `
+exports[`TransactionService UT applyModels() should merge the shared-resource with existing set of resources 1`] = `
+{
+  "resource1": "merged shared-resource",
+}
+`;
+
+exports[`TransactionService UT applyModels() should only process 1 matching diff when duplicates found 1`] = `
 [
   [
     {
@@ -91,6 +108,12 @@ exports[`TransactionService UT applyModels() should process diffs in different l
 
 exports[`TransactionService UT applyModels() should return empty transaction if diffs is empty 1`] = `[]`;
 
+exports[`TransactionService UT applyModels() should skip processing diffs that are already applied 1`] = `
+[
+  [],
+]
+`;
+
 exports[`TransactionService UT applyModels() should update diff metadata with inputs and outputs 1`] = `
 {
   "input.key1": "value1",
@@ -103,7 +126,7 @@ exports[`TransactionService UT applyModels() should update diff metadata with in
 }
 `;
 
-exports[`TransactionService UT applyResources() should only process 1 matching diff 1`] = `
+exports[`TransactionService UT applyResources() should only process 1 matching diff when duplicates found 1`] = `
 [
   [
     {
@@ -155,9 +178,69 @@ exports[`TransactionService UT applyResources() should process diffs of deleting
 
 exports[`TransactionService UT applyResources() should return empty transaction if diffs is empty 1`] = `[]`;
 
-exports[`TransactionService UT diffResources() When resource class has an override on diff() should compare same resources on properties 1`] = `
+exports[`TransactionService UT applyResources() should skip processing diffs that are already applied 1`] = `
 [
   [],
+]
+`;
+
+exports[`TransactionService UT beginTransaction() yieldModelTransaction should yield model transaction 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "value": "app",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT beginTransaction() yieldResourceDiffs should yield resource diffs 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-2",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT beginTransaction() yieldResourceTransaction should return resource diffs 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-2",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT beginTransaction() yieldResourceTransaction should yield resource diffs 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-2",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT diffResources() should add resource if cannot compare 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+  ],
 ]
 `;
 
@@ -173,6 +256,12 @@ exports[`TransactionService UT diffResources() should compare distinct resources
 ]
 `;
 
+exports[`TransactionService UT diffResources() should compare resources using diff() 1`] = `
+[
+  [],
+]
+`;
+
 exports[`TransactionService UT diffResources() should compare same resources 1`] = `
 [
   [],
@@ -184,6 +273,18 @@ exports[`TransactionService UT diffResources() should compare same resources wit
   [
     {
       "action": "delete",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT diffResources() should skip adding shared-resource as the diff() is overridden to empty 1`] = `
+[
+  [
+    {
+      "action": "add",
       "field": "resourceId",
       "value": "resource-1",
     },
