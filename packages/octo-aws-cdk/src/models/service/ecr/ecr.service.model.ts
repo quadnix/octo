@@ -29,8 +29,7 @@ export class EcrService extends Service {
   }
 
   addRegion(regionId: AwsRegionId): void {
-    const region = new AwsRegion(regionId);
-    const awsRegionId = region.nativeAwsRegionId;
+    const awsRegionId = AwsRegion.getAwsRegionIdParts(regionId).nativeAwsRegionId;
     if (!this.awsRegionIds.includes(awsRegionId)) {
       this.awsRegionIds.push(awsRegionId);
     }
@@ -89,8 +88,7 @@ export class EcrService extends Service {
   }
 
   removeRegion(regionId: AwsRegionId): void {
-    const region = new AwsRegion(regionId);
-    const awsRegionIdToBeRemoved = region.nativeAwsRegionId;
+    const awsRegionIdToBeRemoved = AwsRegion.getAwsRegionIdParts(regionId).nativeAwsRegionId;
     this.awsRegionIds.forEach((awsRegionId, index) => {
       if (awsRegionId === awsRegionIdToBeRemoved) {
         this.awsRegionIds.splice(index, 1);

@@ -31,12 +31,25 @@ export class AwsRegion extends Region {
     super(regionId);
 
     // Derive AWS regionId and AZ.
-    const regionIdParts = regionId.split('-');
-    regionIdParts.shift();
-    this.nativeAwsRegionAZ = regionIdParts.join('-');
-    this.nativeAwsRegionId = this.nativeAwsRegionAZ.substring(0, this.nativeAwsRegionAZ.length - 1);
+    const regionIdParts = AwsRegion.getAwsRegionIdParts(regionId);
+    this.nativeAwsRegionAZ = regionIdParts.nativeAwsRegionAZ;
+    this.nativeAwsRegionId = regionIdParts.nativeAwsRegionId;
 
     this.regionId = regionId;
+  }
+
+  static getAwsRegionIdParts(regionId: AwsRegionId): { nativeAwsRegionAZ: string; nativeAwsRegionId: string } {
+    const regionIdParts = regionId.split('-');
+    regionIdParts.shift();
+    const nativeAwsRegionAZ = regionIdParts.join('-');
+    const nativeAwsRegionId = nativeAwsRegionAZ.substring(0, nativeAwsRegionAZ.length - 1);
+    return { nativeAwsRegionAZ, nativeAwsRegionId };
+  }
+
+  static getRandomAwsRegionIdFromNativeAwsRegionId(nativeAwsRegionId: string): AwsRegionId | undefined {
+    return Object.values(AwsRegionId).find(
+      (value) => this.getAwsRegionIdParts(value).nativeAwsRegionId === nativeAwsRegionId,
+    );
   }
 
   override synth(): IAwsRegion {
