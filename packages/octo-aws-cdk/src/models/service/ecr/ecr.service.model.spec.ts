@@ -4,7 +4,7 @@ import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsRegionId, EcrService, OctoAws } from '../../../index.js';
+import { EcrService, OctoAws, RegionId } from '../../../index.js';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -35,7 +35,7 @@ describe('EcrService UT', () => {
 
     it('should throw error trying to add an image to another service', () => {
       const service = new EcrService('test');
-      service.addRegion(AwsRegionId.AWS_US_EAST_1A);
+      service.addRegion(RegionId.AWS_US_EAST_1A);
       const image = new Image('another', '0.0.1', { dockerfilePath: '/dockerExec' });
 
       expect(() => {
@@ -45,7 +45,7 @@ describe('EcrService UT', () => {
 
     it('should not add a duplicate image', () => {
       const service = new EcrService('test');
-      service.addRegion(AwsRegionId.AWS_US_EAST_1A);
+      service.addRegion(RegionId.AWS_US_EAST_1A);
 
       const image1 = new Image('test', '0.0.1', { dockerfilePath: '/dockerExec' });
       service.addImage(image1);
@@ -60,8 +60,8 @@ describe('EcrService UT', () => {
   describe('addRegion()', () => {
     it('should not add a duplicate region', () => {
       const service = new EcrService('test');
-      service.addRegion(AwsRegionId.AWS_US_EAST_1A);
-      service.addRegion(AwsRegionId.AWS_US_EAST_1A);
+      service.addRegion(RegionId.AWS_US_EAST_1A);
+      service.addRegion(RegionId.AWS_US_EAST_1A);
 
       expect(service.awsRegionIds.length).toBe(1);
     });
@@ -97,7 +97,7 @@ describe('EcrService UT', () => {
       const image2 = new Image('imageName', '0.0.2', { dockerfilePath: 'Dockerfile' });
       app.addImage(image2);
       const service = new EcrService('imageName');
-      service.addRegion(AwsRegionId.AWS_US_EAST_1A);
+      service.addRegion(RegionId.AWS_US_EAST_1A);
       service.addImage(image1);
       service.addImage(image2);
       app.addService(service);
@@ -163,7 +163,7 @@ describe('EcrService UT', () => {
       `);
 
       // Remove region.
-      service.removeRegion(AwsRegionId.AWS_US_EAST_1A);
+      service.removeRegion(RegionId.AWS_US_EAST_1A);
 
       const diffs3 = await octoAws.diff(app);
       const generator3 = await octoAws.beginTransaction(diffs3, {

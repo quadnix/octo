@@ -3,7 +3,7 @@ import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsRegion, AwsRegionId, OctoAws } from '../../../src/index.js';
+import { AwsRegion, OctoAws, RegionId } from '../../../src/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
@@ -29,7 +29,7 @@ describe('AwsRegion E2E Test', () => {
     });
 
     const app = new App('test');
-    const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
+    const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
     app.addRegion(region);
 
     const diffs1 = await octoAws.diff(app);

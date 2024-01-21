@@ -3,7 +3,7 @@ import { existsSync, readFileSync, unlink, writeFile } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsRegionId, OctoAws } from '../../../index.js';
+import { OctoAws, RegionId } from '../../../index.js';
 import { S3StaticWebsiteService } from './s3-static-website.service.model.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -29,7 +29,7 @@ describe('S3StaticWebsiteService UT', () => {
     let service: S3StaticWebsiteService;
 
     beforeEach(() => {
-      service = new S3StaticWebsiteService(AwsRegionId.AWS_US_EAST_1A, 'test-bucket');
+      service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
     });
 
     describe('when called with directoryPath', () => {
@@ -180,7 +180,7 @@ describe('S3StaticWebsiteService UT', () => {
       await octoAws.initialize(new LocalStateProvider(__dirname));
 
       app = new App('test');
-      service = new S3StaticWebsiteService(AwsRegionId.AWS_US_EAST_1A, 'test-bucket');
+      service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
       app.addService(service);
 
       const diffs0 = await octoAws.diff(app);

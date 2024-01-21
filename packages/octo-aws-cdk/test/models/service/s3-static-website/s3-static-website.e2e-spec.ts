@@ -4,7 +4,7 @@ import { existsSync, unlink, writeFile } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsRegionId, OctoAws, S3StaticWebsiteService } from '../../../../src/index.js';
+import { OctoAws, RegionId, S3StaticWebsiteService } from '../../../../src/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const writeFileAsync = promisify(writeFile);
@@ -32,7 +32,7 @@ describe('S3StaticWebsite E2E Test', () => {
     await octoAws.initialize(new LocalStateProvider(__dirname));
 
     const app = new App('test');
-    const service = new S3StaticWebsiteService(AwsRegionId.AWS_US_EAST_1A, BUCKET_NAME);
+    const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, BUCKET_NAME);
     app.addService(service);
 
     const diffs0 = await octoAws.diff(app);

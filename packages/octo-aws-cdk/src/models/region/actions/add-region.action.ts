@@ -39,20 +39,20 @@ export class AddRegionAction extends AAction {
 
     // Create VPC.
     const vpc = new Vpc(`${regionId}-vpc`, {
-      awsRegionId: awsRegion.nativeAwsRegionId,
+      awsRegionId: awsRegion.awsRegionId,
       CidrBlock: vpcCidrBlock,
       InstanceTenancy: 'default',
     });
 
     // Create Internet Gateway.
-    const internetGateway = new InternetGateway(`${regionId}-igw`, { awsRegionId: awsRegion.nativeAwsRegionId }, [vpc]);
+    const internetGateway = new InternetGateway(`${regionId}-igw`, { awsRegionId: awsRegion.awsRegionId }, [vpc]);
 
     // Create Subnets.
     const privateSubnet1 = new Subnet(
       `${regionId}-private-subnet-1`,
       {
-        AvailabilityZone: awsRegion.nativeAwsRegionAZ,
-        awsRegionId: awsRegion.nativeAwsRegionId,
+        AvailabilityZone: awsRegion.awsRegionAZ,
+        awsRegionId: awsRegion.awsRegionId,
         CidrBlock: private1SubnetCidrBlock,
       },
       [vpc],
@@ -60,20 +60,20 @@ export class AddRegionAction extends AAction {
     const publicSubnet1 = new Subnet(
       `${regionId}-public-subnet-1`,
       {
-        AvailabilityZone: awsRegion.nativeAwsRegionAZ,
-        awsRegionId: awsRegion.nativeAwsRegionId,
+        AvailabilityZone: awsRegion.awsRegionAZ,
+        awsRegionId: awsRegion.awsRegionId,
         CidrBlock: public1SubnetCidrBlock,
       },
       [vpc],
     );
 
     // Create Route Tables.
-    const privateRT1 = new RouteTable(`${regionId}-private-rt-1`, { awsRegionId: awsRegion.nativeAwsRegionId }, [
+    const privateRT1 = new RouteTable(`${regionId}-private-rt-1`, { awsRegionId: awsRegion.awsRegionId }, [
       vpc,
       internetGateway,
       privateSubnet1,
     ]);
-    const publicRT1 = new RouteTable(`${regionId}-public-rt-1`, { awsRegionId: awsRegion.nativeAwsRegionId }, [
+    const publicRT1 = new RouteTable(`${regionId}-public-rt-1`, { awsRegionId: awsRegion.awsRegionId }, [
       vpc,
       internetGateway,
       publicSubnet1,
@@ -83,7 +83,7 @@ export class AddRegionAction extends AAction {
     const privateNAcl1 = new NetworkAcl(
       `${regionId}-private-nacl-1`,
       {
-        awsRegionId: awsRegion.nativeAwsRegionId,
+        awsRegionId: awsRegion.awsRegionId,
         entries: [
           {
             CidrBlock: '0.0.0.0/0',
@@ -108,7 +108,7 @@ export class AddRegionAction extends AAction {
     const publicNAcl1 = new NetworkAcl(
       `${regionId}-public-nacl-1`,
       {
-        awsRegionId: awsRegion.nativeAwsRegionId,
+        awsRegionId: awsRegion.awsRegionId,
         entries: [
           {
             CidrBlock: '0.0.0.0/0',
@@ -135,7 +135,7 @@ export class AddRegionAction extends AAction {
     const accessSG = new SecurityGroup(
       `${regionId}-access-sg`,
       {
-        awsRegionId: awsRegion.nativeAwsRegionId,
+        awsRegionId: awsRegion.awsRegionId,
         rules: [
           // Access SSH from everywhere.
           {
@@ -160,7 +160,7 @@ export class AddRegionAction extends AAction {
     const internalOpenSG = new SecurityGroup(
       `${regionId}-internal-open-sg`,
       {
-        awsRegionId: awsRegion.nativeAwsRegionId,
+        awsRegionId: awsRegion.awsRegionId,
         rules: [
           // Allow all incoming connections from the same VPC.
           {
@@ -177,7 +177,7 @@ export class AddRegionAction extends AAction {
     const privateClosedSG = new SecurityGroup(
       `${regionId}-private-closed-sg`,
       {
-        awsRegionId: awsRegion.nativeAwsRegionId,
+        awsRegionId: awsRegion.awsRegionId,
         rules: [
           // Allow all incoming connections from self.
           {
@@ -202,7 +202,7 @@ export class AddRegionAction extends AAction {
     const webSG = new SecurityGroup(
       `${regionId}-web-sg`,
       {
-        awsRegionId: awsRegion.nativeAwsRegionId,
+        awsRegionId: awsRegion.awsRegionId,
         rules: [
           // Access HTTP from everywhere.
           {
@@ -228,7 +228,7 @@ export class AddRegionAction extends AAction {
     // Create EFS.
     const efs = new Efs(
       `${regionId}-efs-filesystem`,
-      { awsRegionId: awsRegion.nativeAwsRegionId, regionId: awsRegion.regionId },
+      { awsRegionId: awsRegion.awsRegionId, regionId: awsRegion.regionId },
       [privateSubnet1, internalOpenSG],
     );
     const sharedEfs = new SharedEfs('shared-efs-filesystem', {}, [efs]);

@@ -1,5 +1,5 @@
 import { Diff, DiffAction, Image, Model, Service, UnknownModel } from '@quadnix/octo';
-import { AwsRegion, AwsRegionId } from '../../region/aws.region.model.js';
+import { AwsRegion, RegionId } from '../../region/aws.region.model.js';
 import { IEcrService } from './ecr.service.interface.js';
 
 @Model()
@@ -28,8 +28,8 @@ export class EcrService extends Service {
     }
   }
 
-  addRegion(regionId: AwsRegionId): void {
-    const awsRegionId = AwsRegion.getAwsRegionIdParts(regionId).nativeAwsRegionId;
+  addRegion(regionId: RegionId): void {
+    const awsRegionId = AwsRegion.getRegionIdParts(regionId).awsRegionId;
     if (!this.awsRegionIds.includes(awsRegionId)) {
       this.awsRegionIds.push(awsRegionId);
     }
@@ -87,8 +87,8 @@ export class EcrService extends Service {
     });
   }
 
-  removeRegion(regionId: AwsRegionId): void {
-    const awsRegionIdToBeRemoved = AwsRegion.getAwsRegionIdParts(regionId).nativeAwsRegionId;
+  removeRegion(regionId: RegionId): void {
+    const awsRegionIdToBeRemoved = AwsRegion.getRegionIdParts(regionId).awsRegionId;
     this.awsRegionIds.forEach((awsRegionId, index) => {
       if (awsRegionId === awsRegionIdToBeRemoved) {
         this.awsRegionIds.splice(index, 1);

@@ -3,7 +3,7 @@ import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsRegionId, EcrService, OctoAws } from '../../../src/index.js';
+import { EcrService, OctoAws, RegionId } from '../../../src/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
@@ -32,7 +32,7 @@ describe('Image & ECRService E2E Test', () => {
     });
     app.addImage(image1);
     const service = new EcrService('quadnix/test');
-    service.addRegion(AwsRegionId.AWS_US_EAST_1A);
+    service.addRegion(RegionId.AWS_US_EAST_1A);
     service.addImage(image1);
     app.addService(service);
 

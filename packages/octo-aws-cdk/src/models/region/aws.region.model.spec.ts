@@ -3,7 +3,7 @@ import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsRegion, AwsRegionId, OctoAws } from '../../index.js';
+import { AwsRegion, OctoAws, RegionId } from '../../index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
@@ -30,7 +30,7 @@ describe('AwsRegion UT', () => {
       });
 
       const app = new App('test');
-      const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
+      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
       app.addRegion(region);
 
       const diffs1 = await octoAws.diff(app);
@@ -48,7 +48,7 @@ describe('AwsRegion UT', () => {
         awsRegionId: 'us-east-1',
         FileSystemArn: 'arn',
         FileSystemId: 'id',
-        regionId: AwsRegionId.AWS_US_EAST_1A,
+        regionId: RegionId.AWS_US_EAST_1A,
       };
       const resourceDiffsResult1 = await generator1.next();
       await octoAws.commitTransaction(app, modelTransactionResult1.value, resourcesResult1.value);

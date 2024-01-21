@@ -1,7 +1,7 @@
 import { Model, Region } from '@quadnix/octo';
 import { IAwsRegion } from './aws.region.interface.js';
 
-export enum AwsRegionId {
+export enum RegionId {
   AWS_AP_SOUTH_1A = 'aws-ap-south-1a',
   AWS_AP_SOUTH_1B = 'aws-ap-south-1b',
   AWS_AP_SOUTH_1C = 'aws-ap-south-1c',
@@ -21,46 +21,44 @@ export enum AwsRegionId {
 
 @Model()
 export class AwsRegion extends Region {
-  readonly nativeAwsRegionAZ: string;
+  readonly awsRegionAZ: string;
 
-  readonly nativeAwsRegionId: string;
+  readonly awsRegionId: string;
 
-  override readonly regionId: AwsRegionId;
+  override readonly regionId: RegionId;
 
-  constructor(regionId: AwsRegionId) {
+  constructor(regionId: RegionId) {
     super(regionId);
 
     // Derive AWS regionId and AZ.
-    const regionIdParts = AwsRegion.getAwsRegionIdParts(regionId);
-    this.nativeAwsRegionAZ = regionIdParts.nativeAwsRegionAZ;
-    this.nativeAwsRegionId = regionIdParts.nativeAwsRegionId;
+    const regionIdParts = AwsRegion.getRegionIdParts(regionId);
+    this.awsRegionAZ = regionIdParts.awsRegionAZ;
+    this.awsRegionId = regionIdParts.awsRegionId;
 
     this.regionId = regionId;
   }
 
-  static getAwsRegionIdParts(regionId: AwsRegionId): { nativeAwsRegionAZ: string; nativeAwsRegionId: string } {
+  static getRegionIdParts(regionId: RegionId): { awsRegionAZ: string; awsRegionId: string } {
     const regionIdParts = regionId.split('-');
     regionIdParts.shift();
-    const nativeAwsRegionAZ = regionIdParts.join('-');
-    const nativeAwsRegionId = nativeAwsRegionAZ.substring(0, nativeAwsRegionAZ.length - 1);
-    return { nativeAwsRegionAZ, nativeAwsRegionId };
+    const awsRegionAZ = regionIdParts.join('-');
+    const awsRegionId = awsRegionAZ.substring(0, awsRegionAZ.length - 1);
+    return { awsRegionAZ, awsRegionId };
   }
 
-  static getRandomAwsRegionIdFromNativeAwsRegionId(nativeAwsRegionId: string): AwsRegionId | undefined {
-    return Object.values(AwsRegionId).find(
-      (value) => this.getAwsRegionIdParts(value).nativeAwsRegionId === nativeAwsRegionId,
-    );
+  static getRandomRegionIdFromAwsRegionId(awsRegionId: string): RegionId | undefined {
+    return Object.values(RegionId).find((value) => this.getRegionIdParts(value).awsRegionId === awsRegionId);
   }
 
   override synth(): IAwsRegion {
     return {
-      nativeAwsRegionAZ: this.nativeAwsRegionAZ,
-      nativeAwsRegionId: this.nativeAwsRegionId,
+      awsRegionAZ: this.awsRegionAZ,
+      awsRegionId: this.awsRegionId,
       regionId: this.regionId,
     };
   }
 
   static override async unSynth(awsRegion: IAwsRegion): Promise<AwsRegion> {
-    return new AwsRegion(awsRegion.regionId as AwsRegionId);
+    return new AwsRegion(awsRegion.regionId as RegionId);
   }
 }
