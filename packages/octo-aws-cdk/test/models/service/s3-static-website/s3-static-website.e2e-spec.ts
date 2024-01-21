@@ -1,10 +1,12 @@
-import { App, DiffMetadata, LocalStateProvider, Resource } from '@quadnix/octo';
+import { App, DiffMetadata, LocalStateProvider, UnknownResource } from '@quadnix/octo';
 import axios from 'axios';
 import { existsSync, unlink, writeFile } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsRegion, AwsRegionId, OctoAws, S3StaticWebsiteService } from '../../../../src/index.js';
+import { AwsRegionId, OctoAws, S3StaticWebsiteService } from '../../../../src/index.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const writeFileAsync = promisify(writeFile);
 const unlinkAsync = promisify(unlink);
 
@@ -15,81 +17,49 @@ const websiteSourcePath = join(resourcesPath, 's3-static-website');
 
 describe('S3StaticWebsite E2E Test', () => {
   const filePaths: string[] = [
-    join(__dirname, 'aws-us-east-1a-models.json'),
-    join(__dirname, 'aws-us-east-1a-resources.json'),
+    join(__dirname, 'models.json'),
+    join(__dirname, 'resources.json'),
     join(__dirname, 'shared-resources.json'),
     join(__dirname, `${BUCKET_NAME}-manifest.json`),
   ];
-
-  beforeEach(async () => {
-    const app = new App('test-app');
-    const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
-    app.addRegion(region);
-
-    const localStateProvider = new LocalStateProvider(__dirname);
-    const octoAws = new OctoAws(region, localStateProvider);
-    octoAws.registerInputs({
-      'input.region.aws-us-east-1a.subnet.private1.CidrBlock': '0.0.0.0/0',
-      'input.region.aws-us-east-1a.subnet.public1.CidrBlock': '0.0.0.0/0',
-      'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
-    });
-
-    const diffs0 = await octoAws.diff();
-    const generator = await octoAws.beginTransaction(diffs0, {
-      yieldModelTransaction: true,
-      yieldNewResources: true,
-    });
-
-    // Prevent generator from running real resource actions.
-    const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-    const resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
-    await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
-  });
 
   afterEach(async () => {
     await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
   });
 
   it('should test working with a S3 bucket', async () => {
-    // Get previous state.
-    const localStateProvider = new LocalStateProvider(__dirname);
-    const previousApp = await OctoAws.getPreviousAppWithBoundary(AwsRegionId.AWS_US_EAST_1A, localStateProvider);
-    const previousRegion = previousApp!.getChild('region', [
-      { key: 'regionId', value: AwsRegionId.AWS_US_EAST_1A },
-    ]) as AwsRegion;
-    const octoAws = new OctoAws(previousRegion, localStateProvider);
+    const octoAws = new OctoAws();
+    await octoAws.initialize(new LocalStateProvider(__dirname));
 
-    // Add website.
-    const service = new S3StaticWebsiteService(previousRegion, BUCKET_NAME);
-    previousApp!.addService(service);
+    const app = new App('test');
+    const service = new S3StaticWebsiteService(AwsRegionId.AWS_US_EAST_1A, BUCKET_NAME);
+    app.addService(service);
 
-    const diffs1 = await octoAws.diff();
-    let generator = await octoAws.beginTransaction(diffs1, {
+    const diffs0 = await octoAws.diff(app);
+    const generator0 = await octoAws.beginTransaction(diffs0, {
       yieldModelTransaction: true,
       yieldNewResources: true,
-      yieldResourceTransaction: true,
     });
 
-    let modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-    let resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
-    await generator.next(); // Run real resource actions.
-    await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
+    const modelTransactionResult0 = (await generator0.next()) as IteratorResult<DiffMetadata[][]>;
+    const resourcesResult0 = (await generator0.next()) as IteratorResult<UnknownResource[]>;
+    await generator0.next(); // Run real resource actions.
+    await octoAws.commitTransaction(app, modelTransactionResult0.value, resourcesResult0.value);
 
     // Add files to website.
     await service.addSource(`${websiteSourcePath}/error.html`);
     await service.addSource(`${websiteSourcePath}/index.html`);
 
-    const diffs2 = await octoAws.diff();
-    generator = await octoAws.beginTransaction(diffs2, {
+    const diffs1 = await octoAws.diff(app);
+    const generator1 = await octoAws.beginTransaction(diffs1, {
       yieldModelTransaction: true,
       yieldNewResources: true,
-      yieldResourceTransaction: true,
     });
 
-    modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-    resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
-    await generator.next(); // Run real resource actions.
-    await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
+    const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
+    const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
+    await generator1.next(); // Run real resource actions.
+    await octoAws.commitTransaction(app, modelTransactionResult1.value, resourcesResult1.value);
 
     // Ensure website is available.
     const indexContent = await axios.get(`http://${BUCKET_NAME}.s3-website-us-east-1.amazonaws.com/index.html`);
@@ -100,18 +70,17 @@ describe('S3StaticWebsite E2E Test', () => {
     // Ensure page edits are captured and uploaded.
     try {
       await writeFileAsync(join(websiteSourcePath, 'error.html'), 'New error content!');
-      const diffs3 = await octoAws.diff();
 
-      generator = await octoAws.beginTransaction(diffs3, {
+      const diffs2 = await octoAws.diff(app);
+      const generator2 = await octoAws.beginTransaction(diffs2, {
         yieldModelTransaction: true,
         yieldNewResources: true,
-        yieldResourceTransaction: true,
       });
 
-      modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-      resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
-      await generator.next(); // Run real resource actions.
-      await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
+      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
+      const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
+      await generator2.next(); // Run real resource actions.
+      await octoAws.commitTransaction(app, modelTransactionResult2.value, resourcesResult2.value);
 
       const newErrorContent = await axios.get(`http://${BUCKET_NAME}.s3-website-us-east-1.amazonaws.com/error.html`);
       expect(newErrorContent.data).toContain('New error content!');
@@ -121,19 +90,18 @@ describe('S3StaticWebsite E2E Test', () => {
     }
 
     // Remove website.
-    service.remove(true);
-    const diffs4 = await octoAws.diff();
+    service.remove();
 
-    generator = await octoAws.beginTransaction(diffs4, {
+    const diffs3 = await octoAws.diff(app);
+    const generator3 = await octoAws.beginTransaction(diffs3, {
       yieldModelTransaction: true,
       yieldNewResources: true,
-      yieldResourceTransaction: true,
     });
 
-    modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-    resourcesResult = (await generator.next()) as IteratorResult<Resource<unknown>[]>;
-    await generator.next(); // Run real resource actions.
-    await octoAws.commitTransaction(modelTransactionResult.value, resourcesResult.value);
+    const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
+    const resourcesResult3 = (await generator3.next()) as IteratorResult<UnknownResource[]>;
+    await generator3.next(); // Run real resource actions.
+    await octoAws.commitTransaction(app, modelTransactionResult3.value, resourcesResult3.value);
 
     // Ensure website is not available.
     await expect(async () => {

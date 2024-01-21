@@ -2,7 +2,7 @@ import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
 import { createReadStream } from 'fs';
-import * as mime from 'mime';
+import mime from 'mime';
 import { IS3WebsiteProperties } from '../s3-website.interface.js';
 import { S3Website } from '../s3-website.resource.js';
 
@@ -14,14 +14,14 @@ export class UpdateSourcePathsInS3WebsiteAction implements IResourceAction {
     return (
       diff.action === DiffAction.UPDATE &&
       diff.model.MODEL_NAME === 's3-website' &&
-      (diff.model as S3Website).getUpdateMarker()?.key.toLowerCase() === 'update-source-paths'
+      diff.field === 'update-source-paths'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
+    const manifestDiff = diff.value as S3Website['manifestDiff'];
     const s3Website = diff.model as S3Website;
-    const manifestDiff: { [key: string]: ['add' | 'delete' | 'update', string] } = s3Website.getUpdateMarker()!.value;
     const properties = s3Website.properties as unknown as IS3WebsiteProperties;
 
     // Get instances.
@@ -38,7 +38,7 @@ export class UpdateSourcePathsInS3WebsiteAction implements IResourceAction {
           params: {
             Body: stream,
             Bucket: properties.Bucket,
-            ContentType: mime.getType(filePath),
+            ContentType: mime.getType(filePath) || undefined,
             Key: remotePath,
           },
           queueSize: 4,
