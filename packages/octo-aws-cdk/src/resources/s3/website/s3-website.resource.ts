@@ -5,7 +5,7 @@ import { IS3WebsiteProperties } from './s3-website.interface.js';
 export class S3Website extends AResource<S3Website> {
   readonly MODEL_NAME: string = 's3-website';
 
-  private manifestDiff: { [key: string]: ['add' | 'delete' | 'update', string] };
+  private readonly manifestDiff: { [key: string]: ['add' | 'delete' | 'update', string] } = {};
 
   constructor(resourceId: string, properties: IS3WebsiteProperties) {
     super(resourceId, properties as unknown as IResource['properties'], []);
@@ -14,7 +14,7 @@ export class S3Website extends AResource<S3Website> {
   override async diff(previous?: S3Website): Promise<Diff[]> {
     const diffs = await super.diff(previous);
 
-    if (this.manifestDiff) {
+    if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {
       diffs.push(new Diff(this, DiffAction.UPDATE, 'update-source-paths', this.manifestDiff));
     }
 
@@ -22,7 +22,6 @@ export class S3Website extends AResource<S3Website> {
   }
 
   updateManifestDiff(manifestDiff: S3Website['manifestDiff']): void {
-    this.manifestDiff = {};
     for (const key of Object.keys(manifestDiff)) {
       this.manifestDiff[key] = [...manifestDiff[key]];
     }

@@ -1,6 +1,7 @@
 import { Diff, DiffAction, Model, Service } from '@quadnix/octo';
 import { basename } from 'path';
 import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.model.js';
+import { AwsRegion, RegionId } from '../../region/aws.region.model.js';
 import { IS3StorageService } from './s3-storage.service.interface.js';
 
 @Model()
@@ -15,10 +16,10 @@ export class S3StorageService extends Service {
     remoteDirectoryPath: string;
   }[] = [];
 
-  constructor(awsRegionId: string, bucketName: string) {
+  constructor(regionId: RegionId, bucketName: string) {
     super(`${bucketName}-s3-storage`);
 
-    this.awsRegionId = awsRegionId;
+    this.awsRegionId = AwsRegion.getRegionIdParts(regionId).awsRegionId;
     this.bucketName = bucketName;
   }
 
@@ -68,7 +69,8 @@ export class S3StorageService extends Service {
   }
 
   static override async unSynth(s3Storage: IS3StorageService): Promise<S3StorageService> {
-    const service = new S3StorageService(s3Storage.awsRegionId, s3Storage.bucketName);
+    const awsRegionId = AwsRegion.getRandomRegionIdFromAwsRegionId(s3Storage.awsRegionId);
+    const service = new S3StorageService(awsRegionId!, s3Storage.bucketName);
     service.directories.push(...s3Storage.directories);
     return service;
   }

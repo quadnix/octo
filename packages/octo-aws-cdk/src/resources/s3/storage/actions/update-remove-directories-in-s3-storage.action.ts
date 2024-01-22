@@ -1,5 +1,4 @@
 import { Action, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { S3Website } from '../../website/s3-website.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class UpdateRemoveDirectoriesInS3StorageAction implements IResourceAction {
@@ -7,9 +6,7 @@ export class UpdateRemoveDirectoriesInS3StorageAction implements IResourceAction
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.UPDATE &&
-      diff.model.MODEL_NAME === 's3-storage' &&
-      (diff.model as S3Website).getUpdateMarker()?.key.toLowerCase() === 'update-delete-directories'
+      diff.action === DiffAction.UPDATE && diff.model.MODEL_NAME === 's3-storage' && diff.field === 'delete-directories'
     );
   }
 

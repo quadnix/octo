@@ -4,8 +4,8 @@ import { IS3StorageProperties } from '../s3-storage.interface.js';
 import { S3Storage } from '../s3-storage.resource.js';
 
 @Action(ModelType.RESOURCE)
-export class DeleteS3StorageAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'DeleteS3StorageAction';
+export class DeleteS3StorageResourceAction implements IResourceAction {
+  readonly ACTION_NAME: string = 'DeleteS3StorageResourceAction';
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 's3-storage';
@@ -52,9 +52,9 @@ export class DeleteS3StorageAction implements IResourceAction {
   }
 }
 
-@Factory<DeleteS3StorageAction>(DeleteS3StorageAction)
-export class DeleteS3StorageActionFactory {
-  static async create(): Promise<DeleteS3StorageAction> {
-    return new DeleteS3StorageAction();
+@Factory<DeleteS3StorageResourceAction>(DeleteS3StorageResourceAction)
+export class DeleteS3StorageResourceActionFactory {
+  static async create(): Promise<DeleteS3StorageResourceAction> {
+    return new DeleteS3StorageResourceAction();
   }
 }

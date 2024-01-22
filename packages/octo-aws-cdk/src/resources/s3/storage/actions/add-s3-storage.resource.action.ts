@@ -4,8 +4,8 @@ import { IS3StorageProperties } from '../s3-storage.interface.js';
 import { S3Storage } from '../s3-storage.resource.js';
 
 @Action(ModelType.RESOURCE)
-export class AddS3StorageAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'AddS3StorageAction';
+export class AddS3StorageResourceAction implements IResourceAction {
+  readonly ACTION_NAME: string = 'AddS3StorageResourceAction';
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 's3-storage';
@@ -28,9 +28,9 @@ export class AddS3StorageAction implements IResourceAction {
   }
 }
 
-@Factory<AddS3StorageAction>(AddS3StorageAction)
-export class AddS3StorageActionFactory {
-  static async create(): Promise<AddS3StorageAction> {
-    return new AddS3StorageAction();
+@Factory<AddS3StorageResourceAction>(AddS3StorageResourceAction)
+export class AddS3StorageResourceActionFactory {
+  static async create(): Promise<AddS3StorageResourceAction> {
+    return new AddS3StorageResourceAction();
   }
 }

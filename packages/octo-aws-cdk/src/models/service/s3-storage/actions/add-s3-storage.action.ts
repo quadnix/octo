@@ -7,12 +7,6 @@ import { S3StorageService } from '../s3-storage.service.model.js';
 export class AddS3StorageAction extends AAction {
   readonly ACTION_NAME: string = 'AddS3StorageAction';
 
-  override collectOutput(diff: Diff): string[] {
-    const { bucketName } = diff.model as S3StorageService;
-
-    return [`bucket-${bucketName}`];
-  }
-
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -22,7 +16,7 @@ export class AddS3StorageAction extends AAction {
     );
   }
 
-  handle(diff: Diff): ActionOutputs {
+  async handle(diff: Diff): Promise<ActionOutputs> {
     const { awsRegionId, bucketName } = diff.model as S3StorageService;
 
     // Create S3 Bucket.

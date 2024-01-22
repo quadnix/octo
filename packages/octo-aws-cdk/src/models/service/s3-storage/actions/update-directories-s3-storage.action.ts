@@ -22,16 +22,22 @@ export class UpdateDirectoriesS3StorageAction extends AAction {
     );
   }
 
-  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
+  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const { bucketName } = diff.model as S3StorageService;
-    const diffAction = diff.action.toLowerCase();
 
     const s3Storage = actionInputs[`resource.bucket-${bucketName}`] as S3Storage;
 
-    // Update website source paths.
-    s3Storage.markUpdated(`update-${diffAction}-directories`, diff.value);
+    // Update directories.
+    if (diff.action === DiffAction.ADD) {
+      s3Storage.addDirectory(diff.value as S3Storage['directoriesToAdd'][0]);
+    } else if (diff.action === DiffAction.DELETE) {
+      s3Storage.removeDirectory(diff.value as S3Storage['directoriesToRemove'][0]);
+    }
 
-    return {};
+    const output: ActionOutputs = {};
+    output[s3Storage.resourceId] = s3Storage;
+
+    return output;
   }
 }
 
