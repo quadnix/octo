@@ -7,8 +7,6 @@ export class SecurityGroup extends AResource<SecurityGroup> {
   readonly MODEL_NAME: string = 'security-group';
 
   constructor(resourceId: string, properties: ISecurityGroupProperties, parents: [Vpc]) {
-    properties.rules = JSON.stringify(properties.rules) as any;
-
     super(resourceId, properties as unknown as IResource['properties'], parents);
   }
 }

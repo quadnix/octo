@@ -1,5 +1,29 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Resource Serialization Service UT deserialize() should deserialize a resource with complex properties 1`] = `
+{
+  "resource-1": TestResource {
+    "MODEL_NAME": "test-resource",
+    "MODEL_TYPE": "resource",
+    "_deleteMarker": false,
+    "anchors": [],
+    "dependencies": [],
+    "properties": {
+      "key1": {
+        "key2": {
+          "key3": "value3",
+        },
+        "key4": "value4",
+      },
+    },
+    "resourceId": "resource-1",
+    "response": {
+      "response1": "value1",
+    },
+  },
+}
+`;
+
 exports[`Resource Serialization Service UT deserialize() should deserialize a single resource 1`] = `
 {
   "resource-1": TestResource {

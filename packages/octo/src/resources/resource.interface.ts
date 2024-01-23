@@ -1,7 +1,7 @@
 export interface IResource {
-  readonly properties: { [key: string]: boolean | number | string };
+  readonly properties: { [key: string]: unknown };
 
   readonly resourceId: string;
 
-  readonly response: { [key: string]: boolean | number | string };
+  readonly response: { [key: string]: unknown };
 }

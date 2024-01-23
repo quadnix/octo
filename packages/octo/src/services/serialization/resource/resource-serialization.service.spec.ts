@@ -48,6 +48,20 @@ describe('Resource Serialization Service UT', () => {
       expect(resources).toMatchSnapshot();
     });
 
+    it('should deserialize a resource with complex properties', async () => {
+      const resource1 = new TestResource('resource-1');
+      resource1.properties['key1'] = { key2: { key3: 'value3' }, key4: 'value4' };
+      resource1.response['response1'] = 'value1';
+
+      const service = new ResourceSerializationService();
+      service.registerClass('TestResource', TestResource);
+
+      const serializedOutput = service.serialize([resource1]);
+      const resources = await service.deserialize(serializedOutput);
+
+      expect(resources).toMatchSnapshot();
+    });
+
     it('should deserialize a single shared resource', async () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';

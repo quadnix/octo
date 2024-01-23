@@ -8,8 +8,6 @@ export class NetworkAcl extends AResource<NetworkAcl> {
   readonly MODEL_NAME: string = 'network-acl';
 
   constructor(resourceId: string, properties: INetworkAclProperties, parents: [Vpc, Subnet]) {
-    properties.entries = JSON.stringify(properties.entries) as any;
-
     super(resourceId, properties as unknown as IResource['properties'], parents);
   }
 }
