@@ -1,3 +1,5 @@
+// eslint-disable-file no-unused-vars
+
 import { ActionInputs, ActionOutputs, Diff, IAction } from '@quadnix/octo';
 
 export abstract class AAction implements IAction<ActionInputs, ActionOutputs> {
