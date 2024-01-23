@@ -10,7 +10,7 @@ export class DeleteImageFromEcrModelAction extends AAction {
   override collectInput(diff: Diff): string[] {
     const { awsRegionId, image } = diff.value as { awsRegionId: string; image: Image };
 
-    return [`resource.${awsRegionId}-${image.imageId}-ecr`];
+    return [`resource.ecr-${awsRegionId}-${image.imageId}`];
   }
 
   filter(diff: Diff): boolean {
@@ -24,7 +24,7 @@ export class DeleteImageFromEcrModelAction extends AAction {
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const { awsRegionId, image } = diff.value as { awsRegionId: string; image: Image };
-    const ecrImage = actionInputs[`resource.${awsRegionId}-${image.imageId}-ecr`] as EcrImage;
+    const ecrImage = actionInputs[`resource.ecr-${awsRegionId}-${image.imageId}`] as EcrImage;
     ecrImage.markDeleted();
 
     const output: ActionOutputs = {};

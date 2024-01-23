@@ -19,7 +19,7 @@ export class AddEnvironmentModelAction extends AAction {
     const region = environment.getParents()['region'][0].to as AwsRegion;
     const clusterName = [region.regionId, environmentName].join('-');
 
-    const ecsCluster = new EcsCluster(`${clusterName}-ecs-cluster`, {
+    const ecsCluster = new EcsCluster(`ecs-cluster-${clusterName}`, {
       awsRegionId: region.awsRegionId,
       clusterName,
       regionId: region.regionId,

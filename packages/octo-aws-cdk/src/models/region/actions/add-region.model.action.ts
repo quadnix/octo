@@ -38,18 +38,18 @@ export class AddRegionModelAction extends AAction {
     const vpcCidrBlock = actionInputs[`input.region.${regionId}.vpc.CidrBlock`] as string;
 
     // Create VPC.
-    const vpc = new Vpc(`${regionId}-vpc`, {
+    const vpc = new Vpc(`vpc-${regionId}`, {
       awsRegionId: awsRegion.awsRegionId,
       CidrBlock: vpcCidrBlock,
       InstanceTenancy: 'default',
     });
 
     // Create Internet Gateway.
-    const internetGateway = new InternetGateway(`${regionId}-igw`, { awsRegionId: awsRegion.awsRegionId }, [vpc]);
+    const internetGateway = new InternetGateway(`igw-${regionId}`, { awsRegionId: awsRegion.awsRegionId }, [vpc]);
 
     // Create Subnets.
     const privateSubnet1 = new Subnet(
-      `${regionId}-private-subnet-1`,
+      `subnet-${regionId}-private-1`,
       {
         AvailabilityZone: awsRegion.awsRegionAZ,
         awsRegionId: awsRegion.awsRegionId,
@@ -58,7 +58,7 @@ export class AddRegionModelAction extends AAction {
       [vpc],
     );
     const publicSubnet1 = new Subnet(
-      `${regionId}-public-subnet-1`,
+      `subnet-${regionId}-public-1`,
       {
         AvailabilityZone: awsRegion.awsRegionAZ,
         awsRegionId: awsRegion.awsRegionId,
@@ -68,12 +68,12 @@ export class AddRegionModelAction extends AAction {
     );
 
     // Create Route Tables.
-    const privateRT1 = new RouteTable(`${regionId}-private-rt-1`, { awsRegionId: awsRegion.awsRegionId }, [
+    const privateRT1 = new RouteTable(`rt-${regionId}-private-1`, { awsRegionId: awsRegion.awsRegionId }, [
       vpc,
       internetGateway,
       privateSubnet1,
     ]);
-    const publicRT1 = new RouteTable(`${regionId}-public-rt-1`, { awsRegionId: awsRegion.awsRegionId }, [
+    const publicRT1 = new RouteTable(`rt-${regionId}-public-1`, { awsRegionId: awsRegion.awsRegionId }, [
       vpc,
       internetGateway,
       publicSubnet1,
@@ -81,7 +81,7 @@ export class AddRegionModelAction extends AAction {
 
     // Create Network ACLs.
     const privateNAcl1 = new NetworkAcl(
-      `${regionId}-private-nacl-1`,
+      `nacl-${regionId}-private-1`,
       {
         awsRegionId: awsRegion.awsRegionId,
         entries: [
@@ -106,7 +106,7 @@ export class AddRegionModelAction extends AAction {
       [vpc, privateSubnet1],
     );
     const publicNAcl1 = new NetworkAcl(
-      `${regionId}-public-nacl-1`,
+      `nacl-${regionId}-public-1`,
       {
         awsRegionId: awsRegion.awsRegionId,
         entries: [
@@ -133,7 +133,7 @@ export class AddRegionModelAction extends AAction {
 
     // Create Security Groups.
     const accessSG = new SecurityGroup(
-      `${regionId}-access-sg`,
+      `sg-${regionId}-access`,
       {
         awsRegionId: awsRegion.awsRegionId,
         rules: [
@@ -158,7 +158,7 @@ export class AddRegionModelAction extends AAction {
       [vpc],
     );
     const internalOpenSG = new SecurityGroup(
-      `${regionId}-internal-open-sg`,
+      `sg-${regionId}-internal-open`,
       {
         awsRegionId: awsRegion.awsRegionId,
         rules: [
@@ -175,7 +175,7 @@ export class AddRegionModelAction extends AAction {
       [vpc],
     );
     const privateClosedSG = new SecurityGroup(
-      `${regionId}-private-closed-sg`,
+      `sg-${regionId}-private-closed`,
       {
         awsRegionId: awsRegion.awsRegionId,
         rules: [
@@ -200,7 +200,7 @@ export class AddRegionModelAction extends AAction {
       [vpc],
     );
     const webSG = new SecurityGroup(
-      `${regionId}-web-sg`,
+      `sg-${regionId}-web`,
       {
         awsRegionId: awsRegion.awsRegionId,
         rules: [
@@ -227,7 +227,7 @@ export class AddRegionModelAction extends AAction {
 
     // Create EFS.
     const efs = new Efs(
-      `${regionId}-efs-filesystem`,
+      `efs-${regionId}-filesystem`,
       { awsRegionId: awsRegion.awsRegionId, regionId: awsRegion.regionId },
       [privateSubnet1, internalOpenSG],
     );

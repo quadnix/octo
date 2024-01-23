@@ -122,12 +122,12 @@ describe('EcrService UT', () => {
             {
               "action": "add",
               "field": "resourceId",
-              "value": "us-east-1-imageName:0.0.1-ecr",
+              "value": "ecr-us-east-1-imageName:0.0.1",
             },
             {
               "action": "add",
               "field": "resourceId",
-              "value": "us-east-1-imageName:0.0.2-ecr",
+              "value": "ecr-us-east-1-imageName:0.0.2",
             },
           ],
         ]
@@ -156,7 +156,7 @@ describe('EcrService UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
-              "value": "us-east-1-imageName:0.0.1-ecr",
+              "value": "ecr-us-east-1-imageName:0.0.1",
             },
           ],
         ]
@@ -185,7 +185,7 @@ describe('EcrService UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
-              "value": "us-east-1-imageName:0.0.2-ecr",
+              "value": "ecr-us-east-1-imageName:0.0.2",
             },
           ],
         ]

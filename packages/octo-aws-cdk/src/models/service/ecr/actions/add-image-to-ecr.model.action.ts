@@ -31,7 +31,7 @@ export class AddImageToEcrModelAction extends AAction {
     const dockerfileParts = parse(image.dockerOptions.dockerfilePath);
 
     // Create ECR.
-    const ecrImage = new EcrImage(`${awsRegionId}-${image.imageId}-ecr`, {
+    const ecrImage = new EcrImage(`ecr-${awsRegionId}-${image.imageId}`, {
       awsRegionId,
       dockerExec,
       dockerfileDirectory: dockerfileParts.dir,

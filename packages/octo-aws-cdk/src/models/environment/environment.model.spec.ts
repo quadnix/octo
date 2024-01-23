@@ -74,7 +74,7 @@ describe('ECRImage UT', () => {
             {
               "action": "add",
               "field": "resourceId",
-              "value": "aws-us-east-1a-qa-ecs-cluster",
+              "value": "ecs-cluster-aws-us-east-1a-qa",
             },
           ],
         ]
@@ -103,7 +103,7 @@ describe('ECRImage UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
-              "value": "aws-us-east-1a-qa-ecs-cluster",
+              "value": "ecs-cluster-aws-us-east-1a-qa",
             },
           ],
         ]

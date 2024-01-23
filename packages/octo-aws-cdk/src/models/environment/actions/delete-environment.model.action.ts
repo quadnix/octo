@@ -13,7 +13,7 @@ export class DeleteEnvironmentModelAction extends AAction {
     const region = environment.getParents()['region'][0].to as AwsRegion;
     const clusterName = [region.regionId, environmentName].join('-');
 
-    return [`resource.${clusterName}-ecs-cluster`];
+    return [`resource.ecs-cluster-${clusterName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -28,7 +28,7 @@ export class DeleteEnvironmentModelAction extends AAction {
     const region = environment.getParents()['region'][0].to as AwsRegion;
     const clusterName = [region.regionId, environmentName].join('-');
 
-    const ecsCluster = actionInputs[`resource.${clusterName}-ecs-cluster`] as EcsCluster;
+    const ecsCluster = actionInputs[`resource.ecs-cluster-${clusterName}`] as EcsCluster;
     ecsCluster.markDeleted();
 
     const output: ActionOutputs = {};

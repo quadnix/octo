@@ -18,19 +18,19 @@ export class DeleteRegionModelAction extends AAction {
     const { regionId } = diff.model as AwsRegion;
 
     return [
-      `resource.${regionId}-vpc`,
-      `resource.${regionId}-igw`,
-      `resource.${regionId}-private-subnet-1`,
-      `resource.${regionId}-public-subnet-1`,
-      `resource.${regionId}-private-rt-1`,
-      `resource.${regionId}-public-rt-1`,
-      `resource.${regionId}-private-nacl-1`,
-      `resource.${regionId}-public-nacl-1`,
-      `resource.${regionId}-access-sg`,
-      `resource.${regionId}-internal-open-sg`,
-      `resource.${regionId}-private-closed-sg`,
-      `resource.${regionId}-web-sg`,
-      `resource.${regionId}-efs-filesystem`,
+      `resource.vpc-${regionId}`,
+      `resource.igw-${regionId}`,
+      `resource.subnet-${regionId}-private-1`,
+      `resource.subnet-${regionId}-public-1`,
+      `resource.rt-${regionId}-private-1`,
+      `resource.rt-${regionId}-public-1`,
+      `resource.nacl-${regionId}-private-1`,
+      `resource.nacl-${regionId}-public-1`,
+      `resource.sg-${regionId}-access`,
+      `resource.sg-${regionId}-internal-open`,
+      `resource.sg-${regionId}-private-closed`,
+      `resource.sg-${regionId}-web`,
+      `resource.efs-${regionId}-filesystem`,
       'resource.shared-efs-filesystem',
     ];
   }
@@ -42,42 +42,42 @@ export class DeleteRegionModelAction extends AAction {
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const { regionId } = diff.model as AwsRegion;
 
-    const internalOpenSG = actionInputs[`resource.${regionId}-internal-open-sg`] as SecurityGroup;
-    const privateSubnet1 = actionInputs[`resource.${regionId}-private-subnet-1`] as Subnet;
+    const internalOpenSG = actionInputs[`resource.sg-${regionId}-internal-open`] as SecurityGroup;
+    const privateSubnet1 = actionInputs[`resource.subnet-${regionId}-private-1`] as Subnet;
 
-    const efs = actionInputs[`resource.${regionId}-efs-filesystem`] as Efs;
+    const efs = actionInputs[`resource.efs-${regionId}-filesystem`] as Efs;
     const sharedEfs = actionInputs['resource.shared-efs-filesystem'] as SharedEfs;
     efs.removeRelationship(privateSubnet1);
     efs.removeRelationship(internalOpenSG);
     efs.removeRelationship(sharedEfs);
     efs.markDeleted();
 
-    const accessSG = actionInputs[`resource.${regionId}-access-sg`] as SecurityGroup;
+    const accessSG = actionInputs[`resource.sg-${regionId}-access`] as SecurityGroup;
     accessSG.markDeleted();
     internalOpenSG.markDeleted();
-    const privateClosedSG = actionInputs[`resource.${regionId}-private-closed-sg`] as SecurityGroup;
+    const privateClosedSG = actionInputs[`resource.sg-${regionId}-private-closed`] as SecurityGroup;
     privateClosedSG.markDeleted();
-    const webSG = actionInputs[`resource.${regionId}-web-sg`] as SecurityGroup;
+    const webSG = actionInputs[`resource.sg-${regionId}-web`] as SecurityGroup;
     webSG.markDeleted();
 
-    const privateNAcl1 = actionInputs[`resource.${regionId}-private-nacl-1`] as NetworkAcl;
+    const privateNAcl1 = actionInputs[`resource.nacl-${regionId}-private-1`] as NetworkAcl;
     privateNAcl1.markDeleted();
-    const publicNAcl1 = actionInputs[`resource.${regionId}-public-nacl-1`] as NetworkAcl;
+    const publicNAcl1 = actionInputs[`resource.nacl-${regionId}-public-1`] as NetworkAcl;
     publicNAcl1.markDeleted();
 
-    const privateRT1 = actionInputs[`resource.${regionId}-private-rt-1`] as RouteTable;
+    const privateRT1 = actionInputs[`resource.rt-${regionId}-private-1`] as RouteTable;
     privateRT1.markDeleted();
-    const publicRT1 = actionInputs[`resource.${regionId}-public-rt-1`] as RouteTable;
+    const publicRT1 = actionInputs[`resource.rt-${regionId}-public-1`] as RouteTable;
     publicRT1.markDeleted();
 
     privateSubnet1.markDeleted();
-    const publicSubnet1 = actionInputs[`resource.${regionId}-public-subnet-1`] as Subnet;
+    const publicSubnet1 = actionInputs[`resource.subnet-${regionId}-public-1`] as Subnet;
     publicSubnet1.markDeleted();
 
-    const internetGateway = actionInputs[`resource.${regionId}-igw`] as InternetGateway;
+    const internetGateway = actionInputs[`resource.igw-${regionId}`] as InternetGateway;
     internetGateway.markDeleted();
 
-    const vpc = actionInputs[`resource.${regionId}-vpc`] as Vpc;
+    const vpc = actionInputs[`resource.vpc-${regionId}`] as Vpc;
     vpc.markDeleted();
 
     const output: ActionOutputs = {};
