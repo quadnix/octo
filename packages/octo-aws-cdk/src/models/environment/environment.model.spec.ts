@@ -8,7 +8,7 @@ import { AwsRegion, OctoAws, RegionId } from '../../index.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
-describe('ECRImage UT', () => {
+describe('Environment UT', () => {
   const filePaths: string[] = [
     join(__dirname, 'models.json'),
     join(__dirname, 'resources.json'),

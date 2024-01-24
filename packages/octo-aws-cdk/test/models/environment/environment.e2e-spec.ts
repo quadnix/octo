@@ -1,17 +1,17 @@
-import { App, DiffMetadata, Environment, LocalStateProvider, Resource } from '@quadnix/octo';
+import { App, DiffMetadata, Environment, LocalStateProvider, UnknownResource } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsRegion, AwsRegionId, OctoAws } from '../../../src/index.js';
+import { AwsRegion, OctoAws, RegionId } from '../../../src/index.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('Environment E2E Test', () => {
   const filePaths: string[] = [
-    join(__dirname, 'aws-us-east-1a-models.json'),
-    join(__dirname, 'aws-us-east-1a-resources.json'),
-    join(__dirname, 'aws-us-east-1b-models.json'),
-    join(__dirname, 'aws-us-east-1b-resources.json'),
+    join(__dirname, 'models.json'),
+    join(__dirname, 'resources.json'),
     join(__dirname, 'shared-resources.json'),
   ];
 
@@ -20,111 +20,63 @@ describe('Environment E2E Test', () => {
   });
 
   describe('general workflow', () => {
-    let app: App;
-    let region1: AwsRegion;
-    let region2: AwsRegion;
+    let octoAws: OctoAws;
 
-    let octoAws1: OctoAws;
-    let octoAws2: OctoAws;
+    let app: App;
+    let region: AwsRegion;
 
     beforeEach(async () => {
-      app = new App('test');
-      region1 = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
-      app.addRegion(region1);
-      region2 = new AwsRegion(AwsRegionId.AWS_US_EAST_1B);
-      app.addRegion(region2);
-
-      const localStateProvider = new LocalStateProvider(__dirname);
-      octoAws1 = new OctoAws(region1, localStateProvider);
-      octoAws1.registerInputs({
+      octoAws = new OctoAws();
+      await octoAws.initialize(new LocalStateProvider(__dirname));
+      octoAws.registerInputs({
         'input.region.aws-us-east-1a.subnet.private1.CidrBlock': '0.0.0.0/0',
         'input.region.aws-us-east-1a.subnet.public1.CidrBlock': '0.0.0.0/0',
         'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
       });
 
-      const diffs1_0 = await octoAws1.diff();
-      const generator1 = await octoAws1.beginTransaction(diffs1_0, {
+      app = new App('test');
+      region = new AwsRegion(RegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
+
+      const diffs0 = await octoAws.diff(app);
+      const generator0 = await octoAws.beginTransaction(diffs0, {
         yieldModelTransaction: true,
         yieldNewResources: true,
       });
 
-      // Prevent generator1 from running real resource actions.
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
-      await octoAws1.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
-
-      octoAws2 = new OctoAws(region2, localStateProvider);
-      octoAws2.registerInputs({
-        'input.region.aws-us-east-1b.subnet.private1.CidrBlock': '0.0.0.0/0',
-        'input.region.aws-us-east-1b.subnet.public1.CidrBlock': '0.0.0.0/0',
-        'input.region.aws-us-east-1b.vpc.CidrBlock': '0.0.0.0/0',
-      });
-
-      const diffs2_0 = await octoAws2.diff();
-      const generator2 = await octoAws2.beginTransaction(diffs2_0, {
-        yieldModelTransaction: true,
-        yieldNewResources: true,
-      });
-
-      // Prevent generator2 from running real resource actions.
-      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
-      await octoAws2.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
+      // Prevent generator from running real resource actions.
+      const modelTransactionResult0 = (await generator0.next()) as IteratorResult<DiffMetadata[][]>;
+      const resourcesResult0 = (await generator0.next()) as IteratorResult<UnknownResource[]>;
+      await octoAws.commitTransaction(app, modelTransactionResult0.value, resourcesResult0.value);
     });
 
-    it('should test working with an ECS cluster', async () => {
-      const environment1 = new Environment('qa');
-      region1.addEnvironment(environment1);
+    it('should test working with an Environment', async () => {
+      const environment = new Environment('qa');
+      region.addEnvironment(environment);
 
-      const diffs1_1 = await octoAws1.diff();
-      const generator1 = await octoAws1.beginTransaction(diffs1_1, {
+      const diffs1 = await octoAws.diff(app);
+      const generator1 = await octoAws.beginTransaction(diffs1, {
         yieldModelTransaction: true,
         yieldNewResources: true,
       });
 
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult1 = (await generator1.next()) as IteratorResult<Resource<unknown>[]>;
+      const resourcesResult1 = (await generator1.next()) as IteratorResult<UnknownResource[]>;
       await generator1.next(); // Run real resource actions.
-      await octoAws1.commitTransaction(modelTransactionResult1.value, resourcesResult1.value);
-
-      // Add environment with same name to another region.
-      const environment2 = new Environment('qa');
-      region2.addEnvironment(environment2);
-
-      const diffs2_1 = await octoAws2.diff();
-      const generator2 = await octoAws2.beginTransaction(diffs2_1, {
-        yieldModelTransaction: true,
-        yieldNewResources: true,
-      });
-
-      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult2 = (await generator2.next()) as IteratorResult<Resource<unknown>[]>;
-      await generator2.next(); // Run real resource actions.
-      await octoAws2.commitTransaction(modelTransactionResult2.value, resourcesResult2.value);
+      await octoAws.commitTransaction(app, modelTransactionResult1.value, resourcesResult1.value);
 
       // Remove environments.
-      environment1.remove();
-      environment2.remove();
+      environment.remove();
 
-      const diffs1_2 = await octoAws1.diff();
-      const generator3 = await octoAws1.beginTransaction(diffs1_2, {
+      const diffs2 = await octoAws.diff(app);
+      const generator2 = await octoAws.beginTransaction(diffs2, {
         yieldModelTransaction: true,
         yieldNewResources: true,
       });
-      const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult3 = (await generator3.next()) as IteratorResult<Resource<unknown>[]>;
-      await generator3.next(); // Run real resource actions.
-      await octoAws1.commitTransaction(modelTransactionResult3.value, resourcesResult3.value);
-
-      const diffs2_2 = await octoAws2.diff();
-      const generator4 = await octoAws2.beginTransaction(diffs2_2, {
-        yieldModelTransaction: true,
-        yieldNewResources: true,
-      });
-      const modelTransactionResult4 = (await generator4.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult4 = (await generator4.next()) as IteratorResult<Resource<unknown>[]>;
-      await generator4.next(); // Run real resource actions.
-      await octoAws2.commitTransaction(modelTransactionResult4.value, resourcesResult4.value);
+      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
+      const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
+      await generator2.next(); // Run real resource actions.
+      await octoAws.commitTransaction(app, modelTransactionResult2.value, resourcesResult2.value);
     });
   });
 });
