@@ -23,6 +23,7 @@ describe('Model Serialization Service UT', () => {
           'app=name': { className: 'ClassNotExist', model: null },
         } as any,
         modules: [],
+        overlays: [],
       };
 
       const service = new ModelSerializationService();
@@ -43,6 +44,7 @@ describe('Model Serialization Service UT', () => {
           'app=name': { className: 'Service', model: null },
         } as any,
         modules: [],
+        overlays: [],
       };
 
       const service = new ModelSerializationService();
@@ -62,7 +64,7 @@ describe('Model Serialization Service UT', () => {
       service.registerClass('App', App);
       service.registerClass('Region', Region);
 
-      const output = service.serialize(app0);
+      const output = await service.serialize(app0);
       const app1 = (await service.deserialize(output)) as App;
 
       expect(app1.name).toBe('test-app');
@@ -77,7 +79,7 @@ describe('Model Serialization Service UT', () => {
       service.registerClass('App', App);
       service.registerClass('Region', Region);
 
-      const output = service.serialize(app0);
+      const output = await service.serialize(app0);
       const app1 = (await service.deserialize(output)) as App;
 
       expect(app1.name).toBe('test-app');
@@ -92,7 +94,7 @@ describe('Model Serialization Service UT', () => {
       service.registerClass('App', App);
       service.registerClass('Region', Region);
 
-      const output = service.serialize(region0);
+      const output = await service.serialize(region0);
       const region1 = (await service.deserialize(output)) as Region;
 
       expect(region1.regionId).toBe('region-0');
@@ -112,12 +114,12 @@ describe('Model Serialization Service UT', () => {
       service.registerClass('Image', Image);
       service.registerClass('Server', Server);
 
-      const appSerialized = service.serialize(app);
+      const appSerialized = await service.serialize(app);
       const appDeserialized = (await service.deserialize(appSerialized)) as App;
 
-      const newAppDependencies = service
-        .serialize(appDeserialized)
-        .dependencies.sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
+      const newAppDependencies = (await service.serialize(appDeserialized)).dependencies.sort((a, b) =>
+        a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
+      );
       const oldAppDependencies = appSerialized.dependencies.sort((a, b) =>
         a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
       );
@@ -126,14 +128,14 @@ describe('Model Serialization Service UT', () => {
   });
 
   describe('serialize()', () => {
-    it('should serialize an empty app', () => {
+    it('should serialize an empty app', async () => {
       const app0 = new App('test-app');
 
       const service = new ModelSerializationService();
-      expect(service.serialize(app0)).toMatchSnapshot();
+      expect(await service.serialize(app0)).toMatchSnapshot();
     });
 
-    it('should serialize a non-empty app', () => {
+    it('should serialize a non-empty app', async () => {
       const app0 = new App('test-app');
       const image0 = new Image('image', '0.0.1', {
         dockerfilePath: '/Dockerfile',
@@ -148,10 +150,10 @@ describe('Model Serialization Service UT', () => {
       region0.addEnvironment(environment0);
 
       const service = new ModelSerializationService();
-      expect(service.serialize(app0)).toMatchSnapshot();
+      expect(await service.serialize(app0)).toMatchSnapshot();
     });
 
-    it('should serialize only boundary members', () => {
+    it('should serialize only boundary members', async () => {
       const app0 = new App('test-app');
       const region0_1 = new Region('region-1');
       const region0_2 = new Region('region-2');
@@ -163,7 +165,7 @@ describe('Model Serialization Service UT', () => {
       region0_2.addEnvironment(environment0_2);
 
       const service = new ModelSerializationService();
-      expect(service.serialize(region0_1)).toMatchSnapshot();
+      expect(await service.serialize(region0_1)).toMatchSnapshot();
     });
 
     it('should serialize when multiple models have dependency on same model', async () => {
@@ -177,7 +179,7 @@ describe('Model Serialization Service UT', () => {
       const server1 = new Server('server-1', image0);
       app0.addServer(server1);
 
-      expect(service.serialize(app0)).toMatchSnapshot();
+      expect(await service.serialize(app0)).toMatchSnapshot();
     });
   });
 });

@@ -2,18 +2,23 @@ import {
   ActionInputs,
   ActionOutputs,
   TransactionOptions,
+  UnknownOverlay,
   UnknownResource,
   UnknownSharedResource,
 } from '../../app.type.js';
+import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
 import { IAction } from '../../models/action.interface.js';
+import { AOverlay } from '../../overlay/overlay.abstract.js';
+import { OverlayData } from '../../overlay/overlay.data.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 
 export class TransactionService {
   private readonly inputs: ActionInputs = {};
   private readonly modelActions: IAction<ActionInputs, ActionOutputs>[] = [];
+  private readonly overlayActions: IAction<ActionInputs, ActionOutputs>[] = [];
   private readonly resourceActions: IResourceAction[] = [];
 
   private async applyModels(diffs: DiffMetadata[], resources: ActionOutputs): Promise<DiffMetadata[][]> {
@@ -147,6 +152,24 @@ export class TransactionService {
     return transaction;
   }
 
+  private diffOverlays(newOverlays: AOverlay<UnknownOverlay>[], oldOverlays: AOverlay<UnknownOverlay>[]): Diff[] {
+    const diffs: Diff[] = [];
+
+    for (const overlay of oldOverlays) {
+      if (!newOverlays.find((o) => o.overlayId === overlay.overlayId)) {
+        diffs.push(new Diff(overlay, DiffAction.DELETE, 'overlayId', overlay.overlayId));
+      }
+    }
+
+    for (const overlay of newOverlays) {
+      if (!oldOverlays.find((o) => o.overlayId === overlay.overlayId)) {
+        diffs.push(new Diff(overlay, DiffAction.ADD, 'overlayId', overlay.overlayId));
+      }
+    }
+
+    return diffs;
+  }
+
   private async diffResources(newResources: ActionOutputs, oldResources: ActionOutputs): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -247,6 +270,11 @@ export class TransactionService {
       yieldResourceTransaction: false,
     },
   ): AsyncGenerator<DiffMetadata[][] | UnknownResource[], DiffMetadata[][]> {
+    // Diff overlays and add to existing diffs.
+    const oldOverlayData = await Container.get(OverlayData, { metadata: { type: 'old' } });
+    const newOverlayData = await Container.get(OverlayData, { metadata: { type: 'new' } });
+    diffs.push(...this.diffOverlays(newOverlayData.getByProperties(), oldOverlayData.getByProperties()));
+
     // Set apply order on model diffs.
     const modelDiffs = diffs.map(
       (d) =>
@@ -301,6 +329,14 @@ export class TransactionService {
     for (const action of actions) {
       if (!this.modelActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
         this.modelActions.push(action);
+      }
+    }
+  }
+
+  registerOverlayActions(actions: IAction<ActionInputs, ActionOutputs>[]): void {
+    for (const action of actions) {
+      if (!this.overlayActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
+        this.overlayActions.push(action);
       }
     }
   }

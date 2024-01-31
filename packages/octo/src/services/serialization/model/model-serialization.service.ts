@@ -1,9 +1,12 @@
 import { IUnknownModel, ModelSerializedOutput, UnknownModel } from '../../../app.type.js';
+import { Container } from '../../../decorators/container.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import { AModule } from '../../../functions/module/module.abstract.js';
 import { IModule } from '../../../functions/module/module.interface.js';
-import { IAnchor } from '../../../functions/overlay/anchor.interface.js';
+import { IAnchor } from '../../../overlay/anchor.interface.js';
 import { Dependency, IDependency } from '../../../functions/dependency/dependency.model.js';
+import { OverlayData } from '../../../overlay/overlay.data.js';
+import { IOverlay } from '../../../overlay/overlay.interface.js';
 
 export class ModelSerializationService {
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
@@ -64,8 +67,8 @@ export class ModelSerializationService {
       const { className, parent } = a;
       const deserializationClass = this.classMapping[className];
 
-      const anchor = await deserializationClass.unSynth(a, deReferenceContext);
-      seen[parent]['anchors'].push(anchor);
+      const anchor = await deserializationClass.unSynth(deserializationClass, a, deReferenceContext);
+      seen[parent.context]['anchors'].push(anchor);
     }
 
     for (const d of serializedOutput.dependencies) {
@@ -84,6 +87,16 @@ export class ModelSerializationService {
       this.modules.push(newModule);
     }
 
+    // Deserialize all overlays.
+    const overlayData = await Container.get(OverlayData, { metadata: { type: 'old' } });
+    overlayData.empty();
+    for (const { className, overlay } of serializedOutput.overlays) {
+      const deserializationClass = this.classMapping[className];
+
+      const newOverlay = await deserializationClass.unSynth(deserializationClass, overlay, deReferenceContext);
+      overlayData.add([newOverlay]);
+    }
+
     // If no dependencies to serialize, return the first seen model.
     return serializedOutput.dependencies.length > 0 ? seen[serializedOutput.dependencies[0].from] : seen[0];
   }
@@ -96,12 +109,13 @@ export class ModelSerializationService {
     this.modules.push(module);
   }
 
-  serialize(root: UnknownModel): ModelSerializedOutput {
+  async serialize(root: UnknownModel): Promise<ModelSerializedOutput> {
     const boundary = root.getBoundaryMembers();
     const anchors: (IAnchor & { className: string })[] = [];
     const dependencies: IDependency[] = [];
     const models: { [key: string]: { className: string; model: IUnknownModel } } = {};
     const modules: { className: string; module: IModule }[] = [];
+    const overlays: { className: string; overlay: IOverlay }[] = [];
 
     for (const model of boundary) {
       for (const a of model['anchors']) {
@@ -133,7 +147,12 @@ export class ModelSerializationService {
       modules.push({ className: module.constructor.name, module: module.synth() });
     }
 
-    return { anchors, dependencies, models, modules };
+    const newOverlayData = await Container.get(OverlayData, { metadata: { type: 'new' } });
+    for (const overlay of newOverlayData.getByProperties()) {
+      overlays.push({ className: overlay.constructor.name, overlay: overlay.synth() });
+    }
+
+    return { anchors, dependencies, models, modules, overlays };
   }
 }
 

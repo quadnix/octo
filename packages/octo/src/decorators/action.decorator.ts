@@ -10,6 +10,9 @@ export function Action(type: ModelType): (constructor: any) => void {
       if (type === ModelType.MODEL) {
         const modelAction = await Container.get<IAction<ActionInputs, ActionOutputs>>(constructor.name);
         transactionService.registerModelActions([modelAction]);
+      } else if (type === ModelType.OVERLAY) {
+        const modelAction = await Container.get<IAction<ActionInputs, ActionOutputs>>(constructor.name);
+        transactionService.registerOverlayActions([modelAction]);
       } else if (type === ModelType.RESOURCE) {
         const resourceAction = await Container.get<IResourceAction>(constructor.name);
         transactionService.registerResourceActions([resourceAction]);

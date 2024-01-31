@@ -4,6 +4,7 @@ export { Container } from './decorators/container.js';
 export { Factory } from './decorators/factory.decorator.js';
 export { Model } from './decorators/model.decorator.js';
 export { Module } from './decorators/module.decorator.js';
+export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
 
 export { Diff, DiffAction } from './functions/diff/diff.model.js';
@@ -11,9 +12,6 @@ export { DiffUtility } from './functions/diff/diff.utility.js';
 export { DiffMetadata } from './functions/diff/diff-metadata.model.js';
 export { AModule } from './functions/module/module.abstract.js';
 export { IModule } from './functions/module/module.interface.js';
-export { AAnchor } from './functions/overlay/anchor.abstract.js';
-export { IAnchor } from './functions/overlay/anchor.interface.js';
-export { Overlay } from './functions/overlay/overlay.model.js';
 
 export { App } from './models/app/app.model.js';
 export { IApp } from './models/app/app.interface.js';
@@ -39,6 +37,12 @@ export { ISupport } from './models/support/support.interface.js';
 export { IAction } from './models/action.interface.js';
 export { AModel } from './models/model.abstract.js';
 export { IModel, IModelReference } from './models/model.interface.js';
+
+export { AAnchor } from './overlay/anchor.abstract.js';
+export { IAnchor } from './overlay/anchor.interface.js';
+export { AOverlay } from './overlay/overlay.abstract.js';
+export { IOverlay } from './overlay/overlay.interface.js';
+import './overlay/overlay.data.js';
 
 export { AResource } from './resources/resource.abstract.js';
 export { IResource } from './resources/resource.interface.js';

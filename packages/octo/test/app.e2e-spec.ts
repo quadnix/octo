@@ -28,7 +28,7 @@ describe('App E2E Test', () => {
     region0.addEnvironment(qaEnvironment0);
     app0.addServer(new Server('backend', image0));
 
-    const app1 = (await modelSerializationService.deserialize(modelSerializationService.serialize(app0))) as App;
+    const app1 = (await modelSerializationService.deserialize(await modelSerializationService.serialize(app0))) as App;
     const region1 = app1.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
     const backendServer1 = app1.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
     const qaEnvironment1 = region1.getChild('environment', [{ key: 'environmentName', value: 'qa' }]) as Environment;

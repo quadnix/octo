@@ -34,7 +34,7 @@ describe('Support UT', () => {
         new Execution(deployment0_0, environment0_0, image0_0);
 
         const app0_1 = (await modelSerializationService.deserialize(
-          modelSerializationService.serialize(app0_0),
+          await modelSerializationService.serialize(app0_0),
         )) as App;
         const region0_1 = app0_1.getChild('region', [{ key: 'regionId', value: 'region' }]) as Region;
         const environment0_1 = region0_1.getChild('environment', [
