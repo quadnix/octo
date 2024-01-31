@@ -2,7 +2,7 @@ import { ModelType, UnknownModel } from '../app.type.js';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
-import { AAnchor } from '../functions/overlay/anchor.abstract.js';
+import { AAnchor } from '../overlay/anchor.abstract.js';
 import { IModel } from './model.interface.js';
 
 /**
@@ -18,7 +18,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
 
   protected readonly dependencies: Dependency[] = [];
 
-  addChild(onField: keyof T, child: UnknownModel, toField: string): void {
+  addChild(onField: keyof T | string, child: UnknownModel, toField: string): void {
     // Check if child already has a dependency to self.
     const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
     if (cIndex !== -1 && child.dependencies[cIndex].isParentRelationship()) {
@@ -46,7 +46,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     }
   }
 
-  addRelationship(onField: keyof T, to: UnknownModel, toField: string): void {
+  addRelationship(onField: keyof T | string, to: UnknownModel, toField: string): void {
     const thisToThatDependency = new Dependency(this, to);
     thisToThatDependency.addBehavior(onField as string, DiffAction.ADD, toField, DiffAction.ADD);
     thisToThatDependency.addBehavior(onField as string, DiffAction.ADD, toField, DiffAction.UPDATE);
@@ -121,8 +121,8 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return membersProcessed;
   }
 
-  getAnchors(filters: { key: string; value: any }[] = []): AAnchor[] {
-    return this.anchors.filter((a) => filters.every((c) => a[c.key] === c.value));
+  getAnchor(anchorId: string): AAnchor | undefined {
+    return this.anchors.find((a) => a.anchorId === anchorId);
   }
 
   /**

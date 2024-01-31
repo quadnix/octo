@@ -280,7 +280,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const mergeFunction = jest.fn().mockReturnValue('merged shared-resource' as never);
+      const mergeFunction = jest.fn().mockReturnValue('merged shared-resource');
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({
         resource1: { merge: mergeFunction, MODEL_TYPE: 'shared-resource', properties: { key1: 'value-1' } },
       });

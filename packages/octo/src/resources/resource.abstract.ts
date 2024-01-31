@@ -6,6 +6,7 @@ import { IResource } from './resource.interface.js';
 import { ASharedResource } from './shared-resource.abstract.js';
 
 export abstract class AResource<T> extends AModel<IResource, T> {
+  abstract override readonly MODEL_NAME: string;
   override readonly MODEL_TYPE: ModelType = ModelType.RESOURCE;
 
   /*
@@ -35,7 +36,7 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     }
 
     for (const parent of parents) {
-      parent.addChild('resourceId' as never, this, 'resourceId');
+      parent.addChild('resourceId', this, 'resourceId');
     }
   }
 

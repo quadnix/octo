@@ -45,7 +45,7 @@ export abstract class ASharedResource<T> extends AResource<T> {
       .filter((pd) => !currentDependencies.find((cd) => cd.isEqual(pd)))
       .map((pd) => pd.to);
     for (const parent of previousParentsNotInCurrentSharedResource) {
-      parent.addChild('resourceId' as never, this, 'resourceId');
+      parent.addChild('resourceId', this, 'resourceId');
     }
 
     return this;

@@ -1,7 +1,7 @@
 export interface IResource {
-  readonly properties: { [key: string]: unknown };
+  properties: { [key: string]: unknown };
 
-  readonly resourceId: string;
+  resourceId: string;
 
-  readonly response: { [key: string]: unknown };
+  response: { [key: string]: unknown };
 }
