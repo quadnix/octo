@@ -2,7 +2,6 @@ import {
   ActionInputs,
   ActionOutputs,
   TransactionOptions,
-  UnknownOverlay,
   UnknownResource,
   UnknownSharedResource,
 } from '../../app.type.js';
@@ -11,8 +10,7 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
 import { IAction } from '../../models/action.interface.js';
-import { AOverlay } from '../../overlay/overlay.abstract.js';
-import { OverlayData } from '../../overlay/overlay.data.js';
+import { OverlayService } from '../../overlay/overlay.service.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 
 export class TransactionService {
@@ -152,24 +150,6 @@ export class TransactionService {
     return transaction;
   }
 
-  private diffOverlays(newOverlays: AOverlay<UnknownOverlay>[], oldOverlays: AOverlay<UnknownOverlay>[]): Diff[] {
-    const diffs: Diff[] = [];
-
-    for (const overlay of oldOverlays) {
-      if (!newOverlays.find((o) => o.overlayId === overlay.overlayId)) {
-        diffs.push(new Diff(overlay, DiffAction.DELETE, 'overlayId', overlay.overlayId));
-      }
-    }
-
-    for (const overlay of newOverlays) {
-      if (!oldOverlays.find((o) => o.overlayId === overlay.overlayId)) {
-        diffs.push(new Diff(overlay, DiffAction.ADD, 'overlayId', overlay.overlayId));
-      }
-    }
-
-    return diffs;
-  }
-
   private async diffResources(newResources: ActionOutputs, oldResources: ActionOutputs): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -271,9 +251,8 @@ export class TransactionService {
     },
   ): AsyncGenerator<DiffMetadata[][] | UnknownResource[], DiffMetadata[][]> {
     // Diff overlays and add to existing diffs.
-    const oldOverlayData = await Container.get(OverlayData, { metadata: { type: 'old' } });
-    const newOverlayData = await Container.get(OverlayData, { metadata: { type: 'new' } });
-    diffs.push(...this.diffOverlays(newOverlayData.getByProperties(), oldOverlayData.getByProperties()));
+    const overlayService = await Container.get(OverlayService);
+    diffs.push(...overlayService.diff());
 
     // Set apply order on model diffs.
     const modelDiffs = diffs.map(

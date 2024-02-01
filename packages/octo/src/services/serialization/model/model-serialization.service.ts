@@ -1,12 +1,13 @@
-import { IUnknownModel, ModelSerializedOutput, UnknownModel } from '../../../app.type.js';
+import { IUnknownModel, ModelSerializedOutput, UnknownModel, UnknownOverlay } from '../../../app.type.js';
 import { Container } from '../../../decorators/container.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import { AModule } from '../../../functions/module/module.abstract.js';
 import { IModule } from '../../../functions/module/module.interface.js';
 import { IAnchor } from '../../../overlay/anchor.interface.js';
 import { Dependency, IDependency } from '../../../functions/dependency/dependency.model.js';
-import { OverlayData } from '../../../overlay/overlay.data.js';
+import { AOverlay } from '../../../overlay/overlay.abstract.js';
 import { IOverlay } from '../../../overlay/overlay.interface.js';
+import { OverlayService } from '../../../overlay/overlay.service.js';
 
 export class ModelSerializationService {
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
@@ -88,14 +89,14 @@ export class ModelSerializationService {
     }
 
     // Deserialize all overlays.
-    const overlayData = await Container.get(OverlayData, { metadata: { type: 'old' } });
-    overlayData.empty();
+    const newOverlays: AOverlay<UnknownOverlay>[] = [];
     for (const { className, overlay } of serializedOutput.overlays) {
       const deserializationClass = this.classMapping[className];
-
       const newOverlay = await deserializationClass.unSynth(deserializationClass, overlay, deReferenceContext);
-      overlayData.add([newOverlay]);
+      newOverlays.push(newOverlay);
     }
+    // Initialize a new instance of OverlayService, overwriting the previous one.
+    await Container.get(OverlayService, { args: [true, newOverlays] });
 
     // If no dependencies to serialize, return the first seen model.
     return serializedOutput.dependencies.length > 0 ? seen[serializedOutput.dependencies[0].from] : seen[0];
@@ -147,8 +148,8 @@ export class ModelSerializationService {
       modules.push({ className: module.constructor.name, module: module.synth() });
     }
 
-    const newOverlayData = await Container.get(OverlayData, { metadata: { type: 'new' } });
-    for (const overlay of newOverlayData.getByProperties()) {
+    const overlayService = await Container.get(OverlayService);
+    for (const overlay of overlayService.getByProperties()) {
       overlays.push({ className: overlay.constructor.name, overlay: overlay.synth() });
     }
 

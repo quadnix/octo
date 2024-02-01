@@ -42,7 +42,7 @@ export { AAnchor } from './overlay/anchor.abstract.js';
 export { IAnchor } from './overlay/anchor.interface.js';
 export { AOverlay } from './overlay/overlay.abstract.js';
 export { IOverlay } from './overlay/overlay.interface.js';
-import './overlay/overlay.data.js';
+export { OverlayService, OverlayServiceFactory } from './overlay/overlay.service.js';
 
 export { AResource } from './resources/resource.abstract.js';
 export { IResource } from './resources/resource.interface.js';
