@@ -1,18 +1,19 @@
 import { jest } from '@jest/globals';
 import { ActionInputs, ActionOutputs, UnknownResource } from '../../app.type.js';
-import { Resource } from '../../decorators/resource.decorator.js';
+import { Container } from '../../decorators/container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
 import { IAction } from '../../models/action.interface.js';
 import { App } from '../../models/app/app.model.js';
 import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
+import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlay/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
+import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import { ASharedResource } from '../../resources/shared-resource.abstract.js';
 import { TransactionService } from './transaction.service.js';
 
-@Resource()
 class TestResource extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
@@ -21,30 +22,25 @@ class TestResource extends AResource<TestResource> {
   }
 }
 
-@Resource()
-class TestResourceWithDiffOverride extends AResource<TestResource> {
-  readonly MODEL_NAME: string = 'test-resource';
-
-  constructor(resourceId: string) {
-    super(resourceId, {}, []);
-  }
-
-  override async diff(): Promise<Diff[]> {
-    return [];
-  }
-}
-
-@Resource()
 class SharedTestResource extends ASharedResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
-  constructor(resourceId: string, properties: object, parents: [TestResource?]) {
-    super(resourceId, {}, parents as AResource<TestResource>[]);
+  constructor(resourceId: string, properties: { [key: string]: unknown }, parents: [TestResource?]) {
+    super(resourceId, properties, parents as AResource<TestResource>[]);
   }
 }
 
 describe('TransactionService UT', () => {
+  beforeEach(() => {
+    Container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
+
+    Container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
+    Container.get(ResourceDataRepository, { args: [true] });
+  });
+
   afterEach(() => {
+    Container.reset();
+
     jest.restoreAllMocks();
   });
 
@@ -59,7 +55,7 @@ describe('TransactionService UT', () => {
 
     it('should return empty transaction if diffs is empty', async () => {
       const service = new TransactionService();
-      const generator = service.beginTransaction([], {}, {}, { yieldModelTransaction: true });
+      const generator = service.beginTransaction([], { yieldModelTransaction: true });
 
       const result = await generator.next();
 
@@ -71,7 +67,7 @@ describe('TransactionService UT', () => {
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
       const service = new TransactionService();
-      const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       await expect(async () => {
         await generator.next();
@@ -92,7 +88,7 @@ describe('TransactionService UT', () => {
 
       const service = new TransactionService();
       service.registerModelActions([action]);
-      const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       await expect(async () => {
         await generator.next();
@@ -113,7 +109,7 @@ describe('TransactionService UT', () => {
 
       const service = new TransactionService();
       service.registerModelActions([action]);
-      const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       await expect(async () => {
         await generator.next();
@@ -129,7 +125,7 @@ describe('TransactionService UT', () => {
       diffMetadata.applyOrder = 0;
 
       const service = new TransactionService();
-      const result = await service['applyModels']([diffMetadata], {});
+      const result = await service['applyModels']([diffMetadata], new ResourceDataRepository([]));
 
       expect(result).toMatchSnapshot();
     });
@@ -142,7 +138,7 @@ describe('TransactionService UT', () => {
 
       const service = new TransactionService();
       service.registerModelActions([universalModelAction]);
-      const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       const result = await generator.next();
 
@@ -160,20 +156,21 @@ describe('TransactionService UT', () => {
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action.handle as jest.Mocked<any>).mockResolvedValue({ resource1: 'resource1 object' });
+      (action.handle as jest.Mocked<any>).mockResolvedValue({
+        resource1: new TestResource('resource1'),
+      });
 
       const service = new TransactionService();
       service.registerInputs({ 'input.key1': 'value1' });
       service.registerModelActions([action]);
 
-      const newResources = {};
-      const generator = service.beginTransaction(diffs, {}, newResources, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldNewResources: true });
 
-      await generator.next();
+      const newResources = await generator.next();
 
       expect(action.handle).toHaveBeenCalledTimes(1);
       expect((action.handle as jest.Mock).mock.calls).toMatchSnapshot();
-      expect(newResources).toMatchSnapshot();
+      expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
     });
 
     it('should update diff metadata with inputs and outputs', async () => {
@@ -187,17 +184,17 @@ describe('TransactionService UT', () => {
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action.handle as jest.Mocked<any>).mockResolvedValue({ resource1: 'resource1 object' });
+      (action.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
 
       const service = new TransactionService();
       service.registerInputs({ 'input.key1': 'value1' });
       service.registerModelActions([action]);
-      const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       const result = await generator.next();
 
       expect((result.value as DiffMetadata[][])[0][0].inputs).toMatchSnapshot();
-      expect((result.value as DiffMetadata[][])[0][0].outputs).toMatchSnapshot();
+      expect((result.value as DiffMetadata[][])[0][0].outputs['resource1'].resourceId).toMatchSnapshot();
     });
 
     it('should call multiple actions and collect all input and output', async () => {
@@ -211,7 +208,7 @@ describe('TransactionService UT', () => {
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action1.handle as jest.Mocked<any>).mockResolvedValue({ resource1: 'resource1 object' });
+      (action1.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
       const action2: IAction<ActionInputs, ActionOutputs> = {
         ACTION_NAME: 'test2',
         collectInput: () => ['input.key2'],
@@ -219,22 +216,21 @@ describe('TransactionService UT', () => {
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: 'resource2 object' });
+      (action2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: new TestResource('resource2') });
 
       const service = new TransactionService();
       service.registerInputs({ 'input.key1': 'value1', 'input.key2': 'value2' });
       service.registerModelActions([action1, action2]);
 
-      const newResources = {};
-      const generator = service.beginTransaction(diffs, {}, newResources, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldNewResources: true });
 
-      await generator.next();
+      const newResources = await generator.next();
 
       expect(action1.handle).toHaveBeenCalledTimes(1);
       expect((action1.handle as jest.Mock).mock.calls).toMatchSnapshot();
       expect(action2.handle).toHaveBeenCalledTimes(1);
       expect((action2.handle as jest.Mock).mock.calls).toMatchSnapshot();
-      expect(newResources).toMatchSnapshot();
+      expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
     });
 
     it('should process diffs in different levels', async () => {
@@ -250,7 +246,7 @@ describe('TransactionService UT', () => {
 
       const service = new TransactionService();
       service.registerModelActions([universalModelAction]);
-      const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       const result = await generator.next();
 
@@ -262,47 +258,42 @@ describe('TransactionService UT', () => {
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({
-        resource1: { MODEL_TYPE: 'shared-resource', properties: { key1: 'value-1' } },
+        resource1: new SharedTestResource('shared-resource', { key1: 'value-1' }, []),
       });
 
       const service = new TransactionService();
       service.registerModelActions([universalModelAction]);
 
-      const newResources = {};
-      const generator = service.beginTransaction(diffs, {}, newResources, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldNewResources: true });
 
-      await generator.next();
+      const newResources = await generator.next();
 
-      expect(newResources).toMatchSnapshot();
+      expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
     });
 
     it('should merge the shared-resource with existing set of resources', async () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const mergeFunction = jest.fn().mockReturnValue('merged shared-resource');
-      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({
-        resource1: { merge: mergeFunction, MODEL_TYPE: 'shared-resource', properties: { key1: 'value-1' } },
-      });
+      const sharedResource1 = new SharedTestResource('shared-resource', { key1: 'value-1' }, []);
+      await Container.get(ResourceDataRepository, { args: [true, [sharedResource1], [sharedResource1]] });
+
+      const sharedResource2 = new SharedTestResource('shared-resource', { key2: 'value-2' }, []);
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ 'shared-resource': sharedResource2 });
+      const mergeFunction = jest.spyOn(sharedResource2, 'merge');
 
       const service = new TransactionService();
       service.registerModelActions([universalModelAction]);
 
-      const newResources = {
-        resource1: {
-          MODEL_TYPE: 'shared-resource',
-          properties: { key2: 'value-2' },
-        } as unknown as UnknownResource,
-      };
-      const generator = service.beginTransaction(diffs, {}, newResources, { yieldModelTransaction: true });
+      const generator = service.beginTransaction(diffs, { yieldNewResources: true });
 
-      await generator.next();
+      const newResources = await generator.next();
 
-      expect(newResources).toMatchSnapshot();
+      expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
       expect(mergeFunction).toHaveBeenCalledTimes(1);
 
       const mergeFunctionArg0 = mergeFunction.mock.calls[0][0] as UnknownResource;
-      expect(mergeFunctionArg0.properties.key2).toBe('value-2');
+      expect(mergeFunctionArg0.properties).toEqual({ key1: 'value-1' });
     });
   });
 
@@ -315,7 +306,7 @@ describe('TransactionService UT', () => {
 
     it('should return empty transaction if diffs is empty', async () => {
       const service = new TransactionService();
-      const generator = service.beginTransaction([], {}, {}, { yieldResourceTransaction: true });
+      const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
       const result = await generator.next();
 
@@ -323,15 +314,11 @@ describe('TransactionService UT', () => {
     });
 
     it('should throw error when matching action not found', async () => {
-      const oldResources: ActionOutputs = {};
-      const newResources: ActionOutputs = {
-        resource2: new TestResource('resource-2'),
-      };
+      const resources = [new TestResource('resource-1')];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], []] });
 
       const service = new TransactionService();
-      const generator = service.beginTransaction([], oldResources, newResources, {
-        yieldResourceTransaction: true,
-      });
+      const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
       await expect(async () => {
         await generator.next();
@@ -352,22 +339,17 @@ describe('TransactionService UT', () => {
     });
 
     it('should only process 1 matching diff when duplicates found', async () => {
-      const oldResources: ActionOutputs = {};
-      const newResources: ActionOutputs = {
-        resource2: new TestResource('resource-2'),
-      };
+      const resources = [new TestResource('resource-1')];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
       const service = new TransactionService();
       service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], oldResources, newResources, {
-        yieldResourceDiffs: true,
-        yieldResourceTransaction: true,
-      });
+      const generator = service.beginTransaction([], { yieldResourceDiffs: true, yieldResourceTransaction: true });
 
       const resultResourceDiffs = await generator.next();
 
       // Append same resource to diff.
-      const duplicateDiff = new Diff(new TestResource('resource-2'), DiffAction.ADD, 'resourceId', 'resource-2');
+      const duplicateDiff = new Diff(new TestResource('resource-1'), DiffAction.ADD, 'resourceId', 'resource-1');
       const duplicateDiffMetadata = new DiffMetadata(duplicateDiff, [universalResourceAction]);
       duplicateDiffMetadata.applyOrder = 0;
       (resultResourceDiffs.value as DiffMetadata[][])[0].push(duplicateDiffMetadata);
@@ -382,17 +364,12 @@ describe('TransactionService UT', () => {
       const resource2 = new TestResource('resource-2');
       resource1.addChild('resourceId', resource2, 'resourceId');
 
-      const oldResources: ActionOutputs = {};
-      const newResources: ActionOutputs = {
-        resource1: resource1,
-        resource2: resource2,
-      };
+      const resources = [resource1, resource2];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], []] });
 
       const service = new TransactionService();
       service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], oldResources, newResources, {
-        yieldResourceTransaction: true,
-      });
+      const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
       const result = await generator.next();
 
@@ -407,14 +384,9 @@ describe('TransactionService UT', () => {
       const resource2_2 = new TestResource('resource-2');
       resource1_2.addChild('resourceId', resource2_2, 'resourceId');
 
-      const oldResources: ActionOutputs = {
-        resource1: resource1_1,
-        resource2: resource2_1,
-      };
-      const newResources: ActionOutputs = {
-        resource1: resource1_2,
-        resource2: resource2_2,
-      };
+      await Container.get(ResourceDataRepository, {
+        args: [true, [resource1_2, resource2_2], [resource1_1, resource2_1]],
+      });
 
       // Upon calling beginTransaction(), assume model's apply method marks the new resource as deleted.
       resource2_2.markDeleted();
@@ -422,124 +394,7 @@ describe('TransactionService UT', () => {
 
       const service = new TransactionService();
       service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], oldResources, newResources, {
-        yieldResourceTransaction: true,
-      });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
-    });
-  });
-
-  describe('diffResources()', () => {
-    const universalResourceAction: IResourceAction = {
-      ACTION_NAME: 'universal',
-      filter: () => true,
-      handle: jest.fn() as jest.Mocked<any>,
-    };
-
-    it('should compare resources using diff()', async () => {
-      const oldResources: ActionOutputs = {
-        'resource-1': new TestResource('resource-1'),
-      };
-      const newResources: ActionOutputs = {
-        'resource-1': new TestResourceWithDiffOverride('resource-1'),
-      };
-
-      const diffOverrideSpy = jest.spyOn(newResources['resource-1'], 'diff');
-
-      const service = new TransactionService();
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
-
-      const result = await generator.next();
-
-      expect(diffOverrideSpy).toHaveBeenCalledTimes(1);
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should compare distinct resources', async () => {
-      const oldResources: ActionOutputs = {
-        'resource-1': new TestResource('resource-1'),
-      };
-      const newResources: ActionOutputs = {
-        'resource-1': new TestResource('resource-1'),
-      };
-      newResources['resource-1'].markDeleted();
-
-      const service = new TransactionService();
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should compare same resources', async () => {
-      const oldResources: ActionOutputs = {
-        'resource-1': new TestResource('resource-1'),
-      };
-      const newResources: ActionOutputs = {
-        'resource-1': new TestResource('resource-1'),
-      };
-
-      const service = new TransactionService();
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should compare same resources with delete marker on new', async () => {
-      const newTestResource = new TestResource('resource-1');
-      newTestResource.markDeleted();
-
-      const oldResources: ActionOutputs = {
-        'resource-1': new TestResource('resource-1'),
-      };
-      const newResources: ActionOutputs = {
-        'resource-1': newTestResource,
-      };
-
-      const service = new TransactionService();
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should add resource if cannot compare', async () => {
-      const newResources: ActionOutputs = {
-        'resource-1': new TestResource('resource-1'),
-      };
-
-      const service = new TransactionService();
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], {}, newResources, { yieldResourceDiffs: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should skip adding shared-resource as the diff() is overridden to empty', async () => {
-      const resource1 = new TestResource('resource-1');
-      const sharedResource1 = new SharedTestResource('shared-test-resource', {}, [resource1]);
-
-      const newResources: ActionOutputs = {
-        'resource-1': resource1,
-        'shared-test-resource': sharedResource1,
-      };
-
-      const service = new TransactionService();
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], {}, newResources, { yieldResourceDiffs: true });
+      const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
       const result = await generator.next();
 
@@ -750,7 +605,7 @@ describe('TransactionService UT', () => {
 
         const service = new TransactionService();
         service.registerModelActions([universalModelAction]);
-        const generator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+        const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
         const result = await generator.next();
 
@@ -766,26 +621,19 @@ describe('TransactionService UT', () => {
       };
 
       it('should yield new resources', async () => {
-        const oldResources: ActionOutputs = {
-          resource1: new TestResource('resource-1'),
-        };
-        const newResources: ActionOutputs = {
-          resource1: new TestResource('resource-1'),
-          resource2: new TestResource('resource-2'),
-        };
+        const oldResource = new TestResource('resource-1');
+        const newResource = new TestResource('resource-2');
+
+        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
+        resourceDataRepository.add(newResource);
 
         const service = new TransactionService();
         service.registerResourceActions([universalResourceAction]);
-        const generator = service.beginTransaction([], oldResources, newResources, { yieldNewResources: true });
+        const generator = service.beginTransaction([], { yieldNewResources: true });
 
         const result = await generator.next();
 
-        expect(result.value.map((r) => r.resourceId)).toMatchInlineSnapshot(`
-          [
-            "resource-1",
-            "resource-2",
-          ]
-        `);
+        expect(result.value.map((r) => r.resourceId)).toEqual(['resource-2']);
       });
     });
 
@@ -809,18 +657,16 @@ describe('TransactionService UT', () => {
         const app = new App('app');
         const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-        const oldResources: ActionOutputs = {
-          resource1: new TestResource('resource-1'),
-        };
-        const newResources: ActionOutputs = {
-          resource1: new TestResource('resource-1'),
-          resource2: new TestResource('resource-2'),
-        };
+        const oldResource = new TestResource('resource-1');
+        const newResource = new TestResource('resource-2');
+
+        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
+        resourceDataRepository.add(newResource);
 
         const service = new TransactionService();
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
-        const generator = service.beginTransaction(diffs, oldResources, newResources, { yieldResourceDiffs: true });
+        const generator = service.beginTransaction(diffs, { yieldResourceDiffs: true });
 
         const result = await generator.next();
 
@@ -849,20 +695,16 @@ describe('TransactionService UT', () => {
         const app = new App('app');
         const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-        const oldResources: ActionOutputs = {
-          resource1: new TestResource('resource-1'),
-        };
-        const newResources: ActionOutputs = {
-          resource1: new TestResource('resource-1'),
-          resource2: new TestResource('resource-2'),
-        };
+        const oldResource = new TestResource('resource-1');
+        const newResource = new TestResource('resource-2');
+
+        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
+        resourceDataRepository.add(newResource);
 
         const service = new TransactionService();
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
-        const generator = service.beginTransaction(diffs, oldResources, newResources, {
-          yieldResourceTransaction: true,
-        });
+        const generator = service.beginTransaction(diffs, { yieldResourceTransaction: true });
 
         const result = await generator.next();
 
@@ -876,18 +718,16 @@ describe('TransactionService UT', () => {
         const app = new App('app');
         const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-        const oldResources: ActionOutputs = {
-          resource1: new TestResource('resource-1'),
-        };
-        const newResources: ActionOutputs = {
-          resource1: new TestResource('resource-1'),
-          resource2: new TestResource('resource-2'),
-        };
+        const oldResource = new TestResource('resource-1');
+        const newResource = new TestResource('resource-2');
+
+        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
+        resourceDataRepository.add(newResource);
 
         const service = new TransactionService();
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
-        const generator = service.beginTransaction(diffs, oldResources, newResources);
+        const generator = service.beginTransaction(diffs);
 
         const result = await generator.next();
 
@@ -914,11 +754,11 @@ describe('TransactionService UT', () => {
       const service = new TransactionService();
       service.registerModelActions([universalModelAction]);
 
-      const transactionGenerator = service.beginTransaction(diffs, {}, {}, { yieldModelTransaction: true });
+      const transactionGenerator = service.beginTransaction(diffs, { yieldModelTransaction: true });
       const transactionResult = await transactionGenerator.next();
       const modelTransaction = transactionResult.value as DiffMetadata[][];
 
-      const generator = service.rollbackTransaction(modelTransaction, {}, {}, {});
+      const generator = service.rollbackTransaction(modelTransaction);
       await generator.next();
 
       expect(universalModelAction.revert).toHaveBeenCalledTimes(1);
@@ -926,17 +766,15 @@ describe('TransactionService UT', () => {
     });
 
     it('should be able to revert addition of resources', async () => {
-      const oldResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
-      };
-      const newResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
-        resource2: new TestResource('resource-2'),
-      };
+      // Assume "newResource" has been recently added. Upon revert, the new state should have this resource deleted.
+      const newResource = new TestResource('resource-1');
+
+      const resourceDataRepository = await Container.get(ResourceDataRepository, {
+        args: [true, [newResource], [newResource]],
+      });
 
       // Upon calling rollbackTransaction(), assume model's revert method marks the new resource as deleted.
-      oldResources['resource2'] = new TestResource('resource-2');
-      oldResources['resource2'].markDeleted();
+      resourceDataRepository.getById('resource-1')!.markDeleted();
 
       const service = new TransactionService();
       service.registerResourceActions([
@@ -947,7 +785,7 @@ describe('TransactionService UT', () => {
         },
       ]);
 
-      const generator = service.rollbackTransaction([], oldResources, newResources, { yieldResourceTransaction: true });
+      const generator = service.rollbackTransaction([], { yieldResourceTransaction: true });
       const result = await generator.next();
 
       // Notice the results are in reverse order, i.e. on revert new resources are reverted.
@@ -955,10 +793,13 @@ describe('TransactionService UT', () => {
     });
 
     it('should be able to revert deletion of resources', async () => {
-      const oldResources: ActionOutputs = {
-        resource1: new TestResource('resource-1'),
-      };
-      const newResources: ActionOutputs = {};
+      // Assume "oldResource" has been recently deleted. Upon revert, the new state should have this resource added.
+      const oldResource = new TestResource('resource-1');
+
+      const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], []] });
+
+      // Upon calling rollbackTransaction(), assume model's revert method adds the new resource again.
+      resourceDataRepository.add(oldResource);
 
       const service = new TransactionService();
       service.registerResourceActions([
@@ -969,7 +810,7 @@ describe('TransactionService UT', () => {
         },
       ]);
 
-      const generator = service.rollbackTransaction([], oldResources, newResources, { yieldResourceDiffs: true });
+      const generator = service.rollbackTransaction([], { yieldResourceDiffs: true });
       const result = await generator.next();
 
       // Notice the results are in reverse order, i.e. on revert new resources are reverted.

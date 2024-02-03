@@ -66,19 +66,6 @@ export class ResourceDataRepository {
     return this._diffResources(newResources, oldResources);
   }
 
-  async diffRevert(): Promise<Diff[]> {
-    const newResources: ActionOutputs = this.newResources.reduce(
-      (acc, curr) => ({ ...acc, [curr.resourceId]: curr }),
-      {},
-    );
-    const oldResources: ActionOutputs = this.oldResources.reduce(
-      (acc, curr) => ({ ...acc, [curr.resourceId]: curr }),
-      {},
-    );
-
-    return this._diffResources(oldResources, newResources);
-  }
-
   getById(resourceId: IResource['resourceId']): UnknownResource | undefined {
     return this.newResources.find((r) => r.resourceId === resourceId);
   }

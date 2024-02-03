@@ -1,4 +1,6 @@
 import { UnknownResource } from '../../../app.type.js';
+import { Container } from '../../../decorators/container.js';
+import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../../resources/resource-data.repository.js';
 import { AResource } from '../../../resources/resource.abstract.js';
 import { ASharedResource } from '../../../resources/shared-resource.abstract.js';
 import { ResourceSerializationService } from './resource-serialization.service.js';
@@ -20,18 +22,29 @@ class SharedTestResource extends ASharedResource<TestResource> {
 }
 
 describe('Resource Serialization Service UT', () => {
+  beforeEach(() => {
+    Container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
+  });
+
+  afterEach(() => {
+    Container.reset();
+  });
+
   describe('deserialize()', () => {
     it('should throw error when de-serializing an unknown class', async () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
 
+      const resources = [resource1];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
       const service = new ResourceSerializationService();
 
       await expect(async () => {
-        const serializedOutput = service.serialize([resource1]);
+        const serializedOutput = await service.serialize();
         await service.deserialize(serializedOutput);
-      }).rejects.toThrowError();
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Cannot read properties of undefined (reading 'unSynth')"`);
     });
 
     it('should deserialize a single resource', async () => {
@@ -39,13 +52,18 @@ describe('Resource Serialization Service UT', () => {
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
 
+      const resources = [resource1];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
 
-      const serializedOutput = service.serialize([resource1]);
-      const resources = await service.deserialize(serializedOutput);
+      const serializedOutput = await service.serialize();
+      await service.deserialize(serializedOutput);
 
-      expect(resources).toMatchSnapshot();
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const deserializedResources = resourceDataRepository.getByProperties();
+      expect(deserializedResources).toMatchSnapshot();
     });
 
     it('should deserialize a resource with complex properties', async () => {
@@ -53,13 +71,18 @@ describe('Resource Serialization Service UT', () => {
       resource1.properties['key1'] = { key2: { key3: 'value3' }, key4: 'value4' };
       resource1.response['response1'] = 'value1';
 
+      const resources = [resource1];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
 
-      const serializedOutput = service.serialize([resource1]);
-      const resources = await service.deserialize(serializedOutput);
+      const serializedOutput = await service.serialize();
+      await service.deserialize(serializedOutput);
 
-      expect(resources).toMatchSnapshot();
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const deserializedResources = resourceDataRepository.getByProperties();
+      expect(deserializedResources).toMatchSnapshot();
     });
 
     it('should deserialize a single shared resource', async () => {
@@ -68,14 +91,19 @@ describe('Resource Serialization Service UT', () => {
       resource1.response['response1'] = 'value1';
       const resource2 = new SharedTestResource('resource-2', {}, [resource1]);
 
+      const resources = [resource1, resource2];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
 
-      const serializedOutput = service.serialize([resource1, resource2]);
-      const resources = await service.deserialize(serializedOutput);
+      const serializedOutput = await service.serialize();
+      await service.deserialize(serializedOutput);
 
-      expect(resources).toMatchSnapshot();
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const deserializedResources = resourceDataRepository.getByProperties();
+      expect(deserializedResources).toMatchSnapshot();
     });
 
     it('should throw error trying to deserialize a shared resource without corresponding resource', async () => {
@@ -84,13 +112,15 @@ describe('Resource Serialization Service UT', () => {
       resource1.response['response1'] = 'value1';
       const resource2 = new SharedTestResource('resource-2', {}, [resource1]);
 
+      const resources = [resource2];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
       service.setResourceDeserializationTimeout(50);
 
-      const serializedOutput = service.serialize([resource2]);
-      serializedOutput.resources = {};
+      const serializedOutput = await service.serialize();
 
       await expect(async () => {
         await service.deserialize(serializedOutput);
@@ -106,14 +136,20 @@ describe('Resource Serialization Service UT', () => {
       resource2.response['response2'] = 'value2';
       resource1.addChild('resourceId', resource2, 'resourceId');
 
+      const resources = [resource1, resource2];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
 
-      const serializedOutput = service.serialize([resource1, resource2]);
-      const resources = await service.deserialize(serializedOutput);
+      const serializedOutput = await service.serialize();
+      await service.deserialize(serializedOutput);
 
-      const resource1Deserialized = resources['resource-1'];
-      const resource2Deserialized = resource1Deserialized.getChildren()['test-resource'][0]
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const deserializedResources = resourceDataRepository.getByProperties();
+
+      const resource1Deserialized = deserializedResources.find((r) => r.resourceId === 'resource-1');
+      const resource2Deserialized = resource1Deserialized!.getChildren()['test-resource'][0]
         .to as AResource<TestResource>;
       expect(resource2Deserialized.resourceId).toBe('resource-2');
       expect((resource2Deserialized.getParents()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe(
@@ -130,15 +166,20 @@ describe('Resource Serialization Service UT', () => {
       resource2.response['response2'] = 'value2';
       resource1.addChild('resourceId', resource2, 'resourceId');
 
+      const resources = [resource2, resource1];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
 
-      // Reverse the list of resources, such that dependent resource is forced to be deserialized first.
-      const serializedOutput = service.serialize([resource2, resource1]);
-      const resources = await service.deserialize(serializedOutput);
+      const serializedOutput = await service.serialize();
+      await service.deserialize(serializedOutput);
 
-      const resource1Deserialized = resources['resource-1'];
-      const resource2Deserialized = resource1Deserialized.getChildren()['test-resource'][0]
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const deserializedResources = resourceDataRepository.getByProperties();
+
+      const resource1Deserialized = deserializedResources.find((r) => r.resourceId === 'resource-1');
+      const resource2Deserialized = resource1Deserialized!.getChildren()['test-resource'][0]
         .to as AResource<TestResource>;
       expect(resource2Deserialized.resourceId).toBe('resource-2');
       expect((resource2Deserialized.getParents()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe(
@@ -156,52 +197,68 @@ describe('Resource Serialization Service UT', () => {
       resource1.addChild('resourceId', resource2, 'resourceId');
       const resource3 = new SharedTestResource('resource-3', {}, [resource1]);
 
+      const resources = [resource1, resource2, resource3];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
       const service = new ResourceSerializationService();
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
 
-      const resourcesSerialized = service.serialize([resource1, resource2, resource3]);
-      const resourcesDeserialized = await service.deserialize(resourcesSerialized);
-
-      const newResourcesDependencies = service
-        .serialize(Object.values(resourcesDeserialized))
-        .dependencies.sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
-      const oldResourcesDependencies = resourcesSerialized.dependencies.sort((a, b) =>
+      const serializedOutput1 = await service.serialize();
+      const oldResourcesDependencies = serializedOutput1.dependencies.sort((a, b) =>
         a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
       );
+
+      await service.deserialize(serializedOutput1);
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const deserializedResources = resourceDataRepository.getByProperties();
+
+      // An easy way to get dependencies from `deserializedResources` is to serialize it again.
+      await Container.get(ResourceDataRepository, {
+        args: [true, [...deserializedResources], [...deserializedResources]],
+      });
+      const serializedOutput2 = await service.serialize();
+      const newResourcesDependencies = serializedOutput2.dependencies.sort((a, b) =>
+        a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
+      );
+
       expect(newResourcesDependencies).toEqual(oldResourcesDependencies);
     });
   });
 
   describe('serialize()', () => {
-    it('should serialize an empty array', () => {
+    it('should serialize an empty array', async () => {
+      await Container.get(ResourceDataRepository, { args: [true, [], []] });
+
       const service = new ResourceSerializationService();
-      expect(service.serialize([])).toMatchSnapshot();
+      expect(await service.serialize()).toMatchSnapshot();
     });
 
-    it('should serialize non-empty array', () => {
+    it('should serialize non-empty array', async () => {
       const resources: UnknownResource[] = [new TestResource('resource-1')];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
       const service = new ResourceSerializationService();
-      expect(service.serialize(resources)).toMatchSnapshot();
+      expect(await service.serialize()).toMatchSnapshot();
     });
 
-    it('should not serialize resources marked for deletion', () => {
+    it('should not serialize resources marked for deletion', async () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
       const resource2 = new TestResource('resource-2');
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
-
       resource2.markDeleted();
 
-      const resources: UnknownResource[] = [resource1, resource2];
+      const resources = [resource1, resource2];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
       const service = new ResourceSerializationService();
-      expect(service.serialize(resources)).toMatchSnapshot();
+      expect(await service.serialize()).toMatchSnapshot();
     });
 
-    it('should serialize dependencies and properties and resources', () => {
+    it('should serialize dependencies and properties and resources', async () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
@@ -209,22 +266,25 @@ describe('Resource Serialization Service UT', () => {
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
       resource1.addChild('resourceId', resource2, 'resourceId');
-      const resources: UnknownResource[] = [resource1, resource2];
+
+      const resources = [resource1, resource2];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
       const service = new ResourceSerializationService();
-      expect(service.serialize(resources)).toMatchSnapshot();
+      expect(await service.serialize()).toMatchSnapshot();
     });
 
-    it('should serialize shared resources', () => {
+    it('should serialize shared resources', async () => {
       const resource1 = new TestResource('resource-1');
       const resource2 = new SharedTestResource('resource-2', {}, [resource1]);
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
 
-      const resources: UnknownResource[] = [resource1, resource2];
+      const resources = [resource1, resource2];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
       const service = new ResourceSerializationService();
-      expect(service.serialize(resources)).toMatchSnapshot();
+      expect(await service.serialize()).toMatchSnapshot();
     });
   });
 });

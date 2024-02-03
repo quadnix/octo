@@ -1,14 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`TransactionService UT applyModels() should add the shared-resource to set of resources if it does not exist 1`] = `
-{
-  "resource1": {
-    "MODEL_TYPE": "shared-resource",
-    "properties": {
-      "key1": "value-1",
-    },
-  },
-}
+[
+  "shared-resource",
+]
 `;
 
 exports[`TransactionService UT applyModels() should call action and collect all input and output 1`] = `
@@ -27,9 +22,9 @@ exports[`TransactionService UT applyModels() should call action and collect all 
 `;
 
 exports[`TransactionService UT applyModels() should call action and collect all input and output 2`] = `
-{
-  "resource1": "resource1 object",
-}
+[
+  "resource1",
+]
 `;
 
 exports[`TransactionService UT applyModels() should call multiple actions and collect all input and output 1`] = `
@@ -63,16 +58,16 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
 `;
 
 exports[`TransactionService UT applyModels() should call multiple actions and collect all input and output 3`] = `
-{
-  "resource1": "resource1 object",
-  "resource2": "resource2 object",
-}
+[
+  "resource1",
+  "resource2",
+]
 `;
 
 exports[`TransactionService UT applyModels() should merge the shared-resource with existing set of resources 1`] = `
-{
-  "resource1": "merged shared-resource",
-}
+[
+  "shared-resource",
+]
 `;
 
 exports[`TransactionService UT applyModels() should only process 1 matching diff when duplicates found 1`] = `
@@ -120,11 +115,7 @@ exports[`TransactionService UT applyModels() should update diff metadata with in
 }
 `;
 
-exports[`TransactionService UT applyModels() should update diff metadata with inputs and outputs 2`] = `
-{
-  "resource1": "resource1 object",
-}
-`;
+exports[`TransactionService UT applyModels() should update diff metadata with inputs and outputs 2`] = `"resource1"`;
 
 exports[`TransactionService UT applyResources() should only process 1 matching diff when duplicates found 1`] = `
 [
@@ -132,7 +123,7 @@ exports[`TransactionService UT applyResources() should only process 1 matching d
     {
       "action": "add",
       "field": "resourceId",
-      "value": "resource-2",
+      "value": "resource-1",
     },
   ],
 ]
@@ -200,6 +191,11 @@ exports[`TransactionService UT beginTransaction() yieldResourceDiffs should yiel
 [
   [
     {
+      "action": "delete",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+    {
       "action": "add",
       "field": "resourceId",
       "value": "resource-2",
@@ -211,6 +207,11 @@ exports[`TransactionService UT beginTransaction() yieldResourceDiffs should yiel
 exports[`TransactionService UT beginTransaction() yieldResourceTransaction should return resource diffs 1`] = `
 [
   [
+    {
+      "action": "delete",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
     {
       "action": "add",
       "field": "resourceId",
@@ -224,69 +225,14 @@ exports[`TransactionService UT beginTransaction() yieldResourceTransaction shoul
 [
   [
     {
+      "action": "delete",
+      "field": "resourceId",
+      "value": "resource-1",
+    },
+    {
       "action": "add",
       "field": "resourceId",
       "value": "resource-2",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT diffResources() should add resource if cannot compare 1`] = `
-[
-  [
-    {
-      "action": "add",
-      "field": "resourceId",
-      "value": "resource-1",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT diffResources() should compare distinct resources 1`] = `
-[
-  [
-    {
-      "action": "delete",
-      "field": "resourceId",
-      "value": "resource-1",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT diffResources() should compare resources using diff() 1`] = `
-[
-  [],
-]
-`;
-
-exports[`TransactionService UT diffResources() should compare same resources 1`] = `
-[
-  [],
-]
-`;
-
-exports[`TransactionService UT diffResources() should compare same resources with delete marker on new 1`] = `
-[
-  [
-    {
-      "action": "delete",
-      "field": "resourceId",
-      "value": "resource-1",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT diffResources() should skip adding shared-resource as the diff() is overridden to empty 1`] = `
-[
-  [
-    {
-      "action": "add",
-      "field": "resourceId",
-      "value": "resource-1",
     },
   ],
 ]
@@ -298,7 +244,7 @@ exports[`TransactionService UT rollbackTransaction() should be able to revert ad
     {
       "action": "delete",
       "field": "resourceId",
-      "value": "resource-2",
+      "value": "resource-1",
     },
   ],
 ]

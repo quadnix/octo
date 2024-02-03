@@ -339,7 +339,7 @@ export class TransactionService {
     }
 
     // Generate diff on resources.
-    const diffs = await resourceDataRepository.diffRevert();
+    const diffs = await resourceDataRepository.diff();
     const resourceDiffs = diffs.map(
       (d) =>
         new DiffMetadata(

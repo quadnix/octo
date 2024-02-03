@@ -1,18 +1,21 @@
 import { ActionOutputs, ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
+import { Container } from '../../../decorators/container.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import { IDependency } from '../../../functions/dependency/dependency.model.js';
+import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
 
 export class ResourceSerializationService {
   private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
 
   private readonly classMapping: { [key: string]: any } = {};
 
-  async deserialize(serializedOutput: ResourceSerializedOutput): Promise<ActionOutputs> {
+  async deserialize(serializedOutput: ResourceSerializedOutput): Promise<void> {
     const deReferencePromises: {
       [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
     } = {};
     const parents: { [p: string]: string[] } = {};
     const seen: ActionOutputs = {};
+    const resources: UnknownResource[] = []; // Contains a separate copy of resources than kept on `seen`.
 
     const deReferenceResource = async (resourceId: string): Promise<UnknownResource> => {
       if (!seen[resourceId]) {
@@ -87,23 +90,27 @@ export class ResourceSerializationService {
     for (const resourceId in serializedOutput.resources) {
       promiseToDeserializeResources.push(deserializeResource(resourceId, parents[resourceId], false));
     }
-    await Promise.all(promiseToDeserializeResources);
+    resources.push(...(await Promise.all(promiseToDeserializeResources)));
 
     // Deserialize all serialized shared-resources.
     const promiseToDeserializeSharedResources: Promise<UnknownResource>[] = [];
     for (const resourceId in serializedOutput.sharedResources) {
       promiseToDeserializeSharedResources.push(deserializeResource(resourceId, parents[resourceId], true));
     }
-    await Promise.all(promiseToDeserializeSharedResources);
+    resources.push(...(await Promise.all(promiseToDeserializeSharedResources)));
 
-    return seen;
+    // Initialize a new instance of ResourceDataRepository, overwriting the previous one.
+    await Container.get(ResourceDataRepository, { args: [true, Object.values(seen), resources] });
   }
 
   registerClass(className: string, deserializationClass: any): void {
     this.classMapping[className] = deserializationClass;
   }
 
-  serialize(resources: UnknownResource[]): ResourceSerializedOutput {
+  async serialize(): Promise<ResourceSerializedOutput> {
+    const resourceDataRepository = await Container.get(ResourceDataRepository);
+    const resources = resourceDataRepository.getByProperties();
+
     const dependencies: IDependency[] = [];
     const serializedResources: ResourceSerializedOutput['resources'] = {};
     const sharedSerializedResources: ResourceSerializedOutput['sharedResources'] = {};

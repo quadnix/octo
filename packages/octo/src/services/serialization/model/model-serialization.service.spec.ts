@@ -1,4 +1,5 @@
 import { ModelSerializedOutput } from '../../../app.type.js';
+import { Container } from '../../../decorators/container.js';
 import { IDependency } from '../../../functions/dependency/dependency.model.js';
 import { App } from '../../../models/app/app.model.js';
 import { Environment } from '../../../models/environment/environment.model.js';
@@ -7,9 +8,18 @@ import { Region } from '../../../models/region/region.model.js';
 import { Server } from '../../../models/server/server.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Support } from '../../../models/support/support.model.js';
+import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../../overlay/overlay-data.repository.js';
 import { ModelSerializationService } from './model-serialization.service.js';
 
 describe('Model Serialization Service UT', () => {
+  beforeEach(() => {
+    Container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
+  });
+
+  afterEach(() => {
+    Container.reset();
+  });
+
   describe('deserialize()', () => {
     it('should throw error when de-serializing an unknown class', async () => {
       const serializedOutput: ModelSerializedOutput = {

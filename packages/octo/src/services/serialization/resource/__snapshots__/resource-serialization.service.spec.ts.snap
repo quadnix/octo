@@ -1,8 +1,8 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Resource Serialization Service UT deserialize() should deserialize a resource with complex properties 1`] = `
-{
-  "resource-1": TestResource {
+[
+  TestResource {
     "MODEL_NAME": "test-resource",
     "MODEL_TYPE": "resource",
     "_deleteMarker": false,
@@ -21,12 +21,12 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a re
       "response1": "value1",
     },
   },
-}
+]
 `;
 
 exports[`Resource Serialization Service UT deserialize() should deserialize a single resource 1`] = `
-{
-  "resource-1": TestResource {
+[
+  TestResource {
     "MODEL_NAME": "test-resource",
     "MODEL_TYPE": "resource",
     "_deleteMarker": false,
@@ -40,12 +40,12 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
       "response1": "value1",
     },
   },
-}
+]
 `;
 
 exports[`Resource Serialization Service UT deserialize() should deserialize a single shared resource 1`] = `
-{
-  "resource-1": TestResource {
+[
+  TestResource {
     "MODEL_NAME": "test-resource",
     "MODEL_TYPE": "resource",
     "_deleteMarker": false,
@@ -110,7 +110,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
       "response1": "value1",
     },
   },
-  "resource-2": SharedTestResource {
+  SharedTestResource {
     "MODEL_NAME": "shared-test-resource",
     "MODEL_TYPE": "shared-resource",
     "_deleteMarker": false,
@@ -175,7 +175,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
     "resourceId": "resource-2",
     "response": {},
   },
-}
+]
 `;
 
 exports[`Resource Serialization Service UT serialize() should not serialize resources marked for deletion 1`] = `
