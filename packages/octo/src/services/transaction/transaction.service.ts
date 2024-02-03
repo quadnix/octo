@@ -10,8 +10,9 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
 import { IAction } from '../../models/action.interface.js';
-import { OverlayService } from '../../overlay/overlay.service.js';
+import { OverlayDataRepository } from '../../overlay/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
+import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 
 export class TransactionService {
   private readonly inputs: ActionInputs = {};
@@ -19,7 +20,10 @@ export class TransactionService {
   private readonly overlayActions: IAction<ActionInputs, ActionOutputs>[] = [];
   private readonly resourceActions: IResourceAction[] = [];
 
-  private async applyModels(diffs: DiffMetadata[], resources: ActionOutputs): Promise<DiffMetadata[][]> {
+  private async applyModels(
+    diffs: DiffMetadata[],
+    resourceDataRepository: ResourceDataRepository,
+  ): Promise<DiffMetadata[][]> {
     const transaction: DiffMetadata[][] = [];
 
     let currentApplyOrder = 0;
@@ -48,7 +52,7 @@ export class TransactionService {
           inputKeys.map((k) => {
             if ((k as string).startsWith('resource')) {
               const resourceId = (k as string).substring('resource.'.length);
-              inputs[k] = resources[resourceId];
+              inputs[k] = resourceDataRepository.getById(resourceId)!;
             } else {
               inputs[k] = this.inputs[k];
             }
@@ -84,12 +88,13 @@ export class TransactionService {
       // which can be merged if it exists.
       for (const outputs of actionsOutputs) {
         for (const [resourceId, resource] of Object.entries(outputs)) {
-          if (resource.MODEL_TYPE === 'shared-resource' && resources[resourceId]) {
-            resources[resourceId] = (resource as UnknownSharedResource).merge(
-              resources[resourceId] as UnknownSharedResource,
+          const previousResource = resourceDataRepository.getById(resourceId);
+          if (resource.MODEL_TYPE === 'shared-resource' && previousResource) {
+            resourceDataRepository.add(
+              (resource as UnknownSharedResource).merge(previousResource as UnknownSharedResource),
             );
           } else {
-            resources[resourceId] = resource;
+            resourceDataRepository.add(resource);
           }
         }
       }
@@ -148,30 +153,6 @@ export class TransactionService {
     }
 
     return transaction;
-  }
-
-  private async diffResources(newResources: ActionOutputs, oldResources: ActionOutputs): Promise<Diff[]> {
-    const diffs: Diff[] = [];
-
-    for (const oldResourceId in oldResources) {
-      const rDiff = await newResources[oldResourceId].diff(oldResources[oldResourceId]);
-      diffs.push(...rDiff);
-    }
-
-    for (const newResourceId in newResources) {
-      if (!oldResources[newResourceId]) {
-        const newResource = newResources[newResourceId];
-
-        if (newResource.MODEL_TYPE === 'shared-resource' || newResource.getSharedResource() !== undefined) {
-          const rDiff = await newResource.diff();
-          diffs.push(...rDiff);
-        } else {
-          diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResource.resourceId));
-        }
-      }
-    }
-
-    return diffs;
   }
 
   private getDuplicateDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
@@ -241,8 +222,6 @@ export class TransactionService {
 
   async *beginTransaction(
     diffs: Diff[],
-    oldResources: ActionOutputs = {},
-    newResources: ActionOutputs = {},
     options: TransactionOptions = {
       yieldModelTransaction: false,
       yieldNewResources: false,
@@ -250,9 +229,11 @@ export class TransactionService {
       yieldResourceTransaction: false,
     },
   ): AsyncGenerator<DiffMetadata[][] | UnknownResource[], DiffMetadata[][]> {
+    const overlayDataRepository = await Container.get(OverlayDataRepository);
+    const resourceDataRepository = await Container.get(ResourceDataRepository);
+
     // Diff overlays and add to existing diffs.
-    const overlayService = await Container.get(OverlayService);
-    diffs.push(...overlayService.diff());
+    diffs.push(...overlayDataRepository.diff());
 
     // Set apply order on model diffs.
     const modelDiffs = diffs.map(
@@ -267,18 +248,18 @@ export class TransactionService {
     }
 
     // Apply model diffs.
-    const modelTransaction = await this.applyModels(modelDiffs, newResources);
+    const modelTransaction = await this.applyModels(modelDiffs, resourceDataRepository);
     if (options.yieldModelTransaction) {
       yield modelTransaction;
     }
 
     // Yield new resources.
     if (options.yieldNewResources) {
-      yield Object.values(newResources);
+      yield resourceDataRepository.getByProperties();
     }
 
     // Generate diff on resources.
-    diffs = await this.diffResources(newResources, oldResources);
+    diffs = await resourceDataRepository.diff();
     const resourceDiffs = diffs.map(
       (d) =>
         new DiffMetadata(
@@ -336,13 +317,13 @@ export class TransactionService {
 
   async *rollbackTransaction(
     modelTransaction: DiffMetadata[][],
-    oldResources: ActionOutputs = {},
-    newResources: ActionOutputs = {},
     options: TransactionOptions = {
       yieldResourceDiffs: false,
       yieldResourceTransaction: false,
     },
   ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
+    const resourceDataRepository = await Container.get(ResourceDataRepository);
+
     // Set revert on model diffs.
     for (let i = modelTransaction.length - 1; i >= 0; i--) {
       const diffsProcessedInSameLevel = modelTransaction[i];
@@ -351,14 +332,14 @@ export class TransactionService {
         for (const a of diff.actions as IAction<ActionInputs, ActionOutputs>[]) {
           const outputs = a.revert(diff.diff, diff.inputs, diff.outputs);
           for (const outputKey in outputs) {
-            newResources[outputKey] = outputs[outputKey];
+            resourceDataRepository.add(outputs[outputKey]);
           }
         }
       }
     }
 
     // Generate diff on resources.
-    const diffs = await this.diffResources(oldResources, newResources);
+    const diffs = await resourceDataRepository.diffRevert();
     const resourceDiffs = diffs.map(
       (d) =>
         new DiffMetadata(
