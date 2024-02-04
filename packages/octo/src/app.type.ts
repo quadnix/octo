@@ -1,10 +1,10 @@
 import { IDependency } from './functions/dependency/dependency.model.js';
 import { IModule } from './functions/module/module.interface.js';
-import { IAnchor } from './overlay/anchor.interface.js';
-import { AOverlay } from './overlay/overlay.abstract.js';
+import { IAnchor } from './overlays/anchor.interface.js';
+import { AOverlay } from './overlays/overlay.abstract.js';
 import { AModel } from './models/model.abstract.js';
 import { IModel } from './models/model.interface.js';
-import { IOverlay } from './overlay/overlay.interface.js';
+import { IOverlay } from './overlays/overlay.interface.js';
 import { AResource } from './resources/resource.abstract.js';
 import { IResource } from './resources/resource.interface.js';
 import { ASharedResource } from './resources/shared-resource.abstract.js';

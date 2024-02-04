@@ -38,10 +38,10 @@ export { IAction } from './models/action.interface.js';
 export { AModel } from './models/model.abstract.js';
 export { IModel, IModelReference } from './models/model.interface.js';
 
-export { AAnchor } from './overlay/anchor.abstract.js';
-export { IAnchor } from './overlay/anchor.interface.js';
-export { AOverlay } from './overlay/overlay.abstract.js';
-export { IOverlay } from './overlay/overlay.interface.js';
+export { AAnchor } from './overlays/anchor.abstract.js';
+export { IAnchor } from './overlays/anchor.interface.js';
+export { AOverlay } from './overlays/overlay.abstract.js';
+export { IOverlay } from './overlays/overlay.interface.js';
 
 export { AResource } from './resources/resource.abstract.js';
 export { IResource } from './resources/resource.interface.js';

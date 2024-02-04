@@ -10,7 +10,7 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
 import { IAction } from '../../models/action.interface.js';
-import { OverlayDataRepository } from '../../overlay/overlay-data.repository.js';
+import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 

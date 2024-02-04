@@ -8,7 +8,7 @@ import { Region } from '../../../models/region/region.model.js';
 import { Server } from '../../../models/server/server.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Support } from '../../../models/support/support.model.js';
-import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../../overlay/overlay-data.repository.js';
+import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
 import { ModelSerializationService } from './model-serialization.service.js';
 
 describe('Model Serialization Service UT', () => {

@@ -3,8 +3,8 @@ import { Container } from '../decorators/container.js';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
-import { AAnchor } from '../overlay/anchor.abstract.js';
-import { OverlayDataRepository } from '../overlay/overlay-data.repository.js';
+import { AAnchor } from '../overlays/anchor.abstract.js';
+import { OverlayDataRepository } from '../overlays/overlay-data.repository.js';
 import { IModel } from './model.interface.js';
 
 /**

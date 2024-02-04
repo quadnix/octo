@@ -3,10 +3,10 @@ import { Container } from '../../../decorators/container.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import { AModule } from '../../../functions/module/module.abstract.js';
 import { IModule } from '../../../functions/module/module.interface.js';
-import { IAnchor } from '../../../overlay/anchor.interface.js';
+import { IAnchor } from '../../../overlays/anchor.interface.js';
 import { Dependency, IDependency } from '../../../functions/dependency/dependency.model.js';
-import { IOverlay } from '../../../overlay/overlay.interface.js';
-import { OverlayDataRepository } from '../../../overlay/overlay-data.repository.js';
+import { IOverlay } from '../../../overlays/overlay.interface.js';
+import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
 
 export class ModelSerializationService {
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 5000;

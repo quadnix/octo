@@ -7,7 +7,7 @@ import { IAction } from '../../models/action.interface.js';
 import { App } from '../../models/app/app.model.js';
 import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
-import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlay/overlay-data.repository.js';
+import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
