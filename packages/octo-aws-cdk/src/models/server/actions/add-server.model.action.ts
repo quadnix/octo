@@ -4,23 +4,16 @@ import { AAction } from '../../action.abstract.js';
 import { AwsServer } from '../aws.server.model.js';
 
 @Action(ModelType.MODEL)
-export class AddServerAction extends AAction {
-  readonly ACTION_NAME: string = 'AddServerAction';
-
-  override collectOutput(diff: Diff): string[] {
-    const server = diff.model as AwsServer;
-    const serverIamUserName = server.getAnchors([])[0].ANCHOR_NAME;
-
-    return [`iam-user-${serverIamUserName}`];
-  }
+export class AddServerModelAction extends AAction {
+  readonly ACTION_NAME: string = 'AddServerModelAction';
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'server' && diff.field === 'serverKey';
   }
 
-  handle(diff: Diff): ActionOutputs {
+  async handle(diff: Diff): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
-    const serverIamUserName = server.getAnchors()[0].ANCHOR_NAME;
+    const serverIamUserName = server.getAnchors()[0].anchorId;
 
     // Create IAM User.
     const iamUser = new IamUser(`iam-user-${serverIamUserName}`, {
@@ -34,9 +27,9 @@ export class AddServerAction extends AAction {
   }
 }
 
-@Factory<AddServerAction>(AddServerAction)
-export class AddServerActionFactory {
-  static async create(): Promise<AddServerAction> {
-    return new AddServerAction();
+@Factory<AddServerModelAction>(AddServerModelAction)
+export class AddServerModelActionFactory {
+  static async create(): Promise<AddServerModelAction> {
+    return new AddServerModelAction();
   }
 }

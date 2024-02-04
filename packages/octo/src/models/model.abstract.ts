@@ -132,6 +132,10 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return this.anchors.find((a) => a.anchorId === anchorId);
   }
 
+  getAnchors(): AAnchor[] {
+    return this.anchors;
+  }
+
   /**
    * Get a boundary (sub graph) of a model, i.e. an array of models that must belong together.
    * To generate a boundary, we must process all children and grand-children of self.

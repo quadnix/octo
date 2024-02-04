@@ -1,4 +1,4 @@
-// eslint-disable-file no-unused-vars
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { ActionInputs, ActionOutputs, Diff, IAction } from '@quadnix/octo';
 

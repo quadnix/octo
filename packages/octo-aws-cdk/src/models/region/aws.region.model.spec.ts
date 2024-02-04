@@ -51,7 +51,7 @@ describe('AwsRegion UT', () => {
         regionId: RegionId.AWS_US_EAST_1A,
       };
       const resourceDiffsResult1 = await generator1.next();
-      await octoAws.commitTransaction(app, modelTransactionResult1.value, resourcesResult1.value);
+      await octoAws.commitTransaction(app, modelTransactionResult1.value);
 
       // Verify resource diff was as expected.
       expect(resourceDiffsResult1.value).toMatchInlineSnapshot(`
@@ -132,15 +132,13 @@ describe('AwsRegion UT', () => {
       const diffs2 = await octoAws.diff(app);
       const generator2 = await octoAws.beginTransaction(diffs2, {
         yieldModelTransaction: true,
-        yieldNewResources: true,
         yieldResourceDiffs: true,
       });
 
       // Prevent generator2 from running real resource actions.
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourcesResult2 = (await generator2.next()) as IteratorResult<UnknownResource[]>;
       const resourceDiffsResult2 = await generator2.next();
-      await octoAws.commitTransaction(app, modelTransactionResult2.value, resourcesResult2.value);
+      await octoAws.commitTransaction(app, modelTransactionResult2.value);
 
       // Verify resource diff was as expected.
       expect(resourceDiffsResult2.value).toMatchInlineSnapshot(`
@@ -169,6 +167,26 @@ describe('AwsRegion UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
+              "value": "rt-aws-us-east-1a-private-1",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "rt-aws-us-east-1a-public-1",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "nacl-aws-us-east-1a-private-1",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "nacl-aws-us-east-1a-public-1",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
               "value": "sg-aws-us-east-1a-access",
             },
             {
@@ -185,26 +203,6 @@ describe('AwsRegion UT', () => {
               "action": "delete",
               "field": "resourceId",
               "value": "sg-aws-us-east-1a-web",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "rt-aws-us-east-1a-private-1",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "nacl-aws-us-east-1a-private-1",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "rt-aws-us-east-1a-public-1",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "nacl-aws-us-east-1a-public-1",
             },
             {
               "action": "delete",

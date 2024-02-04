@@ -4,12 +4,12 @@ import { AAction } from '../../action.abstract.js';
 import { AwsServer } from '../aws.server.model.js';
 
 @Action(ModelType.MODEL)
-export class DeleteServerAction extends AAction {
-  readonly ACTION_NAME: string = 'DeleteServerAction';
+export class DeleteServerModelAction extends AAction {
+  readonly ACTION_NAME: string = 'DeleteServerModelAction';
 
   override collectInput(diff: Diff): string[] {
     const server = diff.model as AwsServer;
-    const serverIamUserName = server.getAnchors([])[0].ANCHOR_NAME;
+    const serverIamUserName = server.getAnchors()[0].anchorId;
 
     return [`resource.iam-user-${serverIamUserName}`];
   }
@@ -18,9 +18,9 @@ export class DeleteServerAction extends AAction {
     return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'server' && diff.field === 'serverKey';
   }
 
-  handle(diff: Diff, actionInputs: ActionInputs): ActionOutputs {
+  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
-    const serverIamUserName = server.getAnchors()[0].ANCHOR_NAME;
+    const serverIamUserName = server.getAnchors()[0].anchorId;
 
     const iamUser = actionInputs[`resource.iam-user-${serverIamUserName}`] as IamUser;
     iamUser.markDeleted();
@@ -32,9 +32,9 @@ export class DeleteServerAction extends AAction {
   }
 }
 
-@Factory<DeleteServerAction>(DeleteServerAction)
-export class DeleteServerActionFactory {
-  static async create(): Promise<DeleteServerAction> {
-    return new DeleteServerAction();
+@Factory<DeleteServerModelAction>(DeleteServerModelAction)
+export class DeleteServerModelActionFactory {
+  static async create(): Promise<DeleteServerModelAction> {
+    return new DeleteServerModelAction();
   }
 }
