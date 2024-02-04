@@ -55,11 +55,11 @@ export class ResourceDataRepository {
 
   async diff(): Promise<Diff[]> {
     const newResources: ActionOutputs = this.newResources.reduce(
-      (acc, curr) => ({ ...acc, [curr.resourceId]: curr }),
+      (accumulator, current) => ({ ...accumulator, [current.resourceId]: current }),
       {},
     );
     const oldResources: ActionOutputs = this.oldResources.reduce(
-      (acc, curr) => ({ ...acc, [curr.resourceId]: curr }),
+      (accumulator, current) => ({ ...accumulator, [current.resourceId]: current }),
       {},
     );
 
