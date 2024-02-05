@@ -33,13 +33,10 @@ describe('AwsRegion E2E Test', () => {
     app.addRegion(region);
 
     const diffs1 = await octoAws.diff(app);
-    const generator1 = await octoAws.beginTransaction(diffs1, {
-      yieldModelTransaction: true,
-    });
+    const generator1 = await octoAws.beginTransaction(diffs1);
 
-    const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-    await generator1.next(); // Run real resource actions.
-    await octoAws.commitTransaction(app, modelTransactionResult1.value);
+    const modelTransactionResult1 = await generator1.next(); // Run real resource actions.
+    await octoAws.commitTransaction(app, modelTransactionResult1.value as DiffMetadata[][]);
 
     // Remove region.
     region.remove();

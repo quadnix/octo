@@ -129,9 +129,9 @@ export class OctoAws {
 
   async beginTransaction(
     diffs: Diff[],
-    options: TransactionOptions,
+    options?: TransactionOptions,
   ): Promise<AsyncGenerator<DiffMetadata[][] | UnknownResource[], DiffMetadata[][]>> {
-    return this.transactionService.beginTransaction(diffs, options);
+    return this.transactionService.beginTransaction(diffs, options || {});
   }
 
   async commitTransaction(app: App, modelTransaction: DiffMetadata[][]): Promise<void> {

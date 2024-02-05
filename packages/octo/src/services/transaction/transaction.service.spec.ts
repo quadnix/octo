@@ -601,7 +601,7 @@ describe('TransactionService UT', () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
         const app = new App('app');
-        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
+        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
         const service = new TransactionService();
         service.registerModelActions([universalModelAction]);
@@ -655,7 +655,7 @@ describe('TransactionService UT', () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
         const app = new App('app');
-        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
+        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
         const oldResource = new TestResource('resource-1');
         const newResource = new TestResource('resource-2');
@@ -693,7 +693,7 @@ describe('TransactionService UT', () => {
         (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
         const app = new App('app');
-        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
+        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
         const oldResource = new TestResource('resource-1');
         const newResource = new TestResource('resource-2');
@@ -711,12 +711,12 @@ describe('TransactionService UT', () => {
         expect(result.value).toMatchSnapshot();
       });
 
-      it('should return resource diffs', async () => {
+      it('should return model diffs', async () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
         (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
         const app = new App('app');
-        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
+        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
         const oldResource = new TestResource('resource-1');
         const newResource = new TestResource('resource-2');

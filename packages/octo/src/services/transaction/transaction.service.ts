@@ -282,7 +282,7 @@ export class TransactionService {
       yield resourceTransaction;
     }
 
-    return resourceTransaction;
+    return modelTransaction;
   }
 
   registerModelActions(actions: IAction<ActionInputs, ActionOutputs>[]): void {

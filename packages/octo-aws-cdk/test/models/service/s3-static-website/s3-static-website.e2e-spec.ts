@@ -49,13 +49,10 @@ describe('S3StaticWebsite E2E Test', () => {
     await service.addSource(`${websiteSourcePath}/index.html`);
 
     const diffs1 = await octoAws.diff(app);
-    const generator1 = await octoAws.beginTransaction(diffs1, {
-      yieldModelTransaction: true,
-    });
+    const generator1 = await octoAws.beginTransaction(diffs1);
 
-    const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-    await generator1.next(); // Run real resource actions.
-    await octoAws.commitTransaction(app, modelTransactionResult1.value);
+    const modelTransactionResult1 = await generator1.next(); // Run real resource actions.
+    await octoAws.commitTransaction(app, modelTransactionResult1.value as DiffMetadata[][]);
 
     // Ensure website is available.
     const indexContent = await axios.get(`http://${BUCKET_NAME}.s3-website-us-east-1.amazonaws.com/index.html`);
@@ -68,13 +65,10 @@ describe('S3StaticWebsite E2E Test', () => {
       await writeFileAsync(join(websiteSourcePath, 'error.html'), 'New error content!');
 
       const diffs2 = await octoAws.diff(app);
-      const generator2 = await octoAws.beginTransaction(diffs2, {
-        yieldModelTransaction: true,
-      });
+      const generator2 = await octoAws.beginTransaction(diffs2);
 
-      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      await generator2.next(); // Run real resource actions.
-      await octoAws.commitTransaction(app, modelTransactionResult2.value);
+      const modelTransactionResult2 = await generator2.next(); // Run real resource actions.
+      await octoAws.commitTransaction(app, modelTransactionResult2.value as DiffMetadata[][]);
 
       const newErrorContent = await axios.get(`http://${BUCKET_NAME}.s3-website-us-east-1.amazonaws.com/error.html`);
       expect(newErrorContent.data).toContain('New error content!');
@@ -87,13 +81,10 @@ describe('S3StaticWebsite E2E Test', () => {
     service.remove();
 
     const diffs3 = await octoAws.diff(app);
-    const generator3 = await octoAws.beginTransaction(diffs3, {
-      yieldModelTransaction: true,
-    });
+    const generator3 = await octoAws.beginTransaction(diffs3);
 
-    const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
-    await generator3.next(); // Run real resource actions.
-    await octoAws.commitTransaction(app, modelTransactionResult3.value);
+    const modelTransactionResult3 = await generator3.next(); // Run real resource actions.
+    await octoAws.commitTransaction(app, modelTransactionResult3.value as DiffMetadata[][]);
 
     // Ensure website is not available.
     await expect(async () => {

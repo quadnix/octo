@@ -40,15 +40,10 @@ const s3StaticWebsiteService = new S3StaticWebsiteService('test-bucket');
 app.addService(s3StaticWebsiteService);
 
 const diffs = await octo.diff(app);
-const generator = await octo.beginTransaction(diffs, {
-  yieldModelTransaction: true,
-  yieldNewResources: true,
-});
+const generator = await octo.beginTransaction(diffs);
 
-const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-const resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
-await generator.next();
-await octoAws.commitTransaction(app, modelTransactionResult.value, resourcesResult.value);
+const modelTransactionResult = await generator.next();
+await octoAws.commitTransaction(app, modelTransactionResult.value);
 ```
 
 There is a lot to unpack here, so let's break it down.
@@ -72,10 +67,7 @@ Notice, we are using the `S3StaticWebsiteService` which is provided by the
 
 ```typescript
 const diffs = await octo.diff(app);
-const generator = await octo.beginTransaction(diffs, {
-  yieldModelTransaction: true,
-  yieldNewResources: true,
-});
+const generator = await octo.beginTransaction(diffs);
 ```
 Now, we call the in-built `diff()` method which generates the difference in infrastructure between an earlier state
 and the current state. Since, we don't have a previous state, the diff would reflect adding a new S3 website.
@@ -83,18 +75,14 @@ We encourage you to stop your debugger here and inspect the `diffs` variable.
 
 The `diffs` are then passed to the `beginTransaction()` method which returns a generator.
 The generator can be configured to stop at each step so that we can extract information out of it.
-Here we are configuring it to generate the new models and the new resources that will be created.
 
 ```typescript
-const modelTransactionResult = (await generator.next()) as IteratorResult<DiffMetadata[][]>;
-const resourcesResult = (await generator.next()) as IteratorResult<UnknownResource[]>;
-await generator.next();
+const modelTransactionResult = await generator.next();
 ```
-Next, we call the `next()` method on the generator to get the new models and resources.
-We call `next()` one final time to let the generator finish its work.
+Next, we call the `next()` method on the generator to finish its work.
 By this step, all `Actions` have run, and all new AWS resources are created.
 
 ```typescript
-await octoAws.commitTransaction(app, modelTransactionResult.value, resourcesResult.value);
+await octoAws.commitTransaction(app, modelTransactionResult.value);
 ```
 As a final step, we call the `commitTransaction()` method which will update the state with the new models and resources.

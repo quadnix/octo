@@ -204,18 +204,13 @@ exports[`TransactionService UT beginTransaction() yieldResourceDiffs should yiel
 ]
 `;
 
-exports[`TransactionService UT beginTransaction() yieldResourceTransaction should return resource diffs 1`] = `
+exports[`TransactionService UT beginTransaction() yieldResourceTransaction should return model diffs 1`] = `
 [
   [
     {
-      "action": "delete",
-      "field": "resourceId",
-      "value": "resource-1",
-    },
-    {
       "action": "add",
-      "field": "resourceId",
-      "value": "resource-2",
+      "field": "name",
+      "value": "app",
     },
   ],
 ]
