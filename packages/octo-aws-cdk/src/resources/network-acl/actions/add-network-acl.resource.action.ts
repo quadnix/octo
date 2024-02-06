@@ -25,7 +25,6 @@ export class AddNetworkAclResourceAction implements IResourceAction {
     // Get properties.
     const networkAcl = diff.model as NetworkAcl;
     const properties = networkAcl.properties as unknown as INetworkAclProperties;
-    properties.entries = JSON.parse(properties.entries as unknown as string);
     const response = networkAcl.response as unknown as INetworkAclResponse;
 
     // Get instances.

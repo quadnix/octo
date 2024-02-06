@@ -22,7 +22,6 @@ export class AddSecurityGroupResourceAction implements IResourceAction {
     // Get properties.
     const securityGroup = diff.model as SecurityGroup;
     const properties = securityGroup.properties as unknown as ISecurityGroupProperties;
-    properties.rules = JSON.parse(properties.rules as unknown as string);
     const response = securityGroup.response as unknown as ISecurityGroupResponse;
     const vpc = securityGroup.getParents('vpc')['vpc'][0].to as Vpc;
     const vpcResponse = vpc.response as unknown as IVpcResponse;

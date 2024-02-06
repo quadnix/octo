@@ -100,22 +100,22 @@ describe('AwsRegion UT', () => {
             {
               "action": "add",
               "field": "resourceId",
-              "value": "sg-aws-us-east-1a-access",
+              "value": "sec-grp-aws-us-east-1a-access",
             },
             {
               "action": "add",
               "field": "resourceId",
-              "value": "sg-aws-us-east-1a-internal-open",
+              "value": "sec-grp-aws-us-east-1a-internal-open",
             },
             {
               "action": "add",
               "field": "resourceId",
-              "value": "sg-aws-us-east-1a-private-closed",
+              "value": "sec-grp-aws-us-east-1a-private-closed",
             },
             {
               "action": "add",
               "field": "resourceId",
-              "value": "sg-aws-us-east-1a-web",
+              "value": "sec-grp-aws-us-east-1a-web",
             },
             {
               "action": "add",
@@ -167,12 +167,27 @@ describe('AwsRegion UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
-              "value": "rt-aws-us-east-1a-private-1",
+              "value": "sec-grp-aws-us-east-1a-access",
             },
             {
               "action": "delete",
               "field": "resourceId",
-              "value": "rt-aws-us-east-1a-public-1",
+              "value": "sec-grp-aws-us-east-1a-internal-open",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "sec-grp-aws-us-east-1a-private-closed",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "sec-grp-aws-us-east-1a-web",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "rt-aws-us-east-1a-private-1",
             },
             {
               "action": "delete",
@@ -182,27 +197,12 @@ describe('AwsRegion UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
+              "value": "rt-aws-us-east-1a-public-1",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
               "value": "nacl-aws-us-east-1a-public-1",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sg-aws-us-east-1a-access",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sg-aws-us-east-1a-internal-open",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sg-aws-us-east-1a-private-closed",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sg-aws-us-east-1a-web",
             },
             {
               "action": "delete",

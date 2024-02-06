@@ -133,7 +133,7 @@ export class AddRegionModelAction extends AAction {
 
     // Create Security Groups.
     const accessSG = new SecurityGroup(
-      `sg-${regionId}-access`,
+      `sec-grp-${regionId}-access`,
       {
         awsRegionId: awsRegion.awsRegionId,
         rules: [
@@ -158,7 +158,7 @@ export class AddRegionModelAction extends AAction {
       [vpc],
     );
     const internalOpenSG = new SecurityGroup(
-      `sg-${regionId}-internal-open`,
+      `sec-grp-${regionId}-internal-open`,
       {
         awsRegionId: awsRegion.awsRegionId,
         rules: [
@@ -175,7 +175,7 @@ export class AddRegionModelAction extends AAction {
       [vpc],
     );
     const privateClosedSG = new SecurityGroup(
-      `sg-${regionId}-private-closed`,
+      `sec-grp-${regionId}-private-closed`,
       {
         awsRegionId: awsRegion.awsRegionId,
         rules: [
@@ -200,7 +200,7 @@ export class AddRegionModelAction extends AAction {
       [vpc],
     );
     const webSG = new SecurityGroup(
-      `sg-${regionId}-web`,
+      `sec-grp-${regionId}-web`,
       {
         awsRegionId: awsRegion.awsRegionId,
         rules: [

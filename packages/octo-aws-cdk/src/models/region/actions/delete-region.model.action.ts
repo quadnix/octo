@@ -26,10 +26,10 @@ export class DeleteRegionModelAction extends AAction {
       `resource.rt-${regionId}-public-1`,
       `resource.nacl-${regionId}-private-1`,
       `resource.nacl-${regionId}-public-1`,
-      `resource.sg-${regionId}-access`,
-      `resource.sg-${regionId}-internal-open`,
-      `resource.sg-${regionId}-private-closed`,
-      `resource.sg-${regionId}-web`,
+      `resource.sec-grp-${regionId}-access`,
+      `resource.sec-grp-${regionId}-internal-open`,
+      `resource.sec-grp-${regionId}-private-closed`,
+      `resource.sec-grp-${regionId}-web`,
       `resource.efs-${regionId}-filesystem`,
       'resource.shared-efs-filesystem',
     ];
@@ -42,7 +42,7 @@ export class DeleteRegionModelAction extends AAction {
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const { regionId } = diff.model as AwsRegion;
 
-    const internalOpenSG = actionInputs[`resource.sg-${regionId}-internal-open`] as SecurityGroup;
+    const internalOpenSG = actionInputs[`resource.sec-grp-${regionId}-internal-open`] as SecurityGroup;
     const privateSubnet1 = actionInputs[`resource.subnet-${regionId}-private-1`] as Subnet;
 
     const efs = actionInputs[`resource.efs-${regionId}-filesystem`] as Efs;
@@ -52,12 +52,12 @@ export class DeleteRegionModelAction extends AAction {
     efs.removeRelationship(sharedEfs);
     efs.markDeleted();
 
-    const accessSG = actionInputs[`resource.sg-${regionId}-access`] as SecurityGroup;
+    const accessSG = actionInputs[`resource.sec-grp-${regionId}-access`] as SecurityGroup;
     accessSG.markDeleted();
     internalOpenSG.markDeleted();
-    const privateClosedSG = actionInputs[`resource.sg-${regionId}-private-closed`] as SecurityGroup;
+    const privateClosedSG = actionInputs[`resource.sec-grp-${regionId}-private-closed`] as SecurityGroup;
     privateClosedSG.markDeleted();
-    const webSG = actionInputs[`resource.sg-${regionId}-web`] as SecurityGroup;
+    const webSG = actionInputs[`resource.sec-grp-${regionId}-web`] as SecurityGroup;
     webSG.markDeleted();
 
     const privateNAcl1 = actionInputs[`resource.nacl-${regionId}-private-1`] as NetworkAcl;
