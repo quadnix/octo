@@ -9,13 +9,12 @@ export class ResourceSerializationService {
 
   private readonly classMapping: { [key: string]: any } = {};
 
-  async deserialize(serializedOutput: ResourceSerializedOutput): Promise<void> {
+  private async _deserialize(serializedOutput: ResourceSerializedOutput): Promise<ActionOutputs> {
     const deReferencePromises: {
       [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
     } = {};
     const parents: { [p: string]: string[] } = {};
     const seen: ActionOutputs = {};
-    const resources: UnknownResource[] = []; // Contains a separate copy of resources than kept on `seen`.
 
     const deReferenceResource = async (resourceId: string): Promise<UnknownResource> => {
       if (!seen[resourceId]) {
@@ -90,17 +89,26 @@ export class ResourceSerializationService {
     for (const resourceId in serializedOutput.resources) {
       promiseToDeserializeResources.push(deserializeResource(resourceId, parents[resourceId], false));
     }
-    resources.push(...(await Promise.all(promiseToDeserializeResources)));
+    await Promise.all(promiseToDeserializeResources);
 
     // Deserialize all serialized shared-resources.
     const promiseToDeserializeSharedResources: Promise<UnknownResource>[] = [];
     for (const resourceId in serializedOutput.sharedResources) {
       promiseToDeserializeSharedResources.push(deserializeResource(resourceId, parents[resourceId], true));
     }
-    resources.push(...(await Promise.all(promiseToDeserializeSharedResources)));
+    await Promise.all(promiseToDeserializeSharedResources);
+
+    return seen;
+  }
+
+  async deserialize(serializedOutput: ResourceSerializedOutput): Promise<void> {
+    const deserializedOutput = await this._deserialize(serializedOutput);
+    const deserializedOutputCopy = await this._deserialize(serializedOutput);
 
     // Initialize a new instance of ResourceDataRepository, overwriting the previous one.
-    await Container.get(ResourceDataRepository, { args: [true, Object.values(seen), resources] });
+    await Container.get(ResourceDataRepository, {
+      args: [true, Object.values(deserializedOutput), Object.values(deserializedOutputCopy)],
+    });
   }
 
   registerClass(className: string, deserializationClass: any): void {

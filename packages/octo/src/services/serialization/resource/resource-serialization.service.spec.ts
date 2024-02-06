@@ -224,6 +224,27 @@ describe('Resource Serialization Service UT', () => {
 
       expect(newResourcesDependencies).toEqual(oldResourcesDependencies);
     });
+
+    it('should initialize ResourceDataRepository with separate old and new resources', async () => {
+      const resource1 = new TestResource('resource-1');
+      resource1.properties['key1'] = 'value1';
+      resource1.response['response1'] = 'value1';
+
+      const resources = [resource1];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
+      const service = new ResourceSerializationService();
+      service.registerClass('TestResource', TestResource);
+
+      const serializedOutput = await service.serialize();
+      await service.deserialize(serializedOutput);
+
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
+
+      // Manipulate new resources. This must not affect old resources in any way.
+      resourceDataRepository.getById('resource-1')!.properties['key1'] = 'value2';
+      expect(resourceDataRepository['newResources'][0]).not.toEqual(resourceDataRepository['oldResources'][0]);
+    });
   });
 
   describe('serialize()', () => {

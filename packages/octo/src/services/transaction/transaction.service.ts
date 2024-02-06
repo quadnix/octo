@@ -204,16 +204,16 @@ export class TransactionService {
 
     for (const dependency of dependencies) {
       // Iterate diffs looking to match dependency on same field and action.
-      const matchingDiffs = diffs.filter(
+      const matchingParentDiffs = diffs.filter(
         (d) =>
           d.model.getContext() === dependency.to.getContext() &&
           dependency.hasMatchingBehavior(diff.field, diff.action, d.field, d.action),
       );
 
       // On each diff that should be processed first, apply order on it before than self.
-      for (const matchingDiff of matchingDiffs) {
-        this.setApplyOrder(matchingDiff, diffs, [...seen, diff]);
-        dependencyApplyOrders.push(matchingDiff.applyOrder);
+      for (const matchingParentDiff of matchingParentDiffs) {
+        this.setApplyOrder(matchingParentDiff, diffs, [...seen, diff]);
+        dependencyApplyOrders.push(matchingParentDiff.applyOrder);
       }
     }
 
