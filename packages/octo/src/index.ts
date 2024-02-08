@@ -6,6 +6,7 @@ export { Model } from './decorators/model.decorator.js';
 export { Module } from './decorators/module.decorator.js';
 export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
+export { TestContainer } from './decorators/test-container.js';
 
 export { Diff, DiffAction } from './functions/diff/diff.model.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
