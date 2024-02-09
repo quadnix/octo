@@ -1,4 +1,6 @@
-import { App, DiffMetadata, Environment, LocalStateProvider } from '@quadnix/octo';
+import { ECSClient } from '@aws-sdk/client-ecs';
+import { jest } from '@jest/globals';
+import { App, Container, DiffMetadata, Environment, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -15,8 +17,24 @@ describe('Environment UT', () => {
     join(__dirname, 'shared-resources.json'),
   ];
 
+  beforeAll(() => {
+    TestContainer.create(
+      [
+        {
+          type: ECSClient,
+          value: { send: jest.fn() },
+        },
+      ],
+      { factoryTimeoutInMs: 500 },
+    );
+  });
+
   afterEach(async () => {
     await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
+  });
+
+  afterAll(() => {
+    Container.reset();
   });
 
   describe('diff()', () => {
@@ -49,22 +67,24 @@ describe('Environment UT', () => {
     });
 
     it('should create new environment and delete it', async () => {
+      const ecsClient = await Container.get(ECSClient);
+      (ecsClient.send as jest.Mock).mockResolvedValueOnce({ cluster: { clusterArn: 'clusterArn' } } as never);
+      (ecsClient.send as jest.Mock).mockResolvedValueOnce(undefined as never);
+
       const environment = new Environment('qa');
       region.addEnvironment(environment);
 
       const diffs1 = await octoAws.diff(app);
       const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldResourceTransaction: true,
       });
 
-      // Prevent generator from running real resource actions.
+      const resourceTransactionResult1 = await generator1.next();
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourceDiffsResult1 = await generator1.next();
       await octoAws.commitTransaction(app, modelTransactionResult1.value);
 
-      // Verify resource diff was as expected.
-      expect(resourceDiffsResult1.value).toMatchInlineSnapshot(`
+      // Verify resource transaction was as expected.
+      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
         [
           [
             {
@@ -81,17 +101,15 @@ describe('Environment UT', () => {
 
       const diffs2 = await octoAws.diff(app);
       const generator2 = await octoAws.beginTransaction(diffs2, {
-        yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldResourceTransaction: true,
       });
 
-      // Prevent generator from running real resource actions.
+      const resourceTransactionResult2 = await generator2.next();
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourceDiffsResult2 = await generator2.next();
       await octoAws.commitTransaction(app, modelTransactionResult2.value);
 
-      // Verify resource diff was as expected.
-      expect(resourceDiffsResult2.value).toMatchInlineSnapshot(`
+      // Verify resource transaction was as expected.
+      expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
         [
           [
             {

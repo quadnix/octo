@@ -52,40 +52,30 @@ describe('Image UT', () => {
 
       const diffs1 = await octoAws.diff(app);
       const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldResourceTransaction: true,
       });
 
+      const resourceTransactionResult1 = await generator1.next();
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourceDiffsResult1 = await generator1.next();
       await octoAws.commitTransaction(app, modelTransactionResult1.value);
 
-      // Verify resource diff was as expected.
-      expect(resourceDiffsResult1.value).toMatchInlineSnapshot(`
-        [
-          [],
-        ]
-      `);
+      // Verify resource transaction was as expected.
+      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`[]`);
 
       // Remove image.
       image1.remove();
 
       const diffs2 = await octoAws.diff(app);
       const generator2 = await octoAws.beginTransaction(diffs2, {
-        yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldResourceTransaction: true,
       });
 
+      const resourceTransactionResult2 = await generator2.next();
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourceDiffsResult2 = await generator2.next();
       await octoAws.commitTransaction(app, modelTransactionResult2.value);
 
-      // Verify resource diff was as expected.
-      expect(resourceDiffsResult2.value).toMatchInlineSnapshot(`
-        [
-          [],
-        ]
-      `);
+      // Verify resource transaction was as expected.
+      expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`[]`);
     });
   });
 });
