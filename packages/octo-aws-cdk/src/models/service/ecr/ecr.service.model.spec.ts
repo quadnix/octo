@@ -1,5 +1,11 @@
+import {
+  CreateRepositoryCommand,
+  DescribeImagesCommand,
+  ECRClient,
+  GetAuthorizationTokenCommand,
+} from '@aws-sdk/client-ecr';
 import { jest } from '@jest/globals';
-import { App, DiffMetadata, Image, LocalStateProvider } from '@quadnix/octo';
+import { App, Container, DiffMetadata, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -17,8 +23,24 @@ describe('EcrService UT', () => {
     join(__dirname, 'shared-resources.json'),
   ];
 
+  beforeAll(() => {
+    TestContainer.create(
+      [
+        {
+          type: ECRClient,
+          value: { send: jest.fn() },
+        },
+      ],
+      { factoryTimeoutInMs: 500 },
+    );
+  });
+
   afterEach(async () => {
     await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
+  });
+
+  afterAll(() => {
+    Container.reset();
   });
 
   describe('addImage()', () => {
@@ -84,6 +106,21 @@ describe('EcrService UT', () => {
         removeAllListeners: jest.fn(),
       });
 
+      const ecrClient = await Container.get(ECRClient);
+      (ecrClient.send as jest.Mock).mockImplementation(async (instance) => {
+        if (instance instanceof DescribeImagesCommand) {
+          const error = new Error();
+          error.name = 'RepositoryNotFoundException';
+          throw error;
+        } else if (instance instanceof CreateRepositoryCommand) {
+          return { repository: {} };
+        } else if (instance instanceof GetAuthorizationTokenCommand) {
+          return {
+            authorizationData: [{ authorizationToken: 'authorizationToken', proxyEndpoint: 'https://endpoint' }],
+          };
+        }
+      });
+
       const octoAws = new OctoAws();
       await octoAws.initialize(new LocalStateProvider(__dirname));
       octoAws.registerInputs({
@@ -104,17 +141,15 @@ describe('EcrService UT', () => {
 
       const diffs1 = await octoAws.diff(app);
       const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldResourceTransaction: true,
       });
 
-      // Prevent generator1 from running real resource actions.
+      const resourceTransactionResult1 = await generator1.next();
       const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourceDiffsResult1 = await generator1.next();
       await octoAws.commitTransaction(app, modelTransactionResult1.value);
 
       // Verify resource diff was as expected.
-      expect(resourceDiffsResult1.value).toMatchInlineSnapshot(`
+      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
         [
           [
             {
@@ -136,17 +171,15 @@ describe('EcrService UT', () => {
 
       const diffs2 = await octoAws.diff(app);
       const generator2 = await octoAws.beginTransaction(diffs2, {
-        yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldResourceTransaction: true,
       });
 
-      // Prevent generator2 from running real resource actions.
+      const resourceTransactionResult2 = await generator2.next();
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourceDiffsResult2 = await generator2.next();
       await octoAws.commitTransaction(app, modelTransactionResult2.value);
 
       // Verify resource diff was as expected.
-      expect(resourceDiffsResult2.value).toMatchInlineSnapshot(`
+      expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
         [
           [
             {
@@ -163,17 +196,15 @@ describe('EcrService UT', () => {
 
       const diffs3 = await octoAws.diff(app);
       const generator3 = await octoAws.beginTransaction(diffs3, {
-        yieldModelTransaction: true,
-        yieldResourceDiffs: true,
+        yieldResourceTransaction: true,
       });
 
-      // Prevent generator3 from running real resource actions.
+      const resourceTransactionResult3 = await generator3.next();
       const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourceDiffsResult3 = await generator3.next();
       await octoAws.commitTransaction(app, modelTransactionResult3.value);
 
       // Verify resource diff was as expected.
-      expect(resourceDiffsResult3.value).toMatchInlineSnapshot(`
+      expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
         [
           [
             {
