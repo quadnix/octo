@@ -63,6 +63,7 @@ quadnix
 readdir
 renderer
 rimraf
+rolename
 schemas
 sdk
 sep

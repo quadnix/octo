@@ -51,7 +51,9 @@ import './resources/ecs/actions/delete-ecs-cluster.resource.action.js';
 import './resources/efs/actions/add-efs.resource.action.js';
 import './resources/efs/actions/delete-efs.resource.action.js';
 
+import './resources/iam/actions/add-iam-role.resource.action.js';
 import './resources/iam/actions/add-iam-user.resource.action.js';
+import './resources/iam/actions/delete-iam-role.resource.action.js';
 import './resources/iam/actions/delete-iam-user.resource.action.js';
 
 import './resources/internet-gateway/actions/add-internet-gateway.resource.action.js';
