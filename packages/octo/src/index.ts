@@ -43,28 +43,20 @@ export { AAnchor } from './overlays/anchor.abstract.js';
 export { IAnchor } from './overlays/anchor.interface.js';
 export { AOverlay } from './overlays/overlay.abstract.js';
 export { IOverlay } from './overlays/overlay.interface.js';
+export { OverlayService } from './overlays/overlay.service.js';
 
 export { AResource } from './resources/resource.abstract.js';
 export { IResource } from './resources/resource.interface.js';
 export { IResourceAction } from './resources/resource-action.interface.js';
 export { ASharedResource } from './resources/shared-resource.abstract.js';
 
-export {
-  ModelSerializationService,
-  ModelSerializationServiceFactory,
-} from './services/serialization/model/model-serialization.service.js';
-export {
-  ResourceSerializationService,
-  ResourceSerializationServiceFactory,
-} from './services/serialization/resource/resource-serialization.service.js';
+export { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
+export { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
 
 export { LocalStateProvider } from './services/state-management/local.state-provider.js';
-export {
-  StateManagementService,
-  StateManagementServiceFactory,
-} from './services/state-management/state-management.service.js';
+export { StateManagementService } from './services/state-management/state-management.service.js';
 export { IStateProvider } from './services/state-management/state-provider.interface.js';
 
-export { TransactionService, TransactionServiceFactory } from './services/transaction/transaction.service.js';
+export { TransactionService } from './services/transaction/transaction.service.js';
 
 export * from './app.type.js';

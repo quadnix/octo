@@ -1,10 +1,8 @@
-import { ModelType, UnknownModel, UnknownOverlay } from '../app.type.js';
-import { Container } from '../decorators/container.js';
+import { ModelType, UnknownModel } from '../app.type.js';
 import { Dependency } from '../functions/dependency/dependency.model.js';
 import { Diff, DiffAction } from '../functions/diff/diff.model.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AAnchor } from '../overlays/anchor.abstract.js';
-import { OverlayDataRepository } from '../overlays/overlay-data.repository.js';
 import { IModel } from './model.interface.js';
 
 /**
@@ -46,11 +44,6 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       parentToChildDependency.addParentRelationship(onField as string, toField);
       this.dependencies.push(parentToChildDependency);
     }
-  }
-
-  async addOverlay(overlay: UnknownOverlay): Promise<void> {
-    const overlayDataRepository = await Container.get(OverlayDataRepository);
-    overlayDataRepository.add(overlay);
   }
 
   addRelationship(onField: keyof T | string, to: UnknownModel, toField: string): void {

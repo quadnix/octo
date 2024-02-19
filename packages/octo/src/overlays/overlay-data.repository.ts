@@ -46,6 +46,17 @@ export class OverlayDataRepository {
   getByProperties(filters: { key: string; value: any }[] = []): UnknownOverlay[] {
     return this.newOverlays.filter((o) => filters.every((c) => o.properties[c.key] === c.value));
   }
+
+  remove(overlay: UnknownOverlay): void {
+    if (overlay.MODEL_TYPE !== ModelType.OVERLAY) {
+      throw new Error('Adding non-overlay model!');
+    }
+
+    const overlayIndex = this.newOverlays.findIndex((o) => o.overlayId === overlay.overlayId);
+    if (overlayIndex > -1) {
+      this.newOverlays.splice(overlayIndex, 1);
+    }
+  }
 }
 
 @Factory<OverlayDataRepository>(OverlayDataRepository)
