@@ -35,8 +35,9 @@ import './models/service/s3-static-website/actions/update-source-paths-s3-static
 
 export { S3StorageService } from './models/service/s3-storage/s3-storage.service.model.js';
 import './models/service/s3-storage/actions/add-s3-storage.model.action.js';
+import './models/service/s3-storage/actions/add-s3-storage-access.overlay.action.js';
 import './models/service/s3-storage/actions/delete-s3-storage.model.action.js';
-import './models/service/s3-storage/actions/update-directories-s3-storage.model.action.js';
+import './models/service/s3-storage/actions/delete-s3-storage-access.overlay.action.js';
 
 export { AAction } from './models/action.abstract.js';
 
@@ -67,8 +68,7 @@ import './resources/route-table/actions/delete-route-table.resource.action.js';
 
 import './resources/s3/storage/actions/add-s3-storage.resource.action.js';
 import './resources/s3/storage/actions/delete-s3-storage.resource.action.js';
-import './resources/s3/storage/actions/update-add-directories-in-s3-storage.resource.action.js';
-import './resources/s3/storage/actions/update-remove-directories-in-s3-storage.resource.action.js';
+import './resources/s3/storage/actions/update-iam-user-with-s3-storage-policy.resource.action.js';
 
 import './resources/s3/website/actions/add-s3-website.resource.action.js';
 import './resources/s3/website/actions/delete-s3-website.resource.action.js';

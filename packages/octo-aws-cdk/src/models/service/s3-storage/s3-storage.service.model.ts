@@ -1,8 +1,15 @@
-import { Diff, DiffAction, Model, Service } from '@quadnix/octo';
-import { basename } from 'path';
-import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.model.js';
+import { Container, Model, OverlayService, Service } from '@quadnix/octo';
+import { CommonUtility } from '../../../utilities/common/common.utility.js';
 import { AwsRegion, RegionId } from '../../region/aws.region.model.js';
+import { AwsServer } from '../../server/aws.server.model.js';
+import { S3StorageAccessOverlay } from './s3-storage-access.overlay.js';
 import { IS3StorageService } from './s3-storage.service.interface.js';
+
+export enum S3StorageAccess {
+  READ = 'READ',
+  READ_WRITE = 'READ_WRITE',
+  WRITE = 'WRITE',
+}
 
 @Model()
 export class S3StorageService extends Service {
@@ -10,11 +17,7 @@ export class S3StorageService extends Service {
 
   readonly bucketName: string;
 
-  readonly directories: {
-    directoryReadAnchorName: string;
-    directoryWriteAnchorName: string;
-    remoteDirectoryPath: string;
-  }[] = [];
+  readonly directories: { remoteDirectoryPath: string }[] = [];
 
   constructor(regionId: RegionId, bucketName: string) {
     super(`${bucketName}-s3-storage`);
@@ -23,40 +26,85 @@ export class S3StorageService extends Service {
     this.bucketName = bucketName;
   }
 
-  addDirectory(remoteDirectoryPath: string): IamRoleAnchor[] {
+  addDirectory(remoteDirectoryPath: string): void {
     if (this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath)) {
       throw new Error('Remote directory already added in S3 bucket!');
     }
 
-    const directoryName = basename(remoteDirectoryPath);
-    const directoryReadAnchorName = `${directoryName}DirectoryReaderRole`;
-    const directoryWriteAnchorName = `${directoryName}DirectoryWriterRole`;
-
-    const directoryReadAnchor = new IamRoleAnchor(directoryReadAnchorName, this);
-    this.anchors.push(directoryReadAnchor);
-    const directoryWriteAnchor = new IamRoleAnchor(directoryWriteAnchorName, this);
-    this.anchors.push(directoryWriteAnchor);
-    this.directories.push({ directoryReadAnchorName, directoryWriteAnchorName, remoteDirectoryPath });
-
-    return [directoryReadAnchor, directoryWriteAnchor];
+    this.directories.push({ remoteDirectoryPath });
   }
 
-  override async diff(previous?: S3StorageService): Promise<Diff[]> {
-    const diff: Diff[] = [];
-
-    for (const directory of previous?.directories || []) {
-      if (!this.directories.find((d) => d.remoteDirectoryPath === directory.remoteDirectoryPath)) {
-        diff.push(new Diff(previous!, DiffAction.DELETE, 'directories', directory));
-      }
+  async allowDirectoryAccess(
+    server: AwsServer,
+    remoteDirectoryPath: string,
+    accessLevel: S3StorageAccess,
+  ): Promise<void> {
+    const directory = this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath);
+    if (!directory) {
+      throw new Error('Cannot find remote directory!');
     }
 
-    for (const directory of this.directories) {
-      if (!previous?.directories?.find((d) => d.remoteDirectoryPath === directory.remoteDirectoryPath)) {
-        diff.push(new Diff(this, DiffAction.ADD, 'directories', directory));
-      }
+    const principal = server.getAnchors()[0];
+    const overlayId = CommonUtility.hash(principal.anchorId, directory.remoteDirectoryPath, accessLevel);
+
+    const allowRead = accessLevel === S3StorageAccess.READ || accessLevel === S3StorageAccess.READ_WRITE;
+    const allowWrite = accessLevel === S3StorageAccess.WRITE || accessLevel === S3StorageAccess.READ_WRITE;
+    if (!allowRead || !allowWrite) {
+      return;
     }
 
-    return diff;
+    const overlayService = await Container.get(OverlayService);
+    const s3StorageAccessOverlay = new S3StorageAccessOverlay(
+      overlayId,
+      {
+        allowRead,
+        allowWrite,
+        bucketName: this.bucketName,
+        remoteDirectoryPath: directory.remoteDirectoryPath,
+      },
+      [principal],
+    );
+    await overlayService.addOverlay(s3StorageAccessOverlay);
+  }
+
+  async revokeDirectoryAccess(
+    server: AwsServer,
+    remoteDirectoryPath: string,
+    accessLevel: S3StorageAccess,
+  ): Promise<void> {
+    const directory = this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath);
+    if (!directory) {
+      throw new Error('Cannot find remote directory!');
+    }
+
+    const principal = server.getAnchors()[0];
+    const overlayId = CommonUtility.hash(principal.anchorId, directory.remoteDirectoryPath, accessLevel);
+
+    const overlayService = await Container.get(OverlayService);
+    const overlay = await overlayService.getOverlayById(overlayId);
+    if (!overlay) {
+      throw new Error('Cannot find overlay!');
+    }
+    await overlayService.removeOverlay(overlay);
+  }
+
+  async removeDirectory(remoteDirectoryPath: string): Promise<void> {
+    const directoryIndex = this.directories.findIndex((d) => d.remoteDirectoryPath === remoteDirectoryPath);
+    if (directoryIndex === -1) {
+      throw new Error('Cannot find remote directory!');
+    }
+
+    const overlayService = await Container.get(OverlayService);
+    const directory = this.directories[directoryIndex];
+    const overlays = await overlayService.getOverlayByProperties([
+      { key: 'bucketName', value: this.bucketName },
+      { key: 'remoteDirectoryPath', value: directory.remoteDirectoryPath },
+    ]);
+    if (overlays.length > 0) {
+      throw new Error('Cannot remove directory while overlay exists!');
+    }
+
+    this.directories.splice(directoryIndex, 1);
   }
 
   override synth(): IS3StorageService {

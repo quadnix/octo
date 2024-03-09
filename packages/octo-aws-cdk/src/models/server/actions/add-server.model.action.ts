@@ -16,9 +16,7 @@ export class AddServerModelAction extends AAction {
     const serverIamUserName = server.getAnchors()[0].anchorId;
 
     // Create IAM User.
-    const iamUser = new IamUser(`iam-user-${serverIamUserName}`, {
-      username: serverIamUserName,
-    });
+    const iamUser = new IamUser(`iam-user-${serverIamUserName}`, { username: serverIamUserName });
 
     const output: ActionOutputs = {};
     output[iamUser.resourceId] = iamUser;
