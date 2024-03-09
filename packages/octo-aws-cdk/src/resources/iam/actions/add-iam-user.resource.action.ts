@@ -29,6 +29,7 @@ export class AddIamUserResourceAction implements IResourceAction {
 
     // Set response.
     response.Arn = data.User!.Arn as string;
+    response.policies = {};
     response.UserId = data.User!.UserId as string;
     response.UserName = data.User!.UserName as string;
   }

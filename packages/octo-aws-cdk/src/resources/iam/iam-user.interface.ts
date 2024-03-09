@@ -4,6 +4,7 @@ export interface IIamUserProperties {
 
 export interface IIamUserResponse {
   Arn: string;
+  policies: { [key: string]: string[] };
   UserId: string;
   UserName: string;
 }
