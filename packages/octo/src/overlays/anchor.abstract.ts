@@ -19,6 +19,13 @@ export abstract class AAnchor {
     };
   }
 
+  toJSON(): object {
+    return {
+      anchorId: this.anchorId,
+      parent: this.parent.getContext(),
+    };
+  }
+
   static async unSynth(
     deserializationClass: any,
     anchor: IAnchor,
