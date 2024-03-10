@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { SharedTestResource, TestAnchor, TestOverlay, TestResource } from '../../../test/helpers/test-classes.js';
 import { ActionInputs, ActionOutputs, UnknownResource } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
@@ -10,29 +11,12 @@ import { Region } from '../../models/region/region.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
-import { AResource } from '../../resources/resource.abstract.js';
-import { ASharedResource } from '../../resources/shared-resource.abstract.js';
 import { TransactionService } from './transaction.service.js';
-
-class TestResource extends AResource<TestResource> {
-  readonly MODEL_NAME: string = 'test-resource';
-
-  constructor(resourceId: string) {
-    super(resourceId, {}, []);
-  }
-}
-
-class SharedTestResource extends ASharedResource<TestResource> {
-  readonly MODEL_NAME: string = 'test-resource';
-
-  constructor(resourceId: string, properties: { [key: string]: unknown }, parents: [TestResource?]) {
-    super(resourceId, properties, parents as AResource<TestResource>[]);
-  }
-}
 
 describe('TransactionService UT', () => {
   beforeEach(() => {
     Container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
+    Container.get(OverlayDataRepository, { args: [true, [], []] });
 
     Container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
     Container.get(ResourceDataRepository, { args: [true] });
@@ -606,6 +590,25 @@ describe('TransactionService UT', () => {
         const service = new TransactionService();
         service.registerModelActions([universalModelAction]);
         const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
+
+        const result = await generator.next();
+
+        expect(result.value).toMatchSnapshot();
+      });
+
+      it('should yield model transaction with overlays', async () => {
+        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+
+        const app = new App('app');
+        const anchor = new TestAnchor('test-anchor', app);
+        const overlay = new TestOverlay('test-overlay', {}, [anchor]);
+
+        const overlayDataRepository = await Container.get(OverlayDataRepository);
+        overlayDataRepository.add(overlay);
+
+        const service = new TransactionService();
+        service.registerOverlayActions([universalModelAction]);
+        const generator = service.beginTransaction([], { yieldModelTransaction: true });
 
         const result = await generator.next();
 

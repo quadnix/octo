@@ -1,22 +1,6 @@
-import { UnknownModel } from '../app.type.js';
+import { TestAnchor, TestOverlay } from '../../test/helpers/test-classes.js';
 import { App } from '../models/app/app.model.js';
-import { AAnchor } from './anchor.abstract.js';
 import { AOverlay } from './overlay.abstract.js';
-import { IOverlay } from './overlay.interface.js';
-
-class TestAnchor extends AAnchor {
-  constructor(anchorId: string, parent: UnknownModel) {
-    super(anchorId, parent);
-  }
-}
-
-class TestOverlay extends AOverlay<TestOverlay> {
-  readonly MODEL_NAME: string = 'test-overlay';
-
-  constructor(overlayId: IOverlay['overlayId'], properties: IOverlay['properties'], anchors: AAnchor[]) {
-    super(overlayId, properties, anchors);
-  }
-}
 
 describe('Overlay UT', () => {
   describe('synth()', () => {

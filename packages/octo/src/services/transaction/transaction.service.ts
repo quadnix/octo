@@ -1,6 +1,7 @@
 import {
   ActionInputs,
   ActionOutputs,
+  ModelType,
   TransactionOptions,
   UnknownResource,
   UnknownSharedResource,
@@ -236,13 +237,19 @@ export class TransactionService {
     diffs.push(...overlayDataRepository.diff());
 
     // Set apply order on model diffs.
-    const modelDiffs = diffs.map(
-      (d) =>
-        new DiffMetadata(
+    const modelDiffs = diffs.map((d) => {
+      if (d.model.MODEL_TYPE === ModelType.OVERLAY) {
+        return new DiffMetadata(
+          d,
+          this.overlayActions.filter((a) => a.filter(d)),
+        );
+      } else {
+        return new DiffMetadata(
           d,
           this.modelActions.filter((a) => a.filter(d)),
-        ),
-    );
+        );
+      }
+    });
     for (const diff of modelDiffs) {
       this.setApplyOrder(diff, modelDiffs);
     }

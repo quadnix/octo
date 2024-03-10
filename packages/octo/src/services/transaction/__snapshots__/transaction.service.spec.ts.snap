@@ -187,6 +187,18 @@ exports[`TransactionService UT beginTransaction() yieldModelTransaction should y
 ]
 `;
 
+exports[`TransactionService UT beginTransaction() yieldModelTransaction should yield model transaction with overlays 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "overlayId",
+      "value": "test-overlay",
+    },
+  ],
+]
+`;
+
 exports[`TransactionService UT beginTransaction() yieldResourceDiffs should yield resource diffs 1`] = `
 [
   [
