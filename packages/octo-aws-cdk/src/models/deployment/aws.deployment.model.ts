@@ -5,18 +5,18 @@ import { IAwsDeployment } from './aws.deployment.interface.js';
 
 @Model()
 export class AwsDeployment extends Deployment {
-  readonly deploymentFolderRemotePath: string;
-
   readonly s3StorageService: S3StorageService;
 
   constructor(deploymentTag: string, s3StorageService: S3StorageService) {
     super(deploymentTag);
 
+    this.s3StorageService = s3StorageService;
+  }
+
+  get deploymentFolderRemotePath(): string {
     const parents = this.getParents();
     const parent = (parents['server'] || parents['support'])[0].to as AwsServer;
-    this.deploymentFolderRemotePath = `private/deployments/${parent.serverKey}/${deploymentTag}`;
-
-    this.s3StorageService = s3StorageService;
+    return `private/deployments/${parent.serverKey}/${this.deploymentTag}`;
   }
 
   override synth(): IAwsDeployment {
