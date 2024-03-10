@@ -13,6 +13,7 @@ import {
   TransactionService,
   UnknownResource,
 } from '@quadnix/octo';
+import './index.js';
 import { AAction } from './models/action.abstract.js';
 
 export class OctoAws {
