@@ -1,3 +1,4 @@
+import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { AModel } from '../model.abstract.js';
 import { IDeployment } from './deployment.interface.js';
@@ -25,7 +26,10 @@ export class Deployment extends AModel<IDeployment, Deployment> {
     };
   }
 
-  static override async unSynth(deployment: IDeployment): Promise<Deployment> {
+  static override async unSynth(
+    deployment: IDeployment,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Deployment> {
     return new Deployment(deployment.deploymentTag);
   }
 }

@@ -1,3 +1,4 @@
+import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
@@ -38,7 +39,10 @@ export class Region extends AModel<IRegion, Region> {
     };
   }
 
-  static override async unSynth(region: IRegion): Promise<Region> {
+  static override async unSynth(
+    region: IRegion,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Region> {
     return new Region(region.regionId);
   }
 }

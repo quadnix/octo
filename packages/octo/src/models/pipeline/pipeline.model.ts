@@ -1,3 +1,4 @@
+import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import { AModel } from '../model.abstract.js';
@@ -35,7 +36,10 @@ export class Pipeline extends AModel<IPipeline, Pipeline> {
     };
   }
 
-  static override async unSynth(pipeline: IPipeline): Promise<Pipeline> {
+  static override async unSynth(
+    pipeline: IPipeline,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Pipeline> {
     const newPipeline = new Pipeline(pipeline.pipelineName);
     newPipeline.instructionSet.push(...pipeline.instructionSet);
     return newPipeline;

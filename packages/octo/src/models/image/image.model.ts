@@ -1,4 +1,5 @@
 import { resolve } from 'path';
+import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { AModel } from '../model.abstract.js';
 import { IImage } from './image.interface.js';
@@ -50,7 +51,10 @@ export class Image extends AModel<IImage, Image> {
     };
   }
 
-  static override async unSynth(image: IImage): Promise<Image> {
+  static override async unSynth(
+    image: IImage,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Image> {
     return new Image(image.imageName, image.imageTag, {
       ...image.dockerOptions,
     });

@@ -1,3 +1,4 @@
+import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import { Diff } from '../../functions/diff/diff.model.js';
@@ -39,7 +40,10 @@ export class Environment extends AModel<IEnvironment, Environment> {
     };
   }
 
-  static override async unSynth(environment: IEnvironment): Promise<Environment> {
+  static override async unSynth(
+    environment: IEnvironment,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Environment> {
     const newEnvironment = new Environment(environment.environmentName);
 
     for (const key in environment.environmentVariables) {

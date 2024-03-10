@@ -1,3 +1,4 @@
+import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
@@ -101,7 +102,10 @@ export class App extends AModel<IApp, App> {
     };
   }
 
-  static override async unSynth(app: IApp): Promise<App> {
+  static override async unSynth(
+    app: IApp,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<App> {
     return new App(app.name);
   }
 }

@@ -1,4 +1,4 @@
-import { SupportApplicationType } from '../../app.type.js';
+import { SupportApplicationType, UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { AModel } from '../model.abstract.js';
@@ -43,7 +43,10 @@ export class Support extends AModel<ISupport, Support> {
     };
   }
 
-  static override async unSynth(support: ISupport): Promise<Support> {
+  static override async unSynth(
+    support: ISupport,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<Support> {
     return new Support(support.serverKey, support.applicationType);
   }
 }
