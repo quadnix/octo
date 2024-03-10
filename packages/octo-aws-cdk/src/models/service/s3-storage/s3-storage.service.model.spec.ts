@@ -128,6 +128,7 @@ describe('S3StorageService UT', () => {
     const resourceTransactionResult2 = await generator2.next();
     const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
     await octoAws.commitTransaction(app, modelTransactionResult2.value);
+    /* eslint-disable spellcheck/spell-checker */
     expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
       [
         [
@@ -165,6 +166,7 @@ describe('S3StorageService UT', () => {
         ],
       ]
     `);
+    /* eslint-enable */
 
     // Revoke Server access from one of the S3StorageService directory.
     await service.revokeDirectoryAccess(server, 'uploads', S3StorageAccess.READ);
@@ -177,6 +179,7 @@ describe('S3StorageService UT', () => {
     const resourceTransactionResult3 = await generator3.next();
     const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
     await octoAws.commitTransaction(app, modelTransactionResult3.value);
+    /* eslint-disable spellcheck/spell-checker */
     expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
       [
         [
@@ -214,6 +217,7 @@ describe('S3StorageService UT', () => {
         ],
       ]
     `);
+    /* eslint-enable */
 
     // Remove all directories, and delete the service.
     await service.removeDirectory('uploads');
