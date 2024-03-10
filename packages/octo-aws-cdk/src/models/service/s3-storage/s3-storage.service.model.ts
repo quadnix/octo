@@ -49,7 +49,7 @@ export class S3StorageService extends Service {
 
     const allowRead = accessLevel === S3StorageAccess.READ || accessLevel === S3StorageAccess.READ_WRITE;
     const allowWrite = accessLevel === S3StorageAccess.WRITE || accessLevel === S3StorageAccess.READ_WRITE;
-    if (!allowRead || !allowWrite) {
+    if (!allowRead && !allowWrite) {
       return;
     }
 

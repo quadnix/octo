@@ -1,10 +1,14 @@
-import { App, DiffMetadata, LocalStateProvider } from '@quadnix/octo';
+import { CreatePolicyCommand, CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
+import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
+import { jest } from '@jest/globals';
+import { App, Container, DiffMetadata, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { OctoAws, RegionId } from '../../../index.js';
-import { S3StorageService } from './s3-storage.service.model.js';
+import { AwsServer, OctoAws, RegionId } from '../../../index.js';
+import { ProcessUtility } from '../../../utilities/process/process.utility.js';
+import { S3StorageAccess, S3StorageService } from './s3-storage.service.model.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
@@ -16,91 +20,223 @@ describe('S3StorageService UT', () => {
     join(__dirname, 'shared-resources.json'),
   ];
 
+  const runDetachedProcessMock: jest.MockedFunction<any> = jest.spyOn(ProcessUtility, 'runDetachedProcess');
+
+  beforeAll(() => {
+    TestContainer.create(
+      [
+        {
+          type: IAMClient,
+          value: { send: jest.fn() },
+        },
+        {
+          type: S3Client,
+          value: { send: jest.fn() },
+        },
+      ],
+      {
+        factoryTimeoutInMs: 500,
+      },
+    );
+
+    runDetachedProcessMock.mockReturnValue({
+      on: jest.fn().mockImplementation((event: string, cb: (code: number) => void) => {
+        if (event === 'exit') {
+          cb(0);
+        }
+      }),
+      removeAllListeners: jest.fn(),
+    });
+  });
+
   afterEach(async () => {
     await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
   });
 
-  describe('diff()', () => {
-    let octoAws: OctoAws;
+  afterAll(() => {
+    Container.reset();
+  });
 
-    let app: App;
-    let service: S3StorageService;
-
-    beforeEach(async () => {
-      octoAws = new OctoAws();
-      await octoAws.initialize(new LocalStateProvider(__dirname));
-
-      app = new App('test');
-      service = new S3StorageService(RegionId.AWS_US_EAST_1A, 'test-bucket');
-      app.addService(service);
-
-      const diffs0 = await octoAws.diff(app);
-      const generator0 = await octoAws.beginTransaction(diffs0, {
-        yieldModelTransaction: true,
-      });
-
-      // Prevent generator from running real resource actions.
-      const modelTransactionResult0 = (await generator0.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult0.value);
+  it('should test e2e', async () => {
+    const iamClient = await Container.get(IAMClient);
+    (iamClient.send as jest.Mock).mockImplementation(async (instance) => {
+      if (instance instanceof CreateUserCommand) {
+        return { User: { Arn: 'userArn', UserId: 'userId', UserName: 'userName' } };
+      } else if (instance instanceof CreatePolicyCommand) {
+        return { Policy: { Arn: 'policyArn' } };
+      }
     });
 
-    it('should be able to CUD on the storage', async () => {
-      service.addDirectory('uploads');
+    const s3Client = await Container.get(S3Client);
+    (s3Client.send as jest.Mock).mockImplementation(async (instance) => {
+      if (instance instanceof ListObjectsV2Command) {
+        return { Contents: [], NextContinuationToken: null };
+      }
+    });
 
-      const diffs1 = await octoAws.diff(app);
-      const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldModelTransaction: true,
-        yieldResourceDiffs: true,
-      });
+    const octoAws = new OctoAws();
+    await octoAws.initialize(new LocalStateProvider(__dirname));
+    octoAws.registerInputs({
+      'input.image.quadnix/test:0.0.1.dockerExecutable': 'docker',
+    });
 
-      // Prevent generator1 from running real resource actions.
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourceDiffsResult1 = await generator1.next();
-      await octoAws.commitTransaction(app, modelTransactionResult1.value);
+    // Add the S3StorageService, and a Server.
+    const app = new App('test');
+    const service = new S3StorageService(RegionId.AWS_US_EAST_1A, 'test-bucket');
+    app.addService(service);
+    const image = new Image('quadnix/test', '0.0.1', {
+      dockerfilePath: 'path/to/Dockerfile',
+    });
+    app.addImage(image);
+    const server = new AwsServer('Backend', image);
+    app.addServer(server);
 
-      expect(resourceDiffsResult1.value).toMatchInlineSnapshot(`
+    const diffs1 = await octoAws.diff(app);
+    const generator1 = await octoAws.beginTransaction(diffs1, {
+      yieldResourceTransaction: true,
+    });
+
+    const resourceTransactionResult1 = await generator1.next();
+    const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
+    await octoAws.commitTransaction(app, modelTransactionResult1.value);
+    expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
+      [
         [
-          [
-            {
-              "action": "update",
-              "field": "add-directories",
-              "value": [
-                {
-                  "directoryReadAnchorName": "uploadsDirectoryReaderRole",
-                  "directoryWriteAnchorName": "uploadsDirectoryWriterRole",
+          {
+            "action": "add",
+            "field": "resourceId",
+            "value": "bucket-test-bucket",
+          },
+          {
+            "action": "add",
+            "field": "resourceId",
+            "value": "iam-user-BackendServiceUser",
+          },
+        ],
+      ]
+    `);
+
+    // Allow Server to access one of the S3StorageService directory.
+    service.addDirectory('uploads');
+    await service.allowDirectoryAccess(server, 'uploads', S3StorageAccess.READ);
+
+    const diffs2 = await octoAws.diff(app);
+    const generator2 = await octoAws.beginTransaction(diffs2, {
+      yieldResourceTransaction: true,
+    });
+
+    const resourceTransactionResult2 = await generator2.next();
+    const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
+    await octoAws.commitTransaction(app, modelTransactionResult2.value);
+    expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "action": "update",
+            "field": "7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+            "value": {
+              "action": "add",
+              "overlay": S3StorageAccessOverlay {
+                "MODEL_NAME": "s3-storage-access",
+                "MODEL_TYPE": "overlay",
+                "anchors": [
+                  {
+                    "anchorId": "BackendServiceUser",
+                    "parent": "server=Backend,app=test",
+                  },
+                ],
+                "dependencies": [
+                  {
+                    "from": "s3-storage-access=7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+                    "relationship": undefined,
+                    "to": "server=Backend,app=test",
+                  },
+                ],
+                "overlayId": "7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+                "properties": {
+                  "allowRead": true,
+                  "allowWrite": false,
+                  "bucketName": "test-bucket",
                   "remoteDirectoryPath": "uploads",
                 },
-              ],
+              },
             },
-          ],
-        ]
-      `);
+          },
+        ],
+      ]
+    `);
 
-      // Remove storage bucket.
-      service.remove(true);
+    // Revoke Server access from one of the S3StorageService directory.
+    await service.revokeDirectoryAccess(server, 'uploads', S3StorageAccess.READ);
 
-      const diffs2 = await octoAws.diff(app);
-      const generator2 = await octoAws.beginTransaction(diffs2, {
-        yieldModelTransaction: true,
-        yieldResourceDiffs: true,
-      });
-
-      // Prevent generator1 from running real resource actions.
-      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const resourceDiffsResult2 = await generator2.next();
-      await octoAws.commitTransaction(app, modelTransactionResult2.value);
-
-      expect(resourceDiffsResult2.value).toMatchInlineSnapshot(`
-        [
-          [
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "bucket-test-bucket",
-            },
-          ],
-        ]
-      `);
+    const diffs3 = await octoAws.diff(app);
+    const generator3 = await octoAws.beginTransaction(diffs3, {
+      yieldResourceTransaction: true,
     });
+
+    const resourceTransactionResult3 = await generator3.next();
+    const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
+    await octoAws.commitTransaction(app, modelTransactionResult3.value);
+    expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "action": "update",
+            "field": "7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+            "value": {
+              "action": "delete",
+              "overlay": S3StorageAccessOverlay {
+                "MODEL_NAME": "s3-storage-access",
+                "MODEL_TYPE": "overlay",
+                "anchors": [
+                  {
+                    "anchorId": "BackendServiceUser",
+                    "parent": "server=Backend,app=test",
+                  },
+                ],
+                "dependencies": [
+                  {
+                    "from": "s3-storage-access=7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+                    "relationship": undefined,
+                    "to": "server=Backend,app=test",
+                  },
+                ],
+                "overlayId": "7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+                "properties": {
+                  "allowRead": true,
+                  "allowWrite": false,
+                  "bucketName": "test-bucket",
+                  "remoteDirectoryPath": "uploads",
+                },
+              },
+            },
+          },
+        ],
+      ]
+    `);
+
+    // Remove all directories, and delete the service.
+    await service.removeDirectory('uploads');
+    service.remove();
+
+    const diffs4 = await octoAws.diff(app);
+    const generator4 = await octoAws.beginTransaction(diffs4, {
+      yieldResourceTransaction: true,
+    });
+
+    const resourceTransactionResult4 = await generator4.next();
+    const modelTransactionResult4 = (await generator4.next()) as IteratorResult<DiffMetadata[][]>;
+    await octoAws.commitTransaction(app, modelTransactionResult4.value);
+    expect(resourceTransactionResult4.value).toMatchInlineSnapshot(`
+      [
+        [
+          {
+            "action": "delete",
+            "field": "resourceId",
+            "value": "bucket-test-bucket",
+          },
+        ],
+      ]
+    `);
   });
 });

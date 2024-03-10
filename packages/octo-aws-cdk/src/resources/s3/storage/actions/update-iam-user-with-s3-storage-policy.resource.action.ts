@@ -18,7 +18,6 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     return (
       diff.action === DiffAction.UPDATE &&
       diff.model.MODEL_NAME === 'iam-user' &&
-      (diff.value as IamUserPolicyDiff['key']).action === 'add' &&
       (diff.value as IamUserPolicyDiff['key']).overlay.MODEL_NAME === 's3-storage-access'
     );
   }
