@@ -11,6 +11,7 @@ import {
   Support,
   UnknownModel,
 } from '../../src/index.js';
+import { TestAnchor, TestOverlay } from '../helpers/test-classes.js';
 
 describe('Model E2E Test', () => {
   describe('common functions', () => {
@@ -242,6 +243,19 @@ describe('Model E2E Test', () => {
         [
           "region=region-1,app=app",
           "image=imageName:imageTag,app=app",
+          "app=app",
+        ]
+      `);
+    });
+
+    it('should not include overlays in boundary', () => {
+      const app = new App('app');
+      const anchor = new TestAnchor('test-anchor', app);
+      const overlay = new TestOverlay('test-overlay', {}, [anchor]);
+
+      expect(overlay.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`[]`);
+      expect(app.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
+        [
           "app=app",
         ]
       `);
