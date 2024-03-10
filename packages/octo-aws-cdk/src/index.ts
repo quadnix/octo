@@ -9,6 +9,10 @@ import './factories/aws/iam.aws.factory.js';
 import './factories/aws/s3.aws.factory.js';
 import './factories/aws/sts.aws.factory.js';
 
+export { AwsDeployment } from './models/deployment/aws.deployment.model.js';
+import './models/deployment/actions/add-deployment.model.action.js';
+import './models/deployment/actions/delete-deployment.model.action.js';
+
 import './models/environment/actions/add-environment.model.action.js';
 import './models/environment/actions/delete-environment.model.action.js';
 
@@ -69,6 +73,7 @@ import './resources/route-table/actions/delete-route-table.resource.action.js';
 import './resources/s3/storage/actions/add-s3-storage.resource.action.js';
 import './resources/s3/storage/actions/delete-s3-storage.resource.action.js';
 import './resources/s3/storage/actions/update-iam-user-with-s3-storage-policy.resource.action.js';
+import './resources/s3/storage/actions/update-source-paths-in-s3-storage.resource.action.js';
 
 import './resources/s3/website/actions/add-s3-website.resource.action.js';
 import './resources/s3/website/actions/delete-s3-website.resource.action.js';
