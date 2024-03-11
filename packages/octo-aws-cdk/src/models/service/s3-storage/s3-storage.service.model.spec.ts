@@ -6,9 +6,8 @@ import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsServer, OctoAws, RegionId } from '../../../index.js';
+import { AwsServer, OctoAws, RegionId, S3StorageAccess, S3StorageService } from '../../../index.js';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
-import { S3StorageAccess, S3StorageService } from './s3-storage.service.model.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);

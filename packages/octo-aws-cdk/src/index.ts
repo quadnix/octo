@@ -37,7 +37,7 @@ import './models/service/s3-static-website/actions/add-s3-static-website.model.a
 import './models/service/s3-static-website/actions/delete-s3-static-website.model.action.js';
 import './models/service/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
 
-export { S3StorageService } from './models/service/s3-storage/s3-storage.service.model.js';
+export { S3StorageAccess, S3StorageService } from './models/service/s3-storage/s3-storage.service.model.js';
 import './models/service/s3-storage/actions/add-s3-storage.model.action.js';
 import './models/service/s3-storage/actions/add-s3-storage-access.overlay.action.js';
 import './models/service/s3-storage/actions/delete-s3-storage.model.action.js';
