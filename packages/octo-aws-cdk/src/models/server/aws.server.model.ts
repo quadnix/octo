@@ -1,13 +1,13 @@
 import { IServer, Image, Model, Server, UnknownModel } from '@quadnix/octo';
-import { IamUserAnchor } from '../../anchors/iam-user.anchor.model.js';
+import { IamRoleAnchor } from '../../anchors/iam-role.anchor.model.js';
 
 @Model()
 export class AwsServer extends Server {
   constructor(serverKey: string, image: Image) {
     super(serverKey, image);
 
-    const serverIamUserName = `${serverKey.charAt(0).toUpperCase() + serverKey.slice(1)}ServiceUser`;
-    this.anchors.push(new IamUserAnchor(serverIamUserName, this));
+    const serverIamRoleName = `${serverKey.charAt(0).toUpperCase() + serverKey.slice(1)}ServiceRole`;
+    this.anchors.push(new IamRoleAnchor(serverIamRoleName, this));
   }
 
   override synth(): IServer {

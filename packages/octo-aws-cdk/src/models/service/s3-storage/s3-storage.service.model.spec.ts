@@ -1,4 +1,4 @@
-import { CreatePolicyCommand, CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
+import { CreatePolicyCommand, CreateRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import { App, Container, DiffMetadata, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
@@ -59,8 +59,8 @@ describe('S3StorageService UT', () => {
   it('should test e2e', async () => {
     const iamClient = await Container.get(IAMClient);
     (iamClient.send as jest.Mock).mockImplementation(async (instance) => {
-      if (instance instanceof CreateUserCommand) {
-        return { User: { Arn: 'userArn', UserId: 'userId', UserName: 'userName' } };
+      if (instance instanceof CreateRoleCommand) {
+        return { Role: { Arn: 'roleArn', RoleId: 'roleId', RoleName: 'roleName' } };
       } else if (instance instanceof CreatePolicyCommand) {
         return { Policy: { Arn: 'policyArn' } };
       }
@@ -109,7 +109,7 @@ describe('S3StorageService UT', () => {
           {
             "action": "add",
             "field": "resourceId",
-            "value": "iam-user-BackendServiceUser",
+            "value": "iam-role-BackendServiceRole",
           },
         ],
       ]
@@ -133,7 +133,7 @@ describe('S3StorageService UT', () => {
         [
           {
             "action": "update",
-            "field": "7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+            "field": "3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
             "value": {
               "action": "add",
               "overlay": S3StorageAccessOverlay {
@@ -141,18 +141,18 @@ describe('S3StorageService UT', () => {
                 "MODEL_TYPE": "overlay",
                 "anchors": [
                   {
-                    "anchorId": "BackendServiceUser",
+                    "anchorId": "BackendServiceRole",
                     "parent": "server=Backend,app=test",
                   },
                 ],
                 "dependencies": [
                   {
-                    "from": "s3-storage-access=7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+                    "from": "s3-storage-access=3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
                     "relationship": undefined,
                     "to": "server=Backend,app=test",
                   },
                 ],
-                "overlayId": "7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+                "overlayId": "3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
                 "properties": {
                   "allowRead": true,
                   "allowWrite": false,
@@ -184,7 +184,7 @@ describe('S3StorageService UT', () => {
         [
           {
             "action": "update",
-            "field": "7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+            "field": "3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
             "value": {
               "action": "delete",
               "overlay": S3StorageAccessOverlay {
@@ -192,18 +192,18 @@ describe('S3StorageService UT', () => {
                 "MODEL_TYPE": "overlay",
                 "anchors": [
                   {
-                    "anchorId": "BackendServiceUser",
+                    "anchorId": "BackendServiceRole",
                     "parent": "server=Backend,app=test",
                   },
                 ],
                 "dependencies": [
                   {
-                    "from": "s3-storage-access=7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+                    "from": "s3-storage-access=3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
                     "relationship": undefined,
                     "to": "server=Backend,app=test",
                   },
                 ],
-                "overlayId": "7daa08888d4e749a6dc04235eecd1463f47b0fbd",
+                "overlayId": "3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
                 "properties": {
                   "allowRead": true,
                   "allowWrite": false,

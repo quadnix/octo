@@ -1,6 +1,6 @@
 import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
-import { IamUserAnchor } from '../../../../anchors/iam-user.anchor.model.js';
-import { IamUser } from '../../../../resources/iam/iam-user.resource.js';
+import { IamRoleAnchor } from '../../../../anchors/iam-role.anchor.model.js';
+import { IamRole } from '../../../../resources/iam/iam-role.resource.js';
 import { AAction } from '../../../action.abstract.js';
 import { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
 
@@ -10,9 +10,9 @@ export class DeleteS3StorageAccessOverlayAction extends AAction {
 
   override collectInput(diff: Diff): string[] {
     const s3StorageAccessOverlay = diff.model as S3StorageAccessOverlay;
-    const iamUserAnchor = s3StorageAccessOverlay.getAnchors()[0] as IamUserAnchor;
+    const iamRoleAnchor = s3StorageAccessOverlay.getAnchors()[0] as IamRoleAnchor;
 
-    return [`resource.iam-user-${iamUserAnchor.anchorId}`];
+    return [`resource.iam-role-${iamRoleAnchor.anchorId}`];
   }
 
   filter(diff: Diff): boolean {
@@ -23,15 +23,15 @@ export class DeleteS3StorageAccessOverlayAction extends AAction {
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const s3StorageAccessOverlay = diff.model as S3StorageAccessOverlay;
-    const iamUserAnchor = s3StorageAccessOverlay.getAnchors()[0] as IamUserAnchor;
-    const iamUser = actionInputs[`resource.iam-user-${iamUserAnchor.anchorId}`] as IamUser;
+    const iamRoleAnchor = s3StorageAccessOverlay.getAnchors()[0] as IamRoleAnchor;
+    const iamRole = actionInputs[`resource.iam-role-${iamRoleAnchor.anchorId}`] as IamRole;
 
-    iamUser.updatePolicyDiff({
+    iamRole.updatePolicyDiff({
       [s3StorageAccessOverlay.overlayId]: { action: 'delete', overlay: s3StorageAccessOverlay },
     });
 
     const output: ActionOutputs = {};
-    output[iamUser.resourceId] = iamUser;
+    output[iamRole.resourceId] = iamRole;
 
     return output;
   }

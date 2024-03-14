@@ -60,6 +60,8 @@ import './resources/iam/actions/add-iam-role.resource.action.js';
 import './resources/iam/actions/add-iam-user.resource.action.js';
 import './resources/iam/actions/delete-iam-role.resource.action.js';
 import './resources/iam/actions/delete-iam-user.resource.action.js';
+import './resources/iam/actions/update-iam-role-with-s3-storage-policy.resource.action.js';
+import './resources/iam/actions/update-iam-user-with-s3-storage-policy.resource.action.js';
 
 import './resources/internet-gateway/actions/add-internet-gateway.resource.action.js';
 import './resources/internet-gateway/actions/delete-internet-gateway.resource.action.js';
@@ -72,7 +74,6 @@ import './resources/route-table/actions/delete-route-table.resource.action.js';
 
 import './resources/s3/storage/actions/add-s3-storage.resource.action.js';
 import './resources/s3/storage/actions/delete-s3-storage.resource.action.js';
-import './resources/s3/storage/actions/update-iam-user-with-s3-storage-policy.resource.action.js';
 import './resources/s3/storage/actions/update-source-paths-in-s3-storage.resource.action.js';
 
 import './resources/s3/website/actions/add-s3-website.resource.action.js';

@@ -30,6 +30,7 @@ export class AddIamRoleResourceAction implements IResourceAction {
 
     // Set response.
     response.Arn = data.Role!.Arn as string;
+    response.policies = {};
     response.RoleId = data.Role!.RoleId as string;
     response.RoleName = data.Role!.RoleName as string;
   }

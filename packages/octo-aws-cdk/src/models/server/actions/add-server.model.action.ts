@@ -1,5 +1,5 @@
 import { Action, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
-import { IamUser } from '../../../resources/iam/iam-user.resource.js';
+import { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { AAction } from '../../action.abstract.js';
 import { AwsServer } from '../aws.server.model.js';
 
@@ -13,13 +13,13 @@ export class AddServerModelAction extends AAction {
 
   async handle(diff: Diff): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
-    const serverIamUserName = server.getAnchors()[0].anchorId;
+    const serverIamRoleName = server.getAnchors()[0].anchorId;
 
-    // Create IAM User.
-    const iamUser = new IamUser(`iam-user-${serverIamUserName}`, { username: serverIamUserName });
+    // Create IAM Role.
+    const iamRole = new IamRole(`iam-role-${serverIamRoleName}`, { rolename: serverIamRoleName });
 
     const output: ActionOutputs = {};
-    output[iamUser.resourceId] = iamUser;
+    output[iamRole.resourceId] = iamRole;
 
     return output;
   }

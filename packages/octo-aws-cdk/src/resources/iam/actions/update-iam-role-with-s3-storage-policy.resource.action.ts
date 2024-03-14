@@ -1,40 +1,40 @@
 import {
-  AttachUserPolicyCommand,
+  AttachRolePolicyCommand,
   CreatePolicyCommand,
   DeletePolicyCommand,
-  DetachUserPolicyCommand,
+  DetachRolePolicyCommand,
   IAMClient,
 } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IS3StorageAccessOverlayProperties } from '../../../../models/service/s3-storage/s3-storage-access.overlay.interface.js';
-import { IIamUserResponse } from '../../../iam/iam-user.interface.js';
-import { IamUser, IamUserPolicyDiff } from '../../../iam/iam-user.resource.js';
+import { IS3StorageAccessOverlayProperties } from '../../../models/service/s3-storage/s3-storage-access.overlay.interface.js';
+import { IIamRoleResponse } from '../iam-role.interface.js';
+import { IamRole, IamRolePolicyDiff } from '../iam-role.resource.js';
 
 @Action(ModelType.RESOURCE)
-export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'UpdateIamUserWithS3StoragePolicyResourceAction';
+export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResourceAction {
+  readonly ACTION_NAME: string = 'UpdateIamRoleWithS3StoragePolicyResourceAction';
 
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
-      diff.model.MODEL_NAME === 'iam-user' &&
-      (diff.value as IamUserPolicyDiff['key']).overlay.MODEL_NAME === 's3-storage-access'
+      diff.model.MODEL_NAME === 'iam-role' &&
+      (diff.value as IamRolePolicyDiff['key']).overlay.MODEL_NAME === 's3-storage-access'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const iamUser = diff.model as IamUser;
-    const policyAction = (diff.value as IamUserPolicyDiff['key']).action;
+    const iamRole = diff.model as IamRole;
+    const policyAction = (diff.value as IamRolePolicyDiff['key']).action;
     const overlayId = diff.field;
-    const overlayProperties = (diff.value as IamUserPolicyDiff['key']).overlay
+    const overlayProperties = (diff.value as IamRolePolicyDiff['key']).overlay
       .properties as unknown as IS3StorageAccessOverlayProperties;
-    const response = iamUser.response as unknown as IIamUserResponse;
+    const response = iamRole.response as unknown as IIamRoleResponse;
 
     // Get instances.
     const iamClient = await Container.get(IAMClient);
 
-    // Attach policies to IAM User to read/write from bucket.
+    // Attach policies to IAM Role to read/write from bucket.
     if (policyAction === 'add') {
       const policyDocument: { Action: string[]; Effect: 'Allow'; Resource: string[]; Sid: string }[] = [];
 
@@ -75,9 +75,9 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
         }),
       );
       await iamClient.send(
-        new AttachUserPolicyCommand({
+        new AttachRolePolicyCommand({
           PolicyArn: data.Policy!.Arn,
-          UserName: response.UserName,
+          RoleName: response.RoleName,
         }),
       );
 
@@ -88,9 +88,9 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
       await Promise.all(
         policies.map(async (policyArn) => {
           await iamClient.send(
-            new DetachUserPolicyCommand({
+            new DetachRolePolicyCommand({
               PolicyArn: policyArn,
-              UserName: response.UserName,
+              RoleName: response.RoleName,
             }),
           );
           await iamClient.send(
@@ -107,9 +107,9 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
   }
 }
 
-@Factory<UpdateIamUserWithS3StoragePolicyResourceAction>(UpdateIamUserWithS3StoragePolicyResourceAction)
-export class UpdateIamUserWithS3StoragePolicyResourceActionFactory {
-  static async create(): Promise<UpdateIamUserWithS3StoragePolicyResourceAction> {
-    return new UpdateIamUserWithS3StoragePolicyResourceAction();
+@Factory<UpdateIamRoleWithS3StoragePolicyResourceAction>(UpdateIamRoleWithS3StoragePolicyResourceAction)
+export class UpdateIamRoleWithS3StoragePolicyResourceActionFactory {
+  static async create(): Promise<UpdateIamRoleWithS3StoragePolicyResourceAction> {
+    return new UpdateIamRoleWithS3StoragePolicyResourceAction();
   }
 }

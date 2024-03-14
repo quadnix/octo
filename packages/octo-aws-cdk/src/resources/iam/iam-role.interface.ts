@@ -4,6 +4,7 @@ export interface IIamRoleProperties {
 
 export interface IIamRoleResponse {
   Arn: string;
+  policies: { [key: string]: string[] };
   RoleId: string;
   RoleName: string;
 }

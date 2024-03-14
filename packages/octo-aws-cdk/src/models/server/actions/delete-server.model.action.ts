@@ -1,5 +1,5 @@
 import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
-import { IamUser } from '../../../resources/iam/iam-user.resource.js';
+import { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { AAction } from '../../action.abstract.js';
 import { AwsServer } from '../aws.server.model.js';
 
@@ -9,9 +9,9 @@ export class DeleteServerModelAction extends AAction {
 
   override collectInput(diff: Diff): string[] {
     const server = diff.model as AwsServer;
-    const serverIamUserName = server.getAnchors()[0].anchorId;
+    const serverIamRoleName = server.getAnchors()[0].anchorId;
 
-    return [`resource.iam-user-${serverIamUserName}`];
+    return [`resource.iam-role-${serverIamRoleName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -20,13 +20,13 @@ export class DeleteServerModelAction extends AAction {
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
-    const serverIamUserName = server.getAnchors()[0].anchorId;
+    const serverIamRoleName = server.getAnchors()[0].anchorId;
 
-    const iamUser = actionInputs[`resource.iam-user-${serverIamUserName}`] as IamUser;
-    iamUser.markDeleted();
+    const iamRole = actionInputs[`resource.iam-role-${serverIamRoleName}`] as IamRole;
+    iamRole.markDeleted();
 
     const output: ActionOutputs = {};
-    output[iamUser.resourceId] = iamUser;
+    output[iamRole.resourceId] = iamRole;
 
     return output;
   }
