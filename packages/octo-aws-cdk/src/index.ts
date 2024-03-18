@@ -51,7 +51,9 @@ import './resources/ecr/actions/add-ecr-image.resource.action.js';
 import './resources/ecr/actions/delete-ecr-image.resource.action.js';
 
 import './resources/ecs/actions/add-ecs-cluster.resource.action.js';
+import './resources/ecs/actions/add-ecs-task-definition.resource.action.js';
 import './resources/ecs/actions/delete-ecs-cluster.resource.action.js';
+import './resources/ecs/actions/delete-ecs-task-definition.resource.action.js';
 
 import './resources/efs/actions/add-efs.resource.action.js';
 import './resources/efs/actions/delete-efs.resource.action.js';
