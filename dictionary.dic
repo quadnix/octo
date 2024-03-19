@@ -40,6 +40,7 @@ Fallthrough
 favicon
 filesystem
 firefox
+fs
 grp
 horiz
 href
@@ -53,6 +54,7 @@ jsonc
 len
 lstat
 mdx
+mnt
 nacl
 nginx
 octo
@@ -85,6 +87,7 @@ tsc
 tsconfig
 tsx
 typecheck
+udp
 un
 undraw
 unlink
