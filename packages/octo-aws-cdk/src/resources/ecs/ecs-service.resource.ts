@@ -1,5 +1,5 @@
 import { AResource, IResource, Resource } from '@quadnix/octo';
-import { SecurityGroup } from '../security-groups/security-group.resource.js';
+import { SecurityGroup } from '../security-group/security-group.resource.js';
 import { Subnet } from '../subnet/subnet.resource.js';
 import { EcsCluster } from './ecs-cluster.resource.js';
 import { IEcsServiceProperties } from './ecs-service.interface.js';

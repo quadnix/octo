@@ -4,7 +4,7 @@ import { SharedEfs } from '../../../resources/efs/efs.shared-resource.js';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
-import { SecurityGroup } from '../../../resources/security-groups/security-group.resource.js';
+import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { Vpc } from '../../../resources/vpc/vpc.resource.js';
 import { AAction } from '../../action.abstract.js';

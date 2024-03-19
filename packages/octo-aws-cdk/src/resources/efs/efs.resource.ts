@@ -1,5 +1,5 @@
 import { AModel, AResource, Diff, DiffAction, IResource, Resource } from '@quadnix/octo';
-import { SecurityGroup } from '../security-groups/security-group.resource.js';
+import { SecurityGroup } from '../security-group/security-group.resource.js';
 import { Subnet } from '../subnet/subnet.resource.js';
 import { IEfsProperties } from './efs.interface.js';
 import { SharedEfs } from './efs.shared-resource.js';

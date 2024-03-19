@@ -7,8 +7,8 @@ import {
 } from '@aws-sdk/client-efs';
 import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { ISecurityGroupResponse } from '../../security-groups/security-group.interface.js';
-import { SecurityGroup } from '../../security-groups/security-group.resource.js';
+import { ISecurityGroupResponse } from '../../security-group/security-group.interface.js';
+import { SecurityGroup } from '../../security-group/security-group.resource.js';
 import { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import { Subnet } from '../../subnet/subnet.resource.js';
 import { IEfsProperties, IEfsResponse } from '../efs.interface.js';

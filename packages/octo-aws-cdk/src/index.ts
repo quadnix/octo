@@ -84,8 +84,8 @@ import './resources/s3/website/actions/add-s3-website.resource.action.js';
 import './resources/s3/website/actions/delete-s3-website.resource.action.js';
 import './resources/s3/website/actions/update-source-paths-in-s3-website.resource.action.js';
 
-import './resources/security-groups/actions/add-security-group.resource.action.js';
-import './resources/security-groups/actions/delete-security-group.resource.action.js';
+import './resources/security-group/actions/add-security-group.resource.action.js';
+import './resources/security-group/actions/delete-security-group.resource.action.js';
 
 import './resources/subnet/actions/add-subnet.resource.action.js';
 import './resources/subnet/actions/delete-subnet.resource.action.js';

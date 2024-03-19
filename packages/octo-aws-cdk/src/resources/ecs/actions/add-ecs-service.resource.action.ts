@@ -1,7 +1,7 @@
 import { CreateServiceCommand, ECSClient } from '@aws-sdk/client-ecs';
 import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { ISecurityGroupResponse } from '../../security-groups/security-group.interface.js';
-import { SecurityGroup } from '../../security-groups/security-group.resource.js';
+import { ISecurityGroupResponse } from '../../security-group/security-group.interface.js';
+import { SecurityGroup } from '../../security-group/security-group.resource.js';
 import { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import { Subnet } from '../../subnet/subnet.resource.js';
 import { IEcsClusterProperties } from '../ecs-cluster.interface.js';
