@@ -9,7 +9,7 @@ export interface IEcrImageProperties {
 export interface IEcrImageResponse {
   awsRegionId: string;
   registryId: string;
-  repositoryArn?: string;
+  repositoryArn: string;
   repositoryName: string;
-  repositoryUri?: string;
+  repositoryUri: string;
 }

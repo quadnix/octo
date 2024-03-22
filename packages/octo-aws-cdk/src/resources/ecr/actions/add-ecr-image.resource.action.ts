@@ -1,6 +1,7 @@
 import {
   CreateRepositoryCommand,
   DescribeImagesCommand,
+  DescribeRepositoriesCommand,
   ECRClient,
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr';
@@ -46,10 +47,18 @@ export class AddEcrImageResourceAction implements IResourceAction {
 
       // If image already exists in this region, do nothing.
       if (data.imageDetails?.length) {
+        const repositoryData = await ecrClient.send(
+          new DescribeRepositoriesCommand({
+            repositoryNames: [properties.imageName],
+          }),
+        );
+
         // Set response.
         response.awsRegionId = properties.awsRegionId;
         response.registryId = data.imageDetails[0].registryId as string;
+        response.repositoryArn = repositoryData.repositories![0].repositoryArn as string;
         response.repositoryName = data.imageDetails[0].repositoryName as string;
+        response.repositoryUri = repositoryData.repositories![0].repositoryUri as string;
       }
     } catch (describeImagesError) {
       if (describeImagesError.name === 'RepositoryNotFoundException') {
