@@ -22,17 +22,19 @@ export class AddEcsServiceResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const ecsService = diff.model as EcsService;
+    const parents = ecsService.getParents();
     const properties = ecsService.properties as unknown as IEcsServiceProperties;
     const response = ecsService.response as unknown as IEcsServiceResponse;
-    const ecsCluster = ecsService.getParents('ecs-cluster')['ecs-cluster'][0].to as EcsCluster;
+    const ecsCluster = parents['ecs-cluster'][0].to as EcsCluster;
     const ecsClusterProperties = ecsCluster.properties as unknown as IEcsClusterProperties;
-    const ecsTaskDefinition = ecsService.getParents('ecs-task-definition')['ecs-task-definition'][0]
-      .to as EcsTaskDefinition;
+    const ecsTaskDefinition = parents['ecs-task-definition'][0].to as EcsTaskDefinition;
     const ecsTaskDefinitionResponse = ecsTaskDefinition.response as unknown as IEcsTaskDefinitionResponse;
-    const subnet = ecsService.getParents('subnet')['subnet'][0].to as Subnet;
+    const subnet = parents['subnet'][0].to as Subnet;
     const subnetResponse = subnet.response as unknown as ISubnetResponse;
-    const securityGroup = ecsService.getParents('security-group')['security-group'][0].to as SecurityGroup;
-    const securityGroupResponse = securityGroup.response as unknown as ISecurityGroupResponse;
+    const securityGroup1 = parents['security-group'][0].to as SecurityGroup;
+    const securityGroupResponse1 = securityGroup1.response as unknown as ISecurityGroupResponse;
+    const securityGroup2 = parents['security-group'][1].to as SecurityGroup;
+    const securityGroupResponse2 = securityGroup2.response as unknown as ISecurityGroupResponse;
 
     // Get instances.
     const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
@@ -45,7 +47,7 @@ export class AddEcsServiceResourceAction implements IResourceAction {
         launchType: 'FARGATE',
         networkConfiguration: {
           awsvpcConfiguration: {
-            securityGroups: [securityGroupResponse.GroupId],
+            securityGroups: [securityGroupResponse1.GroupId, securityGroupResponse2.GroupId],
             subnets: [subnetResponse.SubnetId],
           },
         },

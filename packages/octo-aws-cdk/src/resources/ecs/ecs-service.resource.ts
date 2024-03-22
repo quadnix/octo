@@ -12,7 +12,7 @@ export class EcsService extends AResource<EcsService> {
   constructor(
     resourceId: string,
     properties: IEcsServiceProperties,
-    parents: [EcsCluster, EcsTaskDefinition, Subnet, SecurityGroup],
+    parents: [EcsCluster, EcsTaskDefinition, Subnet, SecurityGroup, SecurityGroup],
   ) {
     super(resourceId, properties as unknown as IResource['properties'], parents);
   }
