@@ -16,6 +16,8 @@ import './models/deployment/actions/delete-deployment.model.action.js';
 import './models/environment/actions/add-environment.model.action.js';
 import './models/environment/actions/delete-environment.model.action.js';
 
+import './models/execution/actions/add-execution.model.action.js';
+
 import './models/image/actions/add-image.model.action.js';
 import './models/image/actions/delete-image.model.action.js';
 
