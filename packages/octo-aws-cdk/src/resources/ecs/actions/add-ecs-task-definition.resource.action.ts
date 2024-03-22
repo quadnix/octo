@@ -1,5 +1,11 @@
 import { ECSClient, PortMapping, RegisterTaskDefinitionCommand } from '@aws-sdk/client-ecs';
 import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import { IEcrImageResponse } from '../../ecr/ecr-image.interface.js';
+import { EcrImage } from '../../ecr/ecr-image.resource.js';
+import { IEfsResponse } from '../../efs/efs.interface.js';
+import { Efs } from '../../efs/efs.resource.js';
+import { IIamRoleResponse } from '../../iam/iam-role.interface.js';
+import { IamRole } from '../../iam/iam-role.resource.js';
 import { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
@@ -14,8 +20,15 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const ecsTaskDefinition = diff.model as EcsTaskDefinition;
+    const parents = ecsTaskDefinition.getParents();
     const properties = ecsTaskDefinition.properties as unknown as IEcsTaskDefinitionProperties;
     const response = ecsTaskDefinition.response as unknown as IEcsTaskDefinitionResponse;
+    const ecrImage = parents['ecr-image'][0].to as EcrImage;
+    const ecrImageResponse = ecrImage.response as unknown as IEcrImageResponse;
+    const efs = parents['efs'][0].to as Efs;
+    const efsResponse = efs.response as unknown as IEfsResponse;
+    const iamRole = parents['iam-role'][0].to as IamRole;
+    const iamRoleResponse = iamRole.response as unknown as IIamRoleResponse;
 
     // Get instances.
     const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
@@ -28,7 +41,7 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
             command: properties.image.command,
             environment: properties.environment,
             essential: true,
-            image: properties.image.uri,
+            image: ecrImageResponse.repositoryUri,
             mountPoints: [
               {
                 containerPath: '/mnt/shared-filesystem',
@@ -49,11 +62,11 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
         executionRoleArn: 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
         family: properties.serverKey,
         networkMode: 'awsvpc',
-        taskRoleArn: properties.taskRoleArn,
+        taskRoleArn: iamRoleResponse.Arn,
         volumes: [
           {
             efsVolumeConfiguration: {
-              fileSystemId: properties.efsFileSystemId,
+              fileSystemId: efsResponse.FileSystemId,
             },
             name: 'shared-filesystem',
           },
