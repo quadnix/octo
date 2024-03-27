@@ -36,11 +36,11 @@ export class DeleteExecutionModelAction extends AAction {
     const deployment = execution.getParents()['deployment'][0].to as Deployment;
     const server = deployment.getParents()['server'][0].to as Server;
 
-    const ecsTaskDefinition = actionInputs[`resource.ecs-task-definition-${server.serverKey}`] as EcsTaskDefinition;
-    ecsTaskDefinition.markDeleted();
-
     const ecsService = actionInputs[`resource.ecs-service-${server.serverKey}`] as EcsService;
     ecsService.markDeleted();
+
+    const ecsTaskDefinition = actionInputs[`resource.ecs-task-definition-${server.serverKey}`] as EcsTaskDefinition;
+    ecsTaskDefinition.markDeleted();
 
     const output: ActionOutputs = {};
     output[ecsTaskDefinition.resourceId] = ecsTaskDefinition;
