@@ -1,0 +1,112 @@
+---
+sidebar_position: 2
+title: Getting Started
+---
+
+## Requirements
+* **Node.js**: Ensure you have Node.js version 16.0 or above installed.
+You can verify the installed version by running node -v.
+If needed, you can use nvm for managing multiple Node versions on a single machine.
+* **AWS Account**: If you want to build the infrastructure on AWS, you'll need an AWS account.
+
+## New Project
+Start a new project, by creating a new directory.
+```sh
+mkdir octo-starter-project
+cd octo-starter-project
+```
+
+Add a new `package.json` file.
+```json
+{
+  "dependencies": {},
+  "name": "octo-starter-project",
+  "private": true,
+  "version": "0.0.0",
+}
+```
+
+## Installation
+Octo comprises a collection of npm packages,
+including the foundational `octo` library and our customized implementation for various Cloud Providers.
+Currently, only AWS is supported through the `octo-aws-cdk` library.
+
+To install these libraries,
+```sh
+npm install @quadnix/octo @quadnix/octo-aws-cdk --save-prod
+```
+
+## Hello World
+We are going to host a very simple website.
+
+Let's start by creating the website first,
+```html
+<!-- website/index.html -->
+<html lang='en'>
+<head>
+  <title>My First Website</title>
+</head>
+<body>
+<h1>Hey! Look at me! This is my first website!</h1>
+</body>
+</html>
+```
+```html
+<!-- website/error.html -->
+<html lang='en'>
+<head>
+  <title>Oh No!</title>
+</head>
+<body>
+  <h1>This is an error!</h1>
+</body>
+</html>
+```
+
+Next, we will instruct Octo to host this website in a S3 bucket.
+```js
+// main.js
+const { App, DiffMetadata, LocalStateProvider } = require('@quadnix/octo');
+const { OctoAws, RegionId, S3StaticWebsiteService } = require('@quadnix/octo-aws-cdk');
+const { dirname, join } = require('path');
+const { fileURLToPath } = require('url');
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const BUCKET_NAME = '<my-bucket-name>';
+const websiteSourcePath = join(__dirname, 'website');
+
+const octoAws = new OctoAws();
+await octoAws.initialize(new LocalStateProvider(__dirname));
+
+// Add website.
+const app = new App('test');
+const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, BUCKET_NAME);
+app.addService(service);
+
+const diffs1 = await octoAws.diff(app);
+const generator1 = await octoAws.beginTransaction(diffs1);
+
+const modelTransactionResult1 = await generator1.next();
+await octoAws.commitTransaction(app, modelTransactionResult1.value);
+
+// Add files to website.
+await service.addSource(`${websiteSourcePath}/error.html`);
+await service.addSource(`${websiteSourcePath}/index.html`);
+
+const diffs2 = await octoAws.diff(app);
+const generator2 = await octoAws.beginTransaction(diffs2);
+
+const modelTransactionResult2 = await generator2.next();
+await octoAws.commitTransaction(app, modelTransactionResult2.value);
+```
+
+## Running Hello World
+To test Octo, let's run this code.
+```sh
+node main.js
+```
+
+Modify these URLs and ensure the website is up and running,
+> Index Page: `http://${BUCKET_NAME}.s3-website-us-east-1.amazonaws.com/index.html`
+
+> Error Page: `http://${BUCKET_NAME}.s3-website-us-east-1.amazonaws.com/error.html`
