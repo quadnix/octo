@@ -3,36 +3,35 @@ sidebar_position: 1
 title: Introduction
 ---
 
-import { Brand } from '@site/src/components/brand';
 import { Link } from '@site/src/components/links';
 
-<Brand/> is a general-purpose cloud infrastructure modeling tool.
-Today's cloud infrastructure is complicated at best,
-with most companies employing dedicated devops engineers to take on the task
-of managing all cloud infrastructure and to ensure its smooth operation.
+Octo is a general-purpose cloud infrastructure modeling tool.
 
-In recent times, a new concept of having IaC (Infrastructure as Code) has come into play,
-which has given birth to CDKs - libraries designed to write IaC.
-This has blurred the lines, or at best limited the responsibility boundary for devops.
-While devops still maintain the lower-level infrastructure details and base CDK libraries,
-developers are now expected to know and self-serve their infrastructure needs by writing IaC using the base CDKs.
+Today, managing cloud infrastructure is complex,
+leading most companies to rely on dedicated devops engineers for smooth operation.
 
-The problem with existing CDKs is that they are designed for devops.
-For a developer, their development background doesn't align well with IaC;
-- Developers are expected to know a lot of low-level infrastructure details,
-but it is also not possible to actively track base CDK development, leading to gaps in knowledge.
-- DevOps frequently change base CDKs. This often leads to mindless adoption of new code without much context.
-- It often means learning a new language/tech stack.
+In recent times, the concept of Infrastructure as Code (IaC) has emerged,
+leading to the development of CDKs - libraries specifically designed for writing IaC.
+This shift has altered the responsibilities of devops,
+with developers now expected to utilize CDKs to self-serve their infrastructure needs,
+while devops continue to manage lower-level infrastructure details and base CDK libraries.
 
-<Brand/>'s purpose is to help bridge the gap between devops and developers
-by providing common constructs that are well understood by both parties.
-These constructs are classes written in TypeScript, making it ideal for JS/TS developers.
+Existing CDKs are primarily tailored for devops, posing challenges for developers.
+Their development background often doesn't align seamlessly with Infrastructure as Code (IaC).
+Here's why:
+- Developers are tasked with understanding numerous low-level infrastructure details,
+yet staying abreast of base CDK development can be challenging, resulting in knowledge gaps.
+- DevOps frequently update base CDKs, leading to the adoption of new code without comprehensive context.
+- This process often entails learning a new language or tech stack, adding to the complexity.
+
+Octo aims to bridge the gap between devops and developers by offering familiar constructs understood by both groups.
+These constructs are implemented as classes in TypeScript, catering specifically to JavaScript/TypeScript developers.
 
 ## Overview
-<Brand/> is a general-purpose cloud infrastructure modeling tool to help devops generate base CDKs
-that expose easy-to-use and developer-friendly constructs - <Link id="model" />,
-which are then converted to devops-friendly constructs - <Link id="resource" />,
-and from there real infrastructure components are built using native Cloud APIs.
+Octo is a tool for modeling cloud infrastructure.
+It helps devops make base CDKs with easy-to-use features, called <Link id="model" />.
+These features then turn into devops-friendly ones, called <Link id="resource" />,
+and are used to build real infrastructure with Cloud APIs.
 
 ```mermaid
 graph LR;
@@ -42,18 +41,17 @@ graph LR;
   cloudApi --> infrastructure[[Real Infrastructure]];
 ```
 
-This architecture exposes a clear separation of responsibilities for devops and developers.
-Devops are responsible for exposing <Link id="model" /> that developer can use to manipulate the infrastructure.
-<Brand/> then transforms the Models into <Link id="resource" /> that are much better understood by devops,
-and are much better at expressing the cloud infrastructure.
-From here on Resources then calls Cloud APIs to manipulate the real infrastructure.
+This setup cleanly divides responsibilities between devops and developers.
+Devops create Models for developers to interact with the infrastructure.
+Octo converts these Models into Resources,
+which devops understand well and are better at representing the cloud infrastructure.
+Then, Resources utilize Cloud APIs to manage the actual infrastructure.
 
 ## Example
-Here is a rough representation of a **"Backend server running in QA environment"** in AWS infrastructure.
+Here's a simplified code of a **"Backend server running in QA environment"** in AWS infrastructure.
 
 :::note
-By a "rough" representation we mean to declare that we have intentionally hidden a few details in Models and Resources
-to keep the example easy to understand.
+By a "rough" representation we mean we've intentionally simplified the details for clarity.
 :::
 
 ```typescript
@@ -74,8 +72,9 @@ server.addDeployment(deployment);
 new Execution(deployment, environment);
 ```
 
-* Developers interact with <Link id="model" /> which is represented by the Model graph (below).
-* Models are transformed to <Link id="resource" /> which logically represents the AWS infrastructure (below).
+* `App`, `Environment`, `Execution`, etc are all Models.
+* Developers interact with Models which is represented by the Model graph (below).
+* Models are transformed to Resources which logically represents the AWS infrastructure (below).
 * Resources are transformed to AWS infrastructure using native AWS APIs.
 
 ```mermaid
@@ -98,15 +97,16 @@ graph TD;
 ```
 
 ## Benefits
-* <Brand/> is a general-purpose cloud infrastructure modeling tool, and hence its greatest strength is *Modeling*.
-By helping devops expose clean and intuitive CDKs, developers can write and test infrastructure changes more logically.
-* Developers are shielded from low-level infrastructure details,
-since they only see and interact with <Link id="model" />.
-* <Brand/> is written in TypeScript, thus bringing all the goodness of TS, testing frameworks,
-and the familiarity of using one of the most widely used languages.
-* <Brand/> represents the infrastructure as a Graph, which makes it possible to visualize the infrastructure
-as a well defined set of nodes and edges.
-* Any changes to the infrastructure graph are diffed at both *Model* and *Resource* levels,
-giving developers both - a simplified and a detailed understanding of the changes they are proposing.
-* <Brand/> exposes *Transactions* i.e. unit changes to infrastructure graph, with the ability to rollback
-to a previous state in case of errors.
+* **Modeling Power**: Octo excels as a general-purpose cloud infrastructure modeling tool,
+making modeling its greatest strength. By facilitating devops in creating clear and intuitive CDKs,
+developers can logically write and test infrastructure changes.
+* **Abstraction for Developers**: Developers are shielded from intricate low-level infrastructure details,
+interacting solely with Models.
+* **TypeScript Advantage**: Being written in TypeScript, Octo inherits the benefits of TS,
+including testing frameworks and the familiarity of one of the most widely used languages.
+* **Graph Representation**: Octo depicts infrastructure as a Graph,
+enabling visualization of infrastructure as a well-defined set of nodes and edges.
+* **Detailed Understanding of Changes**: Any alterations to the infrastructure graph are differentially analyzed
+at both Model and Resource levels, offering developers both simplified and detailed insights into the proposed changes.
+* **Transactional Support**: Octo provides Transactions, allowing unit changes to the infrastructure graph,
+with the capability to revert to a previous state in the event of errors.
