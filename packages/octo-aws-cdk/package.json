@@ -17,6 +17,11 @@
     "node": ">=16"
   },
   "exports": "./dist/index.js",
+  "files": [
+    "dist",
+    "!dist/tsconfig.build.tsbuildinfo",
+    "package.json"
+  ],
   "jest": {
     "coverageDirectory": "./coverage",
     "extensionsToTreatAsEsm": [

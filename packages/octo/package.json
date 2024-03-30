@@ -6,6 +6,11 @@
     "node": ">=16"
   },
   "exports": "./dist/index.js",
+  "files": [
+    "dist",
+    "!dist/tsconfig.build.tsbuildinfo",
+    "package.json"
+  ],
   "jest": {
     "coverageDirectory": "./coverage",
     "extensionsToTreatAsEsm": [
@@ -53,5 +58,5 @@
   },
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "0.0.1"
+  "version": "0.0.3"
 }
