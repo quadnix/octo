@@ -3,6 +3,7 @@ import React from 'react';
 import Translate from '@docusaurus/Translate';
 import { ThemeClassNames } from '@docusaurus/theme-common';
 import Link from '@docusaurus/Link';
+import type { Props } from '@theme/EditThisPage';
 
 /**
  * This is a swizzled version of the default EditThisPage button.
@@ -11,7 +12,7 @@ import Link from '@docusaurus/Link';
  * This component needs to be swizzled on every Docusaurus upgrade.
  * **Swizzle Command**: `npm run swizzle @docusaurus/theme-classic EditThisPage -- --eject`
  */
-export default function EditThisPage({ editUrl }): JSX.Element {
+export default function EditThisPage({ editUrl }: Props): JSX.Element {
   return (
     <>
       <br />
@@ -19,7 +20,7 @@ export default function EditThisPage({ editUrl }): JSX.Element {
       <br />
       <Link to={editUrl} className={ThemeClassNames.common.editThisPage}>
         <IconExternalLink /> &nbsp;
-        <Translate id="theme.common.editThisPage" description="The link label to edit the current page">
+        <Translate id="theme.common.editThisPage" description="The link label to open a GitHub issue.">
           Create a GitHub issue
         </Translate>
       </Link>
