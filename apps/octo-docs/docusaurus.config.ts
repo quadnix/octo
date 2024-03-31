@@ -28,14 +28,16 @@ const config: Config = {
       'classic',
       {
         blog: {
-          // Please change this to your repository.
-          // Remove this to remove the "edit this page" links.
-          editUrl: 'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          editUrl: (params): string => {
+            const body = `Doc+Path:+\`${params.blogPath}\``;
+            return `https://github.com/quadnix/octo/issues/new?labels=octo-docs,documentation&body=${body}`;
+          },
           showReadingTime: true,
         },
         docs: {
-          editUrl: (): string => {
-            return 'https://github.com/quadnix/octo/issues/new?labels=octo-docs,documentation';
+          editUrl: (params): string => {
+            const body = `Doc+Path:+\`${params.docPath}\``;
+            return `https://github.com/quadnix/octo/issues/new?labels=octo-docs,documentation&body=${body}`;
           },
           sidebarCollapsed: false,
           sidebarPath: './sidebars.ts',
