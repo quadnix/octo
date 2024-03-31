@@ -1,7 +1,6 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
-import { BRAND_FORMAT, BRAND_VARIATION, getBrand } from './src/utilities/brand.utility';
 
 const config: Config = {
   // Set the /<baseUrl>/ pathname under which your site is served
@@ -22,7 +21,7 @@ const config: Config = {
   onBrokenMarkdownLinks: 'warn',
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
-  organizationName: getBrand(BRAND_VARIATION.ORG, BRAND_FORMAT.CAPITALIZE),
+  organizationName: 'Quadnix',
   plugins: ['docusaurus-plugin-sass'],
   presets: [
     [
@@ -38,6 +37,7 @@ const config: Config = {
           // Please change this to your repository.
           // Remove this to remove the "edit this page" links.
           editUrl: 'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          sidebarCollapsed: false,
           sidebarPath: './sidebars.ts',
         },
         theme: {
@@ -46,11 +46,11 @@ const config: Config = {
       } satisfies Preset.Options,
     ],
   ],
-  projectName: getBrand(),
-  tagline: 'Dinosaurs are cool',
+  projectName: 'Octo',
+  tagline: 'CDK Simplified',
   themeConfig: {
     footer: {
-      copyright: `Copyright © ${new Date().getFullYear()} ${getBrand(BRAND_VARIATION.ORG, BRAND_FORMAT.CAPITALIZE)}.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Quadnix.`,
       links: [
         {
           items: [
@@ -112,19 +112,19 @@ const config: Config = {
         },
       ],
       logo: {
-        alt: 'My Site Logo',
+        alt: 'Octo Logo',
         src: 'img/logo.svg',
       },
-      title: getBrand(),
+      title: 'Octo',
     },
     prism: {
-      darkTheme: prismThemes.vsDark,
-      theme: prismThemes.vsDark,
+      darkTheme: prismThemes.oneDark,
+      theme: prismThemes.oneDark,
     },
   } satisfies Preset.ThemeConfig,
 
   themes: ['@docusaurus/theme-mermaid'],
-  title: getBrand(BRAND_VARIATION.ORG_PROJ, BRAND_FORMAT.CAPITALIZE),
+  title: 'Quadnix Octo',
   // Set the production url of your site here
   url: 'https://your-docusaurus-site.example.com',
 };

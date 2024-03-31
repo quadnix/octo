@@ -6,27 +6,46 @@
 
 /* You can override the default Infima variables here. */
 :root {
-  --ifm-color-primary: #2e8555;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-code-background: #b8b7b8;
+  --ifm-code-font-size: 90%;
+  --ifm-code-padding-horizontal: 0.25rem;
+  --ifm-color-primary: #ee3f37;
   --ifm-color-primary-dark: #29784c;
   --ifm-color-primary-darker: #277148;
   --ifm-color-primary-darkest: #205d3b;
   --ifm-color-primary-light: #33925d;
   --ifm-color-primary-lighter: #359962;
   --ifm-color-primary-lightest: #3cad6e;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary: #ee3f37;
   --ifm-color-primary-dark: #21af90;
   --ifm-color-primary-darker: #1fa588;
   --ifm-color-primary-darkest: #1a8870;
   --ifm-color-primary-light: #29d5b0;
   --ifm-color-primary-lighter: #32d8b4;
   --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+code {
+  font-weight: bold;
+}
+
+h1 {
+  font-size: 200% !important;
+}
+h2 {
+  font-size: 150% !important;
+}
+h3 {
+  font-size: 120% !important;
+}
+h4 {
+  font-size: 110% !important;
 }
 
 .layout-component {
@@ -35,5 +54,17 @@
 
   & > div {
     width: 50% !important;
+  }
+}
+
+/* Sidebar menu */
+.menu__link {
+  line-height: 1;
+}
+.menu__list-item {
+  .menu__list {
+    .menu__link {
+      font-size: 85%;
+    }
   }
 }
