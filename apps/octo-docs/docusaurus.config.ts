@@ -34,9 +34,9 @@ const config: Config = {
           showReadingTime: true,
         },
         docs: {
-          // Please change this to your repository.
-          // Remove this to remove the "edit this page" links.
-          editUrl: 'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          editUrl: (): string => {
+            return 'https://github.com/quadnix/octo/issues/new?labels=octo-docs,documentation';
+          },
           sidebarCollapsed: false,
           sidebarPath: './sidebars.ts',
         },
