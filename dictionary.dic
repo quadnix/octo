@@ -83,6 +83,7 @@ subnets
 Svg
 tagline
 tcp
+tsbuildinfo
 tsc
 tsconfig
 tsx

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { resolve } from 'path';
 import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';

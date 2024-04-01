@@ -2,7 +2,10 @@ import { UnknownModel } from '../app.type.js';
 import { IAnchor } from './anchor.interface.js';
 
 export abstract class AAnchor {
-  protected constructor(readonly anchorId: string, private readonly parent: UnknownModel) {
+  protected constructor(
+    readonly anchorId: string,
+    private readonly parent: UnknownModel,
+  ) {
     if (parent.getAnchor(this.anchorId)) {
       throw new Error('Anchor already exists!');
     }

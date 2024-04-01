@@ -8,7 +8,10 @@ import { StreamManager } from './streams/stream-manager.js';
 import { ProcessUtility } from './utilities/process/process.utility.js';
 
 export class Main {
-  constructor(private readonly args: IRunArguments, private readonly configuration: IBuildConfiguration) {}
+  constructor(
+    private readonly args: IRunArguments,
+    private readonly configuration: IBuildConfiguration,
+  ) {}
 
   runCommand(
     command: string,
