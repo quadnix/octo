@@ -3,6 +3,7 @@
 /**/*/build
 /**/*/coverage
 /**/*/dist
+.nx
 node_modules
 
 # Logs
