@@ -1,0 +1,10 @@
+#!/bin/sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+PATTERN_COMMITS='^(patch|minor|major):\ .+\.$'
+msg="$(cat $1)"
+
+if ! [[ "$msg" =~ $PATTERN_COMMITS ]]; then
+  echo -e "\x1b[31mError commit message: \x1b[0m \x1b[33m"$msg"\x1b[0m does not follow \`nx.json > conventionalCommits\` standards, e.g \x1b[33m 'patch: my message.' \x1b[33m"
+  exit 1;
+fi
