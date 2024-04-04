@@ -10,12 +10,6 @@ on:
       - synchronize
 
 jobs:
-  checkout:
-    name: Checkout
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
   validate-pr-title:
     continue-on-error: true
     name: Validate PR Title
@@ -25,7 +19,6 @@ jobs:
       pull-requests: read
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - run: |-
-          pwd
-          ls -la
           sh .github/jobs/validate-pr-title.sh
