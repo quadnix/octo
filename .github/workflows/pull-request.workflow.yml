@@ -35,7 +35,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Restore Cache
-        uses: ./.github/actions/restore-cache.action
+        uses: ./.github/actions/restore-cache
       - name: Install Dependencies
         run: npm install
       - name: Lint
@@ -51,7 +51,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Restore Cache
-        uses: ./.github/actions/restore-cache.action
+        uses: ./.github/actions/restore-cache
       - name: Install Dependencies
         run: npm install
       - name: Unit Tests
