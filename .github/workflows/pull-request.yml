@@ -2,36 +2,15 @@ name: "Pull Request Workflow"
 
 on:
   pull_request:
+    branches:
+      - main
     types:
-      - converted_to_draft
       - edited
       - opened
-      - ready_for_review
+      - reopened
       - synchronize
 
 jobs:
-  cache-restore:
-    continue-on-error: true
-    name: Cache Restore
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Cache Setup
-        uses: actions/setup-node@v4
-        with:
-          cache: 'npm'
-      - id: cache-primes
-        name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
-      - name: Install Dependencies
-        run: npm install
-
   pr-quality-check:
     continue-on-error: false
     name: PR Quality Check
@@ -49,7 +28,6 @@ jobs:
   code-quality-check:
     continue-on-error: false
     name: Code Quality Check
-    needs: [cache-restore]
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -60,12 +38,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           cache: 'npm'
-      - id: cache-primes
-        name: Cache node_modules
+      - name: Cache node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+      - name: Cache nx
+        uses: actions/cache@v4
+        with:
+          path: .nx
+          key: ${{ runner.os }}-nx
       - name: Install Dependencies
         run: npm install
       - name: Lint
@@ -74,7 +56,6 @@ jobs:
   build-check:
     continue-on-error: false
     name: Build Check
-    needs: [cache-restore]
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -91,6 +72,11 @@ jobs:
         with:
           path: node_modules
           key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+      - name: Cache nx
+        uses: actions/cache@v4
+        with:
+          path: .nx
+          key: ${{ runner.os }}-nx
       - name: Install Dependencies
         run: npm install
       - name: Unit Tests
