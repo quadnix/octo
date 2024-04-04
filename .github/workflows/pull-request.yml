@@ -27,5 +27,3 @@ jobs:
     steps:
       - run: |-
           sh .github/jobs/validate-pr-title.sh
-        with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
