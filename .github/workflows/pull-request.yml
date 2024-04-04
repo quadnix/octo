@@ -20,4 +20,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |-
-          sh .github/jobs/validate-pr-title.sh
+          sh .github/jobs/validate-pr-title.sh "${{ github.event.pull_request.title }}"
