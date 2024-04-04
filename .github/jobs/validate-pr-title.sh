@@ -20,7 +20,7 @@ Release Category Matrix
 '
 PATTERN_COMMITS='^(chore|major|minor|patch)\((docs|feat|fix|refactor|release|revert|test)\):\ .+\.$'
 
-msg=${{ github.event.pull_request.title }}
+msg=echo "${{ github.event.pull_request.title }}"
 if ! [[ "$msg" =~ $PATTERN_COMMITS ]]; then
   echo -e "\x1b[31mPR title: \x1b[0m \x1b[33m"$msg"\x1b[0m s not valid! Please see regex in \".github/jobs/validate-pr-title.sh\".' \x1b[33m"
   exit 1;
