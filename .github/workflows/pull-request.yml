@@ -10,6 +10,16 @@ on:
       - synchronize
 
 jobs:
+  cache-restore:
+    continue-on-error: true
+    name: Cache Restore
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore Cache
+        uses: actions/setup-node@v4
+
   pr-quality-check:
     continue-on-error: false
     name: PR Quality Check
@@ -27,6 +37,7 @@ jobs:
   code-quality-check:
     continue-on-error: false
     name: Code Quality Check
+    needs: [cache-restore]
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -41,6 +52,7 @@ jobs:
   build-check:
     continue-on-error: false
     name: Build Check
+    needs: [cache-restore]
     permissions:
       contents: write
     runs-on: ubuntu-latest
