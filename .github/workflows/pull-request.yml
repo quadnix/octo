@@ -1,4 +1,5 @@
 name: "Pull Request Workflow"
+
 on:
   pull_request:
     types:
@@ -7,16 +8,23 @@ on:
       - opened
       - ready_for_review
       - synchronize
+
 jobs:
-  validate-pr-title:
-    name: Validate PR Title
-    permissions:
-      pull-requests: write
-      contents: write
+  checkout:
+    name: Checkout
     runs-on: ubuntu-latest
     steps:
-      - uses: thehanimo/pr-title-checker@v1.4.1
+      - uses: actions/checkout@v4
+
+  validate-pr-title:
+    continue-on-error: true
+    name: Validate PR Title
+    needs: [checkout]
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    steps:
+      - run: sh .github/jobs/validate-pr-title.sh
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          pass_on_octokit_error: false
-          configuration_path: .github/validate-pr-title.config.json

@@ -1,5 +1,4 @@
 #!/bin/sh
-. "$(dirname -- "$0")/_/husky.sh"
 
 : '
 Release Definitions
@@ -21,8 +20,8 @@ Release Category Matrix
 '
 PATTERN_COMMITS='^(chore|major|minor|patch)\((docs|feat|fix|refactor|release|revert|test)\):\ .+\.$'
 
-msg="$(cat $1 | head -n 1)"
+msg=${{ github.event.pull_request.title }}
 if ! [[ "$msg" =~ $PATTERN_COMMITS ]]; then
-  echo -e "\x1b[31mError commit message: \x1b[0m \x1b[33m"$msg"\x1b[0m does not follow our standards. See regex in \".husky/commit-msg\".' \x1b[33m"
+  echo -e "\x1b[31mPR title: \x1b[0m \x1b[33m"$msg"\x1b[0m s not valid! Please see regex in \".github/jobs/validate-pr-title.sh\".' \x1b[33m"
   exit 1;
 fi
