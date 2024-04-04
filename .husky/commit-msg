@@ -1,10 +1,28 @@
 #!/bin/sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-PATTERN_COMMITS='^(patch|minor|major):\ .+\.$'
-msg="$(cat $1)"
+: '
+Release Definitions
+====
+- chore: no release. Internal update.
+- major / minor / patch: release as per https://semver.org/
 
+Release Category Matrix
+====
+| category | chore | patch | minor | major |
+|----------|-------|-------|-------|-------|
+| docs     | Y     | N     | N     | N     |
+| feat     | Y     | Y     | Y     | Y     |
+| fix      | Y     | Y     | Y     | Y     |
+| refactor | Y     | Y     | N     | N     |
+| release  | Y     | N     | N     | N     |
+| revert   | Y     | Y     | Y     | Y     |
+| test     | Y     | Y     | N     | N     |
+'
+PATTERN_COMMITS='^(chore|major|minor|patch)\((docs|feat|fix|refactor|release|revert|test)\):\ .+\.$'
+
+msg="$(cat $1 | head -n 1)"
 if ! [[ "$msg" =~ $PATTERN_COMMITS ]]; then
-  echo -e "\x1b[31mError commit message: \x1b[0m \x1b[33m"$msg"\x1b[0m does not follow \`nx.json > conventionalCommits\` standards, e.g \x1b[33m 'patch: my message.' \x1b[33m"
+  echo -e "\x1b[31mError commit message: \x1b[0m \x1b[33m"$msg"\x1b[0m does not follow our standards. See regex in \".husky/commit-msg\".' \x1b[33m"
   exit 1;
 fi
