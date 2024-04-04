@@ -26,4 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |-
+          pwd
+          ls -la
           sh .github/jobs/validate-pr-title.sh
