@@ -1,0 +1,8 @@
+{
+  "CHECKS": {
+    "regexp": "^(chore|major|minor|patch)\\((docs|feat|fix|refactor|release|revert|test)\\):\\ .+\\.$"
+  },
+  "MESSAGES": {
+    "failure": "Invalid PR title!"
+  }
+}
