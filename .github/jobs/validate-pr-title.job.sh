@@ -22,6 +22,6 @@ PATTERN_COMMITS='^(chore|major|minor|patch)\((docs|feat|fix|refactor|release|rev
 
 title=$1
 if ! [[ "$title" =~ $PATTERN_COMMITS ]]; then
-  echo "ERROR: PR title \"$title\" is not valid! Please see regex in \".github/jobs/validate-pr-title.sh\"."
+  echo "ERROR: PR title \"$title\" is not valid! Please see regex in \".github/jobs/validate-pr-title.job.sh\"."
   exit 1;
 fi

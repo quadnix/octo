@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Validate PR Title
         run: |-
-          .github/jobs/validate-pr-title.sh "${{ github.event.pull_request.title }}"
+          .github/jobs/validate-pr-title.job.sh "${{ github.event.pull_request.title }}"
 
   code-quality-check:
     continue-on-error: false
@@ -34,20 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Cache Setup
-        uses: actions/setup-node@v4
-        with:
-          cache: 'npm'
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
-      - name: Cache nx
-        uses: actions/cache@v4
-        with:
-          path: .nx
-          key: ${{ runner.os }}-nx
+      - name: Restore Cache
+        uses: ./.github/actions/restore-cache.action
       - name: Install Dependencies
         run: npm install
       - name: Lint
@@ -62,21 +50,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Cache Setup
-        uses: actions/setup-node@v4
-        with:
-          cache: 'npm'
-      - id: cache-primes
-        name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
-      - name: Cache nx
-        uses: actions/cache@v4
-        with:
-          path: .nx
-          key: ${{ runner.os }}-nx
+      - name: Restore Cache
+        uses: ./.github/actions/restore-cache.action
       - name: Install Dependencies
         run: npm install
       - name: Unit Tests
