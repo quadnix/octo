@@ -10,14 +10,44 @@ on:
       - synchronize
 
 jobs:
-  validate-pr-title:
-    continue-on-error: true
-    name: Validate PR Title
+  pr-quality-check:
+    continue-on-error: false
+    name: PR Quality Check
     permissions:
       contents: read
       pull-requests: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: |-
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate PR Title
+        run: |-
           .github/jobs/validate-pr-title.sh "${{ github.event.pull_request.title }}"
+
+  code-quality-check:
+    continue-on-error: false
+    name: Code Quality Check
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Dependencies
+        run: npm install
+      - name: Lint
+        run: npm run lint
+
+  build-check:
+    continue-on-error: false
+    name: Build Check
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Dependencies
+        run: npm install
+      - name: Unit Tests
+        run: npm test
