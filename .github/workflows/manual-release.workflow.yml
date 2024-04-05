@@ -43,6 +43,8 @@ jobs:
           jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-build/package.json package.json > out.json
           mv out.json packages/octo-build/package.json
           cp README.md packages/octo-build/README.md
-      - name: Release
+      - env:
+          GH_TOKEN: ${{ secrets.REPOSITORY_PAT }}
+        name: Release
         run: |
-          GH_TOKEN=${{ secrets.REPOSITORY_PAT }} ./node_modules/.bin/nx release --yes
+          ./node_modules/.bin/nx release --yes
