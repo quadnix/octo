@@ -19,15 +19,19 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch }}
-      - name: Setup Git
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: Setup Git
         run: |
-          git config --local user.email "rahul300chaudhary400@gmail.com"
-          git config --local user.name "Rahul Chaudhary"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
       - name: Install Dependencies
         run: npm install
       - name: Build
@@ -44,7 +48,7 @@ jobs:
           mv out.json packages/octo-build/package.json
           cp README.md packages/octo-build/README.md
       - env:
-          GH_TOKEN: ${{ secrets.TERMINAL_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         name: Release
         run: |
           gh auth status
