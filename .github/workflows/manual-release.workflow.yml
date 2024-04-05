@@ -24,10 +24,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch }}
-      - name: Setup Git
-        run: |
-          git config --local user.email "rahul300chaudhary400@gmail.com"
-          git config --local user.name "Rahul Chaudhary"
       - name: Install Dependencies
         run: npm install
       - name: Build
