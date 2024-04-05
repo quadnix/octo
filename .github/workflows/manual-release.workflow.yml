@@ -44,8 +44,9 @@ jobs:
           mv out.json packages/octo-build/package.json
           cp README.md packages/octo-build/README.md
       - env:
-          GH_TOKEN: ${{ secrets.REPOSITORY_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         name: Release
         run: |
           gh auth status
+          git config --list
           ./node_modules/.bin/nx release --yes
