@@ -31,7 +31,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
       - name: Build
-        run: nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build
+        run: ./node_modules/.bin/nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build
       - name: Pre Release
         run: |
           jq '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo/package.json package.json
@@ -41,4 +41,4 @@ jobs:
           jq '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-build/package.json package.json
           cp README.md packages/octo-build/README.md
       - name: Release
-        run: nx release --yes
+        run: ./node_modules/.bin/nx release --yes
