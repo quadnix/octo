@@ -46,4 +46,4 @@ jobs:
       - env:
           GH_TOKEN: ${{ secrets.REPOSITORY_PAT }}
         name: Release
-        run: ./node_modules/.bin/nx release --yes
+        run: GH_TOKEN=${{ secrets.REPOSITORY_PAT }} ./node_modules/.bin/nx release --yes
