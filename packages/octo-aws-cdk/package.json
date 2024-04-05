@@ -60,7 +60,6 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "postbuild": "copyfiles -u 2 ../../LICENSE ../../README.md dist",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",
     "test:cov": "jest --coverage --testRegex=\"\\.spec.ts$\"",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",

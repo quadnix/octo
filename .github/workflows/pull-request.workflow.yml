@@ -11,6 +11,20 @@ on:
       - synchronize
 
 jobs:
+  restore-cache:
+    continue-on-error: true
+    name: Restore Cache
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: ./.github/actions/restore-cache
+      - name: Install Dependencies
+        run: npm install
+
   pr-quality-check:
     continue-on-error: false
     name: PR Quality Check
@@ -28,6 +42,7 @@ jobs:
   code-quality-check:
     continue-on-error: false
     name: Code Quality Check
+    needs: [restore-cache]
     permissions:
       contents: read
     runs-on: ubuntu-latest
@@ -44,6 +59,7 @@ jobs:
   build-check:
     continue-on-error: false
     name: Build Check
+    needs: [restore-cache]
     permissions:
       contents: write
     runs-on: ubuntu-latest

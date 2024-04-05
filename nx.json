@@ -1,6 +1,55 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "extends": "nx/presets/npm.json",
+  "release": {
+    "changelog": {
+      "projectChangelogs": {
+        "createRelease": "github",
+        "file": false
+      }
+    },
+    "conventionalCommits": {
+      "types": {
+        "build": true,
+        "chore": false,
+        "ci": false,
+        "docs": false,
+        "feat": false,
+        "fix": false,
+        "major": {
+          "changelog": {
+            "title": "Major Updates"
+          },
+          "semverBump": "major"
+        },
+        "minor": {
+          "changelog": {
+            "title": "Minor Updates"
+          },
+          "semverBump": "minor"
+        },
+        "patch": {
+          "changelog": {
+            "title": "Patch Updates"
+          },
+          "semverBump": "patch"
+        },
+        "perf": false,
+        "refactor": false,
+        "revert": false,
+        "style": false,
+        "test": false
+      }
+    },
+    "git": {
+      "commitMessage": "chore(release): publish."
+    },
+    "projects": ["packages/*", "!packages/octo-build"],
+    "projectsRelationship": "independent",
+    "version": {
+      "conventionalCommits": true
+    }
+  },
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"]

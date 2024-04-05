@@ -1,0 +1,45 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        default: 'main'
+        description: 'Select the branch you want to release.'
+        options:
+          - main
+        required: true
+        type: choice
+
+jobs:
+  build-release:
+    continue-on-error: false
+    name: Build & Release
+    needs: [restore-cache]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.branch }}
+      - name: Setup Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      - name: Install Dependencies
+        run: npm install
+      - name: Build
+        run: nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build
+      - name: Pre Release
+        run: |
+          jq '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo/package.json package.json
+          cp README.md packages/octo/README.md
+          jq '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-aws-cdk/package.json package.json
+          cp README.md packages/octo-aws-cdk/README.md
+          jq '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-build/package.json package.json
+          cp README.md packages/octo-build/README.md
+      - name: Release
+        run: nx release --yes
