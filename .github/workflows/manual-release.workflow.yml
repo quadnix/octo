@@ -34,13 +34,13 @@ jobs:
         run: ./node_modules/.bin/nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build
       - name: Pre Release
         run: |
-          jq '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo/package.json package.json > out.json
+          jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo/package.json package.json > out.json
           mv out.json packages/octo/package.json
           cp README.md packages/octo/README.md
-          jq '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-aws-cdk/package.json package.json > out.json
+          jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-aws-cdk/package.json package.json > out.json
           mv out.json packages/octo-aws-cdk/package.json
           cp README.md packages/octo-aws-cdk/README.md
-          jq '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-build/package.json package.json > out.json
+          jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-build/package.json package.json > out.json
           mv out.json packages/octo-build/package.json
           cp README.md packages/octo-build/README.md
       - name: Release
