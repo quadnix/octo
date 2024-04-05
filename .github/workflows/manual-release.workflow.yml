@@ -15,7 +15,6 @@ jobs:
   build-release:
     continue-on-error: false
     name: Build & Release
-    needs: [restore-cache]
     permissions:
       contents: write
     runs-on: ubuntu-latest
