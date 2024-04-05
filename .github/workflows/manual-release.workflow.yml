@@ -44,7 +44,7 @@ jobs:
           mv out.json packages/octo-build/package.json
           cp README.md packages/octo-build/README.md
       - env:
-          GH_TOKEN: ${{ secrets.REPOSITORY_PAT }}
+          GH_TOKEN: ${{ secrets.TERMINAL_PAT }}
         name: Release
         run: |
           gh auth status
