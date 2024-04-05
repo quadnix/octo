@@ -47,4 +47,5 @@ jobs:
           GH_TOKEN: ${{ secrets.REPOSITORY_PAT }}
         name: Release
         run: |
+          gh auth status
           ./node_modules/.bin/nx release --yes
