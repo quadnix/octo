@@ -24,10 +24,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch }}
-      - name: Setup Git
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
       - name: Install Dependencies
         run: npm install
       - name: Build
@@ -43,9 +39,6 @@ jobs:
           jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-build/package.json package.json > out.json
           mv out.json packages/octo-build/package.json
           cp README.md packages/octo-build/README.md
-      - env:
-          GH_TOKEN: ${{ secrets.REPOSITORY_PAT }}
-        name: Release
+      - name: Release
         run: |
-          echo ${{secrets.REPOSITORY_PAT}} | sed 's/./& /g'
           GH_TOKEN=${{ secrets.REPOSITORY_PAT }} ./node_modules/.bin/nx release --yes
