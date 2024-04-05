@@ -1,4 +1,7 @@
 {
+  "bugs": {
+    "url": "https://github.com/quadnix/octo/issues"
+  },
   "dependencies": {},
   "description": "Octo is an opinionated interface of a cloud infrastructure.",
   "devDependencies": {},
@@ -11,6 +14,7 @@
     "!dist/tsconfig.build.tsbuildinfo",
     "package.json"
   ],
+  "homepage": "https://github.com/quadnix/octo#readme",
   "jest": {
     "coverageDirectory": "./coverage",
     "extensionsToTreatAsEsm": [
@@ -37,12 +41,23 @@
       ]
     }
   },
+  "keywords": [
+    "cdk",
+    "cicd",
+    "infrastructure",
+    "octo"
+  ],
+  "license": "MIT",
   "main": "./dist/index.js",
   "name": "@quadnix/octo",
   "nx": {
     "tags": [
       "scope:octo"
     ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quadnix/octo.git"
   },
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
@@ -58,5 +73,5 @@
   },
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "0.0.7"
+  "version": "0.0.8"
 }
