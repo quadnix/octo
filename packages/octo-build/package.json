@@ -55,6 +55,9 @@
       "scope:octo-build"
     ]
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json && chmod +x ./dist/index.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
