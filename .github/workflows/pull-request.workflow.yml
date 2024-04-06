@@ -81,8 +81,7 @@ jobs:
         uses: ./.github/actions/restore-cache
       - name: Install Dependencies
         run: npm install
-      - name: my test
-        run: |-
-          grep -A 20 "@quadnix/octo" package-lock.json
+      - name: Build
+        run: ./node_modules/.bin/nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build
       - name: Unit Tests
         run: npm test
