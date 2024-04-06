@@ -81,7 +81,7 @@ export abstract class AResource<T> extends AModel<IResource, T> {
   }
 
   override remove(): void {
-    throw new Error('Cannot use remove() on resources! Use a delete marker instead');
+    throw new Error('Cannot use remove() on resources! Use a delete marker instead!');
   }
 
   synth(): IResource {
