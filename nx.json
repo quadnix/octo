@@ -44,7 +44,7 @@
     "git": {
       "commitMessage": "chore(release): publish."
     },
-    "projects": ["packages/*", "!packages/octo-build"],
+    "projects": ["packages/*"],
     "projectsRelationship": "independent",
     "version": {
       "conventionalCommits": true

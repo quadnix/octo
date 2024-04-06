@@ -16,6 +16,12 @@
   "engines": {
     "node": ">=16"
   },
+  "exports": "./dist/index.js",
+  "files": [
+    "dist",
+    "!dist/tsconfig.build.tsbuildinfo",
+    "package.json"
+  ],
   "jest": {
     "coverageDirectory": "./coverage",
     "extensionsToTreatAsEsm": [
@@ -42,6 +48,7 @@
       ]
     }
   },
+  "main": "./dist/index.js",
   "name": "@quadnix/octo-build",
   "nx": {
     "tags": [
@@ -61,5 +68,6 @@
     "test:watch": "jest --watch"
   },
   "type": "module",
+  "types": "./dist/index.d.ts",
   "version": "0.0.2"
 }
