@@ -14,6 +14,7 @@ browserslist
 cacheable
 cdbac
 cdk
+chaudhary
 cicd
 cidr
 cjs
@@ -57,6 +58,7 @@ mdx
 mnt
 nacl
 nginx
+noreply
 octo
 octo's
 octob
@@ -84,7 +86,6 @@ subnets
 Svg
 tagline
 tcp
-thehanimo
 tsbuildinfo
 tsc
 tsconfig

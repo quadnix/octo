@@ -1,0 +1,74 @@
+name: "Pull Request Workflow"
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - edited
+      - opened
+      - reopened
+      - synchronize
+
+jobs:
+  restore-cache:
+    continue-on-error: true
+    name: Restore Cache
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: ./.github/actions/restore-cache
+      - name: Install Dependencies
+        run: npm install
+
+  pr-quality-check:
+    continue-on-error: false
+    name: PR Quality Check
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate PR Title
+        run: |-
+          .github/jobs/validate-pr-title.job.sh "${{ github.event.pull_request.title }}"
+
+  code-quality-check:
+    continue-on-error: false
+    name: Code Quality Check
+    needs: [restore-cache]
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: ./.github/actions/restore-cache
+      - name: Install Dependencies
+        run: npm install
+      - name: Lint
+        run: npm run lint
+
+  build-check:
+    continue-on-error: false
+    name: Build Check
+    needs: [restore-cache]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: ./.github/actions/restore-cache
+      - name: Install Dependencies
+        run: npm install
+      - name: Unit Tests
+        run: npm test

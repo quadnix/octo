@@ -1,4 +1,7 @@
 {
+  "bugs": {
+    "url": "https://github.com/quadnix/octo/issues"
+  },
   "dependencies": {
     "@aws-sdk/client-ec2": "~3.496.0",
     "@aws-sdk/client-ecr": "~3.496.0",
@@ -8,7 +11,7 @@
     "@aws-sdk/client-s3": "~3.496.0",
     "@aws-sdk/client-sts": "~3.496.0",
     "@aws-sdk/lib-storage": "~3.496.0",
-    "@quadnix/octo": "~0.0.6",
+    "@quadnix/octo": "~0.0.16",
     "mime": "~4.0.1"
   },
   "description": "Octo-AWS-CDK is an AWS specific implementation of the Octo interface.",
@@ -22,6 +25,7 @@
     "!dist/tsconfig.build.tsbuildinfo",
     "package.json"
   ],
+  "homepage": "https://github.com/quadnix/octo#readme",
   "jest": {
     "coverageDirectory": "./coverage",
     "extensionsToTreatAsEsm": [
@@ -48,6 +52,13 @@
       ]
     }
   },
+  "keywords": [
+    "cdk",
+    "cicd",
+    "infrastructure",
+    "octo"
+  ],
+  "license": "MIT",
   "main": "./dist/index.js",
   "name": "@quadnix/octo-aws-cdk",
   "nx": {
@@ -55,12 +66,15 @@
       "scope:octo-aws-cdk"
     ]
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quadnix/octo.git"
+  },
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "postbuild": "copyfiles -u 2 ../../LICENSE ../../README.md dist",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",
     "test:cov": "jest --coverage --testRegex=\"\\.spec.ts$\"",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",

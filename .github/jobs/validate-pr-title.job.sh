@@ -1,5 +1,4 @@
-#!/bin/sh
-. "$(dirname -- "$0")/_/husky.sh"
+#!/bin/bash
 
 : '
 Release Definitions
@@ -21,8 +20,8 @@ Release Category Matrix
 '
 PATTERN_COMMITS='^(chore|major|minor|patch)\((docs|feat|fix|refactor|release|revert|test)\):\ .+\.$'
 
-msg="$(cat $1 | head -n 1)"
-if ! [[ "$msg" =~ $PATTERN_COMMITS ]]; then
-  echo -e "\x1b[31mError commit message: \x1b[0m \x1b[33m"$msg"\x1b[0m does not follow our standards. See regex in \".husky/commit-msg\".' \x1b[33m"
+title=$1
+if ! [[ "$title" =~ $PATTERN_COMMITS ]]; then
+  echo "ERROR: PR title \"$title\" is not valid! Please see regex in \".github/jobs/validate-pr-title.job.sh\"."
   exit 1;
 fi
