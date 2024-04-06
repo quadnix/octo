@@ -50,4 +50,4 @@ jobs:
         run: |
           gh auth status
           git config --list
-          ./node_modules/.bin/nx release --yes --verbose
+          ./node_modules/.bin/nx release --yes
