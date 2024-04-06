@@ -38,6 +38,11 @@ jobs:
         run: npm install
       - name: Build
         run: ./node_modules/.bin/nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build
+      - env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        name: Version & Changelog
+        run: |
+          ./node_modules/.bin/nx release --skip-publish
       - name: Pre Release
         run: |
           jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo/package.json package.json > out.json
@@ -54,4 +59,4 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         name: Release
         run: |
-          ./node_modules/.bin/nx release --yes
+          ./node_modules/.bin/nx release publish

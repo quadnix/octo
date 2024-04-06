@@ -1,7 +1,4 @@
 {
-  "bugs": {
-    "url": "https://github.com/quadnix/octo/issues"
-  },
   "dependencies": {
     "@aws-sdk/client-ec2": "~3.496.0",
     "@aws-sdk/client-ecr": "~3.496.0",
@@ -25,7 +22,6 @@
     "!dist/tsconfig.build.tsbuildinfo",
     "package.json"
   ],
-  "homepage": "https://github.com/quadnix/octo#readme",
   "jest": {
     "coverageDirectory": "./coverage",
     "extensionsToTreatAsEsm": [
@@ -52,23 +48,12 @@
       ]
     }
   },
-  "keywords": [
-    "cdk",
-    "cicd",
-    "infrastructure",
-    "octo"
-  ],
-  "license": "MIT",
   "main": "./dist/index.js",
   "name": "@quadnix/octo-aws-cdk",
   "nx": {
     "tags": [
       "scope:octo-aws-cdk"
     ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/quadnix/octo.git"
   },
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
