@@ -15,8 +15,7 @@ jobs:
   build-release:
     continue-on-error: false
     name: Build & Release
-    permissions:
-      contents: write
+    permissions: write-all
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
