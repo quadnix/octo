@@ -45,6 +45,7 @@ jobs:
           cp README.md packages/octo-build/README.md
       - env:
           GH_TOKEN: ${{ secrets.OCTO_GHA_PAT }}
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
         name: Release
         run: |
           ./node_modules/.bin/nx release --yes
