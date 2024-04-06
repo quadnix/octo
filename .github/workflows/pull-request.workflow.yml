@@ -74,5 +74,8 @@ jobs:
         uses: ./.github/actions/restore-cache
       - name: Install Dependencies
         run: npm install
+      - name: my test
+        run: |-
+          cat node_modules/@quadnix/octo/package.json
       - name: Unit Tests
         run: npm test
