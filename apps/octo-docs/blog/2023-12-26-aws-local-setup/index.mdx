@@ -1,0 +1,74 @@
+---
+slug: aws-local-setup
+title: Setting Up AWS Locally | A Comprehensive Guide
+authors: [rash]
+tags: [beginner, code, aws]
+---
+
+<img
+  alt="Banner"
+  src={'https://assets.intersystems.com/dims4/default/12febb9/2147483647/strip/true/crop/780x422+0+0/resize/1560x844!/format/webp/quality/90/?url=http%3A%2F%2Finter-systems-brightspot.s3.amazonaws.com%2F26%2Fbd%2F6a6aa762425f87ad7d5c2fe65f8c%2Fawslogo-image.jpg'}
+/>
+
+## Introduction
+Octo makes managing AWS infrastructure easier.
+But before you can run Octo scripts on your local machine, you'll need to set up AWS locally.
+This involves signing up for an AWS account, creating an IAM user (which controls access to AWS resources),
+generating security credentials, and configuring them on your machine.
+We're here to guide you through each step
+and help you kickstart your journey with Octo and AWS on your local development environment.
+
+{/* truncate */}
+
+:::warning[DISCLAIMER]
+There is a small chance AWS instructions may change, rendering this document outdated.
+For the latest information, consult the official AWS documentation.
+- Creating an IAM user: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html
+- AWS CLI installation: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html
+:::
+
+## 1. Signing Up for an AWS Account
+* Navigate to the [AWS homepage](https://aws.amazon.com/) and click on the "Sign Up" button.
+* Follow the instructions to create a new AWS account.
+
+## 2. Creating a New IAM User
+* In the AWS Management Console, navigate to the IAM service.
+* Click on "Users" in the left-hand menu, then click on the "Create user" button.
+* Enter a username for the new IAM user and select permissions options.
+For local development purposes, choose "Attach policies directly".
+* Select the "AdministratorAccess" that grant the necessary permissions for your local development needs.
+* Review the user details and permissions, then click "Create user."
+
+:::danger
+`AdministratorAccess` provides extensive permissions,
+hence it's recommended to follow AWS best practices and grant the least privilege.
+Although it might require a bit more effort during development, it's a safer option in the long run.
+:::
+
+## 3. Generating Security Credentials
+* Under "Security credentials" tab, click "Create access key".
+Choose a use case, and "Create access key".
+* Note down the credentials, or "Download .csv file".
+Octo uses these credentials to authenticate API requests to AWS services.
+Make sure to keep these credentials secure and never expose them to unauthorized users.
+
+## 4. Setting Credentials Locally
+* Install the AWS Command Line Interface (CLI) on your local machine if you haven't already done so.
+You can download and install the AWS CLI from the
+[official AWS documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html).
+* Once the AWS CLI is installed, open a terminal.
+```sh
+# Check installation.
+$ aws --version
+
+# Configure credentials.
+$ aws configure
+
+# Test connectivity.
+$ aws sts get-caller-identity
+```
+
+## Conclusion
+Setting up AWS locally is essential for testing Octo scripts.
+This guide covered steps to create an AWS account, configure IAM user permissions, configure security credentials,
+and ensure smooth development and testing. Happy coding with Octo!

@@ -1,0 +1,51 @@
+---
+slug: octo-in-cjs
+title: Octo in CJS
+authors: [rash]
+tags: [advanced, code]
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<img
+  alt="Banner"
+  src={'https://storage.googleapis.com/indie-hackers.appspot.com/post-images/d821ec9dda/4hBL5BXCH7UCgMgAFRyt3itEnDr1/4c9770f1-746f-8190-64ac-0541e0d0761c.png'}
+/>
+
+In Node, there are now two kinds of scripts: there are old-style CommonJS (CJS) scripts
+and new-style ESM scripts (aka MJS). CJS scripts use **require()** and **module.exports**;
+ESM scripts use **import** and **export**.
+
+Octo exclusively supports ESM modules, requiring ``"type": "module"`` in package.json.
+In this article we will explore how to modify Octo imports to make them work in CJS.
+
+<Tabs>
+<TabItem value="js" label="ESM">
+
+```js
+import { App, LocalStateProvider } from '@quadnix/octo';
+import { OctoAws, RegionId, S3StaticWebsiteService } from '@quadnix/octo-aws-cdk';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+```
+
+</TabItem>
+<TabItem value="py" label="CJS">
+
+```js
+(async () => {
+  const { App, LocalStateProvider } = await import('@quadnix/octo');
+  const { OctoAws, RegionId, S3StaticWebsiteService } = await import('@quadnix/octo-aws-cdk');
+  const { join } = await import('path');
+
+  // __dirname is predefined in CJS.
+})();
+```
+
+</TabItem>
+</Tabs>
+Take a look at how this code is written in ESM and compare it to the adjustments needed for CJS.
+Notice the use of IIFE in CJS to support Octo imports asynchronously.

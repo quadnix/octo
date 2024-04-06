@@ -1,4 +1,8 @@
-const linkMapping = {
+const linkMapping: { [key: string]: { displayName: string; href: string } } = {
+  blog: {
+    displayName: 'Blog',
+    href: '/blog',
+  },
   model: {
     displayName: 'Models',
     href: '/docs/fundamentals/model',
@@ -9,11 +13,11 @@ const linkMapping = {
   },
 };
 
-export function Link({ id, display }): JSX.Element {
+export function Link({ display, id, path = '' }): JSX.Element {
   const mapping = linkMapping[id];
   if (!mapping) {
     throw new Error('Invalid link!');
   }
 
-  return <a href={mapping.href}>{display ?? mapping.displayName}</a>;
+  return <a href={mapping.href + path}>{display ?? mapping.displayName}</a>;
 }
