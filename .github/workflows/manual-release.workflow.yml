@@ -24,7 +24,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch }}
-          token: ${{ secrets.TERMINAL_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Git
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -45,7 +45,7 @@ jobs:
           mv out.json packages/octo-build/package.json
           cp README.md packages/octo-build/README.md
       - env:
-          GH_TOKEN: ${{ secrets.TERMINAL_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         name: Release
         run: |
           gh auth status
