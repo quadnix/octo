@@ -1,5 +1,9 @@
 name: "Pull Request Workflow"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches:
@@ -11,20 +15,6 @@ on:
       - synchronize
 
 jobs:
-  restore-cache:
-    continue-on-error: true
-    name: Restore Cache
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Restore Cache
-        uses: ./.github/actions/restore-cache
-      - name: Install Dependencies
-        run: npm install
-
   pr-quality-check:
     continue-on-error: false
     name: PR Quality Check
@@ -38,6 +28,27 @@ jobs:
       - name: Validate PR Title
         run: |-
           .github/jobs/validate-pr-title.job.sh "${{ github.event.pull_request.title }}"
+
+  restore-cache:
+    continue-on-error: true
+    name: Restore Cache
+    needs: [pr-quality-check]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Restore Cache
+        uses: ./.github/actions/restore-cache
+      - id: restore-cache-install-dependencies
+        name: Install Dependencies
+        run: npm install
+      - if: steps.restore-cache-install-dependencies.outcome == 'failure'
+        name: Bust Cache
+        run: |-
+          rm -rf node_modules
+          npm install
 
   code-quality-check:
     continue-on-error: false
@@ -70,5 +81,8 @@ jobs:
         uses: ./.github/actions/restore-cache
       - name: Install Dependencies
         run: npm install
+      - name: my test
+        run: |-
+          cat node_modules/@quadnix/octo/package.json
       - name: Unit Tests
         run: npm test
