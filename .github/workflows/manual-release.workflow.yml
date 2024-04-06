@@ -19,17 +19,13 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - env:
-          GH_TOKEN: ${{ secrets.TERMINAL_PAT }}
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.branch }}
           token: ${{ secrets.TERMINAL_PAT }}
-      - env:
-          GH_TOKEN: ${{ secrets.TERMINAL_PAT }}
-        name: Setup Git
+      - name: Setup Git
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
@@ -48,9 +44,7 @@ jobs:
           jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-build/package.json package.json > out.json
           mv out.json packages/octo-build/package.json
           cp README.md packages/octo-build/README.md
-      - env:
-          GH_TOKEN: ${{ secrets.TERMINAL_PAT }}
-        name: Release
+      - name: Release
         run: |
           gh auth status
           git config --list
