@@ -28,6 +28,8 @@ const config: Config = {
       'classic',
       {
         blog: {
+          blogSidebarCount: 'ALL',
+          blogSidebarTitle: 'All Posts',
           editUrl: (params): string => {
             const body = `Doc+Path:+\`${params.blogPath}\``;
             return `https://github.com/quadnix/octo/issues/new?labels=octo-docs,documentation&body=${body}`;
