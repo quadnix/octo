@@ -14,9 +14,9 @@ You'll need an AWS account. [[1]](#footnotes)
 
 ## New Project
 1. Create a new project.
-```
-$ mkdir octo-starter-project
-$ cd octo-starter-project
+```sh
+mkdir octo-starter-project
+cd octo-starter-project
 ```
 
 2. Create a new `package.json` file. [[2]](#footnotes)
@@ -37,7 +37,7 @@ Currently, only AWS is supported through the `octo-aws-cdk` library.
 
 To install these libraries,
 ```sh
-$ npm install @quadnix/octo @quadnix/octo-aws-cdk --save-prod
+npm install @quadnix/octo @quadnix/octo-aws-cdk --save-prod
 ```
 
 ## Hello World
@@ -107,7 +107,7 @@ await octoAws.commitTransaction(app, modelTransactionResult2.value);
 ## Running & Testing Hello World
 1. Run the script.
 ```sh
-$ node main.js
+node main.js
 ```
 
 2. Modify and visit these URLs and ensure the website is up and running.
@@ -129,7 +129,32 @@ If the script didn't work out, see what you can do [[3]](#footnotes).
 :::
 
 ## Cleaning Up (Optional)
-1. Modify the script. Delete sections where website was added.
+To clean up all the resources created thus far, simply modify the script to remove all models.
+```js title="main.js"
+import { App, LocalStateProvider } from '@quadnix/octo';
+import { OctoAws } from '@quadnix/octo-aws-cdk';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const octoAws = new OctoAws();
+await octoAws.initialize(new LocalStateProvider(__dirname));
+
+const app = new App('test');
+
+const diffs1 = await octoAws.diff(app);
+const generator1 = await octoAws.beginTransaction(diffs1);
+
+const modelTransactionResult1 = await generator1.next();
+await octoAws.commitTransaction(app, modelTransactionResult1.value);
+```
+
+Once you ensure all resources are deleted, you can just delete the directory and the code in it.
+
+```sh
+rm -Rf octo-starter-project
+```
 
 ## Summary
 In this comprehensive guide, we hosted a simple website with just a few lines of code.
