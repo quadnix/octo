@@ -31,8 +31,9 @@ export class S3StaticWebsiteService extends Service {
 
   private async generateSourceManifest(): Promise<IManifest> {
     const manifest: IManifest = {};
+    const sourcePaths = [...this.sourcePaths];
 
-    for (const sourcePath of this.sourcePaths) {
+    for (const sourcePath of sourcePaths) {
       if (!sourcePath.isDirectory) {
         const filePath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
         const digest = await FileUtility.hash(filePath);
@@ -41,12 +42,20 @@ export class S3StaticWebsiteService extends Service {
         const directoryPath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
         const directoryFilePaths = await readdir(directoryPath);
         for (const directoryFilePath of directoryFilePaths) {
-          if (
-            this.excludePaths.findIndex(
-              (p) => join(p.directoryPath, p.subDirectoryOrFilePath) === directoryFilePath,
-            ) === -1
-          ) {
-            const filePath = join(directoryPath, directoryFilePath);
+          const filePath = join(directoryPath, directoryFilePath);
+          const stats = await lstat(filePath);
+
+          if (this.excludePaths.findIndex((p) => join(p.directoryPath, p.subDirectoryOrFilePath) === filePath) === -1) {
+            if (stats.isDirectory()) {
+              sourcePaths.push({
+                directoryPath: filePath,
+                isDirectory: true,
+                remotePath: join(sourcePath.remotePath, directoryFilePath),
+                subDirectoryOrFilePath: '',
+              });
+              continue;
+            }
+
             const remotePath = join(sourcePath.remotePath, directoryFilePath);
             const digest = await FileUtility.hash(filePath);
             manifest[remotePath] = { algorithm: 'sha1', digest, filePath };
@@ -127,9 +136,9 @@ export class S3StaticWebsiteService extends Service {
     // Generate new manifest.
     const newManifestData: IManifest = await this.generateSourceManifest();
 
-    // Ensure error.html and index.html exists.
-    if (this.sourcePaths.length > 0 && (!newManifestData['error.html'] || !newManifestData['index.html'])) {
-      throw new Error('error.html/index.html missing in root of website!');
+    // Ensure index.html exists.
+    if (this.sourcePaths.length > 0 && !(newManifestData['index.htm'] || newManifestData['index.html'])) {
+      throw new Error('index.htm/index.html missing in root of website!');
     }
 
     // Generate difference in old/new manifest.

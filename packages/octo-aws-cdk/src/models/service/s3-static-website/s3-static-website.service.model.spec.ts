@@ -126,26 +126,28 @@ describe('S3StaticWebsiteService UT', () => {
       });
 
       it('should add directory and record excludes according to filter', async () => {
-        await service.addSource(resourcesPath, 's3-static-website', (filePath: string) => {
-          return filePath === 's3-static-website/index.html';
+        const directoryPath = join(resourcesPath, 's3-static-website');
+
+        await service.addSource(directoryPath, '', (filePath: string) => {
+          return filePath === 'index.html';
         });
 
         expect(service.sourcePaths).toEqual([
           {
-            directoryPath: resourcesPath,
+            directoryPath,
             isDirectory: true,
-            remotePath: 's3-static-website',
-            subDirectoryOrFilePath: 's3-static-website',
+            remotePath: '',
+            subDirectoryOrFilePath: '',
           },
         ]);
         expect(service.excludePaths).toEqual([
           {
-            directoryPath: resourcesPath,
-            subDirectoryOrFilePath: 's3-static-website/error.html',
+            directoryPath,
+            subDirectoryOrFilePath: 'error.html',
           },
           {
-            directoryPath: resourcesPath,
-            subDirectoryOrFilePath: 's3-static-website/page-1.html',
+            directoryPath,
+            subDirectoryOrFilePath: 'page-1.html',
           },
         ]);
       });
@@ -193,7 +195,7 @@ describe('S3StaticWebsiteService UT', () => {
       await octoAws.commitTransaction(app, modelTransactionResult0.value);
     });
 
-    it('should generate an update on addition', async () => {
+    it('should generate an update on addition of a flat directory', async () => {
       await service.addSource(websiteSourcePath);
 
       const diffs1 = await octoAws.diff(app);
@@ -215,6 +217,62 @@ describe('S3StaticWebsiteService UT', () => {
               "page-1.html": [
                 "add",
                 "${websiteSourcePath}/page-1.html",
+              ],
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should generate an update on addition of a complex directory', async () => {
+      await service.addSource(resourcesPath);
+
+      const diffs1 = await octoAws.diff(app);
+
+      expect(diffs1).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "update",
+            "field": "sourcePaths",
+            "value": {
+              "index.html": [
+                "add",
+                "${resourcesPath}/index.html",
+              ],
+              "s3-static-website/error.html": [
+                "add",
+                "${websiteSourcePath}/error.html",
+              ],
+              "s3-static-website/index.html": [
+                "add",
+                "${websiteSourcePath}/index.html",
+              ],
+              "s3-static-website/page-1.html": [
+                "add",
+                "${websiteSourcePath}/page-1.html",
+              ],
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should generate an update on addition of a complex directory with excludes', async () => {
+      await service.addSource(resourcesPath, '', (filePath: string) => {
+        return filePath !== 's3-static-website';
+      });
+
+      const diffs1 = await octoAws.diff(app);
+
+      expect(diffs1).toMatchInlineSnapshot(`
+        [
+          {
+            "action": "update",
+            "field": "sourcePaths",
+            "value": {
+              "index.html": [
+                "add",
+                "${resourcesPath}/index.html",
               ],
             },
           },
