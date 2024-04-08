@@ -51,7 +51,6 @@ const config: Config = {
     ],
   ],
   projectName: 'Octo',
-  tagline: 'CDK Simplified',
   themeConfig: {
     footer: {
       copyright: `Copyright © ${new Date().getFullYear()} Quadnix.`,
@@ -59,11 +58,15 @@ const config: Config = {
         {
           items: [
             {
-              label: 'Tutorial',
+              label: 'Docs',
               to: '/docs/introduction',
             },
+            {
+              label: 'Blog',
+              to: '/blog',
+            },
           ],
-          title: 'Docs',
+          title: 'Resources',
         },
         {
           items: [
@@ -85,10 +88,6 @@ const config: Config = {
         {
           items: [
             {
-              label: 'Blog',
-              to: '/blog',
-            },
-            {
               href: 'https://github.com/quadnix/octo',
               label: 'GitHub',
             },
@@ -103,9 +102,9 @@ const config: Config = {
     navbar: {
       items: [
         {
-          label: 'Tutorial',
+          label: 'Docs',
           position: 'left',
-          sidebarId: 'tutorialSidebar',
+          sidebarId: 'docsSidebar',
           type: 'docSidebar',
         },
         { label: 'Blog', position: 'left', to: '/blog' },
