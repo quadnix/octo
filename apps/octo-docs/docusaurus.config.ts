@@ -3,13 +3,8 @@ import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
   favicon: 'img/favicon.ico',
-  // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html language. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -19,9 +14,6 @@ const config: Config = {
   },
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'Quadnix',
   plugins: ['docusaurus-plugin-sass'],
   presets: [
     [
@@ -125,7 +117,6 @@ const config: Config = {
       theme: prismThemes.oneDark,
     },
   } satisfies Preset.ThemeConfig,
-
   themes: ['@docusaurus/theme-mermaid'],
   title: 'Quadnix Octo',
   // Set the production url of your site here
