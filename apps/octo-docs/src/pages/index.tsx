@@ -1,25 +1,27 @@
 import clsx from 'clsx';
 import Link from '@docusaurus/Link';
-import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import Heading from '@theme/Heading';
 import React from 'react';
 
-import styles from './index.module.css';
+import styles from './styles.module.scss';
 
 function HomepageHeader(): React.JSX.Element {
-  const { siteConfig } = useDocusaurusContext();
   return (
-    <header className={clsx('hero hero--primary', styles.heroBanner)}>
+    <header className={clsx('hero', styles.heroBanner)}>
       <div className="container">
-        <Heading as="h1" className="hero__title">
-          {siteConfig.title}
+        <Heading as="h1" className={clsx('hero__title', styles.hero__title)}>
+          <span className={clsx(styles.hero__title__highlight)}>Infrastructure made simple.</span>
         </Heading>
-        <p className="hero__subtitle">{siteConfig.tagline}</p>
+        <p className={clsx('hero__subtitle', styles.hero__subtitle)}>
+          Octo is a general-purpose cloud infrastructure modeling and management tool.
+          <br />
+          Made easy for developers and devops alike.
+        </p>
         <div className={styles.buttons}>
           <Link className="button button--secondary button--lg" to="/docs/introduction">
-            Docusaurus Tutorial - 5min ⏱️
+            Let's Begin! 🚀
           </Link>
         </div>
       </div>
@@ -27,10 +29,9 @@ function HomepageHeader(): React.JSX.Element {
   );
 }
 
-export default function Home(): JSX.Element {
-  const { siteConfig } = useDocusaurusContext();
+export default function Home(): React.JSX.Element {
   return (
-    <Layout title={`Hello from ${siteConfig.title}`} description="Description will go into a meta tag in <head />">
+    <Layout title={`Octo - Infrastructure Modeling`} description="Description will go into a meta tag in <head />">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

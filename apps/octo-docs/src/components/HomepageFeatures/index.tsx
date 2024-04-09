@@ -1,51 +1,52 @@
 import clsx from 'clsx';
 import Heading from '@theme/Heading';
 import React from 'react';
-import styles from './styles.module.css';
+
+import styles from './styles.module.scss';
 
 type FeatureItem = {
   title: string;
   Svg: React.ComponentType<React.ComponentProps<'svg'>>;
-  description: JSX.Element;
+  description: React.JSX.Element;
 };
 
 const FeatureList: FeatureItem[] = [
   {
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and used to get your website up and running
-        quickly.
+        Octo CDK is designed to be simple for developers and DevOps alike. Its model allows clear separation of concerns
+        while offering ample opportunities for extension and remodeling by DevOps teams.
       </>
     ),
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
-    title: 'Easy to Use',
+    title: 'Simple for devs, flexible for DevOps',
   },
   {
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go ahead and move your docs into the{' '}
-        <code>docs</code> directory.
+        Octo analyzes infrastructure diffs at both model and resource levels, offering detailed insights. It supports
+        transactions for individual changes with rollback capability for errors.
       </>
     ),
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
-    title: 'Focus on What Matters',
+    title: 'Diffs & Transaction Support',
   },
   {
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can be extended while reusing the same
-        header and footer.
+        Octo modeling is graph-based, depicting infrastructure and its relationships. Built in TypeScript, Octo
+        leverages TS benefits, such as robust testing frameworks and the familiarity of a widely-used language.
       </>
     ),
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
-    title: 'Powered by React',
+    title: 'Powered by Graphs & TypeScript',
   },
 ];
 
-function Feature({ title, Svg, description }: FeatureItem): JSX.Element {
+function Feature({ title, Svg, description }: FeatureItem): React.JSX.Element {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
@@ -59,7 +60,7 @@ function Feature({ title, Svg, description }: FeatureItem): JSX.Element {
   );
 }
 
-export default function HomepageFeatures(): JSX.Element {
+export default function HomepageFeatures(): React.JSX.Element {
   return (
     <section className={styles.features}>
       <div className="container">
