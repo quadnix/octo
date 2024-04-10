@@ -14,7 +14,7 @@ You'll need an AWS account. [[1]](#footnotes)
 
 ## New Project
 1. Create a new project.
-```sh
+```console
 mkdir octo-starter-project
 cd octo-starter-project
 ```
@@ -36,7 +36,7 @@ including the foundational `octo` library and our customized implementation for 
 Currently, only AWS is supported through the `octo-aws-cdk` library.
 
 To install these libraries,
-```sh
+```console
 npm install @quadnix/octo @quadnix/octo-aws-cdk --save-prod
 ```
 
@@ -106,7 +106,7 @@ await octoAws.commitTransaction(app, modelTransactionResult2.value);
 
 ## Running & Testing Hello World
 1. Run the script.
-```sh
+```console
 node main.js
 ```
 
@@ -152,7 +152,7 @@ await octoAws.commitTransaction(app, modelTransactionResult1.value);
 
 Once you ensure all resources are deleted, you can just delete the directory and the code in it.
 
-```sh
+```console
 rm -Rf octo-starter-project
 ```
 

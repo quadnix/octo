@@ -23,7 +23,7 @@ To ignore verification, you can use the `no-verify` git option,
 
 ## Configuration
 Our husky pre-commit hooks looks like,
-```shell
+```console
 #!/bin/sh
 
 npm run lint
