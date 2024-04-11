@@ -3,12 +3,18 @@ sidebar_position: 1
 title: Model
 ---
 
-import { Brand } from '@site/src/components/brand';
-
 ## Definition
-A model is the most basic unit in <Brand/> upon which all other concepts are built.
-It represents a node that you birth into your infrastructure.
-Below are the models that are currently supported.
+A model serves as the fundamental building block in Octo, upon which all other concepts are built.
+
+It's important to note that a developer's perception of infrastructure differs significantly from that of DevOps,
+with the latter being much closer to lower level details, and thus more complex.
+For this reason, it is the responsibility of DevOps to architect the CDK and maintain simplicity for developers.
+
+Octo helps in that by allowing them to define Models - the primary units developers interact with.
+These models represent and encapsulate infrastructure units from a developer's standpoint.
+
+Models are designed to be simple and hierarchical, encapsulating lower-level infrastructure elements.
+Below are the models currently supported.
 
 ```mermaid
 graph TD;
@@ -39,99 +45,94 @@ graph TD;
 ```
 
 ### App
-An app is a logical node model that represents the overall project you are trying to build.
-It is the root of the model tree and all other models are children of it.
+An app is the starting node of your project. It sits at the top of the model tree, with all other models linked to it.
+It doesn't represent any underlying infrastructure; instead, it distinguishes one app from another.
 
 ### Region
-A region node model represents a physical location where your infrastructure is deployed.
+A region represents the physical geographical area where the app can be deployed.
+Typically, for redundancy and low latency, an app is deployed in multiple regions.
+Therefore, it's common to have multiple region nodes under the app.
 
 ### Environment
-An environment node model represents a logical separation of your infrastructure, such as `qa`, `staging`, `prod`.
+An app follows a lifecycle, where new code progresses to production.
+For instance, code is initially tested in pre-production environments like QA or Staging to catch bugs.
+An environment node model represents this process.
+From an infrastructure standpoint, an environment is a child of a region.
+However, if both Region A and Region B have a QA Environment, from an application development perspective,
+the QA environment can also be treated as one, deployed in two regions.
 
 ### Server
-A server node model represents a logical microservice or a server that you deploy your code to,
-such as `frontend`, `backend`, `database`.
+A server represents a logical microservice or server where you deploy your code, such as frontend, backend, or database.
 
 ### Support
-A support node model is very similar to a Server, but is used to represent servers that are not directly related
-to your application, but are required to support your application, such as `load balancers`, `consul`, etc.
+A support is like a server but for infrastructure components.
+They are not directly related to your application, but are required to support your application,
+such as load balancers, or consul.
 
 ### Deployment
-A deployment node model represents Server/Support code that gets deployed and run.
-As you build your application and commit new code, a new deployment node will need to be created
-that will represent the updated code. This is effectively a new version of your Server/Support.
+A deployment signifies the code being published at a specific point in time.
+As you develop your application and commit new code, a new deployment node must be created to represent the updated code.
+This essentially marks a new version of your server or support.
 
 ### Execution
-An execution node model is a combination of a Deployment and an Environment that represents
-running a physical server running deployment code in a specific environment.
+An execution combines a Deployment and an Environment,
+representing the operation of a physical server running deployment code in a specific environment.
 
 ### Service
-A service node model represents 3rd party services that your application depends on.
-This might sound similar to a Support node, but is different because it doesn't support having a deployment.
-A managed AWS SQS, or a S3 bucket are examples of a Service.
+A service represents third-party services that your application relies on.
+While it may seem similar to a Support node, it differs because it doesn't support having a deployment.
+Examples include managed AWS SQS or S3 bucket.
 
 ### Image
-An image node model represents a Docker image that is used to build/run a Deployment.
+An image represents a Docker image utilized for building or running a Deployment.
 
 ### Pipeline
-A pipeline node model represents a CI/CD pipeline that can be used for various automations,
-such as building and deploying code, running <Brand/> commands, etc.
+A pipeline represents a CI/CD pipeline capable of various automations,
+including building and deploying code, running Octo commands, and more.
 
-## Anatomy of a Model
-:::note
-We use an opinionated naming convention to prepend the letter `A` to all abstract classes,
-and the letter `I` to all interfaces. E.g. `AModel` is the abstract model, vs `IModel` is the interface to the model.
+## Example
+Here is a typical model for a simple backend server with a database might appear.
+
+```mermaid
+graph TD;
+    app((Test App))
+    service((Postgres DB \n Service))
+    region((us-east-1 \n Region))
+    environment((qa \n Environment))
+    server((Backend \n Server))
+    deployment((v0.0.1 \n Deployment))
+    execution((v0.0.1_qa \n Execution))
+    image1((Build \n Image))
+    image2((Run \n Image))
+    app --> service;
+    app --> region;
+    app --> server;
+    server --> deployment;
+    region --> environment;
+    environment --> execution;
+    deployment --> execution;
+    image1 -. Relationship .- server;
+    image2 -. Relationship .- execution;
+    service -. Relationship .- execution;
+    app --> image1;
+    app --> image2;
+```
+
+Here's what this example infrastructure represents, <br />
+It's an app with a single region and a single environment.
+It includes a single server with a single version deployed in the environment.
+The server uses a build image for deployment and an execution image for running.
+Additionally, there's a database service hosted elsewhere, which the execution utilizes to make database calls.
+
+:::info[Was the visualization helpful?]
+The purpose of graphs in Octo is to ensure that everything in this model is self-explanatory.
+These core models serve as the fundamental building blocks of infrastructure,
+enabling developers to comprehend and intuitively interact with them.
+Developers can customize and visualize their own infrastructure to best suit their needs.
 :::
 
-:::tip
-It is uncommon to define a new model, but extending them to add functionality is common.
-:::
+## Summary
 
-A model can be defined using the `@Model` decorator.
-```typescript
-@Model()
-export class App extends AModel<IApp, App> {
-  readonly MODEL_NAME: string = 'app';
-
-  getContext(): string;
-
-  synth(): IApp;
-
-  static override async unSynth(app: IApp): Promise<App>;
-}
-```
-
-There are quite a few things to unpack here, so let's break it down.
-
-```typescript
-@Model()
-```
-This is a decorator that tells <Brand/> that this class is a model.
-This decorator allows the class to be registered to the `Model Serialization Service` that allows it to
-serialize and deserialize the class using the `synth` and `unSynth` methods.
-
-```typescript
-class App extends AModel<IApp, App> {}
-```
-Every model must extend the `AModel` class. The abstract Model class is a generic class that accepts an
-interface and the class itself as a generic type. The interface is used to define the shape of the model.
-Notice, how the `synth()` and `unSynth()` methods use this shape to serialize and deserialize the model.
-
-```typescript
-readonly MODEL_NAME: string = 'app';
-```
-Every model must have a unique name. Now all nodes of `App` type will share this name.
-
-```typescript
-getContext(): string;
-```
-A context of a model is defined as a string that represents the path of the model in the model tree.
-You can also think of it as a chain of parent represented in string.
-<br/>E.g. an `App` is the root node, so its context is `app=<name>`.
-<br/>Similarly, a `Region` has context of `region=<name>,app=<name>`.
-
-```typescript
-synth(): IApp;
-static override async unSynth(app: IApp): Promise<App>;
-```
-These two methods are used to serialize and deserialize the model.
+Here, we've covered the fundamentals of Models — the building blocks of infrastructure for developers.
+However, we haven't delved into analyzing code or discussed how to write or modify your own models.
+That will come later. For now, our focus is on learning the concepts.

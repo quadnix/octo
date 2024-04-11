@@ -1,40 +1,27 @@
 ---
-sidebar_position: 2
+sidebar_position: 4
 title: Dependency
 ---
 
-import { Brand } from '@site/src/components/brand';
-
 ## Definition
-A dependency is a property of Node describing its relations to other nodes.
-A dependency can be one of three types,
+A dependency is the edge between two nodes that describes their relationship. It can be one of three types,
 * **Parent**
-<br/> Node is parent of another node, i.e. it will exist before child node gets created.
-E.g. an App is a parent of Region, so an app must exist before any region is created.
+<br/> A node is the parent of another node, meaning it must exist before the child node is created.
+For example, an app is the parent of a region, so the app must exist before any region is created.
 * **Child**
-<br /> Node is child of another node, i.e. it will be deleted before parent node gets deleted.
-E.g. an Environment is a child of Region, so all environment(s) must be deleted before deleting the region.
+<br /> A node is the child of another node, meaning it will be deleted before the parent node is deleted.
+For example, an environment is a child of a region, so all environments must be deleted before deleting the region.
 * **Relationship**
-<br /> Node has a relationship to another node that is neither parent nor child relationship.
-E.g. a Server has relationship with an Image.
-The only difference between the "relationship" type, vs "parent-child" type, is that in "relationship"
-there is no obligation for either nodes to exist or be deleted because of the other node.
-This constraint is explicitly expressed in the definition of the models.
-
-E.g. the Server model constructor takes Image as an argument,
-```typescript
-constructor(serverKey: string, image: Image) {
-  this.addRelationship('serverKey', image, 'imageId');
-}
-```
-This enforces
+<br /> A node has a relationship with another node that is neither a parent nor a child relationship.
+For example, a server has a relationship with an image.
+The distinction between the "relationship" type and the "parent-child" type is that in a "relationship",
+there is no obligation for either node to exist or be deleted because of the other node.
 
 :::tip
 * A parent-child dependency is bi-directional, i.e. if Node 1 is parent of Node 2,
 then Node 2 must be a child of Node 1.
 * A "Relationship" dependency is uni-directional, i.e. if Node 1 has relationship with Node 2,
 then it is not necessarily true that Node 2 also has a relationship with Node 1.
-:::
 
 ```mermaid
 flowchart LR;
@@ -76,3 +63,25 @@ flowchart LR;
 
     overview -. translates to .-> detailed
 ```
+:::
+
+## Dependency Class
+A dependency is not stored as a property in nodes; instead, it is its own class.
+It encompasses both the models on its either end.
+
+```js title="Dependency Schema"
+{
+  from: "a model",
+  to: "a model",
+  relationship: "parent | child | relationship",
+  behaviors: "an array of metadata with individual traits of this dependency."
+}
+```
+
+A dependency is also serialized and deserialized like models and resources.
+<br />Its a first class citizen in Octo.
+
+## Summary
+In a graph there are vetices and edges.
+In this section we learned that a Dependency represents an edge,
+and is stored as a first class citizen of Octo.
