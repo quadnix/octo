@@ -8,6 +8,7 @@ import {
   Environment,
   Execution,
   Factory,
+  IModelAction,
   ModelType,
   Server,
 } from '@quadnix/octo';
@@ -19,14 +20,13 @@ import { Efs } from '../../../resources/efs/efs.resource.js';
 import { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import { AAction } from '../../action.abstract.js';
 import { AwsRegion } from '../../region/aws.region.model.js';
 
 @Action(ModelType.MODEL)
-export class AddExecutionModelAction extends AAction {
+export class AddExecutionModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddExecutionModelAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const execution = diff.model as Execution;
     const deployment = execution.getParents()['deployment'][0].to as Deployment;
     const server = deployment.getParents()['server'][0].to as Server;
@@ -114,6 +114,10 @@ export class AddExecutionModelAction extends AAction {
     output[ecsService.resourceId] = ecsService;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 

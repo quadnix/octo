@@ -7,18 +7,18 @@ import {
   DiffAction,
   Execution,
   Factory,
+  IModelAction,
   ModelType,
   Server,
 } from '@quadnix/octo';
 import { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
 import { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
-import { AAction } from '../../action.abstract.js';
 
 @Action(ModelType.MODEL)
-export class DeleteExecutionModelAction extends AAction {
+export class DeleteExecutionModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'DeleteExecutionModelAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const execution = diff.model as Execution;
     const deployment = execution.getParents()['deployment'][0].to as Deployment;
     const server = deployment.getParents()['server'][0].to as Server;
@@ -47,6 +47,10 @@ export class DeleteExecutionModelAction extends AAction {
     output[ecsService.resourceId] = ecsService;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 

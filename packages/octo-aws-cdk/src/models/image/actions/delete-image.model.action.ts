@@ -1,9 +1,12 @@
-import { Action, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
-import { AAction } from '../../action.abstract.js';
+import { Action, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 
 @Action(ModelType.MODEL)
-export class DeleteImageModelAction extends AAction {
+export class DeleteImageModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'DeleteImageModelAction';
+
+  collectInput(): string[] {
+    return [];
+  }
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'image' && diff.field === 'imageId';
@@ -11,6 +14,10 @@ export class DeleteImageModelAction extends AAction {
 
   async handle(): Promise<ActionOutputs> {
     // We currently do not attempt to delete local docker image.
+    return {};
+  }
+
+  async revert(): Promise<ActionOutputs> {
     return {};
   }
 }

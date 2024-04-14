@@ -1,11 +1,14 @@
-import { Action, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { Action, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { IamRole } from '../../../resources/iam/iam-role.resource.js';
-import { AAction } from '../../action.abstract.js';
 import { AwsServer } from '../aws.server.model.js';
 
 @Action(ModelType.MODEL)
-export class AddServerModelAction extends AAction {
+export class AddServerModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddServerModelAction';
+
+  collectInput(): string[] {
+    return [];
+  }
 
   filter(diff: Diff): boolean {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'server' && diff.field === 'serverKey';
@@ -22,6 +25,10 @@ export class AddServerModelAction extends AAction {
     output[iamRole.resourceId] = iamRole;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 

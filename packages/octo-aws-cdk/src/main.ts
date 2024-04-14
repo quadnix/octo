@@ -4,6 +4,7 @@ import {
   Container,
   Diff,
   DiffMetadata,
+  IModelAction,
   IStateProvider,
   ModelSerializationService,
   ResourceSerializationService,
@@ -13,7 +14,9 @@ import {
   TransactionService,
   UnknownResource,
 } from '@quadnix/octo';
-import { AAction } from './models/action.abstract.js';
+import { AddS3StaticWebsiteModelAction } from './models/service/s3-static-website/actions/add-s3-static-website.model.action.js';
+import { DeleteS3StaticWebsiteModelAction } from './models/service/s3-static-website/actions/delete-s3-static-website.model.action.js';
+import { UpdateSourcePathsS3StaticWebsiteModelAction } from './models/service/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
 
 export class OctoAws {
   private readonly modelStateFileName: string = 'models.json';
@@ -139,8 +142,14 @@ export class OctoAws {
     for (const diffsProcessedInSameLevel of modelTransaction) {
       const postTransactionPromises: Promise<void>[] = [];
       diffsProcessedInSameLevel.forEach((d) => {
-        (d.actions as AAction[]).forEach((a) => {
-          postTransactionPromises.push(a.postTransaction(d.diff));
+        (d.actions as IModelAction[]).forEach((a) => {
+          if (
+            a instanceof AddS3StaticWebsiteModelAction ||
+            a instanceof DeleteS3StaticWebsiteModelAction ||
+            a instanceof UpdateSourcePathsS3StaticWebsiteModelAction
+          ) {
+            postTransactionPromises.push(a.postTransaction(d.diff));
+          }
         });
       });
       await Promise.all(postTransactionPromises);

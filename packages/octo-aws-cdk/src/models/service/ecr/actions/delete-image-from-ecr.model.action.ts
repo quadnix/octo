@@ -1,13 +1,22 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, Image, ModelType } from '@quadnix/octo';
+import {
+  Action,
+  ActionInputs,
+  ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  IModelAction,
+  Image,
+  ModelType,
+} from '@quadnix/octo';
 import { EcrImage } from '../../../../resources/ecr/ecr-image.resource.js';
-import { AAction } from '../../../action.abstract.js';
 import { EcrService } from '../ecr.service.model.js';
 
 @Action(ModelType.MODEL)
-export class DeleteImageFromEcrModelAction extends AAction {
+export class DeleteImageFromEcrModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'DeleteImageFromEcrModelAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const { awsRegionId, image } = diff.value as { awsRegionId: string; image: Image };
 
     return [`resource.ecr-${awsRegionId}-${image.imageId}`];
@@ -31,6 +40,10 @@ export class DeleteImageFromEcrModelAction extends AAction {
     output[ecrImage.resourceId] = ecrImage;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 

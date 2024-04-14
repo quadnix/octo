@@ -1,13 +1,22 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, Image, ModelType } from '@quadnix/octo';
+import {
+  Action,
+  ActionInputs,
+  ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  IModelAction,
+  Image,
+  ModelType,
+} from '@quadnix/octo';
 import { parse } from 'path';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
-import { AAction } from '../../action.abstract.js';
 
 @Action(ModelType.MODEL)
-export class AddImageModelAction extends AAction {
+export class AddImageModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddImageModelAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const { imageId } = diff.model as Image;
 
     return [`input.image.${imageId}.dockerExecutable`];
@@ -61,6 +70,10 @@ export class AddImageModelAction extends AAction {
       });
     });
 
+    return {};
+  }
+
+  async revert(): Promise<ActionOutputs> {
     return {};
   }
 }

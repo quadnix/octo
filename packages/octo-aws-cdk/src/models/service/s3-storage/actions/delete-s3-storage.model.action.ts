@@ -1,13 +1,12 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { S3Storage } from '../../../../resources/s3/storage/s3-storage.resource.js';
-import { AAction } from '../../../action.abstract.js';
 import { S3StorageService } from '../s3-storage.service.model.js';
 
 @Action(ModelType.MODEL)
-export class DeleteS3StorageModelAction extends AAction {
+export class DeleteS3StorageModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'DeleteS3StorageModelAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const { bucketName } = diff.model as S3StorageService;
 
     return [`resource.bucket-${bucketName}`];
@@ -32,6 +31,10 @@ export class DeleteS3StorageModelAction extends AAction {
     output[s3Storage.resourceId] = s3Storage;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 

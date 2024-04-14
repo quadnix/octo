@@ -1,14 +1,13 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { IamRoleAnchor } from '../../../../anchors/iam-role.anchor.model.js';
 import { IamRole } from '../../../../resources/iam/iam-role.resource.js';
-import { AAction } from '../../../action.abstract.js';
 import { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
 
 @Action(ModelType.OVERLAY)
-export class AddS3StorageAccessOverlayAction extends AAction {
+export class AddS3StorageAccessOverlayAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddS3StorageAccessOverlayAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const s3StorageAccessOverlay = diff.model as S3StorageAccessOverlay;
     const iamRoleAnchor = s3StorageAccessOverlay.getAnchors()[0] as IamRoleAnchor;
 
@@ -34,6 +33,10 @@ export class AddS3StorageAccessOverlayAction extends AAction {
     output[iamRole.resourceId] = iamRole;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 

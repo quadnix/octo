@@ -1,4 +1,4 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { Efs } from '../../../resources/efs/efs.resource.js';
 import { SharedEfs } from '../../../resources/efs/efs.shared-resource.js';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
@@ -7,14 +7,13 @@ import { RouteTable } from '../../../resources/route-table/route-table.resource.
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { Vpc } from '../../../resources/vpc/vpc.resource.js';
-import { AAction } from '../../action.abstract.js';
 import { AwsRegion } from '../aws.region.model.js';
 
 @Action(ModelType.MODEL)
-export class DeleteRegionModelAction extends AAction {
+export class DeleteRegionModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'DeleteRegionModelAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const { regionId } = diff.model as AwsRegion;
 
     return [
@@ -96,6 +95,10 @@ export class DeleteRegionModelAction extends AAction {
     output[efs.resourceId] = efs;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 

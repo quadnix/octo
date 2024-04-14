@@ -1,13 +1,12 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { IamRole } from '../../../resources/iam/iam-role.resource.js';
-import { AAction } from '../../action.abstract.js';
 import { AwsServer } from '../aws.server.model.js';
 
 @Action(ModelType.MODEL)
-export class DeleteServerModelAction extends AAction {
+export class DeleteServerModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'DeleteServerModelAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const server = diff.model as AwsServer;
     const serverIamRoleName = server.getAnchors()[0].anchorId;
 
@@ -29,6 +28,10 @@ export class DeleteServerModelAction extends AAction {
     output[iamRole.resourceId] = iamRole;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 

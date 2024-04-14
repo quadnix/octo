@@ -1,10 +1,13 @@
-import { Action, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
-import { AAction } from '../../../action.abstract.js';
+import { Action, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { EcrService } from '../ecr.service.model.js';
 
 @Action(ModelType.MODEL)
-export class AddEcrServiceModelAction extends AAction {
+export class AddEcrServiceModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddEcrServiceModelAction';
+
+  collectInput(): string[] {
+    return [];
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -16,6 +19,10 @@ export class AddEcrServiceModelAction extends AAction {
   }
 
   async handle(): Promise<ActionOutputs> {
+    return {};
+  }
+
+  async revert(): Promise<ActionOutputs> {
     return {};
   }
 }

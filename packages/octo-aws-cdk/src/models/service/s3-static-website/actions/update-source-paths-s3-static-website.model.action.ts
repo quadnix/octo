@@ -1,13 +1,12 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { S3Website } from '../../../../resources/s3/website/s3-website.resource.js';
-import { AAction } from '../../../action.abstract.js';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model.js';
 
 @Action(ModelType.MODEL)
-export class UpdateSourcePathsS3StaticWebsiteModelAction extends AAction {
+export class UpdateSourcePathsS3StaticWebsiteModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'UpdateSourcePathsS3StaticWebsiteModelAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
     return [`resource.bucket-${bucketName}`];
@@ -34,7 +33,11 @@ export class UpdateSourcePathsS3StaticWebsiteModelAction extends AAction {
     return output;
   }
 
-  override async postTransaction(diff: Diff): Promise<void> {
+  async revert(): Promise<ActionOutputs> {
+    return {};
+  }
+
+  async postTransaction(diff: Diff): Promise<void> {
     const model = diff.model as S3StaticWebsiteService;
     await model.saveSourceManifest();
   }

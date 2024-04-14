@@ -1,11 +1,14 @@
-import { Action, ActionOutputs, Diff, DiffAction, Environment, Factory, ModelType } from '@quadnix/octo';
+import { Action, ActionOutputs, Diff, DiffAction, Environment, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
-import { AAction } from '../../action.abstract.js';
 import { AwsRegion } from '../../region/aws.region.model.js';
 
 @Action(ModelType.MODEL)
-export class AddEnvironmentModelAction extends AAction {
+export class AddEnvironmentModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddEnvironmentModelAction';
+
+  collectInput(): string[] {
+    return [];
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -29,6 +32,10 @@ export class AddEnvironmentModelAction extends AAction {
     output[ecsCluster.resourceId] = ecsCluster;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 

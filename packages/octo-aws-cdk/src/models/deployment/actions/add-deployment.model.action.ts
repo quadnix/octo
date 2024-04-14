@@ -1,16 +1,15 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { join, resolve } from 'path';
 import { S3Storage } from '../../../resources/s3/storage/s3-storage.resource.js';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
-import { AAction } from '../../action.abstract.js';
 import { AwsServer } from '../../server/aws.server.model.js';
 import { AwsDeployment } from '../aws.deployment.model.js';
 
 @Action(ModelType.MODEL)
-export class AddDeploymentModelAction extends AAction {
+export class AddDeploymentModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddDeploymentModelAction';
 
-  override collectInput(diff: Diff): string[] {
+  collectInput(diff: Diff): string[] {
     const awsDeployment = diff.model as AwsDeployment;
 
     const parents = awsDeployment.getParents();
@@ -59,6 +58,10 @@ export class AddDeploymentModelAction extends AAction {
     output[s3Storage.resourceId] = s3Storage;
 
     return output;
+  }
+
+  async revert(): Promise<ActionOutputs> {
+    return {};
   }
 }
 
