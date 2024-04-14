@@ -1,10 +1,10 @@
 import { ActionInputs, ActionOutputs, UnknownModel, UnknownResource } from '../../app.type.js';
-import { IAction } from '../../models/action.interface.js';
+import { IModelAction } from '../../models/model-action.interface.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { Diff, DiffAction } from './diff.model.js';
 
 export class DiffMetadata {
-  readonly actions: IAction<ActionInputs, ActionOutputs>[] | IResourceAction[];
+  readonly actions: IModelAction[] | IResourceAction[];
   applied: boolean;
   applyOrder: number;
 
@@ -17,7 +17,7 @@ export class DiffMetadata {
   readonly inputs: ActionInputs = {};
   readonly outputs: ActionOutputs = {};
 
-  constructor(diff: Diff, actions: IAction<ActionInputs, ActionOutputs>[] | IResourceAction[]) {
+  constructor(diff: Diff, actions: IModelAction[] | IResourceAction[]) {
     if (!actions?.length) {
       throw new Error('No matching action given for diff!');
     }

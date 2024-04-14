@@ -35,9 +35,9 @@ export { IService } from './models/service/service.interface.js';
 export { Support } from './models/support/support.model.js';
 export { ISupport } from './models/support/support.interface.js';
 
-export { IAction } from './models/action.interface.js';
 export { AModel } from './models/model.abstract.js';
 export { IModel, IModelReference } from './models/model.interface.js';
+export { IModelAction } from './models/model-action.interface.js';
 
 export { AAnchor } from './overlays/anchor.abstract.js';
 export { IAnchor } from './overlays/anchor.interface.js';

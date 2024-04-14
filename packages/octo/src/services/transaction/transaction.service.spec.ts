@@ -1,10 +1,10 @@
 import { jest } from '@jest/globals';
 import { SharedTestResource, TestAnchor, TestOverlay, TestResource } from '../../../test/helpers/test-classes.js';
-import { ActionInputs, ActionOutputs, UnknownResource } from '../../app.type.js';
+import { UnknownResource } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
-import { IAction } from '../../models/action.interface.js';
+import { IModelAction } from '../../models/model-action.interface.js';
 import { App } from '../../models/app/app.model.js';
 import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
@@ -29,7 +29,7 @@ describe('TransactionService UT', () => {
   });
 
   describe('applyModels()', () => {
-    const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
+    const universalModelAction: IModelAction = {
       ACTION_NAME: 'universal',
       collectInput: () => [],
       filter: () => true,
@@ -62,7 +62,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action: IAction<ActionInputs, ActionOutputs> = {
+      const modelAction: IModelAction = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
         filter: () => true,
@@ -71,7 +71,7 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
-      service.registerModelActions([action]);
+      service.registerModelActions([modelAction]);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       await expect(async () => {
@@ -83,7 +83,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action: IAction<ActionInputs, ActionOutputs> = {
+      const modelAction: IModelAction = {
         ACTION_NAME: 'test',
         collectInput: () => ['resource.key1'],
         filter: () => true,
@@ -92,7 +92,7 @@ describe('TransactionService UT', () => {
       };
 
       const service = new TransactionService();
-      service.registerModelActions([action]);
+      service.registerModelActions([modelAction]);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       await expect(async () => {
@@ -133,27 +133,27 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action: IAction<ActionInputs, ActionOutputs> = {
+      const modelAction: IModelAction = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action.handle as jest.Mocked<any>).mockResolvedValue({
+      (modelAction.handle as jest.Mocked<any>).mockResolvedValue({
         resource1: new TestResource('resource1'),
       });
 
       const service = new TransactionService();
       service.registerInputs({ 'input.key1': 'value1' });
-      service.registerModelActions([action]);
+      service.registerModelActions([modelAction]);
 
       const generator = service.beginTransaction(diffs, { yieldNewResources: true });
 
       const newResources = await generator.next();
 
-      expect(action.handle).toHaveBeenCalledTimes(1);
-      expect((action.handle as jest.Mock).mock.calls).toMatchSnapshot();
+      expect(modelAction.handle).toHaveBeenCalledTimes(1);
+      expect((modelAction.handle as jest.Mock).mock.calls).toMatchSnapshot();
       expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
     });
 
@@ -161,18 +161,18 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action: IAction<ActionInputs, ActionOutputs> = {
+      const modelAction: IModelAction = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
+      (modelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
 
       const service = new TransactionService();
       service.registerInputs({ 'input.key1': 'value1' });
-      service.registerModelActions([action]);
+      service.registerModelActions([modelAction]);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       const result = await generator.next();
@@ -185,35 +185,35 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const action1: IAction<ActionInputs, ActionOutputs> = {
+      const modelAction1: IModelAction = {
         ACTION_NAME: 'test1',
         collectInput: () => ['input.key1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action1.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
-      const action2: IAction<ActionInputs, ActionOutputs> = {
+      (modelAction1.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
+      const modelAction2: IModelAction = {
         ACTION_NAME: 'test2',
         collectInput: () => ['input.key2'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         revert: jest.fn() as jest.Mocked<any>,
       };
-      (action2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: new TestResource('resource2') });
+      (modelAction2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: new TestResource('resource2') });
 
       const service = new TransactionService();
       service.registerInputs({ 'input.key1': 'value1', 'input.key2': 'value2' });
-      service.registerModelActions([action1, action2]);
+      service.registerModelActions([modelAction1, modelAction2]);
 
       const generator = service.beginTransaction(diffs, { yieldNewResources: true });
 
       const newResources = await generator.next();
 
-      expect(action1.handle).toHaveBeenCalledTimes(1);
-      expect((action1.handle as jest.Mock).mock.calls).toMatchSnapshot();
-      expect(action2.handle).toHaveBeenCalledTimes(1);
-      expect((action2.handle as jest.Mock).mock.calls).toMatchSnapshot();
+      expect(modelAction1.handle).toHaveBeenCalledTimes(1);
+      expect((modelAction1.handle as jest.Mock).mock.calls).toMatchSnapshot();
+      expect(modelAction2.handle).toHaveBeenCalledTimes(1);
+      expect((modelAction2.handle as jest.Mock).mock.calls).toMatchSnapshot();
       expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
     });
 
@@ -387,7 +387,7 @@ describe('TransactionService UT', () => {
   });
 
   describe('setApplyOrder()', () => {
-    const actions: IAction<ActionInputs, ActionOutputs>[] = [
+    const modelActions: IModelAction[] = [
       {
         ACTION_NAME: 'test',
         collectInput: () => [],
@@ -411,7 +411,7 @@ describe('TransactionService UT', () => {
       app.addRegion(region);
       region.addEnvironment(environment);
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
-      const diffMetadata = new DiffMetadata(diff, actions);
+      const diffMetadata = new DiffMetadata(diff, modelActions);
       diffMetadata.applyOrder = 1;
 
       expect(diffMetadata.applyOrder).toBe(1);
@@ -426,7 +426,7 @@ describe('TransactionService UT', () => {
       app.addRegion(region);
       region.addEnvironment(environment);
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
-      const diffMetadata = new DiffMetadata(diff, actions);
+      const diffMetadata = new DiffMetadata(diff, modelActions);
 
       expect(diffMetadata.applyOrder).toBe(-1);
       setApplyOrder(diffMetadata, [diffMetadata]);
@@ -440,7 +440,7 @@ describe('TransactionService UT', () => {
       app.addRegion(region);
       region.addEnvironment(environment);
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
-      const diffMetadata = new DiffMetadata(diff, actions);
+      const diffMetadata = new DiffMetadata(diff, modelActions);
 
       expect(diffMetadata.applyOrder).toBe(-1);
       setApplyOrder(diffMetadata, [diffMetadata]);
@@ -460,7 +460,7 @@ describe('TransactionService UT', () => {
       const diff2 = new Diff(region1, DiffAction.ADD, 'regionId', 'region-1');
       const diff3 = new Diff(region2, DiffAction.ADD, 'regionId', 'region-2');
 
-      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, actions));
+      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
 
       setApplyOrder(diffsMetadata[0], diffsMetadata);
 
@@ -478,7 +478,7 @@ describe('TransactionService UT', () => {
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
 
-      const diffsMetadata = [diff1, diff2].map((d) => new DiffMetadata(d, actions));
+      const diffsMetadata = [diff1, diff2].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
@@ -497,7 +497,7 @@ describe('TransactionService UT', () => {
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
       const diff3 = new Diff(app, DiffAction.ADD, 'name', 'test');
 
-      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, actions));
+      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
@@ -514,7 +514,7 @@ describe('TransactionService UT', () => {
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
       const diff2 = new Diff(app, DiffAction.ADD, 'name', 'test');
 
-      const diffsMetadata = [diff1, diff2].map((d) => new DiffMetadata(d, actions));
+      const diffsMetadata = [diff1, diff2].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
@@ -538,7 +538,7 @@ describe('TransactionService UT', () => {
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
       const diff3 = new Diff(app, DiffAction.ADD, 'name', 'test');
 
-      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, actions));
+      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
@@ -561,7 +561,7 @@ describe('TransactionService UT', () => {
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
       const diff2 = new Diff(environment, DiffAction.ADD, 'environmentName', 'env');
       const diff3 = new Diff(environment, DiffAction.UPDATE, 'environmentVariables', '{}');
-      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, actions));
+      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
 
       expect(() => {
         setApplyOrder(diffsMetadata[0], diffsMetadata);
@@ -573,7 +573,7 @@ describe('TransactionService UT', () => {
 
   describe('beginTransaction()', () => {
     describe('yieldModelTransaction', () => {
-      const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
+      const universalModelAction: IModelAction = {
         ACTION_NAME: 'universal',
         collectInput: () => [],
         filter: () => true,
@@ -641,7 +641,7 @@ describe('TransactionService UT', () => {
     });
 
     describe('yieldResourceDiffs', () => {
-      const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
+      const universalModelAction: IModelAction = {
         ACTION_NAME: 'universal',
         collectInput: () => [],
         filter: () => true,
@@ -678,7 +678,7 @@ describe('TransactionService UT', () => {
     });
 
     describe('yieldResourceTransaction', () => {
-      const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
+      const universalModelAction: IModelAction = {
         ACTION_NAME: 'universal',
         collectInput: () => [],
         filter: () => true,
@@ -740,7 +740,7 @@ describe('TransactionService UT', () => {
   });
 
   describe('rollbackTransaction()', () => {
-    const universalModelAction: IAction<ActionInputs, ActionOutputs> = {
+    const universalModelAction: IModelAction = {
       ACTION_NAME: 'universal',
       collectInput: () => [],
       filter: () => true,

@@ -10,15 +10,15 @@ import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
-import { IAction } from '../../models/action.interface.js';
+import { IModelAction } from '../../models/model-action.interface.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 
 export class TransactionService {
   private readonly inputs: ActionInputs = {};
-  private readonly modelActions: IAction<ActionInputs, ActionOutputs>[] = [];
-  private readonly overlayActions: IAction<ActionInputs, ActionOutputs>[] = [];
+  private readonly modelActions: IModelAction[] = [];
+  private readonly overlayActions: IModelAction[] = [];
   private readonly resourceActions: IResourceAction[] = [];
 
   private async applyModels(
@@ -46,7 +46,7 @@ export class TransactionService {
         // Only process the first diff, given all duplicate diffs are the same.
         const diffToProcess = duplicateDiffs[0].diff;
 
-        for (const a of diff.actions as IAction<ActionInputs, ActionOutputs>[]) {
+        for (const a of diff.actions as IModelAction[]) {
           // Resolve input requests.
           const inputs: ActionInputs = {};
           const inputKeys = a.collectInput(diffToProcess);
@@ -292,7 +292,7 @@ export class TransactionService {
     return modelTransaction;
   }
 
-  registerModelActions(actions: IAction<ActionInputs, ActionOutputs>[]): void {
+  registerModelActions(actions: IModelAction[]): void {
     for (const action of actions) {
       if (!this.modelActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
         this.modelActions.push(action);
@@ -300,7 +300,7 @@ export class TransactionService {
     }
   }
 
-  registerOverlayActions(actions: IAction<ActionInputs, ActionOutputs>[]): void {
+  registerOverlayActions(actions: IModelAction[]): void {
     for (const action of actions) {
       if (!this.overlayActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
         this.overlayActions.push(action);
@@ -336,7 +336,7 @@ export class TransactionService {
       const diffsProcessedInSameLevel = modelTransaction[i];
 
       for (const diff of diffsProcessedInSameLevel) {
-        for (const a of diff.actions as IAction<ActionInputs, ActionOutputs>[]) {
+        for (const a of diff.actions as IModelAction[]) {
           const outputs = a.revert(diff.diff, diff.inputs, diff.outputs);
           for (const outputKey in outputs) {
             resourceDataRepository.add(outputs[outputKey]);
