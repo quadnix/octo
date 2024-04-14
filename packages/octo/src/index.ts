@@ -1,6 +1,7 @@
 export { Anchor } from './decorators/anchor.decorator.js';
 export { Action } from './decorators/action.decorator.js';
 export { Container } from './decorators/container.js';
+export { EnableHook } from './decorators/enable-hook.decorator.js';
 export { Factory } from './decorators/factory.decorator.js';
 export { Model } from './decorators/model.decorator.js';
 export { Module } from './decorators/module.decorator.js';
@@ -11,6 +12,8 @@ export { TestContainer } from './decorators/test-container.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { DiffMetadata } from './functions/diff/diff-metadata.js';
+export { AHook } from './functions/hook/hook.abstract.js';
+export { PostModelActionHandleHook } from './functions/hook/post-model-action-handle.hook.js';
 export { AModule } from './functions/module/module.abstract.js';
 export { IModule } from './functions/module/module.interface.js';
 
