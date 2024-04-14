@@ -1,6 +1,6 @@
 import { ModelType, UnknownOverlay } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
-import { Diff, DiffAction } from '../functions/diff/diff.model.js';
+import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { IOverlay } from './overlay.interface.js';
 
 export class OverlayDataRepository {

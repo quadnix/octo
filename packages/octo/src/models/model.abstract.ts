@@ -1,6 +1,6 @@
 import { ModelType, UnknownModel } from '../app.type.js';
-import { Dependency } from '../functions/dependency/dependency.model.js';
-import { Diff, DiffAction } from '../functions/diff/diff.model.js';
+import { Dependency } from '../functions/dependency/dependency.js';
+import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AAnchor } from '../overlays/anchor.abstract.js';
 import { IModel } from './model.interface.js';

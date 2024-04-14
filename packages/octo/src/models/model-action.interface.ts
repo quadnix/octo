@@ -1,5 +1,5 @@
 import { ActionInputs, ActionOutputs } from '../app.type.js';
-import { Diff } from '../functions/diff/diff.model.js';
+import { Diff } from '../functions/diff/diff.js';
 
 /**
  * Actions are translation functions between Diff and underlying infrastructure.

@@ -1,5 +1,5 @@
 import { UnknownModel } from '../../app.type.js';
-import { DiffAction } from '../diff/diff.model.js';
+import { DiffAction } from '../diff/diff.js';
 
 class DependencyBehavior {
   forAction: DiffAction;

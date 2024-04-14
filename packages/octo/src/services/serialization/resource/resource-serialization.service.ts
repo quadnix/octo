@@ -1,7 +1,7 @@
 import { ActionOutputs, ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
 import { Container } from '../../../decorators/container.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
-import { IDependency } from '../../../functions/dependency/dependency.model.js';
+import { IDependency } from '../../../functions/dependency/dependency.js';
 import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
 
 export class ResourceSerializationService {

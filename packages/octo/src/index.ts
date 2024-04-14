@@ -8,9 +8,9 @@ export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
 export { TestContainer } from './decorators/test-container.js';
 
-export { Diff, DiffAction } from './functions/diff/diff.model.js';
+export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
-export { DiffMetadata } from './functions/diff/diff-metadata.model.js';
+export { DiffMetadata } from './functions/diff/diff-metadata.js';
 export { AModule } from './functions/module/module.abstract.js';
 export { IModule } from './functions/module/module.interface.js';
 

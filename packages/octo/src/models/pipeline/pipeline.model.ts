@@ -4,7 +4,7 @@ import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import { AModel } from '../model.abstract.js';
-import { Diff } from '../../functions/diff/diff.model.js';
+import { Diff } from '../../functions/diff/diff.js';
 import { IPipeline } from './pipeline.interface.js';
 
 @Model()

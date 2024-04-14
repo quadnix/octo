@@ -4,7 +4,7 @@ import { Factory } from '../../../decorators/factory.decorator.js';
 import { AModule } from '../../../functions/module/module.abstract.js';
 import { IModule } from '../../../functions/module/module.interface.js';
 import { IAnchor } from '../../../overlays/anchor.interface.js';
-import { Dependency, IDependency } from '../../../functions/dependency/dependency.model.js';
+import { Dependency, IDependency } from '../../../functions/dependency/dependency.js';
 import { IOverlay } from '../../../overlays/overlay.interface.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
 

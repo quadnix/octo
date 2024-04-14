@@ -1,6 +1,6 @@
 import { ModelType, UnknownModel, UnknownOverlay } from '../app.type.js';
 import { AModel } from '../models/model.abstract.js';
-import { Diff } from '../functions/diff/diff.model.js';
+import { Diff } from '../functions/diff/diff.js';
 import { AAnchor } from './anchor.abstract.js';
 import { IOverlay } from './overlay.interface.js';
 

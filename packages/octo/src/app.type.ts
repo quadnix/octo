@@ -1,4 +1,4 @@
-import { IDependency } from './functions/dependency/dependency.model.js';
+import { IDependency } from './functions/dependency/dependency.js';
 import { IModule } from './functions/module/module.interface.js';
 import { IAnchor } from './overlays/anchor.interface.js';
 import { AOverlay } from './overlays/overlay.abstract.js';

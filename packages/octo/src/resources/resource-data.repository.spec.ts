@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { Diff } from '../functions/diff/diff.model.js';
+import { Diff } from '../functions/diff/diff.js';
 import { ResourceDataRepository } from './resource-data.repository.js';
 import { AResource } from './resource.abstract.js';
 import { ASharedResource } from './shared-resource.abstract.js';

@@ -8,8 +8,8 @@ import {
 } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
-import { DiffMetadata } from '../../functions/diff/diff-metadata.model.js';
-import { Diff, DiffAction } from '../../functions/diff/diff.model.js';
+import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
+import { Diff, DiffAction } from '../../functions/diff/diff.js';
 import { IModelAction } from '../../models/model-action.interface.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';

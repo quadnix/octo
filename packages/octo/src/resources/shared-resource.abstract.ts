@@ -1,5 +1,5 @@
 import { ModelType } from '../app.type.js';
-import { Diff } from '../functions/diff/diff.model.js';
+import { Diff } from '../functions/diff/diff.js';
 import { AResource } from './resource.abstract.js';
 
 export abstract class ASharedResource<T> extends AResource<T> {

@@ -1,7 +1,7 @@
 import { ActionInputs, ActionOutputs, UnknownModel, UnknownResource } from '../../app.type.js';
 import { IModelAction } from '../../models/model-action.interface.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
-import { Diff, DiffAction } from './diff.model.js';
+import { Diff, DiffAction } from './diff.js';
 
 export class DiffMetadata {
   readonly actions: IModelAction[] | IResourceAction[];

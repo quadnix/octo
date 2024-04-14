@@ -1,8 +1,8 @@
 import { App } from '../../models/app/app.model.js';
 import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
-import { DiffAction } from '../diff/diff.model.js';
-import { Dependency } from './dependency.model.js';
+import { DiffAction } from '../diff/diff.js';
+import { Dependency } from './dependency.js';
 
 describe('Dependency UT', () => {
   describe('addBehavior()', () => {
