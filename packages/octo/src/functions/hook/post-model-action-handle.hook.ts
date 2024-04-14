@@ -3,6 +3,7 @@ import { IModelAction } from '../../models/model-action.interface.js';
 import { AHook } from './hook.abstract.js';
 
 export type PostModelActionCallback = (output: ActionOutputs) => Promise<ActionOutputs>;
+type PostModelActionMethodSignature = (...args: any[]) => Promise<ActionOutputs>;
 
 export class PostModelActionHandleHook extends AHook {
   private static readonly callbacks: { [key: string]: PostModelActionCallback[] } = {};
@@ -22,7 +23,7 @@ export class PostModelActionHandleHook extends AHook {
   static override registrar(
     constructor: Constructable<unknown>,
     propertyKey: string,
-    descriptor: PropertyDescriptor,
+    descriptor: TypedPropertyDescriptor<PostModelActionMethodSignature>,
   ): void {
     if (!this.isInstanceOfModelAction(constructor.prototype)) {
       throw new Error('PostModelActionHandleHook can only be used with ModelAction!');
@@ -33,7 +34,7 @@ export class PostModelActionHandleHook extends AHook {
 
     // `self` here references PostModelActionHandleHook, vs `this` references the original method.
     descriptor.value = async function (...args: any[]): Promise<ActionOutputs> {
-      let output: ActionOutputs = await originalMethod.apply(this, args);
+      let output: ActionOutputs = await originalMethod!.apply(this, args);
       for (const callback of self.callbacks[constructor.name] || []) {
         output = await callback(output);
       }

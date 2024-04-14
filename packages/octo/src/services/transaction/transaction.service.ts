@@ -10,7 +10,6 @@ import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
-import { PostModelTransactionHandleHook } from '../../functions/hook/post-model-transaction-handle.hook.js';
 import { IModelAction } from '../../models/model-action.interface.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
@@ -289,9 +288,6 @@ export class TransactionService {
     if (options.yieldResourceTransaction) {
       yield resourceTransaction;
     }
-
-    // Run post transaction hooks.
-    await PostModelTransactionHandleHook.apply(modelTransaction);
 
     return modelTransaction;
   }
