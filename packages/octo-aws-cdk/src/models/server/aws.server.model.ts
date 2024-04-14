@@ -1,5 +1,5 @@
 import { IServer, Image, Model, Server, UnknownModel } from '@quadnix/octo';
-import { IamRoleAnchor } from '../../anchors/iam-role.anchor.model.js';
+import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
 
 @Model()
 export class AwsServer extends Server {

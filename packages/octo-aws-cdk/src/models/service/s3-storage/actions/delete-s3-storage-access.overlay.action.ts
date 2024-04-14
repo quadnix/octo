@@ -1,5 +1,5 @@
 import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
-import { IamRoleAnchor } from '../../../../anchors/iam-role.anchor.model.js';
+import { IamRoleAnchor } from '../../../../anchors/iam-role.anchor.js';
 import { IamRole } from '../../../../resources/iam/iam-role.resource.js';
 import { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
 

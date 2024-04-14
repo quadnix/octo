@@ -1,5 +1,5 @@
-import './anchors/iam-role.anchor.model.js';
-import './anchors/iam-user.anchor.model.js';
+import './anchors/iam-role.anchor.js';
+import './anchors/iam-user.anchor.js';
 
 import './factories/aws/ec2.aws.factory.js';
 import './factories/aws/ecr.aws.factory.js';
