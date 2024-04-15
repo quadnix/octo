@@ -10,8 +10,11 @@
     },
     "conventionalCommits": {
       "types": {
-        "build": true,
-        "chore": false,
+        "build": false,
+        "chore": {
+          "changelog": false,
+          "semverBump": "none"
+        },
         "ci": false,
         "docs": false,
         "feat": false,
