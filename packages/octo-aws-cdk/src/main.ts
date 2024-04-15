@@ -4,9 +4,10 @@ import {
   Container,
   Diff,
   DiffMetadata,
-  IModelAction,
+  EnableHook,
   IStateProvider,
   ModelSerializationService,
+  PreCommitHandleHook,
   ResourceSerializationService,
   ResourceSerializedOutput,
   StateManagementService,
@@ -14,9 +15,6 @@ import {
   TransactionService,
   UnknownResource,
 } from '@quadnix/octo';
-import { AddS3StaticWebsiteModelAction } from './models/service/s3-static-website/actions/add-s3-static-website.model.action.js';
-import { DeleteS3StaticWebsiteModelAction } from './models/service/s3-static-website/actions/delete-s3-static-website.model.action.js';
-import { UpdateSourcePathsS3StaticWebsiteModelAction } from './models/service/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
 
 export class OctoAws {
   private readonly modelStateFileName: string = 'models.json';
@@ -137,23 +135,11 @@ export class OctoAws {
     return this.transactionService.beginTransaction(diffs, options || {});
   }
 
+  @EnableHook(PreCommitHandleHook)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async commitTransaction(app: App, modelTransaction: DiffMetadata[][]): Promise<void> {
-    // Run post-transactions on actions.
-    for (const diffsProcessedInSameLevel of modelTransaction) {
-      const postTransactionPromises: Promise<void>[] = [];
-      diffsProcessedInSameLevel.forEach((d) => {
-        (d.actions as IModelAction[]).forEach((a) => {
-          if (
-            a instanceof AddS3StaticWebsiteModelAction ||
-            a instanceof DeleteS3StaticWebsiteModelAction ||
-            a instanceof UpdateSourcePathsS3StaticWebsiteModelAction
-          ) {
-            postTransactionPromises.push(a.postTransaction(d.diff));
-          }
-        });
-      });
-      await Promise.all(postTransactionPromises);
-    }
+    // `modelTransaction` is being used indirectly by the @EnableHook.
+    // Do not remove this argument.
 
     // Save the state of the new app and its resources.
     await this.saveModelState(app);

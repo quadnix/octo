@@ -39,11 +39,6 @@ export class AddS3StaticWebsiteModelAction implements IModelAction {
   async revert(): Promise<ActionOutputs> {
     return {};
   }
-
-  async postTransaction(diff: Diff): Promise<void> {
-    const model = diff.model as S3StaticWebsiteService;
-    await model.saveSourceManifest();
-  }
 }
 
 @Factory<AddS3StaticWebsiteModelAction>(AddS3StaticWebsiteModelAction)
