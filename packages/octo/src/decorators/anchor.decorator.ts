@@ -3,8 +3,12 @@ import { Container } from './container.js';
 
 export function Anchor(): (constructor: any) => void {
   return function (constructor: any) {
-    Container.get(ModelSerializationService).then((modelSerializationService) => {
-      modelSerializationService.registerClass(constructor.name, constructor);
-    });
+    Container.get(ModelSerializationService)
+      .then((modelSerializationService) => {
+        modelSerializationService.registerClass(constructor.name, constructor);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   };
 }
