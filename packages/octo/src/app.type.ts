@@ -1,5 +1,4 @@
 import { IDependency } from './functions/dependency/dependency.js';
-import { IModule } from './functions/module/module.interface.js';
 import { IAnchor } from './overlays/anchor.interface.js';
 import { AOverlay } from './overlays/overlay.abstract.js';
 import { AModel } from './models/model.abstract.js';
@@ -26,7 +25,6 @@ export type ModelSerializedOutput = {
   anchors: (IAnchor & { className: string })[];
   dependencies: IDependency[];
   models: { [p: string]: { className: string; model: IUnknownModel } };
-  modules: { className: string; module: IModule }[];
   overlays: { className: string; overlay: IOverlay }[];
 };
 

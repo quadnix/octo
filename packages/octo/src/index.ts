@@ -15,8 +15,6 @@ export { DiffMetadata } from './functions/diff/diff-metadata.js';
 export { AHook } from './functions/hook/hook.abstract.js';
 export { PostModelActionHandleHook } from './functions/hook/post-model-action-handle.hook.js';
 export { PreCommitHandleHook } from './functions/hook/pre-commit-handle.hook.js';
-export { AModule } from './functions/module/module.abstract.js';
-export { IModule } from './functions/module/module.interface.js';
 
 export { App } from './models/app/app.model.js';
 export { IApp } from './models/app/app.interface.js';
