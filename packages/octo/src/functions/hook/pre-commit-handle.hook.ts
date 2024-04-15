@@ -1,10 +1,7 @@
 import { Constructable } from '../../app.type.js';
-import { App } from '../../models/app/app.model.js';
-import { DiffMetadata } from '../diff/diff-metadata.js';
 import { AHook } from './hook.abstract.js';
 
-export type PreCommitCallback = (modelTransaction: DiffMetadata[][]) => Promise<void>;
-type PreCommitMethodSignature = (app: App, modelTransaction: DiffMetadata[][]) => Promise<void>;
+export type PreCommitCallback = (...args: any[]) => Promise<void>;
 
 export class PreCommitHandleHook extends AHook {
   private static readonly callbacks: PreCommitCallback[] = [];
@@ -17,18 +14,18 @@ export class PreCommitHandleHook extends AHook {
   static override registrar(
     constructor: Constructable<unknown>,
     propertyKey: string,
-    descriptor: TypedPropertyDescriptor<PreCommitMethodSignature>,
+    descriptor: PropertyDescriptor,
   ): void {
     const originalMethod = descriptor.value;
     const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
 
     // `self` here references PreCommitHandleHook, vs `this` references the original method.
-    descriptor.value = async function (...args: [app: App, modelTransaction: DiffMetadata[][]]): Promise<void> {
+    descriptor.value = async function (...args: any[]): Promise<any> {
       for (const callback of self.callbacks) {
-        await callback(args[1]);
+        await callback.apply(this, args);
       }
 
-      await originalMethod!.apply(this, args);
+      return await originalMethod!.apply(this, args);
     };
   }
 }

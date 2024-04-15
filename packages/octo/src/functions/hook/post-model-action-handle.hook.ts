@@ -3,7 +3,6 @@ import { IModelAction } from '../../models/model-action.interface.js';
 import { AHook } from './hook.abstract.js';
 
 export type PostModelActionCallback = (output: ActionOutputs) => Promise<ActionOutputs>;
-type PostModelActionMethodSignature = (...args: any[]) => Promise<ActionOutputs>;
 
 export class PostModelActionHandleHook extends AHook {
   private static readonly callbacks: { [key: string]: PostModelActionCallback[] } = {};
@@ -23,7 +22,7 @@ export class PostModelActionHandleHook extends AHook {
   static override registrar(
     constructor: Constructable<unknown>,
     propertyKey: string,
-    descriptor: TypedPropertyDescriptor<PostModelActionMethodSignature>,
+    descriptor: PropertyDescriptor,
   ): void {
     if (!this.isInstanceOfModelAction(constructor.prototype)) {
       throw new Error('PostModelActionHandleHook can only be used with ModelAction!');
