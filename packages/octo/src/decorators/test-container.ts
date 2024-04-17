@@ -1,6 +1,9 @@
 import { Constructable } from '../app.type.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
+import { PostModelActionHook } from '../functions/hook/post-model-action.hook.js';
+import { PreCommitHook } from '../functions/hook/pre-commit.hook.js';
 import { Container } from './container.js';
+import { Module } from './module.decorator.js';
 
 type Factory<T> = { create: () => Promise<T> };
 
@@ -10,6 +13,15 @@ type FactoryMock<T> = {
   value: T;
 };
 
+type TestContainerSubjects = {
+  mocks?: FactoryMock<unknown>[];
+  modules?: {
+    name: string;
+    value:
+      | Constructable<unknown>
+      | (Omit<Parameters<typeof Module>[0], 'imports'> & { imports?: (Constructable<unknown> | string)[] });
+  }[];
+};
 type TestContainerOptions = { factoryTimeoutInMs?: number };
 
 export class TestContainer {
@@ -23,15 +35,15 @@ export class TestContainer {
     };
   }
 
-  static create(mocks: FactoryMock<unknown>[], options: TestContainerOptions): void {
+  static create(subjects: TestContainerSubjects, options?: TestContainerOptions): void {
     const oldFactories = { ...Container['factories'] };
     Container.reset();
 
-    if (options.factoryTimeoutInMs) {
+    if (options?.factoryTimeoutInMs) {
       Container.setFactoryTimeout(options.factoryTimeoutInMs);
     }
 
-    for (const mock of mocks) {
+    for (const mock of subjects.mocks || []) {
       const mockClassName = typeof mock.type === 'string' ? mock.type : mock.type.name;
       const mockMetadata = mock.metadata || {};
       const registeredFactories = oldFactories[mockClassName] || [];
@@ -49,6 +61,28 @@ export class TestContainer {
         Container.registerFactory(name, oldFactory.factory as Factory<unknown>, { metadata: oldFactory.metadata });
         if (oldFactory.default) {
           Container.setDefault(name, oldFactory.factory as Factory<unknown>);
+        }
+      }
+    }
+
+    for (const module of subjects.modules || []) {
+      if (typeof module.value === 'object') {
+        const imports = (module.value.imports || []).map((i) =>
+          typeof i === 'string' ? { name: i } : i,
+        ) as Constructable<unknown>[];
+
+        if ((module.value.postModelActionHandles || []).length > 0) {
+          PostModelActionHook.getInstance().register(module.name, {
+            imports,
+            postModelActionHandles: module.value.postModelActionHandles,
+          });
+        }
+
+        if ((module.value.preCommitHandles || []).length > 0) {
+          PreCommitHook.getInstance().register(module.name, {
+            imports,
+            preCommitHandles: module.value.preCommitHandles,
+          });
         }
       }
     }

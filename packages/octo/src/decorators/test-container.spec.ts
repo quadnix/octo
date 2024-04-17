@@ -15,17 +15,19 @@ describe('TestContainer UT', () => {
     });
 
     TestContainer.create(
-      [
-        {
-          type: ModelSerializationService,
-          value: jest.fn(),
-        },
-        {
-          metadata: { test: 'true' },
-          type: ModelSerializationService,
-          value: 'My Mock',
-        },
-      ],
+      {
+        mocks: [
+          {
+            type: ModelSerializationService,
+            value: jest.fn(),
+          },
+          {
+            metadata: { test: 'true' },
+            type: ModelSerializationService,
+            value: 'My Mock',
+          },
+        ],
+      },
       { factoryTimeoutInMs: 500 },
     );
   });
