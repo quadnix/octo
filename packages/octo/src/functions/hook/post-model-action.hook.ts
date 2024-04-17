@@ -53,12 +53,7 @@ export class PostModelActionHook extends AHook {
 
 @Factory<PostModelActionHook>(PostModelActionHook)
 export class PostModelActionHookFactory {
-  private static instance: PostModelActionHook;
-
   static async create(): Promise<PostModelActionHook> {
-    if (!this.instance) {
-      this.instance = new PostModelActionHook();
-    }
-    return this.instance;
+    return PostModelActionHook.getInstance();
   }
 }

@@ -41,12 +41,7 @@ export class PreCommitHook extends AHook {
 
 @Factory<PreCommitHook>(PreCommitHook)
 export class PreCommitHookFactory {
-  private static instance: PreCommitHook;
-
   static async create(): Promise<PreCommitHook> {
-    if (!this.instance) {
-      this.instance = PreCommitHook.getInstance();
-    }
-    return this.instance;
+    return PreCommitHook.getInstance();
   }
 }
