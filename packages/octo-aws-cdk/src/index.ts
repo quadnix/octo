@@ -46,8 +46,6 @@ import './models/service/s3-storage/actions/add-s3-storage-access.overlay.action
 import './models/service/s3-storage/actions/delete-s3-storage.model.action.js';
 import './models/service/s3-storage/actions/delete-s3-storage-access.overlay.action.js';
 
-import './modules/s3-website-save-manifest.module.js';
-
 import './resources/ecr/actions/add-ecr-image.resource.action.js';
 import './resources/ecr/actions/delete-ecr-image.resource.action.js';
 

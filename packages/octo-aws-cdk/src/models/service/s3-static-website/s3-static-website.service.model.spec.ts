@@ -1,9 +1,10 @@
-import { App, DiffMetadata, LocalStateProvider } from '@quadnix/octo';
+import { App, DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, readFileSync, unlink, writeFile } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { OctoAws, RegionId } from '../../../index.js';
+import { S3WebsiteSaveManifestModule } from '../../../modules/s3-website-save-manifest.module.js';
 import { S3StaticWebsiteService } from './s3-static-website.service.model.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -20,6 +21,17 @@ describe('S3StaticWebsiteService UT', () => {
     join(__dirname, 'shared-resources.json'),
     join(__dirname, 'test-bucket-manifest.json'),
   ];
+
+  beforeAll(() => {
+    TestContainer.create({
+      modules: [
+        {
+          name: 'S3WebsiteSaveManifestModule',
+          value: S3WebsiteSaveManifestModule,
+        },
+      ],
+    });
+  });
 
   afterEach(async () => {
     await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
