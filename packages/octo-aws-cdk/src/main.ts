@@ -7,7 +7,6 @@ import {
   EnableHook,
   IStateProvider,
   ModelSerializationService,
-  PreCommitHandleHook,
   ResourceSerializationService,
   ResourceSerializedOutput,
   StateManagementService,
@@ -135,7 +134,7 @@ export class OctoAws {
     return this.transactionService.beginTransaction(diffs, options || {});
   }
 
-  @EnableHook(PreCommitHandleHook)
+  @EnableHook('PreCommitHook')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async commitTransaction(app: App, modelTransaction: DiffMetadata[][]): Promise<void> {
     // `modelTransaction` is being used indirectly by the @EnableHook.
