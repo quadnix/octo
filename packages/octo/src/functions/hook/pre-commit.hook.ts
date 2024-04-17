@@ -5,6 +5,8 @@ import { AHook } from './hook.abstract.js';
 export type PreCommitCallback = (...args: any[]) => Promise<void>;
 
 export class PreCommitHook extends AHook {
+  private static instance: PreCommitHook;
+
   private readonly callbacks: PreCommitCallback[] = [];
 
   override generateCallbacks(): void {
@@ -13,6 +15,13 @@ export class PreCommitHook extends AHook {
         this.callbacks.push(callback);
       }
     }
+  }
+
+  static getInstance(): PreCommitHook {
+    if (!this.instance) {
+      this.instance = new PreCommitHook();
+    }
+    return this.instance;
   }
 
   override registrar(constructor: Constructable<unknown>, propertyKey: string, descriptor: PropertyDescriptor): void {
@@ -36,7 +45,7 @@ export class PreCommitHookFactory {
 
   static async create(): Promise<PreCommitHook> {
     if (!this.instance) {
-      this.instance = new PreCommitHook();
+      this.instance = PreCommitHook.getInstance();
     }
     return this.instance;
   }

@@ -6,6 +6,8 @@ import { AHook } from './hook.abstract.js';
 export type PostModelActionCallback = (output: ActionOutputs) => Promise<ActionOutputs>;
 
 export class PostModelActionHook extends AHook {
+  private static instance: PostModelActionHook;
+
   private readonly callbacks: { [key: string]: PostModelActionCallback[] } = {};
 
   private isInstanceOfModelAction(instance: any): instance is IModelAction {
@@ -21,6 +23,13 @@ export class PostModelActionHook extends AHook {
         this.callbacks[ACTION_NAME].push(callback);
       }
     }
+  }
+
+  static getInstance(): PostModelActionHook {
+    if (!this.instance) {
+      this.instance = new PostModelActionHook();
+    }
+    return this.instance;
   }
 
   override registrar(constructor: Constructable<unknown>, propertyKey: string, descriptor: PropertyDescriptor): void {
