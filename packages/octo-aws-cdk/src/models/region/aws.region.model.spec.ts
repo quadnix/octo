@@ -38,16 +38,18 @@ describe('AwsRegion UT', () => {
 
   beforeAll(() => {
     TestContainer.create(
-      [
-        {
-          type: EC2Client,
-          value: { send: jest.fn() },
-        },
-        {
-          type: EFSClient,
-          value: { send: jest.fn() },
-        },
-      ],
+      {
+        mocks: [
+          {
+            type: EC2Client,
+            value: { send: jest.fn() },
+          },
+          {
+            type: EFSClient,
+            value: { send: jest.fn() },
+          },
+        ],
+      },
       { factoryTimeoutInMs: 500 },
     );
 

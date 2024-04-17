@@ -19,12 +19,14 @@ describe('Environment UT', () => {
 
   beforeAll(() => {
     TestContainer.create(
-      [
-        {
-          type: ECSClient,
-          value: { send: jest.fn() },
-        },
-      ],
+      {
+        mocks: [
+          {
+            type: ECSClient,
+            value: { send: jest.fn() },
+          },
+        ],
+      },
       { factoryTimeoutInMs: 500 },
     );
   });

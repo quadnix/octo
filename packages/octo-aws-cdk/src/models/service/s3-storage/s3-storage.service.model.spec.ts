@@ -23,16 +23,18 @@ describe('S3StorageService UT', () => {
 
   beforeAll(() => {
     TestContainer.create(
-      [
-        {
-          type: IAMClient,
-          value: { send: jest.fn() },
-        },
-        {
-          type: S3Client,
-          value: { send: jest.fn() },
-        },
-      ],
+      {
+        mocks: [
+          {
+            type: IAMClient,
+            value: { send: jest.fn() },
+          },
+          {
+            type: S3Client,
+            value: { send: jest.fn() },
+          },
+        ],
+      },
       {
         factoryTimeoutInMs: 500,
       },

@@ -25,12 +25,14 @@ describe('EcrService UT', () => {
 
   beforeAll(() => {
     TestContainer.create(
-      [
-        {
-          type: ECRClient,
-          value: { send: jest.fn() },
-        },
-      ],
+      {
+        mocks: [
+          {
+            type: ECRClient,
+            value: { send: jest.fn() },
+          },
+        ],
+      },
       { factoryTimeoutInMs: 500 },
     );
   });

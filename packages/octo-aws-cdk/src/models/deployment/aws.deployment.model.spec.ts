@@ -51,12 +51,14 @@ describe.skip('AwsDeployment UT', () => {
 
   beforeAll(() => {
     TestContainer.create(
-      [
-        {
-          type: S3Client,
-          value: { send: jest.fn() },
-        },
-      ],
+      {
+        mocks: [
+          {
+            type: S3Client,
+            value: { send: jest.fn() },
+          },
+        ],
+      },
       {
         factoryTimeoutInMs: 500,
       },
