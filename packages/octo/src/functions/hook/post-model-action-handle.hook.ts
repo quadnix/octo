@@ -1,29 +1,29 @@
 import { ActionOutputs, Constructable } from '../../app.type.js';
+import { Factory } from '../../decorators/factory.decorator.js';
 import { IModelAction } from '../../models/model-action.interface.js';
 import { AHook } from './hook.abstract.js';
 
 export type PostModelActionCallback = (output: ActionOutputs) => Promise<ActionOutputs>;
 
 export class PostModelActionHandleHook extends AHook {
-  private static readonly callbacks: { [key: string]: PostModelActionCallback[] } = {};
+  private readonly callbacks: { [key: string]: PostModelActionCallback[] } = {};
 
-  private static isInstanceOfModelAction(instance: any): instance is IModelAction {
+  private isInstanceOfModelAction(instance: any): instance is IModelAction {
     return 'collectInput' in instance && 'handle' in instance;
   }
 
-  static register(actionName: string, callback: PostModelActionCallback): PostModelActionHandleHook {
-    if (!this.callbacks[actionName]) {
-      this.callbacks[actionName] = [];
+  override generateCallbacks(): void {
+    for (const m of this.registeredModules) {
+      for (const { ACTION_NAME, callback } of m.moduleProperties.postModelActionHandles || []) {
+        if (!this.callbacks[ACTION_NAME]) {
+          this.callbacks[ACTION_NAME] = [];
+        }
+        this.callbacks[ACTION_NAME].push(callback);
+      }
     }
-    this.callbacks[actionName].push(callback);
-    return this;
   }
 
-  static override registrar(
-    constructor: Constructable<unknown>,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ): void {
+  override registrar(constructor: Constructable<unknown>, propertyKey: string, descriptor: PropertyDescriptor): void {
     if (!this.isInstanceOfModelAction(constructor.prototype)) {
       throw new Error('PostModelActionHandleHook can only be used with ModelAction!');
     }
@@ -39,5 +39,17 @@ export class PostModelActionHandleHook extends AHook {
       }
       return output;
     };
+  }
+}
+
+@Factory<PostModelActionHandleHook>(PostModelActionHandleHook)
+export class PostModelActionHandleHookFactory {
+  private static instance: PostModelActionHandleHook;
+
+  static async create(): Promise<PostModelActionHandleHook> {
+    if (!this.instance) {
+      this.instance = new PostModelActionHandleHook();
+    }
+    return this.instance;
   }
 }
