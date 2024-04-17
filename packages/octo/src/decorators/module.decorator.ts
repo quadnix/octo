@@ -1,6 +1,6 @@
 import { Constructable } from '../app.type.js';
-import { PostModelActionCallback, PostModelActionHandleHook } from '../functions/hook/post-model-action-handle.hook.js';
-import { PreCommitCallback, PreCommitHandleHook } from '../functions/hook/pre-commit-handle.hook.js';
+import { PostModelActionCallback, PostModelActionHook } from '../functions/hook/post-model-action.hook.js';
+import { PreCommitCallback, PreCommitHook } from '../functions/hook/pre-commit.hook.js';
 import { Container } from './container.js';
 
 export function Module({
@@ -14,7 +14,7 @@ export function Module({
 }): (constructor: any) => void {
   return function (constructor: any) {
     if (postModelActionHandles.length > 0) {
-      Container.get(PostModelActionHandleHook)
+      Container.get(PostModelActionHook)
         .then((aHook) => {
           aHook.register(constructor.name, { imports, postModelActionHandles });
         })
@@ -24,7 +24,7 @@ export function Module({
     }
 
     if (preCommitHandles.length > 0) {
-      Container.get(PreCommitHandleHook)
+      Container.get(PreCommitHook)
         .then((aHook) => {
           aHook.register(constructor.name, { imports, preCommitHandles });
         })

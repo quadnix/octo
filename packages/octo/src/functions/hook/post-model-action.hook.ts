@@ -5,7 +5,7 @@ import { AHook } from './hook.abstract.js';
 
 export type PostModelActionCallback = (output: ActionOutputs) => Promise<ActionOutputs>;
 
-export class PostModelActionHandleHook extends AHook {
+export class PostModelActionHook extends AHook {
   private readonly callbacks: { [key: string]: PostModelActionCallback[] } = {};
 
   private isInstanceOfModelAction(instance: any): instance is IModelAction {
@@ -25,13 +25,13 @@ export class PostModelActionHandleHook extends AHook {
 
   override registrar(constructor: Constructable<unknown>, propertyKey: string, descriptor: PropertyDescriptor): void {
     if (!this.isInstanceOfModelAction(constructor.prototype)) {
-      throw new Error('PostModelActionHandleHook can only be used with ModelAction!');
+      throw new Error('PostModelActionHook can only be used with ModelAction!');
     }
 
     const originalMethod = descriptor.value;
     const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
 
-    // `self` here references PostModelActionHandleHook, vs `this` references the original method.
+    // `self` here references this class, vs `this` references the original method.
     descriptor.value = async function (...args: any[]): Promise<ActionOutputs> {
       let output: ActionOutputs = await originalMethod!.apply(this, args);
       for (const callback of self.callbacks[constructor.name] || []) {
@@ -42,13 +42,13 @@ export class PostModelActionHandleHook extends AHook {
   }
 }
 
-@Factory<PostModelActionHandleHook>(PostModelActionHandleHook)
-export class PostModelActionHandleHookFactory {
-  private static instance: PostModelActionHandleHook;
+@Factory<PostModelActionHook>(PostModelActionHook)
+export class PostModelActionHookFactory {
+  private static instance: PostModelActionHook;
 
-  static async create(): Promise<PostModelActionHandleHook> {
+  static async create(): Promise<PostModelActionHook> {
     if (!this.instance) {
-      this.instance = new PostModelActionHandleHook();
+      this.instance = new PostModelActionHook();
     }
     return this.instance;
   }

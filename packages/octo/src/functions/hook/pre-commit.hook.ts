@@ -4,7 +4,7 @@ import { AHook } from './hook.abstract.js';
 
 export type PreCommitCallback = (...args: any[]) => Promise<void>;
 
-export class PreCommitHandleHook extends AHook {
+export class PreCommitHook extends AHook {
   private readonly callbacks: PreCommitCallback[] = [];
 
   override generateCallbacks(): void {
@@ -19,7 +19,7 @@ export class PreCommitHandleHook extends AHook {
     const originalMethod = descriptor.value;
     const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
 
-    // `self` here references PreCommitHandleHook, vs `this` references the original method.
+    // `self` here references this class, vs `this` references the original method.
     descriptor.value = async function (...args: any[]): Promise<any> {
       for (const callback of self.callbacks) {
         await callback.apply(this, args);
@@ -30,13 +30,13 @@ export class PreCommitHandleHook extends AHook {
   }
 }
 
-@Factory<PreCommitHandleHook>(PreCommitHandleHook)
-export class PreCommitHandleHookFactory {
-  private static instance: PreCommitHandleHook;
+@Factory<PreCommitHook>(PreCommitHook)
+export class PreCommitHookFactory {
+  private static instance: PreCommitHook;
 
-  static async create(): Promise<PreCommitHandleHook> {
+  static async create(): Promise<PreCommitHook> {
     if (!this.instance) {
-      this.instance = new PreCommitHandleHook();
+      this.instance = new PreCommitHook();
     }
     return this.instance;
   }

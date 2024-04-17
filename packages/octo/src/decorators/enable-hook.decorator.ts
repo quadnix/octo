@@ -1,7 +1,7 @@
 import { AHook } from '../functions/hook/hook.abstract.js';
 import { Container } from './container.js';
 
-type Hook = 'PostModelActionHandleHook' | 'PreCommitHandleHook';
+type Hook = 'PostModelActionHook' | 'PreCommitHook';
 
 export function EnableHook(hook: Hook): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
