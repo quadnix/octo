@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   baseUrl: '/',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/favicons/favicon.ico',
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
