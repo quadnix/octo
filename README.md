@@ -11,3 +11,5 @@ The open-source infrastructure management and CICD tool.
 > npm install
 
 > npm run prepare
+
+Test commit.
