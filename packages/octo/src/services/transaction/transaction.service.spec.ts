@@ -11,7 +11,7 @@ import { Region } from '../../models/region/region.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
-import { TransactionService } from './transaction.service.js';
+import { TransactionService, TransactionServiceFactory } from './transaction.service.js';
 
 describe('TransactionService UT', () => {
   beforeEach(() => {
@@ -20,6 +20,9 @@ describe('TransactionService UT', () => {
 
     Container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
     Container.get(ResourceDataRepository, { args: [true] });
+
+    Container.registerFactory(TransactionService, TransactionServiceFactory);
+    Container.get(TransactionService, { args: [true] });
   });
 
   afterEach(() => {
@@ -38,7 +41,7 @@ describe('TransactionService UT', () => {
     };
 
     it('should return empty transaction if diffs is empty', async () => {
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       const generator = service.beginTransaction([], { yieldModelTransaction: true });
 
       const result = await generator.next();
@@ -50,7 +53,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
       await expect(async () => {
@@ -70,7 +73,7 @@ describe('TransactionService UT', () => {
         revert: jest.fn() as jest.Mocked<any>,
       };
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerModelActions([modelAction]);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
@@ -91,7 +94,7 @@ describe('TransactionService UT', () => {
         revert: jest.fn() as jest.Mocked<any>,
       };
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerModelActions([modelAction]);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
@@ -108,8 +111,8 @@ describe('TransactionService UT', () => {
       diffMetadata.applied = true;
       diffMetadata.applyOrder = 0;
 
-      const service = new TransactionService();
-      const result = await service['applyModels']([diffMetadata], new ResourceDataRepository([]));
+      const service = await Container.get(TransactionService);
+      const result = await service['applyModels']([diffMetadata]);
 
       expect(result).toMatchSnapshot();
     });
@@ -120,7 +123,7 @@ describe('TransactionService UT', () => {
       const app = new App('app');
       const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerModelActions([universalModelAction]);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
@@ -144,7 +147,7 @@ describe('TransactionService UT', () => {
         resource1: new TestResource('resource1'),
       });
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerInputs({ 'input.key1': 'value1' });
       service.registerModelActions([modelAction]);
 
@@ -170,7 +173,7 @@ describe('TransactionService UT', () => {
       };
       (modelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerInputs({ 'input.key1': 'value1' });
       service.registerModelActions([modelAction]);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
@@ -202,7 +205,7 @@ describe('TransactionService UT', () => {
       };
       (modelAction2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: new TestResource('resource2') });
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerInputs({ 'input.key1': 'value1', 'input.key2': 'value2' });
       service.registerModelActions([modelAction1, modelAction2]);
 
@@ -228,7 +231,7 @@ describe('TransactionService UT', () => {
         new Diff(region, DiffAction.ADD, 'regionId', 'region'),
       ];
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerModelActions([universalModelAction]);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
@@ -245,7 +248,7 @@ describe('TransactionService UT', () => {
         resource1: new SharedTestResource('shared-resource', { key1: 'value-1' }, []),
       });
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerModelActions([universalModelAction]);
 
       const generator = service.beginTransaction(diffs, { yieldNewResources: true });
@@ -266,7 +269,7 @@ describe('TransactionService UT', () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ 'shared-resource': sharedResource2 });
       const mergeFunction = jest.spyOn(sharedResource2, 'merge');
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService, { args: [true] });
       service.registerModelActions([universalModelAction]);
 
       const generator = service.beginTransaction(diffs, { yieldNewResources: true });
@@ -289,7 +292,7 @@ describe('TransactionService UT', () => {
     };
 
     it('should return empty transaction if diffs is empty', async () => {
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
       const result = await generator.next();
@@ -301,7 +304,7 @@ describe('TransactionService UT', () => {
       const resources = [new TestResource('resource-1')];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], []] });
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService, { args: [true] });
       const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
       await expect(async () => {
@@ -316,7 +319,7 @@ describe('TransactionService UT', () => {
       diffMetadata.applied = true;
       diffMetadata.applyOrder = 0;
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       const result = await service['applyResources']([diffMetadata]);
 
       expect(result).toMatchSnapshot();
@@ -326,7 +329,7 @@ describe('TransactionService UT', () => {
       const resources = [new TestResource('resource-1')];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], { yieldResourceDiffs: true, yieldResourceTransaction: true });
 
@@ -351,7 +354,7 @@ describe('TransactionService UT', () => {
       const resources = [resource1, resource2];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], []] });
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService, { args: [true] });
       service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
@@ -376,7 +379,7 @@ describe('TransactionService UT', () => {
       resource2_2.markDeleted();
       resource1_2.markDeleted();
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService, { args: [true] });
       service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
@@ -398,8 +401,8 @@ describe('TransactionService UT', () => {
     ];
     let setApplyOrder: TransactionService['setApplyOrder'];
 
-    beforeEach(() => {
-      const service = new TransactionService();
+    beforeEach(async () => {
+      const service = await Container.get(TransactionService);
       setApplyOrder = service['setApplyOrder'];
       setApplyOrder = setApplyOrder.bind(service);
     });
@@ -587,7 +590,7 @@ describe('TransactionService UT', () => {
         const app = new App('app');
         const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-        const service = new TransactionService();
+        const service = await Container.get(TransactionService);
         service.registerModelActions([universalModelAction]);
         const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
@@ -606,7 +609,7 @@ describe('TransactionService UT', () => {
         const overlayDataRepository = await Container.get(OverlayDataRepository);
         overlayDataRepository.add(overlay);
 
-        const service = new TransactionService();
+        const service = await Container.get(TransactionService);
         service.registerOverlayActions([universalModelAction]);
         const generator = service.beginTransaction([], { yieldModelTransaction: true });
 
@@ -630,7 +633,7 @@ describe('TransactionService UT', () => {
         const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
         resourceDataRepository.add(newResource);
 
-        const service = new TransactionService();
+        const service = await Container.get(TransactionService, { args: [true] });
         service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction([], { yieldNewResources: true });
 
@@ -666,7 +669,7 @@ describe('TransactionService UT', () => {
         const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
         resourceDataRepository.add(newResource);
 
-        const service = new TransactionService();
+        const service = await Container.get(TransactionService, { args: [true] });
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction(diffs, { yieldResourceDiffs: true });
@@ -704,7 +707,7 @@ describe('TransactionService UT', () => {
         const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
         resourceDataRepository.add(newResource);
 
-        const service = new TransactionService();
+        const service = await Container.get(TransactionService, { args: [true] });
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction(diffs, { yieldResourceTransaction: true });
@@ -727,7 +730,7 @@ describe('TransactionService UT', () => {
         const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
         resourceDataRepository.add(newResource);
 
-        const service = new TransactionService();
+        const service = await Container.get(TransactionService);
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction(diffs);
@@ -754,7 +757,7 @@ describe('TransactionService UT', () => {
 
       const diffs = [new Diff(new App('app'), DiffAction.ADD, 'name', 'app')];
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerModelActions([universalModelAction]);
 
       const transactionGenerator = service.beginTransaction(diffs, { yieldModelTransaction: true });
@@ -779,7 +782,7 @@ describe('TransactionService UT', () => {
       // Upon calling rollbackTransaction(), assume model's revert method marks the new resource as deleted.
       resourceDataRepository.getById('resource-1')!.markDeleted();
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerResourceActions([
         {
           ACTION_NAME: 'test',
@@ -804,7 +807,7 @@ describe('TransactionService UT', () => {
       // Upon calling rollbackTransaction(), assume model's revert method adds the new resource again.
       resourceDataRepository.add(oldResource);
 
-      const service = new TransactionService();
+      const service = await Container.get(TransactionService);
       service.registerResourceActions([
         {
           ACTION_NAME: 'test',
