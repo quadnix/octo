@@ -328,8 +328,6 @@ export class TransactionService {
       yieldResourceTransaction: false,
     },
   ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
-    const resourceDataRepository = await Container.get(ResourceDataRepository);
-
     // Set revert on model diffs.
     for (let i = modelTransaction.length - 1; i >= 0; i--) {
       const diffsProcessedInSameLevel = modelTransaction[i];
@@ -338,14 +336,14 @@ export class TransactionService {
         for (const a of diff.actions as IModelAction[]) {
           const outputs = a.revert(diff.diff, diff.inputs, diff.outputs);
           for (const outputKey in outputs) {
-            resourceDataRepository.add(outputs[outputKey]);
+            this.resourceDataRepository.add(outputs[outputKey]);
           }
         }
       }
     }
 
     // Generate diff on resources.
-    const diffs = await resourceDataRepository.diff();
+    const diffs = await this.resourceDataRepository.diff();
     const resourceDiffs = diffs.map(
       (d) =>
         new DiffMetadata(
@@ -377,9 +375,11 @@ export class TransactionServiceFactory {
   private static instance: TransactionService;
 
   static async create(forceNew = false): Promise<TransactionService> {
+    const [overlayDataRepository, resourceDataRepository] = await Promise.all([
+      Container.get(OverlayDataRepository),
+      Container.get(ResourceDataRepository),
+    ]);
     if (forceNew || !this.instance) {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
       this.instance = new TransactionService(overlayDataRepository, resourceDataRepository);
     }
     return this.instance;

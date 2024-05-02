@@ -5,8 +5,8 @@ import { IResource } from './resource.interface.js';
 
 export class ResourceDataRepository {
   constructor(
-    private readonly newResources: UnknownResource[] = [],
-    private readonly oldResources: UnknownResource[] = [],
+    private newResources: UnknownResource[] = [],
+    private oldResources: UnknownResource[] = [],
   ) {
     Object.freeze(this.oldResources);
   }

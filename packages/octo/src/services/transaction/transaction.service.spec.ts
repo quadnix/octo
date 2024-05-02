@@ -782,7 +782,7 @@ describe('TransactionService UT', () => {
       // Upon calling rollbackTransaction(), assume model's revert method marks the new resource as deleted.
       resourceDataRepository.getById('resource-1')!.markDeleted();
 
-      const service = await Container.get(TransactionService);
+      const service = await Container.get(TransactionService, { args: [true] });
       service.registerResourceActions([
         {
           ACTION_NAME: 'test',
@@ -807,7 +807,7 @@ describe('TransactionService UT', () => {
       // Upon calling rollbackTransaction(), assume model's revert method adds the new resource again.
       resourceDataRepository.add(oldResource);
 
-      const service = await Container.get(TransactionService);
+      const service = await Container.get(TransactionService, { args: [true] });
       service.registerResourceActions([
         {
           ACTION_NAME: 'test',

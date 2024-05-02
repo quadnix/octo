@@ -3,7 +3,7 @@ import { Container } from '../../../decorators/container.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../../resources/resource-data.repository.js';
 import { AResource } from '../../../resources/resource.abstract.js';
 import { ASharedResource } from '../../../resources/shared-resource.abstract.js';
-import { ResourceSerializationService } from './resource-serialization.service.js';
+import { ResourceSerializationService, ResourceSerializationServiceFactory } from './resource-serialization.service.js';
 
 class TestResource extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
@@ -24,6 +24,10 @@ class SharedTestResource extends ASharedResource<TestResource> {
 describe('Resource Serialization Service UT', () => {
   beforeEach(() => {
     Container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
+    Container.get(ResourceDataRepository, { args: [true, [], []] });
+
+    Container.registerFactory(ResourceSerializationService, ResourceSerializationServiceFactory);
+    Container.get(ResourceSerializationService, { args: [true] });
   });
 
   afterEach(() => {
@@ -39,7 +43,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService, { args: [true] });
 
       await expect(async () => {
         const serializedOutput = await service.serialize();
@@ -55,7 +59,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService, { args: [true] });
       service.registerClass('TestResource', TestResource);
 
       const serializedOutput = await service.serialize();
@@ -74,7 +78,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService);
       service.registerClass('TestResource', TestResource);
 
       const serializedOutput = await service.serialize();
@@ -94,7 +98,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1, resource2];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService);
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
 
@@ -115,7 +119,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource2];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService, { args: [true] });
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
       service.setResourceDeserializationTimeout(50);
@@ -139,7 +143,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1, resource2];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService);
       service.registerClass('TestResource', TestResource);
 
       const serializedOutput = await service.serialize();
@@ -169,7 +173,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource2, resource1];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService);
       service.registerClass('TestResource', TestResource);
 
       const serializedOutput = await service.serialize();
@@ -200,7 +204,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1, resource2, resource3];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService);
       service.registerClass('TestResource', TestResource);
       service.registerClass('SharedTestResource', SharedTestResource);
 
@@ -233,7 +237,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService, { args: [true] });
       service.registerClass('TestResource', TestResource);
 
       const serializedOutput = await service.serialize();
@@ -251,7 +255,7 @@ describe('Resource Serialization Service UT', () => {
     it('should serialize an empty array', async () => {
       await Container.get(ResourceDataRepository, { args: [true, [], []] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService);
       expect(await service.serialize()).toMatchSnapshot();
     });
 
@@ -259,7 +263,7 @@ describe('Resource Serialization Service UT', () => {
       const resources: UnknownResource[] = [new TestResource('resource-1')];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService, { args: [true] });
       expect(await service.serialize()).toMatchSnapshot();
     });
 
@@ -275,7 +279,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1, resource2];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService, { args: [true] });
       expect(await service.serialize()).toMatchSnapshot();
     });
 
@@ -291,7 +295,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1, resource2];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService, { args: [true] });
       expect(await service.serialize()).toMatchSnapshot();
     });
 
@@ -304,7 +308,7 @@ describe('Resource Serialization Service UT', () => {
       const resources = [resource1, resource2];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = new ResourceSerializationService();
+      const service = await Container.get(ResourceSerializationService, { args: [true] });
       expect(await service.serialize()).toMatchSnapshot();
     });
   });

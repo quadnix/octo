@@ -11,6 +11,8 @@ export class ModelSerializationService {
 
   private readonly classMapping: { [key: string]: any } = {};
 
+  constructor(private readonly overlayDataRepository: OverlayDataRepository) {}
+
   async deserialize(serializedOutput: ModelSerializedOutput): Promise<UnknownModel> {
     const deReferencePromises: {
       [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
@@ -84,8 +86,9 @@ export class ModelSerializationService {
       const oldOverlay = await deserializationClass.unSynth(deserializationClass, overlay, deReferenceContext);
       oldOverlays.push(oldOverlay);
     }
-    // Initialize a new instance of OverlayDataRepository, overwriting the previous one.
-    await Container.get(OverlayDataRepository, { args: [true, newOverlays, oldOverlays] });
+    // Refresh the overlay data repository.
+    this.overlayDataRepository['oldOverlays'] = oldOverlays;
+    this.overlayDataRepository['newOverlays'] = newOverlays;
 
     // If no dependencies to serialize, return the first seen model.
     return serializedOutput.dependencies.length > 0 ? seen[serializedOutput.dependencies[0].from] : seen[0];
@@ -128,8 +131,7 @@ export class ModelSerializationService {
       }
     }
 
-    const overlayDataRepository = await Container.get(OverlayDataRepository);
-    for (const overlay of overlayDataRepository.getByProperties()) {
+    for (const overlay of this.overlayDataRepository.getByProperties()) {
       overlays.push({ className: overlay.constructor.name, overlay: overlay.synth() });
     }
 
@@ -141,9 +143,10 @@ export class ModelSerializationService {
 export class ModelSerializationServiceFactory {
   private static instance: ModelSerializationService;
 
-  static async create(): Promise<ModelSerializationService> {
-    if (!this.instance) {
-      this.instance = new ModelSerializationService();
+  static async create(forceNew = false): Promise<ModelSerializationService> {
+    const overlayDataRepository = await Container.get(OverlayDataRepository);
+    if (forceNew || !this.instance) {
+      this.instance = new ModelSerializationService(overlayDataRepository);
     }
     return this.instance;
   }

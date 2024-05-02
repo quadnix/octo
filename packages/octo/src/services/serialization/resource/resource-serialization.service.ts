@@ -9,6 +9,8 @@ export class ResourceSerializationService {
 
   private readonly classMapping: { [key: string]: any } = {};
 
+  constructor(private readonly resourceDataRepository: ResourceDataRepository) {}
+
   private async _deserialize(serializedOutput: ResourceSerializedOutput): Promise<ActionOutputs> {
     const deReferencePromises: {
       [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
@@ -105,10 +107,9 @@ export class ResourceSerializationService {
     const deserializedOutput = await this._deserialize(serializedOutput);
     const deserializedOutputCopy = await this._deserialize(serializedOutput);
 
-    // Initialize a new instance of ResourceDataRepository, overwriting the previous one.
-    await Container.get(ResourceDataRepository, {
-      args: [true, Object.values(deserializedOutput), Object.values(deserializedOutputCopy)],
-    });
+    // Refresh the resource data repository.
+    this.resourceDataRepository['oldResources'] = Object.values(deserializedOutputCopy);
+    this.resourceDataRepository['newResources'] = Object.values(deserializedOutput);
   }
 
   registerClass(className: string, deserializationClass: any): void {
@@ -116,8 +117,7 @@ export class ResourceSerializationService {
   }
 
   async serialize(): Promise<ResourceSerializedOutput> {
-    const resourceDataRepository = await Container.get(ResourceDataRepository);
-    const resources = resourceDataRepository.getByProperties();
+    const resources = this.resourceDataRepository.getByProperties();
 
     const dependencies: IDependency[] = [];
     const serializedResources: ResourceSerializedOutput['resources'] = {};
@@ -157,9 +157,10 @@ export class ResourceSerializationService {
 export class ResourceSerializationServiceFactory {
   private static instance: ResourceSerializationService;
 
-  static async create(): Promise<ResourceSerializationService> {
-    if (!this.instance) {
-      this.instance = new ResourceSerializationService();
+  static async create(forceNew = false): Promise<ResourceSerializationService> {
+    const resourceDataRepository = await Container.get(ResourceDataRepository);
+    if (forceNew || !this.instance) {
+      this.instance = new ResourceSerializationService(resourceDataRepository);
     }
     return this.instance;
   }

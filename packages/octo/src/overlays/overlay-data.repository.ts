@@ -5,8 +5,8 @@ import { IOverlay } from './overlay.interface.js';
 
 export class OverlayDataRepository {
   constructor(
-    private readonly oldOverlays: UnknownOverlay[] = [],
-    private readonly newOverlays: UnknownOverlay[] = [],
+    private oldOverlays: UnknownOverlay[] = [],
+    private newOverlays: UnknownOverlay[] = [],
   ) {
     Object.freeze(this.oldOverlays);
   }
