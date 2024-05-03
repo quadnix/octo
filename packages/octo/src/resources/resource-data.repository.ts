@@ -84,8 +84,12 @@ export class ResourceDataRepositoryFactory {
     newResources: UnknownResource[],
     oldResources: UnknownResource[],
   ): Promise<ResourceDataRepository> {
-    if (forceNew || !this.instance) {
+    if (!this.instance) {
       this.instance = new ResourceDataRepository(newResources, oldResources);
+    }
+    if (forceNew) {
+      const newInstance = new ResourceDataRepository(newResources, oldResources);
+      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;
   }

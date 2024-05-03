@@ -145,8 +145,12 @@ export class ModelSerializationServiceFactory {
 
   static async create(forceNew = false): Promise<ModelSerializationService> {
     const overlayDataRepository = await Container.get(OverlayDataRepository);
-    if (forceNew || !this.instance) {
+    if (!this.instance) {
       this.instance = new ModelSerializationService(overlayDataRepository);
+    }
+    if (forceNew) {
+      const newInstance = new ModelSerializationService(overlayDataRepository);
+      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;
   }

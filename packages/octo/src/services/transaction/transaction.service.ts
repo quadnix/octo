@@ -369,8 +369,12 @@ export class TransactionServiceFactory {
       Container.get(OverlayDataRepository),
       Container.get(ResourceDataRepository),
     ]);
-    if (forceNew || !this.instance) {
+    if (!this.instance) {
       this.instance = new TransactionService(inputService, overlayDataRepository, resourceDataRepository);
+    }
+    if (forceNew) {
+      const newInstance = new TransactionService(inputService, overlayDataRepository, resourceDataRepository);
+      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;
   }

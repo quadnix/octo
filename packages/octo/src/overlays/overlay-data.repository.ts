@@ -68,8 +68,12 @@ export class OverlayDataRepositoryFactory {
     newOverlays: UnknownOverlay[],
     oldOverlays: UnknownOverlay[],
   ): Promise<OverlayDataRepository> {
-    if (forceNew || !this.instance) {
+    if (!this.instance) {
       this.instance = new OverlayDataRepository(newOverlays, oldOverlays);
+    }
+    if (forceNew) {
+      const newInstance = new OverlayDataRepository(newOverlays, oldOverlays);
+      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;
   }

@@ -275,7 +275,7 @@ describe('TransactionService UT', () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ 'shared-resource': sharedResource2 });
       const mergeFunction = jest.spyOn(sharedResource2, 'merge');
 
-      const service = await Container.get(TransactionService, { args: [true] });
+      const service = await Container.get(TransactionService);
       service.registerModelActions([universalModelAction]);
 
       const generator = service.beginTransaction(diffs, { yieldNewResources: true });
@@ -310,7 +310,7 @@ describe('TransactionService UT', () => {
       const resources = [new TestResource('resource-1')];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], []] });
 
-      const service = await Container.get(TransactionService, { args: [true] });
+      const service = await Container.get(TransactionService);
       const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
       await expect(async () => {
@@ -335,7 +335,7 @@ describe('TransactionService UT', () => {
       const resources = [new TestResource('resource-1')];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = await Container.get(TransactionService, { args: [true] });
+      const service = await Container.get(TransactionService);
       service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], { yieldResourceDiffs: true, yieldResourceTransaction: true });
 
@@ -360,7 +360,7 @@ describe('TransactionService UT', () => {
       const resources = [resource1, resource2];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], []] });
 
-      const service = await Container.get(TransactionService, { args: [true] });
+      const service = await Container.get(TransactionService);
       service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
@@ -385,7 +385,7 @@ describe('TransactionService UT', () => {
       resource2_2.markDeleted();
       resource1_2.markDeleted();
 
-      const service = await Container.get(TransactionService, { args: [true] });
+      const service = await Container.get(TransactionService);
       service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
@@ -639,7 +639,7 @@ describe('TransactionService UT', () => {
         const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
         resourceDataRepository.add(newResource);
 
-        const service = await Container.get(TransactionService, { args: [true] });
+        const service = await Container.get(TransactionService);
         service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction([], { yieldNewResources: true });
 
@@ -675,7 +675,7 @@ describe('TransactionService UT', () => {
         const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
         resourceDataRepository.add(newResource);
 
-        const service = await Container.get(TransactionService, { args: [true] });
+        const service = await Container.get(TransactionService);
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction(diffs, { yieldResourceDiffs: true });
@@ -713,7 +713,7 @@ describe('TransactionService UT', () => {
         const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
         resourceDataRepository.add(newResource);
 
-        const service = await Container.get(TransactionService, { args: [true] });
+        const service = await Container.get(TransactionService);
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction(diffs, { yieldResourceTransaction: true });
@@ -736,7 +736,7 @@ describe('TransactionService UT', () => {
         const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
         resourceDataRepository.add(newResource);
 
-        const service = await Container.get(TransactionService, { args: [true] });
+        const service = await Container.get(TransactionService);
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction(diffs);
@@ -788,7 +788,7 @@ describe('TransactionService UT', () => {
       // Upon calling rollbackTransaction(), assume model's revert method marks the new resource as deleted.
       resourceDataRepository.getById('resource-1')!.markDeleted();
 
-      const service = await Container.get(TransactionService, { args: [true] });
+      const service = await Container.get(TransactionService);
       service.registerResourceActions([
         {
           ACTION_NAME: 'test',
@@ -813,7 +813,7 @@ describe('TransactionService UT', () => {
       // Upon calling rollbackTransaction(), assume model's revert method adds the new resource again.
       resourceDataRepository.add(oldResource);
 
-      const service = await Container.get(TransactionService, { args: [true] });
+      const service = await Container.get(TransactionService);
       service.registerResourceActions([
         {
           ACTION_NAME: 'test',
