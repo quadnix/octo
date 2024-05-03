@@ -14,14 +14,15 @@ import { IModelAction } from '../../models/model-action.interface.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { InputService } from '../input/input.service.js';
 
 export class TransactionService {
-  private readonly inputs: ActionInputs = {};
   private readonly modelActions: IModelAction[] = [];
   private readonly overlayActions: IModelAction[] = [];
   private readonly resourceActions: IResourceAction[] = [];
 
   constructor(
+    private readonly inputService: InputService,
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
   ) {}
@@ -53,13 +54,7 @@ export class TransactionService {
           const inputs: ActionInputs = {};
           const inputKeys = a.collectInput(diffToProcess);
           inputKeys.map((k) => {
-            if ((k as string).startsWith('resource')) {
-              const resourceId = (k as string).substring('resource.'.length);
-              inputs[k] = this.resourceDataRepository.getById(resourceId)!;
-            } else {
-              inputs[k] = this.inputs[k];
-            }
-
+            inputs[k] = this.inputService.getInput(k);
             if (!inputs[k]) {
               throw new Error('No matching input found to process action!');
             }
@@ -315,12 +310,6 @@ export class TransactionService {
     }
   }
 
-  registerInputs(inputs: ActionInputs): void {
-    for (const key in inputs) {
-      this.inputs[key] = inputs[key];
-    }
-  }
-
   async *rollbackTransaction(
     modelTransaction: DiffMetadata[][],
     options: TransactionOptions = {
@@ -375,12 +364,13 @@ export class TransactionServiceFactory {
   private static instance: TransactionService;
 
   static async create(forceNew = false): Promise<TransactionService> {
-    const [overlayDataRepository, resourceDataRepository] = await Promise.all([
+    const [inputService, overlayDataRepository, resourceDataRepository] = await Promise.all([
+      Container.get(InputService),
       Container.get(OverlayDataRepository),
       Container.get(ResourceDataRepository),
     ]);
     if (forceNew || !this.instance) {
-      this.instance = new TransactionService(overlayDataRepository, resourceDataRepository);
+      this.instance = new TransactionService(inputService, overlayDataRepository, resourceDataRepository);
     }
     return this.instance;
   }

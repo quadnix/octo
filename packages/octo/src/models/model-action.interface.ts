@@ -16,7 +16,7 @@ export interface IModelAction {
    * This function contains the list of inputs to ask before processing the diff.
    * A missing input key will not be populated in the inputs provided to the action.
    */
-  collectInput(diff: Diff): (keyof ActionInputs)[];
+  collectInput(diff: Diff): Extract<keyof ActionInputs, string>[];
 
   /**
    * This function determines if the handle is applicable to the diff.

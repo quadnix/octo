@@ -11,10 +11,13 @@ import { Region } from '../../models/region/region.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
 import { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
+import { InputService, InputServiceFactory } from '../input/input.service.js';
 import { TransactionService, TransactionServiceFactory } from './transaction.service.js';
 
 describe('TransactionService UT', () => {
   beforeEach(() => {
+    Container.registerFactory(InputService, InputServiceFactory);
+
     Container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
     Container.get(OverlayDataRepository, { args: [true, [], []] });
 
@@ -147,8 +150,9 @@ describe('TransactionService UT', () => {
         resource1: new TestResource('resource1'),
       });
 
+      const inputService = await Container.get(InputService);
+      inputService.registerInputs({ 'input.key1': 'value1' });
       const service = await Container.get(TransactionService);
-      service.registerInputs({ 'input.key1': 'value1' });
       service.registerModelActions([modelAction]);
 
       const generator = service.beginTransaction(diffs, { yieldNewResources: true });
@@ -173,8 +177,9 @@ describe('TransactionService UT', () => {
       };
       (modelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
 
+      const inputService = await Container.get(InputService);
+      inputService.registerInputs({ 'input.key1': 'value1' });
       const service = await Container.get(TransactionService);
-      service.registerInputs({ 'input.key1': 'value1' });
       service.registerModelActions([modelAction]);
       const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
@@ -205,8 +210,9 @@ describe('TransactionService UT', () => {
       };
       (modelAction2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: new TestResource('resource2') });
 
+      const inputService = await Container.get(InputService);
+      inputService.registerInputs({ 'input.key1': 'value1', 'input.key2': 'value2' });
       const service = await Container.get(TransactionService);
-      service.registerInputs({ 'input.key1': 'value1', 'input.key2': 'value2' });
       service.registerModelActions([modelAction1, modelAction2]);
 
       const generator = service.beginTransaction(diffs, { yieldNewResources: true });
@@ -329,7 +335,7 @@ describe('TransactionService UT', () => {
       const resources = [new TestResource('resource-1')];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
-      const service = await Container.get(TransactionService);
+      const service = await Container.get(TransactionService, { args: [true] });
       service.registerResourceActions([universalResourceAction]);
       const generator = service.beginTransaction([], { yieldResourceDiffs: true, yieldResourceTransaction: true });
 
@@ -730,7 +736,7 @@ describe('TransactionService UT', () => {
         const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
         resourceDataRepository.add(newResource);
 
-        const service = await Container.get(TransactionService);
+        const service = await Container.get(TransactionService, { args: [true] });
         service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
         const generator = service.beginTransaction(diffs);

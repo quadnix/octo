@@ -49,6 +49,8 @@ export { IResource } from './resources/resource.interface.js';
 export { IResourceAction } from './resources/resource-action.interface.js';
 export { ASharedResource } from './resources/shared-resource.abstract.js';
 
+export { InputService } from './services/input/input.service.js';
+
 export { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
 export { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
 

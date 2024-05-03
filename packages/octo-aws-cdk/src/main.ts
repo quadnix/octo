@@ -5,6 +5,7 @@ import {
   Diff,
   DiffMetadata,
   EnableHook,
+  InputService,
   IStateProvider,
   ModelSerializationService,
   ResourceSerializationService,
@@ -22,6 +23,7 @@ export class OctoAws {
 
   private previousApp: App | undefined;
 
+  private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
   private resourceSerializationService: ResourceSerializationService;
   private stateManagementService: StateManagementService;
@@ -106,10 +108,19 @@ export class OctoAws {
   }
 
   async initialize(stateProvider: IStateProvider): Promise<App | undefined> {
-    this.modelSerializationService = await Container.get(ModelSerializationService);
-    this.resourceSerializationService = await Container.get(ResourceSerializationService);
-    this.stateManagementService = await Container.get(StateManagementService, { args: [stateProvider] });
-    this.transactionService = await Container.get(TransactionService);
+    [
+      this.inputService,
+      this.modelSerializationService,
+      this.resourceSerializationService,
+      this.stateManagementService,
+      this.transactionService,
+    ] = await Promise.all([
+      Container.get(InputService),
+      Container.get(ModelSerializationService),
+      Container.get(ResourceSerializationService),
+      Container.get(StateManagementService, { args: [stateProvider] }),
+      Container.get(TransactionService),
+    ]);
 
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
@@ -120,7 +131,7 @@ export class OctoAws {
   }
 
   registerInputs(inputs: ActionInputs): void {
-    this.transactionService.registerInputs(inputs);
+    this.inputService.registerInputs(inputs);
   }
 
   async diff(app: App): Promise<Diff[]> {
