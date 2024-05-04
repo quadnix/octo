@@ -53,7 +53,7 @@ export class TransactionService {
           // Resolve input requests.
           const inputs: ActionInputs = {};
           const inputKeys = a.collectInput(diffToProcess);
-          inputKeys.map((k) => {
+          inputKeys.forEach((k) => {
             inputs[k] = this.inputService.getInput(k);
             if (!inputs[k]) {
               throw new Error('No matching input found to process action!');
