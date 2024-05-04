@@ -1,6 +1,4 @@
 import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
-import { Efs } from '../../../resources/efs/efs.resource.js';
-import { SharedEfs } from '../../../resources/efs/efs.shared-resource.js';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
@@ -29,8 +27,6 @@ export class DeleteRegionModelAction implements IModelAction {
       `resource.sec-grp-${regionId}-internal-open`,
       `resource.sec-grp-${regionId}-private-closed`,
       `resource.sec-grp-${regionId}-web`,
-      `resource.efs-${regionId}-filesystem`,
-      'resource.shared-efs-filesystem',
     ];
   }
 
@@ -41,18 +37,9 @@ export class DeleteRegionModelAction implements IModelAction {
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const { regionId } = diff.model as AwsRegion;
 
-    const internalOpenSG = actionInputs[`resource.sec-grp-${regionId}-internal-open`] as SecurityGroup;
-    const privateSubnet1 = actionInputs[`resource.subnet-${regionId}-private-1`] as Subnet;
-
-    const efs = actionInputs[`resource.efs-${regionId}-filesystem`] as Efs;
-    const sharedEfs = actionInputs['resource.shared-efs-filesystem'] as SharedEfs;
-    efs.removeRelationship(privateSubnet1);
-    efs.removeRelationship(internalOpenSG);
-    efs.removeRelationship(sharedEfs);
-    efs.markDeleted();
-
     const accessSG = actionInputs[`resource.sec-grp-${regionId}-access`] as SecurityGroup;
     accessSG.markDeleted();
+    const internalOpenSG = actionInputs[`resource.sec-grp-${regionId}-internal-open`] as SecurityGroup;
     internalOpenSG.markDeleted();
     const privateClosedSG = actionInputs[`resource.sec-grp-${regionId}-private-closed`] as SecurityGroup;
     privateClosedSG.markDeleted();
@@ -69,6 +56,7 @@ export class DeleteRegionModelAction implements IModelAction {
     const publicRT1 = actionInputs[`resource.rt-${regionId}-public-1`] as RouteTable;
     publicRT1.markDeleted();
 
+    const privateSubnet1 = actionInputs[`resource.subnet-${regionId}-private-1`] as Subnet;
     privateSubnet1.markDeleted();
     const publicSubnet1 = actionInputs[`resource.subnet-${regionId}-public-1`] as Subnet;
     publicSubnet1.markDeleted();
@@ -92,7 +80,6 @@ export class DeleteRegionModelAction implements IModelAction {
     output[internalOpenSG.resourceId] = internalOpenSG;
     output[privateClosedSG.resourceId] = privateClosedSG;
     output[webSG.resourceId] = webSG;
-    output[efs.resourceId] = efs;
 
     return output;
   }

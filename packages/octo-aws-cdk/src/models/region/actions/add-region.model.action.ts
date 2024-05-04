@@ -1,6 +1,14 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
-import { Efs } from '../../../resources/efs/efs.resource.js';
-import { SharedEfs } from '../../../resources/efs/efs.shared-resource.js';
+import {
+  Action,
+  ActionInputs,
+  ActionOutputs,
+  Diff,
+  DiffAction,
+  EnableHook,
+  Factory,
+  IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
@@ -28,6 +36,7 @@ export class AddRegionModelAction implements IModelAction {
     return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'region' && diff.field === 'regionId';
   }
 
+  @EnableHook('PostModelActionHook')
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const awsRegion = diff.model as AwsRegion;
     const regionId = awsRegion.regionId;
@@ -224,14 +233,6 @@ export class AddRegionModelAction implements IModelAction {
       [vpc],
     );
 
-    // Create EFS.
-    const efs = new Efs(
-      `efs-${regionId}-filesystem`,
-      { awsRegionId: awsRegion.awsRegionId, regionId: awsRegion.regionId },
-      [privateSubnet1, internalOpenSG],
-    );
-    const sharedEfs = new SharedEfs('shared-efs-filesystem', {}, [efs]);
-
     const output: ActionOutputs = {};
     output[vpc.resourceId] = vpc;
     output[internetGateway.resourceId] = internetGateway;
@@ -245,8 +246,6 @@ export class AddRegionModelAction implements IModelAction {
     output[internalOpenSG.resourceId] = internalOpenSG;
     output[privateClosedSG.resourceId] = privateClosedSG;
     output[webSG.resourceId] = webSG;
-    output[efs.resourceId] = efs;
-    output[sharedEfs.resourceId] = sharedEfs;
 
     return output;
   }

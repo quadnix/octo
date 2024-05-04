@@ -202,11 +202,6 @@ describe('AwsRegion UT', () => {
               "field": "resourceId",
               "value": "nacl-aws-us-east-1a-public-1",
             },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": undefined,
-            },
           ],
         ]
       `);
@@ -231,6 +226,11 @@ describe('AwsRegion UT', () => {
               "action": "delete",
               "field": "resourceId",
               "value": "sec-grp-aws-us-east-1a-access",
+            },
+            {
+              "action": "delete",
+              "field": "resourceId",
+              "value": "sec-grp-aws-us-east-1a-internal-open",
             },
             {
               "action": "delete",
@@ -262,11 +262,6 @@ describe('AwsRegion UT', () => {
               "field": "resourceId",
               "value": "nacl-aws-us-east-1a-public-1",
             },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": undefined,
-            },
           ],
           [
             {
@@ -283,11 +278,6 @@ describe('AwsRegion UT', () => {
               "action": "delete",
               "field": "resourceId",
               "value": "subnet-aws-us-east-1a-public-1",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-internal-open",
             },
           ],
           [

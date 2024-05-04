@@ -20,6 +20,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { AwsDeployment, AwsRegion, AwsServer, EcrService, OctoAws, RegionId, S3StorageService } from '../../index.js';
+import { AwsRegionSharedEfsModule } from '../../modules/aws-region-shared-efs.module.js';
 import { ProcessUtility } from '../../utilities/process/process.utility.js';
 import { RetryUtility } from '../../utilities/retry/retry.utility.js';
 
@@ -43,6 +44,12 @@ describe('Execution UT', () => {
           {
             type: ECSClient,
             value: { send: jest.fn() },
+          },
+        ],
+        modules: [
+          {
+            name: 'AwsRegionSharedEfsModule',
+            value: AwsRegionSharedEfsModule,
           },
         ],
       },
