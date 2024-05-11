@@ -8,6 +8,7 @@ import {
   Region,
   Server,
   Service,
+  Subnet,
   Support,
   UnknownModel,
 } from '../../src/index.js';
@@ -23,6 +24,7 @@ describe('Model E2E Test', () => {
     const region = new Region('region-1');
     const server = new Server('backend', image);
     const service = new Service('testService');
+    const subnet = new Subnet(region, 'public');
     const support = new Support('nginx', 'nginx');
     const deployment = new Deployment('nginx@v1');
     const environment = new Environment('qa');
@@ -36,6 +38,7 @@ describe('Model E2E Test', () => {
     app.addSupport(support);
     support.addDeployment(deployment);
     region.addEnvironment(environment);
+    region.addSubnet(subnet);
 
     const testCases: {
       model: UnknownModel;
@@ -67,6 +70,9 @@ describe('Model E2E Test', () => {
       },
       {
         model: service,
+      },
+      {
+        model: subnet,
       },
       {
         model: support,

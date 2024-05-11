@@ -17,6 +17,7 @@ exports[`Model E2E Test common functions Test app getBoundaryMembers() 1`] = `
   "region=region-1,app=test",
   "service=testService,app=test",
   "server=backend,app=test",
+  "subnet=region-1-public,region=region-1,app=test",
   "pipeline=testPipeline,app=test",
 ]
 `;
@@ -258,6 +259,7 @@ exports[`Model E2E Test common functions Test region getBoundaryMembers() 1`] = 
 [
   "region=region-1,app=test",
   "app=test",
+  "subnet=region-1-public,region=region-1,app=test",
   "environment=qa,region=region-1,app=test",
   "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
   "image=image:0.0.1,app=test",
@@ -269,6 +271,7 @@ exports[`Model E2E Test common functions Test region getBoundaryMembers() 1`] = 
 exports[`Model E2E Test common functions Test region getChildren() 1`] = `
 [
   "environment",
+  "subnet",
 ]
 `;
 
@@ -346,6 +349,41 @@ exports[`Model E2E Test common functions Test service getParents() 1`] = `
 `;
 
 exports[`Model E2E Test common functions Test service synth() 1`] = `"Method not implemented! Use subclass"`;
+
+exports[`Model E2E Test common functions Test subnet getAncestors() 1`] = `
+[
+  "subnet=region-1-public,region=region-1,app=test",
+  "region=region-1,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test subnet getBoundaryMembers() 1`] = `
+[
+  "subnet=region-1-public,region=region-1,app=test",
+  "region=region-1,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test subnet getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test subnet getContext() 1`] = `"subnet=region-1-public,region=region-1,app=test"`;
+
+exports[`Model E2E Test common functions Test subnet getParents() 1`] = `
+[
+  "region",
+]
+`;
+
+exports[`Model E2E Test common functions Test subnet synth() 1`] = `
+{
+  "region": {
+    "context": "region=region-1,app=test",
+  },
+  "subnetId": "region-1-public",
+}
+`;
 
 exports[`Model E2E Test common functions Test support getAncestors() 1`] = `
 [

@@ -4,6 +4,7 @@ import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
+import { Subnet } from '../subnet/subnet.model.js';
 import { IRegion } from './region.interface.js';
 
 @Model()
@@ -14,6 +15,7 @@ export class Region extends AModel<IRegion, Region> {
 
   constructor(regionId: string) {
     super();
+
     this.regionId = regionId;
   }
 
@@ -27,6 +29,18 @@ export class Region extends AModel<IRegion, Region> {
       throw new Error('Environment already exists!');
     }
     this.addChild('regionId', environment, 'environmentName');
+  }
+
+  addSubnet(subnet: Subnet): void {
+    const childrenDependencies = this.getChildren('subnet');
+    if (!childrenDependencies['subnet']) childrenDependencies['subnet'] = [];
+
+    // Check for duplicates.
+    const subnets = childrenDependencies['subnet'].map((d) => d.to);
+    if (subnets.find((z: Subnet) => z.subnetId === subnet.subnetId)) {
+      throw new Error('Subnet already exists!');
+    }
+    this.addChild('regionId', subnet, 'subnetId');
   }
 
   getContext(): string {

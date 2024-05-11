@@ -7,6 +7,7 @@ import {
   ModelSerializationService,
   Region,
   Server,
+  Subnet,
   Support,
 } from '../src/index.js';
 
@@ -34,6 +35,9 @@ describe('App E2E Test', () => {
     const qaEnvironment1 = region1.getChild('environment', [{ key: 'environmentName', value: 'qa' }]) as Environment;
     // Add a deployment to backend server.
     backendServer1.addDeployment(new Deployment('backend@v0.0.1'));
+    // Add a new subnet.
+    const publicSubnet1 = new Subnet(region1, 'public');
+    region1.addSubnet(publicSubnet1);
     // Add a new staging environment.
     const stagingEnvironment1 = new Environment('staging');
     stagingEnvironment1.environmentVariables.set('env', 'staging');
@@ -72,6 +76,11 @@ describe('App E2E Test', () => {
             "key": "env",
             "value": "staging",
           },
+        },
+        {
+          "action": "add",
+          "field": "subnetId",
+          "value": "region-1-public",
         },
         {
           "action": "add",
