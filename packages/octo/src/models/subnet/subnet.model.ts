@@ -10,10 +10,13 @@ export class Subnet extends AModel<ISubnet, Subnet> {
 
   readonly subnetId: string;
 
+  readonly subnetName: string;
+
   constructor(region: Region, name: string) {
     super();
 
     this.subnetId = region.regionId + '-' + name;
+    this.subnetName = name;
   }
 
   getContext(): string {
@@ -29,6 +32,7 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     return {
       region: { context: region.getContext() },
       subnetId: this.subnetId,
+      subnetName: this.subnetName,
     };
   }
 
