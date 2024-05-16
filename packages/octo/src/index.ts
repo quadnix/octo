@@ -32,7 +32,7 @@ export { Server } from './models/server/server.model.js';
 export { IService } from './models/service/service.interface.js';
 export { Service } from './models/service/service.model.js';
 export { ISubnet } from './models/subnet/subnet.interface.js';
-export { Subnet } from './models/subnet/subnet.model.js';
+export { Subnet, SubnetType } from './models/subnet/subnet.model.js';
 export { ISupport } from './models/support/support.interface.js';
 export { Support } from './models/support/support.model.js';
 

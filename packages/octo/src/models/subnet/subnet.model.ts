@@ -5,7 +5,7 @@ import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
 import { ISubnet } from './subnet.interface.js';
 
-enum SubnetType {
+export enum SubnetType {
   PUBLIC = 'public',
   PRIVATE = 'private',
 }
