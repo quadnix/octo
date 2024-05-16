@@ -160,4 +160,41 @@ export class DiffUtility {
 
     return diff;
   }
+
+  /**
+   * Generate a deep diff of an object from the previous model vs the latest model.
+   * @param a previous model.
+   * @param b latest model.
+   * @param field string representing the field parent uses to reference the object.
+   */
+  static diffObject(a: UnknownModel, b: UnknownModel, field: string): Diff[] {
+    const diff: Diff[] = [];
+
+    // Iterate fields of previous (a). If found in latest (b), consider it an UPDATE.
+    // If not found in latest (b), consider it a DELETE.
+    for (const [key, value] of Object.entries(a[field])) {
+      if (b[field].hasOwnProperty(key)) {
+        if (typeof b[field][key] === 'object') {
+          if (!DiffUtility.isObjectDeepEquals(b[field][key], value as object)) {
+            diff.push(new Diff(b, DiffAction.UPDATE, field, { key, value: b[field][key] }));
+          }
+        } else {
+          if (b[field][key] !== value) {
+            diff.push(new Diff(b, DiffAction.UPDATE, field, { key, value: b[field][key] }));
+          }
+        }
+      } else {
+        diff.push(new Diff(a, DiffAction.DELETE, field, { key, value }));
+      }
+    }
+
+    // Iterate fields of latest (b). If not found in previous (a), consider it an ADD.
+    for (const [key, value] of Object.entries(b[field])) {
+      if (!a[field].hasOwnProperty(key)) {
+        diff.push(new Diff(b, DiffAction.ADD, field, { key, value }));
+      }
+    }
+
+    return diff;
+  }
 }

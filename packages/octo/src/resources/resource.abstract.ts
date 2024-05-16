@@ -51,9 +51,12 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     }
 
     if (previous) {
-      if (!DiffUtility.isObjectDeepEquals(this.properties, (previous as unknown as AResource<T>).properties)) {
-        diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', this.resourceId));
-      }
+      const propertyDiffs = DiffUtility.diffObject(
+        (previous || { properties: {} }) as unknown as UnknownResource,
+        this,
+        'properties',
+      );
+      diffs.push(...propertyDiffs);
     } else {
       diffs.push(new Diff(this, DiffAction.ADD, 'resourceId', this.resourceId));
     }
