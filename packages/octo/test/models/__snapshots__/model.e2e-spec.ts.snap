@@ -378,10 +378,15 @@ exports[`Model E2E Test common functions Test subnet getParents() 1`] = `
 
 exports[`Model E2E Test common functions Test subnet synth() 1`] = `
 {
+  "options": {
+    "disableSubnetIntraNetwork": false,
+    "subnetType": "private",
+  },
   "region": {
     "context": "region=region-1,app=test",
   },
   "subnetId": "region-1-public",
+  "subnetName": "public",
 }
 `;
 

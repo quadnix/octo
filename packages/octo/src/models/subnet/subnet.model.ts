@@ -58,8 +58,8 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     }
 
     // Generate diff of associations.
-    const children = this.getChildren()['subnet'];
-    const previousChildren = (previous?.getChildren() ?? { subnet: [] })['subnet'];
+    const children = this.getChildren()['subnet'] ?? [];
+    const previousChildren = previous?.getChildren()['subnet'] ?? [];
     for (const pd of previousChildren) {
       if (!children.find((d) => (d.to as Subnet).subnetId === (pd.to as Subnet).subnetId)) {
         diffs.push(new Diff(this, DiffAction.DELETE, 'association', pd.to));
