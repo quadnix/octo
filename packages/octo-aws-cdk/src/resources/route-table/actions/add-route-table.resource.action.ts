@@ -54,13 +54,15 @@ export class AddRouteTableResourceAction implements IResourceAction {
           SubnetId: subnetResponse.SubnetId,
         }),
       ),
-      ec2Client.send(
-        new CreateRouteCommand({
-          DestinationCidrBlock: '0.0.0.0/0',
-          GatewayId: internetGatewayResponse.InternetGatewayId,
-          RouteTableId: routeTableOutput!.RouteTable!.RouteTableId,
-        }),
-      ),
+      properties.associateWithInternetGateway
+        ? ec2Client.send(
+            new CreateRouteCommand({
+              DestinationCidrBlock: '0.0.0.0/0',
+              GatewayId: internetGatewayResponse.InternetGatewayId,
+              RouteTableId: routeTableOutput!.RouteTable!.RouteTableId,
+            }),
+          )
+        : Promise.resolve(),
     ]);
 
     // Set response.
