@@ -62,12 +62,12 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     const previousSiblings = previous?.getSiblings()['subnet'] ?? [];
     for (const pd of previousSiblings) {
       if (!siblings.find((d) => (d.to as Subnet).subnetId === (pd.to as Subnet).subnetId)) {
-        diffs.push(new Diff(this, DiffAction.DELETE, 'association', (pd.to as Subnet).subnetId));
+        diffs.push(new Diff(this, DiffAction.UPDATE, 'association', (pd.to as Subnet).subnetId));
       }
     }
     for (const d of siblings) {
       if (!previousSiblings.find((pd) => (pd.to as Subnet).subnetId === (d.to as Subnet).subnetId)) {
-        diffs.push(new Diff(this, DiffAction.ADD, 'association', (d.to as Subnet).subnetId));
+        diffs.push(new Diff(this, DiffAction.UPDATE, 'association', (d.to as Subnet).subnetId));
       }
     }
 

@@ -43,7 +43,7 @@ describe('Subnet UT', () => {
       }).rejects.toThrowErrorMatchingInlineSnapshot('"Change of subnet type is not supported!"');
     });
 
-    it('should generate add diff of associations when previous does not exist', async () => {
+    it('should generate update diff of associations on adding subnet', async () => {
       const app = new App('test');
       const region = new Region('region');
       app.addRegion(region);
@@ -58,7 +58,7 @@ describe('Subnet UT', () => {
       expect(diff).toMatchInlineSnapshot(`
        [
          {
-           "action": "add",
+           "action": "update",
            "field": "association",
            "value": "region-subnet1",
          },
@@ -81,7 +81,7 @@ describe('Subnet UT', () => {
       expect(diff).toMatchInlineSnapshot(`[]`);
     });
 
-    it('should generate delete diff of associations on removing subnet association', async () => {
+    it('should generate update diff of associations on removing subnet', async () => {
       const app = new App('test');
       const region = new Region('region');
       app.addRegion(region);
@@ -101,7 +101,7 @@ describe('Subnet UT', () => {
       expect(diff).toMatchInlineSnapshot(`
        [
          {
-           "action": "delete",
+           "action": "update",
            "field": "association",
            "value": "region-subnet1",
          },
