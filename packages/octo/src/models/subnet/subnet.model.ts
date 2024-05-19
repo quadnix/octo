@@ -58,16 +58,16 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     }
 
     // Generate diff of associations.
-    const children = this.getChildren()['subnet'] ?? [];
-    const previousChildren = previous?.getChildren()['subnet'] ?? [];
-    for (const pd of previousChildren) {
-      if (!children.find((d) => (d.to as Subnet).subnetId === (pd.to as Subnet).subnetId)) {
-        diffs.push(new Diff(this, DiffAction.DELETE, 'association', pd.to));
+    const siblings = this.getSiblings()['subnet'] ?? [];
+    const previousSiblings = previous?.getSiblings()['subnet'] ?? [];
+    for (const pd of previousSiblings) {
+      if (!siblings.find((d) => (d.to as Subnet).subnetId === (pd.to as Subnet).subnetId)) {
+        diffs.push(new Diff(this, DiffAction.DELETE, 'association', (pd.to as Subnet).subnetId));
       }
     }
-    for (const d of children) {
-      if (!previousChildren.find((pd) => (pd.to as Subnet).subnetId === (d.to as Subnet).subnetId)) {
-        diffs.push(new Diff(this, DiffAction.ADD, 'association', d.to));
+    for (const d of siblings) {
+      if (!previousSiblings.find((pd) => (pd.to as Subnet).subnetId === (d.to as Subnet).subnetId)) {
+        diffs.push(new Diff(this, DiffAction.ADD, 'association', (d.to as Subnet).subnetId));
       }
     }
 
@@ -97,7 +97,7 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Subnet> {
     const region = (await deReferenceContext(subnet.region.context)) as Region;
-    const newSubnet = new Subnet(region, subnet.subnetId);
+    const newSubnet = new Subnet(region, subnet.subnetName);
 
     newSubnet.disableSubnetIntraNetwork = subnet.options.disableSubnetIntraNetwork;
     newSubnet.subnetType = subnet.options.subnetType;
@@ -106,12 +106,12 @@ export class Subnet extends AModel<ISubnet, Subnet> {
   }
 
   updateNetworkingRules(subnet: Subnet, allowConnections: boolean): void {
-    const childrenDependencies = this.getChildren('subnet');
-    if (!childrenDependencies['subnet']) childrenDependencies['subnet'] = [];
-    const subnets = childrenDependencies['subnet'].map((d) => d.to);
+    const siblingDependencies = this.getSiblings('subnet');
+    if (!siblingDependencies['subnet']) siblingDependencies['subnet'] = [];
+    const subnets = siblingDependencies['subnet'].map((d) => d.to);
 
     if (allowConnections && !subnets.find((s: Subnet) => s.subnetId === subnet.subnetId)) {
-      this.addChild('subnetId', subnet, 'subnetId');
+      this.addRelationship('subnetId', subnet, 'subnetId');
     } else if (!allowConnections && subnets.find((s: Subnet) => s.subnetId === subnet.subnetId)) {
       this.removeRelationship(subnet);
     }

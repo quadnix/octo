@@ -251,6 +251,21 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       }, {});
   }
 
+  getSiblings(modelName?: string): { [key: string]: Dependency[] } {
+    return this.dependencies
+      .filter(
+        (d) =>
+          !d.isChildRelationship() && !d.isParentRelationship() && (modelName ? d.to.MODEL_NAME === modelName : true),
+      )
+      .reduce((accumulator, currentValue) => {
+        if (!(currentValue.to.MODEL_NAME in accumulator)) {
+          accumulator[currentValue.to.MODEL_NAME] = [];
+        }
+        accumulator[currentValue.to.MODEL_NAME].push(currentValue);
+        return accumulator;
+      }, {});
+  }
+
   hasAncestor(model: UnknownModel): boolean {
     const modelParts = model
       .getContext()
