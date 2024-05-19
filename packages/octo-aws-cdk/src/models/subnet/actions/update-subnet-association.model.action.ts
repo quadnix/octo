@@ -9,82 +9,53 @@ import {
   IModelAction,
   ModelType,
   Subnet as SubnetModel,
-  SubnetType,
 } from '@quadnix/octo';
-import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
 import { INetworkAclProperties } from '../../../resources/network-acl/network-acl.interface.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
-import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
 import { ISubnetProperties } from '../../../resources/subnet/subnet.interface.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import { Vpc } from '../../../resources/vpc/vpc.resource.js';
-import { AwsRegion } from '../../region/aws.region.model.js';
 
 @Action(ModelType.MODEL)
-export class AddSubnetModelAction implements IModelAction {
-  readonly ACTION_NAME: string = 'AddSubnetModelAction';
+export class UpdateSubnetAssociationModelAction implements IModelAction {
+  readonly ACTION_NAME: string = 'UpdateSubnetAssociationModelAction';
 
   collectInput(diff: Diff): string[] {
     const subnet = diff.model as SubnetModel;
-
-    const parents = subnet.getParents();
-    const awsRegion = parents['region'][0].to as AwsRegion;
-    const regionId = awsRegion.regionId;
 
     const siblings = subnet.getSiblings()['subnet'] ?? [];
     const siblingSubnets = siblings.map((s) => s.to as SubnetModel);
 
     return [
-      `input.region.${regionId}.subnet.${subnet.subnetName}.CidrBlock`,
-      `resource.vpc-${regionId}`,
-      `resource.igw-${regionId}`,
+      `resource.subnet-${subnet.subnetId}`,
+      `resource.nacl-${subnet.subnetId}`,
       ...siblingSubnets.map((s) => `resource.subnet-${s.subnetId}`),
     ];
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'subnet' && diff.field === 'subnetId';
+    return (
+      diff.action === DiffAction.UPDATE &&
+      diff.model.MODEL_NAME === 'subnet' &&
+      (diff.field === 'association' || diff.field === 'disableSubnetIntraNetwork')
+    );
   }
 
   @EnableHook('PostModelActionHook')
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const subnet = diff.model as SubnetModel;
 
-    const parents = subnet.getParents();
-    const awsRegion = parents['region'][0].to as AwsRegion;
-    const regionId = awsRegion.regionId;
-
     const siblings = subnet.getSiblings()['subnet'] ?? [];
     const siblingSubnets = siblings.map((s) => s.to as SubnetModel);
 
-    const subnetCidrBlock = actionInputs[`input.region.${regionId}.subnet.${subnet.subnetName}.CidrBlock`] as string;
-    const vpc = actionInputs[`resource.vpc-${regionId}`] as Vpc;
-    const internetGateway = actionInputs[`resource.igw-${regionId}`] as InternetGateway;
+    const subnetSubnet = actionInputs[`resource.subnet-${subnet.subnetId}`] as Subnet;
+    const subnetNAcl = actionInputs[`resource.nacl-${subnet.subnetId}`] as NetworkAcl;
     const siblingSubnetsSubnet = siblingSubnets.map((s) => actionInputs[`resource.subnet-${s.subnetId}`] as Subnet);
-
-    // Create Subnet.
-    const subnetSubnet = new Subnet(
-      `subnet-${subnet.subnetId}`,
-      {
-        AvailabilityZone: awsRegion.awsRegionAZ,
-        awsRegionId: awsRegion.awsRegionId,
-        CidrBlock: subnetCidrBlock,
-      },
-      [vpc],
-    );
-
-    // Create Route Table.
-    const subnetRT = new RouteTable(
-      `rt-${subnet.subnetId}`,
-      { associateWithInternetGateway: subnet.subnetType === SubnetType.PUBLIC, awsRegionId: awsRegion.awsRegionId },
-      [vpc, internetGateway, subnetSubnet],
-    );
 
     // Create Network ACL entries.
     const subnetNAclEntries: INetworkAclProperties['entries'] = [];
     if (subnet.disableSubnetIntraNetwork) {
       subnetNAclEntries.push({
-        CidrBlock: subnetCidrBlock,
+        CidrBlock: (subnetSubnet.properties as unknown as ISubnetProperties).CidrBlock,
         Egress: false,
         PortRange: { From: -1, To: -1 },
         Protocol: '-1', // All.
@@ -92,7 +63,7 @@ export class AddSubnetModelAction implements IModelAction {
         RuleNumber: 1,
       });
       subnetNAclEntries.push({
-        CidrBlock: subnetCidrBlock,
+        CidrBlock: (subnetSubnet.properties as unknown as ISubnetProperties).CidrBlock,
         Egress: true,
         PortRange: { From: -1, To: -1 },
         Protocol: '-1', // All.
@@ -119,19 +90,10 @@ export class AddSubnetModelAction implements IModelAction {
       });
     });
 
-    // Create Network ACL.
-    const subnetNAcl = new NetworkAcl(
-      `nacl-${subnet.subnetId}`,
-      {
-        awsRegionId: awsRegion.awsRegionId,
-        entries: subnetNAclEntries,
-      },
-      [vpc, subnetSubnet],
-    );
+    // Update Network ACL entries.
+    (subnetNAcl.properties as unknown as INetworkAclProperties).entries = subnetNAclEntries;
 
     const output: ActionOutputs = {};
-    output[subnetSubnet.resourceId] = subnetSubnet;
-    output[subnetRT.resourceId] = subnetRT;
     output[subnetNAcl.resourceId] = subnetNAcl;
 
     return output;
@@ -142,9 +104,9 @@ export class AddSubnetModelAction implements IModelAction {
   }
 }
 
-@Factory<AddSubnetModelAction>(AddSubnetModelAction)
-export class AddSubnetModelActionFactory {
-  static async create(): Promise<AddSubnetModelAction> {
-    return new AddSubnetModelAction();
+@Factory<UpdateSubnetAssociationModelAction>(UpdateSubnetAssociationModelAction)
+export class UpdateSubnetAssociationModelActionFactory {
+  static async create(): Promise<UpdateSubnetAssociationModelAction> {
+    return new UpdateSubnetAssociationModelAction();
   }
 }

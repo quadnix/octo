@@ -46,6 +46,13 @@ import './models/service/s3-storage/actions/add-s3-storage-access.overlay.action
 import './models/service/s3-storage/actions/delete-s3-storage.model.action.js';
 import './models/service/s3-storage/actions/delete-s3-storage-access.overlay.action.js';
 
+import './models/subnet/actions/add-subnet.model.action.js';
+import './models/subnet/actions/delete-subnet.model.action.js';
+import './models/subnet/actions/update-subnet-association.model.action.js';
+
+export { AwsRegionSharedEfsModule } from './modules/aws-region-shared-efs.module.js';
+export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.module.js';
+
 import './resources/ecr/actions/add-ecr-image.resource.action.js';
 import './resources/ecr/actions/delete-ecr-image.resource.action.js';
 
@@ -71,6 +78,7 @@ import './resources/internet-gateway/actions/delete-internet-gateway.resource.ac
 
 import './resources/network-acl/actions/add-network-acl.resource.action.js';
 import './resources/network-acl/actions/delete-network-acl.resource.action.js';
+import './resources/network-acl/actions/update-network-acl-entries.resource.action.js';
 
 import './resources/route-table/actions/add-route-table.resource.action.js';
 import './resources/route-table/actions/delete-route-table.resource.action.js';
