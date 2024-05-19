@@ -40,7 +40,7 @@ describe('Container UT', () => {
     expect(() => {
       Container.registerFactory(Test, TestFactory);
       Container.registerFactory(Test, TestFactory);
-    }).not.toThrowError();
+    }).not.toThrow();
   });
 
   it('should be able to register factory of an interface', async () => {

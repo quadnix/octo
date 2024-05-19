@@ -42,7 +42,7 @@ describe('Model Serialization Service UT', () => {
       const service = await Container.get(ModelSerializationService);
       await expect(async () => {
         await service.deserialize(serializedOutput);
-      }).rejects.toThrowError();
+      }).rejects.toThrow();
     });
 
     it('should throw error when de-serializing a class with default unSynth', async () => {

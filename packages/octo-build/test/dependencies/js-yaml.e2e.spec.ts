@@ -9,7 +9,7 @@ describe('js-yaml E2E', () => {
     const filePath = resolve(join(dirname(fileURLToPath(import.meta.url)), '..', 'resources', 'not-exists.yml'));
     expect(() => {
       load(readFileSync(filePath, 'utf-8'));
-    }).toThrowError();
+    }).toThrow();
   });
 
   it('should be able to read and parse valid yml', () => {

@@ -531,7 +531,7 @@ describe('TransactionService UT', () => {
         app.addRegion(region);
         region.addChild('regionId', app, 'name');
         setApplyOrder(diffsMetadata[0], diffsMetadata);
-      }).toThrowError('Found circular dependencies!');
+      }).toThrow('Found circular dependencies!');
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
     });
@@ -554,7 +554,7 @@ describe('TransactionService UT', () => {
       expect(diffsMetadata[2].applyOrder).toBe(-1);
       expect(() => {
         setApplyOrder(diffsMetadata[0], diffsMetadata);
-      }).toThrowError('Found circular dependencies!');
+      }).toThrow('Found circular dependencies!');
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
       expect(diffsMetadata[2].applyOrder).toBe(-1);
@@ -576,7 +576,7 @@ describe('TransactionService UT', () => {
         setApplyOrder(diffsMetadata[0], diffsMetadata);
         setApplyOrder(diffsMetadata[1], diffsMetadata);
         setApplyOrder(diffsMetadata[2], diffsMetadata);
-      }).toThrowError('Found conflicting actions in same transaction!');
+      }).toThrow('Found conflicting actions in same transaction!');
     });
   });
 
