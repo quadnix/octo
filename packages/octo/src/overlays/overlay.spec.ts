@@ -3,6 +3,50 @@ import { App } from '../models/app/app.model.js';
 import { AOverlay } from './overlay.abstract.js';
 
 describe('Overlay UT', () => {
+  describe('diff()', () => {
+    it('should produce an add diff without previous', async () => {
+      const overlay = new TestOverlay('overlay-1', {}, []);
+
+      const diffs = await overlay.diff();
+      expect(diffs).toMatchInlineSnapshot(`
+       [
+         {
+           "action": "add",
+           "field": "overlayId",
+           "value": "overlay-1",
+         },
+       ]
+      `);
+    });
+
+    it('should produce an update diff with previous', async () => {
+      const overlay1 = new TestOverlay('overlay-1', { key1: 'value1', key2: 'value2' }, []);
+      const overlay2 = new TestOverlay('overlay-1', { key1: 'value1', key2: 'value2.1', key3: 'value3' }, []);
+
+      const diffs = await overlay2.diff(overlay1);
+      expect(diffs).toMatchInlineSnapshot(`
+       [
+         {
+           "action": "update",
+           "field": "properties",
+           "value": {
+             "key": "key2",
+             "value": "value2.1",
+           },
+         },
+         {
+           "action": "add",
+           "field": "properties",
+           "value": {
+             "key": "key3",
+             "value": "value3",
+           },
+         },
+       ]
+      `);
+    });
+  });
+
   describe('synth()', () => {
     it('should be able to synth an empty overlay', () => {
       const overlay = new TestOverlay('overlay-1', {}, []);

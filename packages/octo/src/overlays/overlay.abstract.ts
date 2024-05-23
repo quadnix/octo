@@ -1,6 +1,7 @@
 import { ModelType, UnknownModel, UnknownOverlay } from '../app.type.js';
+import { Diff, DiffAction } from '../functions/diff/diff.js';
+import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
-import { Diff } from '../functions/diff/diff.js';
 import { AAnchor } from './anchor.abstract.js';
 import { IOverlay } from './overlay.interface.js';
 
@@ -27,8 +28,21 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     }
   }
 
-  async diff(): Promise<Diff[]> {
-    return [];
+  async diff(previous?: T): Promise<Diff[]> {
+    const diffs: Diff[] = [];
+
+    if (previous) {
+      const propertyDiffs = DiffUtility.diffObject(
+        (previous || { properties: {} }) as unknown as UnknownOverlay,
+        this,
+        'properties',
+      );
+      diffs.push(...propertyDiffs);
+    } else {
+      diffs.push(new Diff(this, DiffAction.ADD, 'overlayId', this.overlayId));
+    }
+
+    return diffs;
   }
 
   getContext(): string {
