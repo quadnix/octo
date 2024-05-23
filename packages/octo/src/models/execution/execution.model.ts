@@ -4,7 +4,6 @@ import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import { Diff } from '../../functions/diff/diff.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Environment } from '../environment/environment.model.js';
-import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { IExecution } from './execution.interface.js';
 
@@ -16,9 +15,7 @@ export class Execution extends AModel<IExecution, Execution> {
 
   readonly executionId: string;
 
-  readonly image: Image;
-
-  constructor(deployment: Deployment, environment: Environment, image: Image) {
+  constructor(deployment: Deployment, environment: Environment) {
     super();
     this.executionId = [deployment.deploymentTag, environment.environmentName].join('_');
 
@@ -34,9 +31,6 @@ export class Execution extends AModel<IExecution, Execution> {
     // must claim it as their child. Doing it here, prevents the confusion.
     deployment.addChild('deploymentTag', this, 'executionId');
     environment.addChild('environmentName', this, 'executionId');
-
-    this.image = image;
-    this.addRelationship('executionId', image, 'imageId');
   }
 
   override async diff(previous?: Execution): Promise<Diff[]> {
@@ -67,7 +61,6 @@ export class Execution extends AModel<IExecution, Execution> {
       deployment: { context: deployment.getContext() },
       environment: { context: environment.getContext() },
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
-      image: { context: this.image.getContext() },
     };
   }
 
@@ -77,8 +70,7 @@ export class Execution extends AModel<IExecution, Execution> {
   ): Promise<Execution> {
     const deployment = (await deReferenceContext(execution.deployment.context)) as Deployment;
     const environment = (await deReferenceContext(execution.environment.context)) as Environment;
-    const image = (await deReferenceContext(execution.image.context)) as Image;
-    const newExecution = new Execution(deployment, environment, image);
+    const newExecution = new Execution(deployment, environment);
 
     for (const key in execution.environmentVariables) {
       newExecution.environmentVariables.set(key, execution.environmentVariables[key]);

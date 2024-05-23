@@ -28,7 +28,7 @@ describe('Model E2E Test', () => {
     const support = new Support('nginx', 'nginx');
     const deployment = new Deployment('nginx@v1');
     const environment = new Environment('qa');
-    const execution = new Execution(deployment, environment, image);
+    const execution = new Execution(deployment, environment);
 
     app.addImage(image);
     app.addPipeline(pipeline);
@@ -191,7 +191,7 @@ describe('Model E2E Test', () => {
       app0.addServer(server0);
       const deployment0 = new Deployment('deployment-0');
       server0.addDeployment(deployment0);
-      new Execution(deployment0, environment0, image0);
+      new Execution(deployment0, environment0);
 
       expect(region0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });
@@ -208,7 +208,7 @@ describe('Model E2E Test', () => {
       app0.addServer(server0);
       const deployment0 = new Deployment('deployment-0');
       server0.addDeployment(deployment0);
-      new Execution(deployment0, environment0, image0);
+      new Execution(deployment0, environment0);
 
       expect(server0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });

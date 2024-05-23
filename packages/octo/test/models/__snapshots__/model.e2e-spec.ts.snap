@@ -12,13 +12,13 @@ exports[`Model E2E Test common functions Test app getBoundaryMembers() 1`] = `
   "support=nginx,app=test",
   "deployment=nginx@v1,support=nginx,app=test",
   "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
-  "image=image:0.0.1,app=test",
   "environment=qa,region=region-1,app=test",
   "region=region-1,app=test",
   "service=testService,app=test",
   "server=backend,app=test",
   "subnet=region-1-public,region=region-1,app=test",
   "pipeline=testPipeline,app=test",
+  "image=image:0.0.1,app=test",
 ]
 `;
 
@@ -57,7 +57,6 @@ exports[`Model E2E Test common functions Test deployment getBoundaryMembers() 1`
   "support=nginx,app=test",
   "app=test",
   "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
-  "image=image:0.0.1,app=test",
   "environment=qa,region=region-1,app=test",
   "region=region-1,app=test",
 ]
@@ -97,7 +96,6 @@ exports[`Model E2E Test common functions Test environment getBoundaryMembers() 1
   "region=region-1,app=test",
   "app=test",
   "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
-  "image=image:0.0.1,app=test",
   "deployment=nginx@v1,support=nginx,app=test",
   "support=nginx,app=test",
 ]
@@ -127,10 +125,9 @@ exports[`Model E2E Test common functions Test environment synth() 1`] = `
 exports[`Model E2E Test common functions Test execution getAncestors() 1`] = `
 [
   "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
-  "image=image:0.0.1,app=test",
-  "app=test",
   "environment=qa,region=region-1,app=test",
   "region=region-1,app=test",
+  "app=test",
   "deployment=nginx@v1,support=nginx,app=test",
   "support=nginx,app=test",
 ]
@@ -139,10 +136,9 @@ exports[`Model E2E Test common functions Test execution getAncestors() 1`] = `
 exports[`Model E2E Test common functions Test execution getBoundaryMembers() 1`] = `
 [
   "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
-  "image=image:0.0.1,app=test",
-  "app=test",
   "environment=qa,region=region-1,app=test",
   "region=region-1,app=test",
+  "app=test",
   "deployment=nginx@v1,support=nginx,app=test",
   "support=nginx,app=test",
 ]
@@ -168,9 +164,6 @@ exports[`Model E2E Test common functions Test execution synth() 1`] = `
     "context": "environment=qa,region=region-1,app=test",
   },
   "environmentVariables": {},
-  "image": {
-    "context": "image=image:0.0.1,app=test",
-  },
 }
 `;
 
@@ -185,11 +178,6 @@ exports[`Model E2E Test common functions Test image getBoundaryMembers() 1`] = `
 [
   "image=image:0.0.1,app=test",
   "app=test",
-  "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
-  "environment=qa,region=region-1,app=test",
-  "region=region-1,app=test",
-  "deployment=nginx@v1,support=nginx,app=test",
-  "support=nginx,app=test",
 ]
 `;
 
@@ -261,7 +249,6 @@ exports[`Model E2E Test common functions Test region getBoundaryMembers() 1`] = 
   "subnet=region-1-public,region=region-1,app=test",
   "environment=qa,region=region-1,app=test",
   "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
-  "image=image:0.0.1,app=test",
   "deployment=nginx@v1,support=nginx,app=test",
   "support=nginx,app=test",
 ]
@@ -397,7 +384,6 @@ exports[`Model E2E Test common functions Test support getBoundaryMembers() 1`] =
   "app=test",
   "deployment=nginx@v1,support=nginx,app=test",
   "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region-1,app=test",
-  "image=image:0.0.1,app=test",
   "environment=qa,region=region-1,app=test",
   "region=region-1,app=test",
 ]
@@ -453,7 +439,6 @@ exports[`Model E2E Test getBoundaryMembers() should include region in server bou
   "app=test-app",
   "deployment=deployment-0,server=server-0,app=test-app",
   "execution=deployment-0_env-0,deployment=deployment-0,server=server-0,app=test-app,environment=env-0,region=region-0,app=test-app",
-  "image=test:test,app=test-app",
   "environment=env-0,region=region-0,app=test-app",
   "region=region-0,app=test-app",
 ]
@@ -465,7 +450,6 @@ exports[`Model E2E Test getBoundaryMembers() should include server in region bou
   "app=test-app",
   "environment=env-0,region=region-0,app=test-app",
   "execution=deployment-0_env-0,deployment=deployment-0,server=server-0,app=test-app,environment=env-0,region=region-0,app=test-app",
-  "image=test:test,app=test-app",
   "deployment=deployment-0,server=server-0,app=test-app",
   "server=server-0,app=test-app",
 ]

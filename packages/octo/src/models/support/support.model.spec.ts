@@ -31,7 +31,7 @@ describe('Support UT', () => {
         app0_0.addSupport(support0_0);
         const deployment0_0 = new Deployment('nginx@0.0.1');
         support0_0.addDeployment(deployment0_0);
-        new Execution(deployment0_0, environment0_0, image0_0);
+        new Execution(deployment0_0, environment0_0);
 
         const app0_1 = (await modelSerializationService.deserialize(
           await modelSerializationService.serialize(app0_0),
