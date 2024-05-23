@@ -7,6 +7,7 @@ import { Image } from '../../../models/image/image.model.js';
 import { Region } from '../../../models/region/region.model.js';
 import { Server } from '../../../models/server/server.model.js';
 import { Service } from '../../../models/service/service.model.js';
+import { Subnet } from '../../../models/subnet/subnet.model.js';
 import { Support } from '../../../models/support/support.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
 import { ModelSerializationService, ModelSerializationServiceFactory } from './model-serialization.service.js';
@@ -118,13 +119,18 @@ describe('Model Serialization Service UT', () => {
         dockerfilePath: 'path/to/Dockerfile',
       });
       app.addImage(image);
-      const server = new Server('server-1', image);
-      app.addServer(server);
+      const region = new Region('region');
+      app.addRegion(region);
+      const privateSubnet = new Subnet(region, 'private');
+      region.addSubnet(privateSubnet);
+      const publicSubnet = new Subnet(region, 'public');
+      region.addSubnet(publicSubnet);
 
       const service = await Container.get(ModelSerializationService);
       service.registerClass('App', App);
       service.registerClass('Image', Image);
-      service.registerClass('Server', Server);
+      service.registerClass('Region', Region);
+      service.registerClass('Subnet', Subnet);
 
       const appSerialized = await service.serialize(app);
       const appDeserialized = (await service.deserialize(appSerialized)) as App;
@@ -152,14 +158,14 @@ describe('Model Serialization Service UT', () => {
       const image0 = new Image('image', '0.0.1', {
         dockerfilePath: '/Dockerfile',
       });
-      const region0 = new Region('region-1');
-      const environment0 = new Environment('qa');
       app0.addImage(image0);
+      const region0 = new Region('region-1');
       app0.addRegion(region0);
-      app0.addServer(new Server('backend', image0));
-      app0.addSupport(new Support('nginx', 'nginx'));
+      const environment0 = new Environment('qa');
       environment0.environmentVariables.set('key', 'value');
       region0.addEnvironment(environment0);
+      app0.addServer(new Server('backend'));
+      app0.addSupport(new Support('nginx', 'nginx'));
 
       const service = await Container.get(ModelSerializationService);
       expect(await service.serialize(app0)).toMatchSnapshot();
@@ -168,12 +174,12 @@ describe('Model Serialization Service UT', () => {
     it('should serialize only boundary members', async () => {
       const app0 = new App('test-app');
       const region0_1 = new Region('region-1');
-      const region0_2 = new Region('region-2');
-      const environment0_1 = new Environment('qa');
-      const environment0_2 = new Environment('qa');
       app0.addRegion(region0_1);
+      const region0_2 = new Region('region-2');
       app0.addRegion(region0_2);
+      const environment0_1 = new Environment('qa');
       region0_1.addEnvironment(environment0_1);
+      const environment0_2 = new Environment('qa');
       region0_2.addEnvironment(environment0_2);
 
       const service = await Container.get(ModelSerializationService);
@@ -183,15 +189,15 @@ describe('Model Serialization Service UT', () => {
     it('should serialize when multiple models have dependency on same model', async () => {
       const service = await Container.get(ModelSerializationService);
 
-      const app0 = new App('test-app');
-      const image0 = new Image('image', '0.0.1', { dockerfilePath: '/Dockerfile' });
-      app0.addImage(image0);
-      const server0 = new Server('server-0', image0);
-      app0.addServer(server0);
-      const server1 = new Server('server-1', image0);
-      app0.addServer(server1);
+      const app = new App('test-app');
+      const region = new Region('region');
+      app.addRegion(region);
+      const privateSubnet = new Subnet(region, 'private');
+      region.addSubnet(privateSubnet);
+      const publicSubnet = new Subnet(region, 'public');
+      region.addSubnet(publicSubnet);
 
-      expect(await service.serialize(app0)).toMatchSnapshot();
+      expect(await service.serialize(app)).toMatchSnapshot();
     });
   });
 });

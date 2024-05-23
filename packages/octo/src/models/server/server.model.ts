@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Deployment } from '../deployment/deployment.model.js';
-import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { IServer } from './server.interface.js';
 
@@ -9,16 +10,11 @@ import { IServer } from './server.interface.js';
 export class Server extends AModel<IServer, Server> {
   readonly MODEL_NAME: string = 'server';
 
-  readonly image: Image;
-
   readonly serverKey: string;
 
-  constructor(serverKey: string, image: Image) {
+  constructor(serverKey: string) {
     super();
     this.serverKey = serverKey;
-
-    this.image = image;
-    this.addRelationship('serverKey', image, 'imageId');
   }
 
   addDeployment(deployment: Deployment): void {
@@ -41,7 +37,6 @@ export class Server extends AModel<IServer, Server> {
 
   synth(): IServer {
     return {
-      image: { context: this.image.getContext() },
       serverKey: this.serverKey,
     };
   }
@@ -50,7 +45,6 @@ export class Server extends AModel<IServer, Server> {
     server: IServer,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Server> {
-    const image = (await deReferenceContext(server.image.context)) as Image;
-    return new Server(server.serverKey, image);
+    return new Server(server.serverKey);
   }
 }

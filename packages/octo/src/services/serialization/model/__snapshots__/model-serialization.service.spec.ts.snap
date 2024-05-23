@@ -101,25 +101,6 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "forAction": "add",
           "onAction": "add",
           "onField": "serverKey",
-          "toField": "imageId",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "imageId",
-        },
-      ],
-      "from": "server=backend,app=test-app",
-      "relationship": undefined,
-      "to": "image=image:0.0.1,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "serverKey",
           "toField": "name",
         },
         {
@@ -136,42 +117,6 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "type": "child",
       },
       "to": "app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "imageId",
-          "toField": "name",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "imageId",
-          "toField": "name",
-        },
-      ],
-      "from": "image=image:0.0.1,app=test-app",
-      "relationship": {
-        "onField": "imageId",
-        "toField": "name",
-        "type": "child",
-      },
-      "to": "app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "imageId",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "image=image:0.0.1,app=test-app",
-      "relationship": undefined,
-      "to": "server=backend,app=test-app",
     },
     {
       "behaviors": [
@@ -236,6 +181,29 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       },
       "to": "region=region-1,app=test-app",
     },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+      ],
+      "from": "image=image:0.0.1,app=test-app",
+      "relationship": {
+        "onField": "imageId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
   ],
   "models": {
     "app=test-app": {
@@ -275,9 +243,6 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
     "server=backend,app=test-app": {
       "className": "Server",
       "model": {
-        "image": {
-          "context": "image=image:0.0.1,app=test-app",
-        },
         "serverKey": "backend",
       },
     },
@@ -429,111 +394,35 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
           "forAction": "delete",
           "onAction": "delete",
           "onField": "name",
-          "toField": "imageId",
+          "toField": "regionId",
         },
       ],
       "from": "app=test-app",
       "relationship": {
         "onField": "name",
-        "toField": "imageId",
+        "toField": "regionId",
         "type": "parent",
       },
-      "to": "image=image:0.0.1,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "name",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "app=test-app",
-      "relationship": {
-        "onField": "name",
-        "toField": "serverKey",
-        "type": "parent",
-      },
-      "to": "server=server-0,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "name",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "app=test-app",
-      "relationship": {
-        "onField": "name",
-        "toField": "serverKey",
-        "type": "parent",
-      },
-      "to": "server=server-1,app=test-app",
+      "to": "region=region,app=test-app",
     },
     {
       "behaviors": [
         {
           "forAction": "add",
           "onAction": "add",
-          "onField": "serverKey",
-          "toField": "imageId",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "imageId",
-        },
-      ],
-      "from": "server=server-1,app=test-app",
-      "relationship": undefined,
-      "to": "image=image:0.0.1,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "serverKey",
+          "onField": "regionId",
           "toField": "name",
         },
         {
           "forAction": "update",
           "onAction": "add",
-          "onField": "serverKey",
+          "onField": "regionId",
           "toField": "name",
         },
       ],
-      "from": "server=server-1,app=test-app",
+      "from": "region=region,app=test-app",
       "relationship": {
-        "onField": "serverKey",
-        "toField": "name",
-        "type": "child",
-      },
-      "to": "app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "imageId",
-          "toField": "name",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "imageId",
-          "toField": "name",
-        },
-      ],
-      "from": "image=image:0.0.1,app=test-app",
-      "relationship": {
-        "onField": "imageId",
+        "onField": "regionId",
         "toField": "name",
         "type": "child",
       },
@@ -544,68 +433,80 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "imageId",
-          "toField": "serverKey",
+          "onField": "regionId",
+          "toField": "subnetId",
         },
       ],
-      "from": "image=image:0.0.1,app=test-app",
-      "relationship": undefined,
-      "to": "server=server-0,app=test-app",
+      "from": "region=region,app=test-app",
+      "relationship": {
+        "onField": "regionId",
+        "toField": "subnetId",
+        "type": "parent",
+      },
+      "to": "subnet=region-private,region=region,app=test-app",
     },
     {
       "behaviors": [
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "imageId",
-          "toField": "serverKey",
+          "onField": "regionId",
+          "toField": "subnetId",
         },
       ],
-      "from": "image=image:0.0.1,app=test-app",
-      "relationship": undefined,
-      "to": "server=server-1,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "imageId",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "imageId",
-        },
-      ],
-      "from": "server=server-0,app=test-app",
-      "relationship": undefined,
-      "to": "image=image:0.0.1,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "name",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "name",
-        },
-      ],
-      "from": "server=server-0,app=test-app",
+      "from": "region=region,app=test-app",
       "relationship": {
-        "onField": "serverKey",
-        "toField": "name",
+        "onField": "regionId",
+        "toField": "subnetId",
+        "type": "parent",
+      },
+      "to": "subnet=region-public,region=region,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "subnetId",
+          "toField": "regionId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "subnetId",
+          "toField": "regionId",
+        },
+      ],
+      "from": "subnet=region-public,region=region,app=test-app",
+      "relationship": {
+        "onField": "subnetId",
+        "toField": "regionId",
         "type": "child",
       },
-      "to": "app=test-app",
+      "to": "region=region,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "subnetId",
+          "toField": "regionId",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "subnetId",
+          "toField": "regionId",
+        },
+      ],
+      "from": "subnet=region-private,region=region,app=test-app",
+      "relationship": {
+        "onField": "subnetId",
+        "toField": "regionId",
+        "type": "child",
+      },
+      "to": "region=region,app=test-app",
     },
   ],
   "models": {
@@ -615,35 +516,38 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
         "name": "test-app",
       },
     },
-    "image=image:0.0.1,app=test-app": {
-      "className": "Image",
+    "region=region,app=test-app": {
+      "className": "Region",
       "model": {
-        "dockerOptions": {
-          "buildArgs": {},
-          "dockerfilePath": "/Dockerfile",
-          "quiet": undefined,
-        },
-        "imageId": "0.0.1",
-        "imageName": "image",
-        "imageTag": "0.0.1",
+        "regionId": "region",
       },
     },
-    "server=server-0,app=test-app": {
-      "className": "Server",
+    "subnet=region-private,region=region,app=test-app": {
+      "className": "Subnet",
       "model": {
-        "image": {
-          "context": "image=image:0.0.1,app=test-app",
+        "options": {
+          "disableSubnetIntraNetwork": false,
+          "subnetType": "private",
         },
-        "serverKey": "server-0",
+        "region": {
+          "context": "region=region,app=test-app",
+        },
+        "subnetId": "region-private",
+        "subnetName": "private",
       },
     },
-    "server=server-1,app=test-app": {
-      "className": "Server",
+    "subnet=region-public,region=region,app=test-app": {
+      "className": "Subnet",
       "model": {
-        "image": {
-          "context": "image=image:0.0.1,app=test-app",
+        "options": {
+          "disableSubnetIntraNetwork": false,
+          "subnetType": "private",
         },
-        "serverKey": "server-1",
+        "region": {
+          "context": "region=region,app=test-app",
+        },
+        "subnetId": "region-public",
+        "subnetName": "public",
       },
     },
   },

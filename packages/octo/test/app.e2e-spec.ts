@@ -27,7 +27,7 @@ describe('App E2E Test', () => {
     const qaEnvironment0 = new Environment('qa');
     qaEnvironment0.environmentVariables.set('env', 'QA');
     region0.addEnvironment(qaEnvironment0);
-    app0.addServer(new Server('backend', image0));
+    app0.addServer(new Server('backend'));
 
     const app1 = (await modelSerializationService.deserialize(await modelSerializationService.serialize(app0))) as App;
     const region1 = app1.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
@@ -45,7 +45,7 @@ describe('App E2E Test', () => {
     // Update the qa environment.
     qaEnvironment1.environmentVariables.set('env', 'qa');
     // Add new server.
-    const databaseServer1 = new Server('database', image0);
+    const databaseServer1 = new Server('database');
     databaseServer1.addDeployment(new Deployment('database@v0.0.1'));
     app1.addServer(databaseServer1);
     // Add new support.

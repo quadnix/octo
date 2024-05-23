@@ -22,7 +22,7 @@ describe('Model E2E Test', () => {
     });
     const pipeline = new Pipeline('testPipeline');
     const region = new Region('region-1');
-    const server = new Server('backend', image);
+    const server = new Server('backend');
     const service = new Service('testService');
     const subnet = new Subnet(region, 'public');
     const support = new Support('nginx', 'nginx');
@@ -173,7 +173,7 @@ describe('Model E2E Test', () => {
       app0.addRegion(region0);
 
       // Just adding a server won't correlate to region. Create an execution in order to correlate.
-      const server0 = new Server('server-0', image0);
+      const server0 = new Server('server-0');
       app0.addServer(server0);
 
       expect(region0.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
@@ -187,7 +187,7 @@ describe('Model E2E Test', () => {
       app0.addRegion(region0);
       const environment0 = new Environment('env-0');
       region0.addEnvironment(environment0);
-      const server0 = new Server('server-0', image0);
+      const server0 = new Server('server-0');
       app0.addServer(server0);
       const deployment0 = new Deployment('deployment-0');
       server0.addDeployment(deployment0);
@@ -204,7 +204,7 @@ describe('Model E2E Test', () => {
       app0.addRegion(region0);
       const environment0 = new Environment('env-0');
       region0.addEnvironment(environment0);
-      const server0 = new Server('server-0', image0);
+      const server0 = new Server('server-0');
       app0.addServer(server0);
       const deployment0 = new Deployment('deployment-0');
       server0.addDeployment(deployment0);
@@ -307,13 +307,13 @@ describe('Model E2E Test', () => {
 
     it('should throw error when model having a direct relationship cannot be removed', () => {
       const app = new App('app');
-      const image = new Image('image', 'tag', { dockerfilePath: '/Dockerfile' });
-      app.addImage(image);
-      const server = new Server('server', image);
-      app.addServer(server);
+      const region = new Region('region');
+      app.addRegion(region);
+      const subnet = new Subnet(region, 'subnet');
+      region.addSubnet(subnet);
 
       expect(() => {
-        server.remove();
+        region.remove();
       }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove model until dependent models exist!"`);
     });
 
@@ -327,12 +327,13 @@ describe('Model E2E Test', () => {
       expect(app.getChild('region', [{ key: 'regionId', value: 'region' }])).toBe(undefined);
     });
 
-    it('should be able to remove leaf model with a direct relationship', () => {
+    it('should not be able to remove leaf model with a direct relationship', () => {
       const app = new App('app');
       const image = new Image('image', 'tag', { dockerfilePath: '/Dockerfile' });
       app.addImage(image);
-      const server = new Server('server', image);
+      const server = new Server('server');
       app.addServer(server);
+      server.addRelationship('serverKey', image, 'imageId');
 
       // Image cannot be removed until server is removed.
       expect(() => {
