@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`App E2E Test should generate app diff 1`] = `
+[
+  {
+    "action": "update",
+    "field": "environmentVariables",
+    "value": {
+      "key": "env",
+      "value": "qa",
+    },
+  },
+  {
+    "action": "add",
+    "field": "environmentName",
+    "value": "staging",
+  },
+  {
+    "action": "add",
+    "field": "environmentVariables",
+    "value": {
+      "key": "env",
+      "value": "staging",
+    },
+  },
+  {
+    "action": "add",
+    "field": "subnetId",
+    "value": "region-public",
+  },
+  {
+    "action": "add",
+    "field": "deploymentTag",
+    "value": "backend@v0.0.1",
+  },
+  {
+    "action": "add",
+    "field": "serverKey",
+    "value": "database",
+  },
+  {
+    "action": "add",
+    "field": "deploymentTag",
+    "value": "database@v0.0.1",
+  },
+  {
+    "action": "add",
+    "field": "serverKey",
+    "value": "nginx",
+  },
+  {
+    "action": "add",
+    "field": "deploymentTag",
+    "value": "nginx@v1",
+  },
+]
+`;

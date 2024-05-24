@@ -1,4 +1,4 @@
-import { AAnchor, AOverlay, AResource, ASharedResource, IOverlay, UnknownModel } from '../../src/index.js';
+import { AAnchor, AModel, AOverlay, AResource, ASharedResource, IOverlay, UnknownModel } from '../../src/index.js';
 
 export class SharedTestResource extends ASharedResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
@@ -25,6 +25,18 @@ export class TestAnchor extends AAnchor {
 export class TestAnchorFactory {
   static async create(): Promise<TestAnchor> {
     return new TestAnchor('anchorId', {} as UnknownModel);
+  }
+}
+
+export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsynth> {
+  readonly MODEL_NAME: string = 'test-model';
+
+  getContext(): string {
+    return 'test-model=test';
+  }
+
+  synth(): object {
+    return {};
   }
 }
 

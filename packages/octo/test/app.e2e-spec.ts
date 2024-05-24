@@ -19,95 +19,44 @@ describe('App E2E Test', () => {
   });
 
   it('should generate app diff', async () => {
-    const app0 = new App('test-app');
-    const image0 = new Image('image', 'tag', { dockerfilePath: '.' });
-    app0.addImage(image0);
-    const region0 = new Region('region-1');
-    app0.addRegion(region0);
-    const qaEnvironment0 = new Environment('qa');
-    qaEnvironment0.environmentVariables.set('env', 'QA');
-    region0.addEnvironment(qaEnvironment0);
-    app0.addServer(new Server('backend'));
+    const app_0 = new App('test-app');
+    const image = new Image('image', 'tag', { dockerfilePath: '.' });
+    app_0.addImage(image);
+    const region_0 = new Region('region');
+    app_0.addRegion(region_0);
+    const qaEnvironment_0 = new Environment('qa');
+    qaEnvironment_0.environmentVariables.set('env', 'QA');
+    region_0.addEnvironment(qaEnvironment_0);
+    app_0.addServer(new Server('backend'));
 
-    const app1 = (await modelSerializationService.deserialize(await modelSerializationService.serialize(app0))) as App;
-    const region1 = app1.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
-    const backendServer1 = app1.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
-    const qaEnvironment1 = region1.getChild('environment', [{ key: 'environmentName', value: 'qa' }]) as Environment;
+    const app_1 = (await modelSerializationService.deserialize(
+      await modelSerializationService.serialize(app_0),
+    )) as App;
+    const region_1 = app_1.getChild('region', [{ key: 'regionId', value: 'region' }]) as Region;
+    const backendServer_1 = app_1.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
+    const qaEnvironment_1 = region_1.getChild('environment', [{ key: 'environmentName', value: 'qa' }]) as Environment;
+
     // Add a deployment to backend server.
-    backendServer1.addDeployment(new Deployment('backend@v0.0.1'));
+    backendServer_1.addDeployment(new Deployment('backend@v0.0.1'));
     // Add a new subnet.
-    const publicSubnet1 = new Subnet(region1, 'public');
-    region1.addSubnet(publicSubnet1);
+    const publicSubnet_0 = new Subnet(region_1, 'public');
+    region_1.addSubnet(publicSubnet_0);
     // Add a new staging environment.
-    const stagingEnvironment1 = new Environment('staging');
-    stagingEnvironment1.environmentVariables.set('env', 'staging');
-    region1.addEnvironment(stagingEnvironment1);
+    const stagingEnvironment_0 = new Environment('staging');
+    stagingEnvironment_0.environmentVariables.set('env', 'staging');
+    region_1.addEnvironment(stagingEnvironment_0);
     // Update the qa environment.
-    qaEnvironment1.environmentVariables.set('env', 'qa');
+    qaEnvironment_1.environmentVariables.set('env', 'qa');
     // Add new server.
-    const databaseServer1 = new Server('database');
-    databaseServer1.addDeployment(new Deployment('database@v0.0.1'));
-    app1.addServer(databaseServer1);
+    const databaseServer_0 = new Server('database');
+    databaseServer_0.addDeployment(new Deployment('database@v0.0.1'));
+    app_1.addServer(databaseServer_0);
     // Add new support.
-    const nginxSupport1 = new Support('nginx', 'nginx');
-    nginxSupport1.addDeployment(new Deployment('nginx@v1'));
-    app1.addSupport(nginxSupport1);
+    const nginxSupport_0 = new Support('nginx', 'nginx');
+    nginxSupport_0.addDeployment(new Deployment('nginx@v1'));
+    app_1.addSupport(nginxSupport_0);
 
-    const diffs = await app1.diff(app0);
-    expect(diffs).toMatchInlineSnapshot(`
-      [
-        {
-          "action": "update",
-          "field": "environmentVariables",
-          "value": {
-            "key": "env",
-            "value": "qa",
-          },
-        },
-        {
-          "action": "add",
-          "field": "environmentName",
-          "value": "staging",
-        },
-        {
-          "action": "add",
-          "field": "environmentVariables",
-          "value": {
-            "key": "env",
-            "value": "staging",
-          },
-        },
-        {
-          "action": "add",
-          "field": "subnetId",
-          "value": "region-1-public",
-        },
-        {
-          "action": "add",
-          "field": "deploymentTag",
-          "value": "backend@v0.0.1",
-        },
-        {
-          "action": "add",
-          "field": "serverKey",
-          "value": "database",
-        },
-        {
-          "action": "add",
-          "field": "deploymentTag",
-          "value": "database@v0.0.1",
-        },
-        {
-          "action": "add",
-          "field": "serverKey",
-          "value": "nginx",
-        },
-        {
-          "action": "add",
-          "field": "deploymentTag",
-          "value": "nginx@v1",
-        },
-      ]
-    `);
+    const diffs = await app_1.diff(app_0);
+    expect(diffs).toMatchSnapshot();
   });
 });

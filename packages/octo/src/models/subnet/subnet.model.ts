@@ -111,7 +111,10 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     const subnets = siblingDependencies['subnet'].map((d) => d.to);
 
     if (allowConnections && !subnets.find((s: Subnet) => s.subnetId === subnet.subnetId)) {
-      this.addRelationship('subnetId', subnet, 'subnetId');
+      const dependencies = this.addRelationship(subnet);
+      dependencies[0].addBehavior('subnetId', DiffAction.ADD, 'subnetId', DiffAction.ADD);
+      dependencies[0].addBehavior('subnetId', DiffAction.ADD, 'subnetId', DiffAction.UPDATE);
+      dependencies[1].addBehavior('subnetId', DiffAction.DELETE, 'subnetId', DiffAction.DELETE);
     } else if (!allowConnections && subnets.find((s: Subnet) => s.subnetId === subnet.subnetId)) {
       this.removeRelationship(subnet);
     }

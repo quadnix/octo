@@ -23,7 +23,11 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     }
 
     for (const anchor of anchors) {
-      this.addRelationship('overlayId', anchor.getParent(), 'MODEL_NAME');
+      const dependencies = this.addRelationship(anchor.getParent());
+      dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.ADD);
+      dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.UPDATE);
+      dependencies[1].addBehavior('MODEL_NAME', DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
+
       this.anchors.push(anchor);
     }
   }
