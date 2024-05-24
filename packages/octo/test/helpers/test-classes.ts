@@ -8,9 +8,23 @@ export class SharedTestResource extends ASharedResource<TestResource> {
   }
 }
 
+export class TestAction {}
+
+export class TestActionFactory {
+  static async create(): Promise<TestAction> {
+    return new TestAction();
+  }
+}
+
 export class TestAnchor extends AAnchor {
   constructor(anchorId: string, parent: UnknownModel) {
     super(anchorId, parent);
+  }
+}
+
+export class TestAnchorFactory {
+  static async create(): Promise<TestAnchor> {
+    return new TestAnchor('anchorId', {} as UnknownModel);
   }
 }
 
