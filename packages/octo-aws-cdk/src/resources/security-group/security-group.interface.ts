@@ -1,3 +1,5 @@
+import { AuthorizeSecurityGroupEgressCommandOutput } from '@aws-sdk/client-ec2';
+
 export interface ISecurityGroupProperties {
   awsRegionId: string;
   rules: {
@@ -11,4 +13,8 @@ export interface ISecurityGroupProperties {
 
 export interface ISecurityGroupResponse {
   GroupId: string;
+  Rules: {
+    egress: AuthorizeSecurityGroupEgressCommandOutput['SecurityGroupRules'];
+    ingress: AuthorizeSecurityGroupEgressCommandOutput['SecurityGroupRules'];
+  };
 }

@@ -51,14 +51,6 @@ export class AddSecurityGroupResourceAction implements IResourceAction {
         ],
         ToPort: rule.ToPort,
       }));
-    if (egressPermissions.length > 0) {
-      await ec2Client.send(
-        new AuthorizeSecurityGroupEgressCommand({
-          GroupId: securityGroupOutput.GroupId,
-          IpPermissions: egressPermissions,
-        }),
-      );
-    }
     const ingressPermissions = properties.rules
       .filter((rule) => !rule.Egress)
       .map((rule) => ({
@@ -71,17 +63,37 @@ export class AddSecurityGroupResourceAction implements IResourceAction {
         ],
         ToPort: rule.ToPort,
       }));
-    if (ingressPermissions.length > 0) {
-      await ec2Client.send(
-        new AuthorizeSecurityGroupIngressCommand({
-          GroupId: securityGroupOutput.GroupId,
-          IpPermissions: ingressPermissions,
-        }),
-      );
-    }
+
+    // Apply security group rules.
+    const [egressOutput, ingressOutput] = await Promise.all([
+      egressPermissions.length > 0
+        ? ec2Client.send(
+            new AuthorizeSecurityGroupEgressCommand({
+              GroupId: securityGroupOutput.GroupId,
+              IpPermissions: egressPermissions,
+            }),
+          )
+        : Promise.resolve({ SecurityGroupRules: [] }),
+      ingressPermissions.length > 0
+        ? ec2Client.send(
+            new AuthorizeSecurityGroupIngressCommand({
+              GroupId: securityGroupOutput.GroupId,
+              IpPermissions: ingressPermissions,
+            }),
+          )
+        : Promise.resolve({ SecurityGroupRules: [] }),
+    ]);
 
     // Set response.
     response.GroupId = securityGroupOutput.GroupId as string;
+    response.Rules = {
+      egress: egressOutput.SecurityGroupRules!.map((r) => ({
+        SecurityGroupRuleId: r.SecurityGroupRuleId,
+      })),
+      ingress: ingressOutput.SecurityGroupRules!.map((r) => ({
+        SecurityGroupRuleId: r.SecurityGroupRuleId,
+      })),
+    };
   }
 }
 
