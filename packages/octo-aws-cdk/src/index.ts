@@ -53,6 +53,9 @@ import './models/subnet/actions/update-subnet-association.model.action.js';
 export { AwsRegionSharedEfsModule } from './modules/aws-region-shared-efs.module.js';
 export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.module.js';
 
+import './overlays/security-group/actions/add-security-group.overlay.action.js';
+import './overlays/security-group/actions/update-security-group.overlay.action.js';
+
 import './resources/ecr/actions/add-ecr-image.resource.action.js';
 import './resources/ecr/actions/delete-ecr-image.resource.action.js';
 
