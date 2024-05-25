@@ -93,6 +93,7 @@ import './resources/s3/website/actions/update-source-paths-in-s3-website.resourc
 
 import './resources/security-group/actions/add-security-group.resource.action.js';
 import './resources/security-group/actions/delete-security-group.resource.action.js';
+import './resources/security-group/actions/update-security-group-rules.resource.action.js';
 
 import './resources/subnet/actions/add-subnet.resource.action.js';
 import './resources/subnet/actions/delete-subnet.resource.action.js';
