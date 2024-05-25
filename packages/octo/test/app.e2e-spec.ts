@@ -8,7 +8,6 @@ import {
   Region,
   Server,
   Subnet,
-  Support,
 } from '../src/index.js';
 
 describe('App E2E Test', () => {
@@ -51,10 +50,6 @@ describe('App E2E Test', () => {
     const databaseServer_0 = new Server('database');
     databaseServer_0.addDeployment(new Deployment('database@v0.0.1'));
     app_1.addServer(databaseServer_0);
-    // Add new support.
-    const nginxSupport_0 = new Support('nginx', 'nginx');
-    nginxSupport_0.addDeployment(new Deployment('nginx@v1'));
-    app_1.addSupport(nginxSupport_0);
 
     const diffs = await app_1.diff(app_0);
     expect(diffs).toMatchSnapshot();

@@ -3,11 +3,11 @@ import { ModelSerializationService } from '../../services/serialization/model/mo
 import { App } from '../app/app.model.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Environment } from '../environment/environment.model.js';
+import { Execution } from '../execution/execution.model.js';
 import { Region } from '../region/region.model.js';
-import { Server } from '../server/server.model.js';
-import { Execution } from './execution.model.js';
+import { Server } from './server.model.js';
 
-describe('Execution UT', () => {
+describe('Server UT', () => {
   let modelSerializationService: ModelSerializationService;
 
   beforeAll(async () => {
@@ -15,8 +15,8 @@ describe('Execution UT', () => {
   });
 
   describe('diff()', () => {
-    describe('when diff of object', () => {
-      it('should capture delete', async () => {
+    describe('when diff of object with children', () => {
+      it('should capture delete of children', async () => {
         const app_0 = new App('test');
         const region_0 = new Region('region');
         app_0.addRegion(region_0);
@@ -38,8 +38,14 @@ describe('Execution UT', () => {
         const execution_1 = environment_1.getChild('execution', [
           { key: 'executionId', value: 'backend@0.0.1_qa' },
         ]) as Execution;
+        const server_1 = app_1.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
+        const deployment_1 = server_1.getChild('deployment', [
+          { key: 'deploymentTag', value: 'backend@0.0.1' },
+        ]) as Deployment;
 
         execution_1.remove();
+        deployment_1.remove();
+        server_1.remove();
         const diff = await app_1.diff(app_0);
 
         expect(diff).toMatchInlineSnapshot(`
@@ -48,6 +54,16 @@ describe('Execution UT', () => {
               "action": "delete",
               "field": "executionId",
               "value": "backend@0.0.1_qa",
+            },
+            {
+              "action": "delete",
+              "field": "deploymentTag",
+              "value": "backend@0.0.1",
+            },
+            {
+              "action": "delete",
+              "field": "serverKey",
+              "value": "backend",
             },
           ]
         `);

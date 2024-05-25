@@ -25,13 +25,12 @@ exports[`Model E2E Test common functions Test app getAncestors() 1`] = `
 exports[`Model E2E Test common functions Test app getBoundaryMembers() 1`] = `
 [
   "app=test",
-  "support=nginx,app=test",
-  "deployment=nginx@v1,support=nginx,app=test",
-  "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region,app=test",
-  "environment=qa,region=region,app=test",
-  "region=region,app=test",
   "service=service,app=test",
   "server=backend,app=test",
+  "deployment=backend@v1,server=backend,app=test",
+  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test",
+  "environment=qa,region=region,app=test",
+  "region=region,app=test",
   "subnet=region-public,region=region,app=test",
   "pipeline=pipeline,app=test",
   "image=image:0.0.1,app=test",
@@ -45,7 +44,6 @@ exports[`Model E2E Test common functions Test app getChildren() 1`] = `
   "region",
   "server",
   "service",
-  "support",
 ]
 `;
 
@@ -61,18 +59,18 @@ exports[`Model E2E Test common functions Test app synth() 1`] = `
 
 exports[`Model E2E Test common functions Test deployment getAncestors() 1`] = `
 [
-  "deployment=nginx@v1,support=nginx,app=test",
-  "support=nginx,app=test",
+  "deployment=backend@v1,server=backend,app=test",
+  "server=backend,app=test",
   "app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test deployment getBoundaryMembers() 1`] = `
 [
-  "deployment=nginx@v1,support=nginx,app=test",
-  "support=nginx,app=test",
+  "deployment=backend@v1,server=backend,app=test",
+  "server=backend,app=test",
   "app=test",
-  "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region,app=test",
+  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test",
   "environment=qa,region=region,app=test",
   "region=region,app=test",
 ]
@@ -84,17 +82,17 @@ exports[`Model E2E Test common functions Test deployment getChildren() 1`] = `
 ]
 `;
 
-exports[`Model E2E Test common functions Test deployment getContext() 1`] = `"deployment=nginx@v1,support=nginx,app=test"`;
+exports[`Model E2E Test common functions Test deployment getContext() 1`] = `"deployment=backend@v1,server=backend,app=test"`;
 
 exports[`Model E2E Test common functions Test deployment getParents() 1`] = `
 [
-  "support",
+  "server",
 ]
 `;
 
 exports[`Model E2E Test common functions Test deployment synth() 1`] = `
 {
-  "deploymentTag": "nginx@v1",
+  "deploymentTag": "backend@v1",
 }
 `;
 
@@ -111,9 +109,9 @@ exports[`Model E2E Test common functions Test environment getBoundaryMembers() 1
   "environment=qa,region=region,app=test",
   "region=region,app=test",
   "app=test",
-  "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region,app=test",
-  "deployment=nginx@v1,support=nginx,app=test",
-  "support=nginx,app=test",
+  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test",
+  "deployment=backend@v1,server=backend,app=test",
+  "server=backend,app=test",
 ]
 `;
 
@@ -140,29 +138,29 @@ exports[`Model E2E Test common functions Test environment synth() 1`] = `
 
 exports[`Model E2E Test common functions Test execution getAncestors() 1`] = `
 [
-  "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region,app=test",
+  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test",
   "environment=qa,region=region,app=test",
   "region=region,app=test",
   "app=test",
-  "deployment=nginx@v1,support=nginx,app=test",
-  "support=nginx,app=test",
+  "deployment=backend@v1,server=backend,app=test",
+  "server=backend,app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test execution getBoundaryMembers() 1`] = `
 [
-  "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region,app=test",
+  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test",
   "environment=qa,region=region,app=test",
   "region=region,app=test",
   "app=test",
-  "deployment=nginx@v1,support=nginx,app=test",
-  "support=nginx,app=test",
+  "deployment=backend@v1,server=backend,app=test",
+  "server=backend,app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test execution getChildren() 1`] = `[]`;
 
-exports[`Model E2E Test common functions Test execution getContext() 1`] = `"execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region,app=test"`;
+exports[`Model E2E Test common functions Test execution getContext() 1`] = `"execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test"`;
 
 exports[`Model E2E Test common functions Test execution getParents() 1`] = `
 [
@@ -174,7 +172,7 @@ exports[`Model E2E Test common functions Test execution getParents() 1`] = `
 exports[`Model E2E Test common functions Test execution synth() 1`] = `
 {
   "deployment": {
-    "context": "deployment=nginx@v1,support=nginx,app=test",
+    "context": "deployment=backend@v1,server=backend,app=test",
   },
   "environment": {
     "context": "environment=qa,region=region,app=test",
@@ -263,9 +261,9 @@ exports[`Model E2E Test common functions Test region getBoundaryMembers() 1`] = 
   "region=region,app=test",
   "app=test",
   "environment=qa,region=region,app=test",
-  "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region,app=test",
-  "deployment=nginx@v1,support=nginx,app=test",
-  "support=nginx,app=test",
+  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test",
+  "deployment=backend@v1,server=backend,app=test",
+  "server=backend,app=test",
   "subnet=region-public,region=region,app=test",
 ]
 `;
@@ -302,10 +300,18 @@ exports[`Model E2E Test common functions Test server getBoundaryMembers() 1`] = 
 [
   "server=backend,app=test",
   "app=test",
+  "deployment=backend@v1,server=backend,app=test",
+  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test",
+  "environment=qa,region=region,app=test",
+  "region=region,app=test",
 ]
 `;
 
-exports[`Model E2E Test common functions Test server getChildren() 1`] = `[]`;
+exports[`Model E2E Test common functions Test server getChildren() 1`] = `
+[
+  "deployment",
+]
+`;
 
 exports[`Model E2E Test common functions Test server getContext() 1`] = `"server=backend,app=test"`;
 
@@ -387,45 +393,6 @@ exports[`Model E2E Test common functions Test subnet synth() 1`] = `
 }
 `;
 
-exports[`Model E2E Test common functions Test support getAncestors() 1`] = `
-[
-  "support=nginx,app=test",
-  "app=test",
-]
-`;
-
-exports[`Model E2E Test common functions Test support getBoundaryMembers() 1`] = `
-[
-  "support=nginx,app=test",
-  "app=test",
-  "deployment=nginx@v1,support=nginx,app=test",
-  "execution=nginx@v1_qa,deployment=nginx@v1,support=nginx,app=test,environment=qa,region=region,app=test",
-  "environment=qa,region=region,app=test",
-  "region=region,app=test",
-]
-`;
-
-exports[`Model E2E Test common functions Test support getChildren() 1`] = `
-[
-  "deployment",
-]
-`;
-
-exports[`Model E2E Test common functions Test support getContext() 1`] = `"support=nginx,app=test"`;
-
-exports[`Model E2E Test common functions Test support getParents() 1`] = `
-[
-  "app",
-]
-`;
-
-exports[`Model E2E Test common functions Test support synth() 1`] = `
-{
-  "applicationType": "nginx",
-  "serverKey": "nginx",
-}
-`;
-
 exports[`Model E2E Test getAncestors() should include parent of parent as ancestors 1`] = `
 [
   "environment=env-0,region=region-0,app=app",
@@ -491,17 +458,6 @@ exports[`Model E2E Test getBoundaryMembers() should include models in boundary a
   "execution=deployment_qa,deployment=deployment,server=server,app=test-app,environment=qa,region=region,app=test-app",
   "environment=qa,region=region,app=test-app",
   "region=region,app=test-app",
-]
-`;
-
-exports[`Model E2E Test getBoundaryMembers() should include server in region boundary after an execution is added 1`] = `
-[
-  "region=region,app=test-app",
-  "app=test-app",
-  "environment=qa,region=region,app=test-app",
-  "execution=deployment_qa,deployment=deployment,server=server,app=test-app,environment=qa,region=region,app=test-app",
-  "deployment=deployment-0,server=server-0,app=test-app",
-  "server=server,app=test-app",
 ]
 `;
 

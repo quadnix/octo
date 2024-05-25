@@ -43,15 +43,5 @@ exports[`App E2E Test should generate app diff 1`] = `
     "field": "deploymentTag",
     "value": "database@v0.0.1",
   },
-  {
-    "action": "add",
-    "field": "serverKey",
-    "value": "nginx",
-  },
-  {
-    "action": "add",
-    "field": "deploymentTag",
-    "value": "nginx@v1",
-  },
 ]
 `;

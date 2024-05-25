@@ -8,7 +8,6 @@ import { Pipeline } from '../pipeline/pipeline.model.js';
 import { Region } from '../region/region.model.js';
 import { Server } from '../server/server.model.js';
 import { Service } from '../service/service.model.js';
-import { Support } from '../support/support.model.js';
 import { IApp } from './app.interface.js';
 
 @Model()
@@ -80,18 +79,6 @@ export class App extends AModel<IApp, App> {
       throw new Error('Service already exists!');
     }
     this.addChild('name', service, 'serviceId');
-  }
-
-  addSupport(support: Support): void {
-    const childrenDependencies = this.getChildren('support');
-    if (!childrenDependencies['support']) childrenDependencies['support'] = [];
-
-    // Check for duplicates.
-    const supports = childrenDependencies['support'].map((d) => d.to);
-    if (supports.find((s: Support) => s.serverKey === support.serverKey)) {
-      throw new Error('Support already exists!');
-    }
-    this.addChild('name', support, 'serverKey');
   }
 
   getContext(): string {

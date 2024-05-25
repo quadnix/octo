@@ -8,7 +8,6 @@ import { Region } from '../../../models/region/region.model.js';
 import { Server } from '../../../models/server/server.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Subnet } from '../../../models/subnet/subnet.model.js';
-import { Support } from '../../../models/support/support.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
 import { ModelSerializationService, ModelSerializationServiceFactory } from './model-serialization.service.js';
 
@@ -165,7 +164,6 @@ describe('Model Serialization Service UT', () => {
       environment0.environmentVariables.set('key', 'value');
       region0.addEnvironment(environment0);
       app0.addServer(new Server('backend'));
-      app0.addSupport(new Support('nginx', 'nginx'));
 
       const service = await Container.get(ModelSerializationService);
       expect(await service.serialize(app0)).toMatchSnapshot();

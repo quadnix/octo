@@ -34,8 +34,6 @@ export type ResourceSerializedOutput = {
   sharedResources: { [p: string]: { className: string; resource: IResource } };
 };
 
-export type SupportApplicationType = 'nginx';
-
 export type TransactionOptions = {
   yieldModelTransaction?: boolean;
   yieldNewResources?: boolean;

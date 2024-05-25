@@ -10,7 +10,6 @@ import {
   Server,
   Service,
   Subnet,
-  Support,
   UnknownModel,
 } from '../../src/index.js';
 import { TestAnchor, TestModelWithoutUnsynth, TestOverlay } from '../helpers/test-classes.js';
@@ -28,14 +27,12 @@ describe('Model E2E Test', () => {
     app.addRegion(region);
     const server = new Server('backend');
     app.addServer(server);
+    const deployment = new Deployment('backend@v1');
+    server.addDeployment(deployment);
     const service = new Service('service');
     app.addService(service);
     const subnet = new Subnet(region, 'public');
     region.addSubnet(subnet);
-    const support = new Support('nginx', 'nginx');
-    app.addSupport(support);
-    const deployment = new Deployment('nginx@v1');
-    support.addDeployment(deployment);
     const environment = new Environment('qa');
     region.addEnvironment(environment);
     const execution = new Execution(deployment, environment);
@@ -73,9 +70,6 @@ describe('Model E2E Test', () => {
       },
       {
         model: subnet,
-      },
-      {
-        model: support,
       },
     ];
 

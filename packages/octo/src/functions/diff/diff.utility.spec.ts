@@ -43,11 +43,11 @@ describe('Diff Utility UT', () => {
       expect(DiffUtility.isObjectDeepEquals([{ a: 1 }, { b: 2 }], [{ a: 1 }, { b: 3 }])).toEqual(false);
     });
 
-    it('should return true when array of booleans and undefined are equal', () => {
+    it('should return true when array of boolean and undefined are equal', () => {
       expect(DiffUtility.isObjectDeepEquals([undefined, false], [undefined, false])).toEqual(true);
     });
 
-    it('should return false when array of booleans and undefined are not equal', () => {
+    it('should return false when array of boolean and undefined are not equal', () => {
       expect(DiffUtility.isObjectDeepEquals([undefined, false], [null, true])).toEqual(false);
     });
   });

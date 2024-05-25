@@ -58,46 +58,6 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
     {
       "behaviors": [
         {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "name",
-          "toField": "serverKey",
-        },
-      ],
-      "from": "app=test-app",
-      "relationship": {
-        "onField": "name",
-        "toField": "serverKey",
-        "type": "parent",
-      },
-      "to": "support=nginx,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "name",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "serverKey",
-          "toField": "name",
-        },
-      ],
-      "from": "support=nginx,app=test-app",
-      "relationship": {
-        "onField": "serverKey",
-        "toField": "name",
-        "type": "child",
-      },
-      "to": "app=test-app",
-    },
-    {
-      "behaviors": [
-        {
           "forAction": "add",
           "onAction": "add",
           "onField": "serverKey",
@@ -244,13 +204,6 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       "className": "Server",
       "model": {
         "serverKey": "backend",
-      },
-    },
-    "support=nginx,app=test-app": {
-      "className": "Support",
-      "model": {
-        "applicationType": "nginx",
-        "serverKey": "nginx",
       },
     },
   },
