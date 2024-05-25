@@ -80,7 +80,7 @@ export class DiffUtility {
       if (b[field].some((bObject) => compare(aObject, bObject))) {
         diff.push(new Diff(b, DiffAction.UPDATE, field, aObject));
       } else {
-        diff.push(...DiffUtility.generateDeleteDiff(a, field));
+        diff.push(new Diff(a, DiffAction.DELETE, field, aObject));
       }
     }
 
