@@ -26,7 +26,12 @@ export class AddRegionModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'region' && diff.field === 'regionId';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof AwsRegion &&
+      diff.model.MODEL_NAME === 'region' &&
+      diff.field === 'regionId'
+    );
   }
 
   @EnableHook('PostModelActionHook')

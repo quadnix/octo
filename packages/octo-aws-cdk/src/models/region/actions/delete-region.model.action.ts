@@ -21,7 +21,12 @@ export class DeleteRegionModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'region' && diff.field === 'regionId';
+    return (
+      diff.action === DiffAction.DELETE &&
+      diff.model instanceof AwsRegion &&
+      diff.model.MODEL_NAME === 'region' &&
+      diff.field === 'regionId'
+    );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {

@@ -13,9 +13,9 @@ export class AddS3StorageModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
+      diff.model instanceof S3StorageService &&
       diff.model.MODEL_NAME === 'service' &&
-      diff.field === 'serviceId' &&
-      (diff.model as S3StorageService).serviceId.endsWith('s3-storage')
+      diff.field === 'serviceId'
     );
   }
 

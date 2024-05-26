@@ -13,9 +13,9 @@ export class AddS3StaticWebsiteModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
+      diff.model instanceof S3StaticWebsiteService &&
       diff.model.MODEL_NAME === 'service' &&
-      diff.field === 'serviceId' &&
-      (diff.model as S3StaticWebsiteService).serviceId.endsWith('s3-static-website')
+      diff.field === 'serviceId'
     );
   }
 

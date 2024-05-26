@@ -15,9 +15,9 @@ export class UpdateSourcePathsS3StaticWebsiteModelAction implements IModelAction
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
+      diff.model instanceof S3StaticWebsiteService &&
       diff.model.MODEL_NAME === 'service' &&
-      diff.field === 'sourcePaths' &&
-      (diff.model as S3StaticWebsiteService).serviceId.endsWith('s3-static-website')
+      diff.field === 'sourcePaths'
     );
   }
 

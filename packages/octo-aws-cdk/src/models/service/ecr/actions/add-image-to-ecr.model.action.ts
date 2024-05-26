@@ -26,8 +26,8 @@ export class AddImageToEcrModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
+      diff.model instanceof EcrService &&
       diff.model.MODEL_NAME === 'service' &&
-      (diff.model as EcrService).serviceId.endsWith('ecr') &&
       diff.field === 'images'
     );
   }
