@@ -1,6 +1,6 @@
 import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
-import { IamRoleAnchor } from '../../../../anchors/iam-role.anchor.js';
-import { IamRole } from '../../../../resources/iam/iam-role.resource.js';
+import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
+import { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
 
 @Action(ModelType.OVERLAY)
@@ -16,7 +16,9 @@ export class AddS3StorageAccessOverlayAction implements IModelAction {
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 's3-storage-access' && diff.field === 'overlayId'
+      diff.action === DiffAction.ADD &&
+      diff.model.MODEL_NAME === 's3-storage-access-overlay' &&
+      diff.field === 'overlayId'
     );
   }
 

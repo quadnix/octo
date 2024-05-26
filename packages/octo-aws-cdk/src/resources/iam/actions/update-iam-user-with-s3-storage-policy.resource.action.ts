@@ -6,7 +6,7 @@ import {
   IAMClient,
 } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IS3StorageAccessOverlayProperties } from '../../../models/service/s3-storage/s3-storage-access.overlay.interface.js';
+import { IS3StorageAccessOverlayProperties } from '../../../overlays/s3-storage-access/s3-storage-access.overlay.interface.js';
 import { IIamUserResponse } from '../iam-user.interface.js';
 import { IamUser, IamUserPolicyDiff } from '../iam-user.resource.js';
 
@@ -18,7 +18,7 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     return (
       diff.action === DiffAction.UPDATE &&
       diff.model.MODEL_NAME === 'iam-user' &&
-      (diff.value as IamUserPolicyDiff['key']).overlay.MODEL_NAME === 's3-storage-access'
+      (diff.value as IamUserPolicyDiff['key']).overlay.MODEL_NAME === 's3-storage-access-overlay'
     );
   }
 

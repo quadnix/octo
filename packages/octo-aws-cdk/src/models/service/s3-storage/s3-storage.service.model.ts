@@ -1,8 +1,10 @@
 import { Container, Model, OverlayService, Service } from '@quadnix/octo';
+import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
+import { S3DirectoryAnchor } from '../../../anchors/s3-directory.anchor.js';
 import { CommonUtility } from '../../../utilities/common/common.utility.js';
 import { AwsRegion, RegionId } from '../../region/aws.region.model.js';
 import { AwsServer } from '../../server/aws.server.model.js';
-import { S3StorageAccessOverlay } from './s3-storage-access.overlay.js';
+import { S3StorageAccessOverlay } from '../../../overlays/s3-storage-access/s3-storage-access.overlay.js';
 import { IS3StorageService } from './s3-storage.service.interface.js';
 
 export enum S3StorageAccess {
@@ -17,7 +19,7 @@ export class S3StorageService extends Service {
 
   readonly bucketName: string;
 
-  readonly directories: { remoteDirectoryPath: string }[] = [];
+  readonly directories: { directoryAnchorName: string; remoteDirectoryPath: string }[] = [];
 
   constructor(regionId: RegionId, bucketName: string) {
     super(`${bucketName}-s3-storage`);
@@ -31,7 +33,11 @@ export class S3StorageService extends Service {
       throw new Error('Remote directory already added in S3 bucket!');
     }
 
-    this.directories.push({ remoteDirectoryPath });
+    const directoryAnchorName = `${CommonUtility.hash(remoteDirectoryPath).substring(0, 12)}Directory`;
+    const directoryAnchor = new S3DirectoryAnchor(directoryAnchorName, this);
+    this.anchors.push(directoryAnchor);
+
+    this.directories.push({ directoryAnchorName, remoteDirectoryPath });
   }
 
   async allowDirectoryAccess(
@@ -44,14 +50,15 @@ export class S3StorageService extends Service {
       throw new Error('Cannot find remote directory!');
     }
 
-    const principal = server.getAnchors()[0];
-    const overlayId = CommonUtility.hash(principal.anchorId, directory.remoteDirectoryPath, accessLevel);
-
     const allowRead = accessLevel === S3StorageAccess.READ || accessLevel === S3StorageAccess.READ_WRITE;
     const allowWrite = accessLevel === S3StorageAccess.WRITE || accessLevel === S3StorageAccess.READ_WRITE;
     if (!allowRead && !allowWrite) {
       return;
     }
+
+    const directoryAnchor = this.anchors.find((a) => a.anchorId === directory.directoryAnchorName)!;
+    const serverAnchor = server.getAnchors().find((a) => a instanceof IamRoleAnchor)!;
+    const overlayId = CommonUtility.hash(serverAnchor.anchorId, directory.remoteDirectoryPath, accessLevel);
 
     const overlayService = await Container.get(OverlayService);
     const s3StorageAccessOverlay = new S3StorageAccessOverlay(
@@ -62,7 +69,7 @@ export class S3StorageService extends Service {
         bucketName: this.bucketName,
         remoteDirectoryPath: directory.remoteDirectoryPath,
       },
-      [principal],
+      [serverAnchor, directoryAnchor],
     );
     await overlayService.addOverlay(s3StorageAccessOverlay);
   }
@@ -77,15 +84,12 @@ export class S3StorageService extends Service {
       throw new Error('Cannot find remote directory!');
     }
 
-    const principal = server.getAnchors()[0];
-    const overlayId = CommonUtility.hash(principal.anchorId, directory.remoteDirectoryPath, accessLevel);
+    const serverAnchor = server.getAnchors().find((a) => a instanceof IamRoleAnchor)!;
+    const overlayId = CommonUtility.hash(serverAnchor.anchorId, directory.remoteDirectoryPath, accessLevel);
 
     const overlayService = await Container.get(OverlayService);
     const overlay = await overlayService.getOverlayById(overlayId);
-    if (!overlay) {
-      throw new Error('Cannot find overlay!');
-    }
-    await overlayService.removeOverlay(overlay);
+    await overlayService.removeOverlay(overlay!);
   }
 
   async removeDirectory(remoteDirectoryPath: string): Promise<void> {

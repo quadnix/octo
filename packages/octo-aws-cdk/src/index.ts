@@ -1,5 +1,6 @@
 import './anchors/iam-role.anchor.js';
 import './anchors/iam-user.anchor.js';
+import './anchors/s3-directory.anchor.js';
 
 import './factories/aws/ec2.aws.factory.js';
 import './factories/aws/ecr.aws.factory.js';
@@ -42,9 +43,7 @@ import './models/service/s3-static-website/actions/update-source-paths-s3-static
 
 export { S3StorageAccess, S3StorageService } from './models/service/s3-storage/s3-storage.service.model.js';
 import './models/service/s3-storage/actions/add-s3-storage.model.action.js';
-import './models/service/s3-storage/actions/add-s3-storage-access.overlay.action.js';
 import './models/service/s3-storage/actions/delete-s3-storage.model.action.js';
-import './models/service/s3-storage/actions/delete-s3-storage-access.overlay.action.js';
 
 import './models/subnet/actions/add-subnet.model.action.js';
 import './models/subnet/actions/delete-subnet.model.action.js';
@@ -53,6 +52,8 @@ import './models/subnet/actions/update-subnet-association.model.action.js';
 export { AwsRegionSharedEfsModule } from './modules/aws-region-shared-efs.module.js';
 export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.module.js';
 
+import './overlays/s3-storage-access/actions/add-s3-storage-access.overlay.action.js';
+import './overlays/s3-storage-access/actions/delete-s3-storage-access.overlay.action.js';
 import './overlays/security-group/actions/add-security-group.overlay.action.js';
 import './overlays/security-group/actions/update-security-group.overlay.action.js';
 
