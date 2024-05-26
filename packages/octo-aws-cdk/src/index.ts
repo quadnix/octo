@@ -1,6 +1,7 @@
 import './anchors/iam-role.anchor.js';
 import './anchors/iam-user.anchor.js';
 import './anchors/s3-directory.anchor.js';
+import './anchors/security-group.anchor.js';
 
 import './factories/aws/ec2.aws.factory.js';
 import './factories/aws/ecr.aws.factory.js';

@@ -1,8 +1,9 @@
-import { AAnchor, Anchor, UnknownModel } from '@quadnix/octo';
+import { AAnchor, Anchor } from '@quadnix/octo';
+import { AwsServer } from '../models/server/aws.server.model.js';
 
 @Anchor()
 export class IamUserAnchor extends AAnchor {
-  constructor(anchorId: string, parent: UnknownModel) {
+  constructor(anchorId: string, parent: AwsServer) {
     super(anchorId, parent);
   }
 }
