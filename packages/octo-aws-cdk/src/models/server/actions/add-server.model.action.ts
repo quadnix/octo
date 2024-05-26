@@ -11,7 +11,12 @@ export class AddServerModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'server' && diff.field === 'serverKey';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof AwsServer &&
+      diff.model.MODEL_NAME === 'server' &&
+      diff.field === 'serverKey'
+    );
   }
 
   async handle(diff: Diff): Promise<ActionOutputs> {

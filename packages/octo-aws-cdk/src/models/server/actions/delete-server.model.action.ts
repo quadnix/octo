@@ -14,7 +14,12 @@ export class DeleteServerModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'server' && diff.field === 'serverKey';
+    return (
+      diff.action === DiffAction.DELETE &&
+      diff.model instanceof AwsServer &&
+      diff.model.MODEL_NAME === 'server' &&
+      diff.field === 'serverKey'
+    );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
