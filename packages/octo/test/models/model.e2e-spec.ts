@@ -35,7 +35,7 @@ describe('Model E2E Test', () => {
     region.addSubnet(subnet);
     const environment = new Environment('qa');
     region.addEnvironment(environment);
-    const execution = new Execution(deployment, environment);
+    const execution = new Execution(deployment, environment, subnet);
 
     const testCases: {
       model: UnknownModel;
@@ -228,13 +228,15 @@ describe('Model E2E Test', () => {
       app.addImage(image);
       const region = new Region('region');
       app.addRegion(region);
+      const subnet = new Subnet(region, 'subnet');
+      region.addSubnet(subnet);
       const environment = new Environment('qa');
       region.addEnvironment(environment);
       const server = new Server('server');
       app.addServer(server);
       const deployment = new Deployment('deployment');
       server.addDeployment(deployment);
-      new Execution(deployment, environment);
+      new Execution(deployment, environment, subnet);
 
       expect(region.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
       expect(server.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();

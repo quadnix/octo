@@ -18,7 +18,7 @@ export class Deployment extends AModel<IDeployment, Deployment> {
 
   getContext(): string {
     const parents = this.getParents();
-    const parent = (parents['server'] || parents['support'])[0].to;
+    const parent = parents['server'][0].to;
     return [`${this.MODEL_NAME}=${this.deploymentTag}`, parent.getContext()].join(',');
   }
 

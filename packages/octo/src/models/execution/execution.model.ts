@@ -5,6 +5,8 @@ import { Diff } from '../../functions/diff/diff.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
+import { Region } from '../region/region.model.js';
+import { Subnet } from '../subnet/subnet.model.js';
 import { IExecution } from './execution.interface.js';
 
 @Model()
@@ -15,22 +17,35 @@ export class Execution extends AModel<IExecution, Execution> {
 
   readonly executionId: string;
 
-  constructor(deployment: Deployment, environment: Environment) {
+  constructor(deployment: Deployment, environment: Environment, subnet: Subnet) {
     super();
     this.executionId = [deployment.deploymentTag, environment.environmentName].join('_');
 
-    // Check for duplicates.
-    if (
-      deployment.getChild('execution', [{ key: 'executionId', value: this.executionId }]) ||
-      environment.getChild('execution', [{ key: 'executionId', value: this.executionId }])
-    ) {
-      throw new Error('Execution already exists!');
+    // Check if execution can be placed in this subnet. Skip during unSynth().
+    if (Object.keys(this.getParents()).length > 0) {
+      const environmentRegion = environment.getParents('region')['region'][0].to as Region;
+      const subnetRegion = subnet.getParents('region')['region'][0].to as Region;
+      if (environmentRegion.regionId !== subnetRegion.regionId) {
+        throw new Error('Environment and Subnet must be in the same region!');
+      }
     }
 
-    // In order for this execution to properly have defined its parent-child relationship, both execution and deployment
+    // Check for duplicates. Skip during unSynth().
+    if (Object.keys(this.getParents()).length > 0) {
+      if (
+        deployment.getChild('execution', [{ key: 'executionId', value: this.executionId }]) ||
+        environment.getChild('execution', [{ key: 'executionId', value: this.executionId }]) ||
+        subnet.getChild('execution', [{ key: 'executionId', value: this.executionId }])
+      ) {
+        throw new Error('Execution already exists!');
+      }
+    }
+
+    // In order for this execution to properly have defined its parent-child relationship, all parents
     // must claim it as their child. Doing it here, prevents the confusion.
     deployment.addChild('deploymentTag', this, 'executionId');
     environment.addChild('environmentName', this, 'executionId');
+    subnet.addChild('subnetId', this, 'executionId');
   }
 
   override async diff(previous?: Execution): Promise<Diff[]> {
@@ -47,20 +62,28 @@ export class Execution extends AModel<IExecution, Execution> {
 
   getContext(): string {
     const parents = this.getParents();
-    const deployment: Deployment = parents['deployment'][0]['to'] as Deployment;
-    const environment: Environment = parents['environment'][0]['to'] as Environment;
-    return [`${this.MODEL_NAME}=${this.executionId}`, deployment.getContext(), environment.getContext()].join(',');
+    const deployment = parents['deployment'][0]['to'] as Deployment;
+    const environment = parents['environment'][0]['to'] as Environment;
+    const subnet = parents['subnet'][0]['to'] as Subnet;
+    return [
+      `${this.MODEL_NAME}=${this.executionId}`,
+      deployment.getContext(),
+      environment.getContext(),
+      subnet.getContext(),
+    ].join(',');
   }
 
   synth(): IExecution {
     const parents = this.getParents();
-    const deployment: Deployment = parents['deployment'][0]['to'] as Deployment;
-    const environment: Environment = parents['environment'][0]['to'] as Environment;
+    const deployment = parents['deployment'][0]['to'] as Deployment;
+    const environment = parents['environment'][0]['to'] as Environment;
+    const subnet = parents['subnet'][0]['to'] as Subnet;
 
     return {
       deployment: { context: deployment.getContext() },
       environment: { context: environment.getContext() },
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
+      subnet: { context: subnet.getContext() },
     };
   }
 
@@ -70,7 +93,8 @@ export class Execution extends AModel<IExecution, Execution> {
   ): Promise<Execution> {
     const deployment = (await deReferenceContext(execution.deployment.context)) as Deployment;
     const environment = (await deReferenceContext(execution.environment.context)) as Environment;
-    const newExecution = new Execution(deployment, environment);
+    const subnet = (await deReferenceContext(execution.subnet.context)) as Subnet;
+    const newExecution = new Execution(deployment, environment, subnet);
 
     for (const key in execution.environmentVariables) {
       newExecution.environmentVariables.set(key, execution.environmentVariables[key]);
