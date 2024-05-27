@@ -40,15 +40,15 @@ export class AddEfsResourceAction implements IResourceAction {
           }),
         );
 
-        const fileSystem = result.FileSystems?.find((f) => f.FileSystemId === data.FileSystemId);
-        if (!fileSystem) {
+        const filesystem = result.FileSystems?.find((f) => f.FileSystemId === data.FileSystemId);
+        if (!filesystem) {
           throw new Error('EFS FileSystem does not exist!');
         }
-        if (fileSystem.LifeCycleState!.toLowerCase() === 'error') {
+        if (filesystem.LifeCycleState!.toLowerCase() === 'error') {
           throw new Error('EFS FileSystem could not be created!');
         }
 
-        return fileSystem.LifeCycleState!.toLowerCase() === 'available';
+        return filesystem.LifeCycleState!.toLowerCase() === 'available';
       },
       {
         maxRetries: 5,

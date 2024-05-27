@@ -48,15 +48,15 @@ export class DeleteEfsResourceAction implements IResourceAction {
           }
         }
 
-        const fileSystem = result!.FileSystems?.find((f) => f.FileSystemId === response.FileSystemId);
-        if (!fileSystem) {
+        const filesystem = result!.FileSystems?.find((f) => f.FileSystemId === response.FileSystemId);
+        if (!filesystem) {
           return true;
         }
-        if (fileSystem.LifeCycleState!.toLowerCase() === 'error') {
+        if (filesystem.LifeCycleState!.toLowerCase() === 'error') {
           throw new Error('EFS FileSystem could not be deleted!');
         }
 
-        return fileSystem.LifeCycleState!.toLowerCase() === 'deleted';
+        return filesystem.LifeCycleState!.toLowerCase() === 'deleted';
       },
       {
         maxRetries: 5,
