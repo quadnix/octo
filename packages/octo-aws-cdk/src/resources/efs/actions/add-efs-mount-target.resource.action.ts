@@ -1,8 +1,6 @@
 import { CreateMountTargetCommand, DescribeMountTargetsCommand, EFSClient } from '@aws-sdk/client-efs';
 import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { ISecurityGroupResponse } from '../../security-group/security-group.interface.js';
-import { SecurityGroup } from '../../security-group/security-group.resource.js';
 import { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import { Subnet } from '../../subnet/subnet.resource.js';
 import { IEfsMountTargetProperties, IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
@@ -29,8 +27,6 @@ export class AddEfsMountTargetResourceAction implements IResourceAction {
     const efsResponse = efs.response as unknown as IEfsResponse;
     const subnet = parents['subnet'][0].to as Subnet;
     const subnetResponse = subnet.response as unknown as ISubnetResponse;
-    const securityGroup = parents['security-group'][0].to as SecurityGroup;
-    const securityGroupResponse = securityGroup.response as unknown as ISecurityGroupResponse;
 
     // Get instances.
     const efsClient = await Container.get(EFSClient, { args: [properties.awsRegionId] });
@@ -39,7 +35,7 @@ export class AddEfsMountTargetResourceAction implements IResourceAction {
     const data = await efsClient.send(
       new CreateMountTargetCommand({
         FileSystemId: efsResponse.FileSystemId,
-        SecurityGroups: [securityGroupResponse.GroupId],
+        SecurityGroups: [],
         SubnetId: subnetResponse.SubnetId,
       }),
     );
