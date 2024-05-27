@@ -71,7 +71,9 @@ import './resources/ecs/actions/delete-ecs-service.resource.action.js';
 import './resources/ecs/actions/delete-ecs-task-definition.resource.action.js';
 
 import './resources/efs/actions/add-efs.resource.action.js';
+import './resources/efs/actions/add-efs-mount-target.resource.action.js';
 import './resources/efs/actions/delete-efs.resource.action.js';
+import './resources/efs/actions/delete-efs-mount-target.resource.action.js';
 
 import './resources/iam/actions/add-iam-role.resource.action.js';
 import './resources/iam/actions/add-iam-user.resource.action.js';
