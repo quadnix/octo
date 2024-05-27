@@ -3,6 +3,7 @@ import './anchors/iam-user.anchor.js';
 import './anchors/region-filesystem.anchor.js';
 import './anchors/s3-directory.anchor.js';
 import './anchors/security-group.anchor.js';
+import './anchors/subnet-filesystem-mount.anchor.js';
 
 import './factories/aws/ec2.aws.factory.js';
 import './factories/aws/ecr.aws.factory.js';
@@ -64,6 +65,9 @@ import './overlays/s3-storage-access/actions/delete-s3-storage-access.overlay.ac
 
 import './overlays/security-group/actions/add-security-group.overlay.action.js';
 import './overlays/security-group/actions/update-security-group.overlay.action.js';
+
+import './overlays/subnet-filesystem-mount/actions/add-subnet-filesystem-mount.overlay.action.js';
+import './overlays/subnet-filesystem-mount/actions/delete-subnet-filesystem-mount.overlay.action.js';
 
 import './resources/ecr/actions/add-ecr-image.resource.action.js';
 import './resources/ecr/actions/delete-ecr-image.resource.action.js';
