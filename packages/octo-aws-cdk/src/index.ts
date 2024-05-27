@@ -54,7 +54,6 @@ import './models/subnet/actions/update-subnet-association.model.action.js';
 
 export { AwsSubnet } from './models/subnet/aws.subnet.model.js';
 
-export { AwsRegionSharedEfsModule } from './modules/aws-region-shared-efs.module.js';
 export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.module.js';
 
 import './overlays/region-filesystem/actions/add-region-filesystem.overlay.action.js';
