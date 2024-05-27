@@ -22,7 +22,7 @@ export class AddSubnetFilesystemMountOverlayAction implements IModelAction {
     const subnet = subnetFilesystemMountAnchor.getParent() as AwsSubnet;
 
     return [
-      `resource.efs-${region.awsRegionId}-${regionFilesystemAnchor.filesystemName}-filesystem`,
+      `resource.efs-${region.regionId}-${regionFilesystemAnchor.filesystemName}-filesystem`,
       `resource.subnet-${subnet.subnetId}`,
     ];
   }
@@ -45,13 +45,13 @@ export class AddSubnetFilesystemMountOverlayAction implements IModelAction {
     const awsSubnet = subnetFilesystemMountAnchor.getParent() as AwsSubnet;
 
     const efs = actionInputs[
-      `resource.efs-${region.awsRegionId}-${regionFilesystemAnchor.filesystemName}-filesystem`
+      `resource.efs-${region.regionId}-${regionFilesystemAnchor.filesystemName}-filesystem`
     ] as Efs;
     const subnet = actionInputs[`resource.subnet-${awsSubnet.subnetId}`] as Subnet;
 
     // Create EFS Mount.
     const efsMountTarget = new EfsMountTarget(
-      `efs-mount-${region.awsRegionId}-${awsSubnet.subnetName}-${regionFilesystemAnchor.filesystemName}-filesystem`,
+      `efs-mount-${region.regionId}-${awsSubnet.subnetName}-${regionFilesystemAnchor.filesystemName}-filesystem`,
       { awsRegionId: region.awsRegionId },
       [efs, subnet],
     );

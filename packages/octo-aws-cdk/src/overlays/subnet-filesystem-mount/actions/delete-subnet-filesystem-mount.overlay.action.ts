@@ -23,7 +23,7 @@ export class DeleteSubnetFilesystemMountOverlayAction implements IModelAction {
 
     return [
       // eslint-disable-next-line max-len
-      `resource.efs-mount-${region.awsRegionId}-${awsSubnet.subnetName}-${regionFilesystemAnchor.filesystemName}-filesystem`,
+      `resource.efs-mount-${region.regionId}-${awsSubnet.subnetName}-${regionFilesystemAnchor.filesystemName}-filesystem`,
     ];
   }
 
@@ -45,14 +45,14 @@ export class DeleteSubnetFilesystemMountOverlayAction implements IModelAction {
     const awsSubnet = subnetFilesystemMountAnchor.getParent() as AwsSubnet;
 
     const efs = actionInputs[
-      `resource.efs-${region.awsRegionId}-${regionFilesystemAnchor.filesystemName}-filesystem`
+      `resource.efs-${region.regionId}-${regionFilesystemAnchor.filesystemName}-filesystem`
     ] as Efs;
     const subnet = actionInputs[`resource.subnet-${awsSubnet.subnetId}`] as Subnet;
 
     // Delete EFS Mount.
     const efsMountTarget = actionInputs[
       // eslint-disable-next-line max-len
-      `resource.efs-mount-${region.awsRegionId}-${awsSubnet.subnetName}-${regionFilesystemAnchor.filesystemName}-filesystem`
+      `resource.efs-mount-${region.regionId}-${awsSubnet.subnetName}-${regionFilesystemAnchor.filesystemName}-filesystem`
     ] as EfsMountTarget;
     efsMountTarget.removeRelationship(subnet);
     efsMountTarget.removeRelationship(efs);

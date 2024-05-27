@@ -11,7 +11,7 @@ export class DeleteRegionFilesystemOverlayAction implements IModelAction {
     const regionFilesystemOverlay = diff.model as RegionFilesystemOverlay;
     const properties = regionFilesystemOverlay.properties as unknown as IRegionFilesystemOverlayProperties;
 
-    return [`resource.efs-${properties.awsRegionId}-${properties.filesystemName}-filesystem`];
+    return [`resource.efs-${properties.regionId}-${properties.filesystemName}-filesystem`];
   }
 
   filter(diff: Diff): boolean {
@@ -27,7 +27,7 @@ export class DeleteRegionFilesystemOverlayAction implements IModelAction {
     const properties = regionFilesystemOverlay.properties as unknown as IRegionFilesystemOverlayProperties;
 
     // Delete EFS.
-    const efs = actionInputs[`resource.efs-${properties.awsRegionId}-${properties.filesystemName}-filesystem`] as Efs;
+    const efs = actionInputs[`resource.efs-${properties.regionId}-${properties.filesystemName}-filesystem`] as Efs;
     efs.markDeleted();
 
     const output: ActionOutputs = {};
