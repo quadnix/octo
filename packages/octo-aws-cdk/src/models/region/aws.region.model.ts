@@ -1,4 +1,6 @@
-import { Model, Region } from '@quadnix/octo';
+import { Container, Model, OverlayService, Region } from '@quadnix/octo';
+import { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
+import { RegionFilesystemOverlay } from '../../overlays/region-filesystem/region-filesystem.overlay.js';
 import { IAwsRegion } from './aws.region.interface.js';
 
 export enum RegionId {
@@ -25,6 +27,8 @@ export class AwsRegion extends Region {
 
   readonly awsRegionId: string;
 
+  readonly filesystems: { filesystemAnchorName: string; filesystemName: string }[] = [];
+
   override readonly regionId: RegionId;
 
   constructor(regionId: RegionId) {
@@ -36,6 +40,27 @@ export class AwsRegion extends Region {
     this.awsRegionId = regionIdParts.awsRegionId;
 
     this.regionId = regionId;
+  }
+
+  async addFilesystem(filesystemName: string): Promise<void> {
+    if (this.filesystems.find((f) => f.filesystemName === filesystemName)) {
+      throw new Error('Filesystem already added in AWS region!');
+    }
+
+    const regionFilesystemAnchorName = `${this.awsRegionId}-${filesystemName}-Filesystem`;
+    const regionFilesystemAnchor = new RegionFilesystemAnchor(regionFilesystemAnchorName, filesystemName, this);
+    this.anchors.push(regionFilesystemAnchor);
+    this.filesystems.push({ filesystemAnchorName: regionFilesystemAnchorName, filesystemName });
+
+    const overlayId = `${regionFilesystemAnchorName}Overlay`;
+
+    const overlayService = await Container.get(OverlayService);
+    const regionFilesystemOverlay = new RegionFilesystemOverlay(
+      overlayId,
+      { awsRegionId: this.awsRegionId, filesystemName, regionId: this.regionId },
+      [regionFilesystemAnchor],
+    );
+    await overlayService.addOverlay(regionFilesystemOverlay);
   }
 
   static getRegionIdParts(regionId: RegionId): { awsRegionAZ: string; awsRegionId: string } {
@@ -50,15 +75,35 @@ export class AwsRegion extends Region {
     return Object.values(RegionId).find((value) => this.getRegionIdParts(value).awsRegionId === awsRegionId);
   }
 
+  async removeFilesystem(filesystemName: string): Promise<void> {
+    const filesystem = this.filesystems.find((f) => f.filesystemName === filesystemName);
+    if (!filesystem) {
+      throw new Error('Filesystem not found in AWS region!');
+    }
+
+    const overlayService = await Container.get(OverlayService);
+    const overlays = await overlayService.getOverlayByProperties();
+    if (overlays.find((o) => o.getAnchor(filesystem.filesystemAnchorName))) {
+      throw new Error('Cannot remove filesystem while overlay exists!');
+    }
+
+    const overlayId = `${filesystem.filesystemAnchorName}Overlay`;
+    const overlay = await overlayService.getOverlayById(overlayId);
+    await overlayService.removeOverlay(overlay!);
+  }
+
   override synth(): IAwsRegion {
     return {
       awsRegionAZ: this.awsRegionAZ,
       awsRegionId: this.awsRegionId,
+      filesystems: [...this.filesystems],
       regionId: this.regionId,
     };
   }
 
   static override async unSynth(awsRegion: IAwsRegion): Promise<AwsRegion> {
-    return new AwsRegion(awsRegion.regionId as RegionId);
+    const newRegion = new AwsRegion(awsRegion.regionId as RegionId);
+    newRegion.filesystems.push(...awsRegion.filesystems);
+    return newRegion;
   }
 }
