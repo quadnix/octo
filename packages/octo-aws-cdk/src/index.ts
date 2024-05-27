@@ -1,5 +1,6 @@
 import './anchors/iam-role.anchor.js';
 import './anchors/iam-user.anchor.js';
+import './anchors/region-filesystem.anchor.js';
 import './anchors/s3-directory.anchor.js';
 import './anchors/security-group.anchor.js';
 
@@ -55,8 +56,12 @@ export { AwsSubnet } from './models/subnet/aws.subnet.model.js';
 export { AwsRegionSharedEfsModule } from './modules/aws-region-shared-efs.module.js';
 export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.module.js';
 
+import './overlays/region-filesystem/actions/add-region-filesystem.overlay.action.js';
+import './overlays/region-filesystem/actions/delete-region-filesystem.overlay.action.js';
+
 import './overlays/s3-storage-access/actions/add-s3-storage-access.overlay.action.js';
 import './overlays/s3-storage-access/actions/delete-s3-storage-access.overlay.action.js';
+
 import './overlays/security-group/actions/add-security-group.overlay.action.js';
 import './overlays/security-group/actions/update-security-group.overlay.action.js';
 
