@@ -8,22 +8,22 @@ import {
   Factory,
   IModelAction,
   ModelType,
-  Subnet as SubnetModel,
 } from '@quadnix/octo';
 import { INetworkAclProperties } from '../../../resources/network-acl/network-acl.interface.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import { ISubnetProperties } from '../../../resources/subnet/subnet.interface.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
+import { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(ModelType.MODEL)
 export class UpdateSubnetAssociationModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'UpdateSubnetAssociationModelAction';
 
   collectInput(diff: Diff): string[] {
-    const subnet = diff.model as SubnetModel;
+    const subnet = diff.model as AwsSubnet;
 
     const siblings = subnet.getSiblings()['subnet'] ?? [];
-    const siblingSubnets = siblings.map((s) => s.to as SubnetModel);
+    const siblingSubnets = siblings.map((s) => s.to as AwsSubnet);
 
     return [
       `resource.subnet-${subnet.subnetId}`,
@@ -42,10 +42,10 @@ export class UpdateSubnetAssociationModelAction implements IModelAction {
 
   @EnableHook('PostModelActionHook')
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
-    const subnet = diff.model as SubnetModel;
+    const subnet = diff.model as AwsSubnet;
 
     const siblings = subnet.getSiblings()['subnet'] ?? [];
-    const siblingSubnets = siblings.map((s) => s.to as SubnetModel);
+    const siblingSubnets = siblings.map((s) => s.to as AwsSubnet);
 
     const subnetSubnet = actionInputs[`resource.subnet-${subnet.subnetId}`] as Subnet;
     const subnetNAcl = actionInputs[`resource.nacl-${subnet.subnetId}`] as NetworkAcl;

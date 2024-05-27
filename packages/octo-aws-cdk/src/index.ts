@@ -50,6 +50,8 @@ import './models/subnet/actions/add-subnet.model.action.js';
 import './models/subnet/actions/delete-subnet.model.action.js';
 import './models/subnet/actions/update-subnet-association.model.action.js';
 
+export { AwsSubnet } from './models/subnet/aws.subnet.model.js';
+
 export { AwsRegionSharedEfsModule } from './modules/aws-region-shared-efs.module.js';
 export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.module.js';
 

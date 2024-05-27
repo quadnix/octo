@@ -1,24 +1,15 @@
-import {
-  Action,
-  ActionInputs,
-  ActionOutputs,
-  Diff,
-  DiffAction,
-  Factory,
-  IModelAction,
-  ModelType,
-  Subnet as SubnetModel,
-} from '@quadnix/octo';
+import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
+import { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(ModelType.MODEL)
 export class DeleteSubnetModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'DeleteSubnetModelAction';
 
   collectInput(diff: Diff): string[] {
-    const subnet = diff.model as SubnetModel;
+    const subnet = diff.model as AwsSubnet;
 
     return [`resource.subnet-${subnet.subnetId}`, `resource.rt-${subnet.subnetId}`, `resource.nacl-${subnet.subnetId}`];
   }
@@ -28,7 +19,7 @@ export class DeleteSubnetModelAction implements IModelAction {
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
-    const subnet = diff.model as SubnetModel;
+    const subnet = diff.model as AwsSubnet;
 
     const subnetNAcl = actionInputs[`resource.nacl-${subnet.subnetId}`] as NetworkAcl;
     subnetNAcl.markDeleted();

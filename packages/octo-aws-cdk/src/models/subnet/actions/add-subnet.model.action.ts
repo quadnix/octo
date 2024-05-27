@@ -8,7 +8,6 @@ import {
   Factory,
   IModelAction,
   ModelType,
-  Subnet as SubnetModel,
   SubnetType,
 } from '@quadnix/octo';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
@@ -19,20 +18,21 @@ import { ISubnetProperties } from '../../../resources/subnet/subnet.interface.js
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { Vpc } from '../../../resources/vpc/vpc.resource.js';
 import { AwsRegion } from '../../region/aws.region.model.js';
+import { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(ModelType.MODEL)
 export class AddSubnetModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddSubnetModelAction';
 
   collectInput(diff: Diff): string[] {
-    const subnet = diff.model as SubnetModel;
+    const subnet = diff.model as AwsSubnet;
 
     const parents = subnet.getParents();
     const awsRegion = parents['region'][0].to as AwsRegion;
     const regionId = awsRegion.regionId;
 
     const siblings = subnet.getSiblings()['subnet'] ?? [];
-    const siblingSubnets = siblings.map((s) => s.to as SubnetModel);
+    const siblingSubnets = siblings.map((s) => s.to as AwsSubnet);
 
     return [
       `input.region.${regionId}.subnet.${subnet.subnetName}.CidrBlock`,
@@ -48,14 +48,14 @@ export class AddSubnetModelAction implements IModelAction {
 
   @EnableHook('PostModelActionHook')
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
-    const subnet = diff.model as SubnetModel;
+    const subnet = diff.model as AwsSubnet;
 
     const parents = subnet.getParents();
     const awsRegion = parents['region'][0].to as AwsRegion;
     const regionId = awsRegion.regionId;
 
     const siblings = subnet.getSiblings()['subnet'] ?? [];
-    const siblingSubnets = siblings.map((s) => s.to as SubnetModel);
+    const siblingSubnets = siblings.map((s) => s.to as AwsSubnet);
 
     const subnetCidrBlock = actionInputs[`input.region.${regionId}.subnet.${subnet.subnetName}.CidrBlock`] as string;
     const vpc = actionInputs[`resource.vpc-${regionId}`] as Vpc;
