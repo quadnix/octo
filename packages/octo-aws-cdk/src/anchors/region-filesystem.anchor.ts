@@ -31,17 +31,12 @@ export class RegionFilesystemAnchor extends AAnchor {
   }
 
   static override async unSynth(
-    deserializationClass: any,
+    deserializationClass: typeof RegionFilesystemAnchor,
     anchor: IRegionFilesystemAnchor,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<RegionFilesystemAnchor> {
-    const parent = await deReferenceContext(anchor.parent.context);
+    const parent = (await deReferenceContext(anchor.parent.context)) as AwsRegion;
     const newAnchor = parent.getAnchor(anchor.anchorId) as RegionFilesystemAnchor;
-    if (!newAnchor) {
-      const deserializedAnchor = new deserializationClass(anchor.anchorId, parent);
-      deserializedAnchor.filesystemName = anchor.filesystemName;
-      return deserializedAnchor;
-    }
-    return newAnchor;
+    return newAnchor ?? new deserializationClass(anchor.anchorId, anchor.filesystemName, parent);
   }
 }

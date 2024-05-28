@@ -40,17 +40,12 @@ export class SecurityGroupAnchor extends AAnchor {
   }
 
   static override async unSynth(
-    deserializationClass: any,
+    deserializationClass: typeof SecurityGroupAnchor,
     anchor: ISecurityGroupAnchor,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<SecurityGroupAnchor> {
-    const parent = await deReferenceContext(anchor.parent.context);
+    const parent = (await deReferenceContext(anchor.parent.context)) as AwsServer | AwsExecution;
     const newAnchor = parent.getAnchor(anchor.anchorId) as SecurityGroupAnchor;
-    if (!newAnchor) {
-      const deserializedAnchor = new deserializationClass(anchor.anchorId, parent);
-      deserializedAnchor.rules = anchor.rules;
-      return deserializedAnchor;
-    }
-    return newAnchor;
+    return newAnchor ?? new deserializationClass(anchor.anchorId, anchor.rules, parent);
   }
 }
