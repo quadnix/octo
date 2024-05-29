@@ -1,9 +1,11 @@
 export interface IEcsTaskDefinitionProperties {
   awsRegionId: string;
-  environment: { name: string; value: string }[];
+  deploymentTag: string;
+  environmentVariables: { name: string; value: string }[];
   image: {
     command: string[];
     ports: { containerPort: number; protocol: 'tcp' | 'udp' }[];
+    uri: string;
   };
   serverKey: string;
 }

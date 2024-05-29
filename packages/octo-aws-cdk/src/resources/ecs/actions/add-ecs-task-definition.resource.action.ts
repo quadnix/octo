@@ -1,8 +1,6 @@
 import { ECSClient, PortMapping, RegisterTaskDefinitionCommand } from '@aws-sdk/client-ecs';
 import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IEcrImageResponse } from '../../ecr/ecr-image.interface.js';
-import { EcrImage } from '../../ecr/ecr-image.resource.js';
-import { IEfsResponse } from '../../efs/efs.interface.js';
+import { IEfsProperties, IEfsResponse } from '../../efs/efs.interface.js';
 import { Efs } from '../../efs/efs.resource.js';
 import { IIamRoleResponse } from '../../iam/iam-role.interface.js';
 import { IamRole } from '../../iam/iam-role.resource.js';
@@ -23,10 +21,9 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
     const parents = ecsTaskDefinition.getParents();
     const properties = ecsTaskDefinition.properties as unknown as IEcsTaskDefinitionProperties;
     const response = ecsTaskDefinition.response as unknown as IEcsTaskDefinitionResponse;
-    const ecrImage = parents['ecr-image'][0].to as EcrImage;
-    const ecrImageResponse = ecrImage.response as unknown as IEcrImageResponse;
-    const efs = parents['efs'][0].to as Efs;
-    const efsResponse = efs.response as unknown as IEfsResponse;
+
+    const efsList = 'efs' in parents ? parents['efs'].map((d) => d.to as Efs) : [];
+
     const iamRole = parents['iam-role'][0].to as IamRole;
     const iamRoleResponse = iamRole.response as unknown as IIamRoleResponse;
 
@@ -39,17 +36,15 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
         containerDefinitions: [
           {
             command: properties.image.command,
-            environment: properties.environment,
+            environment: properties.environmentVariables,
             essential: true,
-            image: ecrImageResponse.repositoryUri,
-            mountPoints: [
-              {
-                containerPath: '/mnt/shared-filesystem',
-                readOnly: false,
-                sourceVolume: 'shared-filesystem',
-              },
-            ],
-            name: properties.serverKey,
+            image: properties.image.uri,
+            mountPoints: efsList.map((efs: Efs) => ({
+              containerPath: `/mnt/${(efs.properties as unknown as IEfsProperties).filesystemName}`,
+              readOnly: false,
+              sourceVolume: (efs.properties as unknown as IEfsProperties).filesystemName,
+            })),
+            name: properties.deploymentTag,
             portMappings: properties.image.ports.map(
               (i): PortMapping => ({
                 containerPort: i.containerPort,
@@ -63,14 +58,12 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
         family: properties.serverKey,
         networkMode: 'awsvpc',
         taskRoleArn: iamRoleResponse.Arn,
-        volumes: [
-          {
-            efsVolumeConfiguration: {
-              fileSystemId: efsResponse.FileSystemId,
-            },
-            name: 'shared-filesystem',
+        volumes: efsList.map((efs: Efs) => ({
+          efsVolumeConfiguration: {
+            fileSystemId: (efs.response as unknown as IEfsResponse).FileSystemId,
           },
-        ],
+          name: (efs.properties as unknown as IEfsProperties).filesystemName,
+        })),
       }),
     );
 
