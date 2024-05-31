@@ -23,13 +23,17 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     }
 
     for (const anchor of anchors) {
-      const dependencies = this.addRelationship(anchor.getParent());
-      dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.ADD);
-      dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.UPDATE);
-      dependencies[1].addBehavior('MODEL_NAME', DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
-
-      this.anchors.push(anchor);
+      this.addAnchor(anchor);
     }
+  }
+
+  addAnchor(anchor: AAnchor): void {
+    const dependencies = this.addRelationship(anchor.getParent());
+    dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.ADD);
+    dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.UPDATE);
+    dependencies[1].addBehavior('MODEL_NAME', DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
+
+    this.anchors.push(anchor);
   }
 
   async diff(previous?: T): Promise<Diff[]> {
@@ -51,6 +55,24 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
 
   getContext(): string {
     return `${this.MODEL_NAME}=${this.overlayId}`;
+  }
+
+  removeAnchor(anchor: AAnchor): void {
+    const overlayDependencyIndex = this.dependencies.findIndex((d) => d.from === this && d.to === anchor.getParent());
+    if (overlayDependencyIndex > -1) {
+      this.dependencies.splice(overlayDependencyIndex, 1);
+    }
+    const parentDependencyIndex = anchor
+      .getParent()
+      ['dependencies'].findIndex((d) => d.from === anchor.getParent() && d.to === this);
+    if (parentDependencyIndex > -1) {
+      anchor.getParent()['dependencies'].splice(parentDependencyIndex, 1);
+    }
+
+    const anchorIndex = this.anchors.findIndex((a) => a.anchorId === anchor.anchorId);
+    if (anchorIndex > -1) {
+      this.anchors.splice(anchorIndex, 1);
+    }
   }
 
   synth(): IOverlay {

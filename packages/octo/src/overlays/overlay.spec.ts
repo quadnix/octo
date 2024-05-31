@@ -47,6 +47,64 @@ describe('Overlay UT', () => {
     });
   });
 
+  describe('removeAnchor()', () => {
+    it('should remove one anchor parent when multiple anchors have same parent', () => {
+      const app = new App('test');
+      const anchor1 = new TestAnchor('anchor-1', app);
+      const anchor2 = new TestAnchor('anchor-2', app);
+
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
+      expect(app['dependencies']).toMatchInlineSnapshot(`
+       [
+         {
+           "from": "app=test",
+           "relationship": undefined,
+           "to": "test-overlay=overlay-1",
+         },
+         {
+           "from": "app=test",
+           "relationship": undefined,
+           "to": "test-overlay=overlay-1",
+         },
+       ]
+      `);
+      expect(overlay1['dependencies']).toMatchInlineSnapshot(`
+       [
+         {
+           "from": "test-overlay=overlay-1",
+           "relationship": undefined,
+           "to": "app=test",
+         },
+         {
+           "from": "test-overlay=overlay-1",
+           "relationship": undefined,
+           "to": "app=test",
+         },
+       ]
+      `);
+
+      overlay1.removeAnchor(anchor1);
+      expect(app['dependencies']).toMatchInlineSnapshot(`
+       [
+         {
+           "from": "app=test",
+           "relationship": undefined,
+           "to": "test-overlay=overlay-1",
+         },
+       ]
+      `);
+      expect(overlay1['dependencies']).toMatchInlineSnapshot(`
+       [
+         {
+           "from": "test-overlay=overlay-1",
+           "relationship": undefined,
+           "to": "app=test",
+         },
+       ]
+      `);
+    });
+  });
+
   describe('synth()', () => {
     it('should be able to synth an empty overlay', () => {
       const overlay = new TestOverlay('overlay-1', {}, []);
