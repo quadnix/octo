@@ -1,3 +1,4 @@
+import { TestAnchor, TestOverlay } from '../../../../test/helpers/test-classes.js';
 import { ModelSerializedOutput } from '../../../app.type.js';
 import { Container } from '../../../decorators/container.js';
 import { IDependency } from '../../../functions/dependency/dependency.js';
@@ -9,12 +10,15 @@ import { Server } from '../../../models/server/server.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Subnet } from '../../../models/subnet/subnet.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
+import { OverlayService, OverlayServiceFactory } from '../../../overlays/overlay.service.js';
 import { ModelSerializationService, ModelSerializationServiceFactory } from './model-serialization.service.js';
 
 describe('Model Serialization Service UT', () => {
   beforeEach(() => {
     Container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
     Container.get(OverlayDataRepository, { args: [true, [], []] });
+
+    Container.registerFactory(OverlayService, OverlayServiceFactory);
 
     Container.registerFactory(ModelSerializationService, ModelSerializationServiceFactory);
     Container.get(ModelSerializationService, { args: [true] });
@@ -97,6 +101,18 @@ describe('Model Serialization Service UT', () => {
       expect(app1.name).toBe('test-app');
     });
 
+    it('should deserialize a single model', async () => {
+      const app_0 = new App('test-app');
+
+      const service = await Container.get(ModelSerializationService);
+      service.registerClass('App', App);
+
+      const output = await service.serialize(app_0);
+      const app_1 = (await service.deserialize(output)) as App;
+
+      expect(app_1.name).toBe('test-app');
+    });
+
     it('should return the serialized root on deserialization', async () => {
       const app0 = new App('test-app');
       const region0 = new Region('region-0');
@@ -141,6 +157,31 @@ describe('Model Serialization Service UT', () => {
         a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
       );
       expect(newAppDependencies).toEqual(oldAppDependencies);
+    });
+
+    it('should deserialize overlay with multiple anchors of same parent', async () => {
+      const app_0 = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', app_0);
+      const anchor2 = new TestAnchor('anchor-2', app_0);
+      app_0['anchors'].push(anchor1, anchor2);
+
+      const service = await Container.get(ModelSerializationService);
+      service.registerClass('App', App);
+      service.registerClass('TestAnchor', TestAnchor);
+      service.registerClass('TestOverlay', TestOverlay);
+      const overlayService = await Container.get(OverlayService);
+
+      const overlay1_0 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
+      await overlayService.addOverlay(overlay1_0);
+
+      const appSerialized = await service.serialize(app_0);
+      const app_1 = (await service.deserialize(appSerialized)) as App;
+
+      const overlay1_1 = await overlayService.getOverlayById('overlay-1');
+      expect(overlay1_1!.getAnchors().map((a) => a.getParent().getContext())).toEqual([
+        app_1.getContext(),
+        app_1.getContext(),
+      ]);
     });
   });
 
@@ -194,6 +235,21 @@ describe('Model Serialization Service UT', () => {
       region.addSubnet(privateSubnet);
       const publicSubnet = new Subnet(region, 'public');
       region.addSubnet(publicSubnet);
+
+      expect(await service.serialize(app)).toMatchSnapshot();
+    });
+
+    it('should serialize overlay with multiple anchors of same parent', async () => {
+      const service = await Container.get(ModelSerializationService);
+      const overlayService = await Container.get(OverlayService);
+
+      const app = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', app);
+      const anchor2 = new TestAnchor('anchor-2', app);
+      app['anchors'].push(anchor1, anchor2);
+
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
+      await overlayService.addOverlay(overlay1);
 
       expect(await service.serialize(app)).toMatchSnapshot();
     });

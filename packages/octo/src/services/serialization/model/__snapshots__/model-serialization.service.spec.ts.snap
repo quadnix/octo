@@ -337,6 +337,59 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
 }
 `;
 
+exports[`Model Serialization Service UT serialize() should serialize overlay with multiple anchors of same parent 1`] = `
+{
+  "anchors": [
+    {
+      "anchorId": "anchor-1",
+      "className": "TestAnchor",
+      "parent": {
+        "context": "app=test-app",
+      },
+    },
+    {
+      "anchorId": "anchor-2",
+      "className": "TestAnchor",
+      "parent": {
+        "context": "app=test-app",
+      },
+    },
+  ],
+  "dependencies": [],
+  "models": {
+    "app=test-app": {
+      "className": "App",
+      "model": {
+        "name": "test-app",
+      },
+    },
+  },
+  "overlays": [
+    {
+      "className": "TestOverlay",
+      "overlay": {
+        "anchors": [
+          {
+            "anchorId": "anchor-1",
+            "parent": {
+              "context": "app=test-app",
+            },
+          },
+          {
+            "anchorId": "anchor-2",
+            "parent": {
+              "context": "app=test-app",
+            },
+          },
+        ],
+        "overlayId": "overlay-1",
+        "properties": {},
+      },
+    },
+  ],
+}
+`;
+
 exports[`Model Serialization Service UT serialize() should serialize when multiple models have dependency on same model 1`] = `
 {
   "anchors": [],
