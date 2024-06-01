@@ -81,6 +81,7 @@ import './resources/ecs/actions/add-ecs-task-definition.resource.action.js';
 import './resources/ecs/actions/delete-ecs-cluster.resource.action.js';
 import './resources/ecs/actions/delete-ecs-service.resource.action.js';
 import './resources/ecs/actions/delete-ecs-task-definition.resource.action.js';
+import './resources/ecs/actions/update-ecs-service-replace-task-definition.resource.action.js';
 import './resources/ecs/actions/update-ecs-task-definition.resource.action.js';
 
 import './resources/efs/actions/add-efs.resource.action.js';
