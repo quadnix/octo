@@ -1,9 +1,12 @@
+import './anchors/ecs-service.anchor.js';
+import './anchors/environment-variables.anchor.js';
 import './anchors/iam-role.anchor.js';
 import './anchors/iam-user.anchor.js';
 import './anchors/region-filesystem.anchor.js';
 import './anchors/s3-directory.anchor.js';
 import './anchors/security-group.anchor.js';
 import './anchors/subnet-filesystem-mount.anchor.js';
+import './anchors/task-definition.anchor.js';
 
 import './factories/aws/ec2.aws.factory.js';
 import './factories/aws/ecr.aws.factory.js';
