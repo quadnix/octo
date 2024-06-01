@@ -35,7 +35,9 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction {
 
     // Ensure there are no failures.
     if (data.failures && data.failures.length > 0) {
-      throw new Error('Failed to delete task definition!');
+      const error = new Error('Error while deleting task definition!');
+      error['data'] = data.failures;
+      console.error(error);
     }
   }
 }
