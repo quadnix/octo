@@ -9,7 +9,7 @@ export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {
   constructor(
     overlayId: IOverlay['overlayId'],
     properties: ISecurityGroupOverlayProperties,
-    anchors: [SecurityGroupAnchor, SecurityGroupAnchor] | [SecurityGroupAnchor],
+    anchors: SecurityGroupAnchor[],
   ) {
     super(overlayId, properties as unknown as IResource['properties'], anchors);
   }
