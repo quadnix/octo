@@ -18,6 +18,7 @@ export class DeleteEcsServiceResourceAction implements IResourceAction {
     // Get properties.
     const ecsService = diff.model as EcsService;
     const properties = ecsService.properties as unknown as IEcsServiceProperties;
+
     const ecsCluster = ecsService.getParents('ecs-cluster')['ecs-cluster'][0].to as EcsCluster;
     const ecsClusterProperties = ecsCluster.properties as unknown as IEcsClusterProperties;
 
