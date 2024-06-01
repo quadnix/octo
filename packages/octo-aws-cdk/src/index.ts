@@ -20,9 +20,11 @@ export { AwsDeployment } from './models/deployment/aws.deployment.model.js';
 import './models/deployment/actions/add-deployment.model.action.js';
 import './models/deployment/actions/delete-deployment.model.action.js';
 
+export { AwsEnvironment } from './models/environment/aws.environment.model.js';
 import './models/environment/actions/add-environment.model.action.js';
 import './models/environment/actions/delete-environment.model.action.js';
 
+export { AwsExecution } from './models/execution/aws.execution.model.js';
 import './models/execution/actions/add-execution.model.action.js';
 import './models/execution/actions/delete-execution.model.action.js';
 
@@ -51,11 +53,10 @@ export { S3StorageAccess, S3StorageService } from './models/service/s3-storage/s
 import './models/service/s3-storage/actions/add-s3-storage.model.action.js';
 import './models/service/s3-storage/actions/delete-s3-storage.model.action.js';
 
+export { AwsSubnet } from './models/subnet/aws.subnet.model.js';
 import './models/subnet/actions/add-subnet.model.action.js';
 import './models/subnet/actions/delete-subnet.model.action.js';
 import './models/subnet/actions/update-subnet-association.model.action.js';
-
-export { AwsSubnet } from './models/subnet/aws.subnet.model.js';
 
 export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.module.js';
 
