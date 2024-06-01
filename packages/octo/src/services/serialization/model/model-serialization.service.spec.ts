@@ -172,12 +172,12 @@ describe('Model Serialization Service UT', () => {
       const overlayService = await Container.get(OverlayService);
 
       const overlay1_0 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
-      await overlayService.addOverlay(overlay1_0);
+      overlayService.addOverlay(overlay1_0);
 
       const appSerialized = await service.serialize(app_0);
       const app_1 = (await service.deserialize(appSerialized)) as App;
 
-      const overlay1_1 = await overlayService.getOverlayById('overlay-1');
+      const overlay1_1 = overlayService.getOverlayById('overlay-1');
       expect(overlay1_1!.getAnchors().map((a) => a.getParent().getContext())).toEqual([
         app_1.getContext(),
         app_1.getContext(),
@@ -249,7 +249,7 @@ describe('Model Serialization Service UT', () => {
       app['anchors'].push(anchor1, anchor2);
 
       const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
-      await overlayService.addOverlay(overlay1);
+      overlayService.addOverlay(overlay1);
 
       expect(await service.serialize(app)).toMatchSnapshot();
     });

@@ -60,7 +60,7 @@ export class AwsRegion extends Region {
       { awsRegionId: this.awsRegionId, filesystemName, regionId: this.regionId },
       [regionFilesystemAnchor],
     );
-    await overlayService.addOverlay(regionFilesystemOverlay);
+    overlayService.addOverlay(regionFilesystemOverlay);
   }
 
   static getRegionIdParts(regionId: RegionId): { awsRegionAZ: string; awsRegionId: string } {
@@ -82,14 +82,14 @@ export class AwsRegion extends Region {
     }
 
     const overlayService = await Container.get(OverlayService);
-    const overlays = await overlayService.getOverlayByProperties();
+    const overlays = overlayService.getOverlayByProperties();
     if (overlays.find((o) => o.getAnchor(filesystem.filesystemAnchorName))) {
       throw new Error('Cannot remove filesystem while overlay exists!');
     }
 
     const overlayId = `${filesystem.filesystemAnchorName}Overlay`;
-    const overlay = await overlayService.getOverlayById(overlayId);
-    await overlayService.removeOverlay(overlay!);
+    const overlay = overlayService.getOverlayById(overlayId);
+    overlayService.removeOverlay(overlay!);
   }
 
   override synth(): IAwsRegion {

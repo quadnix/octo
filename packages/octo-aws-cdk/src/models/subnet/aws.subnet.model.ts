@@ -44,7 +44,7 @@ export class AwsSubnet extends Subnet {
       regionFilesystemAnchor,
       subnetFilesystemMountAnchor,
     ]);
-    await overlayService.addOverlay(subnetFilesystemMountOverlay);
+    overlayService.addOverlay(subnetFilesystemMountOverlay);
   }
 
   async removeFilesystemMount(filesystemName: string): Promise<void> {
@@ -54,14 +54,14 @@ export class AwsSubnet extends Subnet {
     }
 
     const overlayService = await Container.get(OverlayService);
-    const overlays = await overlayService.getOverlayByProperties();
+    const overlays = overlayService.getOverlayByProperties();
     if (overlays.find((o) => o.getAnchor(filesystemMount.filesystemMountAnchorName))) {
       throw new Error('Cannot remove filesystem mount while overlay exists!');
     }
 
     const overlayId = `${filesystemMount.filesystemMountAnchorName}Overlay`;
-    const overlay = await overlayService.getOverlayById(overlayId);
-    await overlayService.removeOverlay(overlay!);
+    const overlay = overlayService.getOverlayById(overlayId);
+    overlayService.removeOverlay(overlay!);
   }
 
   override synth(): IAwsSubnet {

@@ -71,7 +71,7 @@ export class S3StorageService extends Service {
       },
       [serverAnchor, directoryAnchor],
     );
-    await overlayService.addOverlay(s3StorageAccessOverlay);
+    overlayService.addOverlay(s3StorageAccessOverlay);
   }
 
   async revokeDirectoryAccess(
@@ -88,8 +88,8 @@ export class S3StorageService extends Service {
     const overlayId = CommonUtility.hash(serverAnchor.anchorId, directory.remoteDirectoryPath, accessLevel);
 
     const overlayService = await Container.get(OverlayService);
-    const overlay = await overlayService.getOverlayById(overlayId);
-    await overlayService.removeOverlay(overlay!);
+    const overlay = overlayService.getOverlayById(overlayId);
+    overlayService.removeOverlay(overlay!);
   }
 
   async removeDirectory(remoteDirectoryPath: string): Promise<void> {
@@ -100,7 +100,7 @@ export class S3StorageService extends Service {
 
     const overlayService = await Container.get(OverlayService);
     const directory = this.directories[directoryIndex];
-    const overlays = await overlayService.getOverlayByProperties([
+    const overlays = overlayService.getOverlayByProperties([
       { key: 'bucketName', value: this.bucketName },
       { key: 'remoteDirectoryPath', value: directory.remoteDirectoryPath },
     ]);

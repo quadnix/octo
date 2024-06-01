@@ -6,19 +6,19 @@ import { OverlayDataRepository } from './overlay-data.repository.js';
 export class OverlayService {
   constructor(private readonly overlayDataRepository: OverlayDataRepository) {}
 
-  async addOverlay(overlay: UnknownOverlay): Promise<void> {
+  addOverlay(overlay: UnknownOverlay): void {
     this.overlayDataRepository.add(overlay);
   }
 
-  async getOverlayById(overlayId: string): Promise<UnknownOverlay | undefined> {
+  getOverlayById(overlayId: string): UnknownOverlay | undefined {
     return this.overlayDataRepository.getById(overlayId);
   }
 
-  async getOverlayByProperties(filters: { key: string; value: any }[] = []): Promise<UnknownOverlay[]> {
+  getOverlayByProperties(filters: { key: string; value: any }[] = []): UnknownOverlay[] {
     return this.overlayDataRepository.getByProperties(filters);
   }
 
-  async removeOverlay(overlay: UnknownOverlay): Promise<void> {
+  removeOverlay(overlay: UnknownOverlay): void {
     this.overlayDataRepository.remove(overlay);
   }
 }

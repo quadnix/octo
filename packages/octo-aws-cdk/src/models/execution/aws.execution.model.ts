@@ -103,7 +103,7 @@ export class AwsExecution extends Execution {
       },
       [serverSecurityGroupAnchor, executionSecurityGroupAnchor],
     );
-    await overlayService.addOverlay(serverExecutionSecurityGroupOverlay);
+    overlayService.addOverlay(serverExecutionSecurityGroupOverlay);
 
     // Add ExecutionOverlay.
     // eslint-disable-next-line max-len
@@ -128,7 +128,7 @@ export class AwsExecution extends Execution {
         serverSecurityGroupAnchor,
       ],
     );
-    await overlayService.addOverlay(executionOverlay);
+    overlayService.addOverlay(executionOverlay);
   }
 
   async mountFilesystem(filesystemName: string): Promise<void> {
@@ -150,7 +150,7 @@ export class AwsExecution extends Execution {
 
     // eslint-disable-next-line max-len
     const executionOverlayId = `execution-${region.regionId}-${subnet.subnetName}-${deployment.deploymentTag}-${environment.environmentName}-Overlay`;
-    const executionOverlay = (await overlayService.getOverlayById(executionOverlayId)) as ExecutionOverlay;
+    const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
     executionOverlay.addAnchor(subnetFilesystemMountAnchor);
   }
 
@@ -189,7 +189,7 @@ export class AwsExecution extends Execution {
 
     // eslint-disable-next-line max-len
     const executionOverlayId = `execution-${region.regionId}-${subnet.subnetName}-${deployment.deploymentTag}-${environment.environmentName}-Overlay`;
-    const executionOverlay = (await overlayService.getOverlayById(executionOverlayId)) as ExecutionOverlay;
+    const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
     executionOverlay.removeAnchor(subnetFilesystemMountAnchor);
   }
 }
