@@ -10,4 +10,14 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
   constructor(resourceId: string, properties: IEcsTaskDefinitionProperties, parents: [IamRole, ...Efs[]]) {
     super(resourceId, properties as unknown as IResource['properties'], parents);
   }
+
+  updateTaskDefinitionEnvironmentVariables(
+    environmentVariables: IEcsTaskDefinitionProperties['environmentVariables'],
+  ): void {
+    (this.properties as unknown as IEcsTaskDefinitionProperties).environmentVariables = [...environmentVariables];
+  }
+
+  updateTaskDefinitionImage(image: IEcsTaskDefinitionProperties['image']): void {
+    (this.properties as unknown as IEcsTaskDefinitionProperties).image = { ...image };
+  }
 }
