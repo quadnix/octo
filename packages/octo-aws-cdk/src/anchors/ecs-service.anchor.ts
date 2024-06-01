@@ -5,7 +5,9 @@ interface IEcsServiceAnchor extends IAnchor {
   properties: IEcsServiceAnchorProperties;
 }
 
-interface IEcsServiceAnchorProperties {}
+interface IEcsServiceAnchorProperties {
+  desiredCount: number;
+}
 
 @Anchor()
 export class EcsServiceAnchor extends AAnchor {
@@ -20,7 +22,7 @@ export class EcsServiceAnchor extends AAnchor {
     return {
       anchorId: this.anchorId,
       parent: { context: this.getParent().getContext() },
-      properties: {},
+      properties: JSON.parse(JSON.stringify(this.properties)),
     };
   }
 

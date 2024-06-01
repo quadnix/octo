@@ -10,7 +10,7 @@ export class AwsEnvironment extends Environment {
     this.anchors.push(new EnvironmentVariablesAnchor(evAnchorId, this));
   }
 
-  override async diff(previous?: AwsEnvironment): Promise<Diff[]> {
+  override async diff(): Promise<Diff[]> {
     // Skip diff of environmentVariables, since its done in ExecutionOverlay.
     return [];
   }
