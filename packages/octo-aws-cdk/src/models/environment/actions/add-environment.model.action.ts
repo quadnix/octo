@@ -1,6 +1,7 @@
-import { Action, ActionOutputs, Diff, DiffAction, Environment, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
 import { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
 import { AwsRegion } from '../../region/aws.region.model.js';
+import { AwsEnvironment } from '../aws.environment.model.js';
 
 @Action(ModelType.MODEL)
 export class AddEnvironmentModelAction implements IModelAction {
@@ -12,12 +13,15 @@ export class AddEnvironmentModelAction implements IModelAction {
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'environment' && diff.field === 'environmentName'
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof AwsEnvironment &&
+      diff.model.MODEL_NAME === 'environment' &&
+      diff.field === 'environmentName'
     );
   }
 
   async handle(diff: Diff): Promise<ActionOutputs> {
-    const environment = diff.model as Environment;
+    const environment = diff.model as AwsEnvironment;
     const environmentName = environment.environmentName;
     const region = environment.getParents()['region'][0].to as AwsRegion;
     const clusterName = [region.regionId, environmentName].join('-');
