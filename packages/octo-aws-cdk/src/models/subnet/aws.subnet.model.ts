@@ -29,7 +29,11 @@ export class AwsSubnet extends Subnet {
 
     // eslint-disable-next-line max-len
     const subnetFilesystemMountAnchorName = `${region.awsRegionId}-${this.subnetName}-${filesystemName}-FilesystemMount`;
-    const subnetFilesystemMountAnchor = new SubnetFilesystemMountAnchor(subnetFilesystemMountAnchorName, this);
+    const subnetFilesystemMountAnchor = new SubnetFilesystemMountAnchor(
+      subnetFilesystemMountAnchorName,
+      regionFilesystem.filesystemName,
+      this,
+    );
     this.anchors.push(subnetFilesystemMountAnchor);
     this.filesystemMounts.push({ filesystemMountAnchorName: subnetFilesystemMountAnchorName, filesystemName });
 
