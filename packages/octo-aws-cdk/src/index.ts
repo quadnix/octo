@@ -71,6 +71,7 @@ import './overlays/s3-storage-access/actions/add-s3-storage-access.overlay.actio
 import './overlays/s3-storage-access/actions/delete-s3-storage-access.overlay.action.js';
 
 import './overlays/security-group/actions/add-security-group.overlay.action.js';
+import './overlays/security-group/actions/delete-security-group.overlay.action.js';
 import './overlays/security-group/actions/update-security-group.overlay.action.js';
 
 import './overlays/subnet-filesystem-mount/actions/add-subnet-filesystem-mount.overlay.action.js';

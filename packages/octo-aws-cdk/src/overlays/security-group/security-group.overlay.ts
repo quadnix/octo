@@ -14,21 +14,28 @@ export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {
     super(overlayId, properties as unknown as IResource['properties'], anchors);
   }
 
-  override async diff(previous?: SecurityGroupOverlay): Promise<Diff[]> {
+  override async diff(previous: SecurityGroupOverlay): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
-    // Include diff of each anchor rules.
-    if (previous) {
-      for (let i = 0; i < this.anchors.length; i++) {
-        const anchor = this.anchors[i] as SecurityGroupAnchor;
+    for (let i = 0; i < previous.anchors.length; i++) {
+      const previousAnchor = this.anchors[i] as SecurityGroupAnchor;
 
-        if (!DiffUtility.isObjectDeepEquals((previous.anchors[i] as SecurityGroupAnchor).rules, anchor.rules)) {
-          diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', anchor));
+      const currentAnchor = this.getAnchor(previousAnchor.anchorId);
+      if (!currentAnchor) {
+        diffs.push(new Diff(this, DiffAction.DELETE, 'overlayId', previousAnchor));
+      } else {
+        if (!DiffUtility.isObjectDeepEquals(previousAnchor.rules, (currentAnchor as SecurityGroupAnchor).rules)) {
+          diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', currentAnchor));
         }
       }
-    } else {
-      for (const anchor of this.anchors) {
-        diffs.push(new Diff(this, DiffAction.ADD, 'overlayId', anchor));
+    }
+
+    for (let i = 0; i < this.anchors.length; i++) {
+      const currentAnchor = this.anchors[i] as SecurityGroupAnchor;
+
+      const previousAnchor = previous.getAnchor(currentAnchor.anchorId);
+      if (!previousAnchor) {
+        diffs.push(new Diff(this, DiffAction.ADD, 'overlayId', currentAnchor));
       }
     }
 
