@@ -228,7 +228,7 @@ export class TransactionService {
     },
   ): AsyncGenerator<DiffMetadata[][] | UnknownResource[], DiffMetadata[][]> {
     // Diff overlays and add to existing diffs.
-    diffs.push(...this.overlayDataRepository.diff());
+    diffs.push(...(await this.overlayDataRepository.diff()));
 
     // Set apply order on model diffs.
     const modelDiffs = diffs.map((d) => {

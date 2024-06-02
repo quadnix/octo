@@ -21,12 +21,15 @@ export class OverlayDataRepository {
     }
   }
 
-  diff(): Diff[] {
+  async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     for (const overlay of this.oldOverlays) {
-      if (!this.newOverlays.find((o) => o.overlayId === overlay.overlayId)) {
+      const newOverlay = this.newOverlays.find((o) => o.overlayId === overlay.overlayId);
+      if (!newOverlay) {
         diffs.push(new Diff(overlay, DiffAction.DELETE, 'overlayId', overlay.overlayId));
+      } else {
+        diffs.push(...(await newOverlay.diff(overlay)));
       }
     }
 
@@ -49,7 +52,7 @@ export class OverlayDataRepository {
 
   remove(overlay: UnknownOverlay): void {
     if (overlay.MODEL_TYPE !== ModelType.OVERLAY) {
-      throw new Error('Adding non-overlay model!');
+      throw new Error('Removing non-overlay model!');
     }
 
     const overlayIndex = this.newOverlays.findIndex((o) => o.overlayId === overlay.overlayId);
@@ -69,10 +72,10 @@ export class OverlayDataRepositoryFactory {
     oldOverlays: UnknownOverlay[],
   ): Promise<OverlayDataRepository> {
     if (!this.instance) {
-      this.instance = new OverlayDataRepository(newOverlays, oldOverlays);
+      this.instance = new OverlayDataRepository(oldOverlays, newOverlays);
     }
     if (forceNew) {
-      const newInstance = new OverlayDataRepository(newOverlays, oldOverlays);
+      const newInstance = new OverlayDataRepository(oldOverlays, newOverlays);
       Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;

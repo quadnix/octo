@@ -36,19 +36,11 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     this.anchors.push(anchor);
   }
 
-  async diff(previous?: T): Promise<Diff[]> {
+  async diff(previous: T): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
-    if (previous) {
-      const propertyDiffs = DiffUtility.diffObject(
-        (previous || { properties: {} }) as unknown as UnknownOverlay,
-        this,
-        'properties',
-      );
-      diffs.push(...propertyDiffs);
-    } else {
-      diffs.push(new Diff(this, DiffAction.ADD, 'overlayId', this.overlayId));
-    }
+    const propertyDiffs = DiffUtility.diffObject(previous as unknown as UnknownOverlay, this, 'properties');
+    diffs.push(...propertyDiffs);
 
     return diffs;
   }
