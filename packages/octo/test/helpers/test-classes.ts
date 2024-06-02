@@ -1,9 +1,20 @@
-import { AAnchor, AModel, AOverlay, AResource, ASharedResource, IOverlay, UnknownModel } from '../../src/index.js';
+import {
+  AAnchor,
+  AModel,
+  AOverlay,
+  AResource,
+  ASharedResource,
+  Diff,
+  IOverlay,
+  IResource,
+  UnknownModel,
+  UnknownResource,
+} from '../../src/index.js';
 
 export class SharedTestResource extends ASharedResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
-  constructor(resourceId: string, properties: { [key: string]: unknown }, parents: [TestResource?]) {
+  constructor(resourceId: string, properties: { [key: string]: unknown }, parents: TestResource[]) {
     super(resourceId, properties, parents as AResource<TestResource>[]);
   }
 }
@@ -51,7 +62,19 @@ export class TestOverlay extends AOverlay<TestOverlay> {
 export class TestResource extends AResource<TestResource> {
   readonly MODEL_NAME: string = 'test-resource';
 
-  constructor(resourceId: string) {
-    super(resourceId, {}, []);
+  constructor(resourceId: string, properties: IResource['properties'] = {}, parents: UnknownResource[] = []) {
+    super(resourceId, properties, parents);
+  }
+}
+
+export class TestResourceWithDiffOverride extends AResource<TestResource> {
+  readonly MODEL_NAME: string = 'test-resource';
+
+  constructor(resourceId: string, properties: IResource['properties'] = {}, parents: UnknownResource[] = []) {
+    super(resourceId, properties, parents);
+  }
+
+  override async diff(): Promise<Diff[]> {
+    return [];
   }
 }

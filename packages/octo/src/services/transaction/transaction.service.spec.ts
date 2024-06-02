@@ -308,7 +308,7 @@ describe('TransactionService UT', () => {
 
     it('should throw error when matching action not found', async () => {
       const resources = [new TestResource('resource-1')];
-      await Container.get(ResourceDataRepository, { args: [true, [...resources], []] });
+      await Container.get(ResourceDataRepository, { args: [true, [], [...resources]] });
 
       const service = await Container.get(TransactionService);
       const generator = service.beginTransaction([], { yieldResourceTransaction: true });
@@ -358,7 +358,7 @@ describe('TransactionService UT', () => {
       resource1.addChild('resourceId', resource2, 'resourceId');
 
       const resources = [resource1, resource2];
-      await Container.get(ResourceDataRepository, { args: [true, [...resources], []] });
+      await Container.get(ResourceDataRepository, { args: [true, [], [...resources]] });
 
       const service = await Container.get(TransactionService);
       service.registerResourceActions([universalResourceAction]);
@@ -378,7 +378,7 @@ describe('TransactionService UT', () => {
       resource1_2.addChild('resourceId', resource2_2, 'resourceId');
 
       await Container.get(ResourceDataRepository, {
-        args: [true, [resource1_2, resource2_2], [resource1_1, resource2_1]],
+        args: [true, [resource1_1, resource2_1], [resource1_2, resource2_2]],
       });
 
       // Upon calling beginTransaction(), assume model's apply method marks the new resource as deleted.
@@ -636,7 +636,7 @@ describe('TransactionService UT', () => {
         const oldResource = new TestResource('resource-1');
         const newResource = new TestResource('resource-2');
 
-        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
+        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [oldResource], []] });
         resourceDataRepository.add(newResource);
 
         const service = await Container.get(TransactionService);
@@ -672,7 +672,7 @@ describe('TransactionService UT', () => {
         const oldResource = new TestResource('resource-1');
         const newResource = new TestResource('resource-2');
 
-        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
+        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [oldResource], []] });
         resourceDataRepository.add(newResource);
 
         const service = await Container.get(TransactionService);
@@ -710,7 +710,7 @@ describe('TransactionService UT', () => {
         const oldResource = new TestResource('resource-1');
         const newResource = new TestResource('resource-2');
 
-        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
+        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [oldResource], []] });
         resourceDataRepository.add(newResource);
 
         const service = await Container.get(TransactionService);
@@ -733,7 +733,7 @@ describe('TransactionService UT', () => {
         const oldResource = new TestResource('resource-1');
         const newResource = new TestResource('resource-2');
 
-        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], [oldResource]] });
+        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [oldResource], []] });
         resourceDataRepository.add(newResource);
 
         const service = await Container.get(TransactionService);

@@ -1,5 +1,5 @@
 import { ModelType, UnknownResource } from '../app.type.js';
-import { Diff, DiffAction } from '../functions/diff/diff.js';
+import { Diff } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
 import { IResource } from './resource.interface.js';
@@ -40,26 +40,12 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     }
   }
 
-  async diff(previous?: T): Promise<Diff[]> {
+  // @ts-expect-error since this overridden diff() is always called with previous.
+  async diff(previous: T | ASharedResource<T>): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
-    if (this.isMarkedDeleted()) {
-      diffs.push(
-        new Diff((previous || this) as AModel<IResource, T>, DiffAction.DELETE, 'resourceId', this.resourceId),
-      );
-      return diffs;
-    }
-
-    if (previous) {
-      const propertyDiffs = DiffUtility.diffObject(
-        (previous || { properties: {} }) as unknown as UnknownResource,
-        this,
-        'properties',
-      );
-      diffs.push(...propertyDiffs);
-    } else {
-      diffs.push(new Diff(this, DiffAction.ADD, 'resourceId', this.resourceId));
-    }
+    const propertyDiffs = DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
+    diffs.push(...propertyDiffs);
 
     return diffs;
   }

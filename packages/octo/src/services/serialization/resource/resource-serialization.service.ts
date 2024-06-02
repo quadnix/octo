@@ -108,8 +108,9 @@ export class ResourceSerializationService {
     const deserializedOutputCopy = await this._deserialize(serializedOutput);
 
     // Refresh the resource data repository.
-    this.resourceDataRepository['oldResources'] = Object.values(deserializedOutputCopy);
-    this.resourceDataRepository['newResources'] = Object.values(deserializedOutput);
+    await Container.get(ResourceDataRepository, {
+      args: [true, Object.values(deserializedOutputCopy), Object.values(deserializedOutput)],
+    });
   }
 
   registerClass(className: string, deserializationClass: any): void {
