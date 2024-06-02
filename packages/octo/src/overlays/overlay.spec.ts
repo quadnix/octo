@@ -82,7 +82,7 @@ describe('Overlay UT', () => {
     it('should produce a delete diff', async () => {
       const overlay1 = new TestOverlay('overlay-1', {}, []);
 
-      const overlayDataRepository = await Container.get(OverlayDataRepository, { args: [true, [], [overlay1]] });
+      const overlayDataRepository = await Container.get(OverlayDataRepository, { args: [true, [overlay1], []] });
       const overlayService = await Container.get(OverlayService);
 
       overlayService.removeOverlay(overlay1);
@@ -102,7 +102,7 @@ describe('Overlay UT', () => {
     it('should produce an update diff of flat properties', async () => {
       const overlay1_0 = new TestOverlay('overlay-1', { key1: 'value1', key2: 'value2' }, []);
 
-      const overlayDataRepository = await Container.get(OverlayDataRepository, { args: [true, [], [overlay1_0]] });
+      const overlayDataRepository = await Container.get(OverlayDataRepository, { args: [true, [overlay1_0], []] });
       const overlayService = await Container.get(OverlayService);
 
       const overlay1_1 = new TestOverlay('overlay-1', { key1: 'value1', key2: 'value2.1', key3: 'value3' }, []);
@@ -138,7 +138,7 @@ describe('Overlay UT', () => {
         [],
       );
 
-      const overlayDataRepository = await Container.get(OverlayDataRepository, { args: [true, [], [overlay1_0]] });
+      const overlayDataRepository = await Container.get(OverlayDataRepository, { args: [true, [overlay1_0], []] });
       const overlayService = await Container.get(OverlayService);
 
       const overlay1_1 = new TestOverlay(
@@ -169,7 +169,7 @@ describe('Overlay UT', () => {
     it('should produce an update diff of array properties', async () => {
       const overlay1_0 = new TestOverlay('overlay-1', { key1: ['value1.1', 'value1.2'] }, []);
 
-      const overlayDataRepository = await Container.get(OverlayDataRepository, { args: [true, [], [overlay1_0]] });
+      const overlayDataRepository = await Container.get(OverlayDataRepository, { args: [true, [overlay1_0], []] });
       const overlayService = await Container.get(OverlayService);
 
       const overlay1_1 = new TestOverlay('overlay-1', { key1: ['value1.3', 'value1.4'] }, []);

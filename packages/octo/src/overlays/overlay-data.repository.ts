@@ -68,8 +68,8 @@ export class OverlayDataRepositoryFactory {
 
   static async create(
     forceNew: boolean,
-    newOverlays: UnknownOverlay[],
     oldOverlays: UnknownOverlay[],
+    newOverlays: UnknownOverlay[],
   ): Promise<OverlayDataRepository> {
     if (!this.instance) {
       this.instance = new OverlayDataRepository(oldOverlays, newOverlays);
