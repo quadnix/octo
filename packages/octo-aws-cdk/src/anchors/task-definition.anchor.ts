@@ -45,6 +45,9 @@ export class TaskDefinitionAnchor extends AAnchor {
   ): Promise<TaskDefinitionAnchor> {
     const parent = (await deReferenceContext(anchor.parent.context)) as AwsDeployment;
     const newAnchor = parent.getAnchor(anchor.anchorId) as TaskDefinitionAnchor;
-    return newAnchor ?? new deserializationClass(anchor.anchorId, anchor.properties, parent);
+    if (!newAnchor) {
+      return new deserializationClass(anchor.anchorId, anchor.properties, parent);
+    }
+    return newAnchor;
   }
 }

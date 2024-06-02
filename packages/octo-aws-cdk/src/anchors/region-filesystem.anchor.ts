@@ -37,6 +37,9 @@ export class RegionFilesystemAnchor extends AAnchor {
   ): Promise<RegionFilesystemAnchor> {
     const parent = (await deReferenceContext(anchor.parent.context)) as AwsRegion;
     const newAnchor = parent.getAnchor(anchor.anchorId) as RegionFilesystemAnchor;
-    return newAnchor ?? new deserializationClass(anchor.anchorId, anchor.filesystemName, parent);
+    if (!newAnchor) {
+      return new deserializationClass(anchor.anchorId, anchor.filesystemName, parent);
+    }
+    return newAnchor;
   }
 }

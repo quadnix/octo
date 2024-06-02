@@ -46,6 +46,9 @@ export class SecurityGroupAnchor extends AAnchor {
   ): Promise<SecurityGroupAnchor> {
     const parent = (await deReferenceContext(anchor.parent.context)) as AwsServer | AwsExecution;
     const newAnchor = parent.getAnchor(anchor.anchorId) as SecurityGroupAnchor;
-    return newAnchor ?? new deserializationClass(anchor.anchorId, anchor.rules, parent);
+    if (!newAnchor) {
+      return new deserializationClass(anchor.anchorId, anchor.rules, parent);
+    }
+    return newAnchor;
   }
 }

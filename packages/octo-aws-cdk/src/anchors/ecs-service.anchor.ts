@@ -30,7 +30,7 @@ export class EcsServiceAnchor extends AAnchor {
     return {
       anchorId: this.anchorId,
       parent: this.getParent().getContext(),
-      properties: {},
+      properties: this.properties,
     };
   }
 
@@ -41,6 +41,9 @@ export class EcsServiceAnchor extends AAnchor {
   ): Promise<EcsServiceAnchor> {
     const parent = (await deReferenceContext(anchor.parent.context)) as AwsExecution;
     const newAnchor = parent.getAnchor(anchor.anchorId) as EcsServiceAnchor;
-    return newAnchor ?? new deserializationClass(anchor.anchorId, anchor.properties, parent);
+    if (!newAnchor) {
+      return new deserializationClass(anchor.anchorId, anchor.properties, parent);
+    }
+    return newAnchor;
   }
 }

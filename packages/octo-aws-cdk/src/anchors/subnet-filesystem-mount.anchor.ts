@@ -37,6 +37,9 @@ export class SubnetFilesystemMountAnchor extends AAnchor {
   ): Promise<SubnetFilesystemMountAnchor> {
     const parent = (await deReferenceContext(anchor.parent.context)) as AwsSubnet;
     const newAnchor = parent.getAnchor(anchor.anchorId) as SubnetFilesystemMountAnchor;
-    return newAnchor ?? new deserializationClass(anchor.anchorId, anchor.filesystemName, parent);
+    if (!newAnchor) {
+      return new deserializationClass(anchor.anchorId, anchor.filesystemName, parent);
+    }
+    return newAnchor;
   }
 }
