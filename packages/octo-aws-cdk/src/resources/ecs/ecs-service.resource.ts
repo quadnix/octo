@@ -23,17 +23,8 @@ export class EcsService extends AResource<EcsService> {
     super(resourceId, properties as unknown as IResource['properties'], parents);
   }
 
-  override async diff(previous?: EcsService): Promise<Diff[]> {
+  override async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
-
-    if (this.isMarkedDeleted()) {
-      diffs.push(new Diff(previous || this, DiffAction.DELETE, 'resourceId', this.resourceId));
-      return diffs;
-    }
-
-    if (!previous) {
-      diffs.push(new Diff(this, DiffAction.ADD, 'resourceId', this.resourceId));
-    }
 
     if (this.servicePropertyDiff && Object.keys(this.servicePropertyDiff).length > 0) {
       for (const key of Object.keys(this.servicePropertyDiff)) {

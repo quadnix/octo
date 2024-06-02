@@ -11,17 +11,8 @@ export class S3Website extends AResource<S3Website> {
     super(resourceId, properties as unknown as IResource['properties'], []);
   }
 
-  override async diff(previous?: S3Website): Promise<Diff[]> {
+  override async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
-
-    if (this.isMarkedDeleted()) {
-      diffs.push(new Diff(previous || this, DiffAction.DELETE, 'resourceId', this.resourceId));
-      return diffs;
-    }
-
-    if (!previous) {
-      diffs.push(new Diff(this, DiffAction.ADD, 'resourceId', this.resourceId));
-    }
 
     if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {
       diffs.push(new Diff(this, DiffAction.UPDATE, 'update-source-paths', this.manifestDiff));
