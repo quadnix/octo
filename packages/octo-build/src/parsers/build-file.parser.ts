@@ -1,4 +1,4 @@
-import { IBuildConfiguration, IJob } from '../models/build-configuration.interface.js';
+import type { IBuildConfiguration, IJob } from '../models/build-configuration.interface.js';
 
 export class BuildFileParser {
   static parse(content: any): IBuildConfiguration {

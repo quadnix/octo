@@ -7,7 +7,7 @@ import { join, resolve, sep } from 'path';
 import * as process from 'process';
 import yargs from 'yargs/yargs';
 import { Main } from './main.js';
-import { IRunArguments } from './models/run-arguments.interface.js';
+import type { IRunArguments } from './models/run-arguments.interface.js';
 import { BuildFileParser } from './parsers/build-file.parser.js';
 
 const PROGRAM_NAME = 'octob';
