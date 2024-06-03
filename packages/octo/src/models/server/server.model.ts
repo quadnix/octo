@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { AModel } from '../model.abstract.js';
-import { IServer } from './server.interface.js';
+import type { IServer } from './server.interface.js';
 
 @Model()
 export class Server extends AModel<IServer, Server> {

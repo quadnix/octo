@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
-import { Diff } from '../../functions/diff/diff.js';
+import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
-import { IEnvironment } from './environment.interface.js';
+import type { IEnvironment } from './environment.interface.js';
 
 @Model()
 export class Environment extends AModel<IEnvironment, Environment> {

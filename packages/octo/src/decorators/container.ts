@@ -1,4 +1,4 @@
-import { Constructable } from '../app.type.js';
+import type { Constructable } from '../app.type.js';
 
 type Factory<T> = { create: (...args: unknown[]) => Promise<T> };
 type FactoryValue<T> = Factory<T> | [Promise<Factory<T>>, (factory: Factory<T>) => void];

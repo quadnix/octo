@@ -1,9 +1,9 @@
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
-import { ISubnet } from './subnet.interface.js';
+import type { ISubnet } from './subnet.interface.js';
 
 export enum SubnetType {
   PUBLIC = 'public',

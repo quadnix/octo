@@ -1,4 +1,4 @@
-import { UnknownOverlay } from '../app.type.js';
+import type { UnknownOverlay } from '../app.type.js';
 import { Container } from '../decorators/container.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { OverlayDataRepository } from './overlay-data.repository.js';

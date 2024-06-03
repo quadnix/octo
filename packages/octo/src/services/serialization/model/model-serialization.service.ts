@@ -1,9 +1,10 @@
-import { IUnknownModel, ModelSerializedOutput, UnknownModel, UnknownOverlay } from '../../../app.type.js';
+import type { IUnknownModel, ModelSerializedOutput, UnknownModel, UnknownOverlay } from '../../../app.type.js';
 import { Container } from '../../../decorators/container.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
-import { IAnchor } from '../../../overlays/anchor.interface.js';
-import { Dependency, IDependency } from '../../../functions/dependency/dependency.js';
-import { IOverlay } from '../../../overlays/overlay.interface.js';
+import type { IAnchor } from '../../../overlays/anchor.interface.js';
+import { Dependency } from '../../../functions/dependency/dependency.js';
+import type { IDependency } from '../../../functions/dependency/dependency.js';
+import type { IOverlay } from '../../../overlays/overlay.interface.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
 
 export class ModelSerializationService {

@@ -1,7 +1,7 @@
-import {
+import { ModelType } from '../../app.type.js';
+import type {
   ActionInputs,
   ActionOutputs,
-  ModelType,
   TransactionOptions,
   UnknownResource,
   UnknownSharedResource,
@@ -9,10 +9,11 @@ import {
 import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
-import { Diff, DiffAction } from '../../functions/diff/diff.js';
-import { IModelAction } from '../../models/model-action.interface.js';
+import { DiffAction } from '../../functions/diff/diff.js';
+import type { Diff } from '../../functions/diff/diff.js';
+import type { IModelAction } from '../../models/model-action.interface.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
-import { IResourceAction } from '../../resources/resource-action.interface.js';
+import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { InputService } from '../input/input.service.js';
 

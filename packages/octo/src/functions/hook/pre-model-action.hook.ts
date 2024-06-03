@@ -1,9 +1,9 @@
-import { ActionInputs, ActionOutputs, Constructable } from '../../app.type.js';
+import type { ActionInputs, ActionOutputs, Constructable } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
-import { IModelAction } from '../../models/model-action.interface.js';
+import type { IModelAction } from '../../models/model-action.interface.js';
 import { InputService } from '../../services/input/input.service.js';
-import { Diff } from '../diff/diff.js';
+import type { Diff } from '../diff/diff.js';
 import { AHook } from './hook.abstract.js';
 
 export type PreModelActionCallback = (args: [Diff, ActionInputs], output: ActionOutputs) => Promise<ActionOutputs>;

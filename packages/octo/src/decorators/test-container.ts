@@ -1,10 +1,10 @@
-import { Constructable } from '../app.type.js';
+import type { Constructable } from '../app.type.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { PostModelActionHook } from '../functions/hook/post-model-action.hook.js';
 import { PreCommitHook } from '../functions/hook/pre-commit.hook.js';
 import { PreModelActionHook } from '../functions/hook/pre-model-action.hook.js';
 import { Container } from './container.js';
-import { Module } from './module.decorator.js';
+import type { Module } from './module.decorator.js';
 
 type Factory<T> = { create: () => Promise<T> };
 

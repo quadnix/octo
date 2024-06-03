@@ -1,5 +1,5 @@
-import { UnknownModel } from '../app.type.js';
-import { IAnchor } from './anchor.interface.js';
+import type { UnknownModel } from '../app.type.js';
+import type { IAnchor } from './anchor.interface.js';
 
 export abstract class AAnchor {
   protected constructor(

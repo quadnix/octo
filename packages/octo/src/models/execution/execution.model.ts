@@ -1,13 +1,13 @@
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
-import { Diff } from '../../functions/diff/diff.js';
+import type { Diff } from '../../functions/diff/diff.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
 import { Subnet } from '../subnet/subnet.model.js';
-import { IExecution } from './execution.interface.js';
+import type { IExecution } from './execution.interface.js';
 
 @Model()
 export class Execution extends AModel<IExecution, Execution> {

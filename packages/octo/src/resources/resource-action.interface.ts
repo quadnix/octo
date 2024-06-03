@@ -1,4 +1,4 @@
-import { Diff } from '../functions/diff/diff.js';
+import type { Diff } from '../functions/diff/diff.js';
 
 export interface IResourceAction {
   readonly ACTION_NAME: string;

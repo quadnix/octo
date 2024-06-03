@@ -1,4 +1,4 @@
-import { Constructable } from '../app.type.js';
+import type { Constructable } from '../app.type.js';
 import { Container } from './container.js';
 
 export function Factory<T>(

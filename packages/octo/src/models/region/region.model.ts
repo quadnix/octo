@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
 import { Subnet } from '../subnet/subnet.model.js';
-import { IRegion } from './region.interface.js';
+import type { IRegion } from './region.interface.js';
 
 @Model()
 export class Region extends AModel<IRegion, Region> {

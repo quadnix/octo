@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import { AModel } from '../model.abstract.js';
-import { Diff } from '../../functions/diff/diff.js';
-import { IPipeline } from './pipeline.interface.js';
+import type { Diff } from '../../functions/diff/diff.js';
+import type { IPipeline } from './pipeline.interface.js';
 
 @Model()
 export class Pipeline extends AModel<IPipeline, Pipeline> {

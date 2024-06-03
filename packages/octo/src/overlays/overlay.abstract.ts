@@ -1,9 +1,11 @@
-import { ModelType, UnknownModel, UnknownOverlay } from '../app.type.js';
-import { Diff, DiffAction } from '../functions/diff/diff.js';
+import { ModelType } from '../app.type.js';
+import type { UnknownModel, UnknownOverlay } from '../app.type.js';
+import { DiffAction } from '../functions/diff/diff.js';
+import type { Diff } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
-import { AAnchor } from './anchor.abstract.js';
-import { IOverlay } from './overlay.interface.js';
+import type { AAnchor } from './anchor.abstract.js';
+import type { IOverlay } from './overlay.interface.js';
 
 export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   abstract override readonly MODEL_NAME: string;

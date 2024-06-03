@@ -1,9 +1,10 @@
-import { ModelType, UnknownResource } from '../app.type.js';
-import { Diff } from '../functions/diff/diff.js';
+import { ModelType } from '../app.type.js';
+import type { UnknownResource } from '../app.type.js';
+import type { Diff } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
-import { IResource } from './resource.interface.js';
-import { ASharedResource } from './shared-resource.abstract.js';
+import type { IResource } from './resource.interface.js';
+import type { ASharedResource } from './shared-resource.abstract.js';
 
 export abstract class AResource<T> extends AModel<IResource, T> {
   abstract override readonly MODEL_NAME: string;

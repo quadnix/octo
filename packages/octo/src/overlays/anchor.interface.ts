@@ -1,5 +1,5 @@
-import { IModelReference } from '../models/model.interface.js';
-import { AAnchor } from './anchor.abstract.js';
+import type { IModelReference } from '../models/model.interface.js';
+import type { AAnchor } from './anchor.abstract.js';
 
 export interface IAnchor {
   anchorId: AAnchor['anchorId'];

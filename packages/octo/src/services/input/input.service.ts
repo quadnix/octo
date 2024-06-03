@@ -1,4 +1,4 @@
-import { ActionInputs } from '../../app.type.js';
+import type { ActionInputs } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';

@@ -1,4 +1,4 @@
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 
 export enum DiffAction {
   ADD = 'add',

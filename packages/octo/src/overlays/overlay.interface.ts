@@ -1,4 +1,4 @@
-import { IAnchor } from './anchor.interface.js';
+import type { IAnchor } from './anchor.interface.js';
 
 export interface IOverlay {
   anchors: IAnchor[];

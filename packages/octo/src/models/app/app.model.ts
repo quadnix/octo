@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
@@ -8,7 +8,7 @@ import { Pipeline } from '../pipeline/pipeline.model.js';
 import { Region } from '../region/region.model.js';
 import { Server } from '../server/server.model.js';
 import { Service } from '../service/service.model.js';
-import { IApp } from './app.interface.js';
+import type { IApp } from './app.interface.js';
 
 @Model()
 export class App extends AModel<IApp, App> {

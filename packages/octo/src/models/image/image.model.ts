@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { resolve } from 'path';
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { AModel } from '../model.abstract.js';
-import { IImage } from './image.interface.js';
+import type { IImage } from './image.interface.js';
 
 export interface IImageDockerOptions {
   dockerfilePath: string;

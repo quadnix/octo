@@ -1,5 +1,5 @@
-import { Module } from '../../decorators/module.decorator.js';
-import { Constructable } from '../../app.type.js';
+import type { Module } from '../../decorators/module.decorator.js';
+import type { Constructable } from '../../app.type.js';
 
 export abstract class AHook {
   protected readonly registeredModules: { moduleName: string; moduleProperties: Parameters<typeof Module>[0] }[] = [];

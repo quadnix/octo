@@ -1,4 +1,4 @@
-import { Constructable } from '../../app.type.js';
+import type { Constructable } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { AHook } from './hook.abstract.js';
 

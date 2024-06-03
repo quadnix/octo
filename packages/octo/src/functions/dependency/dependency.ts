@@ -1,4 +1,4 @@
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { DiffAction } from '../diff/diff.js';
 
 class DependencyBehavior {

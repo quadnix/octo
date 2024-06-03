@@ -1,5 +1,5 @@
 import { Factory } from '../../decorators/factory.decorator.js';
-import { IStateProvider } from './state-provider.interface.js';
+import type { IStateProvider } from './state-provider.interface.js';
 
 export class StateManagementService {
   private readonly stateProvider: IStateProvider;

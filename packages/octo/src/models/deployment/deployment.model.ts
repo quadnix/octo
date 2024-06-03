@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import { UnknownModel } from '../../app.type.js';
+import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { AModel } from '../model.abstract.js';
-import { IDeployment } from './deployment.interface.js';
+import type { IDeployment } from './deployment.interface.js';
 
 @Model()
 export class Deployment extends AModel<IDeployment, Deployment> {

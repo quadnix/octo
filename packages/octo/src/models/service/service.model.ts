@@ -1,6 +1,6 @@
 import { Model } from '../../decorators/model.decorator.js';
 import { AModel } from '../model.abstract.js';
-import { IService } from './service.interface.js';
+import type { IService } from './service.interface.js';
 
 @Model()
 export class Service extends AModel<IService, Service> {

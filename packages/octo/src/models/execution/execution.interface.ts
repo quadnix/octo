@@ -1,4 +1,4 @@
-import { IModelReference } from '../model.interface.js';
+import type { IModelReference } from '../model.interface.js';
 
 export interface IExecution {
   deployment: IModelReference;

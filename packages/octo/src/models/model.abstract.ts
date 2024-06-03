@@ -1,9 +1,11 @@
-import { ModelType, UnknownModel } from '../app.type.js';
+import { ModelType } from '../app.type.js';
+import type { UnknownModel } from '../app.type.js';
 import { Dependency } from '../functions/dependency/dependency.js';
-import { Diff, DiffAction } from '../functions/diff/diff.js';
+import { DiffAction } from '../functions/diff/diff.js';
+import type { Diff } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
-import { AAnchor } from '../overlays/anchor.abstract.js';
-import { IModel } from './model.interface.js';
+import type { AAnchor } from '../overlays/anchor.abstract.js';
+import type { IModel } from './model.interface.js';
 
 /**
  * This is the base implementation of the Model's interface,

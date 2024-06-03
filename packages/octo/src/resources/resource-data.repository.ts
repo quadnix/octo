@@ -1,7 +1,8 @@
-import { ActionOutputs, ModelType, UnknownResource } from '../app.type.js';
+import { ModelType } from '../app.type.js';
+import type { ActionOutputs, UnknownResource } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
-import { IResource } from './resource.interface.js';
+import type { IResource } from './resource.interface.js';
 
 export class ResourceDataRepository {
   constructor(
