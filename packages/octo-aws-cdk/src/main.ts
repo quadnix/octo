@@ -149,7 +149,7 @@ export class OctoAws {
 
   @EnableHook('PreCommitHook')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async commitTransaction(app: App, modelTransaction: DiffMetadata[][]): Promise<void> {
+  async commitTransaction(app: App, modelTransaction: DiffMetadata[][]): Promise<App> {
     // `modelTransaction` is being used indirectly by the @EnableHook.
     // Do not remove this argument.
 
@@ -159,6 +159,9 @@ export class OctoAws {
 
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
-    this.previousApp = await this.retrieveModelState();
+    const newApp = await this.retrieveModelState();
+
+    this.previousApp = app;
+    return newApp!;
   }
 }
