@@ -8,7 +8,7 @@ import type { IAwsSubnet } from './aws.subnet.interface.js';
 
 @Model()
 export class AwsSubnet extends Subnet {
-  readonly filesystemMounts: { filesystemMountAnchorName: string; filesystemName: string }[];
+  readonly filesystemMounts: { filesystemMountAnchorName: string; filesystemName: string }[] = [];
 
   constructor(region: AwsRegion, name: string) {
     super(region, name);

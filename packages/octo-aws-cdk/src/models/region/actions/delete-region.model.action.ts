@@ -12,13 +12,7 @@ export class DeleteRegionModelAction implements IModelAction {
   collectInput(diff: Diff): string[] {
     const { regionId } = diff.model as AwsRegion;
 
-    return [
-      `resource.vpc-${regionId}`,
-      `resource.igw-${regionId}`,
-      `resource.sec-grp-${regionId}-access`,
-      `resource.sec-grp-${regionId}-internal-open`,
-      `resource.sec-grp-${regionId}-web`,
-    ];
+    return [`resource.vpc-${regionId}`, `resource.igw-${regionId}`, `resource.sec-grp-${regionId}-access`];
   }
 
   filter(diff: Diff): boolean {
@@ -33,10 +27,6 @@ export class DeleteRegionModelAction implements IModelAction {
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const { regionId } = diff.model as AwsRegion;
 
-    const webSG = actionInputs[`resource.sec-grp-${regionId}-web`] as SecurityGroup;
-    webSG.markDeleted();
-    const internalOpenSG = actionInputs[`resource.sec-grp-${regionId}-internal-open`] as SecurityGroup;
-    internalOpenSG.markDeleted();
     const accessSG = actionInputs[`resource.sec-grp-${regionId}-access`] as SecurityGroup;
     accessSG.markDeleted();
 
@@ -50,8 +40,6 @@ export class DeleteRegionModelAction implements IModelAction {
     output[vpc.resourceId] = vpc;
     output[internetGateway.resourceId] = internetGateway;
     output[accessSG.resourceId] = accessSG;
-    output[internalOpenSG.resourceId] = internalOpenSG;
-    output[webSG.resourceId] = webSG;
 
     return output;
   }

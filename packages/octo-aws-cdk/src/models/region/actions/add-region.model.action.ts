@@ -68,55 +68,11 @@ export class AddRegionModelAction implements IModelAction {
       },
       [vpc],
     );
-    const internalOpenSG = new SecurityGroup(
-      `sec-grp-${regionId}-internal-open`,
-      {
-        awsRegionId: awsRegion.awsRegionId,
-        rules: [
-          // Allow all incoming connections from the same VPC.
-          {
-            CidrBlock: vpcCidrBlock,
-            Egress: false,
-            FromPort: -1,
-            IpProtocol: '-1',
-            ToPort: -1,
-          },
-        ],
-      },
-      [vpc],
-    );
-    const webSG = new SecurityGroup(
-      `sec-grp-${regionId}-web`,
-      {
-        awsRegionId: awsRegion.awsRegionId,
-        rules: [
-          // Access HTTP from everywhere.
-          {
-            CidrBlock: '0.0.0.0/0',
-            Egress: false,
-            FromPort: 80,
-            IpProtocol: 'tcp',
-            ToPort: 80,
-          },
-          // Access HTTPS from everywhere.
-          {
-            CidrBlock: '0.0.0.0/0',
-            Egress: false,
-            FromPort: 443,
-            IpProtocol: 'tcp',
-            ToPort: 443,
-          },
-        ],
-      },
-      [vpc],
-    );
 
     const output: ActionOutputs = {};
     output[vpc.resourceId] = vpc;
     output[internetGateway.resourceId] = internetGateway;
     output[accessSG.resourceId] = accessSG;
-    output[internalOpenSG.resourceId] = internalOpenSG;
-    output[webSG.resourceId] = webSG;
 
     return output;
   }
