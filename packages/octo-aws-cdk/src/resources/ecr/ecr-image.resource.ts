@@ -1,5 +1,6 @@
-import { AResource, IResource, Resource } from '@quadnix/octo';
-import { IEcrImageProperties } from './ecr-image.interface.js';
+import { AResource, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { IEcrImageProperties } from './ecr-image.interface.js';
 
 @Resource()
 export class EcrImage extends AResource<EcrImage> {

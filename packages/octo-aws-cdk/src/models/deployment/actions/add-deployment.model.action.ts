@@ -1,9 +1,10 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { join, resolve } from 'path';
-import { S3Storage } from '../../../resources/s3/storage/s3-storage.resource.js';
+import type { S3Storage } from '../../../resources/s3/storage/s3-storage.resource.js';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
-import { AwsServer } from '../../server/aws.server.model.js';
-import { AwsDeployment } from '../aws.deployment.model.js';
+import type { AwsServer } from '../../server/aws.server.model.js';
+import type { AwsDeployment } from '../aws.deployment.model.js';
 
 @Action(ModelType.MODEL)
 export class AddDeploymentModelAction implements IModelAction {

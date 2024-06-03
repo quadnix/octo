@@ -2,10 +2,11 @@ import { Container, Model, OverlayService, Service } from '@quadnix/octo';
 import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import { S3DirectoryAnchor } from '../../../anchors/s3-directory.anchor.js';
 import { CommonUtility } from '../../../utilities/common/common.utility.js';
-import { AwsRegion, RegionId } from '../../region/aws.region.model.js';
-import { AwsServer } from '../../server/aws.server.model.js';
+import { AwsRegion } from '../../region/aws.region.model.js';
+import type { RegionId } from '../../region/aws.region.model.js';
+import type { AwsServer } from '../../server/aws.server.model.js';
 import { S3StorageAccessOverlay } from '../../../overlays/s3-storage-access/s3-storage-access.overlay.js';
-import { IS3StorageService } from './s3-storage.service.interface.js';
+import type { IS3StorageService } from './s3-storage.service.interface.js';
 
 export enum S3StorageAccess {
   READ = 'READ',

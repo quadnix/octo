@@ -5,13 +5,14 @@ import {
   PortMapping,
   RegisterTaskDefinitionCommand,
 } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IEfsProperties, IEfsResponse } from '../../efs/efs.interface.js';
-import { Efs } from '../../efs/efs.resource.js';
-import { IIamRoleResponse } from '../../iam/iam-role.interface.js';
-import { IamRole } from '../../iam/iam-role.resource.js';
-import { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
-import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { IEfsProperties, IEfsResponse } from '../../efs/efs.interface.js';
+import type { Efs } from '../../efs/efs.resource.js';
+import type { IIamRoleResponse } from '../../iam/iam-role.interface.js';
+import type { IamRole } from '../../iam/iam-role.resource.js';
+import type { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
+import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction {

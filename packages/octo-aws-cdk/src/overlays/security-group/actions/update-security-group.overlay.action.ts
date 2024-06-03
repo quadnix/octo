@@ -1,8 +1,9 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
-import { SecurityGroupAnchor } from '../../../anchors/security-group.anchor.js';
-import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
-import { ISecurityGroupOverlayProperties } from '../security-group.overlay.interface.js';
-import { SecurityGroupOverlay } from '../security-group.overlay.js';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import type { SecurityGroupAnchor } from '../../../anchors/security-group.anchor.js';
+import type { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
+import type { ISecurityGroupOverlayProperties } from '../security-group.overlay.interface.js';
+import type { SecurityGroupOverlay } from '../security-group.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class UpdateSecurityGroupOverlayAction implements IModelAction {

@@ -1,7 +1,8 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
-import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
-import { IamRole } from '../../../resources/iam/iam-role.resource.js';
-import { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import type { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
+import type { IamRole } from '../../../resources/iam/iam-role.resource.js';
+import type { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class AddS3StorageAccessOverlayAction implements IModelAction {

@@ -1,10 +1,11 @@
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import mime from 'mime';
-import { IS3WebsiteProperties } from '../s3-website.interface.js';
-import { S3Website } from '../s3-website.resource.js';
+import type { IS3WebsiteProperties } from '../s3-website.interface.js';
+import type { S3Website } from '../s3-website.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceAction {

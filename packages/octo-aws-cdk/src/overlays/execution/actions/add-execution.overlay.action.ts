@@ -1,22 +1,23 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../../anchors/ecs-service.anchor.js';
 import { EnvironmentVariablesAnchor } from '../../../anchors/environment-variables.anchor.js';
 import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import { SecurityGroupAnchor } from '../../../anchors/security-group.anchor.js';
 import { SubnetFilesystemMountAnchor } from '../../../anchors/subnet-filesystem-mount.anchor.js';
 import { TaskDefinitionAnchor } from '../../../anchors/task-definition.anchor.js';
-import { AwsEnvironment } from '../../../models/environment/aws.environment.model.js';
-import { AwsExecution } from '../../../models/execution/aws.execution.model.js';
-import { AwsRegion } from '../../../models/region/aws.region.model.js';
-import { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
+import type { AwsEnvironment } from '../../../models/environment/aws.environment.model.js';
+import type { AwsExecution } from '../../../models/execution/aws.execution.model.js';
+import type { AwsRegion } from '../../../models/region/aws.region.model.js';
+import type { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
 import { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
 import { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
-import { Efs } from '../../../resources/efs/efs.resource.js';
-import { IamRole } from '../../../resources/iam/iam-role.resource.js';
+import type { Efs } from '../../../resources/efs/efs.resource.js';
+import type { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
-import { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import { IExecutionOverlayProperties } from '../execution.overlay.interface.js';
-import { ExecutionOverlay } from '../execution.overlay.js';
+import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
+import type { IExecutionOverlayProperties } from '../execution.overlay.interface.js';
+import type { ExecutionOverlay } from '../execution.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class AddExecutionOverlayAction implements IModelAction {

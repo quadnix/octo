@@ -1,6 +1,7 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
-import { S3Storage } from '../../../resources/s3/storage/s3-storage.resource.js';
-import { AwsDeployment } from '../aws.deployment.model.js';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import type { S3Storage } from '../../../resources/s3/storage/s3-storage.resource.js';
+import type { AwsDeployment } from '../aws.deployment.model.js';
 
 @Action(ModelType.MODEL)
 export class DeleteDeploymentModelAction implements IModelAction {

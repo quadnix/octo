@@ -1,7 +1,7 @@
 import { Container, Model, OverlayService, Region } from '@quadnix/octo';
 import { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
 import { RegionFilesystemOverlay } from '../../overlays/region-filesystem/region-filesystem.overlay.js';
-import { IAwsRegion } from './aws.region.interface.js';
+import type { IAwsRegion } from './aws.region.interface.js';
 
 export enum RegionId {
   AWS_AP_SOUTH_1A = 'aws-ap-south-1a',

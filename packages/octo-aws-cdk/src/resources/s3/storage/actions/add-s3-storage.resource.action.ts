@@ -1,7 +1,8 @@
 import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IS3StorageProperties } from '../s3-storage.interface.js';
-import { S3Storage } from '../s3-storage.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { IS3StorageProperties } from '../s3-storage.interface.js';
+import type { S3Storage } from '../s3-storage.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddS3StorageResourceAction implements IResourceAction {

@@ -1,5 +1,6 @@
-import { AResource, Diff, DiffAction, IResource, Resource, UnknownOverlay } from '@quadnix/octo';
-import { IIamUserProperties } from './iam-user.interface.js';
+import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
+import type { IResource, UnknownOverlay } from '@quadnix/octo';
+import type { IIamUserProperties } from './iam-user.interface.js';
 
 export type IamUserPolicyDiff = {
   [key: string]: { action: 'add' | 'delete'; overlay: UnknownOverlay };

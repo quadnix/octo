@@ -1,6 +1,7 @@
-import { AAnchor, Anchor, IAnchor, UnknownModel } from '@quadnix/octo';
-import { AwsExecution } from '../models/execution/aws.execution.model.js';
-import { AwsServer } from '../models/server/aws.server.model.js';
+import { AAnchor, Anchor, IAnchor } from '@quadnix/octo';
+import type { UnknownModel } from '@quadnix/octo';
+import type { AwsExecution } from '../models/execution/aws.execution.model.js';
+import type { AwsServer } from '../models/server/aws.server.model.js';
 
 interface ISecurityGroupAnchor extends IAnchor {
   rules: ISecurityGroupAnchorRule[];

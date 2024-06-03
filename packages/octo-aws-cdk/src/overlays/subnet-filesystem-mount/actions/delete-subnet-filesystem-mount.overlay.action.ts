@@ -1,12 +1,13 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
-import { RegionFilesystemAnchor } from '../../../anchors/region-filesystem.anchor.js';
-import { SubnetFilesystemMountAnchor } from '../../../anchors/subnet-filesystem-mount.anchor.js';
-import { AwsRegion } from '../../../models/region/aws.region.model.js';
-import { AwsSubnet } from '../../../models/subnet/aws.subnet.model.js';
-import { EfsMountTarget } from '../../../resources/efs/efs-mount-target.resource.js';
-import { Efs } from '../../../resources/efs/efs.resource.js';
-import { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import { SubnetFilesystemMountOverlay } from '../subnet-filesystem-mount.overlay.js';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import type { RegionFilesystemAnchor } from '../../../anchors/region-filesystem.anchor.js';
+import type { SubnetFilesystemMountAnchor } from '../../../anchors/subnet-filesystem-mount.anchor.js';
+import type { AwsRegion } from '../../../models/region/aws.region.model.js';
+import type { AwsSubnet } from '../../../models/subnet/aws.subnet.model.js';
+import type { EfsMountTarget } from '../../../resources/efs/efs-mount-target.resource.js';
+import type { Efs } from '../../../resources/efs/efs.resource.js';
+import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
+import type { SubnetFilesystemMountOverlay } from '../subnet-filesystem-mount.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class DeleteSubnetFilesystemMountOverlayAction implements IModelAction {

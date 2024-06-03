@@ -1,9 +1,10 @@
 import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IEcsServiceProperties } from '../ecs-service.interface.js';
-import { EcsService, EcsServicePropertyDiff } from '../ecs-service.resource.js';
-import { IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
-import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { IEcsServiceProperties } from '../ecs-service.interface.js';
+import type { EcsService, EcsServicePropertyDiff } from '../ecs-service.resource.js';
+import type { IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
+import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class UpdateEcsServiceReplaceTaskDefinitionResourceAction implements IResourceAction {

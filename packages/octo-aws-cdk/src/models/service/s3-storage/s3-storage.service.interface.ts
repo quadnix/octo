@@ -1,5 +1,5 @@
-import { IService } from '@quadnix/octo';
-import { S3StorageService } from './s3-storage.service.model.js';
+import type { IService } from '@quadnix/octo';
+import type { S3StorageService } from './s3-storage.service.model.js';
 
 export interface IS3StorageService extends IService {
   awsRegionId: S3StorageService['awsRegionId'];

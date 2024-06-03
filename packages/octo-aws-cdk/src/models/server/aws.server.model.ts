@@ -1,7 +1,7 @@
 import { Model, Server } from '@quadnix/octo';
 import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
 import { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
-import { AwsDeployment } from '../deployment/aws.deployment.model.js';
+import type { AwsDeployment } from '../deployment/aws.deployment.model.js';
 
 @Model()
 export class AwsServer extends Server {

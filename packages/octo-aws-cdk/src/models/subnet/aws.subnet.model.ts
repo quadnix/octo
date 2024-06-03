@@ -1,9 +1,10 @@
-import { Container, Model, OverlayService, Subnet, UnknownModel } from '@quadnix/octo';
+import { Container, Model, OverlayService, Subnet } from '@quadnix/octo';
+import type { UnknownModel } from '@quadnix/octo';
 import { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
 import { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mount.anchor.js';
 import { SubnetFilesystemMountOverlay } from '../../overlays/subnet-filesystem-mount/subnet-filesystem-mount.overlay.js';
-import { AwsRegion } from '../region/aws.region.model.js';
-import { IAwsSubnet } from './aws.subnet.interface.js';
+import type { AwsRegion } from '../region/aws.region.model.js';
+import type { IAwsSubnet } from './aws.subnet.interface.js';
 
 @Model()
 export class AwsSubnet extends Subnet {

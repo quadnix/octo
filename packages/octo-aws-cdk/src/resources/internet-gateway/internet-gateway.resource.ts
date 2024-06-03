@@ -1,6 +1,7 @@
-import { AResource, IResource, Resource } from '@quadnix/octo';
-import { Vpc } from '../vpc/vpc.resource.js';
-import { IInternetGatewayProperties } from './internet-gateway.interface.js';
+import { AResource, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { Vpc } from '../vpc/vpc.resource.js';
+import type { IInternetGatewayProperties } from './internet-gateway.interface.js';
 
 @Resource()
 export class InternetGateway extends AResource<InternetGateway> {

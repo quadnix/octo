@@ -1,4 +1,5 @@
-import { Action, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { AwsExecution } from '../aws.execution.model.js';
 
 @Action(ModelType.MODEL)

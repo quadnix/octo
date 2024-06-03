@@ -1,5 +1,6 @@
-import { AResource, IResource, Resource } from '@quadnix/octo';
-import { IEcsClusterProperties } from './ecs-cluster.interface.js';
+import { AResource, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { IEcsClusterProperties } from './ecs-cluster.interface.js';
 
 @Resource()
 export class EcsCluster extends AResource<EcsCluster> {

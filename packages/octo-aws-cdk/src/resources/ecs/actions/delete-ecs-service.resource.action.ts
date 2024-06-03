@@ -1,10 +1,11 @@
 import { DeleteServiceCommand, DescribeServicesCommand, ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { IEcsClusterProperties } from '../ecs-cluster.interface.js';
-import { EcsCluster } from '../ecs-cluster.resource.js';
-import { IEcsServiceProperties } from '../ecs-service.interface.js';
-import { EcsService } from '../ecs-service.resource.js';
+import type { IEcsClusterProperties } from '../ecs-cluster.interface.js';
+import type { EcsCluster } from '../ecs-cluster.resource.js';
+import type { IEcsServiceProperties } from '../ecs-service.interface.js';
+import type { EcsService } from '../ecs-service.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class DeleteEcsServiceResourceAction implements IResourceAction {

@@ -1,19 +1,10 @@
-import {
-  Action,
-  ActionInputs,
-  ActionOutputs,
-  Diff,
-  DiffAction,
-  EnableHook,
-  Factory,
-  IModelAction,
-  ModelType,
-} from '@quadnix/octo';
-import { INetworkAclProperties } from '../../../resources/network-acl/network-acl.interface.js';
+import { Action, DiffAction, EnableHook, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import type { INetworkAclProperties } from '../../../resources/network-acl/network-acl.interface.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
-import { ISubnetProperties } from '../../../resources/subnet/subnet.interface.js';
-import { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import { AwsSubnet } from '../aws.subnet.model.js';
+import type { ISubnetProperties } from '../../../resources/subnet/subnet.interface.js';
+import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
+import type { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(ModelType.MODEL)
 export class UpdateSubnetAssociationModelAction implements IModelAction {

@@ -1,7 +1,8 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { Efs } from '../../../resources/efs/efs.resource.js';
-import { IRegionFilesystemOverlayProperties } from '../region-filesystem.overlay.interface.js';
-import { RegionFilesystemOverlay } from '../region-filesystem.overlay.js';
+import type { IRegionFilesystemOverlayProperties } from '../region-filesystem.overlay.interface.js';
+import type { RegionFilesystemOverlay } from '../region-filesystem.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class DeleteRegionFilesystemOverlayAction implements IModelAction {

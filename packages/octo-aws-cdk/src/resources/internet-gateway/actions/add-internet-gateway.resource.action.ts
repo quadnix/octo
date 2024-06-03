@@ -1,9 +1,10 @@
 import { AttachInternetGatewayCommand, CreateInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IVpcResponse } from '../../vpc/vpc.interface.js';
-import { Vpc } from '../../vpc/vpc.resource.js';
-import { IInternetGatewayProperties, IInternetGatewayResponse } from '../internet-gateway.interface.js';
-import { InternetGateway } from '../internet-gateway.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { IVpcResponse } from '../../vpc/vpc.interface.js';
+import type { Vpc } from '../../vpc/vpc.resource.js';
+import type { IInternetGatewayProperties, IInternetGatewayResponse } from '../internet-gateway.interface.js';
+import type { InternetGateway } from '../internet-gateway.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddInternetGatewayResourceAction implements IResourceAction {

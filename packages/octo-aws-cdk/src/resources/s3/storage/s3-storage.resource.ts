@@ -1,5 +1,6 @@
-import { AResource, Diff, DiffAction, IResource, Resource } from '@quadnix/octo';
-import { IS3StorageProperties } from './s3-storage.interface.js';
+import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { IS3StorageProperties } from './s3-storage.interface.js';
 
 @Resource()
 export class S3Storage extends AResource<S3Storage> {

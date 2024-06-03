@@ -1,5 +1,5 @@
 import { AAnchor, Anchor } from '@quadnix/octo';
-import { AwsServer } from '../models/server/aws.server.model.js';
+import type { AwsServer } from '../models/server/aws.server.model.js';
 
 @Anchor()
 export class IamUserAnchor extends AAnchor {

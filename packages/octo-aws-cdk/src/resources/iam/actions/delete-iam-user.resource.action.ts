@@ -1,7 +1,8 @@
 import { DeleteUserCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IIamUserResponse } from '../iam-user.interface.js';
-import { IamUser } from '../iam-user.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { IIamUserResponse } from '../iam-user.interface.js';
+import type { IamUser } from '../iam-user.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class DeleteIamUserResourceAction implements IResourceAction {

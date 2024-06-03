@@ -1,5 +1,6 @@
-import { AResource, IResource, Resource } from '@quadnix/octo';
-import { IVpcProperties } from './vpc.interface.js';
+import { AResource, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { IVpcProperties } from './vpc.interface.js';
 
 @Resource()
 export class Vpc extends AResource<Vpc> {

@@ -1,5 +1,6 @@
-import { AResource, IResource, Resource } from '@quadnix/octo';
-import { IEfsProperties } from './efs.interface.js';
+import { AResource, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { IEfsProperties } from './efs.interface.js';
 
 @Resource()
 export class Efs extends AResource<Efs> {

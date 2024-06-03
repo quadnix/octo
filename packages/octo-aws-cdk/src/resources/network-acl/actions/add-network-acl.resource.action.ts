@@ -5,13 +5,14 @@ import {
   EC2Client,
   ReplaceNetworkAclAssociationCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { ISubnetResponse } from '../../subnet/subnet.interface.js';
-import { Subnet } from '../../subnet/subnet.resource.js';
-import { IVpcResponse } from '../../vpc/vpc.interface.js';
-import { Vpc } from '../../vpc/vpc.resource.js';
-import { INetworkAclProperties, INetworkAclResponse } from '../network-acl.interface.js';
-import { NetworkAcl } from '../network-acl.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { ISubnetResponse } from '../../subnet/subnet.interface.js';
+import type { Subnet } from '../../subnet/subnet.resource.js';
+import type { IVpcResponse } from '../../vpc/vpc.interface.js';
+import type { Vpc } from '../../vpc/vpc.resource.js';
+import type { INetworkAclProperties, INetworkAclResponse } from '../network-acl.interface.js';
+import type { NetworkAcl } from '../network-acl.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddNetworkAclResourceAction implements IResourceAction {

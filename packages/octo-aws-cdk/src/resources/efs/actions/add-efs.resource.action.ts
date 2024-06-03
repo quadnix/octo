@@ -1,8 +1,9 @@
 import { CreateFileSystemCommand, DescribeFileSystemsCommand, EFSClient } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { IEfsProperties, IEfsResponse } from '../efs.interface.js';
-import { Efs } from '../efs.resource.js';
+import type { IEfsProperties, IEfsResponse } from '../efs.interface.js';
+import type { Efs } from '../efs.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddEfsResourceAction implements IResourceAction {

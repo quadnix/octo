@@ -31,6 +31,7 @@ dkr
 Dockerfile
 docusaurus
 dom
+dpdm
 ec2
 ecr
 ecs

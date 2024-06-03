@@ -1,5 +1,6 @@
-import { AAnchor, Anchor, IAnchor, UnknownModel } from '@quadnix/octo';
-import { AwsDeployment } from '../models/deployment/aws.deployment.model.js';
+import { AAnchor, Anchor, IAnchor } from '@quadnix/octo';
+import type { UnknownModel } from '@quadnix/octo';
+import type { AwsDeployment } from '../models/deployment/aws.deployment.model.js';
 
 interface ITaskDefinitionAnchor extends IAnchor {
   properties: ITaskDefinitionAnchorProperties;

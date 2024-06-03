@@ -1,5 +1,6 @@
-import { AResource, Diff, DiffAction, IResource, Resource } from '@quadnix/octo';
-import { IS3WebsiteProperties } from './s3-website.interface.js';
+import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { IS3WebsiteProperties } from './s3-website.interface.js';
 
 @Resource()
 export class S3Website extends AResource<S3Website> {

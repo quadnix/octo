@@ -1,7 +1,8 @@
 import { CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IIamUserProperties, IIamUserResponse } from '../iam-user.interface.js';
-import { IamUser } from '../iam-user.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { IIamUserProperties, IIamUserResponse } from '../iam-user.interface.js';
+import type { IamUser } from '../iam-user.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddIamUserResourceAction implements IResourceAction {

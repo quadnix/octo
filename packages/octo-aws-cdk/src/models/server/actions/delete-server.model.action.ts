@@ -1,4 +1,5 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { AwsServer } from '../aws.server.model.js';
 

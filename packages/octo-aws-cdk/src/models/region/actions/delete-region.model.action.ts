@@ -1,4 +1,5 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import { Vpc } from '../../../resources/vpc/vpc.resource.js';

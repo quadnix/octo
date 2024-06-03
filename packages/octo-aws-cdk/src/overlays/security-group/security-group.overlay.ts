@@ -1,6 +1,7 @@
-import { AOverlay, Diff, DiffAction, DiffUtility, IOverlay, IResource, Overlay } from '@quadnix/octo';
-import { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
-import { ISecurityGroupOverlayProperties } from './security-group.overlay.interface.js';
+import { AOverlay, Diff, DiffAction, DiffUtility, Overlay } from '@quadnix/octo';
+import type { IOverlay, IResource } from '@quadnix/octo';
+import type { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
+import type { ISecurityGroupOverlayProperties } from './security-group.overlay.interface.js';
 
 @Overlay()
 export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {

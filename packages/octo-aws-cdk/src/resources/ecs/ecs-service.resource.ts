@@ -1,9 +1,10 @@
-import { AResource, Diff, DiffAction, IResource, Resource } from '@quadnix/octo';
-import { SecurityGroup } from '../security-group/security-group.resource.js';
-import { Subnet } from '../subnet/subnet.resource.js';
-import { EcsCluster } from './ecs-cluster.resource.js';
-import { IEcsServiceProperties } from './ecs-service.interface.js';
-import { EcsTaskDefinition } from './ecs-task-definition.resource.js';
+import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { SecurityGroup } from '../security-group/security-group.resource.js';
+import type { Subnet } from '../subnet/subnet.resource.js';
+import type { EcsCluster } from './ecs-cluster.resource.js';
+import type { IEcsServiceProperties } from './ecs-service.interface.js';
+import type { EcsTaskDefinition } from './ecs-task-definition.resource.js';
 
 export type EcsServicePropertyDiff = {
   [key: string]: { action: 'replace' };

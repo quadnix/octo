@@ -1,8 +1,9 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import { AwsSubnet } from '../aws.subnet.model.js';
+import type { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(ModelType.MODEL)
 export class DeleteSubnetModelAction implements IModelAction {

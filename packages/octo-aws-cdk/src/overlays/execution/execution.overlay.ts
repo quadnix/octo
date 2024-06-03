@@ -1,11 +1,12 @@
-import { AOverlay, Diff, DiffAction, DiffUtility, IOverlay, IResource, Overlay } from '@quadnix/octo';
-import { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
-import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
-import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
-import { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
+import { AOverlay, Diff, DiffAction, DiffUtility, Overlay } from '@quadnix/octo';
+import type { IOverlay, IResource } from '@quadnix/octo';
+import type { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
+import type { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
+import type { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
+import type { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
 import { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mount.anchor.js';
 import { TaskDefinitionAnchor } from '../../anchors/task-definition.anchor.js';
-import { IExecutionOverlayProperties } from './execution.overlay.interface.js';
+import type { IExecutionOverlayProperties } from './execution.overlay.interface.js';
 
 @Overlay()
 export class ExecutionOverlay extends AOverlay<ExecutionOverlay> {

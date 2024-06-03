@@ -1,12 +1,13 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { EnvironmentVariablesAnchor } from '../../../anchors/environment-variables.anchor.js';
 import { TaskDefinitionAnchor } from '../../../anchors/task-definition.anchor.js';
-import { AwsEnvironment } from '../../../models/environment/aws.environment.model.js';
-import { AwsExecution } from '../../../models/execution/aws.execution.model.js';
-import { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
-import { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
-import { IExecutionOverlayProperties } from '../execution.overlay.interface.js';
-import { ExecutionOverlay } from '../execution.overlay.js';
+import type { AwsEnvironment } from '../../../models/environment/aws.environment.model.js';
+import type { AwsExecution } from '../../../models/execution/aws.execution.model.js';
+import type { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
+import type { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
+import type { IExecutionOverlayProperties } from '../execution.overlay.interface.js';
+import type { ExecutionOverlay } from '../execution.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class UpdateExecutionReplaceTaskDefinitionOverlayAction implements IModelAction {

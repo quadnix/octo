@@ -4,15 +4,16 @@ import {
   CreateRouteTableCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IInternetGatewayResponse } from '../../internet-gateway/internet-gateway.interface.js';
-import { InternetGateway } from '../../internet-gateway/internet-gateway.resource.js';
-import { ISubnetResponse } from '../../subnet/subnet.interface.js';
-import { Subnet } from '../../subnet/subnet.resource.js';
-import { IVpcResponse } from '../../vpc/vpc.interface.js';
-import { Vpc } from '../../vpc/vpc.resource.js';
-import { IRouteTableProperties, IRouteTableResponse } from '../route-table.interface.js';
-import { RouteTable } from '../route-table.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { IInternetGatewayResponse } from '../../internet-gateway/internet-gateway.interface.js';
+import type { InternetGateway } from '../../internet-gateway/internet-gateway.resource.js';
+import type { ISubnetResponse } from '../../subnet/subnet.interface.js';
+import type { Subnet } from '../../subnet/subnet.resource.js';
+import type { IVpcResponse } from '../../vpc/vpc.interface.js';
+import type { Vpc } from '../../vpc/vpc.resource.js';
+import type { IRouteTableProperties, IRouteTableResponse } from '../route-table.interface.js';
+import type { RouteTable } from '../route-table.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddRouteTableResourceAction implements IResourceAction {

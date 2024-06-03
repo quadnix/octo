@@ -1,5 +1,5 @@
 import { AAnchor, Anchor } from '@quadnix/octo';
-import { S3StorageService } from '../models/service/s3-storage/s3-storage.service.model.js';
+import type { S3StorageService } from '../models/service/s3-storage/s3-storage.service.model.js';
 
 @Anchor()
 export class S3DirectoryAnchor extends AAnchor {

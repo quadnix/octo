@@ -1,6 +1,7 @@
-import { AResource, IResource, Resource } from '@quadnix/octo';
-import { Vpc } from '../vpc/vpc.resource.js';
-import { ISubnetProperties } from './subnet.interface.js';
+import { AResource, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { Vpc } from '../vpc/vpc.resource.js';
+import type { ISubnetProperties } from './subnet.interface.js';
 
 @Resource()
 export class Subnet extends AResource<Subnet> {

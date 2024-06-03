@@ -1,7 +1,8 @@
 import { DeleteSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { ISubnetProperties, ISubnetResponse } from '../subnet.interface.js';
-import { Subnet } from '../subnet.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { ISubnetProperties, ISubnetResponse } from '../subnet.interface.js';
+import type { Subnet } from '../subnet.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class DeleteSubnetResourceAction implements IResourceAction {

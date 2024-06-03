@@ -1,24 +1,14 @@
-import {
-  Action,
-  ActionInputs,
-  ActionOutputs,
-  Diff,
-  DiffAction,
-  EnableHook,
-  Factory,
-  IModelAction,
-  ModelType,
-  SubnetType,
-} from '@quadnix/octo';
+import { Action, DiffAction, EnableHook, Factory, ModelType, SubnetType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
-import { INetworkAclProperties } from '../../../resources/network-acl/network-acl.interface.js';
+import type { INetworkAclProperties } from '../../../resources/network-acl/network-acl.interface.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
-import { ISubnetProperties } from '../../../resources/subnet/subnet.interface.js';
+import type { ISubnetProperties } from '../../../resources/subnet/subnet.interface.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { Vpc } from '../../../resources/vpc/vpc.resource.js';
-import { AwsRegion } from '../../region/aws.region.model.js';
-import { AwsSubnet } from '../aws.subnet.model.js';
+import type { AwsRegion } from '../../region/aws.region.model.js';
+import type { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(ModelType.MODEL)
 export class AddSubnetModelAction implements IModelAction {

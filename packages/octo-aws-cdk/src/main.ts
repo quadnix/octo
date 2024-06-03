@@ -1,18 +1,20 @@
 import {
-  ActionInputs,
-  App,
   Container,
-  Diff,
-  DiffMetadata,
   EnableHook,
-  IStateProvider,
   InputService,
   ModelSerializationService,
   ResourceSerializationService,
-  ResourceSerializedOutput,
   StateManagementService,
-  TransactionOptions,
   TransactionService,
+} from '@quadnix/octo';
+import type {
+  ActionInputs,
+  App,
+  Diff,
+  DiffMetadata,
+  IStateProvider,
+  ResourceSerializedOutput,
+  TransactionOptions,
   UnknownResource,
 } from '@quadnix/octo';
 

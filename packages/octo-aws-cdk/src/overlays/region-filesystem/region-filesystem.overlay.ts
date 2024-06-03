@@ -1,6 +1,7 @@
-import { AOverlay, IOverlay, IResource, Overlay } from '@quadnix/octo';
-import { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
-import { IRegionFilesystemOverlayProperties } from './region-filesystem.overlay.interface.js';
+import { AOverlay, Overlay } from '@quadnix/octo';
+import type { IOverlay, IResource } from '@quadnix/octo';
+import type { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
+import type { IRegionFilesystemOverlayProperties } from './region-filesystem.overlay.interface.js';
 
 @Overlay()
 export class RegionFilesystemOverlay extends AOverlay<RegionFilesystemOverlay> {

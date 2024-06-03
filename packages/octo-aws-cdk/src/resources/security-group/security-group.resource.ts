@@ -1,6 +1,7 @@
-import { AResource, IResource, Resource } from '@quadnix/octo';
-import { Vpc } from '../vpc/vpc.resource.js';
-import { ISecurityGroupProperties } from './security-group.interface.js';
+import { AResource, Resource } from '@quadnix/octo';
+import type { IResource } from '@quadnix/octo';
+import type { Vpc } from '../vpc/vpc.resource.js';
+import type { ISecurityGroupProperties } from './security-group.interface.js';
 
 @Resource()
 export class SecurityGroup extends AResource<SecurityGroup> {

@@ -1,14 +1,5 @@
-import {
-  Action,
-  ActionInputs,
-  ActionOutputs,
-  Diff,
-  DiffAction,
-  Factory,
-  IModelAction,
-  Image,
-  ModelType,
-} from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction, Image } from '@quadnix/octo';
 import { parse } from 'path';
 import { EcrImage } from '../../../../resources/ecr/ecr-image.resource.js';
 import { EcrService } from '../ecr.service.model.js';

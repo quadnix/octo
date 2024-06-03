@@ -1,4 +1,5 @@
-import { Action, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
 import { S3Storage } from '../../../../resources/s3/storage/s3-storage.resource.js';
 import { S3StorageService } from '../s3-storage.service.model.js';
 

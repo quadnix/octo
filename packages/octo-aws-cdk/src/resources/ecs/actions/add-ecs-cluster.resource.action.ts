@@ -1,7 +1,8 @@
 import { CreateClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import { IEcsClusterProperties, IEcsClusterResponse } from '../ecs-cluster.interface.js';
-import { EcsCluster } from '../ecs-cluster.resource.js';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
+import type { IEcsClusterProperties, IEcsClusterResponse } from '../ecs-cluster.interface.js';
+import type { EcsCluster } from '../ecs-cluster.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddEcsClusterResourceAction implements IResourceAction {

@@ -1,6 +1,7 @@
-import { Action, ActionInputs, ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
-import { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
-import { AwsRegion } from '../../region/aws.region.model.js';
+import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
+import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import type { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
+import type { AwsRegion } from '../../region/aws.region.model.js';
 import { AwsEnvironment } from '../aws.environment.model.js';
 
 @Action(ModelType.MODEL)

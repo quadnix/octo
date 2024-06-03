@@ -1,4 +1,5 @@
-import { Container, Diff, Execution, Model, OverlayService } from '@quadnix/octo';
+import { Container, Execution, Model, OverlayService } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
@@ -8,11 +9,11 @@ import { TaskDefinitionAnchor } from '../../anchors/task-definition.anchor.js';
 import { ExecutionOverlay } from '../../overlays/execution/execution.overlay.js';
 import { SecurityGroupOverlay } from '../../overlays/security-group/security-group.overlay.js';
 import { CommonUtility } from '../../utilities/common/common.utility.js';
-import { AwsDeployment } from '../deployment/aws.deployment.model.js';
-import { AwsEnvironment } from '../environment/aws.environment.model.js';
-import { AwsRegion } from '../region/aws.region.model.js';
-import { AwsServer } from '../server/aws.server.model.js';
-import { AwsSubnet } from '../subnet/aws.subnet.model.js';
+import type { AwsDeployment } from '../deployment/aws.deployment.model.js';
+import type { AwsEnvironment } from '../environment/aws.environment.model.js';
+import type { AwsRegion } from '../region/aws.region.model.js';
+import type { AwsServer } from '../server/aws.server.model.js';
+import type { AwsSubnet } from '../subnet/aws.subnet.model.js';
 
 @Model()
 export class AwsExecution extends Execution {

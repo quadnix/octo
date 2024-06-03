@@ -1,12 +1,13 @@
 import { CreateMountTargetCommand, DescribeMountTargetsCommand, EFSClient } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
+import type { Diff } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { ISubnetResponse } from '../../subnet/subnet.interface.js';
-import { Subnet } from '../../subnet/subnet.resource.js';
-import { IEfsMountTargetProperties, IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
-import { EfsMountTarget } from '../efs-mount-target.resource.js';
-import { IEfsResponse } from '../efs.interface.js';
-import { Efs } from '../efs.resource.js';
+import type { ISubnetResponse } from '../../subnet/subnet.interface.js';
+import type { Subnet } from '../../subnet/subnet.resource.js';
+import type { IEfsMountTargetProperties, IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
+import type { EfsMountTarget } from '../efs-mount-target.resource.js';
+import type { IEfsResponse } from '../efs.interface.js';
+import type { Efs } from '../efs.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddEfsMountTargetResourceAction implements IResourceAction {
