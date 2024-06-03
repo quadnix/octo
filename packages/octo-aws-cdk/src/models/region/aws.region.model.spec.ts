@@ -1,20 +1,13 @@
 import {
-  AssociateRouteTableCommand,
   AttachInternetGatewayCommand,
   AuthorizeSecurityGroupEgressCommand,
   AuthorizeSecurityGroupIngressCommand,
   CreateInternetGatewayCommand,
-  CreateNetworkAclCommand,
-  CreateRouteCommand,
-  CreateRouteTableCommand,
   CreateSecurityGroupCommand,
-  CreateSubnetCommand,
   CreateVpcCommand,
-  DescribeNetworkAclsCommand,
   EC2Client,
-  ReplaceNetworkAclAssociationCommand,
 } from '@aws-sdk/client-ec2';
-import { CreateFileSystemCommand, CreateMountTargetCommand, EFSClient } from '@aws-sdk/client-efs';
+import { CreateFileSystemCommand, EFSClient } from '@aws-sdk/client-efs';
 import { jest } from '@jest/globals';
 import { App, Container, DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
@@ -76,31 +69,13 @@ describe('AwsRegion UT', () => {
           return { InternetGateway: { InternetGatewayId: 'InternetGatewayId' } };
         } else if (instance instanceof AttachInternetGatewayCommand) {
           return undefined;
-        } else if (instance instanceof CreateSubnetCommand) {
-          return { Subnet: { SubnetId: 'SubnetId' } };
         } else if (instance instanceof CreateSecurityGroupCommand) {
           return { GroupId: 'GroupId' };
         } else if (
           instance instanceof AuthorizeSecurityGroupEgressCommand ||
           instance instanceof AuthorizeSecurityGroupIngressCommand
         ) {
-          return undefined;
-        } else if (instance instanceof CreateRouteTableCommand) {
-          return { RouteTable: { RouteTableId: 'RouteTableId' } };
-        } else if (instance instanceof AssociateRouteTableCommand) {
-          return { AssociationId: 'AssociationId' };
-        } else if (instance instanceof CreateRouteCommand) {
-          return undefined;
-        } else if (instance instanceof DescribeNetworkAclsCommand) {
-          return {
-            NetworkAcls: [
-              { Associations: [{ NetworkAclAssociationId: 'NetworkAclAssociationId', SubnetId: 'SubnetId' }] },
-            ],
-          };
-        } else if (instance instanceof CreateNetworkAclCommand) {
-          return { NetworkAcl: { NetworkAclId: 'NetworkAclId' } };
-        } else if (instance instanceof ReplaceNetworkAclAssociationCommand) {
-          return { NewAssociationId: 'NewAssociationId' };
+          return { SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId' }] };
         }
       });
 
@@ -108,34 +83,30 @@ describe('AwsRegion UT', () => {
       (efsClient.send as jest.Mock).mockImplementation(async (instance) => {
         if (instance instanceof CreateFileSystemCommand) {
           return { FileSystemArn: 'FileSystemArn', FileSystemId: 'FileSystemId' };
-        } else if (instance instanceof CreateMountTargetCommand) {
-          return { IpAddress: 'IpAddress', MountTargetId: 'MountTargetId', NetworkInterfaceId: 'NetworkInterfaceId' };
         }
       });
 
       const octoAws = new OctoAws();
       await octoAws.initialize(new LocalStateProvider(__dirname));
       octoAws.registerInputs({
-        'input.region.aws-us-east-1a.subnet.private1.CidrBlock': '0.0.0.0/0',
-        'input.region.aws-us-east-1a.subnet.public1.CidrBlock': '0.0.0.0/0',
         'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
       });
 
-      const app = new App('test');
-      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
+      const app_0 = new App('test');
+      const region_0 = new AwsRegion(RegionId.AWS_US_EAST_1A);
+      app_0.addRegion(region_0);
 
-      const diffs1 = await octoAws.diff(app);
-      const generator1 = await octoAws.beginTransaction(diffs1, {
+      const diffs0 = await octoAws.diff(app_0);
+      const generator0 = await octoAws.beginTransaction(diffs0, {
         yieldResourceTransaction: true,
       });
 
-      const resourceTransactionResult1 = await generator1.next();
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult1.value);
+      const resourceTransactionResult0 = await generator0.next();
+      const modelTransactionResult0 = (await generator0.next()) as IteratorResult<DiffMetadata[][]>;
+      const app_1 = await octoAws.commitTransaction(app_0, modelTransactionResult0.value);
 
       // Verify resource transaction was as expected.
-      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
+      expect(resourceTransactionResult0.value).toMatchInlineSnapshot(`
         [
           [
             {
@@ -153,116 +124,80 @@ describe('AwsRegion UT', () => {
             {
               "action": "add",
               "field": "resourceId",
-              "value": "subnet-aws-us-east-1a-private-1",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "subnet-aws-us-east-1a-public-1",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
               "value": "sec-grp-aws-us-east-1a-access",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-internal-open",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-private-closed",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-web",
-            },
-          ],
-          [
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "rt-aws-us-east-1a-private-1",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "rt-aws-us-east-1a-public-1",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "nacl-aws-us-east-1a-private-1",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "nacl-aws-us-east-1a-public-1",
             },
           ],
         ]
       `);
 
-      // Remove region.
-      region.remove();
+      // Add a new filesystem.
+      const region_1 = app_1.getChildren('region')['region'][0].to as AwsRegion;
+      await region_1.addFilesystem('shared-mounts');
 
-      const diffs2 = await octoAws.diff(app);
+      const diffs1 = await octoAws.diff(app_1);
+      const generator1 = await octoAws.beginTransaction(diffs1, {
+        yieldResourceTransaction: true,
+      });
+
+      const resourceTransactionResult1 = await generator1.next();
+      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
+      const app_2 = await octoAws.commitTransaction(app_1, modelTransactionResult1.value);
+
+      // Verify resource transaction was as expected.
+      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "add",
+             "field": "resourceId",
+             "value": "efs-aws-us-east-1a-shared-mounts-filesystem",
+           },
+         ],
+       ]
+      `);
+
+      // Remove the "shared-mounts" filesystem.
+      const region_2 = app_2.getChildren('region')['region'][0].to as AwsRegion;
+      await region_2.removeFilesystem('shared-mounts');
+
+      const diffs2 = await octoAws.diff(app_2);
       const generator2 = await octoAws.beginTransaction(diffs2, {
         yieldResourceTransaction: true,
       });
 
       const resourceTransactionResult2 = await generator2.next();
       const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult2.value);
+      const app_3 = await octoAws.commitTransaction(app_2, modelTransactionResult2.value);
 
       // Verify resource transaction was as expected.
       expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "value": "efs-aws-us-east-1a-shared-mounts-filesystem",
+           },
+         ],
+       ]
+      `);
+
+      // Remove region.
+      const region_3 = app_3.getChildren('region')['region'][0].to as AwsRegion;
+      region_3.remove();
+
+      const diffs3 = await octoAws.diff(app_3);
+      const generator3 = await octoAws.beginTransaction(diffs3, {
+        yieldResourceTransaction: true,
+      });
+
+      const resourceTransactionResult3 = await generator3.next();
+      const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
+      await octoAws.commitTransaction(app_3, modelTransactionResult3.value);
+
+      // Verify resource transaction was as expected.
+      expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
         [
-          [
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-access",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-internal-open",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-private-closed",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-web",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "rt-aws-us-east-1a-private-1",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "nacl-aws-us-east-1a-private-1",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "rt-aws-us-east-1a-public-1",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "nacl-aws-us-east-1a-public-1",
-            },
-          ],
           [
             {
               "action": "delete",
@@ -272,12 +207,7 @@ describe('AwsRegion UT', () => {
             {
               "action": "delete",
               "field": "resourceId",
-              "value": "subnet-aws-us-east-1a-private-1",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "subnet-aws-us-east-1a-public-1",
+              "value": "sec-grp-aws-us-east-1a-access",
             },
           ],
           [

@@ -83,11 +83,12 @@ export class AwsRegion extends Region {
 
     const overlayService = await Container.get(OverlayService);
     const overlays = overlayService.getOverlayByProperties();
-    if (overlays.find((o) => o.getAnchor(filesystem.filesystemAnchorName))) {
+
+    const overlayId = `${filesystem.filesystemAnchorName}Overlay`;
+    if (overlays.find((o) => o.overlayId !== overlayId && o.getAnchor(filesystem.filesystemAnchorName))) {
       throw new Error('Cannot remove filesystem while overlay exists!');
     }
 
-    const overlayId = `${filesystem.filesystemAnchorName}Overlay`;
     const overlay = overlayService.getOverlayById(overlayId);
     overlayService.removeOverlay(overlay!);
   }
