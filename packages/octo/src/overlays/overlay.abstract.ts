@@ -30,6 +30,10 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   }
 
   addAnchor(anchor: AAnchor): void {
+    if (this.getAnchor(anchor.anchorId)) {
+      return;
+    }
+
     const dependencies = this.addRelationship(anchor.getParent());
     dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.ADD);
     dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.UPDATE);
@@ -66,6 +70,12 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     const anchorIndex = this.anchors.findIndex((a) => a.anchorId === anchor.anchorId);
     if (anchorIndex > -1) {
       this.anchors.splice(anchorIndex, 1);
+    }
+  }
+
+  removeAllAnchors(): void {
+    while (this.anchors.length > 0) {
+      this.removeAnchor(this.anchors[0]);
     }
   }
 

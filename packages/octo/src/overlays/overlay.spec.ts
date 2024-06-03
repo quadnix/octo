@@ -18,6 +18,18 @@ describe('Overlay UT', () => {
     Container.reset();
   });
 
+  it('should not create duplicate anchors', () => {
+    const app = new App('test');
+    const anchor1 = new TestAnchor('anchor-1', app);
+    app['anchors'].push(anchor1);
+
+    const overlay1 = new TestOverlay('overlay-1', {}, [anchor1]);
+    expect(overlay1.getAnchors().length).toBe(1);
+
+    overlay1.addAnchor(anchor1);
+    expect(overlay1.getAnchors().length).toBe(1);
+  });
+
   describe('addAnchor()', () => {
     it('should create dependency between overlay and anchor parents', () => {
       const app = new App('test');
@@ -233,6 +245,30 @@ describe('Overlay UT', () => {
 
       expect(app['dependencies'].filter((d) => d.to.getContext() === overlay1.getContext()).length).toBe(1);
       expect(overlay1['dependencies'].filter((d) => d.to.getContext() === app.getContext()).length).toBe(1);
+    });
+  });
+
+  describe('removeAllAnchors()', () => {
+    it('should remove all anchors with parent dependencies', () => {
+      const app1 = new App('test1');
+      const anchor1 = new TestAnchor('anchor-1', app1);
+      app1['anchors'].push(anchor1);
+
+      const app2 = new App('test2');
+      const anchor2 = new TestAnchor('anchor-2', app2);
+      app2['anchors'].push(anchor2);
+
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
+      expect(overlay1.getAnchors().length).toBe(2);
+      expect(app1['dependencies'].length).toBe(1);
+      expect(app2['dependencies'].length).toBe(1);
+      expect(overlay1['dependencies'].length).toBe(2);
+
+      overlay1.removeAllAnchors();
+      expect(overlay1.getAnchors().length).toBe(0);
+      expect(app1['dependencies'].length).toBe(0);
+      expect(app2['dependencies'].length).toBe(0);
+      expect(overlay1['dependencies'].length).toBe(0);
     });
   });
 

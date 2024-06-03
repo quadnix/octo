@@ -19,6 +19,7 @@ export class OverlayService {
   }
 
   removeOverlay(overlay: UnknownOverlay): void {
+    overlay.removeAllAnchors();
     this.overlayDataRepository.remove(overlay);
   }
 }
