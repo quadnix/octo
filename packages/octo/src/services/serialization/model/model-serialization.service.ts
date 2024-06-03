@@ -14,7 +14,9 @@ export class ModelSerializationService {
 
   constructor(private readonly overlayDataRepository: OverlayDataRepository) {}
 
-  async deserialize(serializedOutput: ModelSerializedOutput): Promise<UnknownModel> {
+  async _deserialize(
+    serializedOutput: ModelSerializedOutput,
+  ): Promise<{ overlays: UnknownOverlay[]; root: UnknownModel }> {
     const deReferencePromises: {
       [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
     } = {};
@@ -78,23 +80,32 @@ export class ModelSerializationService {
     }
 
     // Deserialize all overlays.
-    const newOverlays: UnknownOverlay[] = [];
-    const oldOverlays: UnknownOverlay[] = [];
+    const overlays: UnknownOverlay[] = [];
     for (const { className, overlay } of serializedOutput.overlays) {
       const deserializationClass = this.classMapping[className];
       const newOverlay = await deserializationClass.unSynth(deserializationClass, overlay, deReferenceContext);
-      newOverlays.push(newOverlay);
-      const oldOverlay = await deserializationClass.unSynth(deserializationClass, overlay, deReferenceContext);
-      oldOverlays.push(oldOverlay);
+      overlays.push(newOverlay);
     }
-    // Refresh the overlay data repository.
-    this.overlayDataRepository['oldOverlays'] = oldOverlays;
-    this.overlayDataRepository['newOverlays'] = newOverlays;
 
     // If no dependencies to serialize, return the first seen model.
-    return serializedOutput.dependencies.length > 0
-      ? seen[serializedOutput.dependencies[0].from]
-      : seen[Object.keys(seen)[0]];
+    const root =
+      serializedOutput.dependencies.length > 0
+        ? seen[serializedOutput.dependencies[0].from]
+        : seen[Object.keys(seen)[0]];
+
+    return { overlays, root };
+  }
+
+  async deserialize(serializedOutput: ModelSerializedOutput): Promise<UnknownModel> {
+    const { overlays: newOverlays, root } = await this._deserialize(serializedOutput);
+    const { overlays: oldOverlays } = await this._deserialize(serializedOutput);
+
+    // Refresh the overlay data repository.
+    await Container.get(OverlayDataRepository, {
+      args: [true, oldOverlays, newOverlays],
+    });
+
+    return root;
   }
 
   registerClass(className: string, deserializationClass: any): void {

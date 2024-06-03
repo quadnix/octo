@@ -183,6 +183,37 @@ describe('Model Serialization Service UT', () => {
         app_1.getContext(),
       ]);
     });
+
+    it('should not share any models between old and new overlays', async () => {
+      const service = await Container.get(ModelSerializationService);
+      service.registerClass('App', App);
+      service.registerClass('TestAnchor', TestAnchor);
+      service.registerClass('TestOverlay', TestOverlay);
+
+      const app_0 = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', app_0);
+      app_0['anchors'].push(anchor1);
+
+      const overlayService = await Container.get(OverlayService);
+      const overlay1_0 = new TestOverlay('overlay-1', {}, [anchor1]);
+      overlayService.addOverlay(overlay1_0);
+
+      // Serialize and deserialize the app. This should setup old and new overlays in the OverlayDataRepository.
+      const appSerialized = await service.serialize(app_0);
+      const app_1 = (await service.deserialize(appSerialized)) as App;
+
+      // Modify the new app.
+      app_1.addRegion(new Region('region-1'));
+
+      // Ensure the new and old overlays in the OverlayDataRepository are not shared.
+      const overlayDataRepository = await Container.get(OverlayDataRepository);
+      expect(overlayDataRepository['oldOverlays'][0].getAnchor('anchor-1')!.getParent()!.getChildren()['region']).toBe(
+        undefined,
+      );
+      expect(
+        overlayDataRepository['newOverlays'][0].getAnchor('anchor-1')!.getParent()!.getChildren()['region'].length,
+      ).toBe(1);
+    });
   });
 
   describe('serialize()', () => {
