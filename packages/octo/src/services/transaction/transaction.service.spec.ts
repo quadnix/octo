@@ -371,11 +371,9 @@ describe('TransactionService UT', () => {
 
     it('should process diffs of deleting resources per dependency graph', async () => {
       const resource1_1 = new TestResource('resource-1');
-      const resource2_1 = new TestResource('resource-2');
-      resource1_1.addChild('resourceId', resource2_1, 'resourceId');
+      const resource2_1 = new TestResource('resource-2', {}, [resource1_1]);
       const resource1_2 = new TestResource('resource-1');
-      const resource2_2 = new TestResource('resource-2');
-      resource1_2.addChild('resourceId', resource2_2, 'resourceId');
+      const resource2_2 = new TestResource('resource-2', {}, [resource1_2]);
 
       await Container.get(ResourceDataRepository, {
         args: [true, [resource1_1, resource2_1], [resource1_2, resource2_2]],

@@ -45,7 +45,7 @@ export class ResourceDataRepository {
         const newResource = newResources[oldResourceId];
 
         if (newResource.isMarkedDeleted()) {
-          diffs.push(new Diff(newResource, DiffAction.DELETE, 'resourceId', oldResourceId));
+          diffs.push(new Diff(oldResources[oldResourceId], DiffAction.DELETE, 'resourceId', oldResourceId));
         } else {
           const rDiff = await newResource.diff(oldResources[oldResourceId]);
           diffs.push(...rDiff);
