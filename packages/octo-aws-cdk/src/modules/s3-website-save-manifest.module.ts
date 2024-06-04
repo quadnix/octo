@@ -5,6 +5,7 @@ import { DeleteS3StaticWebsiteModelAction } from '../models/service/s3-static-we
 import { UpdateSourcePathsS3StaticWebsiteModelAction } from '../models/service/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
 import type { S3StaticWebsiteService } from '../models/service/s3-static-website/s3-static-website.service.model.js';
 
+// TODO: these modules are more appropriate as an overlay.
 @Module({
   preCommitHandles: [
     {

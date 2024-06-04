@@ -5,16 +5,7 @@ import {
   RegisterTaskDefinitionCommand,
 } from '@aws-sdk/client-ecs';
 import { jest } from '@jest/globals';
-import {
-  App,
-  Container,
-  DiffMetadata,
-  Environment,
-  Execution,
-  Image,
-  LocalStateProvider,
-  TestContainer,
-} from '@quadnix/octo';
+import { App, Container, DiffMetadata, Environment, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -23,6 +14,7 @@ import { AwsDeployment, AwsRegion, AwsServer, EcrService, OctoAws, RegionId, S3S
 import { AwsRegionSharedEfsModule } from '../../modules/aws-region-shared-efs.module.js';
 import { ProcessUtility } from '../../utilities/process/process.utility.js';
 import { RetryUtility } from '../../utilities/retry/retry.utility.js';
+import { AwsExecution } from './aws.execution.model.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
@@ -132,7 +124,7 @@ describe('Execution UT', () => {
     const modelTransactionResult0 = (await generator0.next()) as IteratorResult<DiffMetadata[][]>;
     await octoAws.commitTransaction(app, modelTransactionResult0.value);
 
-    const execution = new Execution(deployment, environment, image);
+    const execution = new AwsExecution(deployment, environment, image);
 
     const diffs1 = await octoAws.diff(app);
     const generator1 = await octoAws.beginTransaction(diffs1, {
@@ -164,7 +156,7 @@ describe('Execution UT', () => {
     `);
 
     // Remove execution.
-    execution.remove(true);
+    execution.remove();
 
     const diffs2 = await octoAws.diff(app);
     const generator2 = await octoAws.beginTransaction(diffs2, {
