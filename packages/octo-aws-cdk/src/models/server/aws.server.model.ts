@@ -1,4 +1,4 @@
-import { Model, Server } from '@quadnix/octo';
+import { IServer, Model, Server } from '@quadnix/octo';
 import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
 import { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
 import type { AwsDeployment } from '../deployment/aws.deployment.model.js';
@@ -52,8 +52,12 @@ export class AwsServer extends Server {
         r.IpProtocol === rule.IpProtocol &&
         r.ToPort === rule.ToPort,
     );
-    if (existingRuleIndex) {
+    if (existingRuleIndex > -1) {
       securityGroupAnchor.rules.splice(existingRuleIndex, 1);
     }
+  }
+
+  static override async unSynth(server: IServer): Promise<AwsServer> {
+    return new AwsServer(server.serverKey);
   }
 }
