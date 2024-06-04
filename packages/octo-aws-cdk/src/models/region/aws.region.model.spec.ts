@@ -92,21 +92,21 @@ describe('AwsRegion UT', () => {
         'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
       });
 
-      const app_0 = new App('test');
-      const region_0 = new AwsRegion(RegionId.AWS_US_EAST_1A);
-      app_0.addRegion(region_0);
+      const app = new App('test');
+      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
 
-      const diffs0 = await octoAws.diff(app_0);
-      const generator0 = await octoAws.beginTransaction(diffs0, {
+      const diffs1 = await octoAws.diff(app);
+      const generator1 = await octoAws.beginTransaction(diffs1, {
         yieldResourceTransaction: true,
       });
 
-      const resourceTransactionResult0 = await generator0.next();
-      const modelTransactionResult0 = (await generator0.next()) as IteratorResult<DiffMetadata[][]>;
-      const app_1 = await octoAws.commitTransaction(app_0, modelTransactionResult0.value);
+      const resourceTransactionResult1 = await generator1.next();
+      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
+      await octoAws.commitTransaction(app, modelTransactionResult1.value);
 
       // Verify resource transaction was as expected.
-      expect(resourceTransactionResult0.value).toMatchInlineSnapshot(`
+      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
         [
           [
             {
@@ -131,20 +131,19 @@ describe('AwsRegion UT', () => {
       `);
 
       // Add a new filesystem.
-      const region_1 = app_1.getChildren('region')['region'][0].to as AwsRegion;
-      await region_1.addFilesystem('shared-mounts');
+      await region.addFilesystem('shared-mounts');
 
-      const diffs1 = await octoAws.diff(app_1);
-      const generator1 = await octoAws.beginTransaction(diffs1, {
+      const diffs2 = await octoAws.diff(app);
+      const generator2 = await octoAws.beginTransaction(diffs2, {
         yieldResourceTransaction: true,
       });
 
-      const resourceTransactionResult1 = await generator1.next();
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      const app_2 = await octoAws.commitTransaction(app_1, modelTransactionResult1.value);
+      const resourceTransactionResult2 = await generator2.next();
+      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
+      await octoAws.commitTransaction(app, modelTransactionResult2.value);
 
       // Verify resource transaction was as expected.
-      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
+      expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
        [
          [
            {
@@ -157,20 +156,19 @@ describe('AwsRegion UT', () => {
       `);
 
       // Remove the "shared-mounts" filesystem.
-      const region_2 = app_2.getChildren('region')['region'][0].to as AwsRegion;
-      await region_2.removeFilesystem('shared-mounts');
+      await region.removeFilesystem('shared-mounts');
 
-      const diffs2 = await octoAws.diff(app_2);
-      const generator2 = await octoAws.beginTransaction(diffs2, {
+      const diffs3 = await octoAws.diff(app);
+      const generator3 = await octoAws.beginTransaction(diffs3, {
         yieldResourceTransaction: true,
       });
 
-      const resourceTransactionResult2 = await generator2.next();
-      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      const app_3 = await octoAws.commitTransaction(app_2, modelTransactionResult2.value);
+      const resourceTransactionResult3 = await generator3.next();
+      const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
+      await octoAws.commitTransaction(app, modelTransactionResult3.value);
 
       // Verify resource transaction was as expected.
-      expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
+      expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
        [
          [
            {
@@ -183,20 +181,19 @@ describe('AwsRegion UT', () => {
       `);
 
       // Remove region.
-      const region_3 = app_3.getChildren('region')['region'][0].to as AwsRegion;
-      region_3.remove();
+      region.remove();
 
-      const diffs3 = await octoAws.diff(app_3);
-      const generator3 = await octoAws.beginTransaction(diffs3, {
+      const diffs4 = await octoAws.diff(app);
+      const generator4 = await octoAws.beginTransaction(diffs4, {
         yieldResourceTransaction: true,
       });
 
-      const resourceTransactionResult3 = await generator3.next();
-      const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app_3, modelTransactionResult3.value);
+      const resourceTransactionResult4 = await generator4.next();
+      const modelTransactionResult4 = (await generator4.next()) as IteratorResult<DiffMetadata[][]>;
+      await octoAws.commitTransaction(app, modelTransactionResult4.value);
 
       // Verify resource transaction was as expected.
-      expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
+      expect(resourceTransactionResult4.value).toMatchInlineSnapshot(`
         [
           [
             {
