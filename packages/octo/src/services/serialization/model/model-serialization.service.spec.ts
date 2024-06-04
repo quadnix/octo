@@ -200,10 +200,10 @@ describe('Model Serialization Service UT', () => {
 
       // Serialize and deserialize the app. This should setup old and new overlays in the OverlayDataRepository.
       const appSerialized = await service.serialize(app_0);
-      const app_1 = (await service.deserialize(appSerialized)) as App;
+      await service.deserialize(appSerialized);
 
       // Modify the new app.
-      app_1.addRegion(new Region('region-1'));
+      app_0.addRegion(new Region('region-1'));
 
       // Ensure the new and old overlays in the OverlayDataRepository are not shared.
       const overlayDataRepository = await Container.get(OverlayDataRepository);

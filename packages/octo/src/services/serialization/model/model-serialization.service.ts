@@ -97,8 +97,8 @@ export class ModelSerializationService {
   }
 
   async deserialize(serializedOutput: ModelSerializedOutput): Promise<UnknownModel> {
-    const { overlays: newOverlays, root } = await this._deserialize(serializedOutput);
-    const { overlays: oldOverlays } = await this._deserialize(serializedOutput);
+    const newOverlays = this.overlayDataRepository.getByProperties();
+    const { overlays: oldOverlays, root } = await this._deserialize(serializedOutput);
 
     // Refresh the overlay data repository.
     await Container.get(OverlayDataRepository, {
