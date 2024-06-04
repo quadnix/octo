@@ -1,4 +1,4 @@
-import { Environment, Model } from '@quadnix/octo';
+import { Environment, IEnvironment, Model } from '@quadnix/octo';
 import type { Diff } from '@quadnix/octo';
 import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 
@@ -14,5 +14,9 @@ export class AwsEnvironment extends Environment {
   override async diff(): Promise<Diff[]> {
     // Skip diff of environmentVariables, since its done in ExecutionOverlay.
     return [];
+  }
+
+  static override async unSynth(environment: IEnvironment): Promise<AwsEnvironment> {
+    return new AwsEnvironment(environment.environmentName);
   }
 }

@@ -1,11 +1,11 @@
-import { ECSClient } from '@aws-sdk/client-ecs';
+import { CreateClusterCommand, DeleteClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
 import { jest } from '@jest/globals';
-import { App, Container, DiffMetadata, Environment, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, Container, DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { AwsRegion, OctoAws, RegionId } from '../../index.js';
+import { AwsEnvironment, AwsRegion, OctoAws, RegionId } from '../../index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
@@ -49,8 +49,6 @@ describe('Environment UT', () => {
       octoAws = new OctoAws();
       await octoAws.initialize(new LocalStateProvider(__dirname));
       octoAws.registerInputs({
-        'input.region.aws-us-east-1a.subnet.private1.CidrBlock': '0.0.0.0/0',
-        'input.region.aws-us-east-1a.subnet.public1.CidrBlock': '0.0.0.0/0',
         'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
       });
 
@@ -70,10 +68,15 @@ describe('Environment UT', () => {
 
     it('should create new environment and delete it', async () => {
       const ecsClient = await Container.get(ECSClient);
-      (ecsClient.send as jest.Mock).mockResolvedValueOnce({ cluster: { clusterArn: 'clusterArn' } } as never);
-      (ecsClient.send as jest.Mock).mockResolvedValueOnce(undefined as never);
+      (ecsClient.send as jest.Mock).mockImplementation(async (instance) => {
+        if (instance instanceof CreateClusterCommand) {
+          return { cluster: { clusterArn: 'clusterArn' } };
+        } else if (instance instanceof DeleteClusterCommand) {
+          return undefined;
+        }
+      });
 
-      const environment = new Environment('qa');
+      const environment = new AwsEnvironment('qa');
       region.addEnvironment(environment);
 
       const diffs1 = await octoAws.diff(app);
