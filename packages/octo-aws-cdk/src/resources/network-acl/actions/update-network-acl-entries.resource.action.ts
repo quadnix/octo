@@ -19,12 +19,11 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'UpdateNetworkAclEntriesResourceAction';
 
   filter(diff: Diff): boolean {
-    const updatedKeys = Object.keys(diff.value as { key: string; value: unknown });
     return (
       diff.action === DiffAction.UPDATE &&
       diff.model.MODEL_NAME === 'network-acl' &&
       diff.field === 'properties' &&
-      updatedKeys.includes('entries')
+      (diff.value as { key: string; value: unknown }).key === 'entries'
     );
   }
 

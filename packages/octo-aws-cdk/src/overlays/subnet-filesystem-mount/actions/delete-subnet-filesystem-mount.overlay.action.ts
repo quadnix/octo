@@ -23,6 +23,8 @@ export class DeleteSubnetFilesystemMountOverlayAction implements IModelAction {
     const awsSubnet = subnetFilesystemMountAnchor.getParent() as AwsSubnet;
 
     return [
+      `resource.efs-${region.regionId}-${regionFilesystemAnchor.filesystemName}-filesystem`,
+      `resource.subnet-${awsSubnet.subnetId}`,
       // eslint-disable-next-line max-len
       `resource.efs-mount-${region.regionId}-${awsSubnet.subnetName}-${regionFilesystemAnchor.filesystemName}-filesystem`,
     ];

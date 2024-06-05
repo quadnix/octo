@@ -56,11 +56,12 @@ export class AwsSubnet extends Subnet {
 
     const overlayService = await Container.get(OverlayService);
     const overlays = overlayService.getOverlayByProperties();
-    if (overlays.find((o) => o.getAnchor(filesystemMount.filesystemMountAnchorName))) {
+
+    const overlayId = `${filesystemMount.filesystemMountAnchorName}Overlay`;
+    if (overlays.find((o) => o.overlayId !== overlayId && o.getAnchor(filesystemMount.filesystemMountAnchorName))) {
       throw new Error('Cannot remove filesystem mount while overlay exists!');
     }
 
-    const overlayId = `${filesystemMount.filesystemMountAnchorName}Overlay`;
     const overlay = overlayService.getOverlayById(overlayId);
     overlayService.removeOverlay(overlay!);
   }
