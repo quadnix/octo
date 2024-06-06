@@ -33,12 +33,14 @@
     plugins: ['@nx', '@typescript-eslint/eslint-plugin', 'import', 'spellcheck'],
     root: true,
     rules: {
+      '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports'}],
       '@typescript-eslint/explicit-function-return-type': 2,
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/interface-name-prefix': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       'jsonc/sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
       'max-len': ['error', { code: 120, ignoreStrings: true }],
+      'no-duplicate-imports': ['error', { 'includeExports': true }],
       'sort-imports': [
         'error',
         {
