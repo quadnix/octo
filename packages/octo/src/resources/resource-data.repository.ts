@@ -1,5 +1,4 @@
-import { ModelType } from '../app.type.js';
-import type { ActionOutputs, UnknownResource } from '../app.type.js';
+import { type ActionOutputs, ModelType, type UnknownResource } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { IResource } from './resource.interface.js';

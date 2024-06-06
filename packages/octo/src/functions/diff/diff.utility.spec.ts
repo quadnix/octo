@@ -1,4 +1,4 @@
-import { UnknownModel } from '../../app.type.js';
+import { type UnknownModel } from '../../app.type.js';
 import { DiffUtility } from './diff.utility.js';
 
 describe('Diff Utility UT', () => {

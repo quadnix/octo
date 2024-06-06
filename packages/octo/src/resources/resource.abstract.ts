@@ -1,5 +1,4 @@
-import { ModelType } from '../app.type.js';
-import type { UnknownResource } from '../app.type.js';
+import { ModelType, type UnknownResource } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';

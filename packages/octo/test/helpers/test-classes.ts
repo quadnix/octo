@@ -4,11 +4,11 @@ import {
   AOverlay,
   AResource,
   ASharedResource,
-  Diff,
-  IOverlay,
-  IResource,
-  UnknownModel,
-  UnknownResource,
+  type Diff,
+  type IOverlay,
+  type IResource,
+  type UnknownModel,
+  type UnknownResource,
 } from '../../src/index.js';
 
 export class SharedTestResource extends ASharedResource<TestResource> {

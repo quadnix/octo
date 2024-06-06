@@ -2,8 +2,7 @@ import type { IUnknownModel, ModelSerializedOutput, UnknownModel, UnknownOverlay
 import { Container } from '../../../decorators/container.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import type { IAnchor } from '../../../overlays/anchor.interface.js';
-import { Dependency } from '../../../functions/dependency/dependency.js';
-import type { IDependency } from '../../../functions/dependency/dependency.js';
+import { Dependency, type IDependency } from '../../../functions/dependency/dependency.js';
 import type { IOverlay } from '../../../overlays/overlay.interface.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
 

@@ -1,5 +1,4 @@
-import { ModelType } from '../app.type.js';
-import type { UnknownOverlay } from '../app.type.js';
+import { ModelType, type UnknownOverlay } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { IOverlay } from './overlay.interface.js';

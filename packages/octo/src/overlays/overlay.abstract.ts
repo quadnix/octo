@@ -1,7 +1,5 @@
-import { ModelType } from '../app.type.js';
-import type { UnknownModel, UnknownOverlay } from '../app.type.js';
-import { DiffAction } from '../functions/diff/diff.js';
-import type { Diff } from '../functions/diff/diff.js';
+import { ModelType, type UnknownModel, type UnknownOverlay } from '../app.type.js';
+import { type Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
 import type { AAnchor } from './anchor.abstract.js';

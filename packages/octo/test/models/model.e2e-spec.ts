@@ -10,7 +10,7 @@ import {
   Server,
   Service,
   Subnet,
-  UnknownModel,
+  type UnknownModel,
 } from '../../src/index.js';
 import { TestAnchor, TestModelWithoutUnsynth, TestOverlay } from '../helpers/test-classes.js';
 

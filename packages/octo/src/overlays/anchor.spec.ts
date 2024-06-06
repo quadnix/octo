@@ -1,4 +1,4 @@
-import { UnknownModel } from '../app.type.js';
+import { type UnknownModel } from '../app.type.js';
 import { App } from '../models/app/app.model.js';
 import { AAnchor } from './anchor.abstract.js';
 

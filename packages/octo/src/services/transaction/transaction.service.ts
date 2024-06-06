@@ -1,16 +1,15 @@
-import { ModelType } from '../../app.type.js';
-import type {
-  ActionInputs,
-  ActionOutputs,
-  TransactionOptions,
-  UnknownResource,
-  UnknownSharedResource,
+import {
+  type ActionInputs,
+  type ActionOutputs,
+  ModelType,
+  type TransactionOptions,
+  type UnknownResource,
+  type UnknownSharedResource,
 } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
-import { DiffAction } from '../../functions/diff/diff.js';
-import type { Diff } from '../../functions/diff/diff.js';
+import { type Diff, DiffAction } from '../../functions/diff/diff.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';

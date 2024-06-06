@@ -1,6 +1,6 @@
 import { ModelType } from '../app.type.js';
-import type { IModelAction } from '../models/model-action.interface.js';
-import type { IResourceAction } from '../resources/resource-action.interface.js';
+import { type IModelAction } from '../models/model-action.interface.js';
+import { type IResourceAction } from '../resources/resource-action.interface.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { Container } from './container.js';
 

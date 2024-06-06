@@ -1,7 +1,7 @@
 import { TestAnchor, TestOverlay } from '../../../../test/helpers/test-classes.js';
-import { ModelSerializedOutput } from '../../../app.type.js';
+import { type ModelSerializedOutput } from '../../../app.type.js';
 import { Container } from '../../../decorators/container.js';
-import { IDependency } from '../../../functions/dependency/dependency.js';
+import { type IDependency } from '../../../functions/dependency/dependency.js';
 import { App } from '../../../models/app/app.model.js';
 import { Environment } from '../../../models/environment/environment.model.js';
 import { Image } from '../../../models/image/image.model.js';

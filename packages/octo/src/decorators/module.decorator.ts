@@ -1,9 +1,7 @@
 import type { Constructable } from '../app.type.js';
-import type { PostModelActionCallback } from '../functions/hook/post-model-action.hook.js';
-import { PostModelActionHook } from '../functions/hook/post-model-action.hook.js';
-import type { PreCommitCallback } from '../functions/hook/pre-commit.hook.js';
-import { PreCommitHook } from '../functions/hook/pre-commit.hook.js';
-import { PreModelActionCallback, PreModelActionHook } from '../functions/hook/pre-model-action.hook.js';
+import { type PostModelActionCallback, PostModelActionHook } from '../functions/hook/post-model-action.hook.js';
+import { type PreCommitCallback, PreCommitHook } from '../functions/hook/pre-commit.hook.js';
+import { type PreModelActionCallback, PreModelActionHook } from '../functions/hook/pre-model-action.hook.js';
 import type { IModelAction } from '../models/model-action.interface.js';
 
 export function Module({

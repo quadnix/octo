@@ -1,15 +1,15 @@
 import { jest } from '@jest/globals';
 import { SharedTestResource, TestAnchor, TestOverlay, TestResource } from '../../../test/helpers/test-classes.js';
-import { UnknownResource } from '../../app.type.js';
+import { type UnknownResource } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
-import { IModelAction } from '../../models/model-action.interface.js';
+import { type IModelAction } from '../../models/model-action.interface.js';
 import { App } from '../../models/app/app.model.js';
 import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
-import { IResourceAction } from '../../resources/resource-action.interface.js';
+import { type IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
 import { InputService, InputServiceFactory } from '../input/input.service.js';
 import { TransactionService, TransactionServiceFactory } from './transaction.service.js';

@@ -1,4 +1,4 @@
-import { UnknownResource } from '../../../app.type.js';
+import { type UnknownResource } from '../../../app.type.js';
 import { Container } from '../../../decorators/container.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../../resources/resource-data.repository.js';
 import { AResource } from '../../../resources/resource.abstract.js';
