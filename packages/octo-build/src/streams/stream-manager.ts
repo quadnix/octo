@@ -1,5 +1,5 @@
-import chalk, { ChalkInstance } from 'chalk';
-import { ChildProcessWithoutNullStreams } from 'child_process';
+import chalk, { type ChalkInstance } from 'chalk';
+import { type ChildProcessWithoutNullStreams } from 'child_process';
 import { createWriteStream } from 'fs';
 import { join, resolve } from 'path';
 

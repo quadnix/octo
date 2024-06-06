@@ -1,9 +1,9 @@
 import { jest } from '@jest/globals';
-import { ChildProcessWithoutNullStreams } from 'child_process';
+import { type ChildProcessWithoutNullStreams } from 'child_process';
 import { resolve } from 'path';
 import { Main } from './main.js';
-import { IBuildConfiguration, IJob } from './models/build-configuration.interface.js';
-import { IRunArguments } from './models/run-arguments.interface.js';
+import { type IBuildConfiguration, type IJob } from './models/build-configuration.interface.js';
+import { type IRunArguments } from './models/run-arguments.interface.js';
 import { StreamManager } from './streams/stream-manager.js';
 
 jest.mock('./main.js');
