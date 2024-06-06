@@ -25,11 +25,11 @@ import { jest } from '@jest/globals';
 import {
   App,
   Container,
-  DiffMetadata,
+  type DiffMetadata,
   LocalStateProvider,
   SubnetType,
   TestContainer,
-  UnknownResource,
+  type UnknownResource,
 } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';

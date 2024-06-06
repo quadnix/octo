@@ -1,5 +1,4 @@
-import { AResource, Resource } from '@quadnix/octo';
-import type { IResource } from '@quadnix/octo';
+import { AResource, type IResource, Resource } from '@quadnix/octo';
 import type { Vpc } from '../vpc/vpc.resource.js';
 import type { ISecurityGroupProperties } from './security-group.interface.js';
 

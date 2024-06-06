@@ -1,5 +1,4 @@
-import { Environment, IEnvironment, Model } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Diff, Environment, type IEnvironment, Model } from '@quadnix/octo';
 import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 
 @Model()

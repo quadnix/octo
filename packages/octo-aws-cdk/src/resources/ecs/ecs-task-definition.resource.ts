@@ -1,5 +1,4 @@
-import { AResource, Resource } from '@quadnix/octo';
-import type { IResource } from '@quadnix/octo';
+import { AResource, type IResource, Resource } from '@quadnix/octo';
 import type { Efs } from '../efs/efs.resource.js';
 import type { IamRole } from '../iam/iam-role.resource.js';
 import type { IEcsTaskDefinitionProperties } from './ecs-task-definition.interface.js';

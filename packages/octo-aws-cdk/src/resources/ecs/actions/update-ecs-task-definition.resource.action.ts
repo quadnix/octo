@@ -2,11 +2,10 @@ import {
   DeleteTaskDefinitionsCommand,
   DeregisterTaskDefinitionCommand,
   ECSClient,
-  PortMapping,
+  type PortMapping,
   RegisterTaskDefinitionCommand,
 } from '@aws-sdk/client-ecs';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IEfsProperties, IEfsResponse } from '../../efs/efs.interface.js';
 import type { Efs } from '../../efs/efs.resource.js';
 import type { IIamRoleResponse } from '../../iam/iam-role.interface.js';

@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { App, DiffMetadata, Image, LocalStateProvider } from '@quadnix/octo';
+import { App, type DiffMetadata, Image, LocalStateProvider } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';

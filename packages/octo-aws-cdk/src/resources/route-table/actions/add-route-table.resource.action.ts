@@ -4,8 +4,7 @@ import {
   CreateRouteTableCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IInternetGatewayResponse } from '../../internet-gateway/internet-gateway.interface.js';
 import type { InternetGateway } from '../../internet-gateway/internet-gateway.resource.js';
 import type { ISubnetResponse } from '../../subnet/subnet.interface.js';

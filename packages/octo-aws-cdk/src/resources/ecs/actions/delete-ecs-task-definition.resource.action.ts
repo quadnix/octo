@@ -1,6 +1,5 @@
 import { DeleteTaskDefinitionsCommand, DeregisterTaskDefinitionCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
 import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 

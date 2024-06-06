@@ -1,6 +1,5 @@
 import { CreateServiceCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { ISecurityGroupResponse } from '../../security-group/security-group.interface.js';
 import type { SecurityGroup } from '../../security-group/security-group.resource.js';
 import type { ISubnetResponse } from '../../subnet/subnet.interface.js';

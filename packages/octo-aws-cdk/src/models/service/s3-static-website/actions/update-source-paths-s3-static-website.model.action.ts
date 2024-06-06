@@ -1,5 +1,13 @@
-import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
-import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import {
+  Action,
+  type ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import type { S3Website } from '../../../../resources/s3/website/s3-website.resource.js';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model.js';
 

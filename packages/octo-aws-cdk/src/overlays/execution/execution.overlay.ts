@@ -1,5 +1,4 @@
-import { AOverlay, Diff, DiffAction, DiffUtility, Overlay } from '@quadnix/octo';
-import type { IOverlay, IResource } from '@quadnix/octo';
+import { AOverlay, Diff, DiffAction, DiffUtility, type IOverlay, type IResource, Overlay } from '@quadnix/octo';
 import type { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import type { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import type { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';

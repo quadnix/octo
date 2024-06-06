@@ -1,6 +1,5 @@
 import { DeleteBucketCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IS3StorageProperties } from '../s3-storage.interface.js';
 import type { S3Storage } from '../s3-storage.resource.js';
 

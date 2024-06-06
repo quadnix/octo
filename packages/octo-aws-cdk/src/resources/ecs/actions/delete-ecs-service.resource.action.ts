@@ -1,6 +1,5 @@
 import { DeleteServiceCommand, DescribeServicesCommand, ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEcsClusterProperties } from '../ecs-cluster.interface.js';
 import type { EcsCluster } from '../ecs-cluster.resource.js';

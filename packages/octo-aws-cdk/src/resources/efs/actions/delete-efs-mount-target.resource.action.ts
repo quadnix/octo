@@ -1,11 +1,10 @@
 import {
   DeleteMountTargetCommand,
   DescribeMountTargetsCommand,
-  DescribeMountTargetsCommandOutput,
+  type DescribeMountTargetsCommandOutput,
   EFSClient,
 } from '@aws-sdk/client-efs';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsMountTargetProperties, IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
 import type { EfsMountTarget } from '../efs-mount-target.resource.js';

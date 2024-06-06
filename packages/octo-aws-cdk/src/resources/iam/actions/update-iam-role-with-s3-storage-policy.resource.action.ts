@@ -5,8 +5,7 @@ import {
   DetachRolePolicyCommand,
   IAMClient,
 } from '@aws-sdk/client-iam';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IS3StorageAccessOverlayProperties } from '../../../overlays/s3-storage-access/s3-storage-access.overlay.interface.js';
 import type { IIamRoleResponse } from '../iam-role.interface.js';
 import type { IamRole, IamRolePolicyDiff } from '../iam-role.resource.js';

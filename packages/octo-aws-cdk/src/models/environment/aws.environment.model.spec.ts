@@ -1,6 +1,6 @@
 import { CreateClusterCommand, DeleteClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
 import { jest } from '@jest/globals';
-import { App, Container, DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, Container, type DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';

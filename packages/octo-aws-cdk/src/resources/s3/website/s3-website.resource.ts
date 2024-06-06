@@ -1,5 +1,4 @@
-import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import type { IResource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, type IResource, Resource } from '@quadnix/octo';
 import type { IS3WebsiteProperties } from './s3-website.interface.js';
 
 @Resource()

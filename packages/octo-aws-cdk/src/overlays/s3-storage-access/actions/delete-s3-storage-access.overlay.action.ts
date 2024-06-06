@@ -1,5 +1,13 @@
-import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
-import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import {
+  Action,
+  type ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import type { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import type { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import type { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';

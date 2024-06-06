@@ -1,5 +1,4 @@
-import { AOverlay, Overlay } from '@quadnix/octo';
-import type { IOverlay, IResource } from '@quadnix/octo';
+import { AOverlay, type IOverlay, type IResource, Overlay } from '@quadnix/octo';
 import type { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
 import type { S3DirectoryAnchor } from '../../anchors/s3-directory.anchor.js';
 import type { IS3StorageAccessOverlayProperties } from './s3-storage-access.overlay.interface.js';

@@ -1,5 +1,4 @@
-import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import type { IResource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, type IResource, Resource } from '@quadnix/octo';
 import type { SecurityGroup } from '../security-group/security-group.resource.js';
 import type { Subnet } from '../subnet/subnet.resource.js';
 import type { EcsCluster } from './ecs-cluster.resource.js';

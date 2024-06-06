@@ -1,7 +1,7 @@
 import { CreatePolicyCommand, CreateRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
-import { App, Container, DiffMetadata, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, Container, type DiffMetadata, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';

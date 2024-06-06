@@ -9,7 +9,7 @@ import {
 } from '@aws-sdk/client-ec2';
 import { CreateFileSystemCommand, EFSClient } from '@aws-sdk/client-efs';
 import { jest } from '@jest/globals';
-import { App, Container, DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, Container, type DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';

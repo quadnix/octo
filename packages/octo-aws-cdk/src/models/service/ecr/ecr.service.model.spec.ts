@@ -5,7 +5,7 @@ import {
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr';
 import { jest } from '@jest/globals';
-import { App, Container, DiffMetadata, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, Container, type DiffMetadata, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';

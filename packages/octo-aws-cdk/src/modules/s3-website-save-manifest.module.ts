@@ -1,5 +1,4 @@
-import { Module } from '@quadnix/octo';
-import type { App, Diff, DiffMetadata, IModelAction } from '@quadnix/octo';
+import { App, Diff, DiffMetadata, type IModelAction, Module } from '@quadnix/octo';
 import { AddS3StaticWebsiteModelAction } from '../models/service/s3-static-website/actions/add-s3-static-website.model.action.js';
 import { DeleteS3StaticWebsiteModelAction } from '../models/service/s3-static-website/actions/delete-s3-static-website.model.action.js';
 import { UpdateSourcePathsS3StaticWebsiteModelAction } from '../models/service/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';

@@ -1,5 +1,4 @@
-import { Deployment, Model } from '@quadnix/octo';
-import type { UnknownModel } from '@quadnix/octo';
+import { Deployment, Model, type UnknownModel } from '@quadnix/octo';
 import type { AwsServer } from '../server/aws.server.model.js';
 import type { S3StorageService } from '../service/s3-storage/s3-storage.service.model.js';
 import type { IAwsDeployment } from './aws.deployment.interface.js';

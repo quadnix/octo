@@ -1,21 +1,19 @@
 import {
+  type ActionInputs,
+  App,
   Container,
+  Diff,
+  DiffMetadata,
   EnableHook,
+  type IStateProvider,
   InputService,
   ModelSerializationService,
   ResourceSerializationService,
+  type ResourceSerializedOutput,
   StateManagementService,
+  type TransactionOptions,
   TransactionService,
-} from '@quadnix/octo';
-import type {
-  ActionInputs,
-  App,
-  Diff,
-  DiffMetadata,
-  IStateProvider,
-  ResourceSerializedOutput,
-  TransactionOptions,
-  UnknownResource,
+  type UnknownResource,
 } from '@quadnix/octo';
 
 export class OctoAws {

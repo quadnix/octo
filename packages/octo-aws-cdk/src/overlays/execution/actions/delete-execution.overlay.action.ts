@@ -1,5 +1,13 @@
-import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
-import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import {
+  Action,
+  type ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import type { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
 import type { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
 import type { IExecutionOverlayProperties } from '../execution.overlay.interface.js';

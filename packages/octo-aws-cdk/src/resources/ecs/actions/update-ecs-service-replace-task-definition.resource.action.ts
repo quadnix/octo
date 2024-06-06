@@ -1,6 +1,5 @@
 import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IEcsServiceProperties } from '../ecs-service.interface.js';
 import type { EcsService, EcsServicePropertyDiff } from '../ecs-service.resource.js';
 import type { IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';

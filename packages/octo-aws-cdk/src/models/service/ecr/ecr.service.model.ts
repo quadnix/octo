@@ -1,7 +1,5 @@
-import { Diff, DiffAction, Model, Service } from '@quadnix/octo';
-import type { Image, UnknownModel } from '@quadnix/octo';
-import { AwsRegion } from '../../region/aws.region.model.js';
-import type { RegionId } from '../../region/aws.region.model.js';
+import { Diff, DiffAction, Image, Model, Service, type UnknownModel } from '@quadnix/octo';
+import { AwsRegion, RegionId } from '../../region/aws.region.model.js';
 import type { IEcrService } from './ecr.service.interface.js';
 
 @Model()

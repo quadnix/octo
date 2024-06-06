@@ -1,5 +1,15 @@
-import { Action, DiffAction, EnableHook, Factory, ModelType, SubnetType } from '@quadnix/octo';
-import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import {
+  Action,
+  type ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  EnableHook,
+  Factory,
+  type IModelAction,
+  ModelType,
+  SubnetType,
+} from '@quadnix/octo';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
 import type { INetworkAclProperties } from '../../../resources/network-acl/network-acl.interface.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';

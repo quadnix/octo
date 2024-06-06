@@ -1,11 +1,10 @@
 import {
   DeleteFileSystemCommand,
   DescribeFileSystemsCommand,
-  DescribeFileSystemsCommandOutput,
+  type DescribeFileSystemsCommandOutput,
   EFSClient,
 } from '@aws-sdk/client-efs';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsProperties, IEfsResponse } from '../efs.interface.js';
 import type { Efs } from '../efs.resource.js';

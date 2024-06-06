@@ -8,7 +8,7 @@ import { jest } from '@jest/globals';
 import {
   App,
   Container,
-  DiffMetadata,
+  type DiffMetadata,
   Environment,
   Execution,
   Image,

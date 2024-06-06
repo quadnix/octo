@@ -1,5 +1,4 @@
-import { AResource, Resource } from '@quadnix/octo';
-import type { IResource } from '@quadnix/octo';
+import { AResource, type IResource, Resource } from '@quadnix/octo';
 import type { Subnet } from '../subnet/subnet.resource.js';
 import type { Vpc } from '../vpc/vpc.resource.js';
 import type { INetworkAclProperties } from './network-acl.interface.js';

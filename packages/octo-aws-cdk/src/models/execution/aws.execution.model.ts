@@ -1,5 +1,4 @@
-import { Container, Execution, Model, OverlayService } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Container, Diff, Execution, Model, OverlayService } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';

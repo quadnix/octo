@@ -1,6 +1,5 @@
 import { DeleteRoleCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IIamRoleResponse } from '../iam-role.interface.js';
 import type { IamRole } from '../iam-role.resource.js';
 

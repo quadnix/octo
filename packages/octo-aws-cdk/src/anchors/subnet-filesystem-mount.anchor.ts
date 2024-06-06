@@ -1,5 +1,4 @@
-import { AAnchor, Anchor, IAnchor } from '@quadnix/octo';
-import type { UnknownModel } from '@quadnix/octo';
+import { AAnchor, Anchor, type IAnchor, type UnknownModel } from '@quadnix/octo';
 import type { AwsSubnet } from '../models/subnet/aws.subnet.model.js';
 
 interface ISubnetFilesystemMountAnchor extends IAnchor {

@@ -1,5 +1,13 @@
-import { Action, DiffAction, Factory, ModelType } from '@quadnix/octo';
-import type { ActionInputs, ActionOutputs, Diff, IModelAction } from '@quadnix/octo';
+import {
+  Action,
+  type ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import type { SecurityGroupAnchor } from '../../../anchors/security-group.anchor.js';
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import type { Vpc } from '../../../resources/vpc/vpc.resource.js';

@@ -1,4 +1,4 @@
-import { AuthorizeSecurityGroupEgressCommandOutput } from '@aws-sdk/client-ec2';
+import { type AuthorizeSecurityGroupEgressCommandOutput } from '@aws-sdk/client-ec2';
 
 export interface ISecurityGroupProperties {
   awsRegionId: string;

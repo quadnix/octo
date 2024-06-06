@@ -1,4 +1,4 @@
-import { ChildProcessWithoutNullStreams, SpawnOptionsWithoutStdio, spawn } from 'child_process';
+import { type ChildProcessWithoutNullStreams, type SpawnOptionsWithoutStdio, spawn } from 'child_process';
 
 export class ProcessUtility {
   static runDetachedProcess(

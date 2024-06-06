@@ -5,8 +5,7 @@ import {
   ECRClient,
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
 import type { IEcrImageProperties, IEcrImageResponse } from '../ecr-image.interface.js';

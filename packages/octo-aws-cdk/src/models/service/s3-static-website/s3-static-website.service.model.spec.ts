@@ -1,4 +1,4 @@
-import { App, DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, type DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, readFileSync, unlink, writeFile } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';

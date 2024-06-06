@@ -1,5 +1,4 @@
-import { Container, Model, OverlayService, Subnet } from '@quadnix/octo';
-import type { UnknownModel } from '@quadnix/octo';
+import { Container, Model, OverlayService, Subnet, type UnknownModel } from '@quadnix/octo';
 import { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
 import { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mount.anchor.js';
 import { SubnetFilesystemMountOverlay } from '../../overlays/subnet-filesystem-mount/subnet-filesystem-mount.overlay.js';

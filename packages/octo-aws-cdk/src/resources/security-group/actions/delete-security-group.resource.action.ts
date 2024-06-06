@@ -1,6 +1,5 @@
 import { DeleteSecurityGroupCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface.js';
 import type { SecurityGroup } from '../security-group.resource.js';
 

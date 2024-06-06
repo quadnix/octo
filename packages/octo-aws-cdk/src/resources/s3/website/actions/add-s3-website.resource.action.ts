@@ -5,8 +5,7 @@ import {
   PutPublicAccessBlockCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { Action, Container, DiffAction, Factory, IResourceAction, ModelType } from '@quadnix/octo';
-import type { Diff } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IS3WebsiteProperties, IS3WebsiteResponse } from '../s3-website.interface.js';
 import type { S3Website } from '../s3-website.resource.js';
 

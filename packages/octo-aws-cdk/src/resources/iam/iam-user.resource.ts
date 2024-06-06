@@ -1,5 +1,4 @@
-import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import type { IResource, UnknownOverlay } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, type IResource, Resource, type UnknownOverlay } from '@quadnix/octo';
 import type { IIamUserProperties } from './iam-user.interface.js';
 
 export type IamUserPolicyDiff = {
