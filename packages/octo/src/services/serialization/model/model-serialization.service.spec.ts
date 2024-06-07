@@ -71,22 +71,7 @@ describe('Model Serialization Service UT', () => {
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"Method not implemented! Use derived class implementation"`);
     });
 
-    it('should deserialize unknown classes when registered', async () => {
-      const app0 = new App('test-app');
-      const region0 = new Region('region-0');
-      app0.addRegion(region0);
-
-      const service = await Container.get(ModelSerializationService);
-      service.registerClass('App', App);
-      service.registerClass('Region', Region);
-
-      const output = await service.serialize(app0);
-      const app1 = (await service.deserialize(output)) as App;
-
-      expect(app1.name).toBe('test-app');
-    });
-
-    it('should deserialize known classes', async () => {
+    it('should be able to register classes and deserialize', async () => {
       const app0 = new App('test-app');
       const region0 = new Region('region-0');
       app0.addRegion(region0);
@@ -102,30 +87,30 @@ describe('Model Serialization Service UT', () => {
     });
 
     it('should deserialize a single model', async () => {
-      const app_0 = new App('test-app');
+      const app = new App('test-app');
 
       const service = await Container.get(ModelSerializationService);
       service.registerClass('App', App);
 
-      const output = await service.serialize(app_0);
+      const output = await service.serialize(app);
       const app_1 = (await service.deserialize(output)) as App;
 
       expect(app_1.name).toBe('test-app');
     });
 
     it('should return the serialized root on deserialization', async () => {
-      const app0 = new App('test-app');
-      const region0 = new Region('region-0');
-      app0.addRegion(region0);
+      const app = new App('test-app');
+      const region = new Region('region-0');
+      app.addRegion(region);
 
       const service = await Container.get(ModelSerializationService);
       service.registerClass('App', App);
       service.registerClass('Region', Region);
 
-      const output = await service.serialize(region0);
-      const region1 = (await service.deserialize(output)) as Region;
+      const output = await service.serialize(region);
+      const region_1 = (await service.deserialize(output)) as Region;
 
-      expect(region1.regionId).toBe('region-0');
+      expect(region_1.regionId).toBe('region-0');
     });
 
     it('should have exact same dependencies on deserialized object as original object', async () => {
@@ -160,15 +145,16 @@ describe('Model Serialization Service UT', () => {
     });
 
     it('should deserialize overlay with multiple anchors of same parent', async () => {
+      const service = await Container.get(ModelSerializationService);
+      service.registerClass('App', App);
+      service.registerClass('TestAnchor', TestAnchor);
+      service.registerClass('TestOverlay', TestOverlay);
+
       const app_0 = new App('test-app');
       const anchor1 = new TestAnchor('anchor-1', app_0);
       const anchor2 = new TestAnchor('anchor-2', app_0);
       app_0['anchors'].push(anchor1, anchor2);
 
-      const service = await Container.get(ModelSerializationService);
-      service.registerClass('App', App);
-      service.registerClass('TestAnchor', TestAnchor);
-      service.registerClass('TestOverlay', TestOverlay);
       const overlayService = await Container.get(OverlayService);
 
       const overlay1_0 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
@@ -177,7 +163,8 @@ describe('Model Serialization Service UT', () => {
       const appSerialized = await service.serialize(app_0);
       const app_1 = (await service.deserialize(appSerialized)) as App;
 
-      const overlay1_1 = overlayService.getOverlayById('overlay-1');
+      const overlayDataRepository = await Container.get(OverlayDataRepository);
+      const overlay1_1 = overlayDataRepository['oldOverlays'][0];
       expect(overlay1_1!.getAnchors().map((a) => a.getParent().getContext())).toEqual([
         app_1.getContext(),
         app_1.getContext(),

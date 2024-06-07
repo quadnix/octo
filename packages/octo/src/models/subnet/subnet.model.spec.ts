@@ -87,17 +87,17 @@ describe('Subnet UT', () => {
       app.addRegion(region);
       const subnet1 = new Subnet(region, 'subnet1');
       region.addSubnet(subnet1);
-      const subnet2_1 = new Subnet(region, 'subnet2');
-      region.addSubnet(subnet2_1);
+      const subnet2 = new Subnet(region, 'subnet2');
+      region.addSubnet(subnet2);
 
-      subnet2_1.updateNetworkingRules(subnet1, true);
+      subnet2.updateNetworkingRules(subnet1, true);
 
-      const subnet2_2 = (await modelSerializationService.deserialize(
-        await modelSerializationService.serialize(subnet2_1),
+      const subnet2_1 = (await modelSerializationService.deserialize(
+        await modelSerializationService.serialize(subnet2),
       )) as Subnet;
-      subnet2_2.updateNetworkingRules(subnet1, false);
+      subnet2.updateNetworkingRules(subnet1, false);
 
-      const diff = await subnet2_2.diff(subnet2_1);
+      const diff = await subnet2.diff(subnet2_1);
       expect(diff).toMatchInlineSnapshot(`
        [
          {

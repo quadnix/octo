@@ -18,39 +18,31 @@ describe('Server UT', () => {
   describe('diff()', () => {
     describe('when diff of object with children', () => {
       it('should capture delete of children', async () => {
-        const app_0 = new App('test');
-        const region_0 = new Region('region');
-        app_0.addRegion(region_0);
-        const subnet_0 = new Subnet(region_0, 'subnet');
-        region_0.addSubnet(subnet_0);
-        const environment_0 = new Environment('qa');
-        region_0.addEnvironment(environment_0);
-        const server_0 = new Server('backend');
-        app_0.addServer(server_0);
-        const deployment_0 = new Deployment('backend@0.0.1');
-        server_0.addDeployment(deployment_0);
-        new Execution(deployment_0, environment_0, subnet_0);
+        // Create a new server, and an execution.
+        const app = new App('test');
+        const region = new Region('region');
+        app.addRegion(region);
+        const subnet = new Subnet(region, 'subnet');
+        region.addSubnet(subnet);
+        const environment = new Environment('qa');
+        region.addEnvironment(environment);
+        const server = new Server('backend');
+        app.addServer(server);
+        const deployment = new Deployment('backend@0.0.1');
+        server.addDeployment(deployment);
+        const execution = new Execution(deployment, environment, subnet);
 
+        // Commit state.
         const app_1 = (await modelSerializationService.deserialize(
-          await modelSerializationService.serialize(app_0),
+          await modelSerializationService.serialize(app),
         )) as App;
-        const region_1 = app_1.getChild('region', [{ key: 'regionId', value: 'region' }]) as Region;
-        const environment_1 = region_1.getChild('environment', [
-          { key: 'environmentName', value: 'qa' },
-        ]) as Environment;
-        const execution_1 = environment_1.getChild('execution', [
-          { key: 'executionId', value: 'backend@0.0.1_qa' },
-        ]) as Execution;
-        const server_1 = app_1.getChild('server', [{ key: 'serverKey', value: 'backend' }]) as Server;
-        const deployment_1 = server_1.getChild('deployment', [
-          { key: 'deploymentTag', value: 'backend@0.0.1' },
-        ]) as Deployment;
 
-        execution_1.remove();
-        deployment_1.remove();
-        server_1.remove();
-        const diff = await app_1.diff(app_0);
+        // Remove the server, and the execution.
+        execution.remove();
+        deployment.remove();
+        server.remove();
 
+        const diff = await app.diff(app_1);
         expect(diff).toMatchInlineSnapshot(`
           [
             {
