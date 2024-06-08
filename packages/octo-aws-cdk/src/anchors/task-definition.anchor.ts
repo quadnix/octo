@@ -5,7 +5,7 @@ interface ITaskDefinitionAnchor extends IAnchor {
   properties: ITaskDefinitionAnchorProperties;
 }
 
-interface ITaskDefinitionAnchorProperties {
+export interface ITaskDefinitionAnchorProperties {
   image: {
     command: string;
     ports: { containerPort: number; protocol: 'tcp' | 'udp' }[];
@@ -48,6 +48,8 @@ export class TaskDefinitionAnchor extends AAnchor {
     if (!newAnchor) {
       return new deserializationClass(anchor.anchorId, anchor.properties, parent);
     }
+
+    newAnchor.properties.image = { ...anchor.properties.image };
     return newAnchor;
   }
 }

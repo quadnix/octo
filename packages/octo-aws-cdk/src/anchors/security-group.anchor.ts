@@ -49,6 +49,10 @@ export class SecurityGroupAnchor extends AAnchor {
     if (!newAnchor) {
       return new deserializationClass(anchor.anchorId, anchor.rules, parent);
     }
+
+    for (const rule of anchor.rules) {
+      newAnchor.rules.push(rule);
+    }
     return newAnchor;
   }
 }

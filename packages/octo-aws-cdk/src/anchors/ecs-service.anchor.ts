@@ -44,6 +44,8 @@ export class EcsServiceAnchor extends AAnchor {
     if (!newAnchor) {
       return new deserializationClass(anchor.anchorId, anchor.properties, parent);
     }
+
+    newAnchor.properties.desiredCount = anchor.properties.desiredCount;
     return newAnchor;
   }
 }
