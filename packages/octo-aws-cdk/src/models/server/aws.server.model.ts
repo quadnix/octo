@@ -8,11 +8,8 @@ export class AwsServer extends Server {
   constructor(serverKey: string) {
     super(serverKey);
 
-    const serverIamRoleName = `${serverKey.charAt(0).toUpperCase() + serverKey.slice(1)}ServerRole`;
-    this.anchors.push(new IamRoleAnchor(serverIamRoleName, this));
-
-    const securityGroupName = `${serverKey.charAt(0).toUpperCase() + serverKey.slice(1)}SecurityGroup`;
-    this.anchors.push(new SecurityGroupAnchor(securityGroupName, [], this));
+    this.anchors.push(new IamRoleAnchor('ServerIamRoleAnchor', this));
+    this.anchors.push(new SecurityGroupAnchor('SecurityGroupAnchor', [], this));
   }
 
   override addDeployment(deployment: AwsDeployment): void {

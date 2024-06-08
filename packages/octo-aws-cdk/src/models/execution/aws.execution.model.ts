@@ -19,14 +19,9 @@ export class AwsExecution extends Execution {
   constructor(deployment: AwsDeployment, environment: AwsEnvironment, subnet: AwsSubnet) {
     super(deployment, environment, subnet);
 
-    const ecsServiceAnchorId = 'EcsServiceAnchor';
-    this.anchors.push(new EcsServiceAnchor(ecsServiceAnchorId, { desiredCount: 1 }, this));
-
-    const evAnchorId = `${this.executionId.charAt(0).toUpperCase() + this.executionId.slice(1)}ExecutionEV`;
-    this.anchors.push(new EnvironmentVariablesAnchor(evAnchorId, this));
-
-    const securityGroupName = `${this.executionId.charAt(0).toUpperCase() + this.executionId.slice(1)}SecurityGroup`;
-    this.anchors.push(new SecurityGroupAnchor(securityGroupName, [], this));
+    this.anchors.push(new EcsServiceAnchor('EcsServiceAnchor', { desiredCount: 1 }, this));
+    this.anchors.push(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', this));
+    this.anchors.push(new SecurityGroupAnchor('SecurityGroupAnchor', [], this));
   }
 
   addSecurityGroupRule(rule: SecurityGroupAnchor['rules'][0]): void {

@@ -47,7 +47,7 @@ export class AwsRegion extends Region {
       throw new Error('Filesystem already added in AWS region!');
     }
 
-    const regionFilesystemAnchorName = `${this.awsRegionId}-${filesystemName}-Filesystem`;
+    const regionFilesystemAnchorName = `${this.awsRegionId}-${filesystemName}-FilesystemAnchor`;
     const regionFilesystemAnchor = new RegionFilesystemAnchor(regionFilesystemAnchorName, filesystemName, this);
     this.anchors.push(regionFilesystemAnchor);
     this.filesystems.push({ filesystemAnchorName: regionFilesystemAnchorName, filesystemName });

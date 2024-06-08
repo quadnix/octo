@@ -33,7 +33,7 @@ export class S3StorageService extends Service {
       throw new Error('Remote directory already added in S3 bucket!');
     }
 
-    const directoryAnchorName = `${CommonUtility.hash(remoteDirectoryPath).substring(0, 12)}Directory`;
+    const directoryAnchorName = `${CommonUtility.hash(remoteDirectoryPath).substring(0, 12)}S3DirectoryAnchor`;
     const directoryAnchor = new S3DirectoryAnchor(directoryAnchorName, this);
     this.anchors.push(directoryAnchor);
 
