@@ -1,37 +1,24 @@
-import { Deployment, Model, type UnknownModel } from '@quadnix/octo';
-import type { AwsServer } from '../server/aws.server.model.js';
-import type { S3StorageService } from '../service/s3-storage/s3-storage.service.model.js';
+import { Deployment, Model } from '@quadnix/octo';
+import { type ITaskDefinitionAnchorProperties, TaskDefinitionAnchor } from '../../anchors/task-definition.anchor.js';
 import type { IAwsDeployment } from './aws.deployment.interface.js';
 
 @Model()
 export class AwsDeployment extends Deployment {
-  readonly s3StorageService: S3StorageService;
-
-  constructor(deploymentTag: string, s3StorageService: S3StorageService) {
+  constructor(deploymentTag: string) {
     super(deploymentTag);
 
-    this.s3StorageService = s3StorageService;
+    const taskDefinitionAnchorId = 'TaskDefinitionAnchor';
+    this.anchors.push(
+      new TaskDefinitionAnchor(taskDefinitionAnchorId, {} as unknown as ITaskDefinitionAnchorProperties, this),
+    );
   }
 
-  get deploymentFolderRemotePath(): string {
-    const parents = this.getParents();
-    const parent = (parents['server'] || parents['support'])[0].to as AwsServer;
-    return `private/deployments/${parent.serverKey}/${this.deploymentTag}`;
+  static override async unSynth(awsDeployment: IAwsDeployment): Promise<AwsDeployment> {
+    return new AwsDeployment(awsDeployment.deploymentTag);
   }
 
-  override synth(): IAwsDeployment {
-    return {
-      deploymentFolderRemotePath: this.deploymentFolderRemotePath,
-      deploymentTag: this.deploymentTag,
-      s3StorageService: { context: this.s3StorageService.getContext() },
-    };
-  }
-
-  static override async unSynth(
-    awsDeployment: IAwsDeployment,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<AwsDeployment> {
-    const s3StorageService = (await deReferenceContext(awsDeployment.s3StorageService.context)) as S3StorageService;
-    return new AwsDeployment(awsDeployment.deploymentTag, s3StorageService);
+  updateDeploymentImage(image: ITaskDefinitionAnchorProperties['image']): void {
+    const taskDefinitionAnchor = this.anchors.find((a) => a instanceof TaskDefinitionAnchor) as TaskDefinitionAnchor;
+    taskDefinitionAnchor.properties.image = { ...image };
   }
 }
