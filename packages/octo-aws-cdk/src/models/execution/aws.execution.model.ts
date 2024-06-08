@@ -19,6 +19,9 @@ export class AwsExecution extends Execution {
   constructor(deployment: AwsDeployment, environment: AwsEnvironment, subnet: AwsSubnet) {
     super(deployment, environment, subnet);
 
+    const ecsServiceAnchorId = 'EcsServiceAnchor';
+    this.anchors.push(new EcsServiceAnchor(ecsServiceAnchorId, { desiredCount: 1 }, this));
+
     const evAnchorId = `${this.executionId.charAt(0).toUpperCase() + this.executionId.slice(1)}ExecutionEV`;
     this.anchors.push(new EnvironmentVariablesAnchor(evAnchorId, this));
 
@@ -191,5 +194,10 @@ export class AwsExecution extends Execution {
     const executionOverlayId = `execution-${region.regionId}-${subnet.subnetName}-${deployment.deploymentTag}-${environment.environmentName}-Overlay`;
     const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
     executionOverlay.removeAnchor(subnetFilesystemMountAnchor);
+  }
+
+  updateDesiredCount(desiredCount: number): void {
+    const ecsServiceAnchor = this.getAnchors().find((a) => a instanceof EcsServiceAnchor) as EcsServiceAnchor;
+    ecsServiceAnchor.properties.desiredCount = desiredCount;
   }
 }
