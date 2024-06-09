@@ -151,8 +151,8 @@ describe('Model Serialization Service UT', () => {
       service.registerClass('TestOverlay', TestOverlay);
 
       const app_0 = new App('test-app');
-      const anchor1 = new TestAnchor('anchor-1', app_0);
-      const anchor2 = new TestAnchor('anchor-2', app_0);
+      const anchor1 = new TestAnchor('anchor-1', {}, app_0);
+      const anchor2 = new TestAnchor('anchor-2', {}, app_0);
       app_0['anchors'].push(anchor1, anchor2);
 
       const overlayService = await Container.get(OverlayService);
@@ -178,7 +178,7 @@ describe('Model Serialization Service UT', () => {
       service.registerClass('TestOverlay', TestOverlay);
 
       const app_0 = new App('test-app');
-      const anchor1 = new TestAnchor('anchor-1', app_0);
+      const anchor1 = new TestAnchor('anchor-1', {}, app_0);
       app_0['anchors'].push(anchor1);
 
       const overlayService = await Container.get(OverlayService);
@@ -262,8 +262,8 @@ describe('Model Serialization Service UT', () => {
       const overlayService = await Container.get(OverlayService);
 
       const app = new App('test-app');
-      const anchor1 = new TestAnchor('anchor-1', app);
-      const anchor2 = new TestAnchor('anchor-2', app);
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      const anchor2 = new TestAnchor('anchor-2', {}, app);
       app['anchors'].push(anchor1, anchor2);
 
       const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);

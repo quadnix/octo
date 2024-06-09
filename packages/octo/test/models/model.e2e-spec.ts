@@ -273,7 +273,7 @@ describe('Model E2E Test', () => {
 
     it('should not include overlays in boundary', () => {
       const app = new App('app');
-      const anchor = new TestAnchor('test-anchor', app);
+      const anchor = new TestAnchor('test-anchor', {}, app);
       const overlay = new TestOverlay('test-overlay', {}, [anchor]);
 
       expect(overlay.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`[]`);

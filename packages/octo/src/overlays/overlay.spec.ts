@@ -20,7 +20,7 @@ describe('Overlay UT', () => {
 
   it('should not create duplicate anchors', () => {
     const app = new App('test');
-    const anchor1 = new TestAnchor('anchor-1', app);
+    const anchor1 = new TestAnchor('anchor-1', {}, app);
     app['anchors'].push(anchor1);
 
     const overlay1 = new TestOverlay('overlay-1', {}, [anchor1]);
@@ -33,7 +33,7 @@ describe('Overlay UT', () => {
   describe('addAnchor()', () => {
     it('should create dependency between overlay and anchor parents', () => {
       const app = new App('test');
-      const anchor1 = new TestAnchor('anchor-1', app);
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
       app['anchors'].push(anchor1);
 
       const overlay1 = new TestOverlay('overlay-1', {}, [anchor1]);
@@ -209,11 +209,11 @@ describe('Overlay UT', () => {
   describe('removeAnchor()', () => {
     it('should remove dependency between overlay and anchor parents', () => {
       const app1 = new App('test1');
-      const anchor1 = new TestAnchor('anchor-1', app1);
+      const anchor1 = new TestAnchor('anchor-1', {}, app1);
       app1['anchors'].push(anchor1);
 
       const app2 = new App('test2');
-      const anchor2 = new TestAnchor('anchor-2', app2);
+      const anchor2 = new TestAnchor('anchor-2', {}, app2);
       app2['anchors'].push(anchor2);
 
       const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
@@ -229,9 +229,9 @@ describe('Overlay UT', () => {
 
     it('should only remove one dependency with parent when multiple anchors have same parent', () => {
       const app = new App('test');
-      const anchor1 = new TestAnchor('anchor-1', app);
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
       app['anchors'].push(anchor1);
-      const anchor2 = new TestAnchor('anchor-2', app);
+      const anchor2 = new TestAnchor('anchor-2', {}, app);
       app['anchors'].push(anchor2);
 
       const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
@@ -251,11 +251,11 @@ describe('Overlay UT', () => {
   describe('removeAllAnchors()', () => {
     it('should remove all anchors with parent dependencies', () => {
       const app1 = new App('test1');
-      const anchor1 = new TestAnchor('anchor-1', app1);
+      const anchor1 = new TestAnchor('anchor-1', {}, app1);
       app1['anchors'].push(anchor1);
 
       const app2 = new App('test2');
-      const anchor2 = new TestAnchor('anchor-2', app2);
+      const anchor2 = new TestAnchor('anchor-2', {}, app2);
       app2['anchors'].push(anchor2);
 
       const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
@@ -287,8 +287,8 @@ describe('Overlay UT', () => {
 
     it('should be able to synth with anchors', () => {
       const app = new App('test');
-      const anchor1 = new TestAnchor('anchor-1', app);
-      const anchor2 = new TestAnchor('anchor-2', app);
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      const anchor2 = new TestAnchor('anchor-2', {}, app);
       const overlay = new TestOverlay('overlay-1', { key1: 'value1' }, [anchor1, anchor2]);
 
       expect(overlay.synth()).toMatchInlineSnapshot(`
@@ -299,12 +299,14 @@ describe('Overlay UT', () => {
               "parent": {
                 "context": "app=test",
               },
+              "properties": {},
             },
             {
               "anchorId": "anchor-2",
               "parent": {
                 "context": "app=test",
               },
+              "properties": {},
             },
           ],
           "overlayId": "overlay-1",
@@ -319,8 +321,8 @@ describe('Overlay UT', () => {
   describe('unSynth', () => {
     it('should throw error while unSynth if anchor not found', async () => {
       const app = new App('test');
-      const anchor1 = new TestAnchor('anchor-1', app);
-      const anchor2 = new TestAnchor('anchor-2', app);
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      const anchor2 = new TestAnchor('anchor-2', {}, app);
       const overlay = new TestOverlay('overlay-1', { key1: 'value1' }, [anchor1, anchor2]);
       const overlaySynth = overlay.synth();
 
@@ -337,8 +339,8 @@ describe('Overlay UT', () => {
 
     it('should be able to unSynth with anchors', async () => {
       const app = new App('test');
-      const anchor1 = new TestAnchor('anchor-1', app);
-      const anchor2 = new TestAnchor('anchor-2', app);
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      const anchor2 = new TestAnchor('anchor-2', {}, app);
       const overlay = new TestOverlay('overlay-1', { key1: 'value1' }, [anchor1, anchor2]);
       const overlaySynth = overlay.synth();
 

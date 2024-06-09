@@ -607,7 +607,7 @@ describe('TransactionService UT', () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
         const app = new App('app');
-        const anchor = new TestAnchor('test-anchor', app);
+        const anchor = new TestAnchor('test-anchor', {}, app);
         const overlay = new TestOverlay('test-overlay', {}, [anchor]);
 
         const overlayDataRepository = await Container.get(OverlayDataRepository);

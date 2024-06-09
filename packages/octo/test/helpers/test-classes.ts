@@ -5,6 +5,7 @@ import {
   AResource,
   ASharedResource,
   type Diff,
+  type IAnchor,
   type IOverlay,
   type IResource,
   type UnknownModel,
@@ -28,14 +29,14 @@ export class TestActionFactory {
 }
 
 export class TestAnchor extends AAnchor {
-  constructor(anchorId: string, parent: UnknownModel) {
-    super(anchorId, parent);
+  constructor(anchorId: string, properties: IAnchor['properties'], parent: UnknownModel) {
+    super(anchorId, properties, parent);
   }
 }
 
 export class TestAnchorFactory {
   static async create(): Promise<TestAnchor> {
-    return new TestAnchor('anchorId', {} as UnknownModel);
+    return new TestAnchor('anchorId', {}, {} as UnknownModel);
   }
 }
 

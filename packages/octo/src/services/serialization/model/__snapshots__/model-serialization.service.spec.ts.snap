@@ -346,6 +346,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
       "parent": {
         "context": "app=test-app",
       },
+      "properties": {},
     },
     {
       "anchorId": "anchor-2",
@@ -353,6 +354,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
       "parent": {
         "context": "app=test-app",
       },
+      "properties": {},
     },
   ],
   "dependencies": [],
@@ -374,12 +376,14 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
             "parent": {
               "context": "app=test-app",
             },
+            "properties": {},
           },
           {
             "anchorId": "anchor-2",
             "parent": {
               "context": "app=test-app",
             },
+            "properties": {},
           },
         ],
         "overlayId": "overlay-1",
