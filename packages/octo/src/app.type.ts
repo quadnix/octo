@@ -28,6 +28,9 @@ export type ModelSerializedOutput = {
   overlays: { className: string; overlay: IOverlay }[];
 };
 
+// https://stackoverflow.com/a/55032655/1834562
+export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
+
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
   resources: { [p: string]: { className: string; resource: IResource } };
