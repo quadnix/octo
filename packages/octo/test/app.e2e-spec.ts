@@ -34,7 +34,7 @@ describe('App E2E Test', () => {
     const app_1 = (await modelSerializationService.deserialize(await modelSerializationService.serialize(app))) as App;
 
     // Add a deployment to backend server.
-    backendServer.addDeployment(new Deployment('backend@v0.0.1'));
+    backendServer.addDeployment(new Deployment('v0.0.1'));
     // Add a new subnet.
     const publicSubnet = new Subnet(region, 'public');
     region.addSubnet(publicSubnet);
@@ -46,7 +46,7 @@ describe('App E2E Test', () => {
     qaEnvironment.environmentVariables.set('env', 'qa');
     // Add new server.
     const databaseServer = new Server('database');
-    databaseServer.addDeployment(new Deployment('database@v0.0.1'));
+    databaseServer.addDeployment(new Deployment('v0.0.1'));
     app.addServer(databaseServer);
 
     const diffs = await app.diff(app_1);

@@ -28,7 +28,7 @@ describe('Execution UT', () => {
         region.addEnvironment(environment);
         const server = new Server('backend');
         app.addServer(server);
-        const deployment = new Deployment('backend@0.0.1');
+        const deployment = new Deployment('0.0.1');
         server.addDeployment(deployment);
         const execution = new Execution(deployment, environment, subnet);
 
@@ -46,7 +46,7 @@ describe('Execution UT', () => {
             {
               "action": "delete",
               "field": "executionId",
-              "value": "backend@0.0.1_qa",
+              "value": "backend-0.0.1-region-qa-subnet",
             },
           ]
         `);

@@ -6,6 +6,7 @@ import { Deployment } from '../deployment/deployment.model.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
+import { Server } from '../server/server.model.js';
 import { Subnet } from '../subnet/subnet.model.js';
 import type { IExecution } from './execution.interface.js';
 
@@ -15,12 +16,8 @@ export class Execution extends AModel<IExecution, Execution> {
 
   readonly environmentVariables: Map<string, string> = new Map();
 
-  readonly executionId: string;
-
   constructor(deployment: Deployment, environment: Environment, subnet: Subnet) {
     super();
-    this.executionId = [deployment.deploymentTag, environment.environmentName].join('_');
-
     // Check if execution can be placed in this subnet. Skip during unSynth().
     if (Object.keys(this.getParents()).length > 0) {
       const environmentRegion = environment.getParents('region')['region'][0].to as Region;
@@ -46,6 +43,22 @@ export class Execution extends AModel<IExecution, Execution> {
     deployment.addChild('deploymentTag', this, 'executionId');
     environment.addChild('environmentName', this, 'executionId');
     subnet.addChild('subnetId', this, 'executionId');
+  }
+
+  get executionId(): string {
+    const parents = this.getParents();
+    const deployment = parents['deployment'][0].to as Deployment;
+    const server = deployment.getParents()['server'][0].to as Server;
+    const environment = parents['environment'][0].to as Environment;
+    const region = environment.getParents()['region'][0].to as Region;
+    const subnet = parents['subnet'][0].to as Subnet;
+    return [
+      server.serverKey,
+      deployment.deploymentTag,
+      region.regionId,
+      environment.environmentName,
+      subnet.subnetName,
+    ].join('-');
   }
 
   override async diff(previous?: Execution): Promise<Diff[]> {

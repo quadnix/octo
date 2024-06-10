@@ -27,8 +27,8 @@ exports[`Model E2E Test common functions Test app getBoundaryMembers() 1`] = `
   "app=test",
   "service=service,app=test",
   "server=backend,app=test",
-  "deployment=backend@v1,server=backend,app=test",
-  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "deployment=v1,server=backend,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
   "region=region,app=test",
   "environment=qa,region=region,app=test",
@@ -59,7 +59,7 @@ exports[`Model E2E Test common functions Test app synth() 1`] = `
 
 exports[`Model E2E Test common functions Test deployment getAncestors() 1`] = `
 [
-  "deployment=backend@v1,server=backend,app=test",
+  "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
   "app=test",
 ]
@@ -67,10 +67,10 @@ exports[`Model E2E Test common functions Test deployment getAncestors() 1`] = `
 
 exports[`Model E2E Test common functions Test deployment getBoundaryMembers() 1`] = `
 [
-  "deployment=backend@v1,server=backend,app=test",
+  "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
   "app=test",
-  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
   "region=region,app=test",
   "environment=qa,region=region,app=test",
@@ -83,7 +83,7 @@ exports[`Model E2E Test common functions Test deployment getChildren() 1`] = `
 ]
 `;
 
-exports[`Model E2E Test common functions Test deployment getContext() 1`] = `"deployment=backend@v1,server=backend,app=test"`;
+exports[`Model E2E Test common functions Test deployment getContext() 1`] = `"deployment=v1,server=backend,app=test"`;
 
 exports[`Model E2E Test common functions Test deployment getParents() 1`] = `
 [
@@ -93,7 +93,7 @@ exports[`Model E2E Test common functions Test deployment getParents() 1`] = `
 
 exports[`Model E2E Test common functions Test deployment synth() 1`] = `
 {
-  "deploymentTag": "backend@v1",
+  "deploymentTag": "v1",
 }
 `;
 
@@ -110,9 +110,9 @@ exports[`Model E2E Test common functions Test environment getBoundaryMembers() 1
   "environment=qa,region=region,app=test",
   "region=region,app=test",
   "app=test",
-  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
-  "deployment=backend@v1,server=backend,app=test",
+  "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
 ]
 `;
@@ -140,31 +140,31 @@ exports[`Model E2E Test common functions Test environment synth() 1`] = `
 
 exports[`Model E2E Test common functions Test execution getAncestors() 1`] = `
 [
-  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
   "region=region,app=test",
   "app=test",
   "environment=qa,region=region,app=test",
-  "deployment=backend@v1,server=backend,app=test",
+  "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test execution getBoundaryMembers() 1`] = `
 [
-  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
   "region=region,app=test",
   "app=test",
   "environment=qa,region=region,app=test",
-  "deployment=backend@v1,server=backend,app=test",
+  "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test execution getChildren() 1`] = `[]`;
 
-exports[`Model E2E Test common functions Test execution getContext() 1`] = `"execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test"`;
+exports[`Model E2E Test common functions Test execution getContext() 1`] = `"execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test"`;
 
 exports[`Model E2E Test common functions Test execution getParents() 1`] = `
 [
@@ -177,7 +177,7 @@ exports[`Model E2E Test common functions Test execution getParents() 1`] = `
 exports[`Model E2E Test common functions Test execution synth() 1`] = `
 {
   "deployment": {
-    "context": "deployment=backend@v1,server=backend,app=test",
+    "context": "deployment=v1,server=backend,app=test",
   },
   "environment": {
     "context": "environment=qa,region=region,app=test",
@@ -269,9 +269,9 @@ exports[`Model E2E Test common functions Test region getBoundaryMembers() 1`] = 
   "region=region,app=test",
   "app=test",
   "environment=qa,region=region,app=test",
-  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
-  "deployment=backend@v1,server=backend,app=test",
+  "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
 ]
 `;
@@ -308,8 +308,8 @@ exports[`Model E2E Test common functions Test server getBoundaryMembers() 1`] = 
 [
   "server=backend,app=test",
   "app=test",
-  "deployment=backend@v1,server=backend,app=test",
-  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "deployment=v1,server=backend,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
   "region=region,app=test",
   "environment=qa,region=region,app=test",
@@ -375,9 +375,9 @@ exports[`Model E2E Test common functions Test subnet getBoundaryMembers() 1`] = 
   "subnet=region-public,region=region,app=test",
   "region=region,app=test",
   "app=test",
-  "execution=backend@v1_qa,deployment=backend@v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "environment=qa,region=region,app=test",
-  "deployment=backend@v1,server=backend,app=test",
+  "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
 ]
 `;
@@ -461,7 +461,7 @@ exports[`Model E2E Test getBoundaryMembers() should include models in boundary a
   "region=region,app=test-app",
   "app=test-app",
   "environment=qa,region=region,app=test-app",
-  "execution=deployment_qa,deployment=deployment,server=server,app=test-app,environment=qa,region=region,app=test-app,subnet=region-subnet,region=region,app=test-app",
+  "execution=server-deployment-region-qa-subnet,deployment=deployment,server=server,app=test-app,environment=qa,region=region,app=test-app,subnet=region-subnet,region=region,app=test-app",
   "subnet=region-subnet,region=region,app=test-app",
   "deployment=deployment,server=server,app=test-app",
   "server=server,app=test-app",
@@ -473,7 +473,7 @@ exports[`Model E2E Test getBoundaryMembers() should include models in boundary a
   "server=server,app=test-app",
   "app=test-app",
   "deployment=deployment,server=server,app=test-app",
-  "execution=deployment_qa,deployment=deployment,server=server,app=test-app,environment=qa,region=region,app=test-app,subnet=region-subnet,region=region,app=test-app",
+  "execution=server-deployment-region-qa-subnet,deployment=deployment,server=server,app=test-app,environment=qa,region=region,app=test-app,subnet=region-subnet,region=region,app=test-app",
   "subnet=region-subnet,region=region,app=test-app",
   "region=region,app=test-app",
   "environment=qa,region=region,app=test-app",

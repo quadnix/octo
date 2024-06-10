@@ -27,7 +27,7 @@ describe('Model E2E Test', () => {
     app.addRegion(region);
     const server = new Server('backend');
     app.addServer(server);
-    const deployment = new Deployment('backend@v1');
+    const deployment = new Deployment('v1');
     server.addDeployment(deployment);
     const service = new Service('service');
     app.addService(service);

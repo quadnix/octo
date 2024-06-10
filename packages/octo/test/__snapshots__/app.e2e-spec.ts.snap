@@ -31,7 +31,7 @@ exports[`App E2E Test should generate app diff 1`] = `
   {
     "action": "add",
     "field": "deploymentTag",
-    "value": "backend@v0.0.1",
+    "value": "v0.0.1",
   },
   {
     "action": "add",
@@ -41,7 +41,7 @@ exports[`App E2E Test should generate app diff 1`] = `
   {
     "action": "add",
     "field": "deploymentTag",
-    "value": "database@v0.0.1",
+    "value": "v0.0.1",
   },
 ]
 `;

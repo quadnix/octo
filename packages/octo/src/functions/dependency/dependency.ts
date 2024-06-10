@@ -63,7 +63,7 @@ export class Dependency {
   }
 
   addBehavior(onField: string, onAction: DiffAction, toField: string, forAction: DiffAction): void {
-    if (!this.from.hasOwnProperty(onField) || !this.to.hasOwnProperty(toField)) {
+    if (!(onField in this.from) || !(toField in this.to)) {
       throw new Error('Invalid field name is not a property of given model!');
     }
 
