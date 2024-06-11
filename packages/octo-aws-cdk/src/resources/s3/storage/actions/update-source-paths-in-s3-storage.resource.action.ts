@@ -4,7 +4,7 @@ import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, Mod
 import { createReadStream } from 'fs';
 import mime from 'mime';
 import type { IS3StorageProperties } from '../s3-storage.interface.js';
-import type { S3Storage } from '../s3-storage.resource.js';
+import { S3Storage } from '../s3-storage.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class UpdateSourcePathsInS3StorageResourceAction implements IResourceAction {
@@ -13,6 +13,7 @@ export class UpdateSourcePathsInS3StorageResourceAction implements IResourceActi
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
+      diff.model instanceof S3Storage &&
       diff.model.MODEL_NAME === 's3-storage' &&
       diff.field === 'update-source-paths'
     );

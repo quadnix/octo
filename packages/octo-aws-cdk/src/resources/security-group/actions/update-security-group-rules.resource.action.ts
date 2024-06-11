@@ -7,14 +7,19 @@ import {
 } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface.js';
-import type { SecurityGroup } from '../security-group.resource.js';
+import { SecurityGroup } from '../security-group.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class UpdateSecurityGroupRulesResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'UpdateSecurityGroupRulesResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.UPDATE && diff.model.MODEL_NAME === 'security-group' && diff.field === 'rules';
+    return (
+      diff.action === DiffAction.UPDATE &&
+      diff.model instanceof SecurityGroup &&
+      diff.model.MODEL_NAME === 'security-group' &&
+      diff.field === 'rules'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

@@ -10,6 +10,7 @@ import {
 } from '@quadnix/octo';
 import type { SecurityGroupAnchor } from '../../../anchors/security-group.anchor.js';
 import type { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
+import { SecurityGroupOverlay } from '../security-group.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class DeleteSecurityGroupOverlayAction implements IModelAction {
@@ -24,6 +25,7 @@ export class DeleteSecurityGroupOverlayAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
+      diff.model instanceof SecurityGroupOverlay &&
       diff.model.MODEL_NAME === 'security-group-overlay' &&
       diff.field === 'overlayId'
     );

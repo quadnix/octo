@@ -8,14 +8,18 @@ import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, Mod
 import type { IVpcResponse } from '../../vpc/vpc.interface.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
 import type { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface.js';
-import type { SecurityGroup } from '../security-group.resource.js';
+import { SecurityGroup } from '../security-group.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddSecurityGroupResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddSecurityGroupResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'security-group';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof SecurityGroup &&
+      diff.model.MODEL_NAME === 'security-group'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

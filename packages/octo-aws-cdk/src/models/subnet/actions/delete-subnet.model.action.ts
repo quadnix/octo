@@ -11,7 +11,7 @@ import {
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import type { AwsSubnet } from '../aws.subnet.model.js';
+import { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(ModelType.MODEL)
 export class DeleteSubnetModelAction implements IModelAction {
@@ -24,7 +24,12 @@ export class DeleteSubnetModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'subnet' && diff.field === 'subnetId';
+    return (
+      diff.action === DiffAction.DELETE &&
+      diff.model instanceof AwsSubnet &&
+      diff.model.MODEL_NAME === 'subnet' &&
+      diff.field === 'subnetId'
+    );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {

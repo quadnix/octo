@@ -10,7 +10,7 @@ import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, Mod
 import type { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { INetworkAclProperties, INetworkAclResponse } from '../network-acl.interface.js';
-import type { NetworkAcl } from '../network-acl.resource.js';
+import { NetworkAcl } from '../network-acl.resource.js';
 import pLimit from 'p-limit';
 
 @Action(ModelType.RESOURCE)
@@ -20,6 +20,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
+      diff.model instanceof NetworkAcl &&
       diff.model.MODEL_NAME === 'network-acl' &&
       diff.field === 'properties' &&
       (diff.value as { key: string; value: unknown }).key === 'entries'

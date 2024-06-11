@@ -10,7 +10,7 @@ import {
 } from '@quadnix/octo';
 import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import type { IamRole } from '../../../resources/iam/iam-role.resource.js';
-import type { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
+import { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class DeleteS3StorageAccessOverlayAction implements IModelAction {
@@ -26,6 +26,7 @@ export class DeleteS3StorageAccessOverlayAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
+      diff.model instanceof S3StorageAccessOverlay &&
       diff.model.MODEL_NAME === 's3-storage-access-overlay' &&
       diff.field === 'overlayId'
     );

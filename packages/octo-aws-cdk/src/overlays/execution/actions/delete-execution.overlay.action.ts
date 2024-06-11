@@ -11,7 +11,7 @@ import {
 import type { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
 import type { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
 import type { IExecutionOverlayProperties } from '../execution.overlay.interface.js';
-import type { ExecutionOverlay } from '../execution.overlay.js';
+import { ExecutionOverlay } from '../execution.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class DeleteExecutionOverlayAction implements IModelAction {
@@ -29,7 +29,10 @@ export class DeleteExecutionOverlayAction implements IModelAction {
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'execution-overlay' && diff.field === 'overlayId'
+      diff.action === DiffAction.DELETE &&
+      diff.model instanceof ExecutionOverlay &&
+      diff.model.MODEL_NAME === 'execution-overlay' &&
+      diff.field === 'overlayId'
     );
   }
 

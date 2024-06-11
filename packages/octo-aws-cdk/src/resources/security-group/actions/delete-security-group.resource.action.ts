@@ -1,14 +1,18 @@
 import { DeleteSecurityGroupCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface.js';
-import type { SecurityGroup } from '../security-group.resource.js';
+import { SecurityGroup } from '../security-group.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class DeleteSecurityGroupResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteSecurityGroupResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'security-group';
+    return (
+      diff.action === DiffAction.DELETE &&
+      diff.model instanceof SecurityGroup &&
+      diff.model.MODEL_NAME === 'security-group'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

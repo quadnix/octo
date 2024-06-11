@@ -23,7 +23,12 @@ export class AddImageModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'image' && diff.field === 'imageId';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof Image &&
+      diff.model.MODEL_NAME === 'image' &&
+      diff.field === 'imageId'
+    );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {

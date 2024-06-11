@@ -5,14 +5,18 @@ import type { Efs } from '../../efs/efs.resource.js';
 import type { IIamRoleResponse } from '../../iam/iam-role.interface.js';
 import type { IamRole } from '../../iam/iam-role.resource.js';
 import type { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
-import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
+import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEcsTaskDefinitionResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'ecs-task-definition';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof EcsTaskDefinition &&
+      diff.model.MODEL_NAME === 'ecs-task-definition'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

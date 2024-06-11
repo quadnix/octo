@@ -7,14 +7,14 @@ import {
 } from '@aws-sdk/client-s3';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IS3WebsiteProperties, IS3WebsiteResponse } from '../s3-website.interface.js';
-import type { S3Website } from '../s3-website.resource.js';
+import { S3Website } from '../s3-website.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddS3WebsiteResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddS3WebsiteResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 's3-website';
+    return diff.action === DiffAction.ADD && diff.model instanceof S3Website && diff.model.MODEL_NAME === 's3-website';
   }
 
   async handle(diff: Diff): Promise<void> {

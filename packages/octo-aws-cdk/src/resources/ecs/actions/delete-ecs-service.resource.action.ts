@@ -4,14 +4,16 @@ import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEcsClusterProperties } from '../ecs-cluster.interface.js';
 import type { EcsCluster } from '../ecs-cluster.resource.js';
 import type { IEcsServiceProperties } from '../ecs-service.interface.js';
-import type { EcsService } from '../ecs-service.resource.js';
+import { EcsService } from '../ecs-service.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class DeleteEcsServiceResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEcsServiceResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'ecs-service';
+    return (
+      diff.action === DiffAction.DELETE && diff.model instanceof EcsService && diff.model.MODEL_NAME === 'ecs-service'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

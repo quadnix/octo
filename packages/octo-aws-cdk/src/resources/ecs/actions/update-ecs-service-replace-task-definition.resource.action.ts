@@ -1,7 +1,7 @@
 import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IEcsServiceProperties } from '../ecs-service.interface.js';
-import type { EcsService, EcsServicePropertyDiff } from '../ecs-service.resource.js';
+import { EcsService, type EcsServicePropertyDiff } from '../ecs-service.resource.js';
 import type { IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
 import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
@@ -12,6 +12,7 @@ export class UpdateEcsServiceReplaceTaskDefinitionResourceAction implements IRes
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
+      diff.model instanceof EcsService &&
       diff.model.MODEL_NAME === 'ecs-service' &&
       diff.field === 'task-definition' &&
       (diff.value as EcsServicePropertyDiff['key']).action === 'replace'

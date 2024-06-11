@@ -15,7 +15,7 @@ import type { AwsSubnet } from '../../../models/subnet/aws.subnet.model.js';
 import { EfsMountTarget } from '../../../resources/efs/efs-mount-target.resource.js';
 import type { Efs } from '../../../resources/efs/efs.resource.js';
 import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import type { SubnetFilesystemMountOverlay } from '../subnet-filesystem-mount.overlay.js';
+import { SubnetFilesystemMountOverlay } from '../subnet-filesystem-mount.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class AddSubnetFilesystemMountOverlayAction implements IModelAction {
@@ -43,6 +43,7 @@ export class AddSubnetFilesystemMountOverlayAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
+      diff.model instanceof SubnetFilesystemMountOverlay &&
       diff.model.MODEL_NAME === 'subnet-filesystem-mount-overlay' &&
       diff.field === 'overlayId'
     );

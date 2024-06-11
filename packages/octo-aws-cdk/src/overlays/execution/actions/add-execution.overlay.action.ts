@@ -25,7 +25,7 @@ import type { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import type { IExecutionOverlayProperties } from '../execution.overlay.interface.js';
-import type { ExecutionOverlay } from '../execution.overlay.js';
+import { ExecutionOverlay } from '../execution.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class AddExecutionOverlayAction implements IModelAction {
@@ -67,7 +67,10 @@ export class AddExecutionOverlayAction implements IModelAction {
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'execution-overlay' && diff.field === 'overlayId'
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof ExecutionOverlay &&
+      diff.model.MODEL_NAME === 'execution-overlay' &&
+      diff.field === 'overlayId'
     );
   }
 

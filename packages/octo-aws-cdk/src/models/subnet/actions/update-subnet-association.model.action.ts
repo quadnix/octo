@@ -13,7 +13,7 @@ import type { INetworkAclProperties } from '../../../resources/network-acl/netwo
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import type { ISubnetProperties } from '../../../resources/subnet/subnet.interface.js';
 import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import type { AwsSubnet } from '../aws.subnet.model.js';
+import { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(ModelType.MODEL)
 export class UpdateSubnetAssociationModelAction implements IModelAction {
@@ -35,6 +35,7 @@ export class UpdateSubnetAssociationModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
+      diff.model instanceof AwsSubnet &&
       diff.model.MODEL_NAME === 'subnet' &&
       (diff.field === 'association' || diff.field === 'disableSubnetIntraNetwork')
     );

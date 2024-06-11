@@ -12,14 +12,16 @@ import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { IVpcResponse } from '../../vpc/vpc.interface.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
 import type { IRouteTableProperties, IRouteTableResponse } from '../route-table.interface.js';
-import type { RouteTable } from '../route-table.resource.js';
+import { RouteTable } from '../route-table.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddRouteTableResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddRouteTableResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'route-table';
+    return (
+      diff.action === DiffAction.ADD && diff.model instanceof RouteTable && diff.model.MODEL_NAME === 'route-table'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

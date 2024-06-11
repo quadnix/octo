@@ -8,7 +8,7 @@ import {
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IS3StorageAccessOverlayProperties } from '../../../overlays/s3-storage-access/s3-storage-access.overlay.interface.js';
 import type { IIamUserResponse } from '../iam-user.interface.js';
-import type { IamUser, IamUserPolicyDiff } from '../iam-user.resource.js';
+import { IamUser, type IamUserPolicyDiff } from '../iam-user.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResourceAction {
@@ -17,6 +17,7 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
+      diff.model instanceof IamUser &&
       diff.model.MODEL_NAME === 'iam-user' &&
       (diff.value as IamUserPolicyDiff['key']).overlay.MODEL_NAME === 's3-storage-access-overlay'
     );

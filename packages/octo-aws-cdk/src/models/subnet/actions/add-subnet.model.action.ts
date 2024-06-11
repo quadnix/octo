@@ -18,7 +18,7 @@ import type { ISubnetProperties } from '../../../resources/subnet/subnet.interfa
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { Vpc } from '../../../resources/vpc/vpc.resource.js';
 import type { AwsRegion } from '../../region/aws.region.model.js';
-import type { AwsSubnet } from '../aws.subnet.model.js';
+import { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(ModelType.MODEL)
 export class AddSubnetModelAction implements IModelAction {
@@ -43,7 +43,12 @@ export class AddSubnetModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'subnet' && diff.field === 'subnetId';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof AwsSubnet &&
+      diff.model.MODEL_NAME === 'subnet' &&
+      diff.field === 'subnetId'
+    );
   }
 
   @EnableHook('PostModelActionHook')

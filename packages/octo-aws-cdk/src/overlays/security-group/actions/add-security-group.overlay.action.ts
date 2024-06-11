@@ -12,7 +12,7 @@ import type { SecurityGroupAnchor } from '../../../anchors/security-group.anchor
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import type { Vpc } from '../../../resources/vpc/vpc.resource.js';
 import type { ISecurityGroupOverlayProperties } from '../security-group.overlay.interface.js';
-import type { SecurityGroupOverlay } from '../security-group.overlay.js';
+import { SecurityGroupOverlay } from '../security-group.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class AddSecurityGroupOverlayAction implements IModelAction {
@@ -27,7 +27,10 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'security-group-overlay' && diff.field === 'overlayId'
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof SecurityGroupOverlay &&
+      diff.model.MODEL_NAME === 'security-group-overlay' &&
+      diff.field === 'overlayId'
     );
   }
 

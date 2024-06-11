@@ -3,14 +3,18 @@ import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, Mod
 import type { IVpcResponse } from '../../vpc/vpc.interface.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
 import type { IInternetGatewayProperties, IInternetGatewayResponse } from '../internet-gateway.interface.js';
-import type { InternetGateway } from '../internet-gateway.resource.js';
+import { InternetGateway } from '../internet-gateway.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class DeleteInternetGatewayResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteInternetGatewayResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'internet-gateway';
+    return (
+      diff.action === DiffAction.DELETE &&
+      diff.model instanceof InternetGateway &&
+      diff.model.MODEL_NAME === 'internet-gateway'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

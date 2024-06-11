@@ -7,7 +7,7 @@ import {
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsMountTargetProperties, IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
-import type { EfsMountTarget } from '../efs-mount-target.resource.js';
+import { EfsMountTarget } from '../efs-mount-target.resource.js';
 import type { IEfsResponse } from '../efs.interface.js';
 import type { Efs } from '../efs.resource.js';
 
@@ -16,7 +16,11 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEfsMountTargetResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'efs-mount-target';
+    return (
+      diff.action === DiffAction.DELETE &&
+      diff.model instanceof EfsMountTarget &&
+      diff.model.MODEL_NAME === 'efs-mount-target'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

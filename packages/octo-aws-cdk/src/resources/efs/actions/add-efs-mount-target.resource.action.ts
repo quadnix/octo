@@ -4,7 +4,7 @@ import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { IEfsMountTargetProperties, IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
-import type { EfsMountTarget } from '../efs-mount-target.resource.js';
+import { EfsMountTarget } from '../efs-mount-target.resource.js';
 import type { IEfsResponse } from '../efs.interface.js';
 import type { Efs } from '../efs.resource.js';
 
@@ -13,7 +13,11 @@ export class AddEfsMountTargetResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEfsMountTargetResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'efs-mount-target';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.model instanceof EfsMountTarget &&
+      diff.model.MODEL_NAME === 'efs-mount-target'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

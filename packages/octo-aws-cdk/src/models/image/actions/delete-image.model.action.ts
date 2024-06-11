@@ -9,7 +9,12 @@ export class DeleteImageModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'image' && diff.field === 'imageId';
+    return (
+      diff.action === DiffAction.DELETE &&
+      diff.model instanceof Image &&
+      diff.model.MODEL_NAME === 'image' &&
+      diff.field === 'imageId'
+    );
   }
 
   async handle(): Promise<ActionOutputs> {

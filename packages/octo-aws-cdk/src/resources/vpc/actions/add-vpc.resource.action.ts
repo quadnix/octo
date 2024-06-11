@@ -1,14 +1,14 @@
 import { CreateVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IVpcProperties, IVpcResponse } from '../vpc.interface.js';
-import type { Vpc } from '../vpc.resource.js';
+import { Vpc } from '../vpc.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddVpcResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddVpcResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'vpc';
+    return diff.action === DiffAction.ADD && diff.model instanceof Vpc && diff.model.MODEL_NAME === 'vpc';
   }
 
   async handle(diff: Diff): Promise<void> {

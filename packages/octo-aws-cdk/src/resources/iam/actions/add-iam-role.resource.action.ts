@@ -1,14 +1,14 @@
 import { CreateRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IIamRoleProperties, IIamRoleResponse } from '../iam-role.interface.js';
-import type { IamRole } from '../iam-role.resource.js';
+import { IamRole } from '../iam-role.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddIamRoleResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddIamRoleResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'iam-role';
+    return diff.action === DiffAction.ADD && diff.model instanceof IamRole && diff.model.MODEL_NAME === 'iam-role';
   }
 
   async handle(diff: Diff): Promise<void> {

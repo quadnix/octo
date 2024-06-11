@@ -4,7 +4,7 @@ import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, Mod
 import { createReadStream } from 'fs';
 import mime from 'mime';
 import type { IS3WebsiteProperties } from '../s3-website.interface.js';
-import type { S3Website } from '../s3-website.resource.js';
+import { S3Website } from '../s3-website.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceAction {
@@ -13,6 +13,7 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
+      diff.model instanceof S3Website &&
       diff.model.MODEL_NAME === 's3-website' &&
       diff.field === 'update-source-paths'
     );

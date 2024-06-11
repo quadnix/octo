@@ -1,7 +1,7 @@
 import { Action, type ActionOutputs, Diff, DiffAction, Factory, type IModelAction, ModelType } from '@quadnix/octo';
 import { Efs } from '../../../resources/efs/efs.resource.js';
 import type { IRegionFilesystemOverlayProperties } from '../region-filesystem.overlay.interface.js';
-import type { RegionFilesystemOverlay } from '../region-filesystem.overlay.js';
+import { RegionFilesystemOverlay } from '../region-filesystem.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class AddRegionFilesystemOverlayAction implements IModelAction {
@@ -14,6 +14,7 @@ export class AddRegionFilesystemOverlayAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
+      diff.model instanceof RegionFilesystemOverlay &&
       diff.model.MODEL_NAME === 'region-filesystem-overlay' &&
       diff.field === 'overlayId'
     );

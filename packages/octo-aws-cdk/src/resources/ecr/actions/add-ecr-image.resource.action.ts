@@ -9,14 +9,14 @@ import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, Mod
 import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
 import type { IEcrImageProperties, IEcrImageResponse } from '../ecr-image.interface.js';
-import type { EcrImage } from '../ecr-image.resource.js';
+import { EcrImage } from '../ecr-image.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddEcrImageResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEcrImageResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'ecr-image';
+    return diff.action === DiffAction.ADD && diff.model instanceof EcrImage && diff.model.MODEL_NAME === 'ecr-image';
   }
 
   async handle(diff: Diff): Promise<void> {

@@ -11,14 +11,16 @@ import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { IVpcResponse } from '../../vpc/vpc.interface.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
 import type { INetworkAclProperties, INetworkAclResponse } from '../network-acl.interface.js';
-import type { NetworkAcl } from '../network-acl.resource.js';
+import { NetworkAcl } from '../network-acl.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class AddNetworkAclResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddNetworkAclResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'network-acl';
+    return (
+      diff.action === DiffAction.ADD && diff.model instanceof NetworkAcl && diff.model.MODEL_NAME === 'network-acl'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

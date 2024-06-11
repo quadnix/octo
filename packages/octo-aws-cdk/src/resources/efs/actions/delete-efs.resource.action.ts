@@ -7,14 +7,14 @@ import {
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsProperties, IEfsResponse } from '../efs.interface.js';
-import type { Efs } from '../efs.resource.js';
+import { Efs } from '../efs.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class DeleteEfsResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEfsResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'efs';
+    return diff.action === DiffAction.DELETE && diff.model instanceof Efs && diff.model.MODEL_NAME === 'efs';
   }
 
   async handle(diff: Diff): Promise<void> {
