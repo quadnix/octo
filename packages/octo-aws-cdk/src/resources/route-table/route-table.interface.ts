@@ -1,9 +1,19 @@
-export interface IRouteTableProperties {
-  associateWithInternetGateway: boolean;
-  awsRegionId: string;
-}
+import type { IResource, ModifyInterface } from '@quadnix/octo';
 
-export interface IRouteTableResponse {
-  RouteTableId: string;
-  subnetAssociationId: string;
-}
+export interface IRouteTableProperties
+  extends ModifyInterface<
+    IResource['properties'],
+    {
+      associateWithInternetGateway: boolean;
+      awsRegionId: string;
+    }
+  > {}
+
+export interface IRouteTableResponse
+  extends ModifyInterface<
+    IResource['response'],
+    {
+      RouteTableId: string;
+      subnetAssociationId: string;
+    }
+  > {}

@@ -1,5 +1,6 @@
-import { AResource, Diff, DiffAction, type IResource, Resource, type UnknownOverlay } from '@quadnix/octo';
-import type { IIamUserProperties } from './iam-user.interface.js';
+import { AResource, Diff, DiffAction, Resource, type UnknownOverlay } from '@quadnix/octo';
+import { IIamRoleProperties } from './iam-role.interface.js';
+import type { IIamUserProperties, IIamUserResponse } from './iam-user.interface.js';
 
 export type IamUserPolicyDiff = {
   [key: string]: { action: 'add' | 'delete'; overlay: UnknownOverlay };
@@ -9,10 +10,13 @@ export type IamUserPolicyDiff = {
 export class IamUser extends AResource<IamUser> {
   readonly MODEL_NAME: string = 'iam-user';
 
+  declare properties: IIamRoleProperties;
+  declare response: IIamUserResponse;
+
   private readonly policyDiff: IamUserPolicyDiff = {};
 
   constructor(resourceId: string, properties: IIamUserProperties) {
-    super(resourceId, properties as unknown as IResource['properties'], []);
+    super(resourceId, properties, []);
   }
 
   override async diff(): Promise<Diff[]> {

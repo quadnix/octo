@@ -1,7 +1,17 @@
-export interface IInternetGatewayProperties {
-  awsRegionId: string;
-}
+import type { IResource, ModifyInterface } from '@quadnix/octo';
 
-export interface IInternetGatewayResponse {
-  InternetGatewayId: string;
-}
+export interface IInternetGatewayProperties
+  extends ModifyInterface<
+    IResource['properties'],
+    {
+      awsRegionId: string;
+    }
+  > {}
+
+export interface IInternetGatewayResponse
+  extends ModifyInterface<
+    IResource['response'],
+    {
+      InternetGatewayId: string;
+    }
+  > {}

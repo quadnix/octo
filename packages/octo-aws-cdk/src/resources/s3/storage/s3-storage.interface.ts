@@ -1,4 +1,10 @@
-export interface IS3StorageProperties {
-  awsRegionId: string;
-  Bucket: string;
-}
+import type { IResource, ModifyInterface } from '@quadnix/octo';
+
+export interface IS3StorageProperties
+  extends ModifyInterface<
+    IResource['properties'],
+    {
+      awsRegionId: string;
+      Bucket: string;
+    }
+  > {}

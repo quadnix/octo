@@ -1,14 +1,17 @@
-import { AResource, type IResource, Resource } from '@quadnix/octo';
+import { AResource, Resource } from '@quadnix/octo';
 import type { Efs } from '../efs/efs.resource.js';
 import type { IamRole } from '../iam/iam-role.resource.js';
-import type { IEcsTaskDefinitionProperties } from './ecs-task-definition.interface.js';
+import type { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from './ecs-task-definition.interface.js';
 
 @Resource()
 export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
   readonly MODEL_NAME: string = 'ecs-task-definition';
 
+  declare properties: IEcsTaskDefinitionProperties;
+  declare response: IEcsTaskDefinitionResponse;
+
   constructor(resourceId: string, properties: IEcsTaskDefinitionProperties, parents: [IamRole, ...Efs[]]) {
-    super(resourceId, properties as unknown as IResource['properties'], parents);
+    super(resourceId, properties, parents);
   }
 
   updateTaskDefinitionEnvironmentVariables(

@@ -1,9 +1,19 @@
-export interface IEfsProperties {
-  awsRegionId: string;
-  filesystemName: string;
-}
+import type { IResource, ModifyInterface } from '@quadnix/octo';
 
-export interface IEfsResponse {
-  FileSystemId: string;
-  FileSystemArn: string;
-}
+export interface IEfsProperties
+  extends ModifyInterface<
+    IResource['properties'],
+    {
+      awsRegionId: string;
+      filesystemName: string;
+    }
+  > {}
+
+export interface IEfsResponse
+  extends ModifyInterface<
+    IResource['response'],
+    {
+      FileSystemId: string;
+      FileSystemArn: string;
+    }
+  > {}

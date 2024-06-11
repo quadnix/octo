@@ -1,10 +1,20 @@
-export interface IIamRoleProperties {
-  rolename: string;
-}
+import type { IResource, ModifyInterface } from '@quadnix/octo';
 
-export interface IIamRoleResponse {
-  Arn: string;
-  policies: { [key: string]: string[] };
-  RoleId: string;
-  RoleName: string;
-}
+export interface IIamRoleProperties
+  extends ModifyInterface<
+    IResource['properties'],
+    {
+      rolename: string;
+    }
+  > {}
+
+export interface IIamRoleResponse
+  extends ModifyInterface<
+    IResource['response'],
+    {
+      Arn: string;
+      policies: { [key: string]: string[] };
+      RoleId: string;
+      RoleName: string;
+    }
+  > {}

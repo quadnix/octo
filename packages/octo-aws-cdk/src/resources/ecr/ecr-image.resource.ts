@@ -1,11 +1,14 @@
-import { AResource, type IResource, Resource } from '@quadnix/octo';
-import type { IEcrImageProperties } from './ecr-image.interface.js';
+import { AResource, Resource } from '@quadnix/octo';
+import type { IEcrImageProperties, IEcrImageResponse } from './ecr-image.interface.js';
 
 @Resource()
 export class EcrImage extends AResource<EcrImage> {
   readonly MODEL_NAME: string = 'ecr-image';
 
+  declare properties: IEcrImageProperties;
+  declare response: IEcrImageResponse;
+
   constructor(resourceId: string, properties: IEcrImageProperties) {
-    super(resourceId, properties as unknown as IResource['properties'], []);
+    super(resourceId, properties, []);
   }
 }
