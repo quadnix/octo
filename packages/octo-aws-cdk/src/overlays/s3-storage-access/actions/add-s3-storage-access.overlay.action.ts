@@ -8,7 +8,7 @@ import {
   type IModelAction,
   ModelType,
 } from '@quadnix/octo';
-import type { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
+import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import type { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import type { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
 
@@ -18,9 +18,9 @@ export class AddS3StorageAccessOverlayAction implements IModelAction {
 
   collectInput(diff: Diff): string[] {
     const s3StorageAccessOverlay = diff.model as S3StorageAccessOverlay;
-    const iamRoleAnchor = s3StorageAccessOverlay.getAnchors()[0] as IamRoleAnchor;
+    const iamRoleAnchor = s3StorageAccessOverlay.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
 
-    return [`resource.iam-role-${iamRoleAnchor.anchorId}`];
+    return [`resource.iam-role-${iamRoleAnchor.properties.iamRoleName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -33,8 +33,8 @@ export class AddS3StorageAccessOverlayAction implements IModelAction {
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const s3StorageAccessOverlay = diff.model as S3StorageAccessOverlay;
-    const iamRoleAnchor = s3StorageAccessOverlay.getAnchors()[0] as IamRoleAnchor;
-    const iamRole = actionInputs[`resource.iam-role-${iamRoleAnchor.anchorId}`] as IamRole;
+    const iamRoleAnchor = s3StorageAccessOverlay.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
+    const iamRole = actionInputs[`resource.iam-role-${iamRoleAnchor.properties.iamRoleName}`] as IamRole;
 
     iamRole.updatePolicyDiff({
       [s3StorageAccessOverlay.overlayId]: { action: 'add', overlay: s3StorageAccessOverlay },

@@ -31,13 +31,13 @@ export class AwsSubnet extends Subnet {
     const subnetFilesystemMountAnchorName = `${region.awsRegionId}-${this.subnetName}-${filesystemName}-FilesystemMountAnchor`;
     const subnetFilesystemMountAnchor = new SubnetFilesystemMountAnchor(
       subnetFilesystemMountAnchorName,
-      regionFilesystem.filesystemName,
+      { filesystemName: regionFilesystem.filesystemName },
       this,
     );
     this.anchors.push(subnetFilesystemMountAnchor);
     this.filesystemMounts.push({ filesystemMountAnchorName: subnetFilesystemMountAnchorName, filesystemName });
 
-    const overlayId = `${subnetFilesystemMountAnchorName}Overlay`;
+    const overlayId = `subnet-filesystem-mount-overlay-${subnetFilesystemMountAnchorName}`;
 
     const overlayService = await Container.get(OverlayService);
     const subnetFilesystemMountOverlay = new SubnetFilesystemMountOverlay(overlayId, {}, [
@@ -56,7 +56,7 @@ export class AwsSubnet extends Subnet {
     const overlayService = await Container.get(OverlayService);
     const overlays = overlayService.getOverlayByProperties();
 
-    const overlayId = `${filesystemMount.filesystemMountAnchorName}Overlay`;
+    const overlayId = `subnet-filesystem-mount-overlay-${filesystemMount.filesystemMountAnchorName}`;
     if (overlays.find((o) => o.overlayId !== overlayId && o.getAnchor(filesystemMount.filesystemMountAnchorName))) {
       throw new Error('Cannot remove filesystem mount while overlay exists!');
     }

@@ -1,9 +1,19 @@
-import { AAnchor, Anchor } from '@quadnix/octo';
+import { AAnchor, Anchor, IAnchor, ModifyInterface } from '@quadnix/octo';
 import type { AwsServer } from '../models/server/aws.server.model.js';
+
+interface IIamUserAnchorProperties
+  extends ModifyInterface<
+    IAnchor['properties'],
+    {
+      iamUserName: string;
+    }
+  > {}
 
 @Anchor()
 export class IamUserAnchor extends AAnchor {
-  constructor(anchorId: string, parent: AwsServer) {
-    super(anchorId, parent);
+  declare properties: IIamUserAnchorProperties;
+
+  constructor(anchorId: string, properties: IIamUserAnchorProperties, parent: AwsServer) {
+    super(anchorId, properties, parent);
   }
 }

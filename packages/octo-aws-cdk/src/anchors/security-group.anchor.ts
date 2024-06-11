@@ -1,10 +1,15 @@
-import { AAnchor, Anchor, type IAnchor, type UnknownModel } from '@quadnix/octo';
+import { AAnchor, Anchor, type IAnchor, type ModifyInterface } from '@quadnix/octo';
 import type { AwsExecution } from '../models/execution/aws.execution.model.js';
 import type { AwsServer } from '../models/server/aws.server.model.js';
 
-interface ISecurityGroupAnchor extends IAnchor {
-  rules: ISecurityGroupAnchorRule[];
-}
+interface ISecurityGroupAnchorProperties
+  extends ModifyInterface<
+    IAnchor['properties'],
+    {
+      rules: ISecurityGroupAnchorRule[];
+      securityGroupName: string;
+    }
+  > {}
 
 interface ISecurityGroupAnchorRule {
   CidrBlock: string;
@@ -16,43 +21,9 @@ interface ISecurityGroupAnchorRule {
 
 @Anchor()
 export class SecurityGroupAnchor extends AAnchor {
-  readonly rules: ISecurityGroupAnchorRule[];
+  declare properties: ISecurityGroupAnchorProperties;
 
-  constructor(anchorId: string, rules: ISecurityGroupAnchorRule[], parent: AwsServer | AwsExecution) {
-    super(anchorId, parent);
-    this.rules = rules;
-  }
-
-  override synth(): ISecurityGroupAnchor {
-    return {
-      anchorId: this.anchorId,
-      parent: { context: this.getParent().getContext() },
-      rules: [...this.rules],
-    };
-  }
-
-  override toJSON(): object {
-    return {
-      anchorId: this.anchorId,
-      parent: this.getParent().getContext(),
-      rules: [...this.rules],
-    };
-  }
-
-  static override async unSynth(
-    deserializationClass: typeof SecurityGroupAnchor,
-    anchor: ISecurityGroupAnchor,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<SecurityGroupAnchor> {
-    const parent = (await deReferenceContext(anchor.parent.context)) as AwsServer | AwsExecution;
-    const newAnchor = parent.getAnchor(anchor.anchorId) as SecurityGroupAnchor;
-    if (!newAnchor) {
-      return new deserializationClass(anchor.anchorId, anchor.rules, parent);
-    }
-
-    for (const rule of anchor.rules) {
-      newAnchor.rules.push(rule);
-    }
-    return newAnchor;
+  constructor(anchorId: string, properties: ISecurityGroupAnchorProperties, parent: AwsServer | AwsExecution) {
+    super(anchorId, properties, parent);
   }
 }

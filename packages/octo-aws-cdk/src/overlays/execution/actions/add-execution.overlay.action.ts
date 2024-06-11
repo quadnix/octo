@@ -38,7 +38,7 @@ export class AddExecutionOverlayAction implements IModelAction {
     const clusterName = [properties.regionId, properties.environmentName].join('-');
 
     const serverIamRoleAnchor = executionOverlay.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
-    const serverIamRoleName = serverIamRoleAnchor.anchorId;
+    const serverIamRoleName = serverIamRoleAnchor.properties.iamRoleName;
 
     const ecsServiceAnchor = executionOverlay
       .getAnchors()
@@ -49,13 +49,19 @@ export class AddExecutionOverlayAction implements IModelAction {
     const efsResources = executionOverlay
       .getAnchors()
       .filter((a) => a instanceof SubnetFilesystemMountAnchor)
-      .map((a: SubnetFilesystemMountAnchor) => `resource.efs-${region.regionId}-${a.filesystemName}-filesystem`);
+      .map((a: SubnetFilesystemMountAnchor) => `resource.efs-${region.regionId}-${a.properties.filesystemName}`);
+
+    const securityGroupResources = executionOverlay
+      .getAnchors()
+      .filter((a) => a instanceof SecurityGroupAnchor && a.properties.rules.length > 0)
+      .map((a: SecurityGroupAnchor) => `resource.sec-grp-${a.properties.securityGroupName}`);
 
     return [
       `resource.ecs-cluster-${clusterName}`,
       `resource.iam-role-${serverIamRoleName}`,
       `resource.subnet-${properties.subnetId}`,
       ...efsResources,
+      ...securityGroupResources,
     ];
   }
 
@@ -102,7 +108,7 @@ export class AddExecutionOverlayAction implements IModelAction {
 
     // IAM Role Anchors - collect server iam role.
     const serverIamRoleAnchor = executionOverlay.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
-    const serverIamRoleName = serverIamRoleAnchor.anchorId;
+    const serverIamRoleName = serverIamRoleAnchor.properties.iamRoleName;
     const serverIamRole = actionInputs[`resource.iam-role-${serverIamRoleName}`] as IamRole;
 
     // Add EcsTaskDefinition parents.
@@ -113,7 +119,7 @@ export class AddExecutionOverlayAction implements IModelAction {
       .getAnchors()
       .filter((a) => a instanceof SubnetFilesystemMountAnchor)
       .forEach((a: SubnetFilesystemMountAnchor) => {
-        const efs = actionInputs[`resource.efs-${properties.regionId}-${a.filesystemName}-filesystem`] as Efs;
+        const efs = actionInputs[`resource.efs-${properties.regionId}-${a.properties.filesystemName}`] as Efs;
         taskDefinitionParents.push(efs);
       });
 
@@ -151,9 +157,9 @@ export class AddExecutionOverlayAction implements IModelAction {
     // Iterate though every security group anchors associated with this overlay to add respective SG as parent.
     executionOverlay
       .getAnchors()
-      .filter((a) => a instanceof SecurityGroupAnchor)
+      .filter((a) => a instanceof SecurityGroupAnchor && a.properties.rules.length > 0)
       .forEach((a: SecurityGroupAnchor) => {
-        const securityGroup = actionInputs[`resource.sec-grp-${properties.regionId}-${a.anchorId}`] as SecurityGroup;
+        const securityGroup = actionInputs[`resource.sec-grp-${a.properties.securityGroupName}`] as SecurityGroup;
         ecsServiceParents.push(securityGroup);
       });
 

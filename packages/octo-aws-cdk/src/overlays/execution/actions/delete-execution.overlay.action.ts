@@ -22,8 +22,8 @@ export class DeleteExecutionOverlayAction implements IModelAction {
     const properties = executionOverlay.properties as unknown as IExecutionOverlayProperties;
 
     return [
-      `ecs-service-${properties.regionId}-${properties.serverKey}`,
-      `ecs-task-definition-${properties.regionId}-${properties.serverKey}-${properties.deploymentTag}`,
+      `resource.ecs-service-${properties.regionId}-${properties.serverKey}`,
+      `resource.ecs-task-definition-${properties.regionId}-${properties.serverKey}-${properties.deploymentTag}`,
     ];
   }
 
@@ -38,11 +38,13 @@ export class DeleteExecutionOverlayAction implements IModelAction {
     const executionOverlay = diff.model as ExecutionOverlay;
     const properties = executionOverlay.properties as unknown as IExecutionOverlayProperties;
 
-    const ecsService = actionInputs[`ecs-service-${properties.regionId}-${properties.serverKey}`] as EcsService;
+    const ecsService = actionInputs[
+      `resource.ecs-service-${properties.regionId}-${properties.serverKey}`
+    ] as EcsService;
     ecsService.markDeleted();
 
     const ecsTaskDefinition = actionInputs[
-      `ecs-task-definition-${properties.regionId}-${properties.serverKey}-${properties.deploymentTag}`
+      `resource.ecs-task-definition-${properties.regionId}-${properties.serverKey}-${properties.deploymentTag}`
     ] as EcsTaskDefinition;
     ecsTaskDefinition.markDeleted();
 

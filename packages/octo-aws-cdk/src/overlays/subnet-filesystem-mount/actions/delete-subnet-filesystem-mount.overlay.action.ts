@@ -8,8 +8,8 @@ import {
   type IModelAction,
   ModelType,
 } from '@quadnix/octo';
-import type { RegionFilesystemAnchor } from '../../../anchors/region-filesystem.anchor.js';
-import type { SubnetFilesystemMountAnchor } from '../../../anchors/subnet-filesystem-mount.anchor.js';
+import { RegionFilesystemAnchor } from '../../../anchors/region-filesystem.anchor.js';
+import { SubnetFilesystemMountAnchor } from '../../../anchors/subnet-filesystem-mount.anchor.js';
 import type { AwsRegion } from '../../../models/region/aws.region.model.js';
 import type { AwsSubnet } from '../../../models/subnet/aws.subnet.model.js';
 import type { EfsMountTarget } from '../../../resources/efs/efs-mount-target.resource.js';
@@ -24,17 +24,20 @@ export class DeleteSubnetFilesystemMountOverlayAction implements IModelAction {
   collectInput(diff: Diff): string[] {
     const subnetFilesystemMountOverlay = diff.model as SubnetFilesystemMountOverlay;
 
-    const regionFilesystemAnchor = subnetFilesystemMountOverlay.getAnchors()[0] as RegionFilesystemAnchor;
-    const region = regionFilesystemAnchor.getParent() as AwsRegion;
+    const regionFsAnchor = subnetFilesystemMountOverlay
+      .getAnchors()
+      .find((a) => a instanceof RegionFilesystemAnchor) as RegionFilesystemAnchor;
+    const region = regionFsAnchor.getParent() as AwsRegion;
 
-    const subnetFilesystemMountAnchor = subnetFilesystemMountOverlay.getAnchors()[1] as SubnetFilesystemMountAnchor;
+    const subnetFilesystemMountAnchor = subnetFilesystemMountOverlay
+      .getAnchors()
+      .find((a) => a instanceof SubnetFilesystemMountAnchor) as SubnetFilesystemMountAnchor;
     const awsSubnet = subnetFilesystemMountAnchor.getParent() as AwsSubnet;
 
     return [
-      `resource.efs-${region.regionId}-${regionFilesystemAnchor.filesystemName}-filesystem`,
+      `resource.efs-${region.regionId}-${regionFsAnchor.properties.filesystemName}`,
       `resource.subnet-${awsSubnet.subnetId}`,
-      // eslint-disable-next-line max-len
-      `resource.efs-mount-${region.regionId}-${awsSubnet.subnetName}-${regionFilesystemAnchor.filesystemName}-filesystem`,
+      `resource.efs-mount-${region.regionId}-${awsSubnet.subnetName}-${regionFsAnchor.properties.filesystemName}`,
     ];
   }
 
@@ -49,21 +52,22 @@ export class DeleteSubnetFilesystemMountOverlayAction implements IModelAction {
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const subnetFilesystemMountOverlay = diff.model as SubnetFilesystemMountOverlay;
 
-    const regionFilesystemAnchor = subnetFilesystemMountOverlay.getAnchors()[0] as RegionFilesystemAnchor;
-    const region = regionFilesystemAnchor.getParent() as AwsRegion;
+    const regionFsAnchor = subnetFilesystemMountOverlay
+      .getAnchors()
+      .find((a) => a instanceof RegionFilesystemAnchor) as RegionFilesystemAnchor;
+    const region = regionFsAnchor.getParent() as AwsRegion;
 
-    const subnetFilesystemMountAnchor = subnetFilesystemMountOverlay.getAnchors()[1] as SubnetFilesystemMountAnchor;
+    const subnetFilesystemMountAnchor = subnetFilesystemMountOverlay
+      .getAnchors()
+      .find((a) => a instanceof SubnetFilesystemMountAnchor) as SubnetFilesystemMountAnchor;
     const awsSubnet = subnetFilesystemMountAnchor.getParent() as AwsSubnet;
 
-    const efs = actionInputs[
-      `resource.efs-${region.regionId}-${regionFilesystemAnchor.filesystemName}-filesystem`
-    ] as Efs;
+    const efs = actionInputs[`resource.efs-${region.regionId}-${regionFsAnchor.properties.filesystemName}`] as Efs;
     const subnet = actionInputs[`resource.subnet-${awsSubnet.subnetId}`] as Subnet;
 
     // Delete EFS Mount.
     const efsMountTarget = actionInputs[
-      // eslint-disable-next-line max-len
-      `resource.efs-mount-${region.regionId}-${awsSubnet.subnetName}-${regionFilesystemAnchor.filesystemName}-filesystem`
+      `resource.efs-mount-${region.regionId}-${awsSubnet.subnetName}-${regionFsAnchor.properties.filesystemName}`
     ] as EfsMountTarget;
     efsMountTarget.removeRelationship(subnet);
     efsMountTarget.removeRelationship(efs);

@@ -17,9 +17,8 @@ export class DeleteServerModelAction implements IModelAction {
 
   collectInput(diff: Diff): string[] {
     const server = diff.model as AwsServer;
-    const serverIamRoleName = server.getAnchors()[0].anchorId;
 
-    return [`resource.iam-role-${serverIamRoleName}`];
+    return [`resource.iam-role-${server.serverKey}`];
   }
 
   filter(diff: Diff): boolean {
@@ -33,9 +32,8 @@ export class DeleteServerModelAction implements IModelAction {
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
-    const serverIamRoleName = server.getAnchors()[0].anchorId;
 
-    const iamRole = actionInputs[`resource.iam-role-${serverIamRoleName}`] as IamRole;
+    const iamRole = actionInputs[`resource.iam-role-${server.serverKey}`] as IamRole;
     iamRole.markDeleted();
 
     const output: ActionOutputs = {};

@@ -8,18 +8,24 @@ export class AwsServer extends Server {
   constructor(serverKey: string) {
     super(serverKey);
 
-    this.anchors.push(new IamRoleAnchor('ServerIamRoleAnchor', this));
-    this.anchors.push(new SecurityGroupAnchor('SecurityGroupAnchor', [], this));
+    this.anchors.push(new IamRoleAnchor('ServerIamRoleAnchor', { iamRoleName: `${serverKey}-ServerRole` }, this));
+    this.anchors.push(
+      new SecurityGroupAnchor(
+        'SecurityGroupAnchor',
+        { rules: [], securityGroupName: `${serverKey}-SecurityGroup` },
+        this,
+      ),
+    );
   }
 
   override addDeployment(deployment: AwsDeployment): void {
     super.addDeployment(deployment);
   }
 
-  addSecurityGroupRule(rule: SecurityGroupAnchor['rules'][0]): void {
+  addSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
     const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
 
-    const existingRule = securityGroupAnchor.rules.find(
+    const existingRule = securityGroupAnchor.properties.rules.find(
       (r) =>
         r.CidrBlock === rule.CidrBlock &&
         r.Egress === rule.Egress &&
@@ -28,20 +34,20 @@ export class AwsServer extends Server {
         r.ToPort === rule.ToPort,
     );
     if (!existingRule) {
-      securityGroupAnchor.rules.push(rule);
+      securityGroupAnchor.properties.rules.push(rule);
     }
   }
 
-  getSecurityGroupRules(): SecurityGroupAnchor['rules'] {
+  getSecurityGroupRules(): SecurityGroupAnchor['properties']['rules'] {
     const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
 
-    return securityGroupAnchor.rules;
+    return securityGroupAnchor.properties.rules;
   }
 
-  removeSecurityGroupRule(rule: SecurityGroupAnchor['rules'][0]): void {
+  removeSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
     const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
 
-    const existingRuleIndex = securityGroupAnchor.rules.findIndex(
+    const existingRuleIndex = securityGroupAnchor.properties.rules.findIndex(
       (r) =>
         r.CidrBlock === rule.CidrBlock &&
         r.Egress === rule.Egress &&
@@ -50,7 +56,7 @@ export class AwsServer extends Server {
         r.ToPort === rule.ToPort,
     );
     if (existingRuleIndex > -1) {
-      securityGroupAnchor.rules.splice(existingRuleIndex, 1);
+      securityGroupAnchor.properties.rules.splice(existingRuleIndex, 1);
     }
   }
 

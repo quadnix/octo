@@ -39,10 +39,10 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
     const vpc = actionInputs[`resource.vpc-${properties.regionId}`] as Vpc;
 
     const securityGroup = new SecurityGroup(
-      `sec-grp-${properties.regionId}-${anchor.anchorId}`,
+      `sec-grp-${anchor.properties.securityGroupName}`,
       {
         awsRegionId: properties.awsRegionId,
-        rules: anchor.rules,
+        rules: anchor.properties.rules,
       },
       [vpc],
     );

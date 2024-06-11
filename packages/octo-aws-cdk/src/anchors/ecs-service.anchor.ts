@@ -1,51 +1,19 @@
-import { AAnchor, Anchor, type IAnchor, type UnknownModel } from '@quadnix/octo';
+import { AAnchor, Anchor, type IAnchor, ModifyInterface } from '@quadnix/octo';
 import type { AwsExecution } from '../models/execution/aws.execution.model.js';
 
-interface IEcsServiceAnchor extends IAnchor {
-  properties: IEcsServiceAnchorProperties;
-}
-
-interface IEcsServiceAnchorProperties {
-  desiredCount: number;
-}
+interface IEcsServiceAnchorProperties
+  extends ModifyInterface<
+    IAnchor['properties'],
+    {
+      desiredCount: number;
+    }
+  > {}
 
 @Anchor()
 export class EcsServiceAnchor extends AAnchor {
-  readonly properties: IEcsServiceAnchorProperties;
+  declare properties: IEcsServiceAnchorProperties;
 
   constructor(anchorId: string, properties: IEcsServiceAnchorProperties, parent: AwsExecution) {
-    super(anchorId, parent);
-    this.properties = properties;
-  }
-
-  override synth(): IEcsServiceAnchor {
-    return {
-      anchorId: this.anchorId,
-      parent: { context: this.getParent().getContext() },
-      properties: JSON.parse(JSON.stringify(this.properties)),
-    };
-  }
-
-  override toJSON(): object {
-    return {
-      anchorId: this.anchorId,
-      parent: this.getParent().getContext(),
-      properties: this.properties,
-    };
-  }
-
-  static override async unSynth(
-    deserializationClass: typeof EcsServiceAnchor,
-    anchor: IEcsServiceAnchor,
-    deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<EcsServiceAnchor> {
-    const parent = (await deReferenceContext(anchor.parent.context)) as AwsExecution;
-    const newAnchor = parent.getAnchor(anchor.anchorId) as EcsServiceAnchor;
-    if (!newAnchor) {
-      return new deserializationClass(anchor.anchorId, anchor.properties, parent);
-    }
-
-    newAnchor.properties.desiredCount = anchor.properties.desiredCount;
-    return newAnchor;
+    super(anchorId, properties, parent);
   }
 }

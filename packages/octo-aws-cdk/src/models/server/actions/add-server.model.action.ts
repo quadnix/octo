@@ -21,10 +21,9 @@ export class AddServerModelAction implements IModelAction {
 
   async handle(diff: Diff): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
-    const serverIamRoleName = server.getAnchors()[0].anchorId;
 
     // Create IAM Role.
-    const iamRole = new IamRole(`iam-role-${serverIamRoleName}`, { rolename: serverIamRoleName });
+    const iamRole = new IamRole(`iam-role-${server.serverKey}`, { rolename: `iam-role-${server.serverKey}` });
 
     const output: ActionOutputs = {};
     output[iamRole.resourceId] = iamRole;

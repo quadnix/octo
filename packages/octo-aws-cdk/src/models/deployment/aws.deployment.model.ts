@@ -1,5 +1,5 @@
 import { Deployment, Model } from '@quadnix/octo';
-import { type ITaskDefinitionAnchorProperties, TaskDefinitionAnchor } from '../../anchors/task-definition.anchor.js';
+import { TaskDefinitionAnchor } from '../../anchors/task-definition.anchor.js';
 import type { IAwsDeployment } from './aws.deployment.interface.js';
 
 @Model()
@@ -9,7 +9,7 @@ export class AwsDeployment extends Deployment {
 
     const taskDefinitionAnchorId = 'TaskDefinitionAnchor';
     this.anchors.push(
-      new TaskDefinitionAnchor(taskDefinitionAnchorId, {} as unknown as ITaskDefinitionAnchorProperties, this),
+      new TaskDefinitionAnchor(taskDefinitionAnchorId, { image: { command: '', ports: [], uri: '' } }, this),
     );
   }
 
@@ -17,7 +17,7 @@ export class AwsDeployment extends Deployment {
     return new AwsDeployment(awsDeployment.deploymentTag);
   }
 
-  updateDeploymentImage(image: ITaskDefinitionAnchorProperties['image']): void {
+  updateDeploymentImage(image: TaskDefinitionAnchor['properties']['image']): void {
     const taskDefinitionAnchor = this.anchors.find((a) => a instanceof TaskDefinitionAnchor) as TaskDefinitionAnchor;
     taskDefinitionAnchor.properties.image = { ...image };
   }

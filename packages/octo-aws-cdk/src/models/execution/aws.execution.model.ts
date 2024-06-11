@@ -7,7 +7,6 @@ import { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mou
 import { TaskDefinitionAnchor } from '../../anchors/task-definition.anchor.js';
 import { ExecutionOverlay } from '../../overlays/execution/execution.overlay.js';
 import { SecurityGroupOverlay } from '../../overlays/security-group/security-group.overlay.js';
-import { CommonUtility } from '../../utilities/common/common.utility.js';
 import type { AwsDeployment } from '../deployment/aws.deployment.model.js';
 import type { AwsEnvironment } from '../environment/aws.environment.model.js';
 import type { AwsRegion } from '../region/aws.region.model.js';
@@ -20,14 +19,20 @@ export class AwsExecution extends Execution {
     super(deployment, environment, subnet);
 
     this.anchors.push(new EcsServiceAnchor('EcsServiceAnchor', { desiredCount: 1 }, this));
-    this.anchors.push(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', this));
-    this.anchors.push(new SecurityGroupAnchor('SecurityGroupAnchor', [], this));
+    this.anchors.push(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', {}, this));
+    this.anchors.push(
+      new SecurityGroupAnchor(
+        'SecurityGroupAnchor',
+        { rules: [], securityGroupName: `${this.executionId}-SecurityGroup` },
+        this,
+      ),
+    );
   }
 
-  addSecurityGroupRule(rule: SecurityGroupAnchor['rules'][0]): void {
+  addSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
     const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
 
-    const existingRule = securityGroupAnchor.rules.find(
+    const existingRule = securityGroupAnchor.properties.rules.find(
       (r) =>
         r.CidrBlock === rule.CidrBlock &&
         r.Egress === rule.Egress &&
@@ -36,7 +41,7 @@ export class AwsExecution extends Execution {
         r.ToPort === rule.ToPort,
     );
     if (!existingRule) {
-      securityGroupAnchor.rules.push(rule);
+      securityGroupAnchor.properties.rules.push(rule);
     }
   }
 
@@ -45,10 +50,10 @@ export class AwsExecution extends Execution {
     return [];
   }
 
-  getSecurityGroupRules(): SecurityGroupAnchor['rules'] {
+  getSecurityGroupRules(): SecurityGroupAnchor['properties']['rules'] {
     const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
 
-    return securityGroupAnchor.rules;
+    return securityGroupAnchor.properties.rules;
   }
 
   async init(): Promise<void> {
@@ -89,10 +94,7 @@ export class AwsExecution extends Execution {
       .find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
 
     // Add ServerExecutionSecurityGroupOverlay.
-    const securityGroupOverlayId = CommonUtility.hash(
-      serverSecurityGroupAnchor.anchorId,
-      executionSecurityGroupAnchor.anchorId,
-    );
+    const securityGroupOverlayId = `security-group-overlay-${this.executionId}`;
     const serverExecutionSecurityGroupOverlay = new SecurityGroupOverlay(
       securityGroupOverlayId,
       {
@@ -104,8 +106,7 @@ export class AwsExecution extends Execution {
     overlayService.addOverlay(serverExecutionSecurityGroupOverlay);
 
     // Add ExecutionOverlay.
-    // eslint-disable-next-line max-len
-    const executionOverlayId = `execution-${region.regionId}-${subnet.subnetName}-${deployment.deploymentTag}-${environment.environmentName}-Overlay`;
+    const executionOverlayId = `execution-overlay-${this.executionId}`;
     const executionOverlay = new ExecutionOverlay(
       executionOverlayId,
       {
@@ -133,9 +134,6 @@ export class AwsExecution extends Execution {
     const overlayService = await Container.get(OverlayService);
     const parents = this.getParents();
 
-    const deployment = parents['deployment'][0].to as AwsDeployment;
-    const environment = parents['environment'][0].to as AwsEnvironment;
-    const region = environment.getParents()['region'][0].to as AwsRegion;
     const subnet = parents['subnet'][0].to as AwsSubnet;
 
     const filesystemMount = subnet.filesystemMounts.find((f) => f.filesystemName === filesystemName);
@@ -146,16 +144,15 @@ export class AwsExecution extends Execution {
       filesystemMount.filesystemMountAnchorName,
     ) as SubnetFilesystemMountAnchor;
 
-    // eslint-disable-next-line max-len
-    const executionOverlayId = `execution-${region.regionId}-${subnet.subnetName}-${deployment.deploymentTag}-${environment.environmentName}-Overlay`;
+    const executionOverlayId = `execution-overlay-${this.executionId}`;
     const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
     executionOverlay.addAnchor(subnetFilesystemMountAnchor);
   }
 
-  removeSecurityGroupRule(rule: SecurityGroupAnchor['rules'][0]): void {
+  removeSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
     const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
 
-    const existingRuleIndex = securityGroupAnchor.rules.findIndex(
+    const existingRuleIndex = securityGroupAnchor.properties.rules.findIndex(
       (r) =>
         r.CidrBlock === rule.CidrBlock &&
         r.Egress === rule.Egress &&
@@ -164,7 +161,7 @@ export class AwsExecution extends Execution {
         r.ToPort === rule.ToPort,
     );
     if (existingRuleIndex) {
-      securityGroupAnchor.rules.splice(existingRuleIndex, 1);
+      securityGroupAnchor.properties.rules.splice(existingRuleIndex, 1);
     }
   }
 
@@ -172,9 +169,6 @@ export class AwsExecution extends Execution {
     const overlayService = await Container.get(OverlayService);
     const parents = this.getParents();
 
-    const deployment = parents['deployment'][0].to as AwsDeployment;
-    const environment = parents['environment'][0].to as AwsEnvironment;
-    const region = environment.getParents()['region'][0].to as AwsRegion;
     const subnet = parents['subnet'][0].to as AwsSubnet;
 
     const filesystemMount = subnet.filesystemMounts.find((f) => f.filesystemName === filesystemName);
@@ -185,8 +179,7 @@ export class AwsExecution extends Execution {
       filesystemMount.filesystemMountAnchorName,
     ) as SubnetFilesystemMountAnchor;
 
-    // eslint-disable-next-line max-len
-    const executionOverlayId = `execution-${region.regionId}-${subnet.subnetName}-${deployment.deploymentTag}-${environment.environmentName}-Overlay`;
+    const executionOverlayId = `execution-overlay-${this.executionId}`;
     const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
     executionOverlay.removeAnchor(subnetFilesystemMountAnchor);
   }

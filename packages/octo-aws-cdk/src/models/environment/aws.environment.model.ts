@@ -5,7 +5,7 @@ import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.
 export class AwsEnvironment extends Environment {
   constructor(environmentName: string) {
     super(environmentName);
-    this.anchors.push(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', this));
+    this.anchors.push(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', {}, this));
   }
 
   override async diff(): Promise<Diff[]> {

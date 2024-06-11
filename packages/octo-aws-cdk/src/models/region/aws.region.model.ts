@@ -48,11 +48,11 @@ export class AwsRegion extends Region {
     }
 
     const regionFilesystemAnchorName = `${this.awsRegionId}-${filesystemName}-FilesystemAnchor`;
-    const regionFilesystemAnchor = new RegionFilesystemAnchor(regionFilesystemAnchorName, filesystemName, this);
+    const regionFilesystemAnchor = new RegionFilesystemAnchor(regionFilesystemAnchorName, { filesystemName }, this);
     this.anchors.push(regionFilesystemAnchor);
     this.filesystems.push({ filesystemAnchorName: regionFilesystemAnchorName, filesystemName });
 
-    const overlayId = `${regionFilesystemAnchorName}Overlay`;
+    const overlayId = `region-filesystem-overlay-${regionFilesystemAnchorName}`;
 
     const overlayService = await Container.get(OverlayService);
     const regionFilesystemOverlay = new RegionFilesystemOverlay(
@@ -84,7 +84,7 @@ export class AwsRegion extends Region {
     const overlayService = await Container.get(OverlayService);
     const overlays = overlayService.getOverlayByProperties();
 
-    const overlayId = `${filesystem.filesystemAnchorName}Overlay`;
+    const overlayId = `region-filesystem-overlay-${filesystem.filesystemAnchorName}`;
     if (overlays.find((o) => o.overlayId !== overlayId && o.getAnchor(filesystem.filesystemAnchorName))) {
       throw new Error('Cannot remove filesystem while overlay exists!');
     }

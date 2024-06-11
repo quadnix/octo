@@ -10,19 +10,15 @@ import {
 } from '@quadnix/octo';
 import type { SecurityGroupAnchor } from '../../../anchors/security-group.anchor.js';
 import type { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
-import type { ISecurityGroupOverlayProperties } from '../security-group.overlay.interface.js';
-import type { SecurityGroupOverlay } from '../security-group.overlay.js';
 
 @Action(ModelType.OVERLAY)
 export class DeleteSecurityGroupOverlayAction implements IModelAction {
   readonly ACTION_NAME: string = 'DeleteSecurityGroupOverlayAction';
 
   collectInput(diff: Diff): string[] {
-    const securityGroupOverlay = diff.model as SecurityGroupOverlay;
-    const properties = securityGroupOverlay.properties as unknown as ISecurityGroupOverlayProperties;
     const anchor = diff.value as SecurityGroupAnchor;
 
-    return [`resource.sec-grp-${properties.regionId}-${anchor.anchorId}`];
+    return [`resource.sec-grp-${anchor.properties.securityGroupName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -34,11 +30,9 @@ export class DeleteSecurityGroupOverlayAction implements IModelAction {
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
-    const securityGroupOverlay = diff.model as SecurityGroupOverlay;
-    const properties = securityGroupOverlay.properties as unknown as ISecurityGroupOverlayProperties;
     const anchor = diff.value as SecurityGroupAnchor;
 
-    const securityGroup = actionInputs[`resource.sec-grp-${properties.regionId}-${anchor.anchorId}`] as SecurityGroup;
+    const securityGroup = actionInputs[`resource.sec-grp-${anchor.properties.securityGroupName}`] as SecurityGroup;
     securityGroup.markDeleted();
 
     const output: ActionOutputs = {};

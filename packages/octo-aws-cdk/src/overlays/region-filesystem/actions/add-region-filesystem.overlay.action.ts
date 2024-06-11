@@ -25,7 +25,7 @@ export class AddRegionFilesystemOverlayAction implements IModelAction {
 
     // Create EFS.
     const efs = new Efs(
-      `efs-${properties.regionId}-${properties.filesystemName}-filesystem`,
+      `efs-${properties.regionId}-${properties.filesystemName}`,
       { awsRegionId: properties.awsRegionId, filesystemName: properties.filesystemName },
       [],
     );

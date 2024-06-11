@@ -20,11 +20,18 @@ export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {
     for (let i = 0; i < previous.anchors.length; i++) {
       const previousAnchor = this.anchors[i] as SecurityGroupAnchor;
 
-      const currentAnchor = this.getAnchor(previousAnchor.anchorId);
+      const currentAnchor = this.getAnchor(previousAnchor.anchorId) as SecurityGroupAnchor;
       if (!currentAnchor) {
         diffs.push(new Diff(this, DiffAction.DELETE, 'overlayId', previousAnchor));
       } else {
-        if (!DiffUtility.isObjectDeepEquals(previousAnchor.rules, (currentAnchor as SecurityGroupAnchor).rules)) {
+        if (currentAnchor.properties.rules.length === 0) {
+          diffs.push(new Diff(this, DiffAction.DELETE, 'overlayId', previousAnchor));
+        } else if (
+          !DiffUtility.isObjectDeepEquals(
+            previousAnchor.properties.rules,
+            (currentAnchor as SecurityGroupAnchor).properties.rules,
+          )
+        ) {
           diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', currentAnchor));
         }
       }
@@ -34,7 +41,7 @@ export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {
       const currentAnchor = this.anchors[i] as SecurityGroupAnchor;
 
       const previousAnchor = previous.getAnchor(currentAnchor.anchorId);
-      if (!previousAnchor) {
+      if (!previousAnchor && currentAnchor.properties.rules.length > 0) {
         diffs.push(new Diff(this, DiffAction.ADD, 'overlayId', currentAnchor));
       }
     }
