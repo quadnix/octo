@@ -24,7 +24,6 @@ import type { Efs } from '../../../resources/efs/efs.resource.js';
 import type { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
-import type { IExecutionOverlayProperties } from '../execution.overlay.interface.js';
 import { ExecutionOverlay } from '../execution.overlay.js';
 
 @Action(ModelType.OVERLAY)
@@ -33,7 +32,7 @@ export class AddExecutionOverlayAction implements IModelAction {
 
   collectInput(diff: Diff): string[] {
     const executionOverlay = diff.model as ExecutionOverlay;
-    const properties = executionOverlay.properties as unknown as IExecutionOverlayProperties;
+    const properties = executionOverlay.properties;
 
     const clusterName = [properties.regionId, properties.environmentName].join('-');
 
@@ -77,7 +76,7 @@ export class AddExecutionOverlayAction implements IModelAction {
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     // Get properties.
     const executionOverlay = diff.model as ExecutionOverlay;
-    const properties = executionOverlay.properties as unknown as IExecutionOverlayProperties;
+    const properties = executionOverlay.properties;
 
     // ECS Service Anchors.
     const ecsServiceAnchor = executionOverlay

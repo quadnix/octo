@@ -5,9 +5,7 @@ import {
   EC2Client,
 } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IVpcResponse } from '../../vpc/vpc.interface.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
-import type { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -25,10 +23,10 @@ export class AddSecurityGroupResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const securityGroup = diff.model as SecurityGroup;
-    const properties = securityGroup.properties as unknown as ISecurityGroupProperties;
-    const response = securityGroup.response as unknown as ISecurityGroupResponse;
+    const properties = securityGroup.properties;
+    const response = securityGroup.response;
     const vpc = securityGroup.getParents('vpc')['vpc'][0].to as Vpc;
-    const vpcResponse = vpc.response as unknown as IVpcResponse;
+    const vpcResponse = vpc.response;
 
     // Get instances.
     const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
@@ -89,7 +87,7 @@ export class AddSecurityGroupResourceAction implements IResourceAction {
     ]);
 
     // Set response.
-    response.GroupId = securityGroupOutput.GroupId as string;
+    response.GroupId = securityGroupOutput.GroupId!;
     response.Rules = {
       egress: egressOutput.SecurityGroupRules!.map((r) => ({
         SecurityGroupRuleId: r.SecurityGroupRuleId,

@@ -1,6 +1,5 @@
 import { DeleteSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { ISubnetProperties, ISubnetResponse } from '../subnet.interface.js';
 import { Subnet } from '../subnet.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -14,8 +13,8 @@ export class DeleteSubnetResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const subnet = diff.model as Subnet;
-    const properties = subnet.properties as unknown as ISubnetProperties;
-    const response = subnet.response as unknown as ISubnetResponse;
+    const properties = subnet.properties;
+    const response = subnet.response;
 
     // Get instances.
     const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });

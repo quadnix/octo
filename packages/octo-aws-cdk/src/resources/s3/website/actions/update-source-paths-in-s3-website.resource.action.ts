@@ -3,7 +3,6 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import mime from 'mime';
-import type { IS3WebsiteProperties } from '../s3-website.interface.js';
 import { S3Website } from '../s3-website.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -23,7 +22,7 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     // Get properties.
     const manifestDiff = diff.value as S3Website['manifestDiff'];
     const s3Website = diff.model as S3Website;
-    const properties = s3Website.properties as unknown as IS3WebsiteProperties;
+    const properties = s3Website.properties;
 
     // Get instances.
     const s3Client = await Container.get(S3Client, { args: [properties.awsRegionId] });

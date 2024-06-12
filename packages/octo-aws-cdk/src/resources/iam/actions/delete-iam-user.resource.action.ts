@@ -1,6 +1,5 @@
 import { DeleteUserCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IIamUserResponse } from '../iam-user.interface.js';
 import { IamUser } from '../iam-user.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -14,7 +13,7 @@ export class DeleteIamUserResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const iamUser = diff.model as IamUser;
-    const response = iamUser.response as unknown as IIamUserResponse;
+    const response = iamUser.response;
 
     // Get instances.
     const iamClient = await Container.get(IAMClient);

@@ -1,9 +1,7 @@
 import { DeleteServiceCommand, DescribeServicesCommand, ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { IEcsClusterProperties } from '../ecs-cluster.interface.js';
 import type { EcsCluster } from '../ecs-cluster.resource.js';
-import type { IEcsServiceProperties } from '../ecs-service.interface.js';
 import { EcsService } from '../ecs-service.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -19,10 +17,10 @@ export class DeleteEcsServiceResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const ecsService = diff.model as EcsService;
-    const properties = ecsService.properties as unknown as IEcsServiceProperties;
+    const properties = ecsService.properties;
 
     const ecsCluster = ecsService.getParents('ecs-cluster')['ecs-cluster'][0].to as EcsCluster;
-    const ecsClusterProperties = ecsCluster.properties as unknown as IEcsClusterProperties;
+    const ecsClusterProperties = ecsCluster.properties;
 
     // Get instances.
     const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });

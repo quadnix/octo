@@ -1,5 +1,4 @@
 import { AResource, Diff, DiffAction, Resource, type UnknownOverlay } from '@quadnix/octo';
-import { IIamRoleProperties } from './iam-role.interface.js';
 import type { IIamUserProperties, IIamUserResponse } from './iam-user.interface.js';
 
 export type IamUserPolicyDiff = {
@@ -10,7 +9,7 @@ export type IamUserPolicyDiff = {
 export class IamUser extends AResource<IamUser> {
   readonly MODEL_NAME: string = 'iam-user';
 
-  declare properties: IIamRoleProperties;
+  declare properties: IIamUserProperties;
   declare response: IIamUserResponse;
 
   private readonly policyDiff: IamUserPolicyDiff = {};

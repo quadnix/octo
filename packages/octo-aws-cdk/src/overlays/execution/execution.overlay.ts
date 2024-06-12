@@ -1,4 +1,4 @@
-import { AOverlay, Diff, DiffAction, DiffUtility, type IOverlay, type IResource, Overlay } from '@quadnix/octo';
+import { AOverlay, Diff, DiffAction, DiffUtility, type IOverlay, Overlay } from '@quadnix/octo';
 import type { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import type { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import type { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
@@ -10,6 +10,8 @@ import type { IExecutionOverlayProperties } from './execution.overlay.interface.
 @Overlay()
 export class ExecutionOverlay extends AOverlay<ExecutionOverlay> {
   override readonly MODEL_NAME: string = 'execution-overlay';
+
+  declare properties: IExecutionOverlayProperties;
 
   constructor(
     overlayId: IOverlay['overlayId'],
@@ -25,7 +27,7 @@ export class ExecutionOverlay extends AOverlay<ExecutionOverlay> {
       ...SubnetFilesystemMountAnchor[],
     ],
   ) {
-    super(overlayId, properties as unknown as IResource['properties'], anchors);
+    super(overlayId, properties, anchors);
   }
 
   override async diff(previous: ExecutionOverlay): Promise<Diff[]> {

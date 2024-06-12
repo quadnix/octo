@@ -1,14 +1,9 @@
 import { CreateServiceCommand, ECSClient } from '@aws-sdk/client-ecs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { ISecurityGroupResponse } from '../../security-group/security-group.interface.js';
 import type { SecurityGroup } from '../../security-group/security-group.resource.js';
-import type { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import type { Subnet } from '../../subnet/subnet.resource.js';
-import type { IEcsClusterProperties } from '../ecs-cluster.interface.js';
 import type { EcsCluster } from '../ecs-cluster.resource.js';
-import type { IEcsServiceProperties, IEcsServiceResponse } from '../ecs-service.interface.js';
 import { EcsService } from '../ecs-service.resource.js';
-import type { IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
 import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -25,17 +20,17 @@ export class AddEcsServiceResourceAction implements IResourceAction {
     // Get properties.
     const ecsService = diff.model as EcsService;
     const parents = ecsService.getParents();
-    const properties = ecsService.properties as unknown as IEcsServiceProperties;
-    const response = ecsService.response as unknown as IEcsServiceResponse;
+    const properties = ecsService.properties;
+    const response = ecsService.response;
 
     const ecsCluster = parents['ecs-cluster'][0].to as EcsCluster;
-    const ecsClusterProperties = ecsCluster.properties as unknown as IEcsClusterProperties;
+    const ecsClusterProperties = ecsCluster.properties;
 
     const ecsTaskDefinition = parents['ecs-task-definition'][0].to as EcsTaskDefinition;
-    const ecsTaskDefinitionResponse = ecsTaskDefinition.response as unknown as IEcsTaskDefinitionResponse;
+    const ecsTaskDefinitionResponse = ecsTaskDefinition.response;
 
     const subnet = parents['subnet'][0].to as Subnet;
-    const subnetResponse = subnet.response as unknown as ISubnetResponse;
+    const subnetResponse = subnet.response;
 
     const securityGroupList =
       'security-group' in parents ? parents['security-group'].map((d) => d.to as SecurityGroup) : [];
@@ -51,7 +46,7 @@ export class AddEcsServiceResourceAction implements IResourceAction {
         launchType: 'FARGATE',
         networkConfiguration: {
           awsvpcConfiguration: {
-            securityGroups: securityGroupList.map((sg) => (sg.response as unknown as ISecurityGroupResponse).GroupId),
+            securityGroups: securityGroupList.map((sg) => sg.response.GroupId),
             subnets: [subnetResponse.SubnetId],
           },
         },
@@ -61,7 +56,7 @@ export class AddEcsServiceResourceAction implements IResourceAction {
     );
 
     // Set response.
-    response.serviceArn = data.service!.serviceArn as string;
+    response.serviceArn = data.service!.serviceArn!;
   }
 }
 

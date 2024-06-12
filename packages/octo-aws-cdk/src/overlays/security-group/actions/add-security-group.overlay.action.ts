@@ -11,7 +11,6 @@ import {
 import type { SecurityGroupAnchor } from '../../../anchors/security-group.anchor.js';
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import type { Vpc } from '../../../resources/vpc/vpc.resource.js';
-import type { ISecurityGroupOverlayProperties } from '../security-group.overlay.interface.js';
 import { SecurityGroupOverlay } from '../security-group.overlay.js';
 
 @Action(ModelType.OVERLAY)
@@ -20,7 +19,7 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
 
   collectInput(diff: Diff): string[] {
     const securityGroupOverlay = diff.model as SecurityGroupOverlay;
-    const properties = securityGroupOverlay.properties as unknown as ISecurityGroupOverlayProperties;
+    const properties = securityGroupOverlay.properties;
 
     return [`resource.vpc-${properties.regionId}`];
   }
@@ -36,7 +35,7 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const securityGroupOverlay = diff.model as SecurityGroupOverlay;
-    const properties = securityGroupOverlay.properties as unknown as ISecurityGroupOverlayProperties;
+    const properties = securityGroupOverlay.properties;
     const anchor = diff.value as SecurityGroupAnchor;
 
     const vpc = actionInputs[`resource.vpc-${properties.regionId}`] as Vpc;

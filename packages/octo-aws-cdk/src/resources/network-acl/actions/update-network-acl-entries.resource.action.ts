@@ -7,9 +7,8 @@ import {
   ReplaceNetworkAclEntryCommand,
 } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import type { Subnet } from '../../subnet/subnet.resource.js';
-import type { INetworkAclProperties, INetworkAclResponse } from '../network-acl.interface.js';
+import type { INetworkAclProperties } from '../network-acl.interface.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 import pLimit from 'p-limit';
 
@@ -30,8 +29,8 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const networkAcl = diff.model as NetworkAcl;
-    const properties = networkAcl.properties as unknown as INetworkAclProperties;
-    const response = networkAcl.response as unknown as INetworkAclResponse;
+    const properties = networkAcl.properties;
+    const response = networkAcl.response;
 
     // Get instances.
     const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
@@ -39,7 +38,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
 
     const parents = networkAcl.getParents();
     const subnet = parents['subnet'][0].to as Subnet;
-    const subnetResponse = subnet.response as unknown as ISubnetResponse;
+    const subnetResponse = subnet.response;
 
     // Get NACL entries.
     const nAclOutput = await ec2Client.send(
@@ -47,7 +46,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
         Filters: [
           {
             Name: 'association.subnet-id',
-            Values: [subnetResponse.SubnetId] as string[],
+            Values: [subnetResponse.SubnetId],
           },
         ],
       }),

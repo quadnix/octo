@@ -1,4 +1,13 @@
-import { Action, type ActionOutputs, Diff, DiffAction, Factory, type IModelAction, ModelType } from '@quadnix/octo';
+import {
+  Action,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  Image,
+  ModelType,
+} from '@quadnix/octo';
 
 @Action(ModelType.MODEL)
 export class DeleteImageModelAction implements IModelAction {

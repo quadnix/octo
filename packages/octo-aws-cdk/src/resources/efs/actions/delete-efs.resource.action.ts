@@ -6,7 +6,6 @@ import {
 } from '@aws-sdk/client-efs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { IEfsProperties, IEfsResponse } from '../efs.interface.js';
 import { Efs } from '../efs.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -20,8 +19,8 @@ export class DeleteEfsResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const efs = diff.model as Efs;
-    const properties = efs.properties as unknown as IEfsProperties;
-    const response = efs.response as unknown as IEfsResponse;
+    const properties = efs.properties;
+    const response = efs.response;
 
     // Get instances.
     const efsClient = await Container.get(EFSClient, { args: [properties.awsRegionId] });

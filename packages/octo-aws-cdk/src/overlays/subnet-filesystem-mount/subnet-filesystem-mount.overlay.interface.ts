@@ -1,1 +1,4 @@
-export interface ISubnetFilesystemMountOverlayProperties {}
+import type { IOverlay, ModifyInterface } from '@quadnix/octo';
+
+export interface ISubnetFilesystemMountOverlayProperties
+  extends ModifyInterface<IOverlay['properties'], Record<string, never>> {}

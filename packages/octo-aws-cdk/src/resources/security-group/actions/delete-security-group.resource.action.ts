@@ -1,6 +1,5 @@
 import { DeleteSecurityGroupCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { ISecurityGroupProperties, ISecurityGroupResponse } from '../security-group.interface.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -18,8 +17,8 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const securityGroup = diff.model as SecurityGroup;
-    const properties = securityGroup.properties as unknown as ISecurityGroupProperties;
-    const response = securityGroup.response as unknown as ISecurityGroupResponse;
+    const properties = securityGroup.properties!;
+    const response = securityGroup.response!;
 
     // Get instances.
     const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });

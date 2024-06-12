@@ -17,10 +17,10 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
   updateTaskDefinitionEnvironmentVariables(
     environmentVariables: IEcsTaskDefinitionProperties['environmentVariables'],
   ): void {
-    (this.properties as unknown as IEcsTaskDefinitionProperties).environmentVariables = [...environmentVariables];
+    this.properties.environmentVariables = [...environmentVariables];
   }
 
   updateTaskDefinitionImage(image: IEcsTaskDefinitionProperties['image']): void {
-    (this.properties as unknown as IEcsTaskDefinitionProperties).image = { ...image };
+    this.properties.image = { ...image };
   }
 }

@@ -1,6 +1,5 @@
 import { CreateRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IIamRoleProperties, IIamRoleResponse } from '../iam-role.interface.js';
 import { IamRole } from '../iam-role.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -14,8 +13,8 @@ export class AddIamRoleResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const iamRole = diff.model as IamRole;
-    const properties = iamRole.properties as unknown as IIamRoleProperties;
-    const response = iamRole.response as unknown as IIamRoleResponse;
+    const properties = iamRole.properties;
+    const response = iamRole.response;
 
     // Get instances.
     const iamClient = await Container.get(IAMClient);
@@ -29,10 +28,10 @@ export class AddIamRoleResourceAction implements IResourceAction {
     );
 
     // Set response.
-    response.Arn = data.Role!.Arn as string;
+    response.Arn = data.Role!.Arn!;
     response.policies = {};
-    response.RoleId = data.Role!.RoleId as string;
-    response.RoleName = data.Role!.RoleName as string;
+    response.RoleId = data.Role!.RoleId!;
+    response.RoleName = data.Role!.RoleName!;
   }
 }
 

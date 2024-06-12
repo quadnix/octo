@@ -1,6 +1,5 @@
 import { Action, type ActionOutputs, Diff, DiffAction, Factory, type IModelAction, ModelType } from '@quadnix/octo';
 import { Efs } from '../../../resources/efs/efs.resource.js';
-import type { IRegionFilesystemOverlayProperties } from '../region-filesystem.overlay.interface.js';
 import { RegionFilesystemOverlay } from '../region-filesystem.overlay.js';
 
 @Action(ModelType.OVERLAY)
@@ -22,7 +21,7 @@ export class AddRegionFilesystemOverlayAction implements IModelAction {
 
   async handle(diff: Diff): Promise<ActionOutputs> {
     const regionFilesystemOverlay = diff.model as RegionFilesystemOverlay;
-    const properties = regionFilesystemOverlay.properties as unknown as IRegionFilesystemOverlayProperties;
+    const properties = regionFilesystemOverlay.properties;
 
     // Create EFS.
     const efs = new Efs(

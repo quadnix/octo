@@ -1,6 +1,5 @@
 import { DeleteBucketCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IS3StorageProperties } from '../s3-storage.interface.js';
 import { S3Storage } from '../s3-storage.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -16,7 +15,7 @@ export class DeleteS3StorageResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const s3Storage = diff.model as S3Storage;
-    const properties = s3Storage.properties as unknown as IS3StorageProperties;
+    const properties = s3Storage.properties;
 
     // Get instances.
     const s3Client = await Container.get(S3Client, { args: [properties.awsRegionId] });

@@ -1,6 +1,5 @@
 import { BatchDeleteImageCommand, ECRClient } from '@aws-sdk/client-ecr';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IEcrImageProperties } from '../ecr-image.interface.js';
 import { EcrImage } from '../ecr-image.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -14,7 +13,7 @@ export class DeleteEcrImageResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const ecrImage = diff.model as EcrImage;
-    const properties = ecrImage.properties as unknown as IEcrImageProperties;
+    const properties = ecrImage.properties;
 
     // Get instances.
     const ecrClient = await Container.get(ECRClient, { args: [properties.awsRegionId] });

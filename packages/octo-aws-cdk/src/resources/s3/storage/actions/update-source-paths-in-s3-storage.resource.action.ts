@@ -3,7 +3,6 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import mime from 'mime';
-import type { IS3StorageProperties } from '../s3-storage.interface.js';
 import { S3Storage } from '../s3-storage.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -23,7 +22,7 @@ export class UpdateSourcePathsInS3StorageResourceAction implements IResourceActi
     // Get properties.
     const manifestDiff = diff.value as S3Storage['manifestDiff'];
     const s3Storage = diff.model as S3Storage;
-    const properties = s3Storage.properties as unknown as IS3StorageProperties;
+    const properties = s3Storage.properties;
 
     // Get instances.
     const s3Client = await Container.get(S3Client, { args: [properties.awsRegionId] });

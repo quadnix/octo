@@ -1,4 +1,4 @@
-import { AOverlay, Diff, DiffAction, DiffUtility, type IOverlay, type IResource, Overlay } from '@quadnix/octo';
+import { AOverlay, Diff, DiffAction, DiffUtility, type IOverlay, Overlay } from '@quadnix/octo';
 import type { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
 import type { ISecurityGroupOverlayProperties } from './security-group.overlay.interface.js';
 
@@ -6,12 +6,14 @@ import type { ISecurityGroupOverlayProperties } from './security-group.overlay.i
 export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {
   override readonly MODEL_NAME: string = 'security-group-overlay';
 
+  declare properties: ISecurityGroupOverlayProperties;
+
   constructor(
     overlayId: IOverlay['overlayId'],
     properties: ISecurityGroupOverlayProperties,
     anchors: SecurityGroupAnchor[],
   ) {
-    super(overlayId, properties as unknown as IResource['properties'], anchors);
+    super(overlayId, properties, anchors);
   }
 
   override async diff(previous: SecurityGroupOverlay): Promise<Diff[]> {
@@ -26,12 +28,7 @@ export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {
       } else {
         if (currentAnchor.properties.rules.length === 0) {
           diffs.push(new Diff(this, DiffAction.DELETE, 'overlayId', previousAnchor));
-        } else if (
-          !DiffUtility.isObjectDeepEquals(
-            previousAnchor.properties.rules,
-            (currentAnchor as SecurityGroupAnchor).properties.rules,
-          )
-        ) {
+        } else if (!DiffUtility.isObjectDeepEquals(previousAnchor.properties.rules, currentAnchor.properties.rules)) {
           diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', currentAnchor));
         }
       }

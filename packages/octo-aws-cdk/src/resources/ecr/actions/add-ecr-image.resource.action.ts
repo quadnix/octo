@@ -8,7 +8,6 @@ import {
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
-import type { IEcrImageProperties, IEcrImageResponse } from '../ecr-image.interface.js';
 import { EcrImage } from '../ecr-image.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -22,8 +21,8 @@ export class AddEcrImageResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const ecrImage = diff.model as EcrImage;
-    const properties = ecrImage.properties as unknown as IEcrImageProperties;
-    const response = ecrImage.response as unknown as IEcrImageResponse;
+    const properties = ecrImage.properties;
+    const response = ecrImage.response;
 
     // Get instances.
     const ecrClient = await Container.get(ECRClient, { args: [properties.awsRegionId] });
@@ -55,10 +54,10 @@ export class AddEcrImageResourceAction implements IResourceAction {
 
         // Set response.
         response.awsRegionId = properties.awsRegionId;
-        response.registryId = data.imageDetails[0].registryId as string;
-        response.repositoryArn = repositoryData.repositories![0].repositoryArn as string;
-        response.repositoryName = data.imageDetails[0].repositoryName as string;
-        response.repositoryUri = repositoryData.repositories![0].repositoryUri as string;
+        response.registryId = data.imageDetails[0].registryId!;
+        response.repositoryArn = repositoryData.repositories![0].repositoryArn!;
+        response.repositoryName = data.imageDetails[0].repositoryName!;
+        response.repositoryUri = repositoryData.repositories![0].repositoryUri!;
       }
     } catch (describeImagesError) {
       if (describeImagesError.name === 'RepositoryNotFoundException') {
@@ -75,10 +74,10 @@ export class AddEcrImageResourceAction implements IResourceAction {
 
         // Set response.
         response.awsRegionId = properties.awsRegionId;
-        response.registryId = data.repository!.registryId as string;
-        response.repositoryArn = data.repository!.repositoryArn as string;
-        response.repositoryName = data.repository!.repositoryName as string;
-        response.repositoryUri = data.repository!.repositoryUri as string;
+        response.registryId = data.repository!.registryId!;
+        response.repositoryArn = data.repository!.repositoryArn!;
+        response.repositoryName = data.repository!.repositoryName!;
+        response.repositoryUri = data.repository!.repositoryUri!;
       } else if (describeImagesError.name === 'ImageNotFoundException') {
         // Intentionally left blank.
       } else {
@@ -87,8 +86,8 @@ export class AddEcrImageResourceAction implements IResourceAction {
 
       // Get authorization token to push image.
       const tokenResponse = await ecrClient.send(new GetAuthorizationTokenCommand({}));
-      const token = FileUtility.base64Decode(tokenResponse.authorizationData![0].authorizationToken as string);
-      const proxyEndpoint = new URL(tokenResponse.authorizationData![0].proxyEndpoint as string).host;
+      const token = FileUtility.base64Decode(tokenResponse.authorizationData![0].authorizationToken!);
+      const proxyEndpoint = new URL(tokenResponse.authorizationData![0].proxyEndpoint!).host;
 
       // Build command for docker login.
       const dockerLoginCommand = [

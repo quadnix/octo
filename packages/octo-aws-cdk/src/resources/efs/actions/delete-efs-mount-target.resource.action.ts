@@ -6,9 +6,7 @@ import {
 } from '@aws-sdk/client-efs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { IEfsMountTargetProperties, IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
-import type { IEfsResponse } from '../efs.interface.js';
 import type { Efs } from '../efs.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -27,11 +25,11 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction {
     // Get properties.
     const efsMountTarget = diff.model as EfsMountTarget;
     const parents = efsMountTarget.getParents();
-    const properties = efsMountTarget.properties as unknown as IEfsMountTargetProperties;
-    const response = efsMountTarget.response as unknown as IEfsMountTargetResponse;
+    const properties = efsMountTarget.properties;
+    const response = efsMountTarget.response;
 
     const efs = parents['efs'][0].to as Efs;
-    const efsResponse = efs.response as unknown as IEfsResponse;
+    const efsResponse = efs.response;
 
     // Get instances.
     const efsClient = await Container.get(EFSClient, { args: [properties.awsRegionId] });

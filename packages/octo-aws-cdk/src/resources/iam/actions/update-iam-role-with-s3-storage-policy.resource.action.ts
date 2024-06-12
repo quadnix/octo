@@ -7,7 +7,6 @@ import {
 } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IS3StorageAccessOverlayProperties } from '../../../overlays/s3-storage-access/s3-storage-access.overlay.interface.js';
-import type { IIamRoleResponse } from '../iam-role.interface.js';
 import { IamRole, type IamRolePolicyDiff } from '../iam-role.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -30,7 +29,7 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
     const overlayId = diff.field;
     const overlayProperties = (diff.value as IamRolePolicyDiff['key']).overlay
       .properties as unknown as IS3StorageAccessOverlayProperties;
-    const response = iamRole.response as unknown as IIamRoleResponse;
+    const response = iamRole.response;
 
     // Get instances.
     const iamClient = await Container.get(IAMClient);

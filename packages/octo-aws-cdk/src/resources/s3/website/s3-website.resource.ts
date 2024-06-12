@@ -1,12 +1,11 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import { IS3StorageProperties } from '../storage/s3-storage.interface.js';
 import type { IS3WebsiteProperties, IS3WebsiteResponse } from './s3-website.interface.js';
 
 @Resource()
 export class S3Website extends AResource<S3Website> {
   readonly MODEL_NAME: string = 's3-website';
 
-  declare properties: IS3StorageProperties;
+  declare properties: IS3WebsiteProperties;
   declare response: IS3WebsiteResponse;
 
   private readonly manifestDiff: { [key: string]: ['add' | 'delete' | 'update', string] } = {};

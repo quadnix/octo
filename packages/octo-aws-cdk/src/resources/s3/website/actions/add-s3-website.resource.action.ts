@@ -6,7 +6,6 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IS3WebsiteProperties, IS3WebsiteResponse } from '../s3-website.interface.js';
 import { S3Website } from '../s3-website.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -20,8 +19,8 @@ export class AddS3WebsiteResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const s3Website = diff.model as S3Website;
-    const properties = s3Website.properties as unknown as IS3WebsiteProperties;
-    const response = s3Website.response as unknown as IS3WebsiteResponse;
+    const properties = s3Website.properties;
+    const response = s3Website.response;
 
     // Get instances.
     const s3Client = await Container.get(S3Client, { args: [properties.awsRegionId] });

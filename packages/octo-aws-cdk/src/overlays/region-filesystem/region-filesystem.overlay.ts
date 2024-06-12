@@ -1,4 +1,4 @@
-import { AOverlay, type IOverlay, type IResource, Overlay } from '@quadnix/octo';
+import { AOverlay, type IOverlay, Overlay } from '@quadnix/octo';
 import type { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
 import type { IRegionFilesystemOverlayProperties } from './region-filesystem.overlay.interface.js';
 
@@ -6,11 +6,13 @@ import type { IRegionFilesystemOverlayProperties } from './region-filesystem.ove
 export class RegionFilesystemOverlay extends AOverlay<RegionFilesystemOverlay> {
   override readonly MODEL_NAME: string = 'region-filesystem-overlay';
 
+  declare properties: IRegionFilesystemOverlayProperties;
+
   constructor(
     overlayId: IOverlay['overlayId'],
     properties: IRegionFilesystemOverlayProperties,
     anchors: [RegionFilesystemAnchor],
   ) {
-    super(overlayId, properties as unknown as IResource['properties'], anchors);
+    super(overlayId, properties, anchors);
   }
 }

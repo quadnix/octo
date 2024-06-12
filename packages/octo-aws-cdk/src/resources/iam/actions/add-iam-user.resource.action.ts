@@ -1,6 +1,5 @@
 import { CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IIamUserProperties, IIamUserResponse } from '../iam-user.interface.js';
 import { IamUser } from '../iam-user.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -14,8 +13,8 @@ export class AddIamUserResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const iamUser = diff.model as IamUser;
-    const properties = iamUser.properties as unknown as IIamUserProperties;
-    const response = iamUser.response as unknown as IIamUserResponse;
+    const properties = iamUser.properties;
+    const response = iamUser.response;
 
     // Get instances.
     const iamClient = await Container.get(IAMClient);
@@ -28,10 +27,10 @@ export class AddIamUserResourceAction implements IResourceAction {
     );
 
     // Set response.
-    response.Arn = data.User!.Arn as string;
+    response.Arn = data.User!.Arn!;
     response.policies = {};
-    response.UserId = data.User!.UserId as string;
-    response.UserName = data.User!.UserName as string;
+    response.UserId = data.User!.UserId!;
+    response.UserName = data.User!.UserName!;
   }
 }
 

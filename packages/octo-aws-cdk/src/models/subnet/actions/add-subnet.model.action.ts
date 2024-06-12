@@ -14,7 +14,6 @@ import { InternetGateway } from '../../../resources/internet-gateway/internet-ga
 import type { INetworkAclProperties } from '../../../resources/network-acl/network-acl.interface.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import { RouteTable } from '../../../resources/route-table/route-table.resource.js';
-import type { ISubnetProperties } from '../../../resources/subnet/subnet.interface.js';
 import { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { Vpc } from '../../../resources/vpc/vpc.resource.js';
 import type { AwsRegion } from '../../region/aws.region.model.js';
@@ -107,7 +106,7 @@ export class AddSubnetModelAction implements IModelAction {
     }
     siblingSubnetsSubnet.forEach((s, i) => {
       subnetNAclEntries.push({
-        CidrBlock: (s.properties as unknown as ISubnetProperties).CidrBlock,
+        CidrBlock: s.properties.CidrBlock,
         Egress: false,
         PortRange: { From: -1, To: -1 },
         Protocol: '-1', // All.
@@ -115,7 +114,7 @@ export class AddSubnetModelAction implements IModelAction {
         RuleNumber: (i + 1) * 10,
       });
       subnetNAclEntries.push({
-        CidrBlock: (s.properties as unknown as ISubnetProperties).CidrBlock,
+        CidrBlock: s.properties.CidrBlock,
         Egress: true,
         PortRange: { From: -1, To: -1 },
         Protocol: '-1', // All.

@@ -1,10 +1,7 @@
 import { ECSClient, type PortMapping, RegisterTaskDefinitionCommand } from '@aws-sdk/client-ecs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IEfsProperties, IEfsResponse } from '../../efs/efs.interface.js';
 import type { Efs } from '../../efs/efs.resource.js';
-import type { IIamRoleResponse } from '../../iam/iam-role.interface.js';
 import type { IamRole } from '../../iam/iam-role.resource.js';
-import type { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -23,13 +20,13 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
     // Get properties.
     const ecsTaskDefinition = diff.model as EcsTaskDefinition;
     const parents = ecsTaskDefinition.getParents();
-    const properties = ecsTaskDefinition.properties as unknown as IEcsTaskDefinitionProperties;
-    const response = ecsTaskDefinition.response as unknown as IEcsTaskDefinitionResponse;
+    const properties = ecsTaskDefinition.properties;
+    const response = ecsTaskDefinition.response;
 
     const efsList = 'efs' in parents ? parents['efs'].map((d) => d.to as Efs) : [];
 
     const iamRole = parents['iam-role'][0].to as IamRole;
-    const iamRoleResponse = iamRole.response as unknown as IIamRoleResponse;
+    const iamRoleResponse = iamRole.response;
 
     // Get instances.
     const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
@@ -44,9 +41,9 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
             essential: true,
             image: properties.image.uri,
             mountPoints: efsList.map((efs: Efs) => ({
-              containerPath: `/mnt/${(efs.properties as unknown as IEfsProperties).filesystemName}`,
+              containerPath: `/mnt/${efs.properties.filesystemName}`,
               readOnly: false,
-              sourceVolume: (efs.properties as unknown as IEfsProperties).filesystemName,
+              sourceVolume: efs.properties.filesystemName,
             })),
             name: properties.deploymentTag,
             portMappings: properties.image.ports.map(
@@ -64,16 +61,16 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
         taskRoleArn: iamRoleResponse.Arn,
         volumes: efsList.map((efs: Efs) => ({
           efsVolumeConfiguration: {
-            fileSystemId: (efs.response as unknown as IEfsResponse).FileSystemId,
+            fileSystemId: efs.response.FileSystemId,
           },
-          name: (efs.properties as unknown as IEfsProperties).filesystemName,
+          name: efs.properties.filesystemName,
         })),
       }),
     );
 
     // Set response.
-    response.revision = data.taskDefinition!.revision as number;
-    response.taskDefinitionArn = data.taskDefinition!.taskDefinitionArn as string;
+    response.revision = data.taskDefinition!.revision!;
+    response.taskDefinitionArn = data.taskDefinition!.taskDefinitionArn!;
   }
 }
 

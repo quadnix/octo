@@ -14,7 +14,6 @@ import type { AwsEnvironment } from '../../../models/environment/aws.environment
 import type { AwsExecution } from '../../../models/execution/aws.execution.model.js';
 import type { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
 import type { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
-import type { IExecutionOverlayProperties } from '../execution.overlay.interface.js';
 import { ExecutionOverlay } from '../execution.overlay.js';
 
 @Action(ModelType.OVERLAY)
@@ -23,7 +22,7 @@ export class UpdateExecutionReplaceTaskDefinitionOverlayAction implements IModel
 
   collectInput(diff: Diff): string[] {
     const executionOverlay = diff.model as ExecutionOverlay;
-    const properties = executionOverlay.properties as unknown as IExecutionOverlayProperties;
+    const properties = executionOverlay.properties;
 
     return [
       `resource.ecs-service-${properties.regionId}-${properties.serverKey}`,
@@ -43,7 +42,7 @@ export class UpdateExecutionReplaceTaskDefinitionOverlayAction implements IModel
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     // Get properties.
     const executionOverlay = diff.model as ExecutionOverlay;
-    const properties = executionOverlay.properties as unknown as IExecutionOverlayProperties;
+    const properties = executionOverlay.properties;
 
     // ECS TaskDefinition Anchors.
     const taskDefinitionAnchor = executionOverlay

@@ -1,6 +1,5 @@
 import { DeleteRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IIamRoleResponse } from '../iam-role.interface.js';
 import { IamRole } from '../iam-role.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -14,7 +13,7 @@ export class DeleteIamRoleResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const iamRole = diff.model as IamRole;
-    const response = iamRole.response as unknown as IIamRoleResponse;
+    const response = iamRole.response;
 
     // Get instances.
     const iamClient = await Container.get(IAMClient);

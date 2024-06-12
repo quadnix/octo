@@ -5,13 +5,9 @@ import {
   EC2Client,
 } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IInternetGatewayResponse } from '../../internet-gateway/internet-gateway.interface.js';
 import type { InternetGateway } from '../../internet-gateway/internet-gateway.resource.js';
-import type { ISubnetResponse } from '../../subnet/subnet.interface.js';
 import type { Subnet } from '../../subnet/subnet.resource.js';
-import type { IVpcResponse } from '../../vpc/vpc.interface.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
-import type { IRouteTableProperties, IRouteTableResponse } from '../route-table.interface.js';
 import { RouteTable } from '../route-table.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -27,19 +23,19 @@ export class AddRouteTableResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const routeTable = diff.model as RouteTable;
-    const properties = routeTable.properties as unknown as IRouteTableProperties;
-    const response = routeTable.response as unknown as IRouteTableResponse;
+    const properties = routeTable.properties;
+    const response = routeTable.response;
 
     // Get instances.
     const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
 
     const parents = routeTable.getParents();
     const vpc = parents['vpc'][0].to as Vpc;
-    const vpcResponse = vpc.response as unknown as IVpcResponse;
+    const vpcResponse = vpc.response;
     const internetGateway = parents['internet-gateway'][0].to as InternetGateway;
-    const internetGatewayResponse = internetGateway.response as unknown as IInternetGatewayResponse;
+    const internetGatewayResponse = internetGateway.response;
     const subnet = parents['subnet'][0].to as Subnet;
-    const subnetResponse = subnet.response as unknown as ISubnetResponse;
+    const subnetResponse = subnet.response;
 
     // Create Route Table.
     const routeTableOutput = await ec2Client.send(
@@ -68,8 +64,8 @@ export class AddRouteTableResourceAction implements IResourceAction {
     ]);
 
     // Set response.
-    response.RouteTableId = routeTableOutput!.RouteTable!.RouteTableId as string;
-    response.subnetAssociationId = data[0].AssociationId as string;
+    response.RouteTableId = routeTableOutput!.RouteTable!.RouteTableId!;
+    response.subnetAssociationId = data[0].AssociationId!;
   }
 }
 

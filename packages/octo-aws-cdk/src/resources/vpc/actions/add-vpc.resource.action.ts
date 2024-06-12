@@ -1,6 +1,5 @@
 import { CreateVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IVpcProperties, IVpcResponse } from '../vpc.interface.js';
 import { Vpc } from '../vpc.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -14,8 +13,8 @@ export class AddVpcResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const vpc = diff.model as Vpc;
-    const properties = vpc.properties as unknown as IVpcProperties;
-    const response = vpc.response as unknown as IVpcResponse;
+    const properties = vpc.properties;
+    const response = vpc.response;
 
     // Get instances.
     const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
@@ -29,7 +28,7 @@ export class AddVpcResourceAction implements IResourceAction {
     );
 
     // Set response.
-    response.VpcId = vpcOutput.Vpc!.VpcId as string;
+    response.VpcId = vpcOutput.Vpc!.VpcId!;
   }
 }
 

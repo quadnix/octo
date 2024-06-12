@@ -1,6 +1,5 @@
 import { CreateClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IEcsClusterProperties, IEcsClusterResponse } from '../ecs-cluster.interface.js';
 import { EcsCluster } from '../ecs-cluster.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -16,8 +15,8 @@ export class AddEcsClusterResourceAction implements IResourceAction {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const ecsCluster = diff.model as EcsCluster;
-    const properties = ecsCluster.properties as unknown as IEcsClusterProperties;
-    const response = ecsCluster.response as unknown as IEcsClusterResponse;
+    const properties = ecsCluster.properties;
+    const response = ecsCluster.response;
 
     // Get instances.
     const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
@@ -30,7 +29,7 @@ export class AddEcsClusterResourceAction implements IResourceAction {
     );
 
     // Set response.
-    response.clusterArn = data.cluster!.clusterArn as string;
+    response.clusterArn = data.cluster!.clusterArn!;
   }
 }
 

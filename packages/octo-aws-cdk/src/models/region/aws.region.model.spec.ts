@@ -149,7 +149,7 @@ describe('AwsRegion UT', () => {
            {
              "action": "add",
              "field": "resourceId",
-             "value": "efs-aws-us-east-1a-shared-mounts-filesystem",
+             "value": "efs-aws-us-east-1a-shared-mounts",
            },
          ],
        ]
@@ -174,7 +174,7 @@ describe('AwsRegion UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "value": "efs-aws-us-east-1a-shared-mounts-filesystem",
+             "value": "efs-aws-us-east-1a-shared-mounts",
            },
          ],
        ]

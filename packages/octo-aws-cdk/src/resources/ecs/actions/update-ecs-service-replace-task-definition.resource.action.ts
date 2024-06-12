@@ -1,8 +1,6 @@
 import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
-import type { IEcsServiceProperties } from '../ecs-service.interface.js';
 import { EcsService, type EcsServicePropertyDiff } from '../ecs-service.resource.js';
-import type { IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
 import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -23,10 +21,10 @@ export class UpdateEcsServiceReplaceTaskDefinitionResourceAction implements IRes
     // Get properties.
     const ecsService = diff.model as EcsService;
     const parents = ecsService.getParents();
-    const properties = ecsService.properties as unknown as IEcsServiceProperties;
+    const properties = ecsService.properties;
 
     const ecsTaskDefinition = parents['ecs-task-definition'][0].to as EcsTaskDefinition;
-    const ecsTaskDefinitionResponse = ecsTaskDefinition.response as unknown as IEcsTaskDefinitionResponse;
+    const ecsTaskDefinitionResponse = ecsTaskDefinition.response;
 
     // Get instances.
     const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });

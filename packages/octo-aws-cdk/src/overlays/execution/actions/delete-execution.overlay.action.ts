@@ -10,7 +10,6 @@ import {
 } from '@quadnix/octo';
 import type { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
 import type { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
-import type { IExecutionOverlayProperties } from '../execution.overlay.interface.js';
 import { ExecutionOverlay } from '../execution.overlay.js';
 
 @Action(ModelType.OVERLAY)
@@ -19,7 +18,7 @@ export class DeleteExecutionOverlayAction implements IModelAction {
 
   collectInput(diff: Diff): string[] {
     const executionOverlay = diff.model as ExecutionOverlay;
-    const properties = executionOverlay.properties as unknown as IExecutionOverlayProperties;
+    const properties = executionOverlay.properties;
 
     return [
       `resource.ecs-service-${properties.regionId}-${properties.serverKey}`,
@@ -39,7 +38,7 @@ export class DeleteExecutionOverlayAction implements IModelAction {
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     // Get properties.
     const executionOverlay = diff.model as ExecutionOverlay;
-    const properties = executionOverlay.properties as unknown as IExecutionOverlayProperties;
+    const properties = executionOverlay.properties;
 
     const ecsService = actionInputs[
       `resource.ecs-service-${properties.regionId}-${properties.serverKey}`
