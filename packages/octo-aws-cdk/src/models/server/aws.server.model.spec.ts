@@ -81,7 +81,7 @@ describe('AwsServer UT', () => {
            {
              "action": "add",
              "field": "resourceId",
-             "value": "iam-role-BackendServerRole",
+             "value": "iam-role-backend",
            },
          ],
        ]
@@ -106,7 +106,7 @@ describe('AwsServer UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "value": "iam-role-BackendServerRole",
+             "value": "iam-role-backend",
            },
          ],
        ]

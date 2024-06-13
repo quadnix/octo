@@ -418,12 +418,12 @@ describe('AwsSubnet UT', () => {
            {
              "action": "add",
              "field": "resourceId",
-             "value": "efs-mount-aws-us-east-1a-private-shared-mounts-filesystem",
+             "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
            },
            {
              "action": "add",
              "field": "resourceId",
-             "value": "efs-mount-aws-us-east-1a-public-shared-mounts-filesystem",
+             "value": "efs-mount-aws-us-east-1a-public-shared-mounts",
            },
          ],
        ]
@@ -449,12 +449,12 @@ describe('AwsSubnet UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "value": "efs-mount-aws-us-east-1a-private-shared-mounts-filesystem",
+             "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
            },
            {
              "action": "delete",
              "field": "resourceId",
-             "value": "efs-mount-aws-us-east-1a-public-shared-mounts-filesystem",
+             "value": "efs-mount-aws-us-east-1a-public-shared-mounts",
            },
          ],
        ]

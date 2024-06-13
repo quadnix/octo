@@ -1,7 +1,7 @@
 import { CreatePolicyCommand, CreateRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
-import { App, Container, type DiffMetadata, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, Container, type DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -77,19 +77,12 @@ describe('S3StorageService UT', () => {
 
     const octoAws = new OctoAws();
     await octoAws.initialize(new LocalStateProvider(__dirname));
-    octoAws.registerInputs({
-      'input.image.quadnix/test:0.0.1.dockerExecutable': 'docker',
-    });
 
     // Add the S3StorageService, and a Server.
     const app = new App('test');
     const service = new S3StorageService(RegionId.AWS_US_EAST_1A, 'test-bucket');
     app.addService(service);
-    const image = new Image('quadnix/test', '0.0.1', {
-      dockerfilePath: 'path/to/Dockerfile',
-    });
-    app.addImage(image);
-    const server = new AwsServer('Backend', image);
+    const server = new AwsServer('Backend');
     app.addServer(server);
 
     const diffs1 = await octoAws.diff(app);
@@ -111,7 +104,7 @@ describe('S3StorageService UT', () => {
           {
             "action": "add",
             "field": "resourceId",
-            "value": "iam-role-BackendServiceRole",
+            "value": "iam-role-Backend-ServerRole",
           },
         ],
       ]
@@ -129,43 +122,56 @@ describe('S3StorageService UT', () => {
     const resourceTransactionResult2 = await generator2.next();
     const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
     await octoAws.commitTransaction(app, modelTransactionResult2.value);
-    /* eslint-disable spellcheck/spell-checker */
+    /* eslint-disable spellcheck/spell-checker, max-len */
     expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
-      [
-        [
-          {
-            "action": "update",
-            "field": "3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
-            "value": {
-              "action": "add",
-              "overlay": S3StorageAccessOverlay {
-                "MODEL_NAME": "s3-storage-access",
-                "MODEL_TYPE": "overlay",
-                "anchors": [
-                  {
-                    "anchorId": "BackendServiceRole",
-                    "parent": "server=Backend,app=test",
-                  },
-                ],
-                "dependencies": [
-                  {
-                    "from": "s3-storage-access=3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
-                    "relationship": undefined,
-                    "to": "server=Backend,app=test",
-                  },
-                ],
-                "overlayId": "3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
-                "properties": {
-                  "allowRead": true,
-                  "allowWrite": false,
-                  "bucketName": "test-bucket",
-                  "remoteDirectoryPath": "uploads",
-                },
-              },
-            },
-          },
-        ],
-      ]
+     [
+       [
+         {
+           "action": "update",
+           "field": "s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
+           "value": {
+             "action": "add",
+             "overlay": S3StorageAccessOverlay {
+               "MODEL_NAME": "s3-storage-access-overlay",
+               "MODEL_TYPE": "overlay",
+               "anchors": [
+                 {
+                   "anchorId": "ServerIamRoleAnchor",
+                   "parent": "server=Backend,app=test",
+                   "properties": {
+                     "iamRoleName": "Backend-ServerRole",
+                   },
+                 },
+                 {
+                   "anchorId": "fb611de45b88S3DirectoryAnchor",
+                   "parent": "service=test-bucket-s3-storage,app=test",
+                   "properties": {},
+                 },
+               ],
+               "dependencies": [
+                 {
+                   "from": "s3-storage-access-overlay=s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
+                   "relationship": undefined,
+                   "to": "server=Backend,app=test",
+                 },
+                 {
+                   "from": "s3-storage-access-overlay=s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
+                   "relationship": undefined,
+                   "to": "service=test-bucket-s3-storage,app=test",
+                 },
+               ],
+               "overlayId": "s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
+               "properties": {
+                 "allowRead": true,
+                 "allowWrite": false,
+                 "bucketName": "test-bucket",
+                 "remoteDirectoryPath": "uploads",
+               },
+             },
+           },
+         },
+       ],
+     ]
     `);
     /* eslint-enable */
 
@@ -180,43 +186,56 @@ describe('S3StorageService UT', () => {
     const resourceTransactionResult3 = await generator3.next();
     const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
     await octoAws.commitTransaction(app, modelTransactionResult3.value);
-    /* eslint-disable spellcheck/spell-checker */
+    /* eslint-disable spellcheck/spell-checker, max-len */
     expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
-      [
-        [
-          {
-            "action": "update",
-            "field": "3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
-            "value": {
-              "action": "delete",
-              "overlay": S3StorageAccessOverlay {
-                "MODEL_NAME": "s3-storage-access",
-                "MODEL_TYPE": "overlay",
-                "anchors": [
-                  {
-                    "anchorId": "BackendServiceRole",
-                    "parent": "server=Backend,app=test",
-                  },
-                ],
-                "dependencies": [
-                  {
-                    "from": "s3-storage-access=3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
-                    "relationship": undefined,
-                    "to": "server=Backend,app=test",
-                  },
-                ],
-                "overlayId": "3e39ca7917d5cb8f6b85668a9a5263bb6ac9cc35",
-                "properties": {
-                  "allowRead": true,
-                  "allowWrite": false,
-                  "bucketName": "test-bucket",
-                  "remoteDirectoryPath": "uploads",
-                },
-              },
-            },
-          },
-        ],
-      ]
+     [
+       [
+         {
+           "action": "update",
+           "field": "s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
+           "value": {
+             "action": "delete",
+             "overlay": S3StorageAccessOverlay {
+               "MODEL_NAME": "s3-storage-access-overlay",
+               "MODEL_TYPE": "overlay",
+               "anchors": [
+                 {
+                   "anchorId": "ServerIamRoleAnchor",
+                   "parent": "server=Backend,app=test",
+                   "properties": {
+                     "iamRoleName": "Backend-ServerRole",
+                   },
+                 },
+                 {
+                   "anchorId": "fb611de45b88S3DirectoryAnchor",
+                   "parent": "service=test-bucket-s3-storage,app=test",
+                   "properties": {},
+                 },
+               ],
+               "dependencies": [
+                 {
+                   "from": "s3-storage-access-overlay=s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
+                   "relationship": undefined,
+                   "to": "server=Backend,app=test",
+                 },
+                 {
+                   "from": "s3-storage-access-overlay=s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
+                   "relationship": undefined,
+                   "to": "service=test-bucket-s3-storage,app=test",
+                 },
+               ],
+               "overlayId": "s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
+               "properties": {
+                 "allowRead": true,
+                 "allowWrite": false,
+                 "bucketName": "test-bucket",
+                 "remoteDirectoryPath": "uploads",
+               },
+             },
+           },
+         },
+       ],
+     ]
     `);
     /* eslint-enable */
 
