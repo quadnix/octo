@@ -8,6 +8,7 @@ import {
   type IModelAction,
   ModelType,
 } from '@quadnix/octo';
+import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { AwsServer } from '../aws.server.model.js';
 
@@ -17,8 +18,10 @@ export class DeleteServerModelAction implements IModelAction {
 
   collectInput(diff: Diff): string[] {
     const server = diff.model as AwsServer;
+    const serverIamRole = server.getAnchor('ServerIamRoleAnchor') as IamRoleAnchor;
+    const serverIamRoleName = serverIamRole.properties.iamRoleName;
 
-    return [`resource.iam-role-${server.serverKey}`];
+    return [`resource.iam-role-${serverIamRoleName}`];
   }
 
   filter(diff: Diff): boolean {
@@ -32,8 +35,10 @@ export class DeleteServerModelAction implements IModelAction {
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
+    const serverIamRole = server.getAnchor('ServerIamRoleAnchor') as IamRoleAnchor;
+    const serverIamRoleName = serverIamRole.properties.iamRoleName;
 
-    const iamRole = actionInputs[`resource.iam-role-${server.serverKey}`] as IamRole;
+    const iamRole = actionInputs[`resource.iam-role-${serverIamRoleName}`] as IamRole;
     iamRole.markDeleted();
 
     const output: ActionOutputs = {};
