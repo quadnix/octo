@@ -2,6 +2,7 @@ import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import type { Diff } from '../../functions/diff/diff.js';
+import { ArrayUtility } from '../../utilities/array/array.utility.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
@@ -16,10 +17,11 @@ export class Execution extends AModel<IExecution, Execution> {
 
   readonly environmentVariables: Map<string, string> = new Map();
 
-  constructor(deployment: Deployment, environment: Environment, subnet: Subnet) {
+  constructor(deployment: Deployment, environment: Environment, subnet: Subnet, _calledFromUnSynth = false) {
     super();
-    // Check if execution can be placed in this subnet. Skip during unSynth().
-    if (Object.keys(this.getParents()).length > 0) {
+
+    // Check if execution can be placed in this subnet.
+    if (!_calledFromUnSynth) {
       const environmentRegion = environment.getParents('region')['region'][0].to as Region;
       const subnetRegion = subnet.getParents('region')['region'][0].to as Region;
       if (environmentRegion.regionId !== subnetRegion.regionId) {
@@ -27,15 +29,28 @@ export class Execution extends AModel<IExecution, Execution> {
       }
     }
 
-    // Check for duplicates. Skip during unSynth().
-    if (Object.keys(this.getParents()).length > 0) {
-      if (
-        deployment.getChild('execution', [{ key: 'executionId', value: this.executionId }]) ||
-        environment.getChild('execution', [{ key: 'executionId', value: this.executionId }]) ||
-        subnet.getChild('execution', [{ key: 'executionId', value: this.executionId }])
-      ) {
-        throw new Error('Execution already exists!');
-      }
+    // Check for duplicates.
+    const deploymentExecutions = (deployment.getChildren('execution')['execution'] || []).map(
+      (d): Execution => d.to as Execution,
+    );
+    const environmentExecutions = (environment.getChildren('execution')['execution'] || []).map(
+      (d): Execution => d.to as Execution,
+    );
+    const subnetExecutions = (subnet.getChildren('execution')['execution'] || []).map(
+      (d): Execution => d.to as Execution,
+    );
+
+    if (
+      ArrayUtility.intersect(
+        (a: Execution, b: Execution): boolean => {
+          return a.executionId === b.executionId;
+        },
+        deploymentExecutions,
+        environmentExecutions,
+        subnetExecutions,
+      ).length > 0
+    ) {
+      throw new Error('Execution already exists!');
     }
 
     // In order for this execution to properly have defined its parent-child relationship, all parents
@@ -107,7 +122,7 @@ export class Execution extends AModel<IExecution, Execution> {
     const deployment = (await deReferenceContext(execution.deployment.context)) as Deployment;
     const environment = (await deReferenceContext(execution.environment.context)) as Environment;
     const subnet = (await deReferenceContext(execution.subnet.context)) as Subnet;
-    const newExecution = new Execution(deployment, environment, subnet);
+    const newExecution = new Execution(deployment, environment, subnet, true);
 
     for (const key in execution.environmentVariables) {
       newExecution.environmentVariables.set(key, execution.environmentVariables[key]);
