@@ -1,6 +1,7 @@
 import { Container, Model, OverlayService, Subnet, type UnknownModel } from '@quadnix/octo';
 import { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
 import { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mount.anchor.js';
+import { RegionFilesystemOverlay } from '../../overlays/region-filesystem/region-filesystem.overlay.js';
 import { SubnetFilesystemMountOverlay } from '../../overlays/subnet-filesystem-mount/subnet-filesystem-mount.overlay.js';
 import type { AwsRegion } from '../region/aws.region.model.js';
 import type { IAwsSubnet } from './aws.subnet.interface.js';
@@ -24,8 +25,17 @@ export class AwsSubnet extends Subnet {
       throw new Error('Filesystem not found in AWS region!');
     }
 
+    const overlayService = await Container.get(OverlayService);
+
     const regionFilesystemAnchorName = regionFilesystem.filesystemAnchorName;
-    const regionFilesystemAnchor = region.getAnchor(regionFilesystemAnchorName)! as RegionFilesystemAnchor;
+    const regionFilesystemAnchor = region.getAnchorById(regionFilesystemAnchorName) as RegionFilesystemAnchor;
+
+    const regionFilesystemOverlayId = `region-filesystem-overlay-${regionFilesystemAnchorName}`;
+    const regionFilesystemOverlay = overlayService.getOverlayById(regionFilesystemOverlayId) as RegionFilesystemOverlay;
+
+    if (!regionFilesystemAnchor || !regionFilesystemOverlay) {
+      throw new Error('Filesystem not found in AWS region!');
+    }
 
     // eslint-disable-next-line max-len
     const subnetFilesystemMountAnchorName = `${region.awsRegionId}-${this.subnetName}-${filesystemName}-FilesystemMountAnchor`;
@@ -38,13 +48,13 @@ export class AwsSubnet extends Subnet {
     this.filesystemMounts.push({ filesystemMountAnchorName: subnetFilesystemMountAnchorName, filesystemName });
 
     const overlayId = `subnet-filesystem-mount-overlay-${subnetFilesystemMountAnchorName}`;
-
-    const overlayService = await Container.get(OverlayService);
     const subnetFilesystemMountOverlay = new SubnetFilesystemMountOverlay(overlayId, {}, [
       regionFilesystemAnchor,
       subnetFilesystemMountAnchor,
     ]);
+
     overlayService.addOverlay(subnetFilesystemMountOverlay);
+    regionFilesystemOverlay.addChild('overlayId', subnetFilesystemMountOverlay, 'overlayId');
   }
 
   async removeFilesystemMount(filesystemName: string): Promise<void> {
@@ -53,16 +63,35 @@ export class AwsSubnet extends Subnet {
       throw new Error('Filesystem mount not found in AWS subnet!');
     }
 
+    const region = this.getParents('region')['region'][0].to as AwsRegion;
+    const regionFilesystem = region.filesystems.find((f) => f.filesystemName === filesystemName);
+    if (!regionFilesystem) {
+      throw new Error('Filesystem not found in AWS region!');
+    }
+
     const overlayService = await Container.get(OverlayService);
     const overlays = overlayService.getOverlayByProperties();
 
+    const regionFilesystemAnchorName = regionFilesystem.filesystemAnchorName;
+    const regionFilesystemOverlayId = `region-filesystem-overlay-${regionFilesystemAnchorName}`;
+    const regionFilesystemOverlay = overlayService.getOverlayById(regionFilesystemOverlayId) as RegionFilesystemOverlay;
+
+    if (!regionFilesystemOverlay) {
+      throw new Error('Filesystem not found in AWS region!');
+    }
+
     const overlayId = `subnet-filesystem-mount-overlay-${filesystemMount.filesystemMountAnchorName}`;
-    if (overlays.find((o) => o.overlayId !== overlayId && o.getAnchor(filesystemMount.filesystemMountAnchorName))) {
+    if (
+      overlays.find(
+        (o) => o.overlayId !== overlayId && o.getAnchorByParent(filesystemMount.filesystemMountAnchorName, this),
+      )
+    ) {
       throw new Error('Cannot remove filesystem mount while overlay exists!');
     }
 
-    const overlay = overlayService.getOverlayById(overlayId);
-    overlayService.removeOverlay(overlay!);
+    const overlay = overlayService.getOverlayById(overlayId)!;
+    overlayService.removeOverlay(overlay);
+    regionFilesystemOverlay.removeRelationship(overlay);
   }
 
   override synth(): IAwsSubnet {

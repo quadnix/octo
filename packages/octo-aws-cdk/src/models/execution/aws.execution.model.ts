@@ -1,4 +1,14 @@
-import { Container, Diff, Execution, Model, OverlayService } from '@quadnix/octo';
+import {
+  Container,
+  DependencyRelationship,
+  Diff,
+  DiffAction,
+  Execution,
+  IExecution,
+  Model,
+  OverlayService,
+  type UnknownModel,
+} from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
@@ -15,18 +25,20 @@ import type { AwsSubnet } from '../subnet/aws.subnet.model.js';
 
 @Model()
 export class AwsExecution extends Execution {
-  constructor(deployment: AwsDeployment, environment: AwsEnvironment, subnet: AwsSubnet) {
-    super(deployment, environment, subnet);
+  constructor(deployment: AwsDeployment, environment: AwsEnvironment, subnet: AwsSubnet, _calledFromUnSynth = false) {
+    super(deployment, environment, subnet, _calledFromUnSynth);
 
-    this.anchors.push(new EcsServiceAnchor('EcsServiceAnchor', { desiredCount: 1 }, this));
-    this.anchors.push(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', {}, this));
-    this.anchors.push(
-      new SecurityGroupAnchor(
-        'SecurityGroupAnchor',
-        { rules: [], securityGroupName: `${this.executionId}-SecurityGroup` },
-        this,
-      ),
-    );
+    if (!_calledFromUnSynth) {
+      this.anchors.push(new EcsServiceAnchor('EcsServiceAnchor', { desiredCount: 1 }, this));
+      this.anchors.push(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', {}, this));
+      this.anchors.push(
+        new SecurityGroupAnchor(
+          'SecurityGroupAnchor',
+          { rules: [], securityGroupName: `${this.executionId}-SecurityGroup` },
+          this,
+        ),
+      );
+    }
   }
 
   addSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
@@ -131,22 +143,35 @@ export class AwsExecution extends Execution {
   }
 
   async mountFilesystem(filesystemName: string): Promise<void> {
-    const overlayService = await Container.get(OverlayService);
-    const parents = this.getParents();
-
-    const subnet = parents['subnet'][0].to as AwsSubnet;
-
+    const subnet = this.getParents()['subnet'][0].to as AwsSubnet;
     const filesystemMount = subnet.filesystemMounts.find((f) => f.filesystemName === filesystemName);
     if (!filesystemMount) {
       throw new Error('Filesystem not found in AWS subnet!');
     }
-    const subnetFilesystemMountAnchor = subnet.getAnchor(
+
+    const overlayService = await Container.get(OverlayService);
+
+    const subnetFilesystemMountAnchor = subnet.getAnchorById(
       filesystemMount.filesystemMountAnchorName,
     ) as SubnetFilesystemMountAnchor;
+
+    // eslint-disable-next-line max-len
+    const subnetFilesystemMountOverlayId = `subnet-filesystem-mount-overlay-${filesystemMount.filesystemMountAnchorName}`;
+    const subnetFilesystemMountOverlay = overlayService.getOverlayById(subnetFilesystemMountOverlayId);
+    if (!subnetFilesystemMountAnchor || !subnetFilesystemMountOverlay) {
+      throw new Error('Filesystem not found in AWS subnet!');
+    }
 
     const executionOverlayId = `execution-overlay-${this.executionId}`;
     const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
     executionOverlay.addAnchor(subnetFilesystemMountAnchor);
+
+    subnetFilesystemMountOverlay.addChild('overlayId', executionOverlay, 'overlayId');
+    const executionOverlayDependency = executionOverlay.getDependency(
+      subnetFilesystemMountOverlay,
+      DependencyRelationship.CHILD,
+    );
+    executionOverlayDependency?.addBehavior('overlayId', DiffAction.UPDATE, 'overlayId', DiffAction.ADD);
   }
 
   removeSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
@@ -166,26 +191,51 @@ export class AwsExecution extends Execution {
   }
 
   async unmountFilesystem(filesystemName: string): Promise<void> {
-    const overlayService = await Container.get(OverlayService);
-    const parents = this.getParents();
-
-    const subnet = parents['subnet'][0].to as AwsSubnet;
-
+    const subnet = this.getParents()['subnet'][0].to as AwsSubnet;
     const filesystemMount = subnet.filesystemMounts.find((f) => f.filesystemName === filesystemName);
     if (!filesystemMount) {
       throw new Error('Filesystem not found in AWS subnet!');
     }
-    const subnetFilesystemMountAnchor = subnet.getAnchor(
+
+    const overlayService = await Container.get(OverlayService);
+
+    const subnetFilesystemMountAnchor = subnet.getAnchorById(
       filesystemMount.filesystemMountAnchorName,
     ) as SubnetFilesystemMountAnchor;
+
+    // eslint-disable-next-line max-len
+    const subnetFilesystemMountOverlayId = `subnet-filesystem-mount-overlay-${filesystemMount.filesystemMountAnchorName}`;
+    const subnetFilesystemMountOverlay = overlayService.getOverlayById(subnetFilesystemMountOverlayId);
+    if (!subnetFilesystemMountAnchor || !subnetFilesystemMountOverlay) {
+      throw new Error('Filesystem not found in AWS subnet!');
+    }
 
     const executionOverlayId = `execution-overlay-${this.executionId}`;
     const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
     executionOverlay.removeAnchor(subnetFilesystemMountAnchor);
+    subnetFilesystemMountOverlay.removeRelationship(executionOverlay);
   }
 
   updateDesiredCount(desiredCount: number): void {
     const ecsServiceAnchor = this.getAnchors().find((a) => a instanceof EcsServiceAnchor) as EcsServiceAnchor;
     ecsServiceAnchor.properties.desiredCount = desiredCount;
+  }
+
+  static override async unSynth(
+    execution: IExecution,
+    deReferenceContext: (context: string) => Promise<UnknownModel>,
+  ): Promise<AwsExecution> {
+    const [deployment, environment, subnet] = (await Promise.all([
+      deReferenceContext(execution.deployment.context),
+      deReferenceContext(execution.environment.context),
+      deReferenceContext(execution.subnet.context),
+    ])) as [AwsDeployment, AwsEnvironment, AwsSubnet];
+    const newExecution = new AwsExecution(deployment, environment, subnet, true);
+
+    for (const [key, value] of Object.entries(execution.environmentVariables)) {
+      newExecution.environmentVariables.set(key, value);
+    }
+
+    return newExecution;
   }
 }
