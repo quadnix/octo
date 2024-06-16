@@ -6,18 +6,18 @@ import { Dependency } from './dependency.js';
 
 describe('Dependency UT', () => {
   describe('addBehavior()', () => {
-    it('should throw error when adding behavior on the wrong field (onField)', () => {
-      expect(() => {
-        const dependency = new Dependency(new Region('region-1'), new Environment('qa'));
-        dependency.addBehavior('doesNotExist', DiffAction.ADD, 'environmentName', DiffAction.ADD);
-      }).toThrowErrorMatchingInlineSnapshot(`"Invalid field name is not a property of given model!"`);
+    it('should add behavior on a non-existent field (onField)', () => {
+      const dependency = new Dependency(new Region('region-1'), new Environment('qa'));
+      dependency.addBehavior('doesNotExist', DiffAction.ADD, 'environmentName', DiffAction.ADD);
+      expect(dependency.hasMatchingBehavior('doesNotExist', DiffAction.ADD, 'environmentName', DiffAction.ADD)).toBe(
+        true,
+      );
     });
 
-    it('should throw error when adding behavior on the wrong field (toField)', () => {
-      expect(() => {
-        const dependency = new Dependency(new Region('region-1'), new Environment('qa'));
-        dependency.addBehavior('regionId', DiffAction.ADD, 'doesNotExist', DiffAction.ADD);
-      }).toThrowErrorMatchingInlineSnapshot(`"Invalid field name is not a property of given model!"`);
+    it('should add behavior on a non-existent field (toField)', () => {
+      const dependency = new Dependency(new Region('region-1'), new Environment('qa'));
+      dependency.addBehavior('regionId', DiffAction.ADD, 'doesNotExist', DiffAction.ADD);
+      expect(dependency.hasMatchingBehavior('regionId', DiffAction.ADD, 'doesNotExist', DiffAction.ADD)).toBe(true);
     });
   });
 
