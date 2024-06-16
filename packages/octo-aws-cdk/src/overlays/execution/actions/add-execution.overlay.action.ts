@@ -16,7 +16,6 @@ import { SubnetFilesystemMountAnchor } from '../../../anchors/subnet-filesystem-
 import { TaskDefinitionAnchor } from '../../../anchors/task-definition.anchor.js';
 import type { AwsEnvironment } from '../../../models/environment/aws.environment.model.js';
 import type { AwsExecution } from '../../../models/execution/aws.execution.model.js';
-import type { AwsRegion } from '../../../models/region/aws.region.model.js';
 import type { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
 import { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
 import { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
@@ -39,16 +38,10 @@ export class AddExecutionOverlayAction implements IModelAction {
     const serverIamRoleAnchor = executionOverlay.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
     const serverIamRoleName = serverIamRoleAnchor.properties.iamRoleName;
 
-    const ecsServiceAnchor = executionOverlay
-      .getAnchors()
-      .find((a) => a instanceof EcsServiceAnchor) as EcsServiceAnchor;
-    const execution = ecsServiceAnchor.getParent() as AwsExecution;
-    const region = execution.getParents('region')['region'][0].to as AwsRegion;
-
     const efsResources = executionOverlay
       .getAnchors()
       .filter((a) => a instanceof SubnetFilesystemMountAnchor)
-      .map((a: SubnetFilesystemMountAnchor) => `resource.efs-${region.regionId}-${a.properties.filesystemName}`);
+      .map((a: SubnetFilesystemMountAnchor) => `resource.efs-${properties.regionId}-${a.properties.filesystemName}`);
 
     const securityGroupResources = executionOverlay
       .getAnchors()

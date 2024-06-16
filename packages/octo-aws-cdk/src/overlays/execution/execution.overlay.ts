@@ -54,12 +54,22 @@ export class ExecutionOverlay extends AOverlay<ExecutionOverlay> {
       (a) => a instanceof SubnetFilesystemMountAnchor,
     );
     for (const previousSubnetFilesystemMountAnchor of previousSubnetFilesystemMountAnchors) {
-      if (!this.getAnchor(previousSubnetFilesystemMountAnchor.anchorId)) {
+      if (
+        !this.getAnchorByParent(
+          previousSubnetFilesystemMountAnchor.anchorId,
+          previousSubnetFilesystemMountAnchor.getParent(),
+        )
+      ) {
         diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', ''));
       }
     }
     for (const currentSubnetFilesystemMountAnchor of currentSubnetFilesystemMountAnchors) {
-      if (!previous.getAnchor(currentSubnetFilesystemMountAnchor.anchorId)) {
+      if (
+        !previous.getAnchorByParent(
+          currentSubnetFilesystemMountAnchor.anchorId,
+          currentSubnetFilesystemMountAnchor.getParent(),
+        )
+      ) {
         diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', ''));
       }
     }
