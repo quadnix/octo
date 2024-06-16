@@ -9,6 +9,7 @@ export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
 export { TestContainer } from './decorators/test-container.js';
 
+export { DependencyRelationship } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { DiffMetadata } from './functions/diff/diff-metadata.js';

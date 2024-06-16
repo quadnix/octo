@@ -194,11 +194,11 @@ describe('Model Serialization Service UT', () => {
 
       // Ensure the new and old overlays in the OverlayDataRepository are not shared.
       const overlayDataRepository = await Container.get(OverlayDataRepository);
-      expect(overlayDataRepository['oldOverlays'][0].getAnchor('anchor-1')!.getParent()!.getChildren()['region']).toBe(
-        undefined,
-      );
       expect(
-        overlayDataRepository['newOverlays'][0].getAnchor('anchor-1')!.getParent()!.getChildren()['region'].length,
+        overlayDataRepository['oldOverlays'][0].getAnchorById('anchor-1')!.getParent()!.getChildren()['region'],
+      ).toBe(undefined);
+      expect(
+        overlayDataRepository['newOverlays'][0].getAnchorById('anchor-1')!.getParent()!.getChildren()['region'].length,
       ).toBe(1);
     });
   });

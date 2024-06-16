@@ -1,5 +1,6 @@
 import {
   App,
+  DependencyRelationship,
   Deployment,
   DiffAction,
   Environment,
@@ -308,6 +309,56 @@ describe('Model E2E Test', () => {
           app.getBoundaryMembers();
         }).toThrowErrorMatchingInlineSnapshot(`"Found circular dependencies!"`);
       });
+    });
+  });
+
+  describe('getAnchorByParent()', () => {
+    it('should get anchor using default parent', () => {
+      const app = new App('test');
+      const anchor1_0 = new TestAnchor('anchor-1', {}, app);
+      app['anchors'].push(anchor1_0);
+
+      const anchor1_1 = app.getAnchorByParent('anchor-1')!;
+      expect(anchor1_1.anchorId).toBe(anchor1_0.anchorId);
+    });
+
+    it('should get anchor using specified parent', () => {
+      const app = new App('test');
+      const anchor1_0 = new TestAnchor('anchor-1', {}, app);
+      app['anchors'].push(anchor1_0);
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1_0]);
+
+      const anchor1_1 = overlay1.getAnchorByParent('anchor-1', app)!;
+      expect(anchor1_1.anchorId).toBe(anchor1_0.anchorId);
+    });
+  });
+
+  describe('getDependency()', () => {
+    it('should get a dependency with relationship', () => {
+      const app = new App('test');
+      const region = new Region('region');
+      app.addRegion(region);
+
+      const appDependencyWithRegion = app.getDependency(region, DependencyRelationship.PARENT);
+      expect(appDependencyWithRegion).not.toBe(undefined);
+
+      const regionDependencyWithApp = region.getDependency(app, DependencyRelationship.CHILD);
+      expect(regionDependencyWithApp).not.toBe(undefined);
+    });
+
+    it('should get a dependency without relationship', () => {
+      const app = new App('test');
+      const region = new Region('region');
+      app.addRegion(region);
+      const image = new Image('test', '0.0.1', { dockerfilePath: 'docker' });
+      app.addImage(image);
+      image.addRelationship(region);
+
+      const imageDependencyWithRegion = image.getDependency(region, undefined);
+      expect(imageDependencyWithRegion).not.toBe(undefined);
+
+      const regionDependencyWithImage = region.getDependency(image, undefined);
+      expect(regionDependencyWithImage).not.toBe(undefined);
     });
   });
 

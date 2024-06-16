@@ -28,8 +28,11 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   }
 
   addAnchor(anchor: AAnchor): void {
-    if (this.getAnchor(anchor.anchorId)) {
-      return;
+    const existingAnchors = this.getAnchors().filter((a) => a.anchorId === anchor.anchorId);
+    for (const existingAnchor of existingAnchors) {
+      if (existingAnchor.getParent().getContext() === anchor.getParent().getContext()) {
+        return;
+      }
     }
 
     const dependencies = this.addRelationship(anchor.getParent());
@@ -93,7 +96,7 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     const anchors = await Promise.all(
       overlay.anchors.map(async (a) => {
         const parent = await deReferenceContext(a.parent.context);
-        const anchor = parent.getAnchor(a.anchorId);
+        const anchor = parent.getAnchorById(a.anchorId);
         if (!anchor) {
           throw new Error('Cannot find anchor while deserializing overlay!');
         }

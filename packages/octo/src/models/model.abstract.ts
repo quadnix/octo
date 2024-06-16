@@ -1,5 +1,5 @@
 import { ModelType, type UnknownModel } from '../app.type.js';
-import { Dependency } from '../functions/dependency/dependency.js';
+import { Dependency, type DependencyRelationship } from '../functions/dependency/dependency.js';
 import { type Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import type { AAnchor } from '../overlays/anchor.abstract.js';
@@ -119,8 +119,14 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return membersProcessed;
   }
 
-  getAnchor(anchorId: string): AAnchor | undefined {
+  getAnchorById(anchorId: string): AAnchor | undefined {
     return this.anchors.find((a) => a.anchorId === anchorId);
+  }
+
+  getAnchorByParent(anchorId: string, parent?: UnknownModel): AAnchor | undefined {
+    return this.anchors.find(
+      (a) => a.anchorId === anchorId && a.getParent().getContext() === (parent || this).getContext(),
+    );
   }
 
   getAnchors(): AAnchor[] {
@@ -236,6 +242,15 @@ export abstract class AModel<I, T> implements IModel<I, T> {
   }
 
   abstract getContext(): string;
+
+  getDependency(to: UnknownModel, relationship: DependencyRelationship | undefined): Dependency | undefined {
+    return this.dependencies.find(
+      (d) =>
+        d.from.getContext() === this.getContext() &&
+        d.to.getContext() === to.getContext() &&
+        d.getRelationship()?.type === relationship,
+    );
+  }
 
   getParents(modelName?: string): { [key: string]: Dependency[] } {
     return this.dependencies
