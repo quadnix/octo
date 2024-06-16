@@ -22,7 +22,7 @@ export class AddServerModelAction implements IModelAction {
 
   async handle(diff: Diff): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
-    const serverIamRole = server.getAnchor('ServerIamRoleAnchor') as IamRoleAnchor;
+    const serverIamRole = server.getAnchorById('ServerIamRoleAnchor') as IamRoleAnchor;
     const serverIamRoleName = serverIamRole.properties.iamRoleName;
 
     // Create IAM Role.
