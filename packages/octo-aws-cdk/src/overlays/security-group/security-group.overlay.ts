@@ -20,16 +20,26 @@ export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {
     const diffs: Diff[] = [];
 
     for (let i = 0; i < previous.anchors.length; i++) {
-      const previousAnchor = this.anchors[i] as SecurityGroupAnchor;
+      const previousAnchor = previous.anchors[i] as SecurityGroupAnchor;
+      const currentAnchor = this.getAnchorByParent(
+        previousAnchor.anchorId,
+        previousAnchor.getParent(),
+      ) as SecurityGroupAnchor;
 
-      const currentAnchor = this.getAnchor(previousAnchor.anchorId) as SecurityGroupAnchor;
+      if (previousAnchor.properties.rules.length === 0) {
+        if (currentAnchor && currentAnchor.properties.rules.length > 0) {
+          diffs.push(new Diff(this, DiffAction.ADD, 'anchor', currentAnchor));
+        }
+        continue;
+      }
+
       if (!currentAnchor) {
-        diffs.push(new Diff(this, DiffAction.DELETE, 'overlayId', previousAnchor));
+        diffs.push(new Diff(this, DiffAction.DELETE, 'anchor', previousAnchor));
       } else {
         if (currentAnchor.properties.rules.length === 0) {
-          diffs.push(new Diff(this, DiffAction.DELETE, 'overlayId', previousAnchor));
+          diffs.push(new Diff(this, DiffAction.DELETE, 'anchor', previousAnchor));
         } else if (!DiffUtility.isObjectDeepEquals(previousAnchor.properties.rules, currentAnchor.properties.rules)) {
-          diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', currentAnchor));
+          diffs.push(new Diff(this, DiffAction.UPDATE, 'anchor', currentAnchor));
         }
       }
     }
@@ -37,9 +47,12 @@ export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {
     for (let i = 0; i < this.anchors.length; i++) {
       const currentAnchor = this.anchors[i] as SecurityGroupAnchor;
 
-      const previousAnchor = previous.getAnchor(currentAnchor.anchorId);
+      const previousAnchor = previous.getAnchorByParent(
+        currentAnchor.anchorId,
+        currentAnchor.getParent(),
+      ) as SecurityGroupAnchor;
       if (!previousAnchor && currentAnchor.properties.rules.length > 0) {
-        diffs.push(new Diff(this, DiffAction.ADD, 'overlayId', currentAnchor));
+        diffs.push(new Diff(this, DiffAction.ADD, 'anchor', currentAnchor));
       }
     }
 

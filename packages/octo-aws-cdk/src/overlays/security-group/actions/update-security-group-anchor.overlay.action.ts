@@ -13,7 +13,7 @@ import type { SecurityGroup } from '../../../resources/security-group/security-g
 import { SecurityGroupOverlay } from '../security-group.overlay.js';
 
 @Action(ModelType.OVERLAY)
-export class UpdateSecurityGroupOverlayAction implements IModelAction {
+export class UpdateSecurityGroupAnchorOverlayAction implements IModelAction {
   readonly ACTION_NAME: string = 'UpdateSecurityGroupOverlayAction';
 
   collectInput(diff: Diff): string[] {
@@ -27,7 +27,7 @@ export class UpdateSecurityGroupOverlayAction implements IModelAction {
       diff.action === DiffAction.UPDATE &&
       diff.model instanceof SecurityGroupOverlay &&
       diff.model.MODEL_NAME === 'security-group-overlay' &&
-      diff.field === 'overlayId'
+      diff.field === 'anchor'
     );
   }
 
@@ -48,9 +48,9 @@ export class UpdateSecurityGroupOverlayAction implements IModelAction {
   }
 }
 
-@Factory<UpdateSecurityGroupOverlayAction>(UpdateSecurityGroupOverlayAction)
-export class UpdateSecurityGroupOverlayActionFactory {
-  static async create(): Promise<UpdateSecurityGroupOverlayAction> {
-    return new UpdateSecurityGroupOverlayAction();
+@Factory<UpdateSecurityGroupAnchorOverlayAction>(UpdateSecurityGroupAnchorOverlayAction)
+export class UpdateSecurityGroupAnchorOverlayActionFactory {
+  static async create(): Promise<UpdateSecurityGroupAnchorOverlayAction> {
+    return new UpdateSecurityGroupAnchorOverlayAction();
   }
 }

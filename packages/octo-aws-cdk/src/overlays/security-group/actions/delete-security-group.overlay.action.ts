@@ -17,9 +17,14 @@ export class DeleteSecurityGroupOverlayAction implements IModelAction {
   readonly ACTION_NAME: string = 'DeleteSecurityGroupOverlayAction';
 
   collectInput(diff: Diff): string[] {
-    const anchor = diff.value as SecurityGroupAnchor;
+    const securityGroupOverlay = diff.model as SecurityGroupOverlay;
+    const anchors = securityGroupOverlay.getAnchors() as SecurityGroupAnchor[];
 
-    return [`resource.sec-grp-${anchor.properties.securityGroupName}`];
+    const securityGroupResources = anchors
+      .filter((a) => a.properties.rules.length > 0)
+      .map((a) => `resource.sec-grp-${a.properties.securityGroupName}`);
+
+    return [...securityGroupResources];
   }
 
   filter(diff: Diff): boolean {
@@ -32,13 +37,21 @@ export class DeleteSecurityGroupOverlayAction implements IModelAction {
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
-    const anchor = diff.value as SecurityGroupAnchor;
+    const securityGroupOverlay = diff.model as SecurityGroupOverlay;
+    const anchors = securityGroupOverlay.getAnchors() as SecurityGroupAnchor[];
 
-    const securityGroup = actionInputs[`resource.sec-grp-${anchor.properties.securityGroupName}`] as SecurityGroup;
-    securityGroup.markDeleted();
+    const securityGroupResources = anchors
+      .filter((a) => a.properties.rules.length > 0)
+      .map((a) => `resource.sec-grp-${a.properties.securityGroupName}`);
 
     const output: ActionOutputs = {};
-    output[securityGroup.resourceId] = securityGroup;
+
+    for (const resource of securityGroupResources) {
+      const securityGroup = actionInputs[resource] as SecurityGroup;
+      securityGroup.markDeleted();
+
+      output[securityGroup.resourceId] = securityGroup;
+    }
 
     return output;
   }

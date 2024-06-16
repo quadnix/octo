@@ -14,8 +14,8 @@ import type { Vpc } from '../../../resources/vpc/vpc.resource.js';
 import { SecurityGroupOverlay } from '../security-group.overlay.js';
 
 @Action(ModelType.OVERLAY)
-export class AddSecurityGroupOverlayAction implements IModelAction {
-  readonly ACTION_NAME: string = 'AddSecurityGroupOverlayAction';
+export class AddSecurityGroupAnchorOverlayAction implements IModelAction {
+  readonly ACTION_NAME: string = 'AddSecurityGroupAnchorOverlayAction';
 
   collectInput(diff: Diff): string[] {
     const securityGroupOverlay = diff.model as SecurityGroupOverlay;
@@ -29,34 +29,28 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
       diff.action === DiffAction.ADD &&
       diff.model instanceof SecurityGroupOverlay &&
       diff.model.MODEL_NAME === 'security-group-overlay' &&
-      diff.field === 'overlayId'
+      diff.field === 'anchor'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const securityGroupOverlay = diff.model as SecurityGroupOverlay;
     const properties = securityGroupOverlay.properties;
-    const anchors = securityGroupOverlay.getAnchors() as SecurityGroupAnchor[];
+    const anchor = diff.value as SecurityGroupAnchor;
 
     const vpc = actionInputs[`resource.vpc-${properties.regionId}`] as Vpc;
 
+    const securityGroup = new SecurityGroup(
+      `sec-grp-${anchor.properties.securityGroupName}`,
+      {
+        awsRegionId: properties.awsRegionId,
+        rules: anchor.properties.rules,
+      },
+      [vpc],
+    );
+
     const output: ActionOutputs = {};
-
-    for (const anchor of anchors) {
-      if (anchor.properties.rules.length === 0) {
-        continue;
-      }
-
-      const securityGroup = new SecurityGroup(
-        `sec-grp-${anchor.properties.securityGroupName}`,
-        {
-          awsRegionId: properties.awsRegionId,
-          rules: anchor.properties.rules,
-        },
-        [vpc],
-      );
-      output[securityGroup.resourceId] = securityGroup;
-    }
+    output[securityGroup.resourceId] = securityGroup;
 
     return output;
   }
@@ -66,9 +60,9 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
   }
 }
 
-@Factory<AddSecurityGroupOverlayAction>(AddSecurityGroupOverlayAction)
-export class AddSecurityGroupOverlayActionFactory {
-  static async create(): Promise<AddSecurityGroupOverlayAction> {
-    return new AddSecurityGroupOverlayAction();
+@Factory<AddSecurityGroupAnchorOverlayAction>(AddSecurityGroupAnchorOverlayAction)
+export class AddSecurityGroupAnchorOverlayActionFactory {
+  static async create(): Promise<AddSecurityGroupAnchorOverlayAction> {
+    return new AddSecurityGroupAnchorOverlayAction();
   }
 }
