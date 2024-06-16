@@ -1,5 +1,5 @@
 import { ModelType, type UnknownResource } from '../app.type.js';
-import type { Diff } from '../functions/diff/diff.js';
+import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
 import type { IResource } from './resource.interface.js';
@@ -46,6 +46,26 @@ export abstract class AResource<T> extends AModel<IResource, T> {
 
     const propertyDiffs = DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
     diffs.push(...propertyDiffs);
+
+    // Parent diffs.
+    const previousParents = Object.values((previous as unknown as UnknownResource).getParents())
+      .flat()
+      .map((d) => d.to);
+    const currentParents = Object.values(this.getParents())
+      .flat()
+      .map((d) => d.to);
+    const deletedParents = previousParents.filter(
+      (p) => currentParents.findIndex((c) => c.getContext() === p.getContext()) === -1,
+    );
+    for (const parent of deletedParents) {
+      diffs.push(new Diff(this, DiffAction.DELETE, 'parent', parent));
+    }
+    const newParents = currentParents.filter(
+      (c) => previousParents.findIndex((p) => p.getContext() === c.getContext()) === -1,
+    );
+    for (const parent of newParents) {
+      diffs.push(new Diff(this, DiffAction.ADD, 'parent', parent));
+    }
 
     return diffs;
   }

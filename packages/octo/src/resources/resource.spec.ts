@@ -199,6 +199,42 @@ describe('Resource UT', () => {
        ]
       `);
     });
+
+    it('should produce an add parent diffs on parent add', async () => {
+      const parentResource1 = new TestResource('parent-resource-1');
+      const resource1_0 = new TestResource('resource-1', {}, []);
+      const resource1_1 = new TestResource('resource-1', {}, [parentResource1]);
+
+      const resourceDataRepository = new ResourceDataRepository([resource1_0], [resource1_1]);
+
+      const diffs = await resourceDataRepository.diff();
+      expect(diffs.map((d) => ({ action: d.action, field: d.field }))).toMatchInlineSnapshot(`
+       [
+         {
+           "action": "add",
+           "field": "parent",
+         },
+       ]
+      `);
+    });
+
+    it('should produce a delete parent diffs on parent delete', async () => {
+      const parentResource1 = new TestResource('parent-resource-1');
+      const resource1_0 = new TestResource('resource-1', {}, [parentResource1]);
+      const resource1_1 = new TestResource('resource-1', {}, []);
+
+      const resourceDataRepository = new ResourceDataRepository([resource1_0], [resource1_1]);
+
+      const diffs = await resourceDataRepository.diff();
+      expect(diffs.map((d) => ({ action: d.action, field: d.field }))).toMatchInlineSnapshot(`
+       [
+         {
+           "action": "delete",
+           "field": "parent",
+         },
+       ]
+      `);
+    });
   });
 
   describe('markDeleted()', () => {
