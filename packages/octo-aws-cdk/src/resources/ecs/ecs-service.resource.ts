@@ -1,9 +1,9 @@
-import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
+import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@quadnix/octo';
 import type { SecurityGroup } from '../security-group/security-group.resource.js';
 import type { Subnet } from '../subnet/subnet.resource.js';
 import type { EcsCluster } from './ecs-cluster.resource.js';
 import type { IEcsServiceProperties, IEcsServiceResponse } from './ecs-service.interface.js';
-import type { EcsTaskDefinition } from './ecs-task-definition.resource.js';
+import { EcsTaskDefinition } from './ecs-task-definition.resource.js';
 
 export type EcsServicePropertyDiff = {
   [key: string]: { action: 'replace' };
@@ -24,6 +24,11 @@ export class EcsService extends AResource<EcsService> {
     parents: [EcsCluster, EcsTaskDefinition, Subnet, ...SecurityGroup[]],
   ) {
     super(resourceId, properties, parents);
+
+    const ecsTaskDefinitionParent = parents.find((p) => p instanceof EcsTaskDefinition) as EcsTaskDefinition;
+    const dependencyWithTaskDefinition = this.getDependency(ecsTaskDefinitionParent, DependencyRelationship.CHILD);
+    dependencyWithTaskDefinition?.addBehavior('task-definition', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+    dependencyWithTaskDefinition?.addBehavior('task-definition', DiffAction.UPDATE, 'resourceId', DiffAction.UPDATE);
   }
 
   override async diff(): Promise<Diff[]> {
