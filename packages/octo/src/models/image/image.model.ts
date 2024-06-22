@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { resolve } from 'path';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IImage } from './image.interface.js';
 
@@ -34,19 +33,19 @@ export class Image extends AModel<IImage, Image> {
     this.dockerOptions = options;
   }
 
-  getContext(): string {
+  override async diffProperties(): Promise<Diff[]> {
+    return [];
+  }
+
+  override getContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
     return [`${this.MODEL_NAME}=${this.imageId}`, app.getContext()].join(',');
   }
 
-  synth(): IImage {
+  override synth(): IImage {
     return {
-      dockerOptions: {
-        buildArgs: { ...this.dockerOptions.buildArgs },
-        dockerfilePath: this.dockerOptions.dockerfilePath,
-        quiet: this.dockerOptions.quiet,
-      },
+      dockerOptions: JSON.parse(JSON.stringify(this.dockerOptions)),
       imageId: this.imageTag,
       imageName: this.imageName,
       imageTag: this.imageTag,
@@ -55,6 +54,7 @@ export class Image extends AModel<IImage, Image> {
 
   static override async unSynth(
     image: IImage,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Image> {
     return new Image(image.imageName, image.imageTag, {

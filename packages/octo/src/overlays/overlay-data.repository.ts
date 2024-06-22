@@ -26,10 +26,11 @@ export class OverlayDataRepository {
 
     for (const overlay of this.oldOverlays) {
       const newOverlay = this.newOverlays.find((o) => o.overlayId === overlay.overlayId);
-      if (!newOverlay) {
+      if (!newOverlay || newOverlay.isMarkedDeleted()) {
         diffs.push(new Diff(overlay, DiffAction.DELETE, 'overlayId', overlay.overlayId));
       } else {
-        diffs.push(...(await newOverlay.diff(overlay)));
+        const oDiff = await newOverlay.diff(overlay);
+        diffs.push(...oDiff);
       }
     }
 
@@ -57,6 +58,7 @@ export class OverlayDataRepository {
 
     const overlayIndex = this.newOverlays.findIndex((o) => o.overlayId === overlay.overlayId);
     if (overlayIndex > -1) {
+      this.newOverlays[overlayIndex].remove();
       this.newOverlays.splice(overlayIndex, 1);
     }
   }

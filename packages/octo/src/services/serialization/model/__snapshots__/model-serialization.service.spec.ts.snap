@@ -185,9 +185,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       "className": "Image",
       "model": {
         "dockerOptions": {
-          "buildArgs": {},
           "dockerfilePath": "/Dockerfile",
-          "quiet": undefined,
         },
         "imageId": "0.0.1",
         "imageName": "image",

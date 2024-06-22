@@ -1,6 +1,6 @@
 import { ModelType, type UnknownModel } from '../app.type.js';
 import { Dependency, type DependencyRelationship } from '../functions/dependency/dependency.js';
-import { type Diff, DiffAction } from '../functions/diff/diff.js';
+import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import type { AAnchor } from '../overlays/anchor.abstract.js';
 import type { IModel } from './model.interface.js';
@@ -14,77 +14,97 @@ export abstract class AModel<I, T> implements IModel<I, T> {
   abstract readonly MODEL_NAME: string;
   readonly MODEL_TYPE: ModelType = ModelType.MODEL;
 
-  protected readonly anchors: AAnchor[] = [];
+  private _deleteMarker = false;
 
-  protected readonly dependencies: Dependency[] = [];
+  private readonly anchors: AAnchor[] = [];
 
-  addChild(onField: keyof T | string, child: UnknownModel, toField: string): void {
-    // Check if child already has a dependency to self.
-    const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
-    if (cIndex !== -1 && child.dependencies[cIndex].isParentRelationship()) {
-      throw new Error('Found circular dependencies!');
-    }
+  private readonly dependencies: Dependency[] = [];
 
-    const childToParentDependency = cIndex === -1 ? new Dependency(child, this) : child.dependencies[cIndex];
-    childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.ADD);
-    childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.UPDATE);
-    if (cIndex === -1) {
-      childToParentDependency.addChildRelationship(toField, onField as string);
-      child.dependencies.push(childToParentDependency);
+  addAnchor(anchor: AAnchor): void {
+    const existingAnchor = this.getAnchor(anchor.anchorId, anchor.getParent());
+    if (existingAnchor) {
+      throw new Error('Anchor already exists!');
     }
-
-    // Check if parent already has a dependency to child.
-    const pIndex = this.dependencies.findIndex((d) => Object.is(d.to, child));
-    if (pIndex !== -1 && this.dependencies[pIndex].isChildRelationship()) {
-      throw new Error('Found circular dependencies!');
-    }
-    const parentToChildDependency = pIndex === -1 ? new Dependency(this, child) : this.dependencies[pIndex];
-    parentToChildDependency.addBehavior(onField as string, DiffAction.DELETE, toField, DiffAction.DELETE);
-    if (pIndex === -1) {
-      parentToChildDependency.addParentRelationship(onField as string, toField);
-      this.dependencies.push(parentToChildDependency);
-    }
+    this.anchors.push(anchor);
   }
 
-  addRelationship(to: UnknownModel): Dependency[] {
+  addChild(
+    onField: keyof T | string,
+    child: UnknownModel,
+    toField: string,
+  ): { childToParentDependency: Dependency; parentToChildDependency: Dependency } {
+    const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
+    const pIndex = this.dependencies.findIndex((d) => Object.is(d.to, child));
+    if (cIndex !== -1 || pIndex !== -1) {
+      throw new Error('Dependency relationship already exists!');
+    }
+
+    const childToParentDependency = new Dependency(child, this);
+    childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.ADD);
+    childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.UPDATE);
+    childToParentDependency.addChildRelationship(toField, onField as string);
+    child.dependencies.push(childToParentDependency);
+
+    const parentToChildDependency = new Dependency(this, child);
+    parentToChildDependency.addBehavior(onField as string, DiffAction.DELETE, toField, DiffAction.DELETE);
+    parentToChildDependency.addParentRelationship(onField as string, toField);
+    this.dependencies.push(parentToChildDependency);
+
+    return { childToParentDependency, parentToChildDependency };
+  }
+
+  addRelationship(to: UnknownModel): { thatToThisDependency: Dependency; thisToThatDependency: Dependency } {
     const thisToThatDependency = new Dependency(this, to);
     this.dependencies.push(thisToThatDependency);
     const thatToThisDependency = new Dependency(to, this);
     to.dependencies.push(thatToThisDependency);
-    return [thisToThatDependency, thatToThisDependency];
+    return { thatToThisDependency, thisToThatDependency };
+  }
+
+  deriveDependencyField(): string | undefined {
+    return this.dependencies.find((d) => d.getRelationship() !== undefined)?.getRelationship()!.onField;
   }
 
   async diff(previous?: T): Promise<Diff[]> {
-    const childrenByModel = this.getChildren();
-    const childrenOfPreviousByModel = (previous as UnknownModel)?.getChildren() ?? {};
-
     const diffs: Diff[] = [];
-    const modelsSeen: string[] = [];
+    const previousChildrenByModels = (previous as UnknownModel)?.getChildren() ?? {};
+    const currentChildrenByModels = this.getChildren();
 
-    for (const modelName in childrenByModel) {
-      const children = childrenByModel[modelName].map((d) => d.to);
-      const childrenOfPrevious = childrenOfPreviousByModel[modelName]?.map((d) => d.to) ?? [];
-      const field = childrenByModel[modelName][0].getRelationship()!.toField;
-      const childrenDiffs = await DiffUtility.diffModels(childrenOfPrevious, children, field as string);
+    for (const modelName of Object.keys(previousChildrenByModels)) {
+      const previousChildren = previousChildrenByModels[modelName].map((d) => d.to);
+      const currentChildren = currentChildrenByModels[modelName]?.map((d) => d.to) || [];
+      const field = previousChildrenByModels[modelName][0].getRelationship()!.toField;
+      const childrenDiffs = await DiffUtility.diffModels(previousChildren, currentChildren, field as string);
       diffs.push(...childrenDiffs);
-
-      modelsSeen.push(modelName);
     }
 
-    for (const modelName in childrenOfPreviousByModel) {
-      if (modelsSeen.indexOf(modelName) !== -1) {
+    for (const modelName of Object.keys(currentChildrenByModels)) {
+      if (previousChildrenByModels.hasOwnProperty(modelName)) {
         continue;
       }
 
-      const children = [];
-      const childrenOfPrevious = childrenOfPreviousByModel[modelName].map((d) => d.to);
-      const field = childrenOfPreviousByModel[modelName][0].getRelationship()!.toField;
-      const childrenDiffs = await DiffUtility.diffModels(childrenOfPrevious, children, field as string);
+      const previousChildren = [];
+      const currentChildren = currentChildrenByModels[modelName].map((d) => d.to);
+      const field = currentChildrenByModels[modelName][0].getRelationship()!.toField;
+      const childrenDiffs = await DiffUtility.diffModels(previousChildren, currentChildren, field as string);
       diffs.push(...childrenDiffs);
+    }
+
+    const field = this.deriveDependencyField() || '';
+    const fieldValue = field ? this[field] : '';
+    if (this.isMarkedDeleted()) {
+      diffs.push(new Diff(this, DiffAction.DELETE, field, fieldValue));
+    } else if (!previous) {
+      diffs.push(new Diff(this, DiffAction.ADD, field, fieldValue));
+    } else {
+      const pDiffs = await this.diffProperties(previous);
+      diffs.push(...pDiffs);
     }
 
     return diffs;
   }
+
+  abstract diffProperties(previous: T): Promise<Diff[]>;
 
   /**
    * Get an array of ancestors which must exist for self to exist.
@@ -119,18 +139,17 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return membersProcessed;
   }
 
-  getAnchorById(anchorId: string): AAnchor | undefined {
-    return this.anchors.find((a) => a.anchorId === anchorId);
+  getAnchor(anchorId: string, parent: UnknownModel): AAnchor | undefined {
+    const index = this.getAnchorIndex(anchorId, parent);
+    return index > -1 ? this.anchors[index] : undefined;
   }
 
-  getAnchorByParent(anchorId: string, parent?: UnknownModel): AAnchor | undefined {
-    return this.anchors.find(
-      (a) => a.anchorId === anchorId && a.getParent().getContext() === (parent || this).getContext(),
-    );
+  getAnchorIndex(anchorId: string, parent: UnknownModel): number {
+    return this.anchors.findIndex((a) => a.anchorId === anchorId && a.getParent().getContext() === parent.getContext());
   }
 
-  getAnchors(): AAnchor[] {
-    return this.anchors;
+  getAnchors(filters: { key: string; value: any }[] = []): AAnchor[] {
+    return this.anchors.filter((a) => filters.every((c) => a[c.key] === c.value));
   }
 
   /**
@@ -174,8 +193,8 @@ export abstract class AModel<I, T> implements IModel<I, T> {
 
         // Check for circular dependencies on ancestor.
         for (const d of ancestor.dependencies) {
-          let childContext;
-          let parentContext;
+          let childContext: string;
+          let parentContext: string;
           if (d.isParentRelationship()) {
             childContext = d.to.getContext();
             parentContext = d.from.getContext();
@@ -183,7 +202,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
             childContext = d.from.getContext();
             parentContext = d.to.getContext();
           } else {
-            // A relationship that is neither parent or child, will not be reported in circular dependency!
+            // A relationship that is neither parent nor child, will not be reported in circular dependency!
             continue;
           }
 
@@ -222,11 +241,17 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return members;
   }
 
-  getChild(modelName: string, filters: { key: string; value: any }[]): UnknownModel | undefined {
-    const dependency = this.getChildren(modelName)[modelName]?.find((d) =>
+  getChild(modelName: string, filters: { key: string; value: any }[] = []): UnknownModel | undefined {
+    const dependencies = this.getChildren(modelName)[modelName]?.filter((d) =>
       filters.every((c) => d.to[c.key] === c.value),
     );
-    return dependency ? dependency.to : undefined;
+    if (!dependencies) {
+      return undefined;
+    }
+    if (dependencies.length > 1) {
+      throw new Error('More than one children found! Use getChildren() instead.');
+    }
+    return dependencies[0].to;
   }
 
   getChildren(modelName?: string): { [key: string]: Dependency[] } {
@@ -243,12 +268,35 @@ export abstract class AModel<I, T> implements IModel<I, T> {
 
   abstract getContext(): string;
 
-  getDependency(to: UnknownModel, relationship: DependencyRelationship | undefined): Dependency | undefined {
-    return this.dependencies.find(
+  getDependencies(to?: UnknownModel): Dependency[] {
+    const filters: { key: string; value: string }[] = [];
+    if (to) {
+      filters.push({ key: 'to', value: to.getContext() });
+    }
+
+    return this.dependencies.filter((d) => {
+      return filters.every((c) => {
+        if (c.key === 'to') {
+          return d.to.getContext() === c.value;
+        } else {
+          return true;
+        }
+      });
+    });
+  }
+
+  getDependency(to: UnknownModel, relationship: DependencyRelationship): Dependency | undefined {
+    const index = this.getDependencyIndex(to, relationship);
+    return index > -1 ? this.dependencies[index] : undefined;
+  }
+
+  getDependencyIndex(to: UnknownModel, relationship: DependencyRelationship): number {
+    return this.dependencies.findIndex(
       (d) =>
         d.from.getContext() === this.getContext() &&
         d.to.getContext() === to.getContext() &&
-        d.getRelationship()?.type === relationship,
+        d.getRelationship() !== undefined &&
+        d.getRelationship()!.type === relationship,
     );
   }
 
@@ -300,7 +348,11 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     });
   }
 
-  remove(ignoreDirectRelationships = false, dryRun = false): void {
+  isMarkedDeleted(): boolean {
+    return this._deleteMarker;
+  }
+
+  remove(ignoreDirectRelationships = false): void {
     // Verify model can be removed.
     for (const dependency of this.dependencies) {
       // When direct relationship is not ignored, this model can't be a parent or have direct relationships.
@@ -313,14 +365,33 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       }
     }
 
-    if (dryRun) {
-      return;
-    }
-
     // Removing all dependencies that points to this.
     for (const dependency of this.dependencies) {
       const index = dependency.to.dependencies.findIndex((d) => d.to.getContext() === this.getContext());
       dependency.to.dependencies.splice(index, 1);
+    }
+
+    this._deleteMarker = true;
+  }
+
+  removeAllAnchors(): void {
+    let anchors = this.getAnchors();
+    while (anchors.length > 0) {
+      this.removeAnchor(anchors[0]);
+      anchors = this.getAnchors();
+    }
+  }
+
+  removeAnchor(anchor: AAnchor): void {
+    const existingAnchorIndex = this.getAnchorIndex(anchor.anchorId, anchor.getParent());
+    if (existingAnchorIndex !== -1) {
+      this.anchors.splice(existingAnchorIndex, 1);
+    }
+  }
+
+  removeDependency(dependencyIndex: number): void {
+    if (dependencyIndex > -1 && dependencyIndex < this.dependencies.length) {
+      this.dependencies.splice(dependencyIndex, 1);
     }
   }
 

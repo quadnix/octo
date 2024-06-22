@@ -76,19 +76,11 @@ export class Execution extends AModel<IExecution, Execution> {
     ].join('-');
   }
 
-  override async diff(previous?: Execution): Promise<Diff[]> {
-    // deployment, environment, and executionId intentionally not included in diff,
-    // since they all contribute to executionId (primary key) which can never change.
-
-    // Generate diff of environmentVariables.
-    return DiffUtility.diffMap(
-      previous || ({ environmentVariables: new Map() } as Execution),
-      this,
-      'environmentVariables',
-    );
+  override async diffProperties(previous: Execution): Promise<Diff[]> {
+    return DiffUtility.diffMap(previous, this, 'environmentVariables');
   }
 
-  getContext(): string {
+  override getContext(): string {
     const parents = this.getParents();
     const deployment = parents['deployment'][0]['to'] as Deployment;
     const environment = parents['environment'][0]['to'] as Environment;
@@ -101,7 +93,7 @@ export class Execution extends AModel<IExecution, Execution> {
     ].join(',');
   }
 
-  synth(): IExecution {
+  override synth(): IExecution {
     const parents = this.getParents();
     const deployment = parents['deployment'][0]['to'] as Deployment;
     const environment = parents['environment'][0]['to'] as Environment;

@@ -32,11 +32,14 @@ describe('Model E2E Test', () => {
     server.addDeployment(deployment);
     const service = new Service('service');
     app.addService(service);
-    const subnet = new Subnet(region, 'public');
-    region.addSubnet(subnet);
+    const subnet1 = new Subnet(region, 'public');
+    region.addSubnet(subnet1);
+    const subnet2 = new Subnet(region, 'private');
+    region.addSubnet(subnet2);
+    subnet1.updateNetworkingRules(subnet2, true);
     const environment = new Environment('qa');
     region.addEnvironment(environment);
-    const execution = new Execution(deployment, environment, subnet);
+    const execution = new Execution(deployment, environment, subnet1);
 
     const testCases: {
       model: UnknownModel;
@@ -70,7 +73,7 @@ describe('Model E2E Test', () => {
         model: service,
       },
       {
-        model: subnet,
+        model: subnet1,
       },
     ];
 
@@ -95,6 +98,10 @@ describe('Model E2E Test', () => {
         expect(Object.keys(data.model.getParents())).toMatchSnapshot();
       });
 
+      it('getSiblings()', () => {
+        expect(Object.keys(data.model.getSiblings())).toMatchSnapshot();
+      });
+
       it('synth()', () => {
         if (data.model.MODEL_NAME === 'service') {
           expect(() => {
@@ -107,7 +114,33 @@ describe('Model E2E Test', () => {
     });
   });
 
+  describe('addChild()', () => {
+    it('should throw error adding relationship to an already existing relationship', () => {
+      const app = new App('test');
+      const region = new Region('region');
+      app.addRegion(region);
+
+      expect(() => {
+        app.addChild('name', region, 'regionId');
+      }).toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
+
+      expect(() => {
+        region.addChild('regionId', app, 'name');
+      }).toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
+    });
+  });
+
   describe('addRelationship()', () => {
+    it('should be able to create duplicate relationships', () => {
+      const app = new App('test');
+      const region = new Region('region');
+      app.addRelationship(region);
+      app.addRelationship(region);
+      region.addRelationship(app);
+
+      expect(app.getDependencies().length).toBe(3);
+    });
+
     it('should create a bi-directional relationship', () => {
       const app = new App('app');
       const region = new Region('region');
@@ -133,8 +166,8 @@ describe('Model E2E Test', () => {
       const service = new Service('service');
       app.addService(service);
 
-      const dependencies = service.addRelationship(region);
-      dependencies[0].addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
+      const { thisToThatDependency } = service.addRelationship(region);
+      thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
 
       const serviceRegionDependency = service.getSiblings()['region'][0];
       expect(serviceRegionDependency.hasMatchingBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD)).toBe(
@@ -174,8 +207,8 @@ describe('Model E2E Test', () => {
       const service = new Service('service');
       app.addService(service);
 
-      const dependencies = service.addRelationship(region);
-      dependencies[0].addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
+      const { thisToThatDependency } = service.addRelationship(region);
+      thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
 
       expect(service.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
     });
@@ -294,7 +327,7 @@ describe('Model E2E Test', () => {
           app.addRegion(region);
           region.addChild('regionId', app, 'name');
           app.getBoundaryMembers();
-        }).toThrowErrorMatchingInlineSnapshot(`"Found circular dependencies!"`);
+        }).toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
       });
 
       it('should throw error on two levels of circular dependency', () => {
@@ -312,23 +345,14 @@ describe('Model E2E Test', () => {
     });
   });
 
-  describe('getAnchorByParent()', () => {
-    it('should get anchor using default parent', () => {
-      const app = new App('test');
-      const anchor1_0 = new TestAnchor('anchor-1', {}, app);
-      app['anchors'].push(anchor1_0);
-
-      const anchor1_1 = app.getAnchorByParent('anchor-1')!;
-      expect(anchor1_1.anchorId).toBe(anchor1_0.anchorId);
-    });
-
+  describe('getAnchor()', () => {
     it('should get anchor using specified parent', () => {
       const app = new App('test');
       const anchor1_0 = new TestAnchor('anchor-1', {}, app);
-      app['anchors'].push(anchor1_0);
+      app.addAnchor(anchor1_0);
       const overlay1 = new TestOverlay('overlay-1', {}, [anchor1_0]);
 
-      const anchor1_1 = overlay1.getAnchorByParent('anchor-1', app)!;
+      const anchor1_1 = overlay1.getAnchor('anchor-1', app)!;
       expect(anchor1_1.anchorId).toBe(anchor1_0.anchorId);
     });
   });
@@ -354,11 +378,11 @@ describe('Model E2E Test', () => {
       app.addImage(image);
       image.addRelationship(region);
 
-      const imageDependencyWithRegion = image.getDependency(region, undefined);
-      expect(imageDependencyWithRegion).not.toBe(undefined);
+      const imageDependencyWithRegion = image.getDependencies(region);
+      expect(imageDependencyWithRegion.length).toBe(1);
 
-      const regionDependencyWithImage = region.getDependency(image, undefined);
-      expect(regionDependencyWithImage).not.toBe(undefined);
+      const regionDependencyWithImage = region.getDependencies(image);
+      expect(regionDependencyWithImage.length).toBe(1);
     });
   });
 

@@ -13,7 +13,7 @@ export class ModelSerializationService {
 
   constructor(private readonly overlayDataRepository: OverlayDataRepository) {}
 
-  async _deserialize(
+  private async _deserialize(
     serializedOutput: ModelSerializedOutput,
   ): Promise<{ overlays: UnknownOverlay[]; root: UnknownModel }> {
     const deReferencePromises: {
@@ -68,12 +68,12 @@ export class ModelSerializationService {
       const deserializationClass = this.classMapping[className];
 
       const anchor = await deserializationClass.unSynth(deserializationClass, a, deReferenceContext);
-      seen[parent.context]['anchors'].push(anchor);
+      seen[parent.context].addAnchor(anchor);
     }
 
     for (const d of serializedOutput.dependencies) {
       const dependency = Dependency.unSynth(seen[d.from], seen[d.to], d);
-      if (!seen[d.from]['dependencies'].some((d) => d.from === dependency.from && d.to === dependency.to)) {
+      if (!seen[d.from].getDependencies().some((d) => d.from === dependency.from && d.to === dependency.to)) {
         seen[d.from]['dependencies'].push(dependency);
       }
     }
@@ -119,11 +119,16 @@ export class ModelSerializationService {
     const overlays: { className: string; overlay: IOverlay }[] = [];
 
     for (const model of boundary) {
-      for (const a of model['anchors']) {
+      // Skip serializing models marked as deleted.
+      if (model.isMarkedDeleted()) {
+        continue;
+      }
+
+      for (const a of model.getAnchors()) {
         anchors.push({ ...a.synth(), className: a.constructor.name });
       }
 
-      for (const d of model['dependencies']) {
+      for (const d of model.getDependencies()) {
         // Skip dependencies that are not part of boundary.
         if (
           !boundary.some((m) => m.getContext() === d.from.getContext()) ||
@@ -145,10 +150,19 @@ export class ModelSerializationService {
     }
 
     for (const overlay of this.overlayDataRepository.getByProperties()) {
+      // Skip serializing overlays marked as deleted.
+      if (overlay.isMarkedDeleted()) {
+        continue;
+      }
+
       overlays.push({ className: overlay.constructor.name, overlay: overlay.synth() });
     }
 
     return { anchors, dependencies, models, overlays };
+  }
+
+  setModelDeserializationTimeout(timeoutInMs: number): void {
+    this.MODEL_DESERIALIZATION_TIMEOUT_IN_MS = timeoutInMs;
   }
 }
 

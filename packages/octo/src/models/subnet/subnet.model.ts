@@ -46,20 +46,20 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     this.options.subnetType = subnetType || SubnetType.PRIVATE;
   }
 
-  override async diff(previous?: Subnet): Promise<Diff[]> {
+  override async diffProperties(previous: Subnet): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     // Generate diff of options.
-    if (previous && previous.disableSubnetIntraNetwork !== this.disableSubnetIntraNetwork) {
+    if (previous.disableSubnetIntraNetwork !== this.disableSubnetIntraNetwork) {
       diffs.push(new Diff(this, DiffAction.UPDATE, 'disableSubnetIntraNetwork', this.disableSubnetIntraNetwork));
     }
-    if (previous && previous.subnetType !== this.subnetType) {
+    if (previous.subnetType !== this.subnetType) {
       throw new Error('Change of subnet type is not supported!');
     }
 
     // Generate diff of associations.
     const siblings = this.getSiblings()['subnet'] ?? [];
-    const previousSiblings = previous?.getSiblings()['subnet'] ?? [];
+    const previousSiblings = previous.getSiblings()['subnet'] ?? [];
     for (const pd of previousSiblings) {
       if (!siblings.find((d) => (d.to as Subnet).subnetId === (pd.to as Subnet).subnetId)) {
         diffs.push(new Diff(this, DiffAction.UPDATE, 'association', (pd.to as Subnet).subnetId));
@@ -74,13 +74,13 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     return diffs;
   }
 
-  getContext(): string {
+  override getContext(): string {
     const parents = this.getParents();
     const region = parents['region'][0].to;
     return [`${this.MODEL_NAME}=${this.subnetId}`, region.getContext()].join(',');
   }
 
-  synth(): ISubnet {
+  override synth(): ISubnet {
     const parents = this.getParents();
     const region = parents['region'][0].to as Region;
 
@@ -111,10 +111,10 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     const subnets = siblingDependencies['subnet'].map((d) => d.to);
 
     if (allowConnections && !subnets.find((s: Subnet) => s.subnetId === subnet.subnetId)) {
-      const dependencies = this.addRelationship(subnet);
-      dependencies[0].addBehavior('subnetId', DiffAction.ADD, 'subnetId', DiffAction.ADD);
-      dependencies[0].addBehavior('subnetId', DiffAction.ADD, 'subnetId', DiffAction.UPDATE);
-      dependencies[1].addBehavior('subnetId', DiffAction.DELETE, 'subnetId', DiffAction.DELETE);
+      const { thisToThatDependency, thatToThisDependency } = this.addRelationship(subnet);
+      thisToThatDependency.addBehavior('subnetId', DiffAction.ADD, 'subnetId', DiffAction.ADD);
+      thisToThatDependency.addBehavior('subnetId', DiffAction.ADD, 'subnetId', DiffAction.UPDATE);
+      thatToThisDependency.addBehavior('subnetId', DiffAction.DELETE, 'subnetId', DiffAction.DELETE);
     } else if (!allowConnections && subnets.find((s: Subnet) => s.subnetId === subnet.subnetId)) {
       this.removeRelationship(subnet);
     }

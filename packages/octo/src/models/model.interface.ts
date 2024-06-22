@@ -23,6 +23,8 @@ export interface IModel<I, T> {
    */
   diff(previous?: T): Promise<Diff[]>;
 
+  diffProperties(previous: T): Promise<Diff[]>;
+
   /**
    * Generates a string representation of self, used to identify the uniqueness of the instance.
    */

@@ -380,8 +380,8 @@ describe('TransactionService UT', () => {
       });
 
       // Upon calling beginTransaction(), assume model's apply method marks the new resource as deleted.
-      resource2_2.markDeleted();
-      resource1_2.markDeleted();
+      resource2_2.remove();
+      resource1_2.remove();
 
       const service = await Container.get(TransactionService);
       service.registerResourceActions([universalResourceAction]);
@@ -529,7 +529,7 @@ describe('TransactionService UT', () => {
         app.addRegion(region);
         region.addChild('regionId', app, 'name');
         setApplyOrder(diffsMetadata[0], diffsMetadata);
-      }).toThrow('Found circular dependencies!');
+      }).toThrow('Dependency relationship already exists!');
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
     });
@@ -784,7 +784,7 @@ describe('TransactionService UT', () => {
       });
 
       // Upon calling rollbackTransaction(), assume model's revert method marks the new resource as deleted.
-      resourceDataRepository.getById('resource-1')!.markDeleted();
+      resourceDataRepository.getById('resource-1')!.remove();
 
       const service = await Container.get(TransactionService);
       service.registerResourceActions([

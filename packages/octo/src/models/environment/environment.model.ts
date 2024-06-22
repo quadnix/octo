@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
@@ -20,22 +18,17 @@ export class Environment extends AModel<IEnvironment, Environment> {
     this.environmentName = environmentName;
   }
 
-  override async diff(previous?: Environment): Promise<Diff[]> {
-    // Generate diff of environmentVariables.
-    return DiffUtility.diffMap(
-      previous || ({ environmentVariables: new Map() } as Environment),
-      this,
-      'environmentVariables',
-    );
+  override async diffProperties(previous: Environment): Promise<Diff[]> {
+    return DiffUtility.diffMap(previous, this, 'environmentVariables');
   }
 
-  getContext(): string {
+  override getContext(): string {
     const parents = this.getParents();
     const region = parents['region'][0].to;
     return [`${this.MODEL_NAME}=${this.environmentName}`, region.getContext()].join(',');
   }
 
-  synth(): IEnvironment {
+  override synth(): IEnvironment {
     return {
       environmentName: this.environmentName,
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
@@ -44,6 +37,7 @@ export class Environment extends AModel<IEnvironment, Environment> {
 
   static override async unSynth(
     environment: IEnvironment,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Environment> {
     const newEnvironment = new Environment(environment.environmentName);

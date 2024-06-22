@@ -52,6 +52,16 @@ describe('Server UT', () => {
             },
             {
               "action": "delete",
+              "field": "executionId",
+              "value": "backend-0.0.1-region-qa-subnet",
+            },
+            {
+              "action": "delete",
+              "field": "executionId",
+              "value": "backend-0.0.1-region-qa-subnet",
+            },
+            {
+              "action": "delete",
               "field": "deploymentTag",
               "value": "0.0.1",
             },

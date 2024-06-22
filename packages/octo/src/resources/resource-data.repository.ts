@@ -37,41 +37,37 @@ export class ResourceDataRepository {
 
     const diffs: Diff[] = [];
 
-    for (const oldResourceId in oldResources) {
-      if (!newResources[oldResourceId]) {
+    for (const oldResourceId of Object.keys(oldResources)) {
+      if (!newResources[oldResourceId] || newResources[oldResourceId].isMarkedDeleted()) {
         diffs.push(new Diff(oldResources[oldResourceId], DiffAction.DELETE, 'resourceId', oldResourceId));
       } else {
-        const newResource = newResources[oldResourceId];
-
-        if (newResource.isMarkedDeleted()) {
-          diffs.push(new Diff(oldResources[oldResourceId], DiffAction.DELETE, 'resourceId', oldResourceId));
-        } else {
-          const rDiff = await newResource.diff(oldResources[oldResourceId]);
-          diffs.push(...rDiff);
-        }
+        const rDiff = await newResources[oldResourceId].diff(oldResources[oldResourceId]);
+        diffs.push(...rDiff);
       }
     }
 
-    for (const newResourceId in newResources) {
-      if (!oldResources[newResourceId]) {
-        const newResource = newResources[newResourceId];
+    for (const newResourceId of Object.keys(newResources)) {
+      if (oldResources[newResourceId]) {
+        continue;
+      }
 
-        // A shared resource is being added, but shared resources don't have diffs.
-        if (newResource.MODEL_TYPE === 'shared-resource') {
-          continue;
-        }
+      const newResource = newResources[newResourceId];
 
-        const sharedResource = newResource.getSharedResource();
-        if (sharedResource !== undefined) {
-          // If a new resource is being added, and it has a shared resource,
-          // we expect the resource to override diff() and diff against the shared resource.
-          // The custom diff() would decide diff actions.
-          const rDiff = await newResource.diff(sharedResource);
-          diffs.push(...rDiff);
-        } else {
-          // The resource is a normal resource, and just needs to be added.
-          diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResource.resourceId));
-        }
+      // A shared resource is being added, but shared resources don't have diffs.
+      if (newResource.MODEL_TYPE === 'shared-resource') {
+        continue;
+      }
+
+      const sharedResource = newResource.getSharedResource();
+      if (sharedResource !== undefined) {
+        // If a new resource is being added, and it has a shared resource,
+        // we expect the resource to override diff() and diff against the shared resource.
+        // The custom diff() would decide diff actions.
+        const rDiff = await newResource.diff(sharedResource);
+        diffs.push(...rDiff);
+      } else {
+        // The resource is a normal resource, and just needs to be added.
+        diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResource.resourceId));
       }
     }
 
@@ -86,12 +82,16 @@ export class ResourceDataRepository {
     return this.newResources.filter((r) => filters.every((c) => r.properties[c.key] === c.value));
   }
 
-  /**
-   * A resource model is not removed using traditional delete calls.
-   * Instead, the resource serialization checks for a delete marker, skips serializing that resource.
-   */
-  remove(): void {
-    throw new Error('Cannot use remove() on resources! Use a delete marker instead');
+  remove(resource: UnknownResource): void {
+    if (resource.MODEL_TYPE !== ModelType.RESOURCE && resource.MODEL_TYPE !== ModelType.SHARED_RESOURCE) {
+      throw new Error('Removing non-resource model!');
+    }
+
+    const rIndex = this.newResources.findIndex((r) => r.resourceId === resource.resourceId);
+    if (rIndex > -1) {
+      this.newResources[rIndex].remove();
+      this.newResources.splice(rIndex, 1);
+    }
   }
 }
 

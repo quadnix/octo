@@ -72,18 +72,18 @@ describe('Model Serialization Service UT', () => {
     });
 
     it('should be able to register classes and deserialize', async () => {
-      const app0 = new App('test-app');
-      const region0 = new Region('region-0');
-      app0.addRegion(region0);
+      const app = new App('test-app');
+      const region = new Region('region-0');
+      app.addRegion(region);
 
       const service = await Container.get(ModelSerializationService);
       service.registerClass('App', App);
       service.registerClass('Region', Region);
 
-      const output = await service.serialize(app0);
-      const app1 = (await service.deserialize(output)) as App;
+      const output = await service.serialize(app);
+      const app_1 = (await service.deserialize(output)) as App;
 
-      expect(app1.name).toBe('test-app');
+      expect(app_1.name).toBe('test-app');
     });
 
     it('should deserialize a single model', async () => {
@@ -133,15 +133,15 @@ describe('Model Serialization Service UT', () => {
       service.registerClass('Subnet', Subnet);
 
       const appSerialized = await service.serialize(app);
-      const appDeserialized = (await service.deserialize(appSerialized)) as App;
+      const app_1 = (await service.deserialize(appSerialized)) as App;
 
-      const newAppDependencies = (await service.serialize(appDeserialized)).dependencies.sort((a, b) =>
+      const previousDependencies = (await service.serialize(app_1)).dependencies.sort((a, b) =>
         a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
       );
-      const oldAppDependencies = appSerialized.dependencies.sort((a, b) =>
+      const currentDependencies = appSerialized.dependencies.sort((a, b) =>
         a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
       );
-      expect(newAppDependencies).toEqual(oldAppDependencies);
+      expect(previousDependencies).toEqual(currentDependencies);
     });
 
     it('should deserialize overlay with multiple anchors of same parent', async () => {
@@ -150,22 +150,23 @@ describe('Model Serialization Service UT', () => {
       service.registerClass('TestAnchor', TestAnchor);
       service.registerClass('TestOverlay', TestOverlay);
 
-      const app_0 = new App('test-app');
-      const anchor1 = new TestAnchor('anchor-1', {}, app_0);
-      const anchor2 = new TestAnchor('anchor-2', {}, app_0);
-      app_0['anchors'].push(anchor1, anchor2);
+      const app = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+      const anchor2 = new TestAnchor('anchor-2', {}, app);
+      app.addAnchor(anchor2);
 
       const overlayService = await Container.get(OverlayService);
 
-      const overlay1_0 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
-      overlayService.addOverlay(overlay1_0);
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
+      overlayService.addOverlay(overlay1);
 
-      const appSerialized = await service.serialize(app_0);
+      const appSerialized = await service.serialize(app);
       const app_1 = (await service.deserialize(appSerialized)) as App;
 
       const overlayDataRepository = await Container.get(OverlayDataRepository);
       const overlay1_1 = overlayDataRepository['oldOverlays'][0];
-      expect(overlay1_1!.getAnchors().map((a) => a.getParent().getContext())).toEqual([
+      expect(overlay1_1.getAnchors().map((a) => a.getParent().getContext())).toEqual([
         app_1.getContext(),
         app_1.getContext(),
       ]);
@@ -177,70 +178,70 @@ describe('Model Serialization Service UT', () => {
       service.registerClass('TestAnchor', TestAnchor);
       service.registerClass('TestOverlay', TestOverlay);
 
-      const app_0 = new App('test-app');
-      const anchor1 = new TestAnchor('anchor-1', {}, app_0);
-      app_0['anchors'].push(anchor1);
+      const app = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
 
       const overlayService = await Container.get(OverlayService);
-      const overlay1_0 = new TestOverlay('overlay-1', {}, [anchor1]);
-      overlayService.addOverlay(overlay1_0);
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1]);
+      overlayService.addOverlay(overlay1);
 
       // Serialize and deserialize the app. This should setup old and new overlays in the OverlayDataRepository.
-      const appSerialized = await service.serialize(app_0);
+      const appSerialized = await service.serialize(app);
       await service.deserialize(appSerialized);
 
       // Modify the new app.
-      app_0.addRegion(new Region('region-1'));
+      app.addRegion(new Region('region-1'));
 
       // Ensure the new and old overlays in the OverlayDataRepository are not shared.
       const overlayDataRepository = await Container.get(OverlayDataRepository);
-      expect(
-        overlayDataRepository['oldOverlays'][0].getAnchorById('anchor-1')!.getParent()!.getChildren()['region'],
-      ).toBe(undefined);
-      expect(
-        overlayDataRepository['newOverlays'][0].getAnchorById('anchor-1')!.getParent()!.getChildren()['region'].length,
-      ).toBe(1);
+      expect(overlayDataRepository['oldOverlays'][0].getAnchors()[0].getParent().getChildren()['region']).toBe(
+        undefined,
+      );
+      expect(overlayDataRepository['newOverlays'][0].getAnchors()[0].getParent().getChildren()['region'].length).toBe(
+        1,
+      );
     });
   });
 
   describe('serialize()', () => {
     it('should serialize an empty app', async () => {
-      const app0 = new App('test-app');
+      const app = new App('test-app');
 
       const service = await Container.get(ModelSerializationService);
-      expect(await service.serialize(app0)).toMatchSnapshot();
+      expect(await service.serialize(app)).toMatchSnapshot();
     });
 
     it('should serialize a non-empty app', async () => {
-      const app0 = new App('test-app');
-      const image0 = new Image('image', '0.0.1', {
+      const app = new App('test-app');
+      const image = new Image('image', '0.0.1', {
         dockerfilePath: '/Dockerfile',
       });
-      app0.addImage(image0);
-      const region0 = new Region('region-1');
-      app0.addRegion(region0);
-      const environment0 = new Environment('qa');
-      environment0.environmentVariables.set('key', 'value');
-      region0.addEnvironment(environment0);
-      app0.addServer(new Server('backend'));
+      app.addImage(image);
+      const region = new Region('region-1');
+      app.addRegion(region);
+      const environment = new Environment('qa');
+      environment.environmentVariables.set('key', 'value');
+      region.addEnvironment(environment);
+      app.addServer(new Server('backend'));
 
       const service = await Container.get(ModelSerializationService);
-      expect(await service.serialize(app0)).toMatchSnapshot();
+      expect(await service.serialize(app)).toMatchSnapshot();
     });
 
     it('should serialize only boundary members', async () => {
-      const app0 = new App('test-app');
-      const region0_1 = new Region('region-1');
-      app0.addRegion(region0_1);
-      const region0_2 = new Region('region-2');
-      app0.addRegion(region0_2);
-      const environment0_1 = new Environment('qa');
-      region0_1.addEnvironment(environment0_1);
-      const environment0_2 = new Environment('qa');
-      region0_2.addEnvironment(environment0_2);
+      const app = new App('test-app');
+      const region1 = new Region('region-1');
+      app.addRegion(region1);
+      const environment1 = new Environment('qa');
+      region1.addEnvironment(environment1);
+      const region2 = new Region('region-2');
+      app.addRegion(region2);
+      const environment2 = new Environment('qa');
+      region2.addEnvironment(environment2);
 
       const service = await Container.get(ModelSerializationService);
-      expect(await service.serialize(region0_1)).toMatchSnapshot();
+      expect(await service.serialize(region1)).toMatchSnapshot();
     });
 
     it('should serialize when multiple models have dependency on same model', async () => {
@@ -263,8 +264,9 @@ describe('Model Serialization Service UT', () => {
 
       const app = new App('test-app');
       const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
-      app['anchors'].push(anchor1, anchor2);
+      app.addAnchor(anchor2);
 
       const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
       overlayService.addOverlay(overlay1);

@@ -12,12 +12,11 @@ describe('Resource UT', () => {
     expect((resource2.getParents()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe('resource-1');
   });
 
-  it('should be able to associate with another resource multiple times', () => {
-    const resource1 = new TestResource('resource-1');
-    const resource2 = new TestResource('resource-2', {}, [resource1, resource1]);
-
-    expect(resource1.getChildren()['test-resource'].length).toBe(1);
-    expect(resource2.getParents()['test-resource'].length).toBe(1);
+  it('should not be able to associate with another resource multiple times', () => {
+    expect(() => {
+      const resource1 = new TestResource('resource-1');
+      new TestResource('resource-2', {}, [resource1, resource1]);
+    }).toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
   });
 
   describe('diff()', () => {
@@ -72,12 +71,12 @@ describe('Resource UT', () => {
       `);
     });
 
-    it('should produce a delete diff when resource is marked as deleted', async () => {
+    it('should produce a delete diff when resource is removed', async () => {
       const resource1 = new TestResource('resource-1');
 
       const resourceDataRepository = new ResourceDataRepository([resource1], [resource1]);
 
-      resource1.markDeleted();
+      resource1.remove();
 
       const diffs = await resourceDataRepository.diff();
       expect(diffs).toMatchInlineSnapshot(`
@@ -237,8 +236,8 @@ describe('Resource UT', () => {
     });
   });
 
-  describe('markDeleted()', () => {
-    it('should not be able to mark a resource deleted with dependencies', () => {
+  describe('remove()', () => {
+    it('should not be able to remove a resource with dependencies', () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
@@ -247,11 +246,11 @@ describe('Resource UT', () => {
       resource2.response['response2'] = 'value2';
 
       expect(() => {
-        resource1.markDeleted();
+        resource1.remove();
       }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove model until dependent models exist!"`);
     });
 
-    it('should be able to mark leaf resources deleted', () => {
+    it('should be able to remove leaf resources', () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
@@ -259,7 +258,7 @@ describe('Resource UT', () => {
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
 
-      resource2.markDeleted();
+      resource2.remove();
 
       expect(resource1.getChildren()).toMatchInlineSnapshot(`{}`);
       expect(resource2.isMarkedDeleted()).toBe(true);

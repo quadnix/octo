@@ -6,11 +6,7 @@ export abstract class AAnchor {
     readonly anchorId: string,
     readonly properties: IAnchor['properties'],
     private readonly parent: UnknownModel,
-  ) {
-    if (parent.getAnchorById(this.anchorId)) {
-      throw new Error('Anchor already exists!');
-    }
-  }
+  ) {}
 
   getParent(): UnknownModel {
     return this.parent;
@@ -38,7 +34,7 @@ export abstract class AAnchor {
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<AAnchor> {
     const parent = await deReferenceContext(anchor.parent.context);
-    const newAnchor = parent.getAnchorById(anchor.anchorId);
+    const newAnchor = parent.getAnchor(anchor.anchorId, parent);
     if (!newAnchor) {
       return new deserializationClass(anchor.anchorId, anchor.properties, parent);
     }

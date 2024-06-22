@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import type { Diff } from '../../functions/diff/diff.js';
 import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { Pipeline } from '../pipeline/pipeline.model.js';
@@ -19,6 +18,10 @@ export class App extends AModel<IApp, App> {
   constructor(name: string) {
     super();
     this.name = name;
+  }
+
+  override async diffProperties(): Promise<Diff[]> {
+    return [];
   }
 
   addImage(image: Image): void {
@@ -81,11 +84,11 @@ export class App extends AModel<IApp, App> {
     this.addChild('name', service, 'serviceId');
   }
 
-  getContext(): string {
+  override getContext(): string {
     return `${this.MODEL_NAME}=${this.name}`;
   }
 
-  synth(): IApp {
+  override synth(): IApp {
     return {
       name: this.name,
     };
@@ -93,6 +96,7 @@ export class App extends AModel<IApp, App> {
 
   static override async unSynth(
     app: IApp,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<App> {
     return new App(app.name);

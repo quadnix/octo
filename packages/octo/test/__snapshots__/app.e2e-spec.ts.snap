@@ -17,14 +17,6 @@ exports[`App E2E Test should generate app diff 1`] = `
   },
   {
     "action": "add",
-    "field": "environmentVariables",
-    "value": {
-      "key": "env",
-      "value": "staging",
-    },
-  },
-  {
-    "action": "add",
     "field": "subnetId",
     "value": "region-public",
   },
@@ -35,13 +27,13 @@ exports[`App E2E Test should generate app diff 1`] = `
   },
   {
     "action": "add",
-    "field": "serverKey",
-    "value": "database",
+    "field": "deploymentTag",
+    "value": "v0.0.1",
   },
   {
     "action": "add",
-    "field": "deploymentTag",
-    "value": "v0.0.1",
+    "field": "serverKey",
+    "value": "database",
   },
 ]
 `;

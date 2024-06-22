@@ -197,7 +197,7 @@ export class TransactionService {
     }
 
     // Get all dependencies of subject model.
-    const dependencies = diff.model['dependencies'];
+    const dependencies = diff.model.getDependencies();
     const dependencyApplyOrders: number[] = [-1];
 
     for (const dependency of dependencies) {

@@ -1,4 +1,5 @@
 import { Model } from '../../decorators/model.decorator.js';
+import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IService } from './service.interface.js';
 
@@ -13,13 +14,17 @@ export class Service extends AModel<IService, Service> {
     this.serviceId = serviceId;
   }
 
-  getContext(): string {
+  override async diffProperties(): Promise<Diff[]> {
+    return [];
+  }
+
+  override getContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
     return [`${this.MODEL_NAME}=${this.serviceId}`, app.getContext()].join(',');
   }
 
-  synth(): IService {
+  override synth(): IService {
     throw new Error('Method not implemented! Use subclass');
   }
 }

@@ -66,7 +66,7 @@ describe('Resource Serialization Service UT', () => {
       await service.deserialize(serializedOutput);
 
       const resourceDataRepository = await Container.get(ResourceDataRepository);
-      const deserializedResources = resourceDataRepository.getByProperties();
+      const deserializedResources = resourceDataRepository['oldResources'];
       expect(deserializedResources).toMatchSnapshot();
     });
 
@@ -85,7 +85,7 @@ describe('Resource Serialization Service UT', () => {
       await service.deserialize(serializedOutput);
 
       const resourceDataRepository = await Container.get(ResourceDataRepository);
-      const deserializedResources = resourceDataRepository.getByProperties();
+      const deserializedResources = resourceDataRepository['oldResources'];
       expect(deserializedResources).toMatchSnapshot();
     });
 
@@ -106,7 +106,7 @@ describe('Resource Serialization Service UT', () => {
       await service.deserialize(serializedOutput);
 
       const resourceDataRepository = await Container.get(ResourceDataRepository);
-      const deserializedResources = resourceDataRepository.getByProperties();
+      const deserializedResources = resourceDataRepository['oldResources'];
       expect(deserializedResources).toMatchSnapshot();
     });
 
@@ -150,7 +150,7 @@ describe('Resource Serialization Service UT', () => {
       await service.deserialize(serializedOutput);
 
       const resourceDataRepository = await Container.get(ResourceDataRepository);
-      const deserializedResources = resourceDataRepository.getByProperties();
+      const deserializedResources = resourceDataRepository['oldResources'];
 
       const resource1Deserialized = deserializedResources.find((r) => r.resourceId === 'resource-1');
       const resource2Deserialized = resource1Deserialized!.getChildren()['test-resource'][0]
@@ -170,7 +170,7 @@ describe('Resource Serialization Service UT', () => {
       resource2.response['response2'] = 'value2';
       resource1.addChild('resourceId', resource2, 'resourceId');
 
-      const resources = [resource2, resource1];
+      const resources = [resource2, resource1]; // Reverse order of resources.
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
 
       const service = await Container.get(ResourceSerializationService);
@@ -180,7 +180,7 @@ describe('Resource Serialization Service UT', () => {
       await service.deserialize(serializedOutput);
 
       const resourceDataRepository = await Container.get(ResourceDataRepository);
-      const deserializedResources = resourceDataRepository.getByProperties();
+      const deserializedResources = resourceDataRepository['oldResources'];
 
       const resource1Deserialized = deserializedResources.find((r) => r.resourceId === 'resource-1');
       const resource2Deserialized = resource1Deserialized!.getChildren()['test-resource'][0]
@@ -209,24 +209,24 @@ describe('Resource Serialization Service UT', () => {
       service.registerClass('SharedTestResource', SharedTestResource);
 
       const serializedOutput1 = await service.serialize();
-      const oldResourcesDependencies = serializedOutput1.dependencies.sort((a, b) =>
+      const currentResourceDependencies = serializedOutput1.dependencies.sort((a, b) =>
         a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
       );
 
       await service.deserialize(serializedOutput1);
       const resourceDataRepository = await Container.get(ResourceDataRepository);
-      const deserializedResources = resourceDataRepository.getByProperties();
+      const deserializedResources = resourceDataRepository['oldResources'];
 
       // An easy way to get dependencies from `deserializedResources` is to serialize it again.
       await Container.get(ResourceDataRepository, {
         args: [true, [...deserializedResources], [...deserializedResources]],
       });
       const serializedOutput2 = await service.serialize();
-      const newResourcesDependencies = serializedOutput2.dependencies.sort((a, b) =>
+      const previousResourcesDependencies = serializedOutput2.dependencies.sort((a, b) =>
         a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0,
       );
 
-      expect(newResourcesDependencies).toEqual(oldResourcesDependencies);
+      expect(previousResourcesDependencies).toEqual(currentResourceDependencies);
     });
 
     it('should initialize ResourceDataRepository with separate old and new resources', async () => {
@@ -247,6 +247,7 @@ describe('Resource Serialization Service UT', () => {
 
       // Manipulate new resources. This must not affect old resources in any way.
       resourceDataRepository.getById('resource-1')!.properties['key1'] = 'value2';
+
       expect(resourceDataRepository['newResources'][0]).not.toEqual(resourceDataRepository['oldResources'][0]);
     });
   });
@@ -274,7 +275,7 @@ describe('Resource Serialization Service UT', () => {
       const resource2 = new TestResource('resource-2');
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
-      resource2.markDeleted();
+      resource2.remove();
 
       const resources = [resource1, resource2];
       await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });

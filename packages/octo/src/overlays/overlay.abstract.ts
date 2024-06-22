@@ -1,5 +1,5 @@
 import { ModelType, type UnknownModel, type UnknownOverlay } from '../app.type.js';
-import { type Diff, DiffAction } from '../functions/diff/diff.js';
+import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
 import type { AAnchor } from './anchor.abstract.js';
@@ -9,94 +9,99 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   abstract override readonly MODEL_NAME: string;
   override readonly MODEL_TYPE: ModelType = ModelType.OVERLAY;
 
-  readonly overlayId: IOverlay['overlayId'];
-
-  readonly properties: IOverlay['properties'] = {};
-
-  protected constructor(overlayId: IOverlay['overlayId'], properties: IOverlay['properties'], anchors: AAnchor[]) {
+  protected constructor(
+    readonly overlayId: IOverlay['overlayId'],
+    readonly properties: IOverlay['properties'],
+    anchors: AAnchor[],
+  ) {
     super();
-
-    this.overlayId = overlayId;
-
-    for (const key in properties) {
-      this.properties[key] = properties[key];
-    }
 
     for (const anchor of anchors) {
       this.addAnchor(anchor);
     }
   }
 
-  addAnchor(anchor: AAnchor): void {
-    const existingAnchors = this.getAnchors().filter((a) => a.anchorId === anchor.anchorId);
-    for (const existingAnchor of existingAnchors) {
-      if (existingAnchor.getParent().getContext() === anchor.getParent().getContext()) {
-        return;
+  override addAnchor(anchor: AAnchor): void {
+    try {
+      super.addAnchor(anchor);
+    } catch (error) {
+      if (error.message !== 'Anchor already exists!') {
+        throw error;
       }
     }
 
-    const dependencies = this.addRelationship(anchor.getParent());
-    dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.ADD);
-    dependencies[0].addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.UPDATE);
-    dependencies[1].addBehavior('MODEL_NAME', DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
-
-    this.anchors.push(anchor);
+    const { thisToThatDependency, thatToThisDependency } = this.addRelationship(anchor.getParent());
+    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.ADD);
+    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.UPDATE);
+    thatToThisDependency.addBehavior('MODEL_NAME', DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
   }
 
-  async diff(previous: T): Promise<Diff[]> {
+  override async diff(previous: T): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
-    const propertyDiffs = DiffUtility.diffObject(previous as unknown as UnknownOverlay, this, 'properties');
+    const propertyDiffs = await this.diffProperties(previous);
     diffs.push(...propertyDiffs);
+
+    // Anchor diffs.
+    const deletedAnchors = (previous as unknown as UnknownOverlay)
+      .getAnchors()
+      .filter((p) => this.getAnchorIndex(p.anchorId, p.getParent()) === -1);
+    for (const anchor of deletedAnchors) {
+      diffs.push(new Diff(this, DiffAction.DELETE, 'anchor', anchor));
+    }
+    const newAnchors = this.getAnchors().filter(
+      (c) => (previous as unknown as UnknownOverlay).getAnchorIndex(c.anchorId, c.getParent()) === -1,
+    );
+    for (const anchor of newAnchors) {
+      diffs.push(new Diff(this, DiffAction.ADD, 'anchor', anchor));
+    }
 
     return diffs;
   }
 
-  getContext(): string {
+  override async diffProperties(previous: T): Promise<Diff[]> {
+    return DiffUtility.diffObject(previous as unknown as UnknownOverlay, this, 'properties');
+  }
+
+  override getContext(): string {
     return `${this.MODEL_NAME}=${this.overlayId}`;
   }
 
-  removeAnchor(anchor: AAnchor): void {
-    const overlayDependencyIndex = this.dependencies.findIndex((d) => d.from === this && d.to === anchor.getParent());
-    if (overlayDependencyIndex > -1) {
-      this.dependencies.splice(overlayDependencyIndex, 1);
+  override removeAnchor(anchor: AAnchor): void {
+    const overlayParentDependencyIndex = this.getDependencies().findIndex(
+      (d) => d.to.getContext() === anchor.getParent().getContext(),
+    );
+    if (overlayParentDependencyIndex > -1) {
+      this.removeDependency(overlayParentDependencyIndex);
     }
-    const parentDependencyIndex = anchor
+    const parentOverlayDependencyIndex = anchor
       .getParent()
-      ['dependencies'].findIndex((d) => d.from === anchor.getParent() && d.to === this);
-    if (parentDependencyIndex > -1) {
-      anchor.getParent()['dependencies'].splice(parentDependencyIndex, 1);
+      .getDependencies()
+      .findIndex((d) => d.to.getContext() === this.getContext());
+    if (parentOverlayDependencyIndex > -1) {
+      anchor.getParent().removeDependency(parentOverlayDependencyIndex);
     }
 
-    const anchorIndex = this.anchors.findIndex((a) => a.anchorId === anchor.anchorId);
-    if (anchorIndex > -1) {
-      this.anchors.splice(anchorIndex, 1);
-    }
+    super.removeAnchor(anchor);
   }
 
-  removeAllAnchors(): void {
-    while (this.anchors.length > 0) {
-      this.removeAnchor(this.anchors[0]);
-    }
-  }
-
-  synth(): IOverlay {
+  override synth(): IOverlay {
     return {
-      anchors: this.anchors.map((a) => a.synth()),
+      anchors: this.getAnchors().map((a) => a.synth()),
       overlayId: this.overlayId,
-      properties: { ...this.properties },
+      properties: JSON.parse(JSON.stringify(this.properties)),
     };
   }
 
-  static async unSynth(
+  static override async unSynth(
     deserializationClass: any,
     overlay: IOverlay,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<UnknownOverlay> {
     const anchors = await Promise.all(
-      overlay.anchors.map(async (a) => {
+      overlay.anchors.map(async (a): Promise<AAnchor> => {
         const parent = await deReferenceContext(a.parent.context);
-        const anchor = parent.getAnchorById(a.anchorId);
+        const anchor = parent.getAnchor(a.anchorId, parent);
         if (!anchor) {
           throw new Error('Cannot find anchor while deserializing overlay!');
         }

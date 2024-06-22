@@ -30,6 +30,7 @@ exports[`Model E2E Test common functions Test app getBoundaryMembers() 1`] = `
   "deployment=v1,server=backend,app=test",
   "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
   "region=region,app=test",
   "environment=qa,region=region,app=test",
   "pipeline=pipeline,app=test",
@@ -50,6 +51,8 @@ exports[`Model E2E Test common functions Test app getChildren() 1`] = `
 exports[`Model E2E Test common functions Test app getContext() 1`] = `"app=test"`;
 
 exports[`Model E2E Test common functions Test app getParents() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test app getSiblings() 1`] = `[]`;
 
 exports[`Model E2E Test common functions Test app synth() 1`] = `
 {
@@ -72,6 +75,7 @@ exports[`Model E2E Test common functions Test deployment getBoundaryMembers() 1`
   "app=test",
   "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
   "region=region,app=test",
   "environment=qa,region=region,app=test",
 ]
@@ -90,6 +94,8 @@ exports[`Model E2E Test common functions Test deployment getParents() 1`] = `
   "server",
 ]
 `;
+
+exports[`Model E2E Test common functions Test deployment getSiblings() 1`] = `[]`;
 
 exports[`Model E2E Test common functions Test deployment synth() 1`] = `
 {
@@ -112,6 +118,7 @@ exports[`Model E2E Test common functions Test environment getBoundaryMembers() 1
   "app=test",
   "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
   "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
 ]
@@ -131,6 +138,8 @@ exports[`Model E2E Test common functions Test environment getParents() 1`] = `
 ]
 `;
 
+exports[`Model E2E Test common functions Test environment getSiblings() 1`] = `[]`;
+
 exports[`Model E2E Test common functions Test environment synth() 1`] = `
 {
   "environmentName": "qa",
@@ -142,6 +151,7 @@ exports[`Model E2E Test common functions Test execution getAncestors() 1`] = `
 [
   "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
   "region=region,app=test",
   "app=test",
   "environment=qa,region=region,app=test",
@@ -154,6 +164,7 @@ exports[`Model E2E Test common functions Test execution getBoundaryMembers() 1`]
 [
   "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
   "region=region,app=test",
   "app=test",
   "environment=qa,region=region,app=test",
@@ -173,6 +184,8 @@ exports[`Model E2E Test common functions Test execution getParents() 1`] = `
   "subnet",
 ]
 `;
+
+exports[`Model E2E Test common functions Test execution getSiblings() 1`] = `[]`;
 
 exports[`Model E2E Test common functions Test execution synth() 1`] = `
 {
@@ -213,12 +226,12 @@ exports[`Model E2E Test common functions Test image getParents() 1`] = `
 ]
 `;
 
+exports[`Model E2E Test common functions Test image getSiblings() 1`] = `[]`;
+
 exports[`Model E2E Test common functions Test image synth() 1`] = `
 {
   "dockerOptions": {
-    "buildArgs": {},
     "dockerfilePath": "/Dockerfile",
-    "quiet": undefined,
   },
   "imageId": "0.0.1",
   "imageName": "image",
@@ -250,6 +263,8 @@ exports[`Model E2E Test common functions Test pipeline getParents() 1`] = `
 ]
 `;
 
+exports[`Model E2E Test common functions Test pipeline getSiblings() 1`] = `[]`;
+
 exports[`Model E2E Test common functions Test pipeline synth() 1`] = `
 {
   "instructionSet": [],
@@ -271,6 +286,7 @@ exports[`Model E2E Test common functions Test region getBoundaryMembers() 1`] = 
   "environment=qa,region=region,app=test",
   "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
   "deployment=v1,server=backend,app=test",
   "server=backend,app=test",
 ]
@@ -290,6 +306,8 @@ exports[`Model E2E Test common functions Test region getParents() 1`] = `
   "app",
 ]
 `;
+
+exports[`Model E2E Test common functions Test region getSiblings() 1`] = `[]`;
 
 exports[`Model E2E Test common functions Test region synth() 1`] = `
 {
@@ -311,6 +329,7 @@ exports[`Model E2E Test common functions Test server getBoundaryMembers() 1`] = 
   "deployment=v1,server=backend,app=test",
   "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
   "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
   "region=region,app=test",
   "environment=qa,region=region,app=test",
 ]
@@ -329,6 +348,8 @@ exports[`Model E2E Test common functions Test server getParents() 1`] = `
   "app",
 ]
 `;
+
+exports[`Model E2E Test common functions Test server getSiblings() 1`] = `[]`;
 
 exports[`Model E2E Test common functions Test server synth() 1`] = `
 {
@@ -360,11 +381,14 @@ exports[`Model E2E Test common functions Test service getParents() 1`] = `
 ]
 `;
 
+exports[`Model E2E Test common functions Test service getSiblings() 1`] = `[]`;
+
 exports[`Model E2E Test common functions Test service synth() 1`] = `"Method not implemented! Use subclass"`;
 
 exports[`Model E2E Test common functions Test subnet getAncestors() 1`] = `
 [
   "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
   "region=region,app=test",
   "app=test",
 ]
@@ -373,6 +397,7 @@ exports[`Model E2E Test common functions Test subnet getAncestors() 1`] = `
 exports[`Model E2E Test common functions Test subnet getBoundaryMembers() 1`] = `
 [
   "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
   "region=region,app=test",
   "app=test",
   "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
@@ -393,6 +418,12 @@ exports[`Model E2E Test common functions Test subnet getContext() 1`] = `"subnet
 exports[`Model E2E Test common functions Test subnet getParents() 1`] = `
 [
   "region",
+]
+`;
+
+exports[`Model E2E Test common functions Test subnet getSiblings() 1`] = `
+[
+  "subnet",
 ]
 `;
 

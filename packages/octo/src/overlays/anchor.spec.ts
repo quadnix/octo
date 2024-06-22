@@ -6,9 +6,9 @@ describe('Anchor UT', () => {
     expect(() => {
       const app = new App('test');
       const anchor1_0 = new TestAnchor('anchor-1', {}, app);
-      app['anchors'].push(anchor1_0);
+      app.addAnchor(anchor1_0);
       const anchor1_1 = new TestAnchor('anchor-1', {}, app);
-      app['anchors'].push(anchor1_1);
+      app.addAnchor(anchor1_1);
     }).toThrowErrorMatchingInlineSnapshot(`"Anchor already exists!"`);
   });
 

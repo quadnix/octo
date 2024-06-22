@@ -138,7 +138,7 @@ export class DiffUtility {
     // Iterate fields of previous (a). If found in latest (b), get recursive diff of children of b vs a.
     // If not found in latest (b), consider it a DELETE.
     for (const x of a) {
-      const y = b.find((i) => i[field] === x[field]);
+      const y = b.find((i) => i.getContext() === x.getContext());
       if (y) {
         const pDiff = await y.diff(x);
         diff.push(...pDiff);
@@ -150,9 +150,7 @@ export class DiffUtility {
     // Iterate fields of latest (b). If not found in previous (a), consider it an ADD.
     // Recursively add all children of b.
     for (const y of b) {
-      if (!a.find((i) => i[field] === y[field])) {
-        diff.push(new Diff(y, DiffAction.ADD, field, y[field]));
-
+      if (!a.find((i) => i.getContext() === y.getContext())) {
         const pDiff = await y.diff();
         diff.push(...pDiff);
       }

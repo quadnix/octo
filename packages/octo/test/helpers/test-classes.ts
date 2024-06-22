@@ -43,11 +43,15 @@ export class TestAnchorFactory {
 export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsynth> {
   readonly MODEL_NAME: string = 'test-model';
 
-  getContext(): string {
+  override async diffProperties(): Promise<Diff[]> {
+    return [];
+  }
+
+  override getContext(): string {
     return 'test-model=test';
   }
 
-  synth(): object {
+  override synth(): object {
     return {};
   }
 }

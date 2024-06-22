@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import type { Diff } from '../../functions/diff/diff.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
 import { Subnet } from '../subnet/subnet.model.js';
@@ -43,13 +42,17 @@ export class Region extends AModel<IRegion, Region> {
     this.addChild('regionId', subnet, 'subnetId');
   }
 
-  getContext(): string {
+  override async diffProperties(): Promise<Diff[]> {
+    return [];
+  }
+
+  override getContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
     return [`${this.MODEL_NAME}=${this.regionId}`, app.getContext()].join(',');
   }
 
-  synth(): IRegion {
+  override synth(): IRegion {
     return {
       regionId: this.regionId,
     };
@@ -57,6 +60,7 @@ export class Region extends AModel<IRegion, Region> {
 
   static override async unSynth(
     region: IRegion,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Region> {
     return new Region(region.regionId);

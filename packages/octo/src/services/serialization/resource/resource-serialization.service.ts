@@ -104,12 +104,12 @@ export class ResourceSerializationService {
   }
 
   async deserialize(serializedOutput: ResourceSerializedOutput): Promise<void> {
-    const deserializedOutput = await this._deserialize(serializedOutput);
-    const deserializedOutputCopy = await this._deserialize(serializedOutput);
+    const newResources = this.resourceDataRepository.getByProperties();
+    const oldResources = await this._deserialize(serializedOutput);
 
     // Refresh the resource data repository.
     await Container.get(ResourceDataRepository, {
-      args: [true, Object.values(deserializedOutputCopy), Object.values(deserializedOutput)],
+      args: [true, newResources, Object.values(oldResources)],
     });
   }
 
@@ -130,7 +130,7 @@ export class ResourceSerializationService {
         continue;
       }
 
-      const resourceDependencies = resource['dependencies'].map((d) => d.synth());
+      const resourceDependencies = resource.getDependencies().map((d) => d.synth());
       dependencies.push(...resourceDependencies);
 
       if (resource.MODEL_TYPE === 'shared-resource') {

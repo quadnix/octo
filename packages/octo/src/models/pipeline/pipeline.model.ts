@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
@@ -20,26 +18,26 @@ export class Pipeline extends AModel<IPipeline, Pipeline> {
     this.pipelineName = pipelineName;
   }
 
-  override async diff(previous?: Pipeline): Promise<Diff[]> {
-    // Generate diff of instructionSet.
-    return DiffUtility.diffArray(previous || ({ instructionSet: [] } as unknown as Pipeline), this, 'instructionSet');
+  override async diffProperties(previous: Pipeline): Promise<Diff[]> {
+    return DiffUtility.diffArray(previous, this, 'instructionSet');
   }
 
-  getContext(): string {
+  override getContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
     return [`${this.MODEL_NAME}=${this.pipelineName}`, app.getContext()].join(',');
   }
 
-  synth(): IPipeline {
+  override synth(): IPipeline {
     return {
-      instructionSet: [...this.instructionSet],
+      instructionSet: JSON.parse(JSON.stringify(this.instructionSet)),
       pipelineName: this.pipelineName,
     };
   }
 
   static override async unSynth(
     pipeline: IPipeline,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Pipeline> {
     const newPipeline = new Pipeline(pipeline.pipelineName);

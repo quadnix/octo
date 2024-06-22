@@ -1,3 +1,4 @@
+import { App } from '../app/app.model.js';
 import { Environment } from '../environment/environment.model.js';
 import { Region } from './region.model.js';
 
@@ -16,15 +17,19 @@ describe('Region UT', () => {
   describe('diff()', () => {
     describe('when diff of environment', () => {
       it('should capture addition', async () => {
-        const region0 = new Region('region-1');
+        const app_1 = new App('test');
+        const region_1 = new Region('region-1');
+        app_1.addRegion(region_1);
 
-        const region1 = new Region('region-1');
-        const environment1 = new Environment('qa');
-        environment1.environmentVariables.set('key1', 'value 1');
-        environment1.environmentVariables.set('key2', 'value 2');
-        region1.addEnvironment(environment1);
+        const app = new App('test');
+        const region = new Region('region-1');
+        app.addRegion(region);
+        const environment = new Environment('qa');
+        environment.environmentVariables.set('key1', 'value 1');
+        environment.environmentVariables.set('key2', 'value 2');
+        region.addEnvironment(environment);
 
-        const diff = await region1.diff(region0);
+        const diff = await region.diff(region_1);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -33,36 +38,24 @@ describe('Region UT', () => {
             "field": "environmentName",
             "value": "qa",
           },
-          {
-            "action": "add",
-            "field": "environmentVariables",
-            "value": {
-              "key": "key1",
-              "value": "value 1",
-            },
-          },
-          {
-            "action": "add",
-            "field": "environmentVariables",
-            "value": {
-              "key": "key2",
-              "value": "value 2",
-            },
-          },
         ]
       `);
       });
 
       it('should capture update', async () => {
-        const region0 = new Region('region-1');
-        region0.addEnvironment(new Environment('qa'));
+        const app_1 = new App('test');
+        const region_1 = new Region('region-1');
+        app_1.addRegion(region_1);
+        region_1.addEnvironment(new Environment('qa'));
 
-        const region1 = new Region('region-1');
-        const environment1 = new Environment('qa');
-        environment1.environmentVariables.set('key', 'value');
-        region1.addEnvironment(environment1);
+        const app = new App('test');
+        const region = new Region('region-1');
+        app.addRegion(region);
+        const environment = new Environment('qa');
+        environment.environmentVariables.set('key', 'value');
+        region.addEnvironment(environment);
 
-        const diff = await region1.diff(region0);
+        const diff = await region.diff(region_1);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -79,13 +72,17 @@ describe('Region UT', () => {
       });
 
       it('should capture replace', async () => {
-        const region0 = new Region('region-1');
-        region0.addEnvironment(new Environment('qa'));
+        const app_1 = new App('test');
+        const region_1 = new Region('region-1');
+        app_1.addRegion(region_1);
+        region_1.addEnvironment(new Environment('qa'));
 
-        const region1 = new Region('aws-ap-south-1');
-        region1.addEnvironment(new Environment('staging'));
+        const app = new App('test');
+        const region = new Region('aws-ap-south-1');
+        app.addRegion(region);
+        region.addEnvironment(new Environment('staging'));
 
-        const diff = await region1.diff(region0);
+        const diff = await region.diff(region_1);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -104,12 +101,16 @@ describe('Region UT', () => {
       });
 
       it('should capture deletion', async () => {
-        const region0 = new Region('region-1');
-        region0.addEnvironment(new Environment('qa'));
+        const app_1 = new App('test');
+        const region_1 = new Region('region-1');
+        app_1.addRegion(region_1);
+        region_1.addEnvironment(new Environment('qa'));
 
-        const region1 = new Region('region-1');
+        const app = new App('test');
+        const region = new Region('region-1');
+        app.addRegion(region);
 
-        const diff = await region1.diff(region0);
+        const diff = await region.diff(region_1);
 
         expect(diff).toMatchInlineSnapshot(`
         [
@@ -123,7 +124,9 @@ describe('Region UT', () => {
       });
 
       it('should capture diff without a previous instance', async () => {
+        const app = new App('test');
         const region = new Region('region-1');
+        app.addRegion(region);
         const environment = new Environment('qa');
         environment.environmentVariables.set('key1', 'value 1');
         environment.environmentVariables.set('key2', 'value 2');
@@ -140,19 +143,8 @@ describe('Region UT', () => {
           },
           {
             "action": "add",
-            "field": "environmentVariables",
-            "value": {
-              "key": "key1",
-              "value": "value 1",
-            },
-          },
-          {
-            "action": "add",
-            "field": "environmentVariables",
-            "value": {
-              "key": "key2",
-              "value": "value 2",
-            },
+            "field": "regionId",
+            "value": "region-1",
           },
         ]
       `);

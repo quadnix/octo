@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IDeployment } from './deployment.interface.js';
 
@@ -16,13 +15,17 @@ export class Deployment extends AModel<IDeployment, Deployment> {
     this.deploymentTag = deploymentTag;
   }
 
-  getContext(): string {
+  override async diffProperties(): Promise<Diff[]> {
+    return [];
+  }
+
+  override getContext(): string {
     const parents = this.getParents();
     const parent = parents['server'][0].to;
     return [`${this.MODEL_NAME}=${this.deploymentTag}`, parent.getContext()].join(',');
   }
 
-  synth(): IDeployment {
+  override synth(): IDeployment {
     return {
       deploymentTag: this.deploymentTag,
     };
@@ -30,6 +33,7 @@ export class Deployment extends AModel<IDeployment, Deployment> {
 
   static override async unSynth(
     deployment: IDeployment,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Deployment> {
     return new Deployment(deployment.deploymentTag);
