@@ -67,9 +67,11 @@ export abstract class AModel<I, T> implements IModel<I, T> {
 
   async diff(previous?: T): Promise<Diff[]> {
     const diffs: Diff[] = [];
+
     const previousChildrenByModels = (previous as UnknownModel)?.getChildren() ?? {};
     const currentChildrenByModels = this.getChildren();
 
+    // Compare previous children with current children.
     for (const modelName of Object.keys(previousChildrenByModels)) {
       const previousChildren = previousChildrenByModels[modelName].map((d) => d.to);
       const currentChildren = currentChildrenByModels[modelName]?.map((d) => d.to) || [];
@@ -78,6 +80,7 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       diffs.push(...childrenDiffs);
     }
 
+    // Add new children not in previous.
     for (const modelName of Object.keys(currentChildrenByModels)) {
       if (previousChildrenByModels.hasOwnProperty(modelName)) {
         continue;
@@ -88,6 +91,39 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       const field = currentChildrenByModels[modelName][0].getRelationship()!.toField;
       const childrenDiffs = await DiffUtility.diffModels(previousChildren, currentChildren, field as string);
       diffs.push(...childrenDiffs);
+    }
+
+    const previousSiblingsByModels = (previous as UnknownModel)?.getSiblings() ?? {};
+    const currentSiblingsByModels = this.getSiblings();
+
+    // Compare previous siblings with current siblings.
+    for (const modelName of Object.keys(previousSiblingsByModels)) {
+      const previousSiblings = previousSiblingsByModels[modelName];
+      const currentSiblings = currentSiblingsByModels[modelName] || [];
+
+      for (const pd of previousSiblings) {
+        if (!currentSiblings.find((cd) => cd.to.getContext() === pd.to.getContext())) {
+          diffs.push(new Diff(this, DiffAction.DELETE, 'sibling', pd.to));
+        }
+      }
+      for (const cd of currentSiblings) {
+        if (!previousSiblings.find((pd) => pd.to.getContext() === cd.to.getContext())) {
+          diffs.push(new Diff(this, DiffAction.ADD, 'sibling', cd.to));
+        }
+      }
+    }
+
+    // Add new siblings not in previous.
+    for (const modelName of Object.keys(currentSiblingsByModels)) {
+      if (previousSiblingsByModels.hasOwnProperty(modelName)) {
+        continue;
+      }
+
+      const currentSiblings = currentSiblingsByModels[modelName];
+
+      for (const cd of currentSiblings) {
+        diffs.push(new Diff(this, DiffAction.ADD, 'sibling', cd.to));
+      }
     }
 
     const field = this.deriveDependencyField() || '';
