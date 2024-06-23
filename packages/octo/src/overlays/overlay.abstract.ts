@@ -42,18 +42,29 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     const propertyDiffs = await this.diffProperties(previous);
     diffs.push(...propertyDiffs);
 
-    // Anchor diffs.
-    const deletedAnchors = (previous as unknown as UnknownOverlay)
-      .getAnchors()
-      .filter((p) => this.getAnchorIndex(p.anchorId, p.getParent()) === -1);
-    for (const anchor of deletedAnchors) {
-      diffs.push(new Diff(this, DiffAction.DELETE, 'anchor', anchor));
+    // Compare previous anchors with current anchors.
+    const previousAnchors = (previous as unknown as UnknownOverlay).getAnchors();
+    for (const previousAnchor of previousAnchors) {
+      const currentAnchor = this.getAnchor(previousAnchor.anchorId, previousAnchor.getParent());
+
+      if (!currentAnchor) {
+        diffs.push(new Diff(this, DiffAction.DELETE, 'anchor', previousAnchor));
+      } else if (!DiffUtility.isObjectDeepEquals(previousAnchor.properties, currentAnchor.properties)) {
+        diffs.push(new Diff(this, DiffAction.UPDATE, 'anchor', currentAnchor));
+      }
     }
-    const newAnchors = this.getAnchors().filter(
-      (c) => (previous as unknown as UnknownOverlay).getAnchorIndex(c.anchorId, c.getParent()) === -1,
-    );
-    for (const anchor of newAnchors) {
-      diffs.push(new Diff(this, DiffAction.ADD, 'anchor', anchor));
+
+    // Add new anchors not in previous.
+    const currentAnchors = this.getAnchors();
+    for (const currentAnchor of currentAnchors) {
+      const previousAnchor = (previous as unknown as UnknownOverlay).getAnchor(
+        currentAnchor.anchorId,
+        currentAnchor.getParent(),
+      );
+
+      if (!previousAnchor) {
+        diffs.push(new Diff(this, DiffAction.ADD, 'anchor', currentAnchor));
+      }
     }
 
     return diffs;

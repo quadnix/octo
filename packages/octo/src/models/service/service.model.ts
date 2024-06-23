@@ -14,7 +14,8 @@ export class Service extends AModel<IService, Service> {
     this.serviceId = serviceId;
   }
 
-  override async diffProperties(): Promise<Diff[]> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  override async diffProperties(previous: Service): Promise<Diff[]> {
     return [];
   }
 

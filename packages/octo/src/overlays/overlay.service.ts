@@ -1,4 +1,4 @@
-import type { UnknownOverlay } from '../app.type.js';
+import type { UnknownModel, UnknownOverlay } from '../app.type.js';
 import { Container } from '../decorators/container.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { OverlayDataRepository } from './overlay-data.repository.js';
@@ -10,11 +10,16 @@ export class OverlayService {
     this.overlayDataRepository.add(overlay);
   }
 
+  getOverlaysByAnchor(anchorId: string, parent: UnknownModel, excludeOverlayIds: string[] = []): UnknownOverlay[] {
+    const overlays = this.getOverlaysByProperties();
+    return overlays.filter((o) => !excludeOverlayIds.includes(o.overlayId) && o.getAnchor(anchorId, parent));
+  }
+
   getOverlayById(overlayId: string): UnknownOverlay | undefined {
     return this.overlayDataRepository.getById(overlayId);
   }
 
-  getOverlayByProperties(filters: { key: string; value: any }[] = []): UnknownOverlay[] {
+  getOverlaysByProperties(filters: { key: string; value: any }[] = []): UnknownOverlay[] {
     return this.overlayDataRepository.getByProperties(filters);
   }
 
