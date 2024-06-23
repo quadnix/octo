@@ -111,13 +111,15 @@ export class Execution extends AModel<IExecution, Execution> {
     execution: IExecution,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Execution> {
-    const deployment = (await deReferenceContext(execution.deployment.context)) as Deployment;
-    const environment = (await deReferenceContext(execution.environment.context)) as Environment;
-    const subnet = (await deReferenceContext(execution.subnet.context)) as Subnet;
+    const [deployment, environment, subnet] = (await Promise.all([
+      deReferenceContext(execution.deployment.context),
+      deReferenceContext(execution.environment.context),
+      deReferenceContext(execution.subnet.context),
+    ])) as [Deployment, Environment, Subnet];
     const newExecution = new Execution(deployment, environment, subnet, true);
 
-    for (const key in execution.environmentVariables) {
-      newExecution.environmentVariables.set(key, execution.environmentVariables[key]);
+    for (const [key, value] of Object.entries(execution.environmentVariables)) {
+      newExecution.environmentVariables.set(key, value);
     }
 
     return newExecution;

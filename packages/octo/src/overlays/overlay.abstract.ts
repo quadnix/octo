@@ -2,7 +2,7 @@ import { ModelType, type UnknownModel, type UnknownOverlay } from '../app.type.j
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
-import type { AAnchor } from './anchor.abstract.js';
+import { type AAnchor } from './anchor.abstract.js';
 import type { IOverlay } from './overlay.interface.js';
 
 export abstract class AOverlay<T> extends AModel<IOverlay, T> {
@@ -63,6 +63,14 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     return DiffUtility.diffObject(previous as unknown as UnknownOverlay, this, 'properties');
   }
 
+  override getAnchor(anchorId: string, parent: UnknownModel): AAnchor | undefined {
+    return super.getAnchor(anchorId, parent);
+  }
+
+  override getAnchorIndex(anchorId: string, parent: UnknownModel): number {
+    return super.getAnchorIndex(anchorId, parent);
+  }
+
   override getContext(): string {
     return `${this.MODEL_NAME}=${this.overlayId}`;
   }
@@ -101,7 +109,7 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     const anchors = await Promise.all(
       overlay.anchors.map(async (a): Promise<AAnchor> => {
         const parent = await deReferenceContext(a.parent.context);
-        const anchor = parent.getAnchor(a.anchorId, parent);
+        const anchor = parent.getAnchor(a.anchorId);
         if (!anchor) {
           throw new Error('Cannot find anchor while deserializing overlay!');
         }

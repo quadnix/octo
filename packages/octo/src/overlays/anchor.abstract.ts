@@ -34,7 +34,7 @@ export abstract class AAnchor {
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<AAnchor> {
     const parent = await deReferenceContext(anchor.parent.context);
-    const newAnchor = parent.getAnchor(anchor.anchorId, parent);
+    const newAnchor = parent.getAnchor(anchor.anchorId);
     if (!newAnchor) {
       return new deserializationClass(anchor.anchorId, anchor.properties, parent);
     }

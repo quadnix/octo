@@ -175,13 +175,15 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return membersProcessed;
   }
 
-  getAnchor(anchorId: string, parent: UnknownModel): AAnchor | undefined {
+  getAnchor(anchorId: string, parent?: UnknownModel): AAnchor | undefined {
     const index = this.getAnchorIndex(anchorId, parent);
     return index > -1 ? this.anchors[index] : undefined;
   }
 
-  getAnchorIndex(anchorId: string, parent: UnknownModel): number {
-    return this.anchors.findIndex((a) => a.anchorId === anchorId && a.getParent().getContext() === parent.getContext());
+  getAnchorIndex(anchorId: string, parent?: UnknownModel): number {
+    return this.anchors.findIndex(
+      (a) => a.anchorId === anchorId && a.getParent().getContext() === (parent || this).getContext(),
+    );
   }
 
   getAnchors(filters: { key: string; value: any }[] = []): AAnchor[] {
