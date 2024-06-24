@@ -87,9 +87,12 @@ export class ResourceDataRepository {
       throw new Error('Removing non-resource model!');
     }
 
+    if (!resource.isMarkedDeleted()) {
+      resource.remove();
+    }
+
     const rIndex = this.newResources.findIndex((r) => r.resourceId === resource.resourceId);
     if (rIndex > -1) {
-      this.newResources[rIndex].remove();
       this.newResources.splice(rIndex, 1);
     }
   }

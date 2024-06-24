@@ -56,9 +56,12 @@ export class OverlayDataRepository {
       throw new Error('Removing non-overlay model!');
     }
 
+    if (!overlay.isMarkedDeleted()) {
+      overlay.remove();
+    }
+
     const overlayIndex = this.newOverlays.findIndex((o) => o.overlayId === overlay.overlayId);
     if (overlayIndex > -1) {
-      this.newOverlays[overlayIndex].remove();
       this.newOverlays.splice(overlayIndex, 1);
     }
   }

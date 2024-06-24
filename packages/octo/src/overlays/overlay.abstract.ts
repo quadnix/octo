@@ -1,8 +1,10 @@
 import { ModelType, type UnknownModel, type UnknownOverlay } from '../app.type.js';
+import { Container } from '../decorators/container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
 import { type AAnchor } from './anchor.abstract.js';
+import { OverlayDataRepository } from './overlay-data.repository.js';
 import type { IOverlay } from './overlay.interface.js';
 
 export abstract class AOverlay<T> extends AModel<IOverlay, T> {
@@ -84,6 +86,14 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
 
   override getContext(): string {
     return `${this.MODEL_NAME}=${this.overlayId}`;
+  }
+
+  override remove(ignoreDirectRelationships: boolean = false): void {
+    super.remove(ignoreDirectRelationships);
+
+    Container.get(OverlayDataRepository).then((overlayDataRepository) => {
+      overlayDataRepository.remove(this);
+    });
   }
 
   override removeAnchor(anchor: AAnchor): void {

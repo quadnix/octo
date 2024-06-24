@@ -1,7 +1,9 @@
 import { ModelType, type UnknownResource } from '../app.type.js';
+import { Container } from '../decorators/container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
+import { ResourceDataRepository } from './resource-data.repository.js';
 import type { IResource } from './resource.interface.js';
 import type { ASharedResource } from './shared-resource.abstract.js';
 
@@ -69,6 +71,14 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     const sameModelDependencies = this.getChildren(this.MODEL_NAME)[this.MODEL_NAME];
     const sharedResourceDependency = sameModelDependencies?.find((d) => d.to.MODEL_TYPE === ModelType.SHARED_RESOURCE);
     return sharedResourceDependency?.to as ASharedResource<T>;
+  }
+
+  override remove(ignoreDirectRelationships: boolean = false): void {
+    super.remove(ignoreDirectRelationships);
+
+    Container.get(ResourceDataRepository).then((resourceDataRepository) => {
+      resourceDataRepository.remove(this);
+    });
   }
 
   override synth(): IResource {

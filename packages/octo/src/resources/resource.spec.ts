@@ -263,6 +263,10 @@ describe('Resource UT', () => {
       expect(resource1.getChildren()).toMatchInlineSnapshot(`{}`);
       expect(resource2.isMarkedDeleted()).toBe(true);
     });
+
+    it.skip('should mark resource as deleted and remove from data repository', async () => {
+      // Ready to implement.
+    });
   });
 
   describe('synth()', () => {

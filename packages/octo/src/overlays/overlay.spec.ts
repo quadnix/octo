@@ -361,6 +361,12 @@ describe('Overlay UT', () => {
     });
   });
 
+  describe('remove()', () => {
+    it.skip('should mark overlay as deleted and remove from data repository', async () => {
+      // Ready to implement.
+    });
+  });
+
   describe('removeAnchor()', () => {
     it('should remove dependency between overlay and anchor parents', () => {
       const app1 = new App('test1');
