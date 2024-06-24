@@ -27,6 +27,11 @@ export class IamRole extends AResource<IamRole> {
       }
     }
 
+    // Empty policyDiff.
+    for (const key of Object.keys(this.policyDiff)) {
+      delete this.policyDiff[key];
+    }
+
     return diffs;
   }
 

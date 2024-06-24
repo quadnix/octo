@@ -27,6 +27,11 @@ export class IamUser extends AResource<IamUser> {
       }
     }
 
+    // Empty policyDiff.
+    for (const key of Object.keys(this.policyDiff)) {
+      delete this.policyDiff[key];
+    }
+
     return diffs;
   }
 

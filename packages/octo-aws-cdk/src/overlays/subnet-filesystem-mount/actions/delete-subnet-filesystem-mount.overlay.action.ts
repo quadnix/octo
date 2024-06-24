@@ -72,7 +72,7 @@ export class DeleteSubnetFilesystemMountOverlayAction implements IModelAction {
     ] as EfsMountTarget;
     efsMountTarget.removeRelationship(subnet);
     efsMountTarget.removeRelationship(efs);
-    efsMountTarget.markDeleted();
+    efsMountTarget.remove();
 
     const output: ActionOutputs = {};
     output[efsMountTarget.resourceId] = efsMountTarget;

@@ -34,7 +34,7 @@ export class DeleteImageFromEcrModelAction implements IModelAction {
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const { awsRegionId, image } = diff.value as { awsRegionId: string; image: Image };
     const ecrImage = actionInputs[`resource.ecr-${awsRegionId}-${image.imageId}`] as EcrImage;
-    ecrImage.markDeleted();
+    ecrImage.remove();
 
     const output: ActionOutputs = {};
     output[ecrImage.resourceId] = ecrImage;

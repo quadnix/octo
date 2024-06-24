@@ -35,7 +35,7 @@ export class DeleteSecurityGroupAnchorOverlayAction implements IModelAction {
     const anchor = diff.value as SecurityGroupAnchor;
 
     const securityGroup = actionInputs[`resource.sec-grp-${anchor.properties.securityGroupName}`] as SecurityGroup;
-    securityGroup.markDeleted();
+    securityGroup.remove();
 
     const output: ActionOutputs = {};
     output[securityGroup.resourceId] = securityGroup;

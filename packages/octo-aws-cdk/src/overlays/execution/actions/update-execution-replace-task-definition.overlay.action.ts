@@ -39,12 +39,21 @@ export class UpdateExecutionReplaceTaskDefinitionOverlayAction implements IModel
   }
 
   filter(diff: Diff): boolean {
-    return (
-      diff.action === DiffAction.UPDATE &&
+    if (
       diff.model instanceof ExecutionOverlay &&
       diff.model.MODEL_NAME === 'execution-overlay' &&
-      diff.field === 'overlayId'
-    );
+      diff.field === 'anchor'
+    ) {
+      if (diff.value instanceof TaskDefinitionAnchor) {
+        return diff.action === DiffAction.UPDATE;
+      } else if (diff.value instanceof SubnetFilesystemMountAnchor) {
+        return diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {

@@ -34,7 +34,7 @@ export class DeleteS3StaticWebsiteModelAction implements IModelAction {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
     const s3Website = actionInputs[`resource.bucket-${bucketName}`] as S3Website;
-    s3Website.markDeleted();
+    s3Website.remove();
 
     const output: ActionOutputs = {};
     output[s3Website.resourceId] = s3Website;

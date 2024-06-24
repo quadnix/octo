@@ -28,14 +28,10 @@ export class AwsSubnet extends Subnet {
     const overlayService = await Container.get(OverlayService);
 
     const regionFilesystemAnchorName = regionFilesystem.filesystemAnchorName;
-    const regionFilesystemAnchor = region.getAnchorById(regionFilesystemAnchorName) as RegionFilesystemAnchor;
+    const regionFilesystemAnchor = region.getAnchor(regionFilesystemAnchorName) as RegionFilesystemAnchor;
 
     const regionFilesystemOverlayId = `region-filesystem-overlay-${regionFilesystemAnchorName}`;
     const regionFilesystemOverlay = overlayService.getOverlayById(regionFilesystemOverlayId) as RegionFilesystemOverlay;
-
-    if (!regionFilesystemAnchor || !regionFilesystemOverlay) {
-      throw new Error('Filesystem not found in AWS region!');
-    }
 
     // eslint-disable-next-line max-len
     const subnetFilesystemMountAnchorName = `${region.awsRegionId}-${this.subnetName}-${filesystemName}-FilesystemMountAnchor`;
@@ -44,7 +40,7 @@ export class AwsSubnet extends Subnet {
       { filesystemName: regionFilesystem.filesystemName },
       this,
     );
-    this.anchors.push(subnetFilesystemMountAnchor);
+    this.addAnchor(subnetFilesystemMountAnchor);
     this.filesystemMounts.push({ filesystemMountAnchorName: subnetFilesystemMountAnchorName, filesystemName });
 
     const overlayId = `subnet-filesystem-mount-overlay-${subnetFilesystemMountAnchorName}`;
@@ -52,8 +48,9 @@ export class AwsSubnet extends Subnet {
       regionFilesystemAnchor,
       subnetFilesystemMountAnchor,
     ]);
-
     overlayService.addOverlay(subnetFilesystemMountOverlay);
+
+    // RegionFilesystemOverlay vs SubnetFilesystemMountOverlay relationship.
     regionFilesystemOverlay.addChild('overlayId', subnetFilesystemMountOverlay, 'overlayId');
   }
 
@@ -70,34 +67,26 @@ export class AwsSubnet extends Subnet {
     }
 
     const overlayService = await Container.get(OverlayService);
-    const overlays = overlayService.getOverlayByProperties();
 
-    const regionFilesystemAnchorName = regionFilesystem.filesystemAnchorName;
-    const regionFilesystemOverlayId = `region-filesystem-overlay-${regionFilesystemAnchorName}`;
+    const regionFilesystemOverlayId = `region-filesystem-overlay-${regionFilesystem.filesystemAnchorName}`;
     const regionFilesystemOverlay = overlayService.getOverlayById(regionFilesystemOverlayId) as RegionFilesystemOverlay;
 
-    if (!regionFilesystemOverlay) {
-      throw new Error('Filesystem not found in AWS region!');
-    }
-
     const overlayId = `subnet-filesystem-mount-overlay-${filesystemMount.filesystemMountAnchorName}`;
-    if (
-      overlays.find(
-        (o) => o.overlayId !== overlayId && o.getAnchorByParent(filesystemMount.filesystemMountAnchorName, this),
-      )
-    ) {
+    if (overlayService.getOverlaysByAnchor(filesystemMount.filesystemMountAnchorName, this, [overlayId]).length > 0) {
       throw new Error('Cannot remove filesystem mount while overlay exists!');
     }
 
-    const overlay = overlayService.getOverlayById(overlayId)!;
+    const overlay = overlayService.getOverlayById(overlayId) as SubnetFilesystemMountOverlay;
     overlayService.removeOverlay(overlay);
+
+    // RegionFilesystemOverlay vs SubnetFilesystemMountOverlay relationship.
     regionFilesystemOverlay.removeRelationship(overlay);
   }
 
   override synth(): IAwsSubnet {
     return {
       ...super.synth(),
-      filesystemMounts: [...this.filesystemMounts],
+      filesystemMounts: JSON.parse(JSON.stringify(this.filesystemMounts)),
     };
   }
 

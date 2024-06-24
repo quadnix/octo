@@ -16,6 +16,9 @@ import './factories/aws/iam.aws.factory.js';
 import './factories/aws/s3.aws.factory.js';
 import './factories/aws/sts.aws.factory.js';
 
+import './models/app/actions/add-app.model.action.js';
+import './models/app/actions/delete-app.model.action.js';
+
 export { AwsDeployment } from './models/deployment/aws.deployment.model.js';
 import './models/deployment/actions/add-deployment.model.action.js';
 import './models/deployment/actions/delete-deployment.model.action.js';
@@ -63,6 +66,7 @@ export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.
 import './overlays/execution/actions/add-execution.overlay.action.js';
 import './overlays/execution/actions/delete-execution.overlay.action.js';
 import './overlays/execution/actions/update-execution-replace-task-definition.overlay.action.js';
+import './overlays/execution/actions/update-execution-update-service.overlay.action.js';
 
 import './overlays/region-filesystem/actions/add-region-filesystem.overlay.action.js';
 import './overlays/region-filesystem/actions/delete-region-filesystem.overlay.action.js';
@@ -88,6 +92,7 @@ import './resources/ecs/actions/add-ecs-task-definition.resource.action.js';
 import './resources/ecs/actions/delete-ecs-cluster.resource.action.js';
 import './resources/ecs/actions/delete-ecs-service.resource.action.js';
 import './resources/ecs/actions/delete-ecs-task-definition.resource.action.js';
+import './resources/ecs/actions/update-ecs-service.resource.action.js';
 import './resources/ecs/actions/update-ecs-service-replace-task-definition.resource.action.js';
 import './resources/ecs/actions/update-ecs-task-definition.resource.action.js';
 

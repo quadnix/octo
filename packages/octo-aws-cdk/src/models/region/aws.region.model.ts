@@ -49,12 +49,12 @@ export class AwsRegion extends Region {
 
     const regionFilesystemAnchorName = `${this.awsRegionId}-${filesystemName}-FilesystemAnchor`;
     const regionFilesystemAnchor = new RegionFilesystemAnchor(regionFilesystemAnchorName, { filesystemName }, this);
-    this.anchors.push(regionFilesystemAnchor);
+    this.addAnchor(regionFilesystemAnchor);
     this.filesystems.push({ filesystemAnchorName: regionFilesystemAnchorName, filesystemName });
 
-    const overlayId = `region-filesystem-overlay-${regionFilesystemAnchorName}`;
-
     const overlayService = await Container.get(OverlayService);
+
+    const overlayId = `region-filesystem-overlay-${regionFilesystemAnchorName}`;
     const regionFilesystemOverlay = new RegionFilesystemOverlay(
       overlayId,
       { awsRegionId: this.awsRegionId, filesystemName, regionId: this.regionId },
@@ -82,22 +82,21 @@ export class AwsRegion extends Region {
     }
 
     const overlayService = await Container.get(OverlayService);
-    const overlays = overlayService.getOverlayByProperties();
 
     const overlayId = `region-filesystem-overlay-${filesystem.filesystemAnchorName}`;
-    if (overlays.find((o) => o.overlayId !== overlayId && o.getAnchorByParent(filesystem.filesystemAnchorName, this))) {
+    if (overlayService.getOverlaysByAnchor(filesystem.filesystemAnchorName, this, [overlayId]).length > 0) {
       throw new Error('Cannot remove filesystem while overlay exists!');
     }
 
-    const overlay = overlayService.getOverlayById(overlayId);
-    overlayService.removeOverlay(overlay!);
+    const overlay = overlayService.getOverlayById(overlayId) as RegionFilesystemOverlay;
+    overlayService.removeOverlay(overlay);
   }
 
   override synth(): IAwsRegion {
     return {
       awsRegionAZ: this.awsRegionAZ,
       awsRegionId: this.awsRegionId,
-      filesystems: [...this.filesystems],
+      filesystems: JSON.parse(JSON.stringify(this.filesystems)),
       regionId: this.regionId,
     };
   }

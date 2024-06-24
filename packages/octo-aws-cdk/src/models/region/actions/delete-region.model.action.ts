@@ -36,13 +36,13 @@ export class DeleteRegionModelAction implements IModelAction {
     const { regionId } = diff.model as AwsRegion;
 
     const accessSG = actionInputs[`resource.sec-grp-${regionId}-access`] as SecurityGroup;
-    accessSG.markDeleted();
+    accessSG.remove();
 
     const internetGateway = actionInputs[`resource.igw-${regionId}`] as InternetGateway;
-    internetGateway.markDeleted();
+    internetGateway.remove();
 
     const vpc = actionInputs[`resource.vpc-${regionId}`] as Vpc;
-    vpc.markDeleted();
+    vpc.remove();
 
     const output: ActionOutputs = {};
     output[vpc.resourceId] = vpc;

@@ -32,12 +32,17 @@ export class UpdateSubnetAssociationModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return (
-      diff.action === DiffAction.UPDATE &&
-      diff.model instanceof AwsSubnet &&
-      diff.model.MODEL_NAME === 'subnet' &&
-      (diff.field === 'association' || diff.field === 'disableSubnetIntraNetwork')
-    );
+    if (diff.model instanceof AwsSubnet && diff.model.MODEL_NAME === 'subnet') {
+      if (diff.field === 'disableSubnetIntraNetwork') {
+        return diff.action === DiffAction.UPDATE;
+      } else if (diff.field === 'sibling') {
+        return diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE;
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
   }
 
   @EnableHook('PostModelActionHook')

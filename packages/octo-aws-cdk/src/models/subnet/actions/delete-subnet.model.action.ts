@@ -36,13 +36,13 @@ export class DeleteSubnetModelAction implements IModelAction {
     const subnet = diff.model as AwsSubnet;
 
     const subnetNAcl = actionInputs[`resource.nacl-${subnet.subnetId}`] as NetworkAcl;
-    subnetNAcl.markDeleted();
+    subnetNAcl.remove();
 
     const subnetRT = actionInputs[`resource.rt-${subnet.subnetId}`] as RouteTable;
-    subnetRT.markDeleted();
+    subnetRT.remove();
 
     const subnetSubnet = actionInputs[`resource.subnet-${subnet.subnetId}`] as Subnet;
-    subnetSubnet.markDeleted();
+    subnetSubnet.remove();
 
     const output: ActionOutputs = {};
     output[subnetSubnet.resourceId] = subnetSubnet;

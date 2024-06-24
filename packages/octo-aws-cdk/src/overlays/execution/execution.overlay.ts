@@ -1,8 +1,8 @@
-import { AOverlay, Diff, DiffAction, DiffUtility, type IOverlay, Overlay } from '@quadnix/octo';
-import type { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
+import { AOverlay, type IOverlay, Overlay } from '@quadnix/octo';
+import { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import type { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import type { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
-import type { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
+import { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
 import { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mount.anchor.js';
 import { TaskDefinitionAnchor } from '../../anchors/task-definition.anchor.js';
 import type { IExecutionOverlayProperties } from './execution.overlay.interface.js';
@@ -28,52 +28,5 @@ export class ExecutionOverlay extends AOverlay<ExecutionOverlay> {
     ],
   ) {
     super(overlayId, properties, anchors);
-  }
-
-  override async diff(previous: ExecutionOverlay): Promise<Diff[]> {
-    const diffs: Diff[] = [];
-
-    // Generate diff of TaskDefinitionAnchor.
-    const previousTaskDefinitionAnchor = previous
-      .getAnchors()
-      .find((a) => a instanceof TaskDefinitionAnchor) as TaskDefinitionAnchor;
-    const currentTaskDefinitionAnchor = this.getAnchors().find(
-      (a) => a instanceof TaskDefinitionAnchor,
-    ) as TaskDefinitionAnchor;
-    if (
-      !DiffUtility.isObjectDeepEquals(previousTaskDefinitionAnchor.properties, currentTaskDefinitionAnchor.properties)
-    ) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', ''));
-    }
-
-    // Generate diff when new SubnetFilesystemMountAnchor is added or removed.
-    const previousSubnetFilesystemMountAnchors = previous
-      .getAnchors()
-      .filter((a) => a instanceof SubnetFilesystemMountAnchor);
-    const currentSubnetFilesystemMountAnchors = this.getAnchors().filter(
-      (a) => a instanceof SubnetFilesystemMountAnchor,
-    );
-    for (const previousSubnetFilesystemMountAnchor of previousSubnetFilesystemMountAnchors) {
-      if (
-        !this.getAnchorByParent(
-          previousSubnetFilesystemMountAnchor.anchorId,
-          previousSubnetFilesystemMountAnchor.getParent(),
-        )
-      ) {
-        diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', ''));
-      }
-    }
-    for (const currentSubnetFilesystemMountAnchor of currentSubnetFilesystemMountAnchors) {
-      if (
-        !previous.getAnchorByParent(
-          currentSubnetFilesystemMountAnchor.anchorId,
-          currentSubnetFilesystemMountAnchor.getParent(),
-        )
-      ) {
-        diffs.push(new Diff(this, DiffAction.UPDATE, 'overlayId', ''));
-      }
-    }
-
-    return diffs;
   }
 }

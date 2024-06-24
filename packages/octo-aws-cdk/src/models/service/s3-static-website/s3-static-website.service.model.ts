@@ -124,7 +124,7 @@ export class S3StaticWebsiteService extends Service {
     }
   }
 
-  override async diff(): Promise<Diff[]> {
+  override async diffProperties(): Promise<Diff[]> {
     const stateManagementService = await Container.get(StateManagementService);
 
     const manifestFileName = `${this.bucketName}-manifest.json`;
@@ -181,9 +181,9 @@ export class S3StaticWebsiteService extends Service {
     return {
       awsRegionId: this.awsRegionId,
       bucketName: this.bucketName,
-      excludePaths: [...this.excludePaths],
+      excludePaths: JSON.parse(JSON.stringify(this.excludePaths)),
       serviceId: `${this.bucketName}-s3-static-website`,
-      sourcePaths: [...this.sourcePaths],
+      sourcePaths: JSON.parse(JSON.stringify(this.sourcePaths)),
     };
   }
 

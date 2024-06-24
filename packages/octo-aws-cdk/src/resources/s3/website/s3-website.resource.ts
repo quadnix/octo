@@ -21,6 +21,11 @@ export class S3Website extends AResource<S3Website> {
       diffs.push(new Diff(this, DiffAction.UPDATE, 'update-source-paths', this.manifestDiff));
     }
 
+    // Empty manifestDiff.
+    for (const key of Object.keys(this.manifestDiff)) {
+      delete this.manifestDiff[key];
+    }
+
     return diffs;
   }
 

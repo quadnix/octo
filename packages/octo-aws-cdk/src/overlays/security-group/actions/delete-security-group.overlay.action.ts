@@ -48,7 +48,7 @@ export class DeleteSecurityGroupOverlayAction implements IModelAction {
 
     for (const resource of securityGroupResources) {
       const securityGroup = actionInputs[resource] as SecurityGroup;
-      securityGroup.markDeleted();
+      securityGroup.remove();
 
       output[securityGroup.resourceId] = securityGroup;
     }

@@ -134,6 +134,7 @@ describe('S3StorageService UT', () => {
              "overlay": S3StorageAccessOverlay {
                "MODEL_NAME": "s3-storage-access-overlay",
                "MODEL_TYPE": "overlay",
+               "_deleteMarker": false,
                "anchors": [
                  {
                    "anchorId": "ServerIamRoleAnchor",
@@ -198,6 +199,7 @@ describe('S3StorageService UT', () => {
              "overlay": S3StorageAccessOverlay {
                "MODEL_NAME": "s3-storage-access-overlay",
                "MODEL_TYPE": "overlay",
+               "_deleteMarker": false,
                "anchors": [
                  {
                    "anchorId": "ServerIamRoleAnchor",

@@ -81,7 +81,7 @@ describe('AwsServer UT', () => {
            {
              "action": "add",
              "field": "resourceId",
-             "value": "iam-role-backend",
+             "value": "iam-role-backend-ServerRole",
            },
          ],
        ]
@@ -106,7 +106,7 @@ describe('AwsServer UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "value": "iam-role-backend",
+             "value": "iam-role-backend-ServerRole",
            },
          ],
        ]
@@ -116,6 +116,10 @@ describe('AwsServer UT', () => {
 
   describe('security groups', () => {
     it('should CRD security groups', () => {
+      const app = new App('test');
+      const server = new AwsServer('backend');
+      app.addServer(server);
+
       const securityGroupRule: Parameters<AwsServer['addSecurityGroupRule']>[0] = {
         CidrBlock: '0.0.0.0/0',
         Egress: true,
@@ -123,12 +127,12 @@ describe('AwsServer UT', () => {
         IpProtocol: 'tcp',
         ToPort: 65535,
       };
-
-      const server = new AwsServer('backend');
       server.addSecurityGroupRule(securityGroupRule);
+
       expect(server.getSecurityGroupRules()).toEqual([securityGroupRule]);
 
       server.removeSecurityGroupRule(securityGroupRule);
+
       expect(server.getSecurityGroupRules()).toEqual([]);
     });
   });

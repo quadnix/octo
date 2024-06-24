@@ -1,29 +1,26 @@
 import { type IServer, Model, Server } from '@quadnix/octo';
 import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
 import { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
-import type { AwsDeployment } from '../deployment/aws.deployment.model.js';
 
 @Model()
 export class AwsServer extends Server {
-  constructor(serverKey: string) {
+  constructor(serverKey: string, _calledFromUnSynth = false) {
     super(serverKey);
 
-    this.anchors.push(new IamRoleAnchor('ServerIamRoleAnchor', { iamRoleName: `${serverKey}-ServerRole` }, this));
-    this.anchors.push(
-      new SecurityGroupAnchor(
-        'SecurityGroupAnchor',
-        { rules: [], securityGroupName: `${serverKey}-SecurityGroup` },
-        this,
-      ),
-    );
-  }
-
-  override addDeployment(deployment: AwsDeployment): void {
-    super.addDeployment(deployment);
+    if (!_calledFromUnSynth) {
+      this.addAnchor(new IamRoleAnchor('ServerIamRoleAnchor', { iamRoleName: `${serverKey}-ServerRole` }, this));
+      this.addAnchor(
+        new SecurityGroupAnchor(
+          'SecurityGroupAnchor',
+          { rules: [], securityGroupName: `${serverKey}-SecurityGroup` },
+          this,
+        ),
+      );
+    }
   }
 
   addSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
-    const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
+    const securityGroupAnchor = this.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
 
     const existingRule = securityGroupAnchor.properties.rules.find(
       (r) =>
@@ -39,13 +36,13 @@ export class AwsServer extends Server {
   }
 
   getSecurityGroupRules(): SecurityGroupAnchor['properties']['rules'] {
-    const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
+    const securityGroupAnchor = this.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
 
     return securityGroupAnchor.properties.rules;
   }
 
   removeSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
-    const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
+    const securityGroupAnchor = this.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
 
     const existingRuleIndex = securityGroupAnchor.properties.rules.findIndex(
       (r) =>
@@ -61,6 +58,6 @@ export class AwsServer extends Server {
   }
 
   static override async unSynth(server: IServer): Promise<AwsServer> {
-    return new AwsServer(server.serverKey);
+    return new AwsServer(server.serverKey, true);
   }
 }

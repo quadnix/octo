@@ -41,7 +41,7 @@ export class DeleteEnvironmentModelAction implements IModelAction {
     const clusterName = [region.regionId, environmentName].join('-');
 
     const ecsCluster = actionInputs[`resource.ecs-cluster-${clusterName}`] as EcsCluster;
-    ecsCluster.markDeleted();
+    ecsCluster.remove();
 
     const output: ActionOutputs = {};
     output[ecsCluster.resourceId] = ecsCluster;

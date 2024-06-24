@@ -43,12 +43,12 @@ export class DeleteExecutionOverlayAction implements IModelAction {
     const ecsService = actionInputs[
       `resource.ecs-service-${properties.regionId}-${properties.serverKey}`
     ] as EcsService;
-    ecsService.markDeleted();
+    ecsService.remove();
 
     const ecsTaskDefinition = actionInputs[
       `resource.ecs-task-definition-${properties.regionId}-${properties.serverKey}-${properties.deploymentTag}`
     ] as EcsTaskDefinition;
-    ecsTaskDefinition.markDeleted();
+    ecsTaskDefinition.remove();
 
     const output: ActionOutputs = {};
     output[ecsService.resourceId] = ecsService;

@@ -3,17 +3,20 @@ import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.
 
 @Model()
 export class AwsEnvironment extends Environment {
-  constructor(environmentName: string) {
+  constructor(environmentName: string, _calledFromUnSynth = false) {
     super(environmentName);
-    this.anchors.push(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', {}, this));
+
+    if (!_calledFromUnSynth) {
+      this.addAnchor(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', {}, this));
+    }
   }
 
-  override async diff(): Promise<Diff[]> {
+  override async diffProperties(): Promise<Diff[]> {
     // Skip diff of environmentVariables, since its done in ExecutionOverlay.
     return [];
   }
 
   static override async unSynth(environment: IEnvironment): Promise<AwsEnvironment> {
-    return new AwsEnvironment(environment.environmentName);
+    return new AwsEnvironment(environment.environmentName, true);
   }
 }

@@ -12,6 +12,7 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
 
   constructor(resourceId: string, properties: IEcsTaskDefinitionProperties, parents: [IamRole, ...Efs[]]) {
     super(resourceId, properties, parents);
+
     this.updateTaskDefinitionEfs(parents.filter((p) => p instanceof Efs) as Efs[]);
   }
 
@@ -21,7 +22,7 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
     // Consolidate all Efs parent updates into a single UPDATE diff.
     let shouldConsolidateEfsDiffs = false;
     for (let i = diffs.length - 1; i >= 0; i--) {
-      if (diffs[i].model instanceof Efs && diffs[i].field === 'parent') {
+      if (diffs[i].field === 'parent' && diffs[i].value instanceof Efs) {
         shouldConsolidateEfsDiffs = true;
         diffs.splice(i, 1);
       }

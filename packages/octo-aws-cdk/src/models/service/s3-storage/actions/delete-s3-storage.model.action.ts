@@ -34,7 +34,7 @@ export class DeleteS3StorageModelAction implements IModelAction {
     const { bucketName } = diff.model as S3StorageService;
 
     const s3Storage = actionInputs[`resource.bucket-${bucketName}`] as S3Storage;
-    s3Storage.markDeleted();
+    s3Storage.remove();
 
     const output: ActionOutputs = {};
     output[s3Storage.resourceId] = s3Storage;

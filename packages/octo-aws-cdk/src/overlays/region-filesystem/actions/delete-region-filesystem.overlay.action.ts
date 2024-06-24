@@ -37,7 +37,7 @@ export class DeleteRegionFilesystemOverlayAction implements IModelAction {
 
     // Delete EFS.
     const efs = actionInputs[`resource.efs-${properties.regionId}-${properties.filesystemName}`] as Efs;
-    efs.markDeleted();
+    efs.remove();
 
     const output: ActionOutputs = {};
     output[efs.resourceId] = efs;
