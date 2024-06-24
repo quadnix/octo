@@ -123,7 +123,7 @@ describe('SharedResource UT', () => {
       const testResource2 = new TestResource('resource-2', { property2: 'property-value-2' }, [parentResource2]);
       const sharedTestResource = new SharedTestResource('shared-test-resource', {}, [testResource1, testResource2]);
 
-      const resources = [parentResource1, testResource1, parentResource2, testResource2, sharedTestResource];
+      const resources = [parentResource1, parentResource2, testResource1, testResource2, sharedTestResource];
       await Container.get(ResourceDataRepository, { args: [true, [], [...resources]] });
 
       const currentSerializedOutput = await resourceSerializationService.serialize();

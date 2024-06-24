@@ -202,6 +202,10 @@ describe('Model Serialization Service UT', () => {
         1,
       );
     });
+
+    it.skip('should not initialize OverlayDataRepository with new overlays marked for deletion', () => {
+      // Ready to implement.
+    });
   });
 
   describe('serialize()', () => {
@@ -227,6 +231,10 @@ describe('Model Serialization Service UT', () => {
 
       const service = await Container.get(ModelSerializationService);
       expect(await service.serialize(app)).toMatchSnapshot();
+    });
+
+    it.skip('should not serialize deleted models', () => {
+      // Ready to implement.
     });
 
     it('should serialize only boundary members', async () => {

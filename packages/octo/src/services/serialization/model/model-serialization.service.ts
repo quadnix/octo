@@ -1,10 +1,10 @@
-import type { IUnknownModel, ModelSerializedOutput, UnknownModel, UnknownOverlay } from '../../../app.type.js';
+import { IUnknownModel, ModelSerializedOutput, ModelType, UnknownModel, UnknownOverlay } from '../../../app.type.js';
 import { Container } from '../../../decorators/container.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
-import type { IAnchor } from '../../../overlays/anchor.interface.js';
 import { Dependency, type IDependency } from '../../../functions/dependency/dependency.js';
-import type { IOverlay } from '../../../overlays/overlay.interface.js';
+import type { IAnchor } from '../../../overlays/anchor.interface.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
+import type { IOverlay } from '../../../overlays/overlay.interface.js';
 
 export class ModelSerializationService {
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
@@ -121,6 +121,10 @@ export class ModelSerializationService {
     for (const model of boundary) {
       // Skip serializing models marked as deleted.
       if (model.isMarkedDeleted()) {
+        if (model.MODEL_TYPE === ModelType.OVERLAY) {
+          this.overlayDataRepository.remove(model as UnknownOverlay);
+        }
+
         continue;
       }
 

@@ -92,7 +92,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
 ]
 `;
 
-exports[`Resource Serialization Service UT serialize() should not serialize resources marked for deletion 1`] = `
+exports[`Resource Serialization Service UT serialize() should not serialize deleted resources 1`] = `
 {
   "dependencies": [],
   "resources": {

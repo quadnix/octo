@@ -250,6 +250,10 @@ describe('Resource Serialization Service UT', () => {
 
       expect(resourceDataRepository['newResources'][0]).not.toEqual(resourceDataRepository['oldResources'][0]);
     });
+
+    it.skip('should not initialize ResourceDataRepository with new resources marked for deletion', () => {
+      // Ready to implement.
+    });
   });
 
   describe('serialize()', () => {
@@ -268,7 +272,7 @@ describe('Resource Serialization Service UT', () => {
       expect(await service.serialize()).toMatchSnapshot();
     });
 
-    it('should not serialize resources marked for deletion', async () => {
+    it('should not serialize deleted resources', async () => {
       const resource1 = new TestResource('resource-1');
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';

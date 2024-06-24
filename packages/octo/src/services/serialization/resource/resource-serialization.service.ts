@@ -109,7 +109,7 @@ export class ResourceSerializationService {
 
     // Refresh the resource data repository.
     await Container.get(ResourceDataRepository, {
-      args: [true, newResources, Object.values(oldResources)],
+      args: [true, Object.values(oldResources), newResources],
     });
   }
 
@@ -127,6 +127,8 @@ export class ResourceSerializationService {
     for (const resource of resources) {
       // Skip serializing resources marked as deleted.
       if (resource.isMarkedDeleted()) {
+        this.resourceDataRepository.remove(resource);
+
         continue;
       }
 
