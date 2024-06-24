@@ -102,11 +102,21 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       const currentSiblings = currentSiblingsByModels[modelName] || [];
 
       for (const pd of previousSiblings) {
+        // Skip OVERLAY sibling, since overlays are diffed separately.
+        if (pd.to.MODEL_TYPE === ModelType.OVERLAY) {
+          continue;
+        }
+
         if (!currentSiblings.find((cd) => cd.to.getContext() === pd.to.getContext())) {
           diffs.push(new Diff(this, DiffAction.DELETE, 'sibling', pd.to));
         }
       }
       for (const cd of currentSiblings) {
+        // Skip OVERLAY sibling, since overlays are diffed separately.
+        if (cd.to.MODEL_TYPE === ModelType.OVERLAY) {
+          continue;
+        }
+
         if (!previousSiblings.find((pd) => pd.to.getContext() === cd.to.getContext())) {
           diffs.push(new Diff(this, DiffAction.ADD, 'sibling', cd.to));
         }
@@ -122,6 +132,11 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       const currentSiblings = currentSiblingsByModels[modelName];
 
       for (const cd of currentSiblings) {
+        // Skip OVERLAY sibling, since overlays are diffed separately.
+        if (cd.to.MODEL_TYPE === ModelType.OVERLAY) {
+          continue;
+        }
+
         diffs.push(new Diff(this, DiffAction.ADD, 'sibling', cd.to));
       }
     }

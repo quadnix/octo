@@ -176,6 +176,14 @@ describe('Model E2E Test', () => {
     });
   });
 
+  describe('diff()', () => {
+    describe('diff of overlay siblings', () => {
+      it.skip('should not produce overlay diffs', () => {
+        // Ready to implement.
+      });
+    });
+  });
+
   describe('getAncestors()', () => {
     it('should not include children as ancestor', () => {
       const app = new App('app');
