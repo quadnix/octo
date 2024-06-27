@@ -355,7 +355,72 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
       "properties": {},
     },
   ],
-  "dependencies": [],
+  "dependencies": [
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "MODEL_NAME",
+          "toField": "overlayId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": undefined,
+      "to": "test-overlay=overlay-1",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "MODEL_NAME",
+          "toField": "overlayId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": undefined,
+      "to": "test-overlay=overlay-1",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "overlayId",
+          "toField": "MODEL_NAME",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "overlayId",
+          "toField": "MODEL_NAME",
+        },
+      ],
+      "from": "test-overlay=overlay-1",
+      "relationship": undefined,
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "overlayId",
+          "toField": "MODEL_NAME",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "overlayId",
+          "toField": "MODEL_NAME",
+        },
+      ],
+      "from": "test-overlay=overlay-1",
+      "relationship": undefined,
+      "to": "app=test-app",
+    },
+  ],
   "models": {
     "app=test-app": {
       "className": "App",

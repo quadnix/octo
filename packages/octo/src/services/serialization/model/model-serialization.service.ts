@@ -48,6 +48,8 @@ export class ModelSerializationService {
       const deserializationClass = this.classMapping[className];
 
       seen[context] = await deserializationClass.unSynth(model, deReferenceContext);
+      seen[context]['context'] = context;
+
       if (deReferencePromises[context] !== undefined) {
         deReferencePromises[context][1](true);
         clearTimeout(deReferencePromises[context][3]);
@@ -56,13 +58,14 @@ export class ModelSerializationService {
       return seen[context];
     };
 
-    // Deserialize all serialized models.
+    // Deserialize all models.
     const promiseToDeserializeModels: Promise<UnknownModel>[] = [];
     for (const context in serializedOutput.models) {
       promiseToDeserializeModels.push(deserializeModel(context));
     }
     await Promise.all(promiseToDeserializeModels);
 
+    // Deserialize all anchors.
     for (const a of serializedOutput.anchors) {
       const { className, parent } = a;
       const deserializationClass = this.classMapping[className];
@@ -71,19 +74,21 @@ export class ModelSerializationService {
       seen[parent.context].addAnchor(anchor);
     }
 
-    for (const d of serializedOutput.dependencies) {
-      const dependency = Dependency.unSynth(seen[d.from], seen[d.to], d);
-      if (!seen[d.from].getDependencies().some((d) => d.from === dependency.from && d.to === dependency.to)) {
-        seen[d.from]['dependencies'].push(dependency);
-      }
-    }
-
     // Deserialize all overlays.
     const overlays: UnknownOverlay[] = [];
     for (const { className, overlay } of serializedOutput.overlays) {
       const deserializationClass = this.classMapping[className];
       const newOverlay = await deserializationClass.unSynth(deserializationClass, overlay, deReferenceContext);
       overlays.push(newOverlay);
+      seen[newOverlay.getContext()] = newOverlay;
+    }
+
+    // Deserialize all dependencies.
+    for (const d of serializedOutput.dependencies) {
+      const dependency = Dependency.unSynth(seen[d.from], seen[d.to], d);
+      if (!seen[d.from].getDependencies().some((d) => d.from === dependency.from && d.to === dependency.to)) {
+        seen[d.from]['dependencies'].push(dependency);
+      }
     }
 
     // If no dependencies to serialize, return the first seen model.
@@ -128,10 +133,6 @@ export class ModelSerializationService {
         continue;
       }
 
-      for (const a of model.getAnchors()) {
-        anchors.push({ ...a.synth(), className: a.constructor.name });
-      }
-
       for (const d of model.getDependencies()) {
         // Skip dependencies that are not part of boundary.
         if (
@@ -144,22 +145,18 @@ export class ModelSerializationService {
         dependencies.push(d.synth());
       }
 
-      const context = model.getContext();
-      if (!models[context]) {
-        models[context] = {
-          className: model.constructor.name,
-          model: model.synth() as IUnknownModel,
-        };
-      }
-    }
+      if (model.MODEL_TYPE === ModelType.MODEL) {
+        const context = model.getContext();
+        if (!models[context]) {
+          models[context] = { className: model.constructor.name, model: model.synth() as IUnknownModel };
+        }
 
-    for (const overlay of this.overlayDataRepository.getByProperties()) {
-      // Skip serializing overlays marked as deleted.
-      if (overlay.isMarkedDeleted()) {
-        continue;
+        for (const a of model.getAnchors()) {
+          anchors.push({ ...a.synth(), className: a.constructor.name });
+        }
+      } else if (model.MODEL_TYPE === ModelType.OVERLAY) {
+        overlays.push({ className: model.constructor.name, overlay: (model as UnknownOverlay).synth() });
       }
-
-      overlays.push({ className: overlay.constructor.name, overlay: overlay.synth() });
     }
 
     return { anchors, dependencies, models, overlays };
