@@ -61,14 +61,14 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     return DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
   }
 
-  override getContext(): string {
-    return `${this.MODEL_NAME}=${this.resourceId}`;
-  }
-
   getSharedResource(): ASharedResource<T> | undefined {
     const sameModelDependencies = this.getChildren(this.MODEL_NAME)[this.MODEL_NAME];
     const sharedResourceDependency = sameModelDependencies?.find((d) => d.to.MODEL_TYPE === ModelType.SHARED_RESOURCE);
     return sharedResourceDependency?.to as ASharedResource<T>;
+  }
+
+  override setContext(): string {
+    return `${this.MODEL_NAME}=${this.resourceId}`;
   }
 
   override synth(): IResource {

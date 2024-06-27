@@ -42,6 +42,15 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     const propertyDiffs = await this.diffProperties(previous);
     diffs.push(...propertyDiffs);
 
+    const anchorDiffs = await this.diffAnchors(previous);
+    diffs.push(...anchorDiffs);
+
+    return diffs;
+  }
+
+  async diffAnchors(previous: T): Promise<Diff[]> {
+    const diffs: Diff[] = [];
+
     // Compare previous anchors with current anchors.
     const previousAnchors = (previous as unknown as UnknownOverlay).getAnchors();
     for (const previousAnchor of previousAnchors) {
@@ -82,10 +91,6 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     return super.getAnchorIndex(anchorId, parent);
   }
 
-  override getContext(): string {
-    return `${this.MODEL_NAME}=${this.overlayId}`;
-  }
-
   override removeAnchor(anchor: AAnchor): void {
     const overlayParentDependencyIndex = this.getDependencies().findIndex(
       (d) => d.to.getContext() === anchor.getParent().getContext(),
@@ -102,6 +107,10 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     }
 
     super.removeAnchor(anchor);
+  }
+
+  override setContext(): string {
+    return `${this.MODEL_NAME}=${this.overlayId}`;
   }
 
   override synth(): IOverlay {

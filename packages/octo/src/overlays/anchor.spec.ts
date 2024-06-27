@@ -3,13 +3,13 @@ import { App } from '../models/app/app.model.js';
 
 describe('Anchor UT', () => {
   it('should not be able to add an anchor twice to the same parent', () => {
-    expect(() => {
-      const app = new App('test');
-      const anchor1_0 = new TestAnchor('anchor-1', {}, app);
-      app.addAnchor(anchor1_0);
-      const anchor1_1 = new TestAnchor('anchor-1', {}, app);
-      app.addAnchor(anchor1_1);
-    }).toThrowErrorMatchingInlineSnapshot(`"Anchor already exists!"`);
+    const app = new App('test');
+    const anchor1_0 = new TestAnchor('anchor-1', {}, app);
+    app.addAnchor(anchor1_0);
+    const anchor1_1 = new TestAnchor('anchor-1', {}, app);
+    app.addAnchor(anchor1_1);
+
+    expect(app.getAnchors().length).toBe(1);
   });
 
   describe('synth()', () => {

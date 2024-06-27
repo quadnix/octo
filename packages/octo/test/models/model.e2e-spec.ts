@@ -313,15 +313,21 @@ describe('Model E2E Test', () => {
       expect(region1.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });
 
-    it('should not include overlays in boundary', () => {
+    it('should include overlays in boundary', () => {
       const app = new App('app');
       const anchor = new TestAnchor('test-anchor', {}, app);
       const overlay = new TestOverlay('test-overlay', {}, [anchor]);
 
-      expect(overlay.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`[]`);
+      expect(overlay.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
+       [
+         "test-overlay=test-overlay",
+         "app=app",
+       ]
+      `);
       expect(app.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
         [
           "app=app",
+          "test-overlay=test-overlay",
         ]
       `);
     });

@@ -18,14 +18,15 @@ export abstract class AModel<I, T> implements IModel<I, T> {
 
   private readonly anchors: AAnchor[] = [];
 
+  private context: string;
+
   private readonly dependencies: Dependency[] = [];
 
   addAnchor(anchor: AAnchor): void {
     const existingAnchor = this.getAnchor(anchor.anchorId, anchor.getParent());
-    if (existingAnchor) {
-      throw new Error('Anchor already exists!');
+    if (!existingAnchor) {
+      this.anchors.push(anchor);
     }
-    this.anchors.push(anchor);
   }
 
   addChild(
@@ -210,19 +211,12 @@ export abstract class AModel<I, T> implements IModel<I, T> {
    * To generate a boundary, we must process all children and grand-children of self.
    */
   getBoundaryMembers(): UnknownModel[] {
-    if (this.MODEL_TYPE !== ModelType.MODEL) {
-      return [];
-    }
-
     const extenders: UnknownModel[] = [this];
     const members: UnknownModel[] = [];
     const parentOf: { [key: string]: string[] } = {};
 
     const pushToExtenders = (models: UnknownModel[]): void => {
       models.forEach((model) => {
-        if (model.MODEL_TYPE !== ModelType.MODEL) {
-          return;
-        }
         if (!members.some((m) => m.getContext() === model.getContext())) {
           extenders.push(model);
         }
@@ -236,10 +230,6 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       for (const ancestor of ancestors) {
         // Skip processing an already processed ancestor.
         if (members.some((m) => m.getContext() === ancestor.getContext())) {
-          continue;
-        }
-        // Skip processing Non-MODEL ancestors.
-        if (ancestor.MODEL_TYPE !== ModelType.MODEL) {
           continue;
         }
         members.push(ancestor);
@@ -319,7 +309,12 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       }, {});
   }
 
-  abstract getContext(): string;
+  getContext(): string {
+    if (!this.context) {
+      this.context = this.setContext();
+    }
+    return this.context;
+  }
 
   getDependencies(to?: UnknownModel): Dependency[] {
     const filters: { key: string; value: string }[] = [];
@@ -463,6 +458,8 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       }
     }
   }
+
+  abstract setContext(): string;
 
   abstract synth(): I;
 
