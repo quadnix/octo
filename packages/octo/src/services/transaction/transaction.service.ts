@@ -164,7 +164,9 @@ export class TransactionService {
   }
 
   private getMatchingDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
-    return diffs.filter((d) => d.model.getContext() === diff.model.getContext());
+    return diffs.filter(
+      (d) => d.model.getContext() === diff.model.getContext() && d.field === diff.field && d.value === diff.value,
+    );
   }
 
   /**
