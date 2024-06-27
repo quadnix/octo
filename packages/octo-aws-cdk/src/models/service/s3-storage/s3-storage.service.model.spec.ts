@@ -149,6 +149,7 @@ describe('S3StorageService UT', () => {
                    "properties": {},
                  },
                ],
+               "context": "s3-storage-access-overlay=s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
                "dependencies": [
                  {
                    "from": "s3-storage-access-overlay=s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
@@ -214,6 +215,7 @@ describe('S3StorageService UT', () => {
                    "properties": {},
                  },
                ],
+               "context": "s3-storage-access-overlay=s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",
                "dependencies": [
                  {
                    "from": "s3-storage-access-overlay=s3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac",

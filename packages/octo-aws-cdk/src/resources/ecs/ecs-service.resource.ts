@@ -28,28 +28,16 @@ export class EcsService extends AResource<EcsService> {
     this.updateServiceSecurityGroups(parents.filter((p) => p instanceof SecurityGroup) as SecurityGroup[]);
 
     const ecsTaskDefinitionParent = parents.find((p) => p instanceof EcsTaskDefinition) as EcsTaskDefinition;
-    const dependencyWithTaskDefinition = this.getDependency(ecsTaskDefinitionParent, DependencyRelationship.CHILD);
-    dependencyWithTaskDefinition?.addBehavior('task-definition', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
-    dependencyWithTaskDefinition?.addBehavior('task-definition', DiffAction.UPDATE, 'resourceId', DiffAction.UPDATE);
+    const ecsToTdDep = this.getDependency(ecsTaskDefinitionParent, DependencyRelationship.CHILD)!;
+
+    // Before updating ecs-service must add ecs-task-definition.
+    ecsToTdDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+    // Before updating ecs-service must update ecs-task-definition.
+    ecsToTdDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.UPDATE);
   }
 
   override async diff(previous: EcsService): Promise<Diff[]> {
     const diffs: Diff[] = await super.diff(previous);
-
-    if (this.servicePropertyDiff && Object.keys(this.servicePropertyDiff).length > 0) {
-      for (const key of Object.keys(this.servicePropertyDiff)) {
-        diffs.push(new Diff(this, DiffAction.UPDATE, key, this.servicePropertyDiff[key]));
-      }
-    }
-
-    // Replace desiredCount property diff with an UPDATE diff.
-    const desiredCountDiffIndex = diffs.findIndex(
-      (d) => d.field === 'properties' && (d.value as { key: keyof IEcsServiceProperties }).key === 'desiredCount',
-    );
-    if (desiredCountDiffIndex > -1) {
-      diffs.splice(desiredCountDiffIndex, 1);
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'ecs-service', ''));
-    }
 
     // Consolidate all SecurityGroup parent updates into a single UPDATE diff.
     let shouldConsolidateSGDiffs = false;
@@ -60,7 +48,22 @@ export class EcsService extends AResource<EcsService> {
       }
     }
     if (shouldConsolidateSGDiffs) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'ecs-service', ''));
+      diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', ''));
+    }
+
+    return diffs;
+  }
+
+  override async diffProperties(previous: EcsService): Promise<Diff[]> {
+    const diffs: Diff[] = [];
+
+    if (this.servicePropertyDiff && Object.keys(this.servicePropertyDiff).length > 0) {
+      diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', ''));
+    }
+
+    // Diff desiredCount.
+    if (previous.properties.desiredCount !== this.properties.desiredCount) {
+      diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', ''));
     }
 
     // Empty servicePropertyDiff.
@@ -86,9 +89,16 @@ export class EcsService extends AResource<EcsService> {
       sgParent.removeRelationship(this);
     }
     for (const sgParent of securityGroupParents) {
-      sgParent.addChild('resourceId', this, 'resourceId');
-      const dependency = this.getDependency(sgParent, DependencyRelationship.CHILD);
-      dependency?.addBehavior('ecs-service', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+      const { childToParentDependency: ecsToSgDep, parentToChildDependency: sgToEcsDep } = sgParent.addChild(
+        'resourceId',
+        this,
+        'resourceId',
+      );
+
+      // Before updating ecs-service must add security-groups.
+      ecsToSgDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+      // Before deleting security-groups must update ecs-service.
+      sgToEcsDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
     }
   }
 }

@@ -14,7 +14,7 @@ export class S3Website extends AResource<S3Website> {
     super(resourceId, properties, []);
   }
 
-  override async diff(): Promise<Diff[]> {
+  override async diffProperties(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {

@@ -4,19 +4,17 @@ import { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
 
 @Model()
 export class AwsServer extends Server {
-  constructor(serverKey: string, _calledFromUnSynth = false) {
+  constructor(serverKey: string) {
     super(serverKey);
 
-    if (!_calledFromUnSynth) {
-      this.addAnchor(new IamRoleAnchor('ServerIamRoleAnchor', { iamRoleName: `${serverKey}-ServerRole` }, this));
-      this.addAnchor(
-        new SecurityGroupAnchor(
-          'SecurityGroupAnchor',
-          { rules: [], securityGroupName: `${serverKey}-SecurityGroup` },
-          this,
-        ),
-      );
-    }
+    this.addAnchor(new IamRoleAnchor('ServerIamRoleAnchor', { iamRoleName: `${serverKey}-ServerRole` }, this));
+    this.addAnchor(
+      new SecurityGroupAnchor(
+        'SecurityGroupAnchor',
+        { rules: [], securityGroupName: `${serverKey}-SecurityGroup` },
+        this,
+      ),
+    );
   }
 
   addSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
@@ -58,6 +56,6 @@ export class AwsServer extends Server {
   }
 
   static override async unSynth(server: IServer): Promise<AwsServer> {
-    return new AwsServer(server.serverKey, true);
+    return new AwsServer(server.serverKey);
   }
 }

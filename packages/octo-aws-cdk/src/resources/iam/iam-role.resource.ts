@@ -18,7 +18,7 @@ export class IamRole extends AResource<IamRole> {
     super(resourceId, properties, []);
   }
 
-  override async diff(): Promise<Diff[]> {
+  override async diffProperties(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     if (this.policyDiff && Object.keys(this.policyDiff).length > 0) {

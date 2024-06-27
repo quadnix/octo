@@ -4,19 +4,17 @@ import type { IAwsDeployment } from './aws.deployment.interface.js';
 
 @Model()
 export class AwsDeployment extends Deployment {
-  constructor(deploymentTag: string, _calledFromUnSynth = false) {
+  constructor(deploymentTag: string) {
     super(deploymentTag);
 
-    if (!_calledFromUnSynth) {
-      const taskDefinitionAnchorId = 'TaskDefinitionAnchor';
-      this.addAnchor(
-        new TaskDefinitionAnchor(taskDefinitionAnchorId, { image: { command: '', ports: [], uri: '' } }, this),
-      );
-    }
+    const taskDefinitionAnchorId = 'TaskDefinitionAnchor';
+    this.addAnchor(
+      new TaskDefinitionAnchor(taskDefinitionAnchorId, { image: { command: '', ports: [], uri: '' } }, this),
+    );
   }
 
   static override async unSynth(awsDeployment: IAwsDeployment): Promise<AwsDeployment> {
-    return new AwsDeployment(awsDeployment.deploymentTag, true);
+    return new AwsDeployment(awsDeployment.deploymentTag);
   }
 
   updateDeploymentImage(image: TaskDefinitionAnchor['properties']['image']): void {

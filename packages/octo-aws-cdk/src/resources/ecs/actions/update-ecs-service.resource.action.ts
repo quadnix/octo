@@ -3,6 +3,7 @@ import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, Mod
 import type { SecurityGroup } from '../../security-group/security-group.resource.js';
 import type { Subnet } from '../../subnet/subnet.resource.js';
 import { EcsService } from '../ecs-service.resource.js';
+import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
 @Action(ModelType.RESOURCE)
 export class UpdateEcsServiceResourceAction implements IResourceAction {
@@ -10,10 +11,7 @@ export class UpdateEcsServiceResourceAction implements IResourceAction {
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.UPDATE &&
-      diff.model instanceof EcsService &&
-      diff.model.MODEL_NAME === 'ecs-service' &&
-      diff.field === 'ecs-service'
+      diff.action === DiffAction.UPDATE && diff.model instanceof EcsService && diff.model.MODEL_NAME === 'ecs-service'
     );
   }
 
@@ -22,6 +20,9 @@ export class UpdateEcsServiceResourceAction implements IResourceAction {
     const ecsService = diff.model as EcsService;
     const parents = ecsService.getParents();
     const properties = ecsService.properties;
+
+    const ecsTaskDefinition = parents['ecs-task-definition'][0].to as EcsTaskDefinition;
+    const ecsTaskDefinitionResponse = ecsTaskDefinition.response;
 
     const subnet = parents['subnet'][0].to as Subnet;
     const subnetResponse = subnet.response;
@@ -43,6 +44,7 @@ export class UpdateEcsServiceResourceAction implements IResourceAction {
           },
         },
         service: properties.serviceName,
+        taskDefinition: ecsTaskDefinitionResponse.taskDefinitionArn,
       }),
     );
   }
