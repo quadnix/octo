@@ -1,6 +1,5 @@
 import {
   Container,
-  DependencyRelationship,
   Diff,
   DiffAction,
   Execution,
@@ -17,6 +16,7 @@ import { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mou
 import { TaskDefinitionAnchor } from '../../anchors/task-definition.anchor.js';
 import { ExecutionOverlay } from '../../overlays/execution/execution.overlay.js';
 import { SecurityGroupOverlay } from '../../overlays/security-group/security-group.overlay.js';
+import { SubnetFilesystemMountOverlay } from '../../overlays/subnet-filesystem-mount/subnet-filesystem-mount.overlay.js';
 import type { AwsDeployment } from '../deployment/aws.deployment.model.js';
 import type { AwsEnvironment } from '../environment/aws.environment.model.js';
 import type { AwsRegion } from '../region/aws.region.model.js';
@@ -26,12 +26,13 @@ import type { AwsSubnet } from '../subnet/aws.subnet.model.js';
 @Model()
 export class AwsExecution extends Execution {
   constructor(deployment: AwsDeployment, environment: AwsEnvironment, subnet: AwsSubnet, _calledFromUnSynth = false) {
-    super(deployment, environment, subnet, _calledFromUnSynth);
+    super(deployment, environment, subnet);
 
+    // Skip creation of these anchors during unSynth() since dependencies are not available at this time.
     if (!_calledFromUnSynth) {
-      this.anchors.push(new EcsServiceAnchor('EcsServiceAnchor', { desiredCount: 1 }, this));
-      this.anchors.push(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', {}, this));
-      this.anchors.push(
+      this.addAnchor(new EcsServiceAnchor('EcsServiceAnchor', { desiredCount: 1 }, this));
+      this.addAnchor(new EnvironmentVariablesAnchor('EnvironmentVariablesAnchor', {}, this));
+      this.addAnchor(
         new SecurityGroupAnchor(
           'SecurityGroupAnchor',
           { rules: [], securityGroupName: `${this.executionId}-SecurityGroup` },
@@ -42,7 +43,7 @@ export class AwsExecution extends Execution {
   }
 
   addSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
-    const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
+    const securityGroupAnchor = this.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
 
     const existingRule = securityGroupAnchor.properties.rules.find(
       (r) =>
@@ -57,13 +58,25 @@ export class AwsExecution extends Execution {
     }
   }
 
-  override async diff(): Promise<Diff[]> {
+  async destroy(): Promise<void> {
+    const overlayService = await Container.get(OverlayService);
+
+    const executionOverlayId = `execution-overlay-${this.executionId}`;
+    const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
+    overlayService.removeOverlay(executionOverlay);
+
+    const securityGroupOverlayId = `security-group-overlay-${this.executionId}`;
+    const securityGroupOverlay = overlayService.getOverlayById(securityGroupOverlayId) as SecurityGroupOverlay;
+    overlayService.removeOverlay(securityGroupOverlay);
+  }
+
+  override async diffProperties(): Promise<Diff[]> {
     // Skip diff of environmentVariables, since its done in ExecutionOverlay.
     return [];
   }
 
   getSecurityGroupRules(): SecurityGroupAnchor['properties']['rules'] {
-    const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
+    const securityGroupAnchor = this.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
 
     return securityGroupAnchor.properties.rules;
   }
@@ -78,36 +91,24 @@ export class AwsExecution extends Execution {
     const region = environment.getParents()['region'][0].to as AwsRegion;
     const subnet = parents['subnet'][0].to as AwsSubnet;
 
-    // ECS Service Anchors.
-    const ecsServiceAnchor = this.getAnchors().find((a) => a instanceof EcsServiceAnchor) as EcsServiceAnchor;
+    // Deployment Anchor - TaskDefinitionAnchor.
+    const taskDefinitionAnchor = deployment.getAnchor('TaskDefinitionAnchor') as TaskDefinitionAnchor;
+    // Environment Anchor - EnvironmentVariablesAnchor.
+    const environmentEVAnchor = environment.getAnchor('EnvironmentVariablesAnchor') as EnvironmentVariablesAnchor;
+    // Execution Anchor - EcsServiceAnchor.
+    const ecsServiceAnchor = this.getAnchor('EcsServiceAnchor') as EcsServiceAnchor;
+    // Execution Anchor - EnvironmentVariablesAnchor.
+    const executionEVAnchor = this.getAnchor('EnvironmentVariablesAnchor') as EnvironmentVariablesAnchor;
+    // Execution Anchor - SecurityGroupAnchor.
+    const executionSecurityGroupAnchor = this.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
+    // Server Anchor - ServerIamRoleAnchor.
+    const serverIamRoleAnchor = server.getAnchor('ServerIamRoleAnchor') as IamRoleAnchor;
+    // Server Anchor - SecurityGroupAnchor.
+    const serverSecurityGroupAnchor = server.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
 
-    // ECS TaskDefinition Anchors.
-    const taskDefinitionAnchor = deployment
-      .getAnchors()
-      .find((a) => a instanceof TaskDefinitionAnchor) as TaskDefinitionAnchor;
-
-    // Environment Variables Anchors.
-    const environmentEVAnchor = environment
-      .getAnchors()
-      .find((a) => a instanceof EnvironmentVariablesAnchor) as EnvironmentVariablesAnchor;
-    const executionEVAnchor = this.getAnchors().find(
-      (a) => a instanceof EnvironmentVariablesAnchor,
-    ) as EnvironmentVariablesAnchor;
-
-    // IAM Role Anchors.
-    const serverIamRoleAnchor = server.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
-
-    // Security Group Anchors.
-    const executionSecurityGroupAnchor = this.anchors.find(
-      (a) => a instanceof SecurityGroupAnchor,
-    ) as SecurityGroupAnchor;
-    const serverSecurityGroupAnchor = server
-      .getAnchors()
-      .find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
-
-    // Add ServerExecutionSecurityGroupOverlay.
+    // Add SecurityGroupOverlay for security group lifecycle.
     const securityGroupOverlayId = `security-group-overlay-${this.executionId}`;
-    const serverExecutionSecurityGroupOverlay = new SecurityGroupOverlay(
+    const securityGroupOverlay = new SecurityGroupOverlay(
       securityGroupOverlayId,
       {
         awsRegionId: region.awsRegionId,
@@ -115,9 +116,9 @@ export class AwsExecution extends Execution {
       },
       [serverSecurityGroupAnchor, executionSecurityGroupAnchor],
     );
-    overlayService.addOverlay(serverExecutionSecurityGroupOverlay);
+    overlayService.addOverlay(securityGroupOverlay);
 
-    // Add ExecutionOverlay.
+    // Add ExecutionOverlay for container lifecycle.
     const executionOverlayId = `execution-overlay-${this.executionId}`;
     const executionOverlay = new ExecutionOverlay(
       executionOverlayId,
@@ -140,6 +141,17 @@ export class AwsExecution extends Execution {
       ],
     );
     overlayService.addOverlay(executionOverlay);
+
+    // ExecutionOverlay vs SecurityGroupOverlay relationship.
+    const { childToParentDependency: execToSecDep, parentToChildDependency: SecToExecDep } =
+      securityGroupOverlay.addChild('overlayId', executionOverlay, 'overlayId');
+
+    // Before updating execution must add security-groups.
+    execToSecDep.addBehavior('anchor', DiffAction.UPDATE, 'anchor', DiffAction.ADD);
+    // Before updating execution must update security-groups.
+    execToSecDep.addBehavior('anchor', DiffAction.UPDATE, 'anchor', DiffAction.UPDATE);
+    // Before deleting security-groups must update execution.
+    SecToExecDep.addBehavior('anchor', DiffAction.DELETE, 'anchor', DiffAction.UPDATE);
   }
 
   async mountFilesystem(filesystemName: string): Promise<void> {
@@ -151,31 +163,35 @@ export class AwsExecution extends Execution {
 
     const overlayService = await Container.get(OverlayService);
 
-    const subnetFilesystemMountAnchor = subnet.getAnchorById(
+    const subnetFilesystemMountAnchor = subnet.getAnchor(
       filesystemMount.filesystemMountAnchorName,
     ) as SubnetFilesystemMountAnchor;
 
     // eslint-disable-next-line max-len
     const subnetFilesystemMountOverlayId = `subnet-filesystem-mount-overlay-${filesystemMount.filesystemMountAnchorName}`;
-    const subnetFilesystemMountOverlay = overlayService.getOverlayById(subnetFilesystemMountOverlayId);
-    if (!subnetFilesystemMountAnchor || !subnetFilesystemMountOverlay) {
-      throw new Error('Filesystem not found in AWS subnet!');
-    }
+    const subnetFilesystemMountOverlay = overlayService.getOverlayById(
+      subnetFilesystemMountOverlayId,
+    ) as SubnetFilesystemMountOverlay;
 
+    // Update ExecutionOverlay with SubnetFilesystemMountAnchor anchor.
     const executionOverlayId = `execution-overlay-${this.executionId}`;
     const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
     executionOverlay.addAnchor(subnetFilesystemMountAnchor);
 
-    subnetFilesystemMountOverlay.addChild('overlayId', executionOverlay, 'overlayId');
-    const executionOverlayDependency = executionOverlay.getDependency(
-      subnetFilesystemMountOverlay,
-      DependencyRelationship.CHILD,
-    );
-    executionOverlayDependency?.addBehavior('overlayId', DiffAction.UPDATE, 'overlayId', DiffAction.ADD);
+    // ExecutionOverlay vs SubnetFilesystemMountOverlay relationship.
+    const { childToParentDependency: execToSubDep, parentToChildDependency: subToExecDep } =
+      subnetFilesystemMountOverlay.addChild('overlayId', executionOverlay, 'overlayId');
+
+    // Before adding ecs-task-definition must add filesystem.
+    execToSubDep.addBehavior('anchor', DiffAction.ADD, 'overlayId', DiffAction.ADD);
+    // Before updating ecs-task-definition must add filesystem.
+    execToSubDep.addBehavior('anchor', DiffAction.UPDATE, 'overlayId', DiffAction.ADD);
+    // Before deleting filesystem must update ecs-task-definition.
+    subToExecDep.addBehavior('overlayId', DiffAction.DELETE, 'anchor', DiffAction.UPDATE);
   }
 
   removeSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
-    const securityGroupAnchor = this.anchors.find((a) => a instanceof SecurityGroupAnchor) as SecurityGroupAnchor;
+    const securityGroupAnchor = this.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
 
     const existingRuleIndex = securityGroupAnchor.properties.rules.findIndex(
       (r) =>
@@ -185,7 +201,7 @@ export class AwsExecution extends Execution {
         r.IpProtocol === rule.IpProtocol &&
         r.ToPort === rule.ToPort,
     );
-    if (existingRuleIndex) {
+    if (existingRuleIndex > -1) {
       securityGroupAnchor.properties.rules.splice(existingRuleIndex, 1);
     }
   }
@@ -199,25 +215,27 @@ export class AwsExecution extends Execution {
 
     const overlayService = await Container.get(OverlayService);
 
-    const subnetFilesystemMountAnchor = subnet.getAnchorById(
+    const subnetFilesystemMountAnchor = subnet.getAnchor(
       filesystemMount.filesystemMountAnchorName,
     ) as SubnetFilesystemMountAnchor;
 
     // eslint-disable-next-line max-len
     const subnetFilesystemMountOverlayId = `subnet-filesystem-mount-overlay-${filesystemMount.filesystemMountAnchorName}`;
-    const subnetFilesystemMountOverlay = overlayService.getOverlayById(subnetFilesystemMountOverlayId);
-    if (!subnetFilesystemMountAnchor || !subnetFilesystemMountOverlay) {
-      throw new Error('Filesystem not found in AWS subnet!');
-    }
+    const subnetFilesystemMountOverlay = overlayService.getOverlayById(
+      subnetFilesystemMountOverlayId,
+    ) as SubnetFilesystemMountOverlay;
 
+    // Update ExecutionOverlay with SubnetFilesystemMountAnchor anchor.
     const executionOverlayId = `execution-overlay-${this.executionId}`;
     const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
     executionOverlay.removeAnchor(subnetFilesystemMountAnchor);
+
+    // ExecutionOverlay vs SubnetFilesystemMountOverlay relationship.
     subnetFilesystemMountOverlay.removeRelationship(executionOverlay);
   }
 
   updateDesiredCount(desiredCount: number): void {
-    const ecsServiceAnchor = this.getAnchors().find((a) => a instanceof EcsServiceAnchor) as EcsServiceAnchor;
+    const ecsServiceAnchor = this.getAnchor('EcsServiceAnchor') as EcsServiceAnchor;
     ecsServiceAnchor.properties.desiredCount = desiredCount;
   }
 

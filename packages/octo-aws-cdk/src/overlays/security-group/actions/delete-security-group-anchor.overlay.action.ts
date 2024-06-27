@@ -19,7 +19,7 @@ export class DeleteSecurityGroupAnchorOverlayAction implements IModelAction {
   collectInput(diff: Diff): string[] {
     const anchor = diff.value as SecurityGroupAnchor;
 
-    return [`resource.sec-grp-${anchor.properties.securityGroupName}`];
+    return anchor.properties.rules.length > 0 ? [`resource.sec-grp-${anchor.properties.securityGroupName}`] : [];
   }
 
   filter(diff: Diff): boolean {
@@ -34,11 +34,13 @@ export class DeleteSecurityGroupAnchorOverlayAction implements IModelAction {
   async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
     const anchor = diff.value as SecurityGroupAnchor;
 
-    const securityGroup = actionInputs[`resource.sec-grp-${anchor.properties.securityGroupName}`] as SecurityGroup;
-    securityGroup.remove();
-
     const output: ActionOutputs = {};
-    output[securityGroup.resourceId] = securityGroup;
+
+    if (anchor.properties.rules.length > 0) {
+      const securityGroup = actionInputs[`resource.sec-grp-${anchor.properties.securityGroupName}`] as SecurityGroup;
+      securityGroup.remove();
+      output[securityGroup.resourceId] = securityGroup;
+    }
 
     return output;
   }

@@ -13,7 +13,7 @@ export class S3Storage extends AResource<S3Storage> {
     super(resourceId, properties, []);
   }
 
-  override async diff(): Promise<Diff[]> {
+  override async diffProperties(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {

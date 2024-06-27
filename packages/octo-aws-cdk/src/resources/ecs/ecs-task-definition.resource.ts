@@ -1,4 +1,4 @@
-import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
 import { Efs } from '../efs/efs.resource.js';
 import type { IamRole } from '../iam/iam-role.resource.js';
 import type { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from './ecs-task-definition.interface.js';
@@ -40,9 +40,16 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
       efsParent.removeRelationship(this);
     }
     for (const efsParent of efsParents) {
-      efsParent.addChild('resourceId', this, 'resourceId');
-      const dependency = this.getDependency(efsParent, DependencyRelationship.CHILD);
-      dependency?.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+      const { childToParentDependency: tdToEfsDep, parentToChildDependency: efsToTdDep } = efsParent.addChild(
+        'resourceId',
+        this,
+        'resourceId',
+      );
+
+      // Before updating ecs-task-definition must add efs.
+      tdToEfsDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+      // Before deleting efs must update ecs-task-definition.
+      efsToTdDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
     }
   }
 
