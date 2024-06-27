@@ -32,7 +32,7 @@ export class Server extends AModel<IServer, Server> {
     return [];
   }
 
-  override getContext(): string {
+  override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
     return [`${this.MODEL_NAME}=${this.serverKey}`, app.getContext()].join(',');

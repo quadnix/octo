@@ -17,16 +17,18 @@ export class Execution extends AModel<IExecution, Execution> {
 
   readonly environmentVariables: Map<string, string> = new Map();
 
-  constructor(deployment: Deployment, environment: Environment, subnet: Subnet, _calledFromUnSynth = false) {
+  constructor(deployment: Deployment, environment: Environment, subnet: Subnet) {
     super();
 
     // Check if execution can be placed in this subnet.
-    if (!_calledFromUnSynth) {
-      const environmentRegion = environment.getParents('region')['region'][0].to as Region;
-      const subnetRegion = subnet.getParents('region')['region'][0].to as Region;
-      if (environmentRegion.regionId !== subnetRegion.regionId) {
-        throw new Error('Environment and Subnet must be in the same region!');
-      }
+    const environmentRegions = environment.getParents('region')['region'] || [];
+    const subnetRegions = subnet.getParents('region')['region'] || [];
+    if (
+      environmentRegions.length > 0 &&
+      subnetRegions.length > 0 &&
+      (environmentRegions[0].to as Region).regionId !== (subnetRegions[0].to as Region).regionId
+    ) {
+      throw new Error('Environment and Subnet must be in the same region!');
     }
 
     // Check for duplicates.
@@ -80,7 +82,7 @@ export class Execution extends AModel<IExecution, Execution> {
     return DiffUtility.diffMap(previous, this, 'environmentVariables');
   }
 
-  override getContext(): string {
+  override setContext(): string {
     const parents = this.getParents();
     const deployment = parents['deployment'][0]['to'] as Deployment;
     const environment = parents['environment'][0]['to'] as Environment;
@@ -116,7 +118,7 @@ export class Execution extends AModel<IExecution, Execution> {
       deReferenceContext(execution.environment.context),
       deReferenceContext(execution.subnet.context),
     ])) as [Deployment, Environment, Subnet];
-    const newExecution = new Execution(deployment, environment, subnet, true);
+    const newExecution = new Execution(deployment, environment, subnet);
 
     for (const [key, value] of Object.entries(execution.environmentVariables)) {
       newExecution.environmentVariables.set(key, value);

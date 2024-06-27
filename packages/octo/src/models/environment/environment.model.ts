@@ -22,7 +22,7 @@ export class Environment extends AModel<IEnvironment, Environment> {
     return DiffUtility.diffMap(previous, this, 'environmentVariables');
   }
 
-  override getContext(): string {
+  override setContext(): string {
     const parents = this.getParents();
     const region = parents['region'][0].to;
     return [`${this.MODEL_NAME}=${this.environmentName}`, region.getContext()].join(',');

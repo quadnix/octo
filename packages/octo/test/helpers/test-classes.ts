@@ -47,7 +47,7 @@ export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsy
     return [];
   }
 
-  override getContext(): string {
+  override setContext(): string {
     return 'test-model=test';
   }
 

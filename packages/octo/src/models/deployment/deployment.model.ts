@@ -19,7 +19,7 @@ export class Deployment extends AModel<IDeployment, Deployment> {
     return [];
   }
 
-  override getContext(): string {
+  override setContext(): string {
     const parents = this.getParents();
     const parent = parents['server'][0].to;
     return [`${this.MODEL_NAME}=${this.deploymentTag}`, parent.getContext()].join(',');

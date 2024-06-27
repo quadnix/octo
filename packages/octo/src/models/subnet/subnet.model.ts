@@ -60,7 +60,7 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     return diffs;
   }
 
-  override getContext(): string {
+  override setContext(): string {
     const parents = this.getParents();
     const region = parents['region'][0].to;
     return [`${this.MODEL_NAME}=${this.subnetId}`, region.getContext()].join(',');

@@ -28,7 +28,7 @@ export interface IModel<I, T> {
   /**
    * Generates a string representation of self, used to identify the uniqueness of the instance.
    */
-  getContext(): string;
+  setContext(): string;
 
   /**
    * Generate a serializable representation of self as per model's interface.

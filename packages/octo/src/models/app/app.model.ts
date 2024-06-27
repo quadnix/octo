@@ -84,7 +84,7 @@ export class App extends AModel<IApp, App> {
     this.addChild('name', service, 'serviceId');
   }
 
-  override getContext(): string {
+  override setContext(): string {
     return `${this.MODEL_NAME}=${this.name}`;
   }
 

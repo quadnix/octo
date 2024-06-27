@@ -37,7 +37,7 @@ export class Image extends AModel<IImage, Image> {
     return [];
   }
 
-  override getContext(): string {
+  override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
     return [`${this.MODEL_NAME}=${this.imageId}`, app.getContext()].join(',');
