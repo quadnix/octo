@@ -361,6 +361,39 @@ describe('Overlay UT', () => {
     });
   });
 
+  describe('remove()', () => {
+    it('should be able to mark an overlay as deleted', async () => {
+      const app = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      const overlayService = await Container.get(OverlayService);
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1]);
+      overlayService.addOverlay(overlay1);
+
+      overlay1.remove();
+
+      const overlay1_1 = overlayService.getOverlayById('overlay-1')!;
+      expect(overlay1_1).not.toBe(undefined);
+      expect(overlay1_1.isMarkedDeleted()).toBe(true);
+    });
+
+    it('should be able to completely remove an overlay from repository', async () => {
+      const app = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      const overlayService = await Container.get(OverlayService);
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1]);
+      overlayService.addOverlay(overlay1);
+
+      overlayService.removeOverlay(overlay1);
+
+      const overlay1_1 = overlayService.getOverlayById('overlay-1')!;
+      expect(overlay1_1).toBe(undefined);
+    });
+  });
+
   describe('removeAnchor()', () => {
     it('should remove dependency between overlay and anchor parents', () => {
       const app1 = new App('test1');

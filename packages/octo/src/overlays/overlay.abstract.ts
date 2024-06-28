@@ -91,6 +91,11 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     return super.getAnchorIndex(anchorId, parent);
   }
 
+  override remove(ignoreDirectRelationships: boolean = false): void {
+    this.removeAllAnchors();
+    super.remove(ignoreDirectRelationships);
+  }
+
   override removeAnchor(anchor: AAnchor): void {
     const overlayParentDependencyIndex = this.getDependencies().findIndex(
       (d) => d.to.getContext() === anchor.getParent().getContext(),
