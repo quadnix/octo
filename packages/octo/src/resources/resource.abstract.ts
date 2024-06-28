@@ -1,4 +1,5 @@
 import { ModelType, type UnknownResource } from '../app.type.js';
+import { type Dependency } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
@@ -25,6 +26,10 @@ export abstract class AResource<T> extends AModel<IResource, T> {
 
   override addAnchor(): void {
     throw new Error('Anchors are not supported in resources!');
+  }
+
+  override addRelationship(): { thatToThisDependency: Dependency; thisToThatDependency: Dependency } {
+    throw new Error('Relationships are not supported in resources!');
   }
 
   // @ts-expect-error since this overridden diff() is always called with previous.
