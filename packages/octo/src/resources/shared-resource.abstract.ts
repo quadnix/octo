@@ -5,7 +5,7 @@ import { AResource } from './resource.abstract.js';
 export abstract class ASharedResource<T> extends AResource<T> {
   override readonly MODEL_TYPE: ModelType = ModelType.SHARED_RESOURCE;
 
-  async diff(): Promise<Diff[]> {
+  override async diff(): Promise<Diff[]> {
     return [];
   }
 

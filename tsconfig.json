@@ -11,6 +11,7 @@
     "moduleResolution": "Node16",
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
+    "noImplicitOverride": true,
     "outDir": "./dist",
     "removeComments": true,
     "skipLibCheck": true,
