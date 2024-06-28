@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`Model Serialization Service UT serialize() should not serialize deleted models 1`] = `
+{
+  "anchors": [],
+  "dependencies": [],
+  "models": {},
+  "overlays": [],
+}
+`;
+
 exports[`Model Serialization Service UT serialize() should serialize a non-empty app 1`] = `
 {
   "anchors": [],
@@ -212,6 +221,31 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
 exports[`Model Serialization Service UT serialize() should serialize an empty app 1`] = `
 {
   "anchors": [],
+  "dependencies": [],
+  "models": {
+    "app=test-app": {
+      "className": "App",
+      "model": {
+        "name": "test-app",
+      },
+    },
+  },
+  "overlays": [],
+}
+`;
+
+exports[`Model Serialization Service UT serialize() should serialize model anchors 1`] = `
+{
+  "anchors": [
+    {
+      "anchorId": "anchor-1",
+      "className": "TestAnchor",
+      "parent": {
+        "context": "app=test-app",
+      },
+      "properties": {},
+    },
+  ],
   "dependencies": [],
   "models": {
     "app=test-app": {
@@ -457,129 +491,102 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
 }
 `;
 
-exports[`Model Serialization Service UT serialize() should serialize when multiple models have dependency on same model 1`] = `
+exports[`Model Serialization Service UT serialize() should serialize two overlay dependencies with each other 1`] = `
 {
-  "anchors": [],
+  "anchors": [
+    {
+      "anchorId": "anchor-1",
+      "className": "TestAnchor",
+      "parent": {
+        "context": "app=test-app",
+      },
+      "properties": {},
+    },
+    {
+      "anchorId": "anchor-2",
+      "className": "TestAnchor",
+      "parent": {
+        "context": "app=test-app",
+      },
+      "properties": {},
+    },
+  ],
   "dependencies": [
     {
       "behaviors": [
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "name",
-          "toField": "regionId",
+          "onField": "MODEL_NAME",
+          "toField": "overlayId",
         },
       ],
       "from": "app=test-app",
-      "relationship": {
-        "onField": "name",
-        "toField": "regionId",
-        "type": "parent",
-      },
-      "to": "region=region,app=test-app",
+      "relationship": undefined,
+      "to": "test-overlay=overlay-1",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "MODEL_NAME",
+          "toField": "overlayId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": undefined,
+      "to": "test-overlay=overlay-2",
     },
     {
       "behaviors": [
         {
           "forAction": "add",
           "onAction": "add",
-          "onField": "regionId",
-          "toField": "name",
+          "onField": "overlayId",
+          "toField": "MODEL_NAME",
         },
         {
           "forAction": "update",
           "onAction": "add",
-          "onField": "regionId",
-          "toField": "name",
+          "onField": "overlayId",
+          "toField": "MODEL_NAME",
         },
       ],
-      "from": "region=region,app=test-app",
-      "relationship": {
-        "onField": "regionId",
-        "toField": "name",
-        "type": "child",
-      },
+      "from": "test-overlay=overlay-2",
+      "relationship": undefined,
       "to": "app=test-app",
     },
     {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "regionId",
-          "toField": "subnetId",
-        },
-      ],
-      "from": "region=region,app=test-app",
-      "relationship": {
-        "onField": "regionId",
-        "toField": "subnetId",
-        "type": "parent",
-      },
-      "to": "subnet=region-private,region=region,app=test-app",
-    },
-    {
-      "behaviors": [
-        {
-          "forAction": "delete",
-          "onAction": "delete",
-          "onField": "regionId",
-          "toField": "subnetId",
-        },
-      ],
-      "from": "region=region,app=test-app",
-      "relationship": {
-        "onField": "regionId",
-        "toField": "subnetId",
-        "type": "parent",
-      },
-      "to": "subnet=region-public,region=region,app=test-app",
+      "behaviors": [],
+      "from": "test-overlay=overlay-2",
+      "relationship": undefined,
+      "to": "test-overlay=overlay-1",
     },
     {
       "behaviors": [
         {
           "forAction": "add",
           "onAction": "add",
-          "onField": "subnetId",
-          "toField": "regionId",
+          "onField": "overlayId",
+          "toField": "MODEL_NAME",
         },
         {
           "forAction": "update",
           "onAction": "add",
-          "onField": "subnetId",
-          "toField": "regionId",
+          "onField": "overlayId",
+          "toField": "MODEL_NAME",
         },
       ],
-      "from": "subnet=region-public,region=region,app=test-app",
-      "relationship": {
-        "onField": "subnetId",
-        "toField": "regionId",
-        "type": "child",
-      },
-      "to": "region=region,app=test-app",
+      "from": "test-overlay=overlay-1",
+      "relationship": undefined,
+      "to": "app=test-app",
     },
     {
-      "behaviors": [
-        {
-          "forAction": "add",
-          "onAction": "add",
-          "onField": "subnetId",
-          "toField": "regionId",
-        },
-        {
-          "forAction": "update",
-          "onAction": "add",
-          "onField": "subnetId",
-          "toField": "regionId",
-        },
-      ],
-      "from": "subnet=region-private,region=region,app=test-app",
-      "relationship": {
-        "onField": "subnetId",
-        "toField": "regionId",
-        "type": "child",
-      },
-      "to": "region=region,app=test-app",
+      "behaviors": [],
+      "from": "test-overlay=overlay-1",
+      "relationship": undefined,
+      "to": "test-overlay=overlay-2",
     },
   ],
   "models": {
@@ -589,41 +596,40 @@ exports[`Model Serialization Service UT serialize() should serialize when multip
         "name": "test-app",
       },
     },
-    "region=region,app=test-app": {
-      "className": "Region",
-      "model": {
-        "regionId": "region",
-      },
-    },
-    "subnet=region-private,region=region,app=test-app": {
-      "className": "Subnet",
-      "model": {
-        "options": {
-          "disableSubnetIntraNetwork": false,
-          "subnetType": "private",
-        },
-        "region": {
-          "context": "region=region,app=test-app",
-        },
-        "subnetId": "region-private",
-        "subnetName": "private",
-      },
-    },
-    "subnet=region-public,region=region,app=test-app": {
-      "className": "Subnet",
-      "model": {
-        "options": {
-          "disableSubnetIntraNetwork": false,
-          "subnetType": "private",
-        },
-        "region": {
-          "context": "region=region,app=test-app",
-        },
-        "subnetId": "region-public",
-        "subnetName": "public",
-      },
-    },
   },
-  "overlays": [],
+  "overlays": [
+    {
+      "className": "TestOverlay",
+      "overlay": {
+        "anchors": [
+          {
+            "anchorId": "anchor-2",
+            "parent": {
+              "context": "app=test-app",
+            },
+            "properties": {},
+          },
+        ],
+        "overlayId": "overlay-2",
+        "properties": {},
+      },
+    },
+    {
+      "className": "TestOverlay",
+      "overlay": {
+        "anchors": [
+          {
+            "anchorId": "anchor-1",
+            "parent": {
+              "context": "app=test-app",
+            },
+            "properties": {},
+          },
+        ],
+        "overlayId": "overlay-1",
+        "properties": {},
+      },
+    },
+  ],
 }
 `;

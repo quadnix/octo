@@ -1,25 +1,9 @@
+import { SharedTestResource, TestResource } from '../../../../test/helpers/test-classes.js';
 import { type UnknownResource } from '../../../app.type.js';
 import { Container } from '../../../decorators/container.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../../resources/resource-data.repository.js';
-import { AResource } from '../../../resources/resource.abstract.js';
-import { ASharedResource } from '../../../resources/shared-resource.abstract.js';
+import { type AResource } from '../../../resources/resource.abstract.js';
 import { ResourceSerializationService, ResourceSerializationServiceFactory } from './resource-serialization.service.js';
-
-class TestResource extends AResource<TestResource> {
-  readonly MODEL_NAME: string = 'test-resource';
-
-  constructor(resourceId: string, properties: { [k: string]: string } = {}, parents: [TestResource?] = []) {
-    super(resourceId, properties, parents as AResource<TestResource>[]);
-  }
-}
-
-class SharedTestResource extends ASharedResource<TestResource> {
-  readonly MODEL_NAME: string = 'shared-test-resource';
-
-  constructor(resourceId: string, properties: object, parents: [TestResource?]) {
-    super(resourceId, {}, parents as AResource<TestResource>[]);
-  }
-}
 
 describe('Resource Serialization Service UT', () => {
   beforeEach(() => {
@@ -251,8 +235,34 @@ describe('Resource Serialization Service UT', () => {
       expect(resourceDataRepository['newResources'][0]).not.toEqual(resourceDataRepository['oldResources'][0]);
     });
 
-    it.skip('should not initialize ResourceDataRepository with new resources marked for deletion', () => {
-      // Ready to implement.
+    it('should not initialize ResourceDataRepository with new resources marked for deletion', async () => {
+      const resource1 = new TestResource('resource-1');
+      resource1.properties['key1'] = 'value1';
+      resource1.response['response1'] = 'value1';
+
+      const resources = [resource1];
+      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+
+      const service = await Container.get(ResourceSerializationService, { args: [true] });
+      service.registerClass('TestResource', TestResource);
+
+      const serializedOutput1 = await service.serialize();
+      await service.deserialize(serializedOutput1);
+
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      expect(resourceDataRepository.getById('resource-1')).not.toBeUndefined();
+
+      // Remove the new resource.
+      resourceDataRepository.remove(resource1);
+
+      // Ensure the deleted resources are not initialized in the ResourceDataRepository.
+      expect(resourceDataRepository.getById('resource-1')).toBeUndefined();
+
+      const serializedOutput2 = await service.serialize();
+      await service.deserialize(serializedOutput2);
+
+      // Ensure the deleted resources are not initialized in the ResourceDataRepository.
+      expect(resourceDataRepository['oldResources'].length).toBe(0);
     });
   });
 

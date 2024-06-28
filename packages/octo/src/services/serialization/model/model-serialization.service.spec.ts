@@ -203,8 +203,39 @@ describe('Model Serialization Service UT', () => {
       );
     });
 
-    it.skip('should not initialize OverlayDataRepository with new overlays marked for deletion', () => {
-      // Ready to implement.
+    it('should not initialize OverlayDataRepository with new overlays marked for deletion', async () => {
+      const service = await Container.get(ModelSerializationService);
+      service.registerClass('App', App);
+      service.registerClass('TestAnchor', TestAnchor);
+      service.registerClass('TestOverlay', TestOverlay);
+
+      const app = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      const overlayService = await Container.get(OverlayService);
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1]);
+      overlayService.addOverlay(overlay1);
+
+      // Serialize and deserialize the app. This should setup old and new overlays in the OverlayDataRepository.
+      const appSerialized1 = await service.serialize(app);
+      await service.deserialize(appSerialized1);
+
+      const overlayDataRepository = await Container.get(OverlayDataRepository);
+      expect(overlayDataRepository.getById('overlay-1')).not.toBeUndefined();
+
+      // Remove the new overlay.
+      overlayService.removeOverlay(overlay1);
+
+      // Ensure the deleted overlays are not initialized in the OverlayDataRepository.
+      expect(overlayDataRepository.getById('overlay-1')).toBeUndefined();
+
+      // Serialize and deserialize the app again. This should set the old overlays to the new state.
+      const appSerialized2 = await service.serialize(app);
+      await service.deserialize(appSerialized2);
+
+      // Ensure the deleted overlays are not initialized in the OverlayDataRepository.
+      expect(overlayDataRepository['oldOverlays'].length).toBe(0);
     });
   });
 
@@ -233,8 +264,21 @@ describe('Model Serialization Service UT', () => {
       expect(await service.serialize(app)).toMatchSnapshot();
     });
 
-    it.skip('should not serialize deleted models', () => {
-      // Ready to implement.
+    it('should not serialize deleted models', async () => {
+      const app = new App('test-app');
+      app.remove();
+
+      const service = await Container.get(ModelSerializationService);
+      expect(await service.serialize(app)).toMatchSnapshot();
+    });
+
+    it('should serialize model anchors', async () => {
+      const app = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      const service = await Container.get(ModelSerializationService);
+      expect(await service.serialize(app)).toMatchSnapshot();
     });
 
     it('should serialize only boundary members', async () => {
@@ -252,33 +296,37 @@ describe('Model Serialization Service UT', () => {
       expect(await service.serialize(region1)).toMatchSnapshot();
     });
 
-    it('should serialize when multiple models have dependency on same model', async () => {
-      const service = await Container.get(ModelSerializationService);
-
-      const app = new App('test-app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const privateSubnet = new Subnet(region, 'private');
-      region.addSubnet(privateSubnet);
-      const publicSubnet = new Subnet(region, 'public');
-      region.addSubnet(publicSubnet);
-
-      expect(await service.serialize(app)).toMatchSnapshot();
-    });
-
     it('should serialize overlay with multiple anchors of same parent', async () => {
-      const service = await Container.get(ModelSerializationService);
-      const overlayService = await Container.get(OverlayService);
-
       const app = new App('test-app');
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
+      const overlayService = await Container.get(OverlayService);
       const overlay1 = new TestOverlay('overlay-1', {}, [anchor1, anchor2]);
       overlayService.addOverlay(overlay1);
 
+      const service = await Container.get(ModelSerializationService);
+      expect(await service.serialize(app)).toMatchSnapshot();
+    });
+
+    it('should serialize two overlay dependencies with each other', async () => {
+      const app = new App('test-app');
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+      const anchor2 = new TestAnchor('anchor-2', {}, app);
+      app.addAnchor(anchor2);
+
+      const overlayService = await Container.get(OverlayService);
+      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1]);
+      overlayService.addOverlay(overlay1);
+      const overlay2 = new TestOverlay('overlay-2', {}, [anchor2]);
+      overlayService.addOverlay(overlay2);
+
+      overlay1.addRelationship(overlay2);
+
+      const service = await Container.get(ModelSerializationService);
       expect(await service.serialize(app)).toMatchSnapshot();
     });
   });

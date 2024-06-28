@@ -61,7 +61,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
           "toField": "resourceId",
           "type": "parent",
         },
-        "to": "shared-test-resource=resource-2",
+        "to": "test-resource=resource-2",
       },
     ],
     "properties": {
@@ -73,14 +73,14 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
     },
   },
   SharedTestResource {
-    "MODEL_NAME": "shared-test-resource",
+    "MODEL_NAME": "test-resource",
     "MODEL_TYPE": "shared-resource",
     "_deleteMarker": false,
     "anchors": [],
-    "context": "shared-test-resource=resource-2",
+    "context": "test-resource=resource-2",
     "dependencies": [
       {
-        "from": "shared-test-resource=resource-2",
+        "from": "test-resource=resource-2",
         "relationship": {
           "onField": "resourceId",
           "toField": "resourceId",
@@ -234,7 +234,7 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
         "toField": "resourceId",
         "type": "parent",
       },
-      "to": "shared-test-resource=resource-2",
+      "to": "test-resource=resource-2",
     },
     {
       "behaviors": [
@@ -251,7 +251,7 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
           "toField": "resourceId",
         },
       ],
-      "from": "shared-test-resource=resource-2",
+      "from": "test-resource=resource-2",
       "relationship": {
         "onField": "resourceId",
         "toField": "resourceId",
