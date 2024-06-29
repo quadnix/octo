@@ -9,7 +9,6 @@ import {
   InputService,
   ModelSerializationService,
   ResourceSerializationService,
-  type ResourceSerializedOutput,
   StateManagementService,
   type TransactionOptions,
   TransactionService,
@@ -19,7 +18,6 @@ import {
 export class OctoAws {
   private readonly modelStateFileName: string = 'models.json';
   private readonly resourceStateFileName: string = 'resources.json';
-  private readonly sharedResourceStateFileName: string = 'shared-resources.json';
 
   private previousApp: App | undefined;
 
@@ -34,77 +32,37 @@ export class OctoAws {
   }
 
   private async retrieveModelState(): Promise<App | undefined> {
-    const previousModelState = await this.stateManagementService.getState(
+    const { data: modelSerializedOutput, userData } = await this.stateManagementService.getModelState(
       this.modelStateFileName,
-      JSON.stringify({
-        dependencies: [],
-        models: {},
-      }),
     );
 
     // Initialize previous model state.
-    const modelSerializedOutput = JSON.parse(previousModelState.toString());
-    return modelSerializedOutput.version === OctoAws.getPackageVersion()
+    return userData['version'] === OctoAws.getPackageVersion()
       ? ((await this.modelSerializationService.deserialize(modelSerializedOutput)) as App)
       : undefined;
   }
 
   private async saveModelState(app: App): Promise<void> {
     const modelSerializedOutput = await this.modelSerializationService.serialize(app);
-    modelSerializedOutput['version'] = OctoAws.getPackageVersion();
-    await this.stateManagementService.saveState(
-      this.modelStateFileName,
-      Buffer.from(JSON.stringify(modelSerializedOutput)),
-    );
+    await this.stateManagementService.saveModelState(this.modelStateFileName, modelSerializedOutput, {
+      version: OctoAws.getPackageVersion(),
+    });
   }
 
   private async retrieveResourceState(): Promise<void> {
-    const previousResourceState = await this.stateManagementService.getState(
+    const { data: resourceSerializedOutput } = await this.stateManagementService.getResourceState(
       this.resourceStateFileName,
-      JSON.stringify({
-        dependencies: [],
-        resources: {},
-      }),
-    );
-
-    const previousSharedResourceState = await this.stateManagementService.getState(
-      this.sharedResourceStateFileName,
-      JSON.stringify({
-        sharedResources: {},
-      }),
     );
 
     // Initialize previous resource state.
-    const resourceSerializedOutput: ResourceSerializedOutput = JSON.parse(previousResourceState.toString());
-    resourceSerializedOutput.sharedResources = JSON.parse(previousSharedResourceState.toString()).sharedResources;
     await this.resourceSerializationService.deserialize(resourceSerializedOutput);
   }
 
   private async saveResourceState(): Promise<void> {
     const resourceSerializedOutput = await this.resourceSerializationService.serialize();
-
-    // Save the state of shared-resources.
-    await this.stateManagementService.saveState(
-      this.sharedResourceStateFileName,
-      Buffer.from(
-        JSON.stringify({
-          sharedResources: { ...resourceSerializedOutput.sharedResources },
-          version: OctoAws.getPackageVersion(),
-        }),
-      ),
-    );
-
-    // Save the state of resources.
-    await this.stateManagementService.saveState(
-      this.resourceStateFileName,
-      Buffer.from(
-        JSON.stringify({
-          dependencies: [...resourceSerializedOutput.dependencies],
-          resources: { ...resourceSerializedOutput.resources },
-          version: OctoAws.getPackageVersion(),
-        }),
-      ),
-    );
+    await this.stateManagementService.saveResourceState(this.resourceStateFileName, resourceSerializedOutput, {
+      version: OctoAws.getPackageVersion(),
+    });
   }
 
   async initialize(stateProvider: IStateProvider): Promise<App | undefined> {

@@ -18,7 +18,6 @@ describe('S3StaticWebsiteService UT', () => {
   const filePaths: string[] = [
     join(__dirname, 'models.json'),
     join(__dirname, 'resources.json'),
-    join(__dirname, 'shared-resources.json'),
     join(__dirname, 'test-bucket-manifest.json'),
   ];
 

@@ -9,11 +9,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('Image & ECRService E2E Test', () => {
-  const filePaths: string[] = [
-    join(__dirname, 'models.json'),
-    join(__dirname, 'resources.json'),
-    join(__dirname, 'shared-resources.json'),
-  ];
+  const filePaths: string[] = [join(__dirname, 'models.json'), join(__dirname, 'resources.json')];
 
   afterEach(async () => {
     await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));

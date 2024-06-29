@@ -19,7 +19,6 @@ describe('S3StaticWebsite E2E Test', () => {
   const filePaths: string[] = [
     join(__dirname, 'models.json'),
     join(__dirname, 'resources.json'),
-    join(__dirname, 'shared-resources.json'),
     join(__dirname, `${BUCKET_NAME}-manifest.json`),
   ];
 
