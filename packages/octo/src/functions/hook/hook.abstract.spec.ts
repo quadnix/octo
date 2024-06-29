@@ -19,7 +19,7 @@ describe('Hook UT', () => {
       const hook = new TestHook();
       hook.register('Test1Module', { imports: [], postModelActionHandles: [], preCommitHandles: [] });
 
-      expect(hook.getRegisteredModules().length).toBe(1);
+      expect(hook.getRegisteredModules()).toHaveLength(1);
       expect(hook.getRegisteredModules().map((m) => m.moduleName)).toEqual(['Test1Module']);
     });
 
@@ -29,7 +29,7 @@ describe('Hook UT', () => {
       hook.register('Test2Module', { imports: [Test1Module], postModelActionHandles: [], preCommitHandles: [] });
       hook.register('Test1Module', { imports: [], postModelActionHandles: [], preCommitHandles: [] });
 
-      expect(hook.getRegisteredModules().length).toBe(3);
+      expect(hook.getRegisteredModules()).toHaveLength(3);
       expect(hook.getRegisteredModules().map((m) => m.moduleName)).toEqual([
         'Test1Module',
         'Test2Module',

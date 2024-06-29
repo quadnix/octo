@@ -1,37 +1,24 @@
-import {
-  App,
-  Container,
-  Deployment,
-  Environment,
-  Image,
-  ModelSerializationService,
-  Region,
-  Server,
-  Subnet,
-} from '../src/index.js';
+import { Deployment, Environment, Server, Subnet } from '../src/index.js';
+import { commit, create } from './helpers/test-models.js';
 
 describe('App E2E Test', () => {
-  let modelSerializationService: ModelSerializationService;
-
-  beforeAll(async () => {
-    modelSerializationService = await Container.get(ModelSerializationService);
-  });
-
   it('should generate app diff', async () => {
     // Create an initial state of the app.
-    const app = new App('test-app');
-    const image = new Image('image', 'tag', { dockerfilePath: '.' });
-    app.addImage(image);
-    const region = new Region('region');
-    app.addRegion(region);
-    const qaEnvironment = new Environment('qa');
+    const {
+      app: [app],
+      environment: [qaEnvironment],
+      region: [region],
+      server: [backendServer],
+    } = create({
+      app: ['test-app'],
+      environment: ['qa'],
+      image: ['image'],
+      region: ['region'],
+      server: ['backend'],
+    });
     qaEnvironment.environmentVariables.set('env', 'QA');
-    region.addEnvironment(qaEnvironment);
-    const backendServer = new Server('backend');
-    app.addServer(backendServer);
 
-    // Commit state.
-    const app_1 = (await modelSerializationService.deserialize(await modelSerializationService.serialize(app))) as App;
+    const app_1 = await commit(app);
 
     // Add a deployment to backend server.
     backendServer.addDeployment(new Deployment('v0.0.1'));

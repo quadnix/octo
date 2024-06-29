@@ -1,45 +1,33 @@
-import {
-  App,
-  DependencyRelationship,
-  Deployment,
-  DiffAction,
-  Environment,
-  Execution,
-  Image,
-  Pipeline,
-  Region,
-  Server,
-  Service,
-  Subnet,
-  type UnknownModel,
-} from '../../src/index.js';
-import { TestAnchor, TestModelWithoutUnsynth, TestOverlay } from '../helpers/test-classes.js';
+import { App, DependencyRelationship, DiffAction, Environment, Region, type UnknownModel } from '../../src/index.js';
+import { TestAnchor, TestModelWithoutUnsynth } from '../helpers/test-classes.js';
+import { create, createTestOverlays } from '../helpers/test-models.js';
 
 describe('Model E2E Test', () => {
   describe('common functions', () => {
-    const app = new App('test');
-    const image = new Image('image', '0.0.1', {
-      dockerfilePath: '/Dockerfile',
+    const {
+      app: [app],
+      deployment: [deployment],
+      environment: [environment],
+      execution: [execution],
+      image: [image],
+      pipeline: [pipeline],
+      region: [region],
+      server: [server],
+      service: [service],
+      subnet: [subnet1, subnet2],
+    } = create({
+      app: ['test'],
+      deployment: ['v1'],
+      environment: ['qa'],
+      execution: [':0:0:0'],
+      image: ['image'],
+      pipeline: ['pipeline'],
+      region: ['region'],
+      server: ['backend'],
+      service: ['service'],
+      subnet: ['public', 'private:-1'],
     });
-    app.addImage(image);
-    const pipeline = new Pipeline('pipeline');
-    app.addPipeline(pipeline);
-    const region = new Region('region');
-    app.addRegion(region);
-    const server = new Server('backend');
-    app.addServer(server);
-    const deployment = new Deployment('v1');
-    server.addDeployment(deployment);
-    const service = new Service('service');
-    app.addService(service);
-    const subnet1 = new Subnet(region, 'public');
-    region.addSubnet(subnet1);
-    const subnet2 = new Subnet(region, 'private');
-    region.addSubnet(subnet2);
     subnet1.updateNetworkingRules(subnet2, true);
-    const environment = new Environment('qa');
-    region.addEnvironment(environment);
-    const execution = new Execution(deployment, environment, subnet1);
 
     const testCases: {
       model: UnknownModel;
@@ -116,9 +104,10 @@ describe('Model E2E Test', () => {
 
   describe('addChild()', () => {
     it('should throw error adding relationship to an already existing relationship', () => {
-      const app = new App('test');
-      const region = new Region('region');
-      app.addRegion(region);
+      const {
+        app: [app],
+        region: [region],
+      } = create({ app: ['test'], region: ['region'] });
 
       expect(() => {
         app.addChild('name', region, 'regionId');
@@ -138,15 +127,14 @@ describe('Model E2E Test', () => {
       app.addRelationship(region);
       region.addRelationship(app);
 
-      expect(app.getDependencies().length).toBe(3);
+      expect(app.getDependencies()).toHaveLength(3);
     });
 
     it('should create a bi-directional relationship', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const service = new Service('service');
-      app.addService(service);
+      const {
+        region: [region],
+        service: [service],
+      } = create({ app: ['app'], region: ['region'], service: ['service'] });
 
       service.addRelationship(region);
 
@@ -160,11 +148,10 @@ describe('Model E2E Test', () => {
     });
 
     it('should be allowed to add parent-child behavior to relationship', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const service = new Service('service');
-      app.addService(service);
+      const {
+        region: [region],
+        service: [service],
+      } = create({ app: ['test'], region: ['region'], service: ['service'] });
 
       const { thisToThatDependency } = service.addRelationship(region);
       thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
@@ -178,29 +165,37 @@ describe('Model E2E Test', () => {
 
   describe('diff()', () => {
     describe('diff of overlay siblings', () => {
-      it.skip('should not produce overlay diffs', () => {
-        // Ready to implement.
+      it('should not produce overlay diffs', async () => {
+        const {
+          app: [app],
+        } = create({ app: ['app'] });
+        const anchor1 = new TestAnchor('anchor-1', {}, app);
+        app.addAnchor(anchor1);
+
+        const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+
+        app.addRelationship(overlay1);
+
+        const diff = await app.diff(new App('app'));
+        expect(diff).toEqual([]);
       });
     });
   });
 
   describe('getAncestors()', () => {
     it('should not include children as ancestor', () => {
-      const app = new App('app');
-      const region = new Region('region-0');
-      app.addRegion(region);
-      const environment = new Environment('env-0');
-      region.addEnvironment(environment);
+      const {
+        region: [region],
+      } = create({ app: ['app'], environment: ['env-0'], region: ['region-0'] });
 
       expect(region.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
     });
 
     it('should not include sibling dependency as ancestor without explicit behavior', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const service = new Service('service');
-      app.addService(service);
+      const {
+        region: [region],
+        service: [service],
+      } = create({ app: ['app'], region: ['region'], service: ['service'] });
 
       service.addRelationship(region);
 
@@ -209,11 +204,10 @@ describe('Model E2E Test', () => {
     });
 
     it('should include sibling dependency as ancestor with explicit behavior', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const service = new Service('service');
-      app.addService(service);
+      const {
+        region: [region],
+        service: [service],
+      } = create({ app: ['app'], region: ['region'], service: ['service'] });
 
       const { thisToThatDependency } = service.addRelationship(region);
       thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
@@ -222,11 +216,9 @@ describe('Model E2E Test', () => {
     });
 
     it('should include parent of parent as ancestors', () => {
-      const app = new App('app');
-      const region = new Region('region-0');
-      app.addRegion(region);
-      const environment = new Environment('env-0');
-      region.addEnvironment(environment);
+      const {
+        environment: [environment],
+      } = create({ app: ['app'], environment: ['env-0'], region: ['region-0'] });
 
       expect(environment.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
     });
@@ -234,14 +226,12 @@ describe('Model E2E Test', () => {
 
   describe('getBoundaryMembers()', () => {
     it('should demonstrate how boundaries can explode because of a common model', () => {
-      const app = new App('test-app');
-      const region1 = new Region('region-1');
-      app.addRegion(region1);
-      const region2 = new Region('region-2');
-      app.addRegion(region2);
-      const environment = new Environment('qa');
+      const {
+        region: [region1, region2],
+      } = create({ app: ['test-app'], region: ['region-1', 'region-2:-1'] });
 
       // 2 regions, ideally on different boundaries, are merged together because of one common model.
+      const environment = new Environment('qa');
       region1.addEnvironment(environment);
       region2.addEnvironment(environment);
 
@@ -249,47 +239,38 @@ describe('Model E2E Test', () => {
     });
 
     it('should not include non-dependents in boundary', () => {
-      const app = new App('test-app');
-      const image = new Image('image', '0.0.1', {
-        dockerfilePath: '/Dockerfile',
-      });
-      app.addImage(image);
-      const region = new Region('region');
-      app.addRegion(region);
+      const {
+        region: [region],
+      } = create({ app: ['test-app'], image: ['image'], region: ['region'], server: ['server'] });
 
       // Just adding a server won't correlate to region. Create an execution in order to correlate.
-      const server = new Server('server');
-      app.addServer(server);
-
       expect(region.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });
 
     it('should include models in boundary after they are added as dependents', () => {
-      const app = new App('test-app');
-      const image = new Image('test', 'test', { dockerfilePath: 'Dockerfile' });
-      app.addImage(image);
-      const region = new Region('region');
-      app.addRegion(region);
-      const subnet = new Subnet(region, 'subnet');
-      region.addSubnet(subnet);
-      const environment = new Environment('qa');
-      region.addEnvironment(environment);
-      const server = new Server('server');
-      app.addServer(server);
-      const deployment = new Deployment('deployment');
-      server.addDeployment(deployment);
-      new Execution(deployment, environment, subnet);
+      const {
+        region: [region],
+        server: [server],
+      } = create({
+        app: ['test-app'],
+        deployment: ['deployment'],
+        environment: ['qa'],
+        execution: [':0:0:0'],
+        image: ['test'],
+        region: ['region'],
+        server: ['server'],
+        subnet: ['subnet'],
+      });
 
       expect(region.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
       expect(server.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });
 
     it('should include sibling dependency in boundary', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const service = new Service('service');
-      app.addService(service);
+      const {
+        region: [region],
+        service: [service],
+      } = create({ app: ['app'], region: ['region'], service: ['service'] });
 
       service.addRelationship(region);
 
@@ -297,15 +278,10 @@ describe('Model E2E Test', () => {
     });
 
     it("should include sibling's sibling in boundary", () => {
-      const app = new App('app');
-      const image = new Image('imageName', 'imageTag', {
-        dockerfilePath: 'path/to/Dockerfile',
-      });
-      app.addImage(image);
-      const region1 = new Region('region-1');
-      app.addRegion(region1);
-      const region2 = new Region('region-2');
-      app.addRegion(region2);
+      const {
+        image: [image],
+        region: [region1, region2],
+      } = create({ app: ['app'], image: ['imageName'], region: ['region-1', 'region-2:-1'] });
 
       region1.addRelationship(image);
       region2.addRelationship(image);
@@ -313,10 +289,14 @@ describe('Model E2E Test', () => {
       expect(region1.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });
 
-    it('should include overlays in boundary', () => {
-      const app = new App('app');
+    it('should include overlays in boundary', async () => {
+      const {
+        app: [app],
+      } = create({ app: ['app'] });
       const anchor = new TestAnchor('test-anchor', {}, app);
-      const overlay = new TestOverlay('test-overlay', {}, [anchor]);
+      app.addAnchor(anchor);
+
+      const [overlay] = await createTestOverlays({ 'test-overlay': [anchor] });
 
       expect(overlay.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
        [
@@ -360,22 +340,25 @@ describe('Model E2E Test', () => {
   });
 
   describe('getAnchor()', () => {
-    it('should get anchor using specified parent', () => {
-      const app = new App('test');
-      const anchor1_0 = new TestAnchor('anchor-1', {}, app);
-      app.addAnchor(anchor1_0);
-      const overlay1 = new TestOverlay('overlay-1', {}, [anchor1_0]);
+    it('should get anchor using specified parent', async () => {
+      const {
+        app: [app],
+      } = create({ app: ['test'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
 
-      const anchor1_1 = overlay1.getAnchor('anchor-1', app)!;
-      expect(anchor1_1.anchorId).toBe(anchor1_0.anchorId);
+      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+
+      expect(overlay1.getAnchor('anchor-1', app)!.anchorId).toBe(anchor1.anchorId);
     });
   });
 
   describe('getDependency()', () => {
     it('should get a dependency with relationship', () => {
-      const app = new App('test');
-      const region = new Region('region');
-      app.addRegion(region);
+      const {
+        app: [app],
+        region: [region],
+      } = create({ app: ['test'], region: ['region'] });
 
       const appDependencyWithRegion = app.getDependency(region, DependencyRelationship.PARENT);
       expect(appDependencyWithRegion).not.toBe(undefined);
@@ -385,26 +368,26 @@ describe('Model E2E Test', () => {
     });
 
     it('should get a dependency without relationship', () => {
-      const app = new App('test');
-      const region = new Region('region');
-      app.addRegion(region);
-      const image = new Image('test', '0.0.1', { dockerfilePath: 'docker' });
-      app.addImage(image);
+      const {
+        image: [image],
+        region: [region],
+      } = create({ app: ['test'], image: ['test'], region: ['region'] });
+
       image.addRelationship(region);
 
       const imageDependencyWithRegion = image.getDependencies(region);
-      expect(imageDependencyWithRegion.length).toBe(1);
+      expect(imageDependencyWithRegion).toHaveLength(1);
 
       const regionDependencyWithImage = region.getDependencies(image);
-      expect(regionDependencyWithImage.length).toBe(1);
+      expect(regionDependencyWithImage).toHaveLength(1);
     });
   });
 
   describe('remove()', () => {
     it('should throw error when model being a parent cannot be removed', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
+      const {
+        app: [app],
+      } = create({ app: ['test'], region: ['region'] });
 
       expect(() => {
         app.remove(true);
@@ -412,11 +395,9 @@ describe('Model E2E Test', () => {
     });
 
     it('should throw error when model having a direct relationship cannot be removed', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const subnet = new Subnet(region, 'subnet');
-      region.addSubnet(subnet);
+      const {
+        region: [region],
+      } = create({ app: ['test'], region: ['region'], subnet: ['subnet'] });
 
       expect(() => {
         region.remove();
@@ -424,9 +405,10 @@ describe('Model E2E Test', () => {
     });
 
     it('should be able to remove leaf model', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
+      const {
+        app: [app],
+        region: [region],
+      } = create({ app: ['test'], region: ['region'] });
 
       expect(app.getChild('region', [{ key: 'regionId', value: 'region' }])).not.toBe(undefined);
       region.remove();
@@ -434,11 +416,12 @@ describe('Model E2E Test', () => {
     });
 
     it('should not be able to remove leaf model with a direct relationship', () => {
-      const app = new App('app');
-      const image = new Image('image', 'tag', { dockerfilePath: '/Dockerfile' });
-      app.addImage(image);
-      const server = new Server('server');
-      app.addServer(server);
+      const {
+        app: [app],
+        image: [image],
+        server: [server],
+      } = create({ app: ['test'], image: ['image'], server: ['server'] });
+
       server.addRelationship(image);
 
       // Image cannot be removed until server is removed.
@@ -457,11 +440,12 @@ describe('Model E2E Test', () => {
 
   describe('removeRelationship()', () => {
     it('should be able to remove relationship', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const image = new Image('image', 'tag', { dockerfilePath: '/Dockerfile' });
-      app.addImage(image);
+      const {
+        app: [app],
+        image: [image],
+        region: [region],
+      } = create({ app: ['app'], image: ['image'], region: ['region'] });
+
       image.addRelationship(region);
 
       // Image cannot be removed since it has a relationship with region.

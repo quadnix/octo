@@ -33,12 +33,11 @@ export class DiffMetadata {
     this.value = diff.value;
   }
 
+  /**
+   * Overrides JSON.serialize() to output a more succinct model of diff-metadata.
+   */
   toJSON(): ReturnType<Diff['toJSON']> {
-    return {
-      action: this.action,
-      field: this.field,
-      value: this.value,
-    };
+    return this.diff.toJSON();
   }
 
   updateInputs(inputs: ActionInputs): void {

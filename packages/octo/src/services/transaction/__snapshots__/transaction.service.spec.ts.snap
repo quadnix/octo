@@ -1,17 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`TransactionService UT applyModels() should add the shared-resource to set of resources if it does not exist 1`] = `
-[
-  "shared-resource",
-]
-`;
-
 exports[`TransactionService UT applyModels() should call action and collect all input and output 1`] = `
 [
   [
     {
       "action": "add",
       "field": "name",
+      "model": "app=app",
       "value": "app",
     },
     {
@@ -33,6 +28,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
     {
       "action": "add",
       "field": "name",
+      "model": "app=app",
       "value": "app",
     },
     {
@@ -48,6 +44,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
     {
       "action": "add",
       "field": "name",
+      "model": "app=app",
       "value": "app",
     },
     {
@@ -76,6 +73,7 @@ exports[`TransactionService UT applyModels() should only process 1 matching diff
     {
       "action": "add",
       "field": "name",
+      "model": "app=app",
       "value": "app",
     },
   ],
@@ -88,6 +86,7 @@ exports[`TransactionService UT applyModels() should process diffs in different l
     {
       "action": "add",
       "field": "name",
+      "model": "app=app",
       "value": "app",
     },
   ],
@@ -95,27 +94,12 @@ exports[`TransactionService UT applyModels() should process diffs in different l
     {
       "action": "add",
       "field": "regionId",
+      "model": "region=region,app=app",
       "value": "region",
     },
   ],
 ]
 `;
-
-exports[`TransactionService UT applyModels() should return empty transaction if diffs is empty 1`] = `[]`;
-
-exports[`TransactionService UT applyModels() should skip processing diffs that are already applied 1`] = `
-[
-  [],
-]
-`;
-
-exports[`TransactionService UT applyModels() should update diff metadata with inputs and outputs 1`] = `
-{
-  "input.key1": "value1",
-}
-`;
-
-exports[`TransactionService UT applyModels() should update diff metadata with inputs and outputs 2`] = `"resource1"`;
 
 exports[`TransactionService UT applyResources() should only process 1 matching diff when duplicates found 1`] = `
 [
@@ -123,26 +107,8 @@ exports[`TransactionService UT applyResources() should only process 1 matching d
     {
       "action": "add",
       "field": "resourceId",
+      "model": "test-resource=resource-1",
       "value": "resource-1",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT applyResources() should process diffs of adding resources per dependency graph 1`] = `
-[
-  [
-    {
-      "action": "add",
-      "field": "resourceId",
-      "value": "resource-1",
-    },
-  ],
-  [
-    {
-      "action": "add",
-      "field": "resourceId",
-      "value": "resource-2",
     },
   ],
 ]
@@ -154,6 +120,7 @@ exports[`TransactionService UT applyResources() should process diffs of deleting
     {
       "action": "delete",
       "field": "resourceId",
+      "model": "test-resource=resource-2",
       "value": "resource-2",
     },
   ],
@@ -161,17 +128,31 @@ exports[`TransactionService UT applyResources() should process diffs of deleting
     {
       "action": "delete",
       "field": "resourceId",
+      "model": "test-resource=resource-1",
       "value": "resource-1",
     },
   ],
 ]
 `;
 
-exports[`TransactionService UT applyResources() should return empty transaction if diffs is empty 1`] = `[]`;
-
-exports[`TransactionService UT applyResources() should skip processing diffs that are already applied 1`] = `
+exports[`TransactionService UT applyResources() should process diffs of resources per dependency graph 1`] = `
 [
-  [],
+  [
+    {
+      "action": "add",
+      "field": "resourceId",
+      "model": "test-resource=resource-2",
+      "value": "resource-2",
+    },
+  ],
+  [
+    {
+      "action": "add",
+      "field": "resourceId",
+      "model": "test-resource=resource-1",
+      "value": "resource-1",
+    },
+  ],
 ]
 `;
 
@@ -181,6 +162,7 @@ exports[`TransactionService UT beginTransaction() yieldModelTransaction should y
     {
       "action": "add",
       "field": "name",
+      "model": "app=app",
       "value": "app",
     },
   ],
@@ -193,6 +175,7 @@ exports[`TransactionService UT beginTransaction() yieldModelTransaction should y
     {
       "action": "add",
       "field": "overlayId",
+      "model": "test-overlay=test-overlay",
       "value": "test-overlay",
     },
   ],
@@ -205,24 +188,14 @@ exports[`TransactionService UT beginTransaction() yieldResourceDiffs should yiel
     {
       "action": "delete",
       "field": "resourceId",
+      "model": "test-resource=resource-1",
       "value": "resource-1",
     },
     {
       "action": "add",
       "field": "resourceId",
+      "model": "test-resource=resource-2",
       "value": "resource-2",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT beginTransaction() yieldResourceTransaction should return model diffs 1`] = `
-[
-  [
-    {
-      "action": "add",
-      "field": "name",
-      "value": "app",
     },
   ],
 ]
@@ -234,11 +207,13 @@ exports[`TransactionService UT beginTransaction() yieldResourceTransaction shoul
     {
       "action": "delete",
       "field": "resourceId",
+      "model": "test-resource=resource-1",
       "value": "resource-1",
     },
     {
       "action": "add",
       "field": "resourceId",
+      "model": "test-resource=resource-2",
       "value": "resource-2",
     },
   ],
@@ -251,6 +226,7 @@ exports[`TransactionService UT rollbackTransaction() should be able to revert ad
     {
       "action": "delete",
       "field": "resourceId",
+      "model": "test-resource=resource-1",
       "value": "resource-1",
     },
   ],
@@ -263,6 +239,7 @@ exports[`TransactionService UT rollbackTransaction() should be able to revert de
     {
       "action": "add",
       "field": "resourceId",
+      "model": "test-resource=resource-1",
       "value": "resource-1",
     },
   ],
@@ -275,6 +252,7 @@ exports[`TransactionService UT rollbackTransaction() should call revert() for ev
     {
       "action": "add",
       "field": "name",
+      "model": "app=app",
       "value": "app",
     },
     {},

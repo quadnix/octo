@@ -5,6 +5,7 @@ exports[`App E2E Test should generate app diff 1`] = `
   {
     "action": "update",
     "field": "environmentVariables",
+    "model": "environment=qa,region=region,app=test-app",
     "value": {
       "key": "env",
       "value": "qa",
@@ -13,26 +14,31 @@ exports[`App E2E Test should generate app diff 1`] = `
   {
     "action": "add",
     "field": "environmentName",
+    "model": "environment=staging,region=region,app=test-app",
     "value": "staging",
   },
   {
     "action": "add",
     "field": "subnetId",
+    "model": "subnet=region-public,region=region,app=test-app",
     "value": "region-public",
   },
   {
     "action": "add",
     "field": "deploymentTag",
+    "model": "deployment=v0.0.1,server=backend,app=test-app",
     "value": "v0.0.1",
   },
   {
     "action": "add",
     "field": "deploymentTag",
+    "model": "deployment=v0.0.1,server=database,app=test-app",
     "value": "v0.0.1",
   },
   {
     "action": "add",
     "field": "serverKey",
+    "model": "server=database,app=test-app",
     "value": "database",
   },
 ]

@@ -1,31 +1,43 @@
 import { jest } from '@jest/globals';
-import { SharedTestResource, TestAnchor, TestOverlay, TestResource } from '../../../test/helpers/test-classes.js';
+import { SharedTestResource, TestAnchor, TestResource } from '../../../test/helpers/test-classes.js';
+import { commitResources, create, createTestOverlays, createTestResources } from '../../../test/helpers/test-models.js';
 import { type UnknownResource } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
 import { type IModelAction } from '../../models/model-action.interface.js';
 import { App } from '../../models/app/app.model.js';
-import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
+import { OverlayService, OverlayServiceFactory } from '../../overlays/overlay.service.js';
 import { type IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
 import { InputService, InputServiceFactory } from '../input/input.service.js';
+import {
+  ResourceSerializationService,
+  ResourceSerializationServiceFactory,
+} from '../serialization/resource/resource-serialization.service.js';
 import { TransactionService, TransactionServiceFactory } from './transaction.service.js';
 
 describe('TransactionService UT', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     Container.registerFactory(InputService, InputServiceFactory);
 
     Container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
-    Container.get(OverlayDataRepository, { args: [true, [], []] });
+    await Container.get(OverlayDataRepository, { args: [true, [], []] });
+
+    Container.registerFactory(OverlayService, OverlayServiceFactory);
 
     Container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
-    Container.get(ResourceDataRepository, { args: [true] });
+    await Container.get(ResourceDataRepository, { args: [true] });
+
+    Container.registerFactory(ResourceSerializationService, ResourceSerializationServiceFactory);
+    const resourceSerializationService = await Container.get(ResourceSerializationService, { args: [true] });
+    resourceSerializationService.registerClass('SharedTestResource', SharedTestResource);
+    resourceSerializationService.registerClass('TestResource', TestResource);
 
     Container.registerFactory(TransactionService, TransactionServiceFactory);
-    Container.get(TransactionService, { args: [true] });
+    await Container.get(TransactionService, { args: [true] });
   });
 
   afterEach(() => {
@@ -43,31 +55,20 @@ describe('TransactionService UT', () => {
       revert: jest.fn() as jest.Mocked<any>,
     };
 
-    it('should return empty transaction if diffs is empty', async () => {
+    let applyModels;
+    beforeEach(async () => {
       const service = await Container.get(TransactionService);
-      const generator = service.beginTransaction([], { yieldModelTransaction: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
+      applyModels = service['applyModels'];
+      applyModels = applyModels.bind(service);
     });
 
-    it('should throw error when matching action not found', async () => {
-      const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
+    it('should return empty transaction if diffs is empty', async () => {
+      const result = await applyModels([]);
 
-      const service = await Container.get(TransactionService);
-      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
-
-      await expect(async () => {
-        await generator.next();
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching action given for diff!"`);
+      expect(result).toEqual([]);
     });
 
     it('should throw error when action inputs are not found', async () => {
-      const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
       const modelAction: IModelAction = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
@@ -76,19 +77,18 @@ describe('TransactionService UT', () => {
         revert: jest.fn() as jest.Mocked<any>,
       };
 
-      const service = await Container.get(TransactionService);
-      service.registerModelActions([modelAction]);
-      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
+      const app = new App('app');
+
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [modelAction]);
+      diffMetadata.applyOrder = 0;
 
       await expect(async () => {
-        await generator.next();
+        await applyModels([diffMetadata]);
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching input found to process action!"`);
     });
 
     it('should throw error when action resource inputs are not found', async () => {
-      const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
       const modelAction: IModelAction = {
         ACTION_NAME: 'test',
         collectInput: () => ['resource.key1'],
@@ -97,12 +97,14 @@ describe('TransactionService UT', () => {
         revert: jest.fn() as jest.Mocked<any>,
       };
 
-      const service = await Container.get(TransactionService);
-      service.registerModelActions([modelAction]);
-      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
+      const app = new App('app');
+
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [modelAction]);
+      diffMetadata.applyOrder = 0;
 
       await expect(async () => {
-        await generator.next();
+        await applyModels([diffMetadata]);
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching input found to process action!"`);
     });
 
@@ -114,31 +116,29 @@ describe('TransactionService UT', () => {
       diffMetadata.applied = true;
       diffMetadata.applyOrder = 0;
 
-      const service = await Container.get(TransactionService);
-      const result = await service['applyModels']([diffMetadata]);
+      const result = await applyModels([diffMetadata]);
 
-      expect(result).toMatchSnapshot();
+      expect(result).toEqual([[]]);
     });
 
     it('should only process 1 matching diff when duplicates found', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
       const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app'), new Diff(app, DiffAction.ADD, 'name', 'app')];
 
-      const service = await Container.get(TransactionService);
-      service.registerModelActions([universalModelAction]);
-      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
+      const diff1 = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata1 = new DiffMetadata(diff1, [universalModelAction]);
+      diffMetadata1.applyOrder = 0;
+      const diff2 = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata2 = new DiffMetadata(diff2, [universalModelAction]);
+      diffMetadata2.applyOrder = 0;
 
-      const result = await generator.next();
+      const result = await applyModels([diffMetadata1, diffMetadata2]);
 
-      expect(result.value).toMatchSnapshot();
+      expect(result).toMatchSnapshot();
     });
 
     it('should call action and collect all input and output', async () => {
-      const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
       const modelAction: IModelAction = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
@@ -152,22 +152,20 @@ describe('TransactionService UT', () => {
 
       const inputService = await Container.get(InputService);
       inputService.registerInputs({ 'input.key1': 'value1' });
-      const service = await Container.get(TransactionService);
-      service.registerModelActions([modelAction]);
 
-      const generator = service.beginTransaction(diffs, { yieldNewResources: true });
+      const app = new App('app');
 
-      const newResources = await generator.next();
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [modelAction]);
+      diffMetadata.applyOrder = 0;
+
+      await applyModels([diffMetadata]);
 
       expect(modelAction.handle).toHaveBeenCalledTimes(1);
       expect((modelAction.handle as jest.Mock).mock.calls).toMatchSnapshot();
-      expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
     });
 
     it('should update diff metadata with inputs and outputs', async () => {
-      const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
       const modelAction: IModelAction = {
         ACTION_NAME: 'test',
         collectInput: () => ['input.key1'],
@@ -179,20 +177,22 @@ describe('TransactionService UT', () => {
 
       const inputService = await Container.get(InputService);
       inputService.registerInputs({ 'input.key1': 'value1' });
-      const service = await Container.get(TransactionService);
-      service.registerModelActions([modelAction]);
-      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
 
-      const result = await generator.next();
+      const app = new App('app');
 
-      expect((result.value as DiffMetadata[][])[0][0].inputs).toMatchSnapshot();
-      expect((result.value as DiffMetadata[][])[0][0].outputs['resource1'].resourceId).toMatchSnapshot();
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [modelAction]);
+      diffMetadata.applyOrder = 0;
+
+      await applyModels([diffMetadata]);
+
+      expect(diffMetadata.inputs).toEqual({
+        'input.key1': 'value1',
+      });
+      expect(diffMetadata.outputs['resource1'].resourceId).toBe('resource1');
     });
 
     it('should call multiple actions and collect all input and output', async () => {
-      const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
       const modelAction1: IModelAction = {
         ACTION_NAME: 'test1',
         collectInput: () => ['input.key1'],
@@ -212,81 +212,75 @@ describe('TransactionService UT', () => {
 
       const inputService = await Container.get(InputService);
       inputService.registerInputs({ 'input.key1': 'value1', 'input.key2': 'value2' });
-      const service = await Container.get(TransactionService);
-      service.registerModelActions([modelAction1, modelAction2]);
 
-      const generator = service.beginTransaction(diffs, { yieldNewResources: true });
+      const app = new App('app');
 
-      const newResources = await generator.next();
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [modelAction1, modelAction2]);
+      diffMetadata.applyOrder = 0;
+
+      await applyModels([diffMetadata]);
 
       expect(modelAction1.handle).toHaveBeenCalledTimes(1);
       expect((modelAction1.handle as jest.Mock).mock.calls).toMatchSnapshot();
       expect(modelAction2.handle).toHaveBeenCalledTimes(1);
       expect((modelAction2.handle as jest.Mock).mock.calls).toMatchSnapshot();
-      expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
     });
 
     it('should process diffs in different levels', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const diffs = [
-        new Diff(app, DiffAction.ADD, 'name', 'app'),
-        new Diff(region, DiffAction.ADD, 'regionId', 'region'),
-      ];
+      const {
+        app: [app],
+        region: [region],
+      } = create({ app: ['app'], region: ['region'] });
 
-      const service = await Container.get(TransactionService);
-      service.registerModelActions([universalModelAction]);
-      const generator = service.beginTransaction(diffs, { yieldModelTransaction: true });
+      const diff1 = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata1 = new DiffMetadata(diff1, [universalModelAction]);
+      diffMetadata1.applyOrder = 0;
+      const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
+      const diffMetadata2 = new DiffMetadata(diff2, [universalModelAction]);
+      diffMetadata2.applyOrder = 1;
 
-      const result = await generator.next();
+      const result = await applyModels([diffMetadata1, diffMetadata2]);
 
-      expect(result.value).toMatchSnapshot();
+      expect(result).toMatchSnapshot();
     });
 
     it('should add the shared-resource to set of resources if it does not exist', async () => {
-      const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({
         resource1: new SharedTestResource('shared-resource', { key1: 'value-1' }, []),
       });
 
-      const service = await Container.get(TransactionService);
-      service.registerModelActions([universalModelAction]);
+      const app = new App('app');
 
-      const generator = service.beginTransaction(diffs, { yieldNewResources: true });
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
+      diffMetadata.applyOrder = 0;
 
-      const newResources = await generator.next();
+      await applyModels([diffMetadata]);
 
-      expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
+      expect(diffMetadata.outputs['resource1'].resourceId).toBe('shared-resource');
     });
 
     it('should merge the shared-resource with existing set of resources', async () => {
-      const app = new App('app');
-      const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
-      const sharedResource1 = new SharedTestResource('shared-resource', { key1: 'value-1' }, []);
-      await Container.get(ResourceDataRepository, { args: [true, [sharedResource1], [sharedResource1]] });
+      const [sharedResource1] = await createTestResources({}, { 'shared-resource': [] });
+      sharedResource1.properties['key1'] = 'value-1';
 
       const sharedResource2 = new SharedTestResource('shared-resource', { key2: 'value-2' }, []);
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ 'shared-resource': sharedResource2 });
-      const mergeFunction = jest.spyOn(sharedResource2, 'merge');
+      const mergeFunction = jest.spyOn(sharedResource2 as SharedTestResource, 'merge');
 
-      const service = await Container.get(TransactionService);
-      service.registerModelActions([universalModelAction]);
+      const app = new App('app');
 
-      const generator = service.beginTransaction(diffs, { yieldNewResources: true });
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
+      diffMetadata.applyOrder = 0;
 
-      const newResources = await generator.next();
+      await applyModels([diffMetadata]);
 
-      expect(newResources.value.map((r) => r.resourceId)).toMatchSnapshot();
       expect(mergeFunction).toHaveBeenCalledTimes(1);
-
-      const mergeFunctionArg0 = mergeFunction.mock.calls[0][0] as UnknownResource;
-      expect(mergeFunctionArg0.properties).toEqual({ key1: 'value-1' });
+      expect(diffMetadata.outputs['shared-resource'].properties).toEqual({ key1: 'value-1', key2: 'value-2' });
     });
   });
 
@@ -297,99 +291,60 @@ describe('TransactionService UT', () => {
       handle: jest.fn() as jest.Mocked<any>,
     };
 
-    it('should return empty transaction if diffs is empty', async () => {
+    let applyResources;
+    beforeEach(async () => {
       const service = await Container.get(TransactionService);
-      const generator = service.beginTransaction([], { yieldResourceTransaction: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
+      applyResources = service['applyResources'];
+      applyResources = applyResources.bind(service);
     });
 
-    it('should throw error when matching action not found', async () => {
-      const resources = [new TestResource('resource-1')];
-      await Container.get(ResourceDataRepository, { args: [true, [], [...resources]] });
+    it('should return empty transaction if diffs is empty', async () => {
+      const result = await applyResources([]);
 
-      const service = await Container.get(TransactionService);
-      const generator = service.beginTransaction([], { yieldResourceTransaction: true });
-
-      await expect(async () => {
-        await generator.next();
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"No matching action given for diff!"`);
+      expect(result).toEqual([]);
     });
 
     it('should skip processing diffs that are already applied', async () => {
-      const resource1 = new TestResource('resource-1');
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+
       const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
       const diffMetadata = new DiffMetadata(diff, [universalResourceAction]);
       diffMetadata.applied = true;
       diffMetadata.applyOrder = 0;
 
-      const service = await Container.get(TransactionService);
-      const result = await service['applyResources']([diffMetadata]);
+      const result = await applyResources([diffMetadata]);
+
+      expect(result).toEqual([[]]);
+    });
+
+    it('should only process 1 matching diff when duplicates found', async () => {
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+
+      const diff1 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+      const diffMetadata1 = new DiffMetadata(diff1, [universalResourceAction]);
+      diffMetadata1.applyOrder = 0;
+      const diff2 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+      const diffMetadata2 = new DiffMetadata(diff2, [universalResourceAction]);
+      diffMetadata2.applyOrder = 0;
+
+      const result = await applyResources([diffMetadata1, diffMetadata2]);
 
       expect(result).toMatchSnapshot();
     });
 
-    it('should only process 1 matching diff when duplicates found', async () => {
-      const resources = [new TestResource('resource-1')];
-      await Container.get(ResourceDataRepository, { args: [true, [...resources], [...resources]] });
+    it('should process diffs of resources per dependency graph', async () => {
+      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
 
-      const service = await Container.get(TransactionService);
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], { yieldResourceDiffs: true, yieldResourceTransaction: true });
+      const diff1 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+      const diffMetadata1 = new DiffMetadata(diff1, [universalResourceAction]);
+      diffMetadata1.applyOrder = 1;
+      const diff2 = new Diff(resource2, DiffAction.ADD, 'resourceId', 'resource-2');
+      const diffMetadata2 = new DiffMetadata(diff2, [universalResourceAction]);
+      diffMetadata2.applyOrder = 0;
 
-      const resultResourceDiffs = await generator.next();
+      const result = await applyResources([diffMetadata1, diffMetadata2]);
 
-      // Append same resource to diff.
-      const duplicateDiff = new Diff(new TestResource('resource-1'), DiffAction.ADD, 'resourceId', 'resource-1');
-      const duplicateDiffMetadata = new DiffMetadata(duplicateDiff, [universalResourceAction]);
-      duplicateDiffMetadata.applyOrder = 0;
-      (resultResourceDiffs.value as DiffMetadata[][])[0].push(duplicateDiffMetadata);
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should process diffs of adding resources per dependency graph', async () => {
-      const resource1 = new TestResource('resource-1');
-      const resource2 = new TestResource('resource-2');
-      resource1.addChild('resourceId', resource2, 'resourceId');
-
-      const resources = [resource1, resource2];
-      await Container.get(ResourceDataRepository, { args: [true, [], [...resources]] });
-
-      const service = await Container.get(TransactionService);
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], { yieldResourceTransaction: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
-    });
-
-    it('should process diffs of deleting resources per dependency graph', async () => {
-      const resource1_1 = new TestResource('resource-1');
-      const resource2_1 = new TestResource('resource-2', {}, [resource1_1]);
-      const resource1_2 = new TestResource('resource-1');
-      const resource2_2 = new TestResource('resource-2', {}, [resource1_2]);
-
-      await Container.get(ResourceDataRepository, {
-        args: [true, [resource1_1, resource2_1], [resource1_2, resource2_2]],
-      });
-
-      // Upon calling beginTransaction(), assume model's apply method marks the new resource as deleted.
-      resource2_2.remove();
-      resource1_2.remove();
-
-      const service = await Container.get(TransactionService);
-      service.registerResourceActions([universalResourceAction]);
-      const generator = service.beginTransaction([], { yieldResourceTransaction: true });
-
-      const result = await generator.next();
-
-      expect(result.value).toMatchSnapshot();
+      expect(result).toMatchSnapshot();
     });
   });
 
@@ -412,11 +367,10 @@ describe('TransactionService UT', () => {
     });
 
     it('should not set order for diff that already has an order defined', () => {
-      const app = new App('test');
-      const region = new Region('region-1');
-      const environment = new Environment('qa');
-      app.addRegion(region);
-      region.addEnvironment(environment);
+      const {
+        environment: [environment],
+      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, modelActions);
       diffMetadata.applyOrder = 1;
@@ -427,11 +381,10 @@ describe('TransactionService UT', () => {
     });
 
     it('should set order 0 for diff with no dependencies', () => {
-      const app = new App('test');
-      const region = new Region('region-1');
-      const environment = new Environment('qa');
-      app.addRegion(region);
-      region.addEnvironment(environment);
+      const {
+        environment: [environment],
+      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, modelActions);
 
@@ -441,11 +394,10 @@ describe('TransactionService UT', () => {
     });
 
     it('should set order 0 for diff with dependencies not in current array of diffs', () => {
-      const app = new App('test');
-      const region = new Region('region-1');
-      const environment = new Environment('qa');
-      app.addRegion(region);
-      region.addEnvironment(environment);
+      const {
+        environment: [environment],
+      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, modelActions);
 
@@ -455,18 +407,14 @@ describe('TransactionService UT', () => {
     });
 
     it('should only set order for the diff and its dependencies', () => {
-      const app = new App('test');
-      const region1 = new Region('region-1');
-      const region2 = new Region('region-2');
-      const environment = new Environment('qa');
-      app.addRegion(region1);
-      app.addRegion(region2);
-      region1.addEnvironment(environment);
+      const {
+        environment: [environment],
+        region: [region1, region2],
+      } = create({ app: ['test'], environment: ['qa'], region: ['region-1', 'region-2:-1'] });
 
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region1, DiffAction.ADD, 'regionId', 'region-1');
       const diff3 = new Diff(region2, DiffAction.ADD, 'regionId', 'region-2');
-
       const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
 
       setApplyOrder(diffsMetadata[0], diffsMetadata);
@@ -477,14 +425,13 @@ describe('TransactionService UT', () => {
     });
 
     it('should set order 1 for diff with 1 level of dependencies', () => {
-      const app = new App('test');
-      const region = new Region('region-1');
-      const environment = new Environment('qa');
-      app.addRegion(region);
-      region.addEnvironment(environment);
+      const {
+        environment: [environment],
+        region: [region],
+      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
-
       const diffsMetadata = [diff1, diff2].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
@@ -495,15 +442,15 @@ describe('TransactionService UT', () => {
     });
 
     it('should set order 2 for diff with 2 level of dependencies', () => {
-      const app = new App('test');
-      const region = new Region('region-1');
-      const environment = new Environment('qa');
-      app.addRegion(region);
-      region.addEnvironment(environment);
+      const {
+        app: [app],
+        environment: [environment],
+        region: [region],
+      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
       const diff3 = new Diff(app, DiffAction.ADD, 'name', 'test');
-
       const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
@@ -518,9 +465,9 @@ describe('TransactionService UT', () => {
     it('should throw errors with 1 level of circular dependencies', () => {
       const app = new App('test');
       const region = new Region('region-1');
+
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
       const diff2 = new Diff(app, DiffAction.ADD, 'name', 'test');
-
       const diffsMetadata = [diff1, diff2].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
@@ -535,16 +482,16 @@ describe('TransactionService UT', () => {
     });
 
     it('should throw errors with 2 level of circular dependencies', () => {
-      const app = new App('test');
-      const region = new Region('region-1');
-      const environment = new Environment('qa');
-      app.addRegion(region);
-      region.addEnvironment(environment);
+      const {
+        app: [app],
+        environment: [environment],
+        region: [region],
+      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
       environment.addChild('environmentName', app, 'name');
+
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
       const diff3 = new Diff(app, DiffAction.ADD, 'name', 'test');
-
       const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
@@ -559,11 +506,10 @@ describe('TransactionService UT', () => {
     });
 
     it('should throw errors if add and update of model are in same transaction', () => {
-      const app = new App('app');
-      const region = new Region('region');
-      app.addRegion(region);
-      const environment = new Environment('env');
-      region.addEnvironment(environment);
+      const {
+        environment: [environment],
+        region: [region],
+      } = create({ app: ['test'], environment: ['env'], region: ['region-1'] });
 
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
       const diff2 = new Diff(environment, DiffAction.ADD, 'environmentName', 'env');
@@ -606,12 +552,13 @@ describe('TransactionService UT', () => {
       it('should yield model transaction with overlays', async () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-        const app = new App('app');
-        const anchor = new TestAnchor('test-anchor', {}, app);
-        const overlay = new TestOverlay('test-overlay', {}, [anchor]);
+        const {
+          app: [app],
+        } = create({ app: ['app'] });
+        const anchor1 = new TestAnchor('anchor-1', {}, app);
+        app.addAnchor(anchor1);
 
-        const overlayDataRepository = await Container.get(OverlayDataRepository);
-        overlayDataRepository.add(overlay);
+        await createTestOverlays({ 'test-overlay': [anchor1] });
 
         const service = await Container.get(TransactionService);
         service.registerOverlayActions([universalModelAction]);
@@ -631,11 +578,12 @@ describe('TransactionService UT', () => {
       };
 
       it('should yield new resources', async () => {
-        const oldResource = new TestResource('resource-1');
-        const newResource = new TestResource('resource-2');
+        const [resource1] = await createTestResources({ 'resource-1': [] });
+        await commitResources();
 
-        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [oldResource], []] });
-        resourceDataRepository.add(newResource);
+        // Replace resource1 with resource2.
+        resource1.remove();
+        await createTestResources({ 'resource-2': [] });
 
         const service = await Container.get(TransactionService);
         service.registerResourceActions([universalResourceAction]);
@@ -643,18 +591,13 @@ describe('TransactionService UT', () => {
 
         const result = await generator.next();
 
-        expect(result.value.map((r) => r.resourceId)).toEqual(['resource-2']);
+        expect(
+          result.value.filter((r: UnknownResource) => !r.isMarkedDeleted()).map((r: UnknownResource) => r.resourceId),
+        ).toEqual(['resource-2']);
       });
     });
 
     describe('yieldResourceDiffs', () => {
-      const universalModelAction: IModelAction = {
-        ACTION_NAME: 'universal',
-        collectInput: () => [],
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-        revert: jest.fn() as jest.Mocked<any>,
-      };
       const universalResourceAction: IResourceAction = {
         ACTION_NAME: 'universal',
         filter: () => true,
@@ -662,21 +605,16 @@ describe('TransactionService UT', () => {
       };
 
       it('should yield resource diffs', async () => {
-        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+        const [resource1] = await createTestResources({ 'resource-1': [] });
+        await commitResources();
 
-        const app = new App('app');
-        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
-        const oldResource = new TestResource('resource-1');
-        const newResource = new TestResource('resource-2');
-
-        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [oldResource], []] });
-        resourceDataRepository.add(newResource);
+        // Replace resource1 with resource2.
+        resource1.remove();
+        await createTestResources({ 'resource-2': [] });
 
         const service = await Container.get(TransactionService);
-        service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
-        const generator = service.beginTransaction(diffs, { yieldResourceDiffs: true });
+        const generator = service.beginTransaction([], { yieldResourceDiffs: true });
 
         const result = await generator.next();
 
@@ -685,13 +623,6 @@ describe('TransactionService UT', () => {
     });
 
     describe('yieldResourceTransaction', () => {
-      const universalModelAction: IModelAction = {
-        ACTION_NAME: 'universal',
-        collectInput: () => [],
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-        revert: jest.fn() as jest.Mocked<any>,
-      };
       const universalResourceAction: IResourceAction = {
         ACTION_NAME: 'universal',
         filter: () => true,
@@ -699,45 +630,18 @@ describe('TransactionService UT', () => {
       };
 
       it('should yield resource diffs', async () => {
-        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
         (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-        const app = new App('app');
-        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
+        const [resource1] = await createTestResources({ 'resource-1': [] });
+        await commitResources();
 
-        const oldResource = new TestResource('resource-1');
-        const newResource = new TestResource('resource-2');
-
-        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [oldResource], []] });
-        resourceDataRepository.add(newResource);
+        // Replace resource1 with resource2.
+        resource1.remove();
+        await createTestResources({ 'resource-2': [] });
 
         const service = await Container.get(TransactionService);
-        service.registerModelActions([universalModelAction]);
         service.registerResourceActions([universalResourceAction]);
-        const generator = service.beginTransaction(diffs, { yieldResourceTransaction: true });
-
-        const result = await generator.next();
-
-        expect(result.value).toMatchSnapshot();
-      });
-
-      it('should return model diffs', async () => {
-        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
-        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue({});
-
-        const app = new App('app');
-        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
-
-        const oldResource = new TestResource('resource-1');
-        const newResource = new TestResource('resource-2');
-
-        const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [oldResource], []] });
-        resourceDataRepository.add(newResource);
-
-        const service = await Container.get(TransactionService);
-        service.registerModelActions([universalModelAction]);
-        service.registerResourceActions([universalResourceAction]);
-        const generator = service.beginTransaction(diffs);
+        const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
         const result = await generator.next();
 
@@ -776,12 +680,11 @@ describe('TransactionService UT', () => {
     });
 
     it('should be able to revert addition of resources', async () => {
-      // Assume "newResource" has been recently added. Upon revert, the new state should have this resource deleted.
-      const newResource = new TestResource('resource-1');
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
 
-      const resourceDataRepository = await Container.get(ResourceDataRepository, {
-        args: [true, [newResource], [newResource]],
-      });
+      // Assume a resource has been added. Upon revert, the new state should have this resource deleted.
+      await createTestResources({ 'resource-1': [] });
+      await commitResources();
 
       // Upon calling rollbackTransaction(), assume model's revert method marks the new resource as deleted.
       resourceDataRepository.getById('resource-1')!.remove();
@@ -798,18 +701,17 @@ describe('TransactionService UT', () => {
       const generator = service.rollbackTransaction([], { yieldResourceTransaction: true });
       const result = await generator.next();
 
-      // Notice the results are in reverse order, i.e. on revert new resources are reverted.
       expect(result.value).toMatchSnapshot();
     });
 
     it('should be able to revert deletion of resources', async () => {
-      // Assume "oldResource" has been recently deleted. Upon revert, the new state should have this resource added.
-      const oldResource = new TestResource('resource-1');
+      await Container.get(ResourceDataRepository);
 
-      const resourceDataRepository = await Container.get(ResourceDataRepository, { args: [true, [], []] });
+      // Assume a resource has been deleted. Upon revert, the new state should have this resource added.
+      await commitResources();
 
       // Upon calling rollbackTransaction(), assume model's revert method adds the new resource again.
-      resourceDataRepository.add(oldResource);
+      await createTestResources({ 'resource-1': [] });
 
       const service = await Container.get(TransactionService);
       service.registerResourceActions([
@@ -823,7 +725,6 @@ describe('TransactionService UT', () => {
       const generator = service.rollbackTransaction([], { yieldResourceDiffs: true });
       const result = await generator.next();
 
-      // Notice the results are in reverse order, i.e. on revert new resources are reverted.
       expect(result.value).toMatchSnapshot();
     });
   });

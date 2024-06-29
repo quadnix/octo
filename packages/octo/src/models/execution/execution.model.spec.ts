@@ -1,65 +1,53 @@
-import { Container } from '../../decorators/container.js';
-import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
-import { App } from '../app/app.model.js';
-import { Deployment } from '../deployment/deployment.model.js';
-import { Environment } from '../environment/environment.model.js';
-import { Region } from '../region/region.model.js';
-import { Server } from '../server/server.model.js';
-import { Subnet } from '../subnet/subnet.model.js';
-import { Execution } from './execution.model.js';
+import { commit, create } from '../../../test/helpers/test-models.js';
 
 describe('Execution UT', () => {
-  let modelSerializationService: ModelSerializationService;
-
-  beforeAll(async () => {
-    modelSerializationService = await Container.get(ModelSerializationService);
-  });
-
   describe('diff()', () => {
     describe('when diff of object', () => {
       it('should capture delete', async () => {
-        // Create a new execution.
-        const app = new App('test');
-        const region = new Region('region');
-        app.addRegion(region);
-        const subnet = new Subnet(region, 'subnet');
-        region.addSubnet(subnet);
-        const environment = new Environment('qa');
-        region.addEnvironment(environment);
-        const server = new Server('backend');
-        app.addServer(server);
-        const deployment = new Deployment('0.0.1');
-        server.addDeployment(deployment);
-        const execution = new Execution(deployment, environment, subnet);
+        const {
+          app: [app],
+          execution: [execution],
+        } = create({
+          app: ['test'],
+          deployment: ['0.0.1'],
+          environment: ['qa'],
+          execution: [':0:0:0'],
+          region: ['region'],
+          server: ['backend'],
+          subnet: ['subnet'],
+        });
 
-        // Commit state.
-        const app_1 = (await modelSerializationService.deserialize(
-          await modelSerializationService.serialize(app),
-        )) as App;
+        const app_1 = await commit(app);
 
         // Remove the execution.
         execution.remove();
 
         const diff = await app.diff(app_1);
+
+        /* eslint-disable spellcheck/spell-checker, max-len */
         expect(diff).toMatchInlineSnapshot(`
           [
             {
               "action": "delete",
               "field": "executionId",
+              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
               "value": "backend-0.0.1-region-qa-subnet",
             },
             {
               "action": "delete",
               "field": "executionId",
+              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
               "value": "backend-0.0.1-region-qa-subnet",
             },
             {
               "action": "delete",
               "field": "executionId",
+              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
               "value": "backend-0.0.1-region-qa-subnet",
             },
           ]
         `);
+        /* eslint-enable */
       });
     });
   });

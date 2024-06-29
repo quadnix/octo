@@ -12,19 +12,19 @@ describe('Common Utility Test', () => {
       for (let i = 0; i < 100; i++) {
         const randomSize = Math.floor(Math.random() * 512) + 1;
         const randomString = CommonUtility.randomToken(randomSize);
-        expect(randomString.length).toBe(randomSize);
+        expect(randomString).toHaveLength(randomSize);
       }
     });
 
     it('should return an empty string when requested size is 0', () => {
       const randomString = CommonUtility.randomToken(0);
-      expect(randomString.length).toBe(0);
+      expect(randomString).toHaveLength(0);
       expect(randomString).toBe('');
     });
 
     it('should return an empty string when requested size is negative', () => {
       const randomString = CommonUtility.randomToken(-1);
-      expect(randomString.length).toBe(0);
+      expect(randomString).toHaveLength(0);
       expect(randomString).toBe('');
     });
 

@@ -28,7 +28,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "toField": "imageId",
         "type": "parent",
       },
-      "to": "image=image:0.0.1,app=test-app",
+      "to": "image=image:v1,app=test-app",
     },
     {
       "behaviors": [
@@ -165,7 +165,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "toField": "name",
         },
       ],
-      "from": "image=image:0.0.1,app=test-app",
+      "from": "image=image:v1,app=test-app",
       "relationship": {
         "onField": "imageId",
         "toField": "name",
@@ -185,20 +185,18 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       "className": "Environment",
       "model": {
         "environmentName": "qa",
-        "environmentVariables": {
-          "key": "value",
-        },
+        "environmentVariables": {},
       },
     },
-    "image=image:0.0.1,app=test-app": {
+    "image=image:v1,app=test-app": {
       "className": "Image",
       "model": {
         "dockerOptions": {
           "dockerfilePath": "/Dockerfile",
         },
-        "imageId": "0.0.1",
+        "imageId": "v1",
         "imageName": "image",
-        "imageTag": "0.0.1",
+        "imageTag": "v1",
       },
     },
     "region=region-1,app=test-app": {

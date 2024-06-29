@@ -73,7 +73,7 @@ describe('EcrService UT', () => {
       const image2 = new Image('test', '0.0.1', { dockerfilePath: '/dockerExec' });
       service.addImage(image2);
 
-      expect(service.images.length).toBe(1);
+      expect(service.images).toHaveLength(1);
     });
   });
 
@@ -83,7 +83,7 @@ describe('EcrService UT', () => {
       service.addRegion(RegionId.AWS_US_EAST_1A);
       service.addRegion(RegionId.AWS_US_EAST_1A);
 
-      expect(service.awsRegionIds.length).toBe(1);
+      expect(service.awsRegionIds).toHaveLength(1);
     });
   });
 

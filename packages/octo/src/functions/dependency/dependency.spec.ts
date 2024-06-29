@@ -1,4 +1,4 @@
-import { App } from '../../models/app/app.model.js';
+import { create } from '../../../test/helpers/test-models.js';
 import { Environment } from '../../models/environment/environment.model.js';
 import { Region } from '../../models/region/region.model.js';
 import { DiffAction } from '../diff/diff.js';
@@ -21,18 +21,18 @@ describe('Dependency UT', () => {
     });
   });
 
-  describe('toJSON()', () => {
-    it('should be able to JSON summarize a dependency', () => {
-      const app = new App('app');
-      const region = new Region('region-1');
-      app.addRegion(region);
-      const environment = new Environment('qa');
-      region.addEnvironment(environment);
+  describe('synth()', () => {
+    it('should be able to synth a dependency', () => {
+      const {
+        environment: [environment],
+        region: [region],
+      } = create({ app: ['app'], environment: ['qa'], region: ['region-1'] });
 
       const dependency = new Dependency(region, environment);
 
-      expect(dependency.toJSON()).toMatchInlineSnapshot(`
+      expect(dependency.synth()).toMatchInlineSnapshot(`
         {
+          "behaviors": [],
           "from": "region=region-1,app=app",
           "relationship": undefined,
           "to": "environment=qa,region=region-1,app=app",

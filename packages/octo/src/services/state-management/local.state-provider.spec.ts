@@ -2,10 +2,8 @@ import { unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { TestResource } from '../../../test/helpers/test-classes.js';
+import { create, createTestResources } from '../../../test/helpers/test-models.js';
 import { Container } from '../../decorators/container.js';
-import { App } from '../../models/app/app.model.js';
-import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { ModelSerializationService } from '../serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
 import { LocalStateProvider } from './local.state-provider.js';
@@ -42,9 +40,12 @@ describe('LocalStateProvider UT', () => {
 
     it('should be able to retrieve a frozen state', async () => {
       filePath = join(__dirname, 'models2.json');
-
-      const app = new App('test');
       const modelSerializationService = await Container.get(ModelSerializationService);
+
+      const {
+        app: [app],
+      } = create({ app: ['test'] });
+
       const serializedOutput = await modelSerializationService.serialize(app);
 
       const localStateProvider = new LocalStateProvider(__dirname);
@@ -88,12 +89,10 @@ describe('LocalStateProvider UT', () => {
 
     it('should be able to retrieve a frozen state', async () => {
       filePath = join(__dirname, 'resources2.json');
-
-      const resource1 = new TestResource('resource-1');
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
-      resourceDataRepository.add(resource1);
-
       const resourceSerializationService = await Container.get(ResourceSerializationService);
+
+      await createTestResources({ 'resource-1': [] });
+
       const serializedOutput = await resourceSerializationService.serialize();
 
       const localStateProvider = new LocalStateProvider(__dirname);

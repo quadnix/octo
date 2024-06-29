@@ -1,41 +1,25 @@
-import { Container } from '../../decorators/container.js';
-import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
-import { App } from '../app/app.model.js';
-import { Deployment } from '../deployment/deployment.model.js';
-import { Environment } from '../environment/environment.model.js';
-import { Execution } from '../execution/execution.model.js';
-import { Region } from '../region/region.model.js';
-import { Subnet } from '../subnet/subnet.model.js';
-import { Server } from './server.model.js';
+import { commit, create } from '../../../test/helpers/test-models.js';
 
 describe('Server UT', () => {
-  let modelSerializationService: ModelSerializationService;
-
-  beforeAll(async () => {
-    modelSerializationService = await Container.get(ModelSerializationService);
-  });
-
   describe('diff()', () => {
     describe('when diff of object with children', () => {
       it('should capture delete of children', async () => {
-        // Create a new server, and an execution.
-        const app = new App('test');
-        const region = new Region('region');
-        app.addRegion(region);
-        const subnet = new Subnet(region, 'subnet');
-        region.addSubnet(subnet);
-        const environment = new Environment('qa');
-        region.addEnvironment(environment);
-        const server = new Server('backend');
-        app.addServer(server);
-        const deployment = new Deployment('0.0.1');
-        server.addDeployment(deployment);
-        const execution = new Execution(deployment, environment, subnet);
+        const {
+          app: [app],
+          deployment: [deployment],
+          execution: [execution],
+          server: [server],
+        } = create({
+          app: ['test'],
+          deployment: ['0.0.1'],
+          environment: ['qa'],
+          execution: [':0:0:0'],
+          region: ['region'],
+          server: ['backend'],
+          subnet: ['subnet'],
+        });
 
-        // Commit state.
-        const app_1 = (await modelSerializationService.deserialize(
-          await modelSerializationService.serialize(app),
-        )) as App;
+        const app_1 = await commit(app);
 
         // Remove the server, and the execution.
         execution.remove();
@@ -43,35 +27,43 @@ describe('Server UT', () => {
         server.remove();
 
         const diff = await app.diff(app_1);
+
+        /* eslint-disable spellcheck/spell-checker, max-len */
         expect(diff).toMatchInlineSnapshot(`
           [
             {
               "action": "delete",
               "field": "executionId",
+              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
               "value": "backend-0.0.1-region-qa-subnet",
             },
             {
               "action": "delete",
               "field": "executionId",
+              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
               "value": "backend-0.0.1-region-qa-subnet",
             },
             {
               "action": "delete",
               "field": "executionId",
+              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
               "value": "backend-0.0.1-region-qa-subnet",
             },
             {
               "action": "delete",
               "field": "deploymentTag",
+              "model": "deployment=0.0.1,server=backend,app=test",
               "value": "0.0.1",
             },
             {
               "action": "delete",
               "field": "serverKey",
+              "model": "server=backend,app=test",
               "value": "backend",
             },
           ]
         `);
+        /* eslint-enable */
       });
     });
   });

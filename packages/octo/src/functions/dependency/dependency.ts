@@ -144,20 +144,6 @@ export class Dependency {
     };
   }
 
-  toJSON(): object {
-    return {
-      from: this.from.getContext(),
-      relationship: this.relationship
-        ? {
-            onField: this.relationship.onField,
-            toField: this.relationship.toField,
-            type: this.relationship.type,
-          }
-        : undefined,
-      to: this.to.getContext(),
-    };
-  }
-
   static unSynth(from: UnknownModel, to: UnknownModel, dependency: IDependency): Dependency {
     const newDependency = new Dependency(from, to);
 

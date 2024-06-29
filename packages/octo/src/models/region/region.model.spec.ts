@@ -1,14 +1,12 @@
-import { App } from '../app/app.model.js';
+import { commit, create } from '../../../test/helpers/test-models.js';
 import { Environment } from '../environment/environment.model.js';
-import { Region } from './region.model.js';
+import { type Region } from './region.model.js';
 
 describe('Region UT', () => {
   describe('addEnvironment()', () => {
     it('should throw error if duplicate environments exist', () => {
       const t = (): void => {
-        const region = new Region('region-1');
-        region.addEnvironment(new Environment('qa'));
-        region.addEnvironment(new Environment('qa'));
+        create({ app: ['test'], environment: ['qa', 'qa:-1'], region: ['region-1'] });
       };
       expect(t).toThrow('Environment already exists!');
     });
@@ -17,13 +15,15 @@ describe('Region UT', () => {
   describe('diff()', () => {
     describe('when diff of environment', () => {
       it('should capture addition', async () => {
-        const app_1 = new App('test');
-        const region_1 = new Region('region-1');
-        app_1.addRegion(region_1);
+        const {
+          app: [app],
+          region: [region],
+        } = create({ app: ['test'], region: ['region-1'] });
 
-        const app = new App('test');
-        const region = new Region('region-1');
-        app.addRegion(region);
+        const app_1 = await commit(app);
+        const region_1 = app_1.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
+
+        // Add environment.
         const environment = new Environment('qa');
         environment.environmentVariables.set('key1', 'value 1');
         environment.environmentVariables.set('key2', 'value 2');
@@ -36,6 +36,7 @@ describe('Region UT', () => {
           {
             "action": "add",
             "field": "environmentName",
+            "model": "environment=qa,region=region-1,app=test",
             "value": "qa",
           },
         ]
@@ -43,17 +44,17 @@ describe('Region UT', () => {
       });
 
       it('should capture update', async () => {
-        const app_1 = new App('test');
-        const region_1 = new Region('region-1');
-        app_1.addRegion(region_1);
-        region_1.addEnvironment(new Environment('qa'));
+        const {
+          app: [app],
+          environment: [environment],
+          region: [region],
+        } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
 
-        const app = new App('test');
-        const region = new Region('region-1');
-        app.addRegion(region);
-        const environment = new Environment('qa');
+        const app_1 = await commit(app);
+        const region_1 = app_1.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
+
+        // Update environment.
         environment.environmentVariables.set('key', 'value');
-        region.addEnvironment(environment);
 
         const diff = await region.diff(region_1);
 
@@ -62,6 +63,7 @@ describe('Region UT', () => {
           {
             "action": "add",
             "field": "environmentVariables",
+            "model": "environment=qa,region=region-1,app=test",
             "value": {
               "key": "key",
               "value": "value",
@@ -72,15 +74,19 @@ describe('Region UT', () => {
       });
 
       it('should capture replace', async () => {
-        const app_1 = new App('test');
-        const region_1 = new Region('region-1');
-        app_1.addRegion(region_1);
-        region_1.addEnvironment(new Environment('qa'));
+        const {
+          app: [app],
+          environment: [environment1],
+          region: [region],
+        } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
 
-        const app = new App('test');
-        const region = new Region('aws-ap-south-1');
-        app.addRegion(region);
-        region.addEnvironment(new Environment('staging'));
+        const app_1 = await commit(app);
+        const region_1 = app_1.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
+
+        // Replace qa environment with staging.
+        environment1.remove();
+        const environment2 = new Environment('staging');
+        region.addEnvironment(environment2);
 
         const diff = await region.diff(region_1);
 
@@ -89,11 +95,13 @@ describe('Region UT', () => {
           {
             "action": "delete",
             "field": "environmentName",
+            "model": "environment=qa,region=region-1,app=test",
             "value": "qa",
           },
           {
             "action": "add",
             "field": "environmentName",
+            "model": "environment=staging,region=region-1,app=test",
             "value": "staging",
           },
         ]
@@ -101,14 +109,17 @@ describe('Region UT', () => {
       });
 
       it('should capture deletion', async () => {
-        const app_1 = new App('test');
-        const region_1 = new Region('region-1');
-        app_1.addRegion(region_1);
-        region_1.addEnvironment(new Environment('qa'));
+        const {
+          app: [app],
+          environment: [environment1],
+          region: [region],
+        } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
 
-        const app = new App('test');
-        const region = new Region('region-1');
-        app.addRegion(region);
+        const app_1 = await commit(app);
+        const region_1 = app_1.getChild('region', [{ key: 'regionId', value: 'region-1' }]) as Region;
+
+        // Delete environment.
+        environment1.remove();
 
         const diff = await region.diff(region_1);
 
@@ -117,6 +128,7 @@ describe('Region UT', () => {
           {
             "action": "delete",
             "field": "environmentName",
+            "model": "environment=qa,region=region-1,app=test",
             "value": "qa",
           },
         ]
@@ -124,13 +136,12 @@ describe('Region UT', () => {
       });
 
       it('should capture diff without a previous instance', async () => {
-        const app = new App('test');
-        const region = new Region('region-1');
-        app.addRegion(region);
-        const environment = new Environment('qa');
+        const {
+          environment: [environment],
+          region: [region],
+        } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
         environment.environmentVariables.set('key1', 'value 1');
         environment.environmentVariables.set('key2', 'value 2');
-        region.addEnvironment(environment);
 
         const diff = await region.diff();
 
@@ -139,11 +150,13 @@ describe('Region UT', () => {
           {
             "action": "add",
             "field": "environmentName",
+            "model": "environment=qa,region=region-1,app=test",
             "value": "qa",
           },
           {
             "action": "add",
             "field": "regionId",
+            "model": "region=region-1,app=test",
             "value": "region-1",
           },
         ]

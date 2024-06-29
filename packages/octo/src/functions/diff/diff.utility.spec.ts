@@ -65,6 +65,12 @@ describe('Diff Utility UT', () => {
          {
            "action": "update",
            "field": "a",
+           "model": {
+             "a": [
+               1,
+             ],
+             "b": 2,
+           },
            "value": 1,
          },
        ]
@@ -83,6 +89,12 @@ describe('Diff Utility UT', () => {
          {
            "action": "delete",
            "field": "a",
+           "model": {
+             "a": [
+               1,
+             ],
+             "b": 2,
+           },
            "value": 1,
          },
        ]
@@ -101,6 +113,12 @@ describe('Diff Utility UT', () => {
          {
            "action": "add",
            "field": "a",
+           "model": {
+             "a": [
+               1,
+             ],
+             "b": 2,
+           },
            "value": 1,
          },
        ]
@@ -122,6 +140,14 @@ describe('Diff Utility UT', () => {
          {
            "action": "update",
            "field": "a",
+           "model": {
+             "a": [
+               {
+                 "a": 1,
+               },
+             ],
+             "b": 2,
+           },
            "value": {
              "a": 1,
            },
@@ -143,6 +169,14 @@ describe('Diff Utility UT', () => {
          {
            "action": "delete",
            "field": "a",
+           "model": {
+             "a": [
+               {
+                 "a": 1,
+               },
+             ],
+             "b": 2,
+           },
            "value": {
              "a": 1,
            },
@@ -164,6 +198,14 @@ describe('Diff Utility UT', () => {
          {
            "action": "add",
            "field": "a",
+           "model": {
+             "a": [
+               {
+                 "a": 1,
+               },
+             ],
+             "b": 2,
+           },
            "value": {
              "a": 1,
            },
