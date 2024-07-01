@@ -206,11 +206,13 @@ describe('AwsSubnet UT', () => {
            {
              "action": "add",
              "field": "resourceId",
+             "model": "subnet=subnet-aws-us-east-1a-private",
              "value": "subnet-aws-us-east-1a-private",
            },
            {
              "action": "add",
              "field": "resourceId",
+             "model": "subnet=subnet-aws-us-east-1a-public",
              "value": "subnet-aws-us-east-1a-public",
            },
          ],
@@ -218,21 +220,25 @@ describe('AwsSubnet UT', () => {
            {
              "action": "add",
              "field": "resourceId",
+             "model": "route-table=rt-aws-us-east-1a-private",
              "value": "rt-aws-us-east-1a-private",
            },
            {
              "action": "add",
              "field": "resourceId",
+             "model": "network-acl=nacl-aws-us-east-1a-private",
              "value": "nacl-aws-us-east-1a-private",
            },
            {
              "action": "add",
              "field": "resourceId",
+             "model": "route-table=rt-aws-us-east-1a-public",
              "value": "rt-aws-us-east-1a-public",
            },
            {
              "action": "add",
              "field": "resourceId",
+             "model": "network-acl=nacl-aws-us-east-1a-public",
              "value": "nacl-aws-us-east-1a-public",
            },
          ],
@@ -258,6 +264,7 @@ describe('AwsSubnet UT', () => {
            {
              "action": "update",
              "field": "properties",
+             "model": "network-acl=nacl-aws-us-east-1a-private",
              "value": {
                "key": "entries",
                "value": [
@@ -289,6 +296,7 @@ describe('AwsSubnet UT', () => {
            {
              "action": "update",
              "field": "properties",
+             "model": "network-acl=nacl-aws-us-east-1a-public",
              "value": {
                "key": "entries",
                "value": [
@@ -340,6 +348,7 @@ describe('AwsSubnet UT', () => {
            {
              "action": "update",
              "field": "properties",
+             "model": "network-acl=nacl-aws-us-east-1a-private",
              "value": {
                "key": "entries",
                "value": [
@@ -414,11 +423,13 @@ describe('AwsSubnet UT', () => {
            {
              "action": "add",
              "field": "resourceId",
+             "model": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
            },
            {
              "action": "add",
              "field": "resourceId",
+             "model": "efs-mount-target=efs-mount-aws-us-east-1a-public-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-public-shared-mounts",
            },
          ],
@@ -445,11 +456,13 @@ describe('AwsSubnet UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
+             "model": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
            },
            {
              "action": "delete",
              "field": "resourceId",
+             "model": "efs-mount-target=efs-mount-aws-us-east-1a-public-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-public-shared-mounts",
            },
          ],
@@ -475,6 +488,7 @@ describe('AwsSubnet UT', () => {
            {
              "action": "update",
              "field": "properties",
+             "model": "network-acl=nacl-aws-us-east-1a-private",
              "value": {
                "key": "entries",
                "value": [
@@ -506,6 +520,7 @@ describe('AwsSubnet UT', () => {
            {
              "action": "update",
              "field": "properties",
+             "model": "network-acl=nacl-aws-us-east-1a-public",
              "value": {
                "key": "entries",
                "value": [],
@@ -535,21 +550,25 @@ describe('AwsSubnet UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
+             "model": "route-table=rt-aws-us-east-1a-private",
              "value": "rt-aws-us-east-1a-private",
            },
            {
              "action": "delete",
              "field": "resourceId",
+             "model": "network-acl=nacl-aws-us-east-1a-private",
              "value": "nacl-aws-us-east-1a-private",
            },
            {
              "action": "delete",
              "field": "resourceId",
+             "model": "route-table=rt-aws-us-east-1a-public",
              "value": "rt-aws-us-east-1a-public",
            },
            {
              "action": "delete",
              "field": "resourceId",
+             "model": "network-acl=nacl-aws-us-east-1a-public",
              "value": "nacl-aws-us-east-1a-public",
            },
          ],
@@ -557,11 +576,13 @@ describe('AwsSubnet UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
+             "model": "subnet=subnet-aws-us-east-1a-private",
              "value": "subnet-aws-us-east-1a-private",
            },
            {
              "action": "delete",
              "field": "resourceId",
+             "model": "subnet=subnet-aws-us-east-1a-public",
              "value": "subnet-aws-us-east-1a-public",
            },
          ],

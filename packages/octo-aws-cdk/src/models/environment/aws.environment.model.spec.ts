@@ -86,15 +86,16 @@ describe('Environment UT', () => {
 
       // Verify resource transaction was as expected.
       expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
-        [
-          [
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "ecs-cluster-aws-us-east-1a-qa",
-            },
-          ],
-        ]
+       [
+         [
+           {
+             "action": "add",
+             "field": "resourceId",
+             "model": "ecs-cluster=ecs-cluster-aws-us-east-1a-qa",
+             "value": "ecs-cluster-aws-us-east-1a-qa",
+           },
+         ],
+       ]
       `);
 
       // Remove environment.
@@ -111,15 +112,16 @@ describe('Environment UT', () => {
 
       // Verify resource transaction was as expected.
       expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
-        [
-          [
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "ecs-cluster-aws-us-east-1a-qa",
-            },
-          ],
-        ]
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "model": "ecs-cluster=ecs-cluster-aws-us-east-1a-qa",
+             "value": "ecs-cluster-aws-us-east-1a-qa",
+           },
+         ],
+       ]
       `);
     });
   });

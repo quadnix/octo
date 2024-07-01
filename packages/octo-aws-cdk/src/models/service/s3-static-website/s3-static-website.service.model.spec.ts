@@ -212,26 +212,27 @@ describe('S3StaticWebsiteService UT', () => {
       const diffs1 = await octoAws.diff(app);
 
       expect(diffs1).toMatchInlineSnapshot(`
-        [
-          {
-            "action": "update",
-            "field": "sourcePaths",
-            "value": {
-              "error.html": [
-                "add",
-                "${websiteSourcePath}/error.html",
-              ],
-              "index.html": [
-                "add",
-                "${websiteSourcePath}/index.html",
-              ],
-              "page-1.html": [
-                "add",
-                "${websiteSourcePath}/page-1.html",
-              ],
-            },
-          },
-        ]
+       [
+         {
+           "action": "update",
+           "field": "sourcePaths",
+           "model": "service=test-bucket-s3-static-website,app=test",
+           "value": {
+             "error.html": [
+               "add",
+               "${websiteSourcePath}/error.html",
+             ],
+             "index.html": [
+               "add",
+               "${websiteSourcePath}/index.html",
+             ],
+             "page-1.html": [
+               "add",
+               "${websiteSourcePath}/page-1.html",
+             ],
+           },
+         },
+       ]
       `);
     });
 
@@ -241,30 +242,31 @@ describe('S3StaticWebsiteService UT', () => {
       const diffs1 = await octoAws.diff(app);
 
       expect(diffs1).toMatchInlineSnapshot(`
-        [
-          {
-            "action": "update",
-            "field": "sourcePaths",
-            "value": {
-              "index.html": [
-                "add",
-                "${resourcesPath}/index.html",
-              ],
-              "s3-static-website/error.html": [
-                "add",
-                "${websiteSourcePath}/error.html",
-              ],
-              "s3-static-website/index.html": [
-                "add",
-                "${websiteSourcePath}/index.html",
-              ],
-              "s3-static-website/page-1.html": [
-                "add",
-                "${websiteSourcePath}/page-1.html",
-              ],
-            },
-          },
-        ]
+       [
+         {
+           "action": "update",
+           "field": "sourcePaths",
+           "model": "service=test-bucket-s3-static-website,app=test",
+           "value": {
+             "index.html": [
+               "add",
+               "${resourcesPath}/index.html",
+             ],
+             "s3-static-website/error.html": [
+               "add",
+               "${websiteSourcePath}/error.html",
+             ],
+             "s3-static-website/index.html": [
+               "add",
+               "${websiteSourcePath}/index.html",
+             ],
+             "s3-static-website/page-1.html": [
+               "add",
+               "${websiteSourcePath}/page-1.html",
+             ],
+           },
+         },
+       ]
       `);
     });
 
@@ -276,18 +278,19 @@ describe('S3StaticWebsiteService UT', () => {
       const diffs1 = await octoAws.diff(app);
 
       expect(diffs1).toMatchInlineSnapshot(`
-        [
-          {
-            "action": "update",
-            "field": "sourcePaths",
-            "value": {
-              "index.html": [
-                "add",
-                "${resourcesPath}/index.html",
-              ],
-            },
-          },
-        ]
+       [
+         {
+           "action": "update",
+           "field": "sourcePaths",
+           "model": "service=test-bucket-s3-static-website,app=test",
+           "value": {
+             "index.html": [
+               "add",
+               "${resourcesPath}/index.html",
+             ],
+           },
+         },
+       ]
       `);
     });
 
@@ -314,18 +317,19 @@ describe('S3StaticWebsiteService UT', () => {
 
       const diffs2 = await octoAws.diff(app);
       expect(diffs2).toMatchInlineSnapshot(`
-        [
-          {
-            "action": "update",
-            "field": "sourcePaths",
-            "value": {
-              "page-1.html": [
-                "delete",
-                "${websiteSourcePath}/page-1.html",
-              ],
-            },
-          },
-        ]
+       [
+         {
+           "action": "update",
+           "field": "sourcePaths",
+           "model": "service=test-bucket-s3-static-website,app=test",
+           "value": {
+             "page-1.html": [
+               "delete",
+               "${websiteSourcePath}/page-1.html",
+             ],
+           },
+         },
+       ]
       `);
     });
 
@@ -350,18 +354,19 @@ describe('S3StaticWebsiteService UT', () => {
       try {
         const diffs2 = await octoAws.diff(app);
         expect(diffs2).toMatchInlineSnapshot(`
-          [
-            {
-              "action": "update",
-              "field": "sourcePaths",
-              "value": {
-                "error.html": [
-                  "update",
-                  "${websiteSourcePath}/error.html",
-                ],
-              },
-            },
-          ]
+         [
+           {
+             "action": "update",
+             "field": "sourcePaths",
+             "model": "service=test-bucket-s3-static-website,app=test",
+             "value": {
+               "error.html": [
+                 "update",
+                 "${websiteSourcePath}/error.html",
+               ],
+             },
+           },
+         ]
         `);
       } finally {
         // Restore error.html

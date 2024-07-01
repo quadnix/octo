@@ -148,20 +148,22 @@ describe('EcrService UT', () => {
 
       // Verify resource diff was as expected.
       expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
-        [
-          [
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "ecr-us-east-1-imageName:0.0.1",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "ecr-us-east-1-imageName:0.0.2",
-            },
-          ],
-        ]
+       [
+         [
+           {
+             "action": "add",
+             "field": "resourceId",
+             "model": "ecr-image=ecr-us-east-1-imageName:0.0.1",
+             "value": "ecr-us-east-1-imageName:0.0.1",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "model": "ecr-image=ecr-us-east-1-imageName:0.0.2",
+             "value": "ecr-us-east-1-imageName:0.0.2",
+           },
+         ],
+       ]
       `);
 
       // Remove image.
@@ -178,15 +180,16 @@ describe('EcrService UT', () => {
 
       // Verify resource diff was as expected.
       expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
-        [
-          [
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "ecr-us-east-1-imageName:0.0.1",
-            },
-          ],
-        ]
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "model": "ecr-image=ecr-us-east-1-imageName:0.0.1",
+             "value": "ecr-us-east-1-imageName:0.0.1",
+           },
+         ],
+       ]
       `);
 
       // Remove region.
@@ -203,15 +206,16 @@ describe('EcrService UT', () => {
 
       // Verify resource diff was as expected.
       expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
-        [
-          [
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "ecr-us-east-1-imageName:0.0.2",
-            },
-          ],
-        ]
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "model": "ecr-image=ecr-us-east-1-imageName:0.0.2",
+             "value": "ecr-us-east-1-imageName:0.0.2",
+           },
+         ],
+       ]
       `);
     });
   });

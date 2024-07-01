@@ -150,22 +150,24 @@ describe('Execution UT', () => {
 
     // Verify resource transaction was as expected.
     expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
-      [
-        [
-          {
-            "action": "add",
-            "field": "resourceId",
-            "value": "ecs-task-definition-aws-us-east-1a-backend-0.0.1",
-          },
-        ],
-        [
-          {
-            "action": "add",
-            "field": "resourceId",
-            "value": "ecs-service-aws-us-east-1a-backend",
-          },
-        ],
-      ]
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "model": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
+           "value": "ecs-task-definition-aws-us-east-1a-backend-0.0.1",
+         },
+       ],
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
+           "value": "ecs-service-aws-us-east-1a-backend",
+         },
+       ],
+     ]
     `);
 
     // Add security group rules for the server.
@@ -193,6 +195,7 @@ describe('Execution UT', () => {
          {
            "action": "add",
            "field": "resourceId",
+           "model": "security-group=sec-grp-backend-SecurityGroup",
            "value": "sec-grp-backend-SecurityGroup",
          },
        ],
@@ -200,6 +203,7 @@ describe('Execution UT', () => {
          {
            "action": "update",
            "field": "resourceId",
+           "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
            "value": "",
          },
        ],
@@ -231,6 +235,7 @@ describe('Execution UT', () => {
          {
            "action": "add",
            "field": "resourceId",
+           "model": "security-group=sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
            "value": "sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
          },
        ],
@@ -238,6 +243,7 @@ describe('Execution UT', () => {
          {
            "action": "update",
            "field": "resourceId",
+           "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
            "value": "",
          },
        ],
@@ -265,6 +271,7 @@ describe('Execution UT', () => {
          {
            "action": "add",
            "field": "resourceId",
+           "model": "efs=efs-aws-us-east-1a-shared-mounts",
            "value": "efs-aws-us-east-1a-shared-mounts",
          },
        ],
@@ -272,11 +279,13 @@ describe('Execution UT', () => {
          {
            "action": "update",
            "field": "resourceId",
+           "model": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
            "value": "",
          },
          {
            "action": "add",
            "field": "resourceId",
+           "model": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
            "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
          },
        ],
@@ -284,6 +293,7 @@ describe('Execution UT', () => {
          {
            "action": "update",
            "field": "resourceId",
+           "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
            "value": "",
          },
        ],
@@ -316,6 +326,7 @@ describe('Execution UT', () => {
          {
            "action": "update",
            "field": "resourceId",
+           "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
            "value": "",
          },
        ],
@@ -323,6 +334,7 @@ describe('Execution UT', () => {
          {
            "action": "delete",
            "field": "resourceId",
+           "model": "security-group=sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
            "value": "sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
          },
        ],
@@ -357,11 +369,13 @@ describe('Execution UT', () => {
          {
            "action": "update",
            "field": "resourceId",
+           "model": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
            "value": "",
          },
          {
            "action": "delete",
            "field": "resourceId",
+           "model": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
            "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
          },
        ],
@@ -369,11 +383,13 @@ describe('Execution UT', () => {
          {
            "action": "delete",
            "field": "resourceId",
+           "model": "efs=efs-aws-us-east-1a-shared-mounts",
            "value": "efs-aws-us-east-1a-shared-mounts",
          },
          {
            "action": "update",
            "field": "resourceId",
+           "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
            "value": "",
          },
        ],
@@ -381,6 +397,7 @@ describe('Execution UT', () => {
          {
            "action": "delete",
            "field": "resourceId",
+           "model": "security-group=sec-grp-backend-SecurityGroup",
            "value": "sec-grp-backend-SecurityGroup",
          },
        ],
@@ -402,22 +419,24 @@ describe('Execution UT', () => {
 
     // Verify resource transaction was as expected.
     expect(resourceTransactionResult7.value).toMatchInlineSnapshot(`
-      [
-        [
-          {
-            "action": "delete",
-            "field": "resourceId",
-            "value": "ecs-service-aws-us-east-1a-backend",
-          },
-        ],
-        [
-          {
-            "action": "delete",
-            "field": "resourceId",
-            "value": "ecs-task-definition-aws-us-east-1a-backend-0.0.1",
-          },
-        ],
-      ]
+     [
+       [
+         {
+           "action": "delete",
+           "field": "resourceId",
+           "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
+           "value": "ecs-service-aws-us-east-1a-backend",
+         },
+       ],
+       [
+         {
+           "action": "delete",
+           "field": "resourceId",
+           "model": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
+           "value": "ecs-task-definition-aws-us-east-1a-backend-0.0.1",
+         },
+       ],
+     ]
     `);
   });
 });

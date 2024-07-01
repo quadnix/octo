@@ -103,27 +103,30 @@ describe('AwsRegion UT', () => {
 
       // Verify resource transaction was as expected.
       expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
-        [
-          [
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "vpc-aws-us-east-1a",
-            },
-          ],
-          [
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "igw-aws-us-east-1a",
-            },
-            {
-              "action": "add",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-access",
-            },
-          ],
-        ]
+       [
+         [
+           {
+             "action": "add",
+             "field": "resourceId",
+             "model": "vpc=vpc-aws-us-east-1a",
+             "value": "vpc-aws-us-east-1a",
+           },
+         ],
+         [
+           {
+             "action": "add",
+             "field": "resourceId",
+             "model": "internet-gateway=igw-aws-us-east-1a",
+             "value": "igw-aws-us-east-1a",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "model": "security-group=sec-grp-aws-us-east-1a-access",
+             "value": "sec-grp-aws-us-east-1a-access",
+           },
+         ],
+       ]
       `);
 
       // Add a new filesystem.
@@ -145,6 +148,7 @@ describe('AwsRegion UT', () => {
            {
              "action": "add",
              "field": "resourceId",
+             "model": "efs=efs-aws-us-east-1a-shared-mounts",
              "value": "efs-aws-us-east-1a-shared-mounts",
            },
          ],
@@ -170,6 +174,7 @@ describe('AwsRegion UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
+             "model": "efs=efs-aws-us-east-1a-shared-mounts",
              "value": "efs-aws-us-east-1a-shared-mounts",
            },
          ],
@@ -190,27 +195,30 @@ describe('AwsRegion UT', () => {
 
       // Verify resource transaction was as expected.
       expect(resourceTransactionResult4.value).toMatchInlineSnapshot(`
-        [
-          [
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "igw-aws-us-east-1a",
-            },
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "sec-grp-aws-us-east-1a-access",
-            },
-          ],
-          [
-            {
-              "action": "delete",
-              "field": "resourceId",
-              "value": "vpc-aws-us-east-1a",
-            },
-          ],
-        ]
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "model": "internet-gateway=igw-aws-us-east-1a",
+             "value": "igw-aws-us-east-1a",
+           },
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "model": "security-group=sec-grp-aws-us-east-1a-access",
+             "value": "sec-grp-aws-us-east-1a-access",
+           },
+         ],
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "model": "vpc=vpc-aws-us-east-1a",
+             "value": "vpc-aws-us-east-1a",
+           },
+         ],
+       ]
       `);
     });
   });
