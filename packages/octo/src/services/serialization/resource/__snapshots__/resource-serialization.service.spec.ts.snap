@@ -7,7 +7,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a re
     "MODEL_TYPE": "resource",
     "_deleteMarker": false,
     "anchors": [],
-    "context": undefined,
+    "context": "test-resource=resource-1",
     "dependencies": [],
     "properties": {
       "key1": {
@@ -32,7 +32,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
     "MODEL_TYPE": "resource",
     "_deleteMarker": false,
     "anchors": [],
-    "context": undefined,
+    "context": "test-resource=resource-1",
     "dependencies": [],
     "properties": {
       "key1": "value1",
@@ -58,6 +58,7 @@ exports[`Resource Serialization Service UT serialize() should not serialize dele
   "resources": {
     "resource-1": {
       "className": "TestResource",
+      "context": "test-resource=resource-1",
       "resource": {
         "properties": {
           "key1": "value1",
@@ -128,6 +129,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
   "resources": {
     "resource-1": {
       "className": "TestResource",
+      "context": "test-resource=resource-1",
       "resource": {
         "properties": {
           "key1": "value1",
@@ -140,6 +142,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
     },
     "resource-2": {
       "className": "TestResource",
+      "context": "test-resource=resource-2",
       "resource": {
         "properties": {
           "key2": "value2",
@@ -161,6 +164,7 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
   "resources": {
     "resource-1": {
       "className": "TestResource",
+      "context": "test-resource=resource-1",
       "resource": {
         "properties": {},
         "resourceId": "resource-1",
@@ -219,6 +223,7 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
   "resources": {
     "resource-1": {
       "className": "TestResource",
+      "context": "test-resource=resource-1",
       "resource": {
         "properties": {
           "key1": "value1",
@@ -233,6 +238,7 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
   "sharedResources": {
     "resource-2": {
       "className": "SharedTestResource",
+      "context": "test-resource=resource-2",
       "resource": {
         "properties": {
           "key2": "value2",

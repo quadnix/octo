@@ -123,10 +123,10 @@ describe('Overlay UT', () => {
 
       const [overlay1] = await createTestOverlays({ 'overlay-1': [] });
 
-      const overlay1_1 = await commit(overlay1);
+      await commit(overlay1);
 
       // Remove overlay.
-      overlayService.removeOverlay(overlay1_1);
+      overlayService.removeOverlay(overlay1);
 
       const diffs = await overlayDataRepository.diff();
       expect(diffs).toMatchInlineSnapshot(`

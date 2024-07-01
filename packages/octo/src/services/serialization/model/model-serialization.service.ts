@@ -5,6 +5,7 @@ import { Dependency, type IDependency } from '../../../functions/dependency/depe
 import type { IAnchor } from '../../../overlays/anchor.interface.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
 import type { IOverlay } from '../../../overlays/overlay.interface.js';
+import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
 export class ModelSerializationService {
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
@@ -15,6 +16,7 @@ export class ModelSerializationService {
 
   private async _deserialize(
     serializedOutput: ModelSerializedOutput,
+    freeze: boolean,
   ): Promise<{ overlays: UnknownOverlay[]; root: UnknownModel }> {
     const deReferencePromises: {
       [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
@@ -91,6 +93,15 @@ export class ModelSerializationService {
       }
     }
 
+    if (freeze) {
+      for (const model of Object.values(seen)) {
+        ObjectUtility.deepFreeze(model);
+      }
+      for (const overlay of overlays) {
+        ObjectUtility.deepFreeze(overlay);
+      }
+    }
+
     // If no dependencies to serialize, return the first seen model.
     const root =
       serializedOutput.dependencies.length > 0
@@ -100,9 +111,12 @@ export class ModelSerializationService {
     return { overlays, root };
   }
 
-  async deserialize(serializedOutput: ModelSerializedOutput): Promise<UnknownModel> {
+  async deserialize(
+    serializedOutput: ModelSerializedOutput,
+    { freeze = true }: { freeze?: boolean } = {},
+  ): Promise<UnknownModel> {
     const newOverlays = this.overlayDataRepository.getByProperties();
-    const { overlays: oldOverlays, root } = await this._deserialize(serializedOutput);
+    const { overlays: oldOverlays, root } = await this._deserialize(serializedOutput, freeze);
 
     // Refresh the overlay data repository.
     await Container.get(OverlayDataRepository, {

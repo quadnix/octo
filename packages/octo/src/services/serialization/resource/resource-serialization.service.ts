@@ -3,6 +3,7 @@ import { Container } from '../../../decorators/container.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import type { IDependency } from '../../../functions/dependency/dependency.js';
 import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
+import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
 export class ResourceSerializationService {
   private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
@@ -11,7 +12,7 @@ export class ResourceSerializationService {
 
   constructor(private readonly resourceDataRepository: ResourceDataRepository) {}
 
-  private async _deserialize(serializedOutput: ResourceSerializedOutput): Promise<ActionOutputs> {
+  private async _deserialize(serializedOutput: ResourceSerializedOutput, freeze: boolean): Promise<ActionOutputs> {
     const deReferencePromises: {
       [p: string]: [Promise<boolean>, (value: boolean) => void, (error: Error) => void, NodeJS.Timeout];
     } = {};
@@ -45,7 +46,7 @@ export class ResourceSerializationService {
       parents: string[],
       isSharedResource: boolean,
     ): Promise<UnknownResource> => {
-      const { className, resource } = isSharedResource
+      const { className, context, resource } = isSharedResource
         ? serializedOutput.sharedResources[resourceId]
         : serializedOutput.resources[resourceId];
       const deserializationClass = this.classMapping[className];
@@ -56,6 +57,7 @@ export class ResourceSerializationService {
         parents || [],
         deReferenceResource,
       );
+      deserializedResource['context'] = context;
 
       seen[resourceId] = deserializedResource;
       if (deReferencePromises[resourceId]) {
@@ -100,12 +102,21 @@ export class ResourceSerializationService {
     }
     await Promise.all(promiseToDeserializeSharedResources);
 
+    if (freeze) {
+      for (const resource of Object.values(seen)) {
+        ObjectUtility.deepFreeze(resource);
+      }
+    }
+
     return seen;
   }
 
-  async deserialize(serializedOutput: ResourceSerializedOutput): Promise<void> {
+  async deserialize(
+    serializedOutput: ResourceSerializedOutput,
+    { freeze = true }: { freeze?: boolean } = {},
+  ): Promise<void> {
     const newResources = this.resourceDataRepository.getByProperties();
-    const oldResources = await this._deserialize(serializedOutput);
+    const oldResources = await this._deserialize(serializedOutput, freeze);
 
     // Refresh the resource data repository.
     await Container.get(ResourceDataRepository, {
@@ -138,11 +149,13 @@ export class ResourceSerializationService {
       if (resource.MODEL_TYPE === 'shared-resource') {
         sharedSerializedResources[resource.resourceId] = {
           className: resource.constructor.name,
+          context: resource.getContext(),
           resource: resource.synth(),
         };
       } else {
         serializedResources[resource.resourceId] = {
           className: resource.constructor.name,
+          context: resource.getContext(),
           resource: resource.synth(),
         };
       }

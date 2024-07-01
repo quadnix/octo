@@ -33,8 +33,8 @@ export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
 
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
-  resources: { [p: string]: { className: string; resource: IResource } };
-  sharedResources: { [p: string]: { className: string; resource: IResource } };
+  resources: { [p: string]: { className: string; context: string; resource: IResource } };
+  sharedResources: { [p: string]: { className: string; context: string; resource: IResource } };
 };
 
 export type TransactionOptions = {
