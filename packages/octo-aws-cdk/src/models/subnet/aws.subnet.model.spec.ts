@@ -35,6 +35,7 @@ import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
+import { commit } from '../../../test/helpers/test-models.js';
 import { OctoAws } from '../../main.js';
 import { AwsRegion, AwsSubnet, RegionId } from '../../index.js';
 import { Efs } from '../../resources/efs/efs.resource.js';
@@ -190,17 +191,7 @@ describe('AwsSubnet UT', () => {
       publicSubnet.subnetType = SubnetType.PUBLIC;
       region.addSubnet(publicSubnet);
 
-      const diffs1 = await octoAws.diff(app);
-      const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult1 = await generator1.next();
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult1.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -248,17 +239,7 @@ describe('AwsSubnet UT', () => {
       // Allow public subnet to connect to private subnet.
       publicSubnet.updateNetworkingRules(privateSubnet, true);
 
-      const diffs5 = await octoAws.diff(app);
-      const generator5 = await octoAws.beginTransaction(diffs5, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult5 = await generator5.next();
-      const modelTransactionResult5 = (await generator5.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult5.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult5.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -332,17 +313,7 @@ describe('AwsSubnet UT', () => {
       // Disable private subnet intra networking.
       privateSubnet.disableSubnetIntraNetwork = true;
 
-      const diffs6 = await octoAws.diff(app);
-      const generator6 = await octoAws.beginTransaction(diffs6, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult6 = await generator6.next();
-      const modelTransactionResult6 = (await generator6.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult6.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult6.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -407,17 +378,7 @@ describe('AwsSubnet UT', () => {
       await privateSubnet.addFilesystemMount('shared-mounts');
       await publicSubnet.addFilesystemMount('shared-mounts');
 
-      const diffs2 = await octoAws.diff(app);
-      const generator2 = await octoAws.beginTransaction(diffs2, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult2 = await generator2.next();
-      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult2.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -440,17 +401,7 @@ describe('AwsSubnet UT', () => {
       await privateSubnet.removeFilesystemMount('shared-mounts');
       await publicSubnet.removeFilesystemMount('shared-mounts');
 
-      const diffs3 = await octoAws.diff(app);
-      const generator3 = await octoAws.beginTransaction(diffs3, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult3 = await generator3.next();
-      const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult3.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -472,17 +423,7 @@ describe('AwsSubnet UT', () => {
       // Disconnect public and private subnet connection..
       publicSubnet.updateNetworkingRules(privateSubnet, false);
 
-      const diffs7 = await octoAws.diff(app);
-      const generator7 = await octoAws.beginTransaction(diffs7, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult7 = await generator7.next();
-      const modelTransactionResult7 = (await generator7.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult7.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult7.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -534,17 +475,7 @@ describe('AwsSubnet UT', () => {
       await privateSubnet.remove();
       await publicSubnet.remove();
 
-      const diffs4 = await octoAws.diff(app);
-      const generator4 = await octoAws.beginTransaction(diffs4, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult4 = await generator4.next();
-      const modelTransactionResult4 = (await generator4.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult4.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult4.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {

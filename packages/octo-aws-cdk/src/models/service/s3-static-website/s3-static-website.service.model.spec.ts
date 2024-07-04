@@ -1,8 +1,9 @@
-import { App, type DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, readFileSync, unlink, writeFile } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
+import { commit } from '../../../../test/helpers/test-models.js';
 import { OctoAws, RegionId } from '../../../index.js';
 import { S3WebsiteSaveManifestModule } from '../../../modules/s3-website-save-manifest.module.js';
 import { S3StaticWebsiteService } from './s3-static-website.service.model.js';
@@ -196,14 +197,7 @@ describe('S3StaticWebsiteService UT', () => {
       service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
       app.addService(service);
 
-      const diffs0 = await octoAws.diff(app);
-      const generator0 = await octoAws.beginTransaction(diffs0, {
-        yieldModelTransaction: true,
-      });
-
-      // Prevent generator from running real resource actions.
-      const modelTransactionResult0 = (await generator0.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult0.value);
+      await commit(octoAws, app, { onlyModels: true });
     });
 
     it('should generate an update on addition of a flat directory', async () => {
@@ -299,14 +293,7 @@ describe('S3StaticWebsiteService UT', () => {
       await service.addSource(`${websiteSourcePath}/index.html`);
       await service.addSource(`${websiteSourcePath}/page-1.html`);
 
-      const diffs1 = await octoAws.diff(app);
-      const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldModelTransaction: true,
-      });
-
-      // Prevent generator from running real resource actions.
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult1.value);
+      await commit(octoAws, app, { onlyModels: true });
 
       // Remove a sourcePath from the service in a subsequent update to service.
       service.sourcePaths.forEach((p, index) => {
@@ -338,14 +325,7 @@ describe('S3StaticWebsiteService UT', () => {
       await service.addSource(`${websiteSourcePath}/index.html`);
       await service.addSource(`${websiteSourcePath}/page-1.html`);
 
-      const diffs1 = await octoAws.diff(app);
-      const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldModelTransaction: true,
-      });
-
-      // Prevent generator from running real resource actions.
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult1.value);
+      await commit(octoAws, app, { onlyModels: true });
 
       // Update a sourcePath from the service in a subsequent update to service.
       const originalErrorContent = readFileSync(`${websiteSourcePath}/error.html`);

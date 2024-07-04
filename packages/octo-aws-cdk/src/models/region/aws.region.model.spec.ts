@@ -9,11 +9,12 @@ import {
 } from '@aws-sdk/client-ec2';
 import { CreateFileSystemCommand, EFSClient } from '@aws-sdk/client-efs';
 import { jest } from '@jest/globals';
-import { App, Container, type DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, Container, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
+import { commit } from '../../../test/helpers/test-models.js';
 import { AwsRegion, OctoAws, RegionId } from '../../index.js';
 import { RetryUtility } from '../../utilities/retry/retry.utility.js';
 
@@ -92,17 +93,7 @@ describe('AwsRegion UT', () => {
       const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
       app.addRegion(region);
 
-      const diffs1 = await octoAws.diff(app);
-      const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult1 = await generator1.next();
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult1.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -132,17 +123,7 @@ describe('AwsRegion UT', () => {
       // Add a new filesystem.
       await region.addFilesystem('shared-mounts');
 
-      const diffs2 = await octoAws.diff(app);
-      const generator2 = await octoAws.beginTransaction(diffs2, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult2 = await generator2.next();
-      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult2.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -158,17 +139,7 @@ describe('AwsRegion UT', () => {
       // Remove the "shared-mounts" filesystem.
       await region.removeFilesystem('shared-mounts');
 
-      const diffs3 = await octoAws.diff(app);
-      const generator3 = await octoAws.beginTransaction(diffs3, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult3 = await generator3.next();
-      const modelTransactionResult3 = (await generator3.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult3.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult3.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -184,17 +155,7 @@ describe('AwsRegion UT', () => {
       // Remove region.
       region.remove();
 
-      const diffs4 = await octoAws.diff(app);
-      const generator4 = await octoAws.beginTransaction(diffs4, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult4 = await generator4.next();
-      const modelTransactionResult4 = (await generator4.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult4.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult4.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {

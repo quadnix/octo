@@ -1,9 +1,10 @@
 import { jest } from '@jest/globals';
-import { App, type DiffMetadata, Image, LocalStateProvider } from '@quadnix/octo';
+import { App, Image, LocalStateProvider } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
+import { commit } from '../../../test/helpers/test-models.js';
 import { OctoAws } from '../../index.js';
 import { ProcessUtility } from '../../utilities/process/process.utility.js';
 
@@ -46,32 +47,12 @@ describe('Image UT', () => {
       });
       app.addImage(image1);
 
-      const diffs1 = await octoAws.diff(app);
-      const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult1 = await generator1.next();
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult1.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`[]`);
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`[]`);
 
       // Remove image.
       image1.remove();
 
-      const diffs2 = await octoAws.diff(app);
-      const generator2 = await octoAws.beginTransaction(diffs2, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult2 = await generator2.next();
-      const modelTransactionResult2 = (await generator2.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult2.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult2.value).toMatchInlineSnapshot(`[]`);
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`[]`);
     });
   });
 });

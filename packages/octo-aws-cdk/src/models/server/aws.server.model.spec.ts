@@ -1,10 +1,11 @@
 import { CreateRoleCommand, DeleteRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { jest } from '@jest/globals';
-import { App, Container, type DiffMetadata, LocalStateProvider, TestContainer } from '@quadnix/octo';
+import { App, Container, LocalStateProvider, TestContainer } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
+import { commit } from '../../../test/helpers/test-models.js';
 import { OctoAws } from '../../main.js';
 import { AwsServer } from '../../index.js';
 
@@ -61,17 +62,7 @@ describe('AwsServer UT', () => {
       const server = new AwsServer('backend');
       app.addServer(server);
 
-      const diffs1 = await octoAws.diff(app);
-      const generator1 = await octoAws.beginTransaction(diffs1, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult1 = await generator1.next();
-      const modelTransactionResult1 = (await generator1.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult1.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult1.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
@@ -87,17 +78,7 @@ describe('AwsServer UT', () => {
       // Remove server.
       server.remove();
 
-      const diffs4 = await octoAws.diff(app);
-      const generator4 = await octoAws.beginTransaction(diffs4, {
-        yieldResourceTransaction: true,
-      });
-
-      const resourceTransactionResult4 = await generator4.next();
-      const modelTransactionResult4 = (await generator4.next()) as IteratorResult<DiffMetadata[][]>;
-      await octoAws.commitTransaction(app, modelTransactionResult4.value);
-
-      // Verify resource transaction was as expected.
-      expect(resourceTransactionResult4.value).toMatchInlineSnapshot(`
+      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
        [
          [
            {
