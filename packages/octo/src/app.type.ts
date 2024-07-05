@@ -38,6 +38,7 @@ export type ResourceSerializedOutput = {
 };
 
 export type TransactionOptions = {
+  yieldModelDiffs?: boolean;
   yieldModelTransaction?: boolean;
   yieldNewResources?: boolean;
   yieldResourceDiffs?: boolean;

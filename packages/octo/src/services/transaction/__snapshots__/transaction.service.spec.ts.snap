@@ -156,6 +156,32 @@ exports[`TransactionService UT applyResources() should process diffs of resource
 ]
 `;
 
+exports[`TransactionService UT beginTransaction() yieldModelDiffs should yield model diffs 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "model": "app=app",
+      "value": "app",
+    },
+  ],
+]
+`;
+
+exports[`TransactionService UT beginTransaction() yieldModelDiffs should yield model diffs with overlays 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "overlayId",
+      "model": "test-overlay=test-overlay",
+      "value": "test-overlay",
+    },
+  ],
+]
+`;
+
 exports[`TransactionService UT beginTransaction() yieldModelTransaction should yield model transaction 1`] = `
 [
   [
@@ -201,7 +227,7 @@ exports[`TransactionService UT beginTransaction() yieldResourceDiffs should yiel
 ]
 `;
 
-exports[`TransactionService UT beginTransaction() yieldResourceTransaction should yield resource diffs 1`] = `
+exports[`TransactionService UT beginTransaction() yieldResourceTransaction should yield resource transaction 1`] = `
 [
   [
     {

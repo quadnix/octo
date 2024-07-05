@@ -223,6 +223,7 @@ export class TransactionService {
   async *beginTransaction(
     diffs: Diff[],
     options: TransactionOptions = {
+      yieldModelDiffs: false,
       yieldModelTransaction: false,
       yieldNewResources: false,
       yieldResourceDiffs: false,
@@ -232,7 +233,7 @@ export class TransactionService {
     // Diff overlays and add to existing diffs.
     diffs.push(...(await this.overlayDataRepository.diff()));
 
-    // Set apply order on model diffs.
+    // Generate diff on models.
     const modelDiffs = diffs.map((d) => {
       if (d.model.MODEL_TYPE === ModelType.OVERLAY) {
         return new DiffMetadata(
@@ -246,8 +247,13 @@ export class TransactionService {
         );
       }
     });
+    // Set apply order on model diffs.
     for (const diff of modelDiffs) {
       this.setApplyOrder(diff, modelDiffs);
+    }
+
+    if (options.yieldModelDiffs) {
+      yield [modelDiffs];
     }
 
     // Apply model diffs.

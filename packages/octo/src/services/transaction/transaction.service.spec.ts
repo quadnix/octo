@@ -525,6 +525,51 @@ describe('TransactionService UT', () => {
   });
 
   describe('beginTransaction()', () => {
+    describe('yieldModelDiffs', () => {
+      const universalModelAction: IModelAction = {
+        ACTION_NAME: 'universal',
+        collectInput: () => [],
+        filter: () => true,
+        handle: jest.fn() as jest.Mocked<any>,
+        revert: jest.fn() as jest.Mocked<any>,
+      };
+
+      it('should yield model diffs', async () => {
+        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+
+        const app = new App('app');
+        const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
+
+        const service = await Container.get(TransactionService);
+        service.registerModelActions([universalModelAction]);
+        const generator = service.beginTransaction(diffs, { yieldModelDiffs: true });
+
+        const result = await generator.next();
+
+        expect(result.value).toMatchSnapshot();
+      });
+
+      it('should yield model diffs with overlays', async () => {
+        (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
+
+        const {
+          app: [app],
+        } = create({ app: ['app'] });
+        const anchor1 = new TestAnchor('anchor-1', {}, app);
+        app.addAnchor(anchor1);
+
+        await createTestOverlays({ 'test-overlay': [anchor1] });
+
+        const service = await Container.get(TransactionService);
+        service.registerOverlayActions([universalModelAction]);
+        const generator = service.beginTransaction([], { yieldModelDiffs: true });
+
+        const result = await generator.next();
+
+        expect(result.value).toMatchSnapshot();
+      });
+    });
+
     describe('yieldModelTransaction', () => {
       const universalModelAction: IModelAction = {
         ACTION_NAME: 'universal',
@@ -629,9 +674,7 @@ describe('TransactionService UT', () => {
         handle: jest.fn() as jest.Mocked<any>,
       };
 
-      it('should yield resource diffs', async () => {
-        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue({});
-
+      it('should yield resource transaction', async () => {
         const [resource1] = await createTestResources({ 'resource-1': [] });
         await commitResources();
 
