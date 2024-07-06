@@ -1,14 +1,15 @@
 import type { Module } from '../../decorators/module.decorator.js';
-import type { Constructable } from '../../app.type.js';
+import { type IModelAction } from '../../models/model-action.interface.js';
+import { type IResourceAction } from '../../resources/resource-action.interface.js';
 
 export abstract class AHook {
   protected readonly registeredModules: { moduleName: string; moduleProperties: Parameters<typeof Module>[0] }[] = [];
 
-  abstract generateCallbacks(): void;
+  abstract collectHooks(): void;
 
-  register(moduleName: string, moduleProperties: Parameters<typeof Module>[0]): void {
+  registerModule(moduleName: string, moduleProperties: Parameters<typeof Module>[0]): void {
     if (this.registeredModules.some((m) => m.moduleName === moduleName)) {
-      throw new Error('Module already registered!');
+      throw new Error('Module already registered! Has the module been declared more than once?');
     }
 
     // Rearrange registered modules based on imports. Before insertion,
@@ -26,8 +27,8 @@ export abstract class AHook {
       this.registeredModules.push({ moduleName, moduleProperties });
     }
 
-    this.generateCallbacks();
+    this.collectHooks();
   }
 
-  abstract registrar(constructor: Constructable<unknown>, propertyKey: string, descriptor: PropertyDescriptor): void;
+  abstract registrar(arg: IModelAction | IResourceAction | PropertyDescriptor): void;
 }

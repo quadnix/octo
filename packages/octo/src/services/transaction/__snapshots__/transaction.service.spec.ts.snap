@@ -12,6 +12,7 @@ exports[`TransactionService UT applyModels() should call action and collect all 
     {
       "input.key1": "value1",
     },
+    {},
   ],
 ]
 `;
@@ -34,6 +35,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
     {
       "input.key1": "value1",
     },
+    {},
   ],
 ]
 `;
@@ -50,6 +52,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
     {
       "input.key2": "value2",
     },
+    {},
   ],
 ]
 `;

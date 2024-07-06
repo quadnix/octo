@@ -1,39 +1,54 @@
 import type { Constructable } from '../app.type.js';
-import { type PostModelActionCallback, PostModelActionHook } from '../functions/hook/post-model-action.hook.js';
-import { type PreCommitCallback, PreCommitHook } from '../functions/hook/pre-commit.hook.js';
-import { type PreModelActionCallback, PreModelActionHook } from '../functions/hook/pre-model-action.hook.js';
+import { CommitHook, type PostCommitCallback, type PreCommitCallback } from '../functions/hook/commit.hook.js';
+import { ModelActionHook } from '../functions/hook/model-action.hook.js';
+import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 import type { IModelAction } from '../models/model-action.interface.js';
+import type { IResourceAction } from '../resources/resource-action.interface.js';
 
 export function Module({
   imports = [],
-  postModelActionHandles = [],
-  preModelActionHandles = [],
-  preCommitHandles = [],
+  postCommitHooks = [],
+  postModelActionHooks = [],
+  postResourceActionHooks = [],
+  preCommitHooks = [],
+  preModelActionHooks = [],
+  preResourceActionHooks = [],
 }: {
   imports?: Constructable<unknown>[];
-  postModelActionHandles?: {
+  postCommitHooks?: { callback: PostCommitCallback }[];
+  postModelActionHooks?: {
     ACTION_NAME: string;
-    callback: PostModelActionCallback;
     collectInput?: IModelAction['collectInput'];
+    handle: IModelAction['handle'];
   }[];
-  preModelActionHandles?: {
+  postResourceActionHooks?: {
     ACTION_NAME: string;
-    callback: PreModelActionCallback;
-    collectInput?: IModelAction['collectInput'];
+    handle: IResourceAction['handle'];
   }[];
-  preCommitHandles?: { callback: PreCommitCallback }[];
+  preCommitHooks?: { callback: PreCommitCallback }[];
+  preModelActionHooks?: {
+    ACTION_NAME: string;
+    collectInput?: IModelAction['collectInput'];
+    handle: IModelAction['handle'];
+  }[];
+  preResourceActionHooks?: {
+    ACTION_NAME: string;
+    handle: IResourceAction['handle'];
+  }[];
 }): (constructor: any) => void {
   return function (constructor: any) {
-    if (postModelActionHandles.length > 0) {
-      PostModelActionHook.getInstance().register(constructor.name, { imports, postModelActionHandles });
-    }
+    CommitHook.getInstance().registerModule(constructor.name, { imports, postCommitHooks, preCommitHooks });
 
-    if (preModelActionHandles.length > 0) {
-      PreModelActionHook.getInstance().register(constructor.name, { imports, preModelActionHandles });
-    }
+    ModelActionHook.getInstance().registerModule(constructor.name, {
+      imports,
+      postModelActionHooks,
+      preModelActionHooks,
+    });
 
-    if (preCommitHandles.length > 0) {
-      PreCommitHook.getInstance().register(constructor.name, { imports, preCommitHandles });
-    }
+    ResourceActionHook.getInstance().registerModule(constructor.name, {
+      imports,
+      postResourceActionHooks,
+      preResourceActionHooks,
+    });
   };
 }

@@ -26,7 +26,7 @@ export interface IModelAction {
   /**
    * This function contains the logic to apply the diff(s) to the underlying infrastructure.
    */
-  handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs>;
+  handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs>;
 
   /**
    * This function contains the logic to revert the diff(s) from the underlying infrastructure.

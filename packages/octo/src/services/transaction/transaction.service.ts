@@ -61,7 +61,7 @@ export class TransactionService {
           });
 
           // Apply all actions on the diff, then update diff metadata with inputs and outputs.
-          const promiseToApplyAction = a.handle(diffToProcess, inputs).then((outputs) => {
+          const promiseToApplyAction = a.handle(diffToProcess, inputs, {}).then((outputs) => {
             duplicateDiffs.forEach((d) => {
               d.updateInputs(inputs);
               d.updateOutputs(outputs);
