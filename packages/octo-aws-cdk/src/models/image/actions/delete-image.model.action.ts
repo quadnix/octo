@@ -1,5 +1,6 @@
 import {
   Action,
+  type ActionInputs,
   type ActionOutputs,
   Diff,
   DiffAction,
@@ -26,9 +27,10 @@ export class DeleteImageModelAction implements IModelAction {
     );
   }
 
-  async handle(): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     // We currently do not attempt to delete local docker image.
-    return {};
+
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

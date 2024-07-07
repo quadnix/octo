@@ -30,16 +30,14 @@ export class DeleteS3StaticWebsiteModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const { bucketName } = diff.model as S3StaticWebsiteService;
 
     const s3Website = actionInputs[`resource.bucket-${bucketName}`] as S3Website;
     s3Website.remove();
+    actionOutputs[s3Website.resourceId] = s3Website;
 
-    const output: ActionOutputs = {};
-    output[s3Website.resourceId] = s3Website;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

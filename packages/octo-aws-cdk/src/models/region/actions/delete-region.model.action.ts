@@ -32,24 +32,22 @@ export class DeleteRegionModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const { regionId } = diff.model as AwsRegion;
 
     const accessSG = actionInputs[`resource.sec-grp-${regionId}-access`] as SecurityGroup;
     accessSG.remove();
+    actionOutputs[accessSG.resourceId] = accessSG;
 
     const internetGateway = actionInputs[`resource.igw-${regionId}`] as InternetGateway;
     internetGateway.remove();
+    actionOutputs[internetGateway.resourceId] = internetGateway;
 
     const vpc = actionInputs[`resource.vpc-${regionId}`] as Vpc;
     vpc.remove();
+    actionOutputs[vpc.resourceId] = vpc;
 
-    const output: ActionOutputs = {};
-    output[vpc.resourceId] = vpc;
-    output[internetGateway.resourceId] = internetGateway;
-    output[accessSG.resourceId] = accessSG;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

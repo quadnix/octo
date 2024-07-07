@@ -30,16 +30,14 @@ export class DeleteS3StorageModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const { bucketName } = diff.model as S3StorageService;
 
     const s3Storage = actionInputs[`resource.bucket-${bucketName}`] as S3Storage;
     s3Storage.remove();
+    actionOutputs[s3Storage.resourceId] = s3Storage;
 
-    const output: ActionOutputs = {};
-    output[s3Storage.resourceId] = s3Storage;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

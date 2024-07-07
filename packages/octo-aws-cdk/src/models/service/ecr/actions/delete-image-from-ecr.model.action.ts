@@ -31,15 +31,14 @@ export class DeleteImageFromEcrModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const { awsRegionId, image } = diff.value as { awsRegionId: string; image: Image };
+
     const ecrImage = actionInputs[`resource.ecr-${awsRegionId}-${image.imageId}`] as EcrImage;
     ecrImage.remove();
+    actionOutputs[ecrImage.resourceId] = ecrImage;
 
-    const output: ActionOutputs = {};
-    output[ecrImage.resourceId] = ecrImage;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

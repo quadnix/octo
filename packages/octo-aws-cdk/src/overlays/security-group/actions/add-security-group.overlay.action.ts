@@ -33,14 +33,12 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const securityGroupOverlay = diff.model as SecurityGroupOverlay;
     const properties = securityGroupOverlay.properties;
     const anchors = securityGroupOverlay.getAnchors() as SecurityGroupAnchor[];
 
     const vpc = actionInputs[`resource.vpc-${properties.regionId}`] as Vpc;
-
-    const output: ActionOutputs = {};
 
     for (const anchor of anchors) {
       if (anchor.properties.rules.length === 0) {
@@ -55,10 +53,10 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
         },
         [vpc],
       );
-      output[securityGroup.resourceId] = securityGroup;
+      actionOutputs[securityGroup.resourceId] = securityGroup;
     }
 
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

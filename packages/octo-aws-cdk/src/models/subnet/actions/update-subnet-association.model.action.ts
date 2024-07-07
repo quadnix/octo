@@ -4,7 +4,6 @@ import {
   type ActionOutputs,
   Diff,
   DiffAction,
-  EnableHook,
   Factory,
   type IModelAction,
   ModelType,
@@ -45,8 +44,7 @@ export class UpdateSubnetAssociationModelAction implements IModelAction {
     }
   }
 
-  @EnableHook('PostModelActionHook')
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const subnet = diff.model as AwsSubnet;
 
     const siblings = subnet.getSiblings()['subnet'] ?? [];
@@ -97,11 +95,9 @@ export class UpdateSubnetAssociationModelAction implements IModelAction {
 
     // Update Network ACL entries.
     subnetNAcl.properties.entries = subnetNAclEntries;
+    actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
 
-    const output: ActionOutputs = {};
-    output[subnetNAcl.resourceId] = subnetNAcl;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

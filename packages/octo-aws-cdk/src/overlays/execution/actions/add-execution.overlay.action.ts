@@ -66,7 +66,7 @@ export class AddExecutionOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     // Get properties.
     const executionOverlay = diff.model as ExecutionOverlay;
     const properties = executionOverlay.properties;
@@ -137,6 +137,7 @@ export class AddExecutionOverlayAction implements IModelAction {
       },
       taskDefinitionParents,
     );
+    actionOutputs[ecsTaskDefinition.resourceId] = ecsTaskDefinition;
 
     const clusterName = [properties.regionId, properties.environmentName].join('-');
     const ecsCluster = actionInputs[`resource.ecs-cluster-${clusterName}`] as EcsCluster;
@@ -173,12 +174,9 @@ export class AddExecutionOverlayAction implements IModelAction {
       },
       ecsServiceParents,
     );
+    actionOutputs[ecsService.resourceId] = ecsService;
 
-    const output: ActionOutputs = {};
-    output[ecsTaskDefinition.resourceId] = ecsTaskDefinition;
-    output[ecsService.resourceId] = ecsService;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

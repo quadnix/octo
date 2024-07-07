@@ -49,7 +49,7 @@ export class AddSubnetFilesystemMountOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const subnetFilesystemMountOverlay = diff.model as SubnetFilesystemMountOverlay;
 
     const regionFilesystemAnchor = subnetFilesystemMountOverlay
@@ -73,11 +73,9 @@ export class AddSubnetFilesystemMountOverlayAction implements IModelAction {
       { awsRegionId: region.awsRegionId },
       [efs, subnet],
     );
+    actionOutputs[efsMountTarget.resourceId] = efsMountTarget;
 
-    const output: ActionOutputs = {};
-    output[efsMountTarget.resourceId] = efsMountTarget;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

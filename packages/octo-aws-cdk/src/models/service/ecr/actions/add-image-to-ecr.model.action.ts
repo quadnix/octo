@@ -32,7 +32,7 @@ export class AddImageToEcrModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     // Get properties.
     const { awsRegionId, image } = diff.value as { awsRegionId: string; image: Image };
 
@@ -47,11 +47,9 @@ export class AddImageToEcrModelAction implements IModelAction {
       imageName: image.imageName,
       imageTag: image.imageTag,
     });
+    actionOutputs[ecrImage.resourceId] = ecrImage;
 
-    const output: ActionOutputs = {};
-    output[ecrImage.resourceId] = ecrImage;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

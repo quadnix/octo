@@ -5,7 +5,7 @@ import { UpdateSourcePathsS3StaticWebsiteModelAction } from '../models/service/s
 import type { S3StaticWebsiteService } from '../models/service/s3-static-website/s3-static-website.service.model.js';
 
 @Module({
-  preCommitHandles: [
+  preCommitHooks: [
     {
       callback: async (app: App, modelTransaction: DiffMetadata[][]): Promise<void> => {
         let shouldSaveS3WebsiteSourceManifest: false | Diff = false;

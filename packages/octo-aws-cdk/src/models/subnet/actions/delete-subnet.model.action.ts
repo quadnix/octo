@@ -32,24 +32,22 @@ export class DeleteSubnetModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const subnet = diff.model as AwsSubnet;
 
     const subnetNAcl = actionInputs[`resource.nacl-${subnet.subnetId}`] as NetworkAcl;
     subnetNAcl.remove();
+    actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
 
     const subnetRT = actionInputs[`resource.rt-${subnet.subnetId}`] as RouteTable;
     subnetRT.remove();
+    actionOutputs[subnetRT.resourceId] = subnetRT;
 
     const subnetSubnet = actionInputs[`resource.subnet-${subnet.subnetId}`] as Subnet;
     subnetSubnet.remove();
+    actionOutputs[subnetSubnet.resourceId] = subnetSubnet;
 
-    const output: ActionOutputs = {};
-    output[subnetSubnet.resourceId] = subnetSubnet;
-    output[subnetRT.resourceId] = subnetRT;
-    output[subnetNAcl.resourceId] = subnetNAcl;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

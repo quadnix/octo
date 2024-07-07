@@ -1,4 +1,13 @@
-import { Action, type ActionOutputs, Diff, DiffAction, Factory, type IModelAction, ModelType } from '@quadnix/octo';
+import {
+  Action,
+  ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import { S3Website } from '../../../../resources/s3/website/s3-website.resource.js';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model.js';
 
@@ -19,7 +28,7 @@ export class AddS3StaticWebsiteModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const { awsRegionId, bucketName } = diff.model as S3StaticWebsiteService;
 
     // Create S3 Website.
@@ -29,11 +38,9 @@ export class AddS3StaticWebsiteModelAction implements IModelAction {
       ErrorDocument: 'error.html',
       IndexDocument: 'index.html',
     });
+    actionOutputs[s3Website.resourceId] = s3Website;
 
-    const output: ActionOutputs = {};
-    output[s3Website.resourceId] = s3Website;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

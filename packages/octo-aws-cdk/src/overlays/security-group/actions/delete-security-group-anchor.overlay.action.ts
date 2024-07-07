@@ -31,18 +31,16 @@ export class DeleteSecurityGroupAnchorOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const anchor = diff.value as SecurityGroupAnchor;
-
-    const output: ActionOutputs = {};
 
     if (anchor.properties.rules.length > 0) {
       const securityGroup = actionInputs[`resource.sec-grp-${anchor.properties.securityGroupName}`] as SecurityGroup;
       securityGroup.remove();
-      output[securityGroup.resourceId] = securityGroup;
+      actionOutputs[securityGroup.resourceId] = securityGroup;
     }
 
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

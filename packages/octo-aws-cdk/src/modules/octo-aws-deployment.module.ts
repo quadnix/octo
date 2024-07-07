@@ -6,11 +6,19 @@ import type { S3Storage } from '../resources/s3/storage/s3-storage.resource.js';
 import { FileUtility } from '../utilities/file/file.utility.js';
 
 @Module({
-  postModelActionHandles: [
+  postModelActionHooks: [
     {
       ACTION_NAME: '',
-      callback: async (args: [Diff, ActionInputs], output: ActionOutputs): Promise<ActionOutputs> => {
-        const [diff, actionInputs] = args;
+      collectInput: (diff: Diff): string[] => {
+        const awsDeployment = diff.model as AwsDeployment;
+        const parent = awsDeployment.getParents()['server'][0].to as AwsServer;
+
+        return [
+          `input.server.${parent.serverKey}.deployment.${awsDeployment.deploymentTag}.deploymentFolderLocalPath`,
+          `input.server.${parent.serverKey}.deployment.${awsDeployment.deploymentTag}.deploymentFolderRemotePath`,
+        ];
+      },
+      handle: async (diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> => {
         const awsDeployment = diff.model as AwsDeployment;
         const parent = awsDeployment.getParents()['server'][0].to as AwsServer;
 
@@ -40,23 +48,18 @@ import { FileUtility } from '../utilities/file/file.utility.js';
           }, {}),
         );
 
-        output[s3Storage.resourceId] = s3Storage;
-        return output;
-      },
-      collectInput: (diff: Diff): string[] => {
-        const awsDeployment = diff.model as AwsDeployment;
-        const parent = awsDeployment.getParents()['server'][0].to as AwsServer;
-
-        return [
-          `input.server.${parent.serverKey}.deployment.${awsDeployment.deploymentTag}.deploymentFolderLocalPath`,
-          `input.server.${parent.serverKey}.deployment.${awsDeployment.deploymentTag}.deploymentFolderRemotePath`,
-        ];
+        actionOutputs[s3Storage.resourceId] = s3Storage;
+        return actionOutputs;
       },
     },
     {
       ACTION_NAME: '',
-      callback: async (args: [Diff, ActionInputs], output: ActionOutputs): Promise<ActionOutputs> => {
-        const [diff, actionInputs] = args;
+      collectInput: (diff: Diff): string[] => {
+        const awsDeployment = diff.model as AwsDeployment;
+
+        return [`resource.bucket-${awsDeployment.s3StorageService.bucketName}`];
+      },
+      handle: async (diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> => {
         const awsDeployment = diff.model as AwsDeployment;
 
         const s3Storage = actionInputs[`resource.bucket-${awsDeployment.s3StorageService.bucketName}`] as S3Storage;
@@ -75,13 +78,8 @@ import { FileUtility } from '../utilities/file/file.utility.js';
           }, {}),
         );
 
-        output[s3Storage.resourceId] = s3Storage;
-        return output;
-      },
-      collectInput: (diff: Diff): string[] => {
-        const awsDeployment = diff.model as AwsDeployment;
-
-        return [`resource.bucket-${awsDeployment.s3StorageService.bucketName}`];
+        actionOutputs[s3Storage.resourceId] = s3Storage;
+        return actionOutputs;
       },
     },
   ],

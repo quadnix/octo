@@ -31,16 +31,14 @@ export class UpdateSecurityGroupAnchorOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const anchor = diff.value as SecurityGroupAnchor;
 
     const securityGroup = actionInputs[`resource.sec-grp-${anchor.properties.securityGroupName}`] as SecurityGroup;
     securityGroup.properties.rules = [...anchor.properties.rules];
+    actionOutputs[securityGroup.resourceId] = securityGroup;
 
-    const output: ActionOutputs = {};
-    output[securityGroup.resourceId] = securityGroup;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

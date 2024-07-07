@@ -1,4 +1,13 @@
-import { Action, type ActionOutputs, Diff, DiffAction, Factory, type IModelAction, ModelType } from '@quadnix/octo';
+import {
+  Action,
+  ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { AwsServer } from '../aws.server.model.js';
@@ -20,18 +29,16 @@ export class AddServerModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
     const serverIamRole = server.getAnchor('ServerIamRoleAnchor') as IamRoleAnchor;
     const serverIamRoleName = serverIamRole.properties.iamRoleName;
 
     // Create IAM Role.
     const iamRole = new IamRole(`iam-role-${serverIamRoleName}`, { rolename: `iam-role-${serverIamRoleName}` });
+    actionOutputs[iamRole.resourceId] = iamRole;
 
-    const output: ActionOutputs = {};
-    output[iamRole.resourceId] = iamRole;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

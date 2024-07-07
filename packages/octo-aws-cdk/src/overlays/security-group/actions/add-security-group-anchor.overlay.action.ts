@@ -33,7 +33,7 @@ export class AddSecurityGroupAnchorOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const securityGroupOverlay = diff.model as SecurityGroupOverlay;
     const properties = securityGroupOverlay.properties;
     const anchor = diff.value as SecurityGroupAnchor;
@@ -48,11 +48,9 @@ export class AddSecurityGroupAnchorOverlayAction implements IModelAction {
       },
       [vpc],
     );
+    actionOutputs[securityGroup.resourceId] = securityGroup;
 
-    const output: ActionOutputs = {};
-    output[securityGroup.resourceId] = securityGroup;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

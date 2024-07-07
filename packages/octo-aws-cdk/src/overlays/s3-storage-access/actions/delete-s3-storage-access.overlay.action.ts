@@ -32,7 +32,7 @@ export class DeleteS3StorageAccessOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const s3StorageAccessOverlay = diff.model as S3StorageAccessOverlay;
     const iamRoleAnchor = s3StorageAccessOverlay.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
     const iamRole = actionInputs[`resource.iam-role-${iamRoleAnchor.properties.iamRoleName}`] as IamRole;
@@ -40,11 +40,9 @@ export class DeleteS3StorageAccessOverlayAction implements IModelAction {
     iamRole.updatePolicyDiff({
       [s3StorageAccessOverlay.overlayId]: { action: 'delete', overlay: s3StorageAccessOverlay },
     });
+    actionOutputs[iamRole.resourceId] = iamRole;
 
-    const output: ActionOutputs = {};
-    output[iamRole.resourceId] = iamRole;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

@@ -1,4 +1,13 @@
-import { Action, type ActionOutputs, Diff, DiffAction, Factory, type IModelAction, ModelType } from '@quadnix/octo';
+import {
+  Action,
+  ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import { Efs } from '../../../resources/efs/efs.resource.js';
 import { RegionFilesystemOverlay } from '../region-filesystem.overlay.js';
 
@@ -19,7 +28,7 @@ export class AddRegionFilesystemOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const regionFilesystemOverlay = diff.model as RegionFilesystemOverlay;
     const properties = regionFilesystemOverlay.properties;
 
@@ -29,11 +38,9 @@ export class AddRegionFilesystemOverlayAction implements IModelAction {
       { awsRegionId: properties.awsRegionId, filesystemName: properties.filesystemName },
       [],
     );
+    actionOutputs[efs.resourceId] = efs;
 
-    const output: ActionOutputs = {};
-    output[efs.resourceId] = efs;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

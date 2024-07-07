@@ -34,7 +34,7 @@ export class DeleteEnvironmentModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const environment = diff.model as AwsEnvironment;
     const environmentName = environment.environmentName;
     const region = environment.getParents()['region'][0].to as AwsRegion;
@@ -42,11 +42,9 @@ export class DeleteEnvironmentModelAction implements IModelAction {
 
     const ecsCluster = actionInputs[`resource.ecs-cluster-${clusterName}`] as EcsCluster;
     ecsCluster.remove();
+    actionOutputs[ecsCluster.resourceId] = ecsCluster;
 
-    const output: ActionOutputs = {};
-    output[ecsCluster.resourceId] = ecsCluster;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

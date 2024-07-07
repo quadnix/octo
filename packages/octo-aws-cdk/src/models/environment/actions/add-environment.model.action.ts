@@ -1,4 +1,13 @@
-import { Action, type ActionOutputs, Diff, DiffAction, Factory, type IModelAction, ModelType } from '@quadnix/octo';
+import {
+  Action,
+  ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
 import type { AwsRegion } from '../../region/aws.region.model.js';
 import { AwsEnvironment } from '../aws.environment.model.js';
@@ -20,7 +29,7 @@ export class AddEnvironmentModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const environment = diff.model as AwsEnvironment;
     const environmentName = environment.environmentName;
     const region = environment.getParents()['region'][0].to as AwsRegion;
@@ -31,11 +40,9 @@ export class AddEnvironmentModelAction implements IModelAction {
       clusterName,
       regionId: region.regionId,
     });
+    actionOutputs[ecsCluster.resourceId] = ecsCluster;
 
-    const output: ActionOutputs = {};
-    output[ecsCluster.resourceId] = ecsCluster;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

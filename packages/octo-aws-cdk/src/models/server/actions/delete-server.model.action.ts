@@ -33,18 +33,16 @@ export class DeleteServerModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const server = diff.model as AwsServer;
     const serverIamRole = server.getAnchor('ServerIamRoleAnchor') as IamRoleAnchor;
     const serverIamRoleName = serverIamRole.properties.iamRoleName;
 
     const iamRole = actionInputs[`resource.iam-role-${serverIamRoleName}`] as IamRole;
     iamRole.remove();
+    actionOutputs[iamRole.resourceId] = iamRole;
 
-    const output: ActionOutputs = {};
-    output[iamRole.resourceId] = iamRole;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

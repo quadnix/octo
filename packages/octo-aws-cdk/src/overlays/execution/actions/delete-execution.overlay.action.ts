@@ -35,7 +35,7 @@ export class DeleteExecutionOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     // Get properties.
     const executionOverlay = diff.model as ExecutionOverlay;
     const properties = executionOverlay.properties;
@@ -44,17 +44,15 @@ export class DeleteExecutionOverlayAction implements IModelAction {
       `resource.ecs-service-${properties.regionId}-${properties.serverKey}`
     ] as EcsService;
     ecsService.remove();
+    actionOutputs[ecsService.resourceId] = ecsService;
 
     const ecsTaskDefinition = actionInputs[
       `resource.ecs-task-definition-${properties.regionId}-${properties.serverKey}-${properties.deploymentTag}`
     ] as EcsTaskDefinition;
     ecsTaskDefinition.remove();
+    actionOutputs[ecsTaskDefinition.resourceId] = ecsTaskDefinition;
 
-    const output: ActionOutputs = {};
-    output[ecsService.resourceId] = ecsService;
-    output[ecsTaskDefinition.resourceId] = ecsTaskDefinition;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

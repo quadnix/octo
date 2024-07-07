@@ -30,12 +30,11 @@ export class AddEcrServiceModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     // Get properties.
     const awsRegionIds = (diff.model as EcrService).awsRegionIds;
     const images = (diff.model as EcrService).images;
 
-    const output: ActionOutputs = {};
     for (const awsRegionId of awsRegionIds) {
       for (const image of images) {
         const dockerExec = actionInputs[`input.image.${image.imageId}.dockerExecutable`] as string;
@@ -49,12 +48,11 @@ export class AddEcrServiceModelAction implements IModelAction {
           imageName: image.imageName,
           imageTag: image.imageTag,
         });
-
-        output[ecrImage.resourceId] = ecrImage;
+        actionOutputs[ecrImage.resourceId] = ecrImage;
       }
     }
 
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

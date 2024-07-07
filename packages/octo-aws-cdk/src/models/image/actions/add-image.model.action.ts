@@ -31,7 +31,7 @@ export class AddImageModelAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const { dockerOptions, imageId } = diff.model as Image;
 
     const dockerExec = actionInputs[`input.image.${imageId}.dockerExecutable`] as string;
@@ -75,7 +75,7 @@ export class AddImageModelAction implements IModelAction {
       });
     });
 
-    return {};
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

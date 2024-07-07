@@ -36,7 +36,7 @@ export class DeleteSecurityGroupOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const securityGroupOverlay = diff.model as SecurityGroupOverlay;
     const anchors = securityGroupOverlay.getAnchors() as SecurityGroupAnchor[];
 
@@ -44,16 +44,13 @@ export class DeleteSecurityGroupOverlayAction implements IModelAction {
       .filter((a) => a.properties.rules.length > 0)
       .map((a) => `resource.sec-grp-${a.properties.securityGroupName}`);
 
-    const output: ActionOutputs = {};
-
     for (const resource of securityGroupResources) {
       const securityGroup = actionInputs[resource] as SecurityGroup;
       securityGroup.remove();
-
-      output[securityGroup.resourceId] = securityGroup;
+      actionOutputs[securityGroup.resourceId] = securityGroup;
     }
 
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

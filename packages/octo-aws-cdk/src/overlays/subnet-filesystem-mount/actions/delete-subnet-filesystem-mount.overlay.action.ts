@@ -50,7 +50,7 @@ export class DeleteSubnetFilesystemMountOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const subnetFilesystemMountOverlay = diff.model as SubnetFilesystemMountOverlay;
 
     const regionFsAnchor = subnetFilesystemMountOverlay
@@ -73,11 +73,9 @@ export class DeleteSubnetFilesystemMountOverlayAction implements IModelAction {
     efsMountTarget.removeRelationship(subnet);
     efsMountTarget.removeRelationship(efs);
     efsMountTarget.remove();
+    actionOutputs[efsMountTarget.resourceId] = efsMountTarget;
 
-    const output: ActionOutputs = {};
-    output[efsMountTarget.resourceId] = efsMountTarget;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

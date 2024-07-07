@@ -1,4 +1,13 @@
-import { Action, type ActionOutputs, Diff, DiffAction, Factory, type IModelAction, ModelType } from '@quadnix/octo';
+import {
+  Action,
+  ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  type IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 import { AwsDeployment } from '../aws.deployment.model.js';
 
 @Action(ModelType.MODEL)
@@ -18,8 +27,8 @@ export class DeleteDeploymentModelAction implements IModelAction {
     );
   }
 
-  async handle(): Promise<ActionOutputs> {
-    return {};
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

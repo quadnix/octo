@@ -31,18 +31,16 @@ export class DeleteRegionFilesystemOverlayAction implements IModelAction {
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const regionFilesystemOverlay = diff.model as RegionFilesystemOverlay;
     const properties = regionFilesystemOverlay.properties;
 
     // Delete EFS.
     const efs = actionInputs[`resource.efs-${properties.regionId}-${properties.filesystemName}`] as Efs;
     efs.remove();
+    actionOutputs[efs.resourceId] = efs;
 
-    const output: ActionOutputs = {};
-    output[efs.resourceId] = efs;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

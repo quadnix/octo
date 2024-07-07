@@ -4,7 +4,6 @@ import {
   type ActionOutputs,
   Diff,
   DiffAction,
-  EnableHook,
   Factory,
   type IModelAction,
   ModelType,
@@ -34,8 +33,7 @@ export class AddRegionModelAction implements IModelAction {
     );
   }
 
-  @EnableHook('PostModelActionHook')
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const awsRegion = diff.model as AwsRegion;
     const regionId = awsRegion.regionId;
 
@@ -47,9 +45,11 @@ export class AddRegionModelAction implements IModelAction {
       CidrBlock: vpcCidrBlock,
       InstanceTenancy: 'default',
     });
+    actionOutputs[vpc.resourceId] = vpc;
 
     // Create Internet Gateway.
     const internetGateway = new InternetGateway(`igw-${regionId}`, { awsRegionId: awsRegion.awsRegionId }, [vpc]);
+    actionOutputs[internetGateway.resourceId] = internetGateway;
 
     // Create Security Groups.
     const accessSG = new SecurityGroup(
@@ -77,13 +77,9 @@ export class AddRegionModelAction implements IModelAction {
       },
       [vpc],
     );
+    actionOutputs[accessSG.resourceId] = accessSG;
 
-    const output: ActionOutputs = {};
-    output[vpc.resourceId] = vpc;
-    output[internetGateway.resourceId] = internetGateway;
-    output[accessSG.resourceId] = accessSG;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

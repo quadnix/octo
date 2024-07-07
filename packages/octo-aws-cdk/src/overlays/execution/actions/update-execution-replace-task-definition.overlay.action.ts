@@ -56,7 +56,7 @@ export class UpdateExecutionReplaceTaskDefinitionOverlayAction implements IModel
     }
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     // Get properties.
     const executionOverlay = diff.model as ExecutionOverlay;
     const properties = executionOverlay.properties;
@@ -108,17 +108,15 @@ export class UpdateExecutionReplaceTaskDefinitionOverlayAction implements IModel
           actionInputs[`resource.efs-${properties.regionId}-${a.properties.filesystemName}`] as Efs,
       );
     ecsTaskDefinition.updateTaskDefinitionEfs(efsList);
+    actionOutputs[ecsTaskDefinition.resourceId] = ecsTaskDefinition;
 
     const ecsService = actionInputs[
       `resource.ecs-service-${properties.regionId}-${properties.serverKey}`
     ] as EcsService;
     ecsService.redeployWithLatestTaskDefinition();
+    actionOutputs[ecsService.resourceId] = ecsService;
 
-    const output: ActionOutputs = {};
-    output[ecsTaskDefinition.resourceId] = ecsTaskDefinition;
-    output[ecsService.resourceId] = ecsService;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

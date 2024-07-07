@@ -1,4 +1,13 @@
-import { Action, type ActionOutputs, Diff, DiffAction, Factory, IModelAction, ModelType } from '@quadnix/octo';
+import {
+  Action,
+  ActionInputs,
+  type ActionOutputs,
+  Diff,
+  DiffAction,
+  Factory,
+  IModelAction,
+  ModelType,
+} from '@quadnix/octo';
 
 @Action(ModelType.MODEL)
 export class DeleteAppModelAction implements IModelAction {
@@ -12,8 +21,8 @@ export class DeleteAppModelAction implements IModelAction {
     return diff.action === DiffAction.DELETE && diff.model.MODEL_NAME === 'app';
   }
 
-  async handle(): Promise<ActionOutputs> {
-    return {};
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {

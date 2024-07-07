@@ -4,7 +4,6 @@ import {
   type ActionOutputs,
   Diff,
   DiffAction,
-  EnableHook,
   Factory,
   type IModelAction,
   ModelType,
@@ -50,8 +49,7 @@ export class AddSubnetModelAction implements IModelAction {
     );
   }
 
-  @EnableHook('PostModelActionHook')
-  async handle(diff: Diff, actionInputs: ActionInputs): Promise<ActionOutputs> {
+  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const subnet = diff.model as AwsSubnet;
 
     const parents = subnet.getParents();
@@ -76,6 +74,7 @@ export class AddSubnetModelAction implements IModelAction {
       },
       [vpc],
     );
+    actionOutputs[subnetSubnet.resourceId] = subnetSubnet;
 
     // Create Route Table.
     const subnetRT = new RouteTable(
@@ -83,6 +82,7 @@ export class AddSubnetModelAction implements IModelAction {
       { associateWithInternetGateway: subnet.subnetType === SubnetType.PUBLIC, awsRegionId: awsRegion.awsRegionId },
       [vpc, internetGateway, subnetSubnet],
     );
+    actionOutputs[subnetRT.resourceId] = subnetRT;
 
     // Create Network ACL entries.
     const subnetNAclEntries: INetworkAclProperties['entries'] = [];
@@ -132,13 +132,9 @@ export class AddSubnetModelAction implements IModelAction {
       },
       [vpc, subnetSubnet],
     );
+    actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
 
-    const output: ActionOutputs = {};
-    output[subnetSubnet.resourceId] = subnetSubnet;
-    output[subnetRT.resourceId] = subnetRT;
-    output[subnetNAcl.resourceId] = subnetNAcl;
-
-    return output;
+    return actionOutputs;
   }
 
   async revert(): Promise<ActionOutputs> {
