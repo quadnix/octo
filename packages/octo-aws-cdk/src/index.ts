@@ -134,5 +134,3 @@ import './resources/subnet/actions/delete-subnet.resource.action.js';
 
 import './resources/vpc/actions/add-vpc.resource.action.js';
 import './resources/vpc/actions/delete-vpc.resource.action.js';
-
-export { OctoAws } from './main.js';

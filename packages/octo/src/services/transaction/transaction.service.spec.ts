@@ -1,7 +1,6 @@
 import { jest } from '@jest/globals';
 import { SharedTestResource, TestAnchor, TestResource } from '../../../test/helpers/test-classes.js';
 import { commitResources, create, createTestOverlays, createTestResources } from '../../../test/helpers/test-models.js';
-import { type UnknownResource } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
@@ -612,33 +611,6 @@ describe('TransactionService UT', () => {
         const result = await generator.next();
 
         expect(result.value).toMatchSnapshot();
-      });
-    });
-
-    describe('yieldNewResources', () => {
-      const universalResourceAction: IResourceAction = {
-        ACTION_NAME: 'universal',
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
-
-      it('should yield new resources', async () => {
-        const [resource1] = await createTestResources({ 'resource-1': [] });
-        await commitResources();
-
-        // Replace resource1 with resource2.
-        resource1.remove();
-        await createTestResources({ 'resource-2': [] });
-
-        const service = await Container.get(TransactionService);
-        service.registerResourceActions([universalResourceAction]);
-        const generator = service.beginTransaction([], { yieldNewResources: true });
-
-        const result = await generator.next();
-
-        expect(
-          result.value.filter((r: UnknownResource) => !r.isMarkedDeleted()).map((r: UnknownResource) => r.resourceId),
-        ).toEqual(['resource-2']);
       });
     });
 

@@ -62,3 +62,5 @@ export { type IStateProvider } from './services/state-management/state-provider.
 export { TransactionService } from './services/transaction/transaction.service.js';
 
 export * from './app.type.js';
+
+export { Octo } from './main.js';

@@ -3,7 +3,6 @@ import {
   type ActionOutputs,
   ModelType,
   type TransactionOptions,
-  type UnknownResource,
   type UnknownSharedResource,
 } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
@@ -225,11 +224,10 @@ export class TransactionService {
     options: TransactionOptions = {
       yieldModelDiffs: false,
       yieldModelTransaction: false,
-      yieldNewResources: false,
       yieldResourceDiffs: false,
       yieldResourceTransaction: false,
     },
-  ): AsyncGenerator<DiffMetadata[][] | UnknownResource[], DiffMetadata[][]> {
+  ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
     // Diff overlays and add to existing diffs.
     diffs.push(...(await this.overlayDataRepository.diff()));
 
@@ -260,11 +258,6 @@ export class TransactionService {
     const modelTransaction = await this.applyModels(modelDiffs);
     if (options.yieldModelTransaction) {
       yield modelTransaction;
-    }
-
-    // Yield new resources.
-    if (options.yieldNewResources) {
-      yield this.resourceDataRepository.getByProperties();
     }
 
     // Generate diff on resources.
