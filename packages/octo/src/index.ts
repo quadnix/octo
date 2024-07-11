@@ -39,6 +39,9 @@ export { AModel } from './models/model.abstract.js';
 export { type IModel, type IModelReference } from './models/model.interface.js';
 export { type IModelAction } from './models/model-action.interface.js';
 
+export { type IModule } from './modules/module.interface.js';
+export { TestModuleContainer } from './modules/test-module.container.js';
+
 export { AAnchor } from './overlays/anchor.abstract.js';
 export { type IAnchor } from './overlays/anchor.interface.js';
 export { AOverlay } from './overlays/overlay.abstract.js';
@@ -52,14 +55,10 @@ export { ASharedResource } from './resources/shared-resource.abstract.js';
 
 export { InputService } from './services/input/input.service.js';
 
-export { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
-export { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
-
 export { LocalStateProvider } from './services/state-management/local.state-provider.js';
 export { StateManagementService } from './services/state-management/state-management.service.js';
 export { type IStateProvider } from './services/state-management/state-provider.interface.js';
-
-export { TransactionService } from './services/transaction/transaction.service.js';
+export { TestStateProvider } from './services/state-management/test.state-provider.js';
 
 export * from './app.type.js';
 

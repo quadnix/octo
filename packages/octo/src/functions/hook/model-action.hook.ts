@@ -1,12 +1,12 @@
-import { ActionInputs, ActionOutputs } from '../../app.type.js';
+import type { ActionInputs, ActionOutputs } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
-import { Factory } from '../../decorators/factory.decorator.js';
-import { IModelAction } from '../../models/model-action.interface.js';
+import type { IModelAction } from '../../models/model-action.interface.js';
+import type { ModuleContainer } from '../../modules/module.container.js';
 import { InputService } from '../../services/input/input.service.js';
-import { Diff } from '../diff/diff.js';
-import { AHook } from './hook.abstract.js';
+import type { Diff } from '../diff/diff.js';
+import type { IHook } from './hook.interface.js';
 
-export class ModelActionHook extends AHook {
+export class ModelActionHook implements IHook {
   private static instance: ModelActionHook;
 
   private readonly postModelActionHooks: {
@@ -16,16 +16,16 @@ export class ModelActionHook extends AHook {
     [key: string]: { collectInput?: IModelAction['collectInput']; handle: IModelAction['handle'] }[];
   } = {};
 
-  override collectHooks(): void {
-    for (const m of this.registeredModules) {
-      for (const { ACTION_NAME, collectInput, handle } of m.moduleProperties.postModelActionHooks || []) {
+  collectHooks(registeredModules: ModuleContainer['modules']): void {
+    for (const m of registeredModules) {
+      for (const { ACTION_NAME, collectInput, handle } of m.properties.postModelActionHooks || []) {
         if (!this.postModelActionHooks[ACTION_NAME]) {
           this.postModelActionHooks[ACTION_NAME] = [];
         }
         this.postModelActionHooks[ACTION_NAME].push({ collectInput, handle });
       }
 
-      for (const { ACTION_NAME, collectInput, handle } of m.moduleProperties.preModelActionHooks || []) {
+      for (const { ACTION_NAME, collectInput, handle } of m.properties.preModelActionHooks || []) {
         if (!this.preModelActionHooks[ACTION_NAME]) {
           this.preModelActionHooks[ACTION_NAME] = [];
         }
@@ -41,7 +41,7 @@ export class ModelActionHook extends AHook {
     return this.instance;
   }
 
-  override registrar(modelAction: IModelAction): void {
+  registrar(modelAction: IModelAction): void {
     // `self` here references this class, vs `this` references the original method.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
@@ -82,11 +82,13 @@ export class ModelActionHook extends AHook {
       return output;
     };
   }
-}
 
-@Factory<ModelActionHook>(ModelActionHook)
-export class ModelActionHookFactory {
-  static async create(): Promise<ModelActionHook> {
-    return ModelActionHook.getInstance();
+  reset(): void {
+    for (const name in this.postModelActionHooks) {
+      delete this.postModelActionHooks[name];
+    }
+    for (const name in this.preModelActionHooks) {
+      delete this.preModelActionHooks[name];
+    }
   }
 }

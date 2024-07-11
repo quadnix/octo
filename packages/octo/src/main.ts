@@ -1,9 +1,11 @@
 import { strict as assert } from 'assert';
-import { ActionInputs, TransactionOptions, UnknownResource } from './app.type.js';
+import { ActionInputs, Constructable, TransactionOptions, UnknownResource } from './app.type.js';
 import { Container } from './decorators/container.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
 import { App } from './models/app/app.model.js';
+import { ModuleContainer } from './modules/module.container.js';
+import { IModule } from './modules/module.interface.js';
 import { ResourceDataRepository } from './resources/resource-data.repository.js';
 import { InputService } from './services/input/input.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
@@ -47,11 +49,21 @@ export class Octo {
     this.previousApp = await this.retrieveModelState();
   }
 
+  async compose(): Promise<void> {
+    const moduleContainer = await Container.get(ModuleContainer);
+    await moduleContainer.apply();
+  }
+
   getAllResources(): UnknownResource[] {
     return this.resourceDataRepository.getByProperties();
   }
 
-  async initialize(stateProvider: IStateProvider): Promise<App | undefined> {
+  async getModuleOutput<T>(module: Constructable<IModule<T>>): Promise<T | undefined> {
+    const moduleContainer = await Container.get(ModuleContainer);
+    return moduleContainer.getOutput(module);
+  }
+
+  async initialize(stateProvider: IStateProvider): Promise<void> {
     [
       this.inputService,
       this.modelSerializationService,
@@ -71,9 +83,6 @@ export class Octo {
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
     this.previousApp = await this.retrieveModelState();
-
-    // Return a new copy of App for modifications.
-    return this.previousApp ? await this.retrieveModelState() : undefined;
   }
 
   registerInputs(inputs: ActionInputs): void {

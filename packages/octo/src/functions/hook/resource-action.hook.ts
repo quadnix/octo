@@ -1,9 +1,9 @@
-import { Factory } from '../../decorators/factory.decorator.js';
-import { IResourceAction } from '../../resources/resource-action.interface.js';
-import { Diff } from '../diff/diff.js';
-import { AHook } from './hook.abstract.js';
+import type { ModuleContainer } from '../../modules/module.container.js';
+import type { IResourceAction } from '../../resources/resource-action.interface.js';
+import type { Diff } from '../diff/diff.js';
+import type { IHook } from './hook.interface.js';
 
-export class ResourceActionHook extends AHook {
+export class ResourceActionHook implements IHook {
   private static instance: ResourceActionHook;
 
   private readonly postResourceActionHooks: {
@@ -13,16 +13,16 @@ export class ResourceActionHook extends AHook {
     [key: string]: { handle: IResourceAction['handle'] }[];
   } = {};
 
-  override collectHooks(): void {
-    for (const m of this.registeredModules) {
-      for (const { ACTION_NAME, handle } of m.moduleProperties.postResourceActionHooks || []) {
+  collectHooks(registeredModules: ModuleContainer['modules']): void {
+    for (const m of registeredModules) {
+      for (const { ACTION_NAME, handle } of m.properties.postResourceActionHooks || []) {
         if (!this.postResourceActionHooks[ACTION_NAME]) {
           this.postResourceActionHooks[ACTION_NAME] = [];
         }
         this.postResourceActionHooks[ACTION_NAME].push({ handle });
       }
 
-      for (const { ACTION_NAME, handle } of m.moduleProperties.preResourceActionHooks || []) {
+      for (const { ACTION_NAME, handle } of m.properties.preResourceActionHooks || []) {
         if (!this.preResourceActionHooks[ACTION_NAME]) {
           this.preResourceActionHooks[ACTION_NAME] = [];
         }
@@ -38,7 +38,7 @@ export class ResourceActionHook extends AHook {
     return this.instance;
   }
 
-  override registrar(resourceAction: IResourceAction): void {
+  registrar(resourceAction: IResourceAction): void {
     // `self` here references this class, vs `this` references the original method.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
@@ -57,11 +57,13 @@ export class ResourceActionHook extends AHook {
       }
     };
   }
-}
 
-@Factory<ResourceActionHook>(ResourceActionHook)
-export class ResourceActionHookFactory {
-  static async create(): Promise<ResourceActionHook> {
-    return ResourceActionHook.getInstance();
+  reset(): void {
+    for (const name in this.postResourceActionHooks) {
+      delete this.postResourceActionHooks[name];
+    }
+    for (const name in this.preResourceActionHooks) {
+      delete this.preResourceActionHooks[name];
+    }
   }
 }

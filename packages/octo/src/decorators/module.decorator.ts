@@ -1,11 +1,13 @@
 import type { Constructable } from '../app.type.js';
-import { CommitHook, type PostCommitCallback, type PreCommitCallback } from '../functions/hook/commit.hook.js';
-import { ModelActionHook } from '../functions/hook/model-action.hook.js';
-import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
+import type { Octo } from '../main.js';
 import type { IModelAction } from '../models/model-action.interface.js';
+import { ModuleContainer } from '../modules/module.container.js';
+import { type IModule } from '../modules/module.interface.js';
 import type { IResourceAction } from '../resources/resource-action.interface.js';
+import { Container } from './container.js';
 
 export function Module({
+  args = [],
   imports = [],
   postCommitHooks = [],
   postModelActionHooks = [],
@@ -14,8 +16,9 @@ export function Module({
   preModelActionHooks = [],
   preResourceActionHooks = [],
 }: {
-  imports?: Constructable<unknown>[];
-  postCommitHooks?: { callback: PostCommitCallback }[];
+  args?: { isArg: (arg: unknown) => boolean; name: string }[];
+  imports?: Constructable<IModule<unknown>>[];
+  postCommitHooks?: { callback: Octo['commitTransaction'] }[];
   postModelActionHooks?: {
     ACTION_NAME: string;
     collectInput?: IModelAction['collectInput'];
@@ -25,7 +28,7 @@ export function Module({
     ACTION_NAME: string;
     handle: IResourceAction['handle'];
   }[];
-  preCommitHooks?: { callback: PreCommitCallback }[];
+  preCommitHooks?: { callback: Octo['commitTransaction'] }[];
   preModelActionHooks?: {
     ACTION_NAME: string;
     collectInput?: IModelAction['collectInput'];
@@ -36,19 +39,23 @@ export function Module({
     handle: IResourceAction['handle'];
   }[];
 }): (constructor: any) => void {
-  return function (constructor: any) {
-    CommitHook.getInstance().registerModule(constructor.name, { imports, postCommitHooks, preCommitHooks });
+  return function (constructor: Constructable<IModule<unknown>>) {
+    Container.get(ModuleContainer).then((moduleContainer) => {
+      // Verify classes with @Module implements IModule.
+      if (!('onInit' in constructor)) {
+        throw new Error(`Class "${constructor.name}" does not implement IModule!`);
+      }
 
-    ModelActionHook.getInstance().registerModule(constructor.name, {
-      imports,
-      postModelActionHooks,
-      preModelActionHooks,
-    });
-
-    ResourceActionHook.getInstance().registerModule(constructor.name, {
-      imports,
-      postResourceActionHooks,
-      preResourceActionHooks,
+      moduleContainer.register(constructor, {
+        args,
+        imports,
+        postCommitHooks,
+        postModelActionHooks,
+        postResourceActionHooks,
+        preCommitHooks,
+        preModelActionHooks,
+        preResourceActionHooks,
+      });
     });
   };
 }

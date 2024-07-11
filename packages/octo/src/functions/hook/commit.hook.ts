@@ -1,24 +1,22 @@
-import { Factory } from '../../decorators/factory.decorator.js';
-import { App } from '../../models/app/app.model.js';
-import { DiffMetadata } from '../diff/diff-metadata.js';
-import { AHook } from './hook.abstract.js';
+import type { Octo } from '../../main.js';
+import type { App } from '../../models/app/app.model.js';
+import type { ModuleContainer } from '../../modules/module.container.js';
+import type { DiffMetadata } from '../diff/diff-metadata.js';
+import type { IHook } from './hook.interface.js';
 
-export type PostCommitCallback = (...args: [App, DiffMetadata[][]]) => Promise<void>;
-export type PreCommitCallback = (...args: [App, DiffMetadata[][]]) => Promise<void>;
-
-export class CommitHook extends AHook {
+export class CommitHook implements IHook {
   private static instance: CommitHook;
 
-  private readonly postCommitHooks: PostCommitCallback[] = [];
-  private readonly preCommitHooks: PreCommitCallback[] = [];
+  private readonly postCommitHooks: Octo['commitTransaction'][] = [];
+  private readonly preCommitHooks: Octo['commitTransaction'][] = [];
 
-  override collectHooks(): void {
-    for (const m of this.registeredModules) {
-      for (const { callback } of m.moduleProperties.postCommitHooks || []) {
+  collectHooks(registeredModules: ModuleContainer['modules']): void {
+    for (const m of registeredModules) {
+      for (const { callback } of m.properties.postCommitHooks || []) {
         this.postCommitHooks.push(callback);
       }
 
-      for (const { callback } of m.moduleProperties.preCommitHooks || []) {
+      for (const { callback } of m.properties.preCommitHooks || []) {
         this.preCommitHooks.push(callback);
       }
     }
@@ -31,7 +29,7 @@ export class CommitHook extends AHook {
     return this.instance;
   }
 
-  override registrar(descriptor: PropertyDescriptor): void {
+  registrar(descriptor: PropertyDescriptor): void {
     // `self` here references this class, vs `this` references the original method.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
@@ -50,11 +48,9 @@ export class CommitHook extends AHook {
       }
     };
   }
-}
 
-@Factory<CommitHook>(CommitHook)
-export class CommitHookFactory {
-  static async create(): Promise<CommitHook> {
-    return CommitHook.getInstance();
+  reset(): void {
+    this.postCommitHooks.splice(0, this.postCommitHooks.length);
+    this.preCommitHooks.splice(0, this.preCommitHooks.length);
   }
 }
