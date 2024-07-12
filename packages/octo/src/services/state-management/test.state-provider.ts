@@ -4,6 +4,9 @@ export class TestStateProvider implements IStateProvider {
   private readonly localState: { [key: string]: Buffer } = {};
 
   async getState(stateFileName: string): Promise<Buffer> {
+    if (!(stateFileName in this.localState)) {
+      throw new Error('No state found!');
+    }
     return this.localState[stateFileName];
   }
 

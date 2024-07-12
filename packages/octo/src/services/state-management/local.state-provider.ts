@@ -14,7 +14,14 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   async getState(stateFileName: string): Promise<Buffer> {
-    return readFileAsync(join(this.localStateDirectoryPath, stateFileName));
+    try {
+      return await readFileAsync(join(this.localStateDirectoryPath, stateFileName));
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new Error('No state found!');
+      }
+      throw error;
+    }
   }
 
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
