@@ -1,4 +1,4 @@
-import type { ActionInputs, Constructable, TransactionOptions } from '../app.type.js';
+import type { Constructable, TransactionOptions } from '../app.type.js';
 import { Container } from '../decorators/container.js';
 import type { Module } from '../decorators/module.decorator.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
@@ -10,18 +10,14 @@ import { ModuleContainer } from './module.container.js';
 import type { IModule } from './module.interface.js';
 
 export class TestModuleContainer {
-  private readonly octo: Octo;
+  readonly octo: Octo;
 
-  constructor(inputs?: ActionInputs) {
+  constructor() {
     this.octo = new Octo();
-
-    if (inputs) {
-      this.octo.registerInputs(inputs);
-    }
   }
 
   async commit(
-    appModule: Constructable<IModule<App>> | string,
+    app: App,
     transactionOptions: TransactionOptions = { yieldResourceTransaction: true },
   ): Promise<{
     modelDiffs?: DiffMetadata[][];
@@ -29,9 +25,6 @@ export class TestModuleContainer {
     resourceDiffs?: DiffMetadata[][];
     resourceTransaction?: DiffMetadata[][];
   }> {
-    await this.octo.compose();
-    const app = (await this.octo.getModuleOutput<App>(appModule))!;
-
     const response: {
       modelDiffs?: DiffMetadata[][];
       modelTransaction?: DiffMetadata[][];
@@ -92,5 +85,12 @@ export class TestModuleContainer {
         moduleMetadata.properties[key] = value;
       }
     }
+
+    await this.octo.compose();
+  }
+
+  async reset(): Promise<void> {
+    const moduleContainer = await Container.get(ModuleContainer);
+    moduleContainer.reset();
   }
 }
