@@ -41,8 +41,9 @@ export class ModuleContainer {
       this.resourceActionHook.collectHooks([moduleMetadata]);
 
       const args = (properties.imports || []).reduce((accumulator: unknown[], importedModule) => {
-        if (importedModule.name in this.outputs) {
-          accumulator.push(this.outputs[importedModule.name]);
+        const name = typeof importedModule === 'string' ? importedModule : importedModule.name;
+        if (name in this.outputs) {
+          accumulator.push(this.outputs[name]);
         }
         return accumulator;
       }, []);
@@ -65,17 +66,19 @@ export class ModuleContainer {
     }
   }
 
-  getModuleMetadata(module: Constructable<IModule<unknown>>): ModuleContainer['modules'][0] | undefined {
+  getModuleMetadata(module: Constructable<IModule<unknown>> | string): ModuleContainer['modules'][0] | undefined {
     const index = this.getModuleMetadataIndex(module);
     return index === -1 ? undefined : this.modules[index];
   }
 
-  getModuleMetadataIndex(module: Constructable<IModule<unknown>>): number {
-    return this.modules.findIndex((m) => m.module.name === module.name);
+  getModuleMetadataIndex(module: Constructable<IModule<unknown>> | string): number {
+    const name = typeof module === 'string' ? module : module.name;
+    return this.modules.findIndex((m) => m.module.name === name);
   }
 
-  getOutput<T>(module: Constructable<IModule<T>>): T | undefined {
-    return module.name in this.outputs ? (this.outputs[module.name] as T) : undefined;
+  getOutput<T>(module: Constructable<IModule<T>> | string): T | undefined {
+    const name = typeof module === 'string' ? module : module.name;
+    return name in this.outputs ? (this.outputs[name] as T) : undefined;
   }
 
   register(module: Constructable<IModule<unknown>>, properties: Parameters<typeof Module>[0]): void {
@@ -114,9 +117,10 @@ export class ModuleContainer {
 
     const parentModuleApplyOrders: number[] = [-1];
     for (const parent of moduleMetadata.properties.imports || []) {
-      const parentModuleMetadata = this.modules.find((m) => m.module.name === parent.name);
+      const name = typeof parent === 'string' ? parent : parent.name;
+      const parentModuleMetadata = this.modules.find((m) => m.module.name === name);
       if (!parentModuleMetadata) {
-        throw new Error(`Found unregistered module "${parent.name}" while processing modules!`);
+        throw new Error(`Found unregistered module "${name}" while processing modules!`);
       }
 
       this.setApplyOrder(parentModuleMetadata, [...seen, parentModuleMetadata.module]);

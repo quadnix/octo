@@ -17,7 +17,7 @@ export function Module({
   preResourceActionHooks = [],
 }: {
   args?: { isArg: (arg: unknown) => boolean; name: string }[];
-  imports?: Constructable<IModule<unknown>>[];
+  imports?: (Constructable<IModule<unknown>> | string)[];
   postCommitHooks?: { callback: Octo['commitTransaction'] }[];
   postModelActionHooks?: {
     ACTION_NAME: string;

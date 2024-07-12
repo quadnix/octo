@@ -58,7 +58,7 @@ export class Octo {
     return this.resourceDataRepository.getByProperties();
   }
 
-  async getModuleOutput<T>(module: Constructable<IModule<T>>): Promise<T | undefined> {
+  async getModuleOutput<T>(module: Constructable<IModule<T>> | string): Promise<T | undefined> {
     const moduleContainer = await Container.get(ModuleContainer);
     return moduleContainer.getOutput(module);
   }
