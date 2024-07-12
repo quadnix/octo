@@ -6,11 +6,9 @@ import {
   Environment,
   Execution,
   Image,
-  ModelSerializationService,
   OverlayService,
   Pipeline,
   Region,
-  ResourceSerializationService,
   Server,
   Service,
   Subnet,
@@ -19,6 +17,8 @@ import {
   type UnknownResource,
 } from '../../src/index.js';
 import { ResourceDataRepository } from '../../src/resources/resource-data.repository.js';
+import { ModelSerializationService } from '../../src/services/serialization/model/model-serialization.service.js';
+import { ResourceSerializationService } from '../../src/services/serialization/resource/resource-serialization.service.js';
 import { SharedTestResource, TestOverlay, TestResource } from './test-classes.js';
 
 export async function commit<T extends UnknownModel>(model: T): Promise<T> {
