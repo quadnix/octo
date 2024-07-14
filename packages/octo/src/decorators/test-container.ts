@@ -11,11 +11,22 @@ type FactoryMock<T> = {
 };
 
 type TestContainerSubjects = {
+  importFrom?: Constructable<IPackageMock>[];
   mocks?: FactoryMock<unknown>[];
 };
 type TestContainerOptions = { factoryTimeoutInMs?: number };
 
+export interface IPackageMock {
+  destroy: () => Promise<void>;
+
+  getMocks: () => FactoryMock<unknown>[];
+
+  init(): Promise<void>;
+}
+
 export class TestContainer {
+  private static packageMocks: IPackageMock[] = [];
+
   private static createTestFactory<T>(mock: FactoryMock<T>): Factory<T> {
     return class {
       static mock: FactoryMock<T> = mock;
@@ -26,7 +37,7 @@ export class TestContainer {
     };
   }
 
-  static create(subjects: TestContainerSubjects, options?: TestContainerOptions): void {
+  static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<void> {
     const oldFactories = { ...Container['factories'] };
     Container.reset();
 
@@ -34,7 +45,18 @@ export class TestContainer {
       Container.setFactoryTimeout(options.factoryTimeoutInMs);
     }
 
-    for (const mock of subjects.mocks || []) {
+    const importedMocks: FactoryMock<unknown>[] = [];
+    for (const mockClass of subjects.importFrom || []) {
+      const mock = new mockClass();
+      await mock.init();
+
+      importedMocks.push(...mock.getMocks());
+      this.packageMocks.push(mock);
+    }
+
+    subjects.mocks = [...importedMocks, ...(subjects.mocks || [])];
+
+    for (const mock of subjects.mocks) {
       const mockClassName = typeof mock.type === 'string' ? mock.type : mock.type.name;
       const mockMetadata = mock.metadata || {};
       const registeredFactories = oldFactories[mockClassName] || [];
@@ -55,5 +77,12 @@ export class TestContainer {
         }
       }
     }
+  }
+
+  static async reset(): Promise<void> {
+    for (const mock of this.packageMocks) {
+      await mock.destroy();
+    }
+    Container.reset();
   }
 }

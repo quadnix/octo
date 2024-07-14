@@ -7,7 +7,7 @@ export { Model } from './decorators/model.decorator.js';
 export { Module } from './decorators/module.decorator.js';
 export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
-export { TestContainer } from './decorators/test-container.js';
+export { IPackageMock, TestContainer } from './decorators/test-container.js';
 
 export { DependencyRelationship } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';
@@ -52,8 +52,6 @@ export { AResource } from './resources/resource.abstract.js';
 export { type IResource } from './resources/resource.interface.js';
 export { type IResourceAction } from './resources/resource-action.interface.js';
 export { ASharedResource } from './resources/shared-resource.abstract.js';
-
-export { InputService } from './services/input/input.service.js';
 
 export { LocalStateProvider } from './services/state-management/local.state-provider.js';
 export { StateManagementService } from './services/state-management/state-management.service.js';
