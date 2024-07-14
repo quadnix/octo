@@ -26,6 +26,15 @@ export class DeleteVpcResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DeleteVpcCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<DeleteVpcResourceAction>(DeleteVpcResourceAction)

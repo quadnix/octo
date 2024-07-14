@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { IS3StorageAccessOverlayProperties } from '../../../overlays/s3-storage-access/s3-storage-access.overlay.interface.js';
+import type { IIamUserResponse } from '../iam-user.interface.js';
 import { IamUser, type IamUserPolicyDiff } from '../iam-user.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -104,6 +105,23 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
       // Set response.
       delete response.policies[overlayId];
     }
+  }
+
+  async mock(capture: Partial<IIamUserResponse>, diff: Diff): Promise<void> {
+    const overlayId = diff.field;
+
+    const iamClient = await Container.get(IAMClient);
+    iamClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreatePolicyCommand) {
+        return { Policy: { Arn: capture.policies![overlayId][0] } };
+      } else if (instance instanceof AttachUserPolicyCommand) {
+        return;
+      } else if (instance instanceof DetachUserPolicyCommand) {
+        return;
+      } else if (instance instanceof DeletePolicyCommand) {
+        return;
+      }
+    };
   }
 }
 

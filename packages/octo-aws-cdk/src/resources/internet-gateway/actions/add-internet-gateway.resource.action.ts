@@ -1,6 +1,7 @@
 import { AttachInternetGatewayCommand, CreateInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { Vpc } from '../../vpc/vpc.resource.js';
+import type { IInternetGatewayResponse } from '../internet-gateway.interface.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -40,6 +41,17 @@ export class AddInternetGatewayResourceAction implements IResourceAction {
 
     // Set response.
     response.InternetGatewayId = internetGWOutput!.InternetGateway!.InternetGatewayId!;
+  }
+
+  async mock(capture: Partial<IInternetGatewayResponse>): Promise<void> {
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateInternetGatewayCommand) {
+        return { InternetGateway: { InternetGatewayId: capture.InternetGatewayId } };
+      } else if (instance instanceof AttachInternetGatewayCommand) {
+        return;
+      }
+    };
   }
 }
 

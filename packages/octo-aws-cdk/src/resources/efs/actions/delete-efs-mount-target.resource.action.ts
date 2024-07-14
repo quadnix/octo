@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/client-efs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import type { IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
 import type { Efs } from '../efs.resource.js';
 
@@ -72,6 +73,22 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction {
         retryDelayInMs: 5000,
       },
     );
+  }
+
+  async mock(capture: Partial<IEfsMountTargetResponse>, diff: Diff): Promise<void> {
+    const efsMountTarget = diff.model as EfsMountTarget;
+    const parents = efsMountTarget.getParents();
+    const efs = parents['efs'][0].to as Efs;
+    const efsResponse = efs.response;
+
+    const efsClient = await Container.get(EFSClient);
+    efsClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DeleteMountTargetCommand) {
+        return;
+      } else if (instance instanceof DescribeMountTargetsCommand) {
+        return { MountTargets: [{ FileSystemId: efsResponse.FileSystemId, LifeCycleState: 'deleted' }] };
+      }
+    };
   }
 }
 

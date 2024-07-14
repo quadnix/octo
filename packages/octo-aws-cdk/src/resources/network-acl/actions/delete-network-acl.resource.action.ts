@@ -36,6 +36,17 @@ export class DeleteNetworkAclResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof ReplaceNetworkAclAssociationCommand) {
+        return;
+      } else if (instance instanceof DeleteNetworkAclCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<DeleteNetworkAclResourceAction>(DeleteNetworkAclResourceAction)

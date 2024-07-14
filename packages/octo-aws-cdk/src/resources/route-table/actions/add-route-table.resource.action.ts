@@ -8,6 +8,7 @@ import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, Mod
 import type { InternetGateway } from '../../internet-gateway/internet-gateway.resource.js';
 import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
+import type { IRouteTableResponse } from '../route-table.interface.js';
 import { RouteTable } from '../route-table.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -66,6 +67,19 @@ export class AddRouteTableResourceAction implements IResourceAction {
     // Set response.
     response.RouteTableId = routeTableOutput!.RouteTable!.RouteTableId!;
     response.subnetAssociationId = data[0].AssociationId!;
+  }
+
+  async mock(capture: Partial<IRouteTableResponse>): Promise<void> {
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateRouteTableCommand) {
+        return { RouteTable: { RouteTableId: capture.RouteTableId } };
+      } else if (instance instanceof AssociateRouteTableCommand) {
+        return { AssociationId: capture.subnetAssociationId };
+      } else if (instance instanceof CreateRouteCommand) {
+        return;
+      }
+    };
   }
 }
 

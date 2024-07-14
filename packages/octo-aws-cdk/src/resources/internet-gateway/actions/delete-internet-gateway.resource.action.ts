@@ -42,6 +42,17 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DetachInternetGatewayCommand) {
+        return;
+      } else if (instance instanceof DeleteInternetGatewayCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<DeleteInternetGatewayResourceAction>(DeleteInternetGatewayResourceAction)

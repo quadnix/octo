@@ -3,6 +3,7 @@ import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, Mod
 import type { SecurityGroup } from '../../security-group/security-group.resource.js';
 import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { EcsCluster } from '../ecs-cluster.resource.js';
+import type { IEcsServiceResponse } from '../ecs-service.interface.js';
 import { EcsService } from '../ecs-service.resource.js';
 import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
@@ -57,6 +58,15 @@ export class AddEcsServiceResourceAction implements IResourceAction {
 
     // Set response.
     response.serviceArn = data.service!.serviceArn!;
+  }
+
+  async mock(capture: Partial<IEcsServiceResponse>): Promise<void> {
+    const ecsClient = await Container.get(ECSClient);
+    ecsClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateServiceCommand) {
+        return { service: { serviceArn: capture.serviceArn } };
+      }
+    };
   }
 }
 

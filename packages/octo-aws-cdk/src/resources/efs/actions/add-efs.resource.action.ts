@@ -1,6 +1,7 @@
 import { CreateFileSystemCommand, DescribeFileSystemsCommand, EFSClient } from '@aws-sdk/client-efs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import type { IEfsResponse } from '../efs.interface.js';
 import { Efs } from '../efs.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -58,6 +59,17 @@ export class AddEfsResourceAction implements IResourceAction {
     // Set response.
     response.FileSystemArn = data.FileSystemArn!;
     response.FileSystemId = data.FileSystemId!;
+  }
+
+  async mock(capture: Partial<IEfsResponse>): Promise<void> {
+    const efsClient = await Container.get(EFSClient);
+    efsClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateFileSystemCommand) {
+        return { FileSystemArn: capture.FileSystemArn, FileSystemId: capture.FileSystemId };
+      } else if (instance instanceof DescribeFileSystemsCommand) {
+        return { FileSystems: [{ FileSystemId: capture.FileSystemId, LifeCycleState: 'available' }] };
+      }
+    };
   }
 }
 

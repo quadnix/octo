@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/client-efs';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import type { IEfsResponse } from '../efs.interface.js';
 import { Efs } from '../efs.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -62,6 +63,17 @@ export class DeleteEfsResourceAction implements IResourceAction {
         retryDelayInMs: 5000,
       },
     );
+  }
+
+  async mock(capture: Partial<IEfsResponse>): Promise<void> {
+    const efsClient = await Container.get(EFSClient);
+    efsClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DeleteFileSystemCommand) {
+        return;
+      } else if (instance instanceof DescribeFileSystemsCommand) {
+        return { FileSystems: [{ FileSystemId: capture.FileSystemId, LifeCycleState: 'deleted' }] };
+      }
+    };
   }
 }
 

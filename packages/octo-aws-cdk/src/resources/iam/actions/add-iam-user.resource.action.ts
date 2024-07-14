@@ -1,5 +1,6 @@
 import { CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import type { IIamUserResponse } from '../iam-user.interface.js';
 import { IamUser } from '../iam-user.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -31,6 +32,15 @@ export class AddIamUserResourceAction implements IResourceAction {
     response.policies = {};
     response.UserId = data.User!.UserId!;
     response.UserName = data.User!.UserName!;
+  }
+
+  async mock(capture: Partial<IIamUserResponse>): Promise<void> {
+    const iamClient = await Container.get(IAMClient);
+    iamClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateUserCommand) {
+        return { User: { Arn: capture.Arn, UserId: capture.UserId, UserName: capture.UserName } };
+      }
+    };
   }
 }
 

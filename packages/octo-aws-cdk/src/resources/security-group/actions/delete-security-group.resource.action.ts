@@ -30,6 +30,15 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DeleteSecurityGroupCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<DeleteSecurityGroupResourceAction>(DeleteSecurityGroupResourceAction)

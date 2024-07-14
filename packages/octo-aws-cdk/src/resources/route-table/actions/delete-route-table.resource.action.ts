@@ -35,6 +35,17 @@ export class DeleteRouteTableResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DisassociateRouteTableCommand) {
+        return;
+      } else if (instance instanceof DeleteRouteTableCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<DeleteRouteTableResourceAction>(DeleteRouteTableResourceAction)

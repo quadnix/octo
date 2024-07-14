@@ -51,6 +51,19 @@ export class DeleteS3StorageResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const s3Client = await Container.get(S3Client);
+    s3Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof ListObjectsV2Command) {
+        return { Contents: [], NextContinuationToken: undefined };
+      } else if (instance instanceof DeleteObjectsCommand) {
+        return;
+      } else if (instance instanceof DeleteBucketCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<DeleteS3StorageResourceAction>(DeleteS3StorageResourceAction)

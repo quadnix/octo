@@ -82,6 +82,21 @@ export class AddS3WebsiteResourceAction implements IResourceAction {
     // Set response.
     response.awsRegionId = properties.awsRegionId;
   }
+
+  async mock(): Promise<void> {
+    const s3Client = await Container.get(S3Client);
+    s3Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateBucketCommand) {
+        return;
+      } else if (instance instanceof PutBucketWebsiteCommand) {
+        return;
+      } else if (instance instanceof PutPublicAccessBlockCommand) {
+        return;
+      } else if (instance instanceof PutBucketPolicyCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<AddS3WebsiteResourceAction>(AddS3WebsiteResourceAction)

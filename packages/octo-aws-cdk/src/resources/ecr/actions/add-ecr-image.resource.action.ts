@@ -8,6 +8,7 @@ import {
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
+import type { IEcrImageResponse } from '../ecr-image.interface.js';
 import { EcrImage } from '../ecr-image.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -127,6 +128,17 @@ export class AddEcrImageResourceAction implements IResourceAction {
         });
       });
     }
+  }
+
+  async mock(capture: Partial<IEcrImageResponse>): Promise<void> {
+    const ecrClient = await Container.get(ECRClient);
+    ecrClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DescribeImagesCommand) {
+        return { imageDetails: [{ registryId: capture.registryId, repositoryName: capture.repositoryName }] };
+      } else if (instance instanceof DescribeRepositoriesCommand) {
+        return { repositories: [{ repositoryArn: capture.repositoryArn, repositoryUri: capture.repositoryUri }] };
+      }
+    };
   }
 }
 

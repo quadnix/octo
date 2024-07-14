@@ -1,5 +1,6 @@
 import { CreateRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import type { IIamRoleResponse } from '../iam-role.interface.js';
 import { IamRole } from '../iam-role.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -32,6 +33,15 @@ export class AddIamRoleResourceAction implements IResourceAction {
     response.policies = {};
     response.RoleId = data.Role!.RoleId!;
     response.RoleName = data.Role!.RoleName!;
+  }
+
+  async mock(capture: Partial<IIamRoleResponse>): Promise<void> {
+    const iamClient = await Container.get(IAMClient);
+    iamClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateRoleCommand) {
+        return { Role: { Arn: capture.Arn, RoleId: capture.RoleId, RoleName: capture.RoleName } };
+      }
+    };
   }
 }
 

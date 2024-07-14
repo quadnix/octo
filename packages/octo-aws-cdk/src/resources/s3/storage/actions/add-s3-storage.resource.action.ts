@@ -25,6 +25,15 @@ export class AddS3StorageResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const s3Client = await Container.get(S3Client);
+    s3Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateBucketCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<AddS3StorageResourceAction>(AddS3StorageResourceAction)

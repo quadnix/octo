@@ -25,6 +25,15 @@ export class DeleteIamUserResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const iamClient = await Container.get(IAMClient);
+    iamClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DeleteUserCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<DeleteIamUserResourceAction>(DeleteIamUserResourceAction)

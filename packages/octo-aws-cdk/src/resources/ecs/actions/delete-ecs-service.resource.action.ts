@@ -60,6 +60,19 @@ export class DeleteEcsServiceResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const ecsClient = await Container.get(ECSClient);
+    ecsClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof UpdateServiceCommand) {
+        return;
+      } else if (instance instanceof DescribeServicesCommand) {
+        return { services: [{ status: 'INACTIVE' }] };
+      } else if (instance instanceof DeleteServiceCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<DeleteEcsServiceResourceAction>(DeleteEcsServiceResourceAction)

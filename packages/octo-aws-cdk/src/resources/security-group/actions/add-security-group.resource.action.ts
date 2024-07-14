@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { Vpc } from '../../vpc/vpc.resource.js';
+import type { ISecurityGroupResponse } from '../security-group.interface.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -95,6 +96,19 @@ export class AddSecurityGroupResourceAction implements IResourceAction {
       ingress: ingressOutput.SecurityGroupRules!.map((r) => ({
         SecurityGroupRuleId: r.SecurityGroupRuleId,
       })),
+    };
+  }
+
+  async mock(capture: Partial<ISecurityGroupResponse>): Promise<void> {
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateSecurityGroupCommand) {
+        return { GroupId: capture.GroupId };
+      } else if (instance instanceof AuthorizeSecurityGroupEgressCommand) {
+        return { SecurityGroupRules: capture.Rules!.egress };
+      } else if (instance instanceof AuthorizeSecurityGroupIngressCommand) {
+        return { SecurityGroupRules: capture.Rules!.ingress };
+      }
     };
   }
 }

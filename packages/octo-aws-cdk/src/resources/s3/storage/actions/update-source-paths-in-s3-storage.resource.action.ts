@@ -78,6 +78,19 @@ export class UpdateSourcePathsInS3StorageResourceAction implements IResourceActi
       }
     }
   }
+
+  async mock(): Promise<void> {
+    const s3Client = await Container.get(S3Client);
+    s3Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof ListObjectsV2Command) {
+        return { Contents: [], NextContinuationToken: undefined };
+      } else if (instance instanceof DeleteObjectsCommand) {
+        return;
+      } else if (instance instanceof DeleteObjectCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<UpdateSourcePathsInS3StorageResourceAction>(UpdateSourcePathsInS3StorageResourceAction)

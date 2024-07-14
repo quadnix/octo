@@ -26,6 +26,15 @@ export class DeleteEcsClusterResourceAction implements IResourceAction {
       }),
     );
   }
+
+  async mock(): Promise<void> {
+    const ecsClient = await Container.get(ECSClient);
+    ecsClient.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DeleteClusterCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<DeleteEcsClusterResourceAction>(DeleteEcsClusterResourceAction)

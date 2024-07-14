@@ -8,6 +8,7 @@ import {
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
+import type { INetworkAclResponse } from '../network-acl.interface.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
 @Action(ModelType.RESOURCE)
@@ -84,6 +85,33 @@ export class AddNetworkAclResourceAction implements IResourceAction {
     response.associationId = newAssociation.NewAssociationId!;
     response.defaultNetworkAclId = defaultNACLOutput!.NetworkAcls![0].NetworkAclId!;
     response.NetworkAclId = naclOutput!.NetworkAcl!.NetworkAclId!;
+  }
+
+  async mock(capture: Partial<INetworkAclResponse>, diff: Diff): Promise<void> {
+    const networkAcl = diff.model as NetworkAcl;
+    const parents = networkAcl.getParents();
+    const subnet = parents['subnet'][0].to as Subnet;
+    const subnetResponse = subnet.response;
+
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DescribeNetworkAclsCommand) {
+        return {
+          NetworkAcls: [
+            {
+              Associations: [{ SubnetId: subnetResponse.SubnetId }],
+              NetworkAclId: capture.defaultNetworkAclId,
+            },
+          ],
+        };
+      } else if (instance instanceof CreateNetworkAclCommand) {
+        return { NetworkAcl: { NetworkAclId: capture.NetworkAclId } };
+      } else if (instance instanceof CreateNetworkAclEntryCommand) {
+        return;
+      } else if (instance instanceof ReplaceNetworkAclAssociationCommand) {
+        return { NewAssociationId: capture.associationId };
+      }
+    };
   }
 }
 

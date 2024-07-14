@@ -1,5 +1,6 @@
 import { CreateSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import type { ISubnetResponse } from '../subnet.interface.js';
 import { Subnet } from '../subnet.resource.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
 
@@ -33,6 +34,15 @@ export class AddSubnetResourceAction implements IResourceAction {
 
     // Set response.
     response.SubnetId = subnetOutput.Subnet!.SubnetId!;
+  }
+
+  async mock(capture: Partial<ISubnetResponse>): Promise<void> {
+    const ec2Client = await Container.get(EC2Client);
+    ec2Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof CreateSubnetCommand) {
+        return { Subnet: { SubnetId: capture.SubnetId } };
+      }
+    };
   }
 }
 

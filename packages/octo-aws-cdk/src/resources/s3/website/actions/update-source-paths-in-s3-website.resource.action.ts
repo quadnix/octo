@@ -54,6 +54,15 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
       }
     }
   }
+
+  async mock(): Promise<void> {
+    const s3Client = await Container.get(S3Client);
+    s3Client.send = async (instance): Promise<unknown> => {
+      if (instance instanceof DeleteObjectCommand) {
+        return;
+      }
+    };
+  }
 }
 
 @Factory<UpdateSourcePathsInS3WebsiteResourceAction>(UpdateSourcePathsInS3WebsiteResourceAction)
