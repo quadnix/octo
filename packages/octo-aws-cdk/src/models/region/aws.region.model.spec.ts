@@ -1,99 +1,73 @@
-import {
-  AttachInternetGatewayCommand,
-  AuthorizeSecurityGroupEgressCommand,
-  AuthorizeSecurityGroupIngressCommand,
-  CreateInternetGatewayCommand,
-  CreateSecurityGroupCommand,
-  CreateVpcCommand,
-  EC2Client,
-} from '@aws-sdk/client-ec2';
-import { CreateFileSystemCommand, EFSClient } from '@aws-sdk/client-efs';
-import { jest } from '@jest/globals';
-import { App, Container, LocalStateProvider, TestContainer } from '@quadnix/octo';
-import { existsSync, unlink } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { promisify } from 'util';
-import { commit } from '../../../test/helpers/test-models.js';
-import { AwsRegion, OctoAws, RegionId } from '../../index.js';
-import { RetryUtility } from '../../utilities/retry/retry.utility.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const unlinkAsync = promisify(unlink);
+import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { AwsRegion, OctoAwsCdkPackageMock, RegionId } from '../../index.js';
+import type { IEfsResponse } from '../../resources/efs/efs.interface.js';
+import type { IInternetGatewayResponse } from '../../resources/internet-gateway/internet-gateway.interface.js';
+import type { ISecurityGroupResponse } from '../../resources/security-group/security-group.interface.js';
+import type { IVpcResponse } from '../../resources/vpc/vpc.interface.js';
 
 describe('AwsRegion UT', () => {
-  const filePaths: string[] = [join(__dirname, 'models.json'), join(__dirname, 'resources.json')];
-
-  let retryPromiseMock: jest.MockedFunction<any>;
-
-  beforeAll(() => {
-    TestContainer.create(
+  beforeAll(async () => {
+    await TestContainer.create(
       {
-        mocks: [
-          {
-            type: EC2Client,
-            value: { send: jest.fn() },
-          },
-          {
-            type: EFSClient,
-            value: { send: jest.fn() },
-          },
-        ],
+        importFrom: [OctoAwsCdkPackageMock],
       },
       { factoryTimeoutInMs: 500 },
     );
-
-    retryPromiseMock = jest.spyOn(RetryUtility, 'retryPromise');
   });
 
-  afterEach(async () => {
-    await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
-  });
-
-  afterAll(() => {
-    Container.reset();
+  afterAll(async () => {
+    await TestContainer.reset();
   });
 
   describe('diff()', () => {
+    let testModuleContainer: TestModuleContainer;
+
+    beforeEach(async () => {
+      testModuleContainer = new TestModuleContainer({
+        captures: {
+          'efs-aws-us-east-1a-shared-mounts': {
+            response: <Partial<IEfsResponse>>{
+              FileSystemArn: 'FileSystemArn',
+              FileSystemId: 'FileSystemId',
+            },
+          },
+          'igw-aws-us-east-1a': {
+            response: <Partial<IInternetGatewayResponse>>{
+              InternetGatewayId: 'InternetGatewayId',
+            },
+          },
+          'sec-grp-aws-us-east-1a-access': {
+            response: <Partial<ISecurityGroupResponse>>{
+              GroupId: 'GroupId',
+              Rules: {
+                egress: [{ SecurityGroupRuleId: 'SecurityGroupRuleId' }],
+                ingress: [{ SecurityGroupRuleId: 'SecurityGroupRuleId' }],
+              },
+            },
+          },
+          'vpc-aws-us-east-1a': {
+            response: <Partial<IVpcResponse>>{
+              VpcId: 'VpcId',
+            },
+          },
+        },
+        inputs: {
+          'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
+        },
+      });
+      await testModuleContainer.initialize();
+    });
+
+    afterEach(async () => {
+      await testModuleContainer.reset();
+    });
+
     it('should create new region and delete it', async () => {
-      (retryPromiseMock as jest.Mock).mockResolvedValue(undefined as never);
-
-      const ec2Client = await Container.get(EC2Client);
-      (ec2Client.send as jest.Mock).mockImplementation(async (instance) => {
-        if (instance instanceof CreateVpcCommand) {
-          return { Vpc: { VpcId: 'VpcId' } };
-        } else if (instance instanceof CreateInternetGatewayCommand) {
-          return { InternetGateway: { InternetGatewayId: 'InternetGatewayId' } };
-        } else if (instance instanceof AttachInternetGatewayCommand) {
-          return undefined;
-        } else if (instance instanceof CreateSecurityGroupCommand) {
-          return { GroupId: 'GroupId' };
-        } else if (
-          instance instanceof AuthorizeSecurityGroupEgressCommand ||
-          instance instanceof AuthorizeSecurityGroupIngressCommand
-        ) {
-          return { SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId' }] };
-        }
-      });
-
-      const efsClient = await Container.get(EFSClient);
-      (efsClient.send as jest.Mock).mockImplementation(async (instance) => {
-        if (instance instanceof CreateFileSystemCommand) {
-          return { FileSystemArn: 'FileSystemArn', FileSystemId: 'FileSystemId' };
-        }
-      });
-
-      const octoAws = new OctoAws();
-      await octoAws.initialize(new LocalStateProvider(__dirname));
-      octoAws.registerInputs({
-        'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
-      });
-
+      // Add region.
       const app = new App('test');
       const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
       app.addRegion(region);
-
-      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
@@ -122,8 +96,7 @@ describe('AwsRegion UT', () => {
 
       // Add a new filesystem.
       await region.addFilesystem('shared-mounts');
-
-      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
@@ -138,8 +111,7 @@ describe('AwsRegion UT', () => {
 
       // Remove the "shared-mounts" filesystem.
       await region.removeFilesystem('shared-mounts');
-
-      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
@@ -154,8 +126,7 @@ describe('AwsRegion UT', () => {
 
       // Remove region.
       region.remove();
-
-      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {

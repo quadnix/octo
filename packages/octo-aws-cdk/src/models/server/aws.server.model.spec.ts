@@ -1,75 +1,56 @@
-import { CreateRoleCommand, DeleteRoleCommand, IAMClient } from '@aws-sdk/client-iam';
-import { jest } from '@jest/globals';
-import { App, Container, LocalStateProvider, TestContainer } from '@quadnix/octo';
-import { existsSync, unlink } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { promisify } from 'util';
-import { commit } from '../../../test/helpers/test-models.js';
-import { OctoAws } from '../../main.js';
-import { AwsServer } from '../../index.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const unlinkAsync = promisify(unlink);
+import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { AwsServer, OctoAwsCdkPackageMock } from '../../index.js';
+import type { IIamRoleResponse } from '../../resources/iam/iam-role.interface.js';
 
 describe('AwsServer UT', () => {
-  const filePaths: string[] = [join(__dirname, 'models.json'), join(__dirname, 'resources.json')];
-
-  beforeAll(() => {
-    TestContainer.create(
+  beforeAll(async () => {
+    await TestContainer.create(
       {
-        mocks: [
-          {
-            type: IAMClient,
-            value: { send: jest.fn() },
-          },
-        ],
+        importFrom: [OctoAwsCdkPackageMock],
       },
       { factoryTimeoutInMs: 500 },
     );
   });
 
-  afterEach(async () => {
-    await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
-  });
-
-  afterAll(() => {
-    Container.reset();
+  afterAll(async () => {
+    await TestContainer.reset();
   });
 
   describe('diff()', () => {
-    it('should create new server and delete it', async () => {
-      const iamClient = await Container.get(IAMClient);
-      (iamClient.send as jest.Mock).mockImplementation(async (instance) => {
-        if (instance instanceof CreateRoleCommand) {
-          return {
-            Role: {
-              Arn: 'roleArn',
-              RoleId: 'roleId',
-              RoleName: 'roleName',
+    let testModuleContainer: TestModuleContainer;
+
+    beforeEach(async () => {
+      testModuleContainer = new TestModuleContainer({
+        captures: {
+          'iam-role-Backend-ServerRole': {
+            response: <Partial<IIamRoleResponse>>{
+              Arn: 'Arn',
+              RoleId: 'RoleId',
+              RoleName: 'RoleName',
             },
-          };
-        } else if (instance instanceof DeleteRoleCommand) {
-          return undefined;
-        }
+          },
+        },
       });
+      await testModuleContainer.initialize();
+    });
 
-      const octoAws = new OctoAws();
-      await octoAws.initialize(new LocalStateProvider(__dirname));
+    afterEach(async () => {
+      await testModuleContainer.reset();
+    });
 
+    it('should create new server and delete it', async () => {
       // Add server.
       const app = new App('test');
-      const server = new AwsServer('backend');
+      const server = new AwsServer('Backend');
       app.addServer(server);
-
-      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "add",
              "field": "resourceId",
-             "model": "iam-role=iam-role-backend-ServerRole",
-             "value": "iam-role-backend-ServerRole",
+             "model": "iam-role=iam-role-Backend-ServerRole",
+             "value": "iam-role-Backend-ServerRole",
            },
          ],
        ]
@@ -77,15 +58,14 @@ describe('AwsServer UT', () => {
 
       // Remove server.
       server.remove();
-
-      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "iam-role=iam-role-backend-ServerRole",
-             "value": "iam-role-backend-ServerRole",
+             "model": "iam-role=iam-role-Backend-ServerRole",
+             "value": "iam-role-Backend-ServerRole",
            },
          ],
        ]

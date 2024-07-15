@@ -1,53 +1,55 @@
-import { App, Container, LocalStateProvider, TestContainer } from '@quadnix/octo';
-import { existsSync, unlink } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { promisify } from 'util';
-import { commit } from '../../../test/helpers/test-models.js';
-import { AwsDeployment, AwsServer, OctoAws } from '../../index.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const unlinkAsync = promisify(unlink);
+import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { AwsDeployment, AwsServer, OctoAwsCdkPackageMock } from '../../index.js';
+import type { IIamRoleResponse } from '../../resources/iam/iam-role.interface.js';
 
 describe('AwsDeployment UT', () => {
-  const filePaths: string[] = [join(__dirname, 'models.json'), join(__dirname, 'resources.json')];
-
-  beforeAll(() => {
-    TestContainer.create(
+  beforeAll(async () => {
+    await TestContainer.create(
       {
-        mocks: [],
+        importFrom: [OctoAwsCdkPackageMock],
       },
-      {
-        factoryTimeoutInMs: 500,
-      },
+      { factoryTimeoutInMs: 500 },
     );
   });
 
-  afterEach(async () => {
-    await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
+  afterAll(async () => {
+    await TestContainer.reset();
   });
 
-  afterAll(() => {
-    Container.reset();
-  });
+  describe('diff()', () => {
+    let testModuleContainer: TestModuleContainer;
 
-  it('should test e2e', async () => {
-    const octoAws = new OctoAws();
-    await octoAws.initialize(new LocalStateProvider(__dirname));
+    beforeEach(async () => {
+      testModuleContainer = new TestModuleContainer({
+        captures: {
+          'iam-role-Backend-ServerRole': {
+            response: <Partial<IIamRoleResponse>>{
+              Arn: 'Arn',
+              RoleId: 'RoleId',
+              RoleName: 'RoleName',
+            },
+          },
+        },
+      });
+      await testModuleContainer.initialize();
+    });
 
-    // Add a S3StorageService, and a Server.
-    const app = new App('test');
-    const server = new AwsServer('Backend');
-    app.addServer(server);
+    afterEach(async () => {
+      await testModuleContainer.reset();
+    });
 
-    await commit(octoAws, app, { onlyModels: true });
+    it('should test e2e', async () => {
+      // Add a server.
+      const app = new App('test');
+      const server = new AwsServer('Backend');
+      app.addServer(server);
+      await testModuleContainer.commit(app);
 
-    // Add a deployment.
-    const deployment = new AwsDeployment('v0.0.1');
-    server.addDeployment(deployment);
-
-    // Verify the anchor was added with default values.
-    expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
+      // Add a deployment.
+      const deployment = new AwsDeployment('v0.0.1');
+      server.addDeployment(deployment);
+      // Verify the anchor was added with default values.
+      expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
      {
        "image": {
          "command": "",
@@ -57,15 +59,14 @@ describe('AwsDeployment UT', () => {
      }
     `);
 
-    // Update deployment with a new image.
-    deployment.updateDeploymentImage({
-      command: 'command',
-      ports: [{ containerPort: 80, protocol: 'tcp' }],
-      uri: 'uri',
-    });
-
-    // Verify the anchor was updated with new values.
-    expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
+      // Update deployment with a new image.
+      deployment.updateDeploymentImage({
+        command: 'command',
+        ports: [{ containerPort: 80, protocol: 'tcp' }],
+        uri: 'uri',
+      });
+      // Verify the anchor was updated with new values.
+      expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
      {
        "image": {
          "command": "command",
@@ -80,7 +81,8 @@ describe('AwsDeployment UT', () => {
      }
     `);
 
-    // Verify resource transaction was as expected, and no resources were added.
-    await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`[]`);
+      // Verify resource transaction was as expected, and no resources were added.
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
+    });
   });
 });

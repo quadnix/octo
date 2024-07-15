@@ -1,45 +1,19 @@
-import {
-  CreateRepositoryCommand,
-  DescribeImagesCommand,
-  ECRClient,
-  GetAuthorizationTokenCommand,
-} from '@aws-sdk/client-ecr';
-import { jest } from '@jest/globals';
-import { App, Container, Image, LocalStateProvider, TestContainer } from '@quadnix/octo';
-import { existsSync, unlink } from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { promisify } from 'util';
-import { commit } from '../../../../test/helpers/test-models.js';
-import { EcrService, OctoAws, RegionId } from '../../../index.js';
-import { ProcessUtility } from '../../../utilities/process/process.utility.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const unlinkAsync = promisify(unlink);
+import { App, Image, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { EcrService, OctoAwsCdkPackageMock, RegionId } from '../../../index.js';
+import type { IEcrImageResponse } from '../../../resources/ecr/ecr-image.interface.js';
 
 describe('EcrService UT', () => {
-  const filePaths: string[] = [join(__dirname, 'models.json'), join(__dirname, 'resources.json')];
-
-  beforeAll(() => {
-    TestContainer.create(
+  beforeAll(async () => {
+    await TestContainer.create(
       {
-        mocks: [
-          {
-            type: ECRClient,
-            value: { send: jest.fn() },
-          },
-        ],
+        importFrom: [OctoAwsCdkPackageMock],
       },
       { factoryTimeoutInMs: 500 },
     );
   });
 
-  afterEach(async () => {
-    await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
-  });
-
-  afterAll(() => {
-    Container.reset();
+  afterAll(async () => {
+    await TestContainer.reset();
   });
 
   describe('addImage()', () => {
@@ -89,44 +63,44 @@ describe('EcrService UT', () => {
   });
 
   describe('diff()', () => {
-    let runDetachedProcessMock: jest.MockedFunction<any>;
+    let testModuleContainer: TestModuleContainer;
 
-    beforeEach(() => {
-      runDetachedProcessMock = jest.spyOn(ProcessUtility, 'runDetachedProcess');
+    beforeEach(async () => {
+      testModuleContainer = new TestModuleContainer({
+        captures: {
+          'ecr-us-east-1-imageName:0.0.1': {
+            response: <Partial<IEcrImageResponse>>{
+              awsRegionId: 'us-east-1',
+              registryId: 'RegistryId',
+              repositoryArn: 'RepositoryArn',
+              repositoryName: 'RepositoryName',
+              repositoryUri: 'RepositoryUri',
+            },
+          },
+          'ecr-us-east-1-imageName:0.0.2': {
+            response: <Partial<IEcrImageResponse>>{
+              awsRegionId: 'us-east-1',
+              registryId: 'RegistryId',
+              repositoryArn: 'RepositoryArn',
+              repositoryName: 'RepositoryName',
+              repositoryUri: 'RepositoryUri',
+            },
+          },
+        },
+        inputs: {
+          'input.image.imageName:0.0.1.dockerExecutable': 'docker',
+          'input.image.imageName:0.0.2.dockerExecutable': 'docker',
+        },
+      });
+      await testModuleContainer.initialize();
+    });
+
+    afterEach(async () => {
+      await testModuleContainer.reset();
     });
 
     it('should create a new image with ecr and delete it', async () => {
-      runDetachedProcessMock.mockReturnValue({
-        on: jest.fn().mockImplementation((event: string, cb: (code: number) => void) => {
-          if (event === 'exit') {
-            cb(0);
-          }
-        }),
-        removeAllListeners: jest.fn(),
-      });
-
-      const ecrClient = await Container.get(ECRClient);
-      (ecrClient.send as jest.Mock).mockImplementation(async (instance) => {
-        if (instance instanceof DescribeImagesCommand) {
-          const error = new Error();
-          error.name = 'RepositoryNotFoundException';
-          throw error;
-        } else if (instance instanceof CreateRepositoryCommand) {
-          return { repository: {} };
-        } else if (instance instanceof GetAuthorizationTokenCommand) {
-          return {
-            authorizationData: [{ authorizationToken: 'authorizationToken', proxyEndpoint: 'https://endpoint' }],
-          };
-        }
-      });
-
-      const octoAws = new OctoAws();
-      await octoAws.initialize(new LocalStateProvider(__dirname));
-      octoAws.registerInputs({
-        'input.image.imageName:0.0.1.dockerExecutable': 'docker',
-        'input.image.imageName:0.0.2.dockerExecutable': 'docker',
-      });
-
+      // Create images.
       const app = new App('test');
       const image1 = new Image('imageName', '0.0.1', { dockerfilePath: 'Dockerfile' });
       app.addImage(image1);
@@ -137,8 +111,7 @@ describe('EcrService UT', () => {
       service.addImage(image1);
       service.addImage(image2);
       app.addService(service);
-
-      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
@@ -157,10 +130,9 @@ describe('EcrService UT', () => {
        ]
       `);
 
-      // Remove image.
+      // Remove an image.
       service.removeImage('imageName', '0.0.1');
-
-      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
@@ -173,10 +145,9 @@ describe('EcrService UT', () => {
        ]
       `);
 
-      // Remove region.
+      // Remove a region.
       service.removeRegion(RegionId.AWS_US_EAST_1A);
-
-      await expect(commit(octoAws, app)).resolves.toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {

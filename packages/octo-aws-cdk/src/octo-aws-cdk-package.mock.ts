@@ -6,14 +6,21 @@ import { IAMClient } from '@aws-sdk/client-iam';
 import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
 import type { IPackageMock } from '@quadnix/octo';
+import type { ChildProcessWithoutNullStreams } from 'child_process';
+import * as process from 'process';
+import { ProcessUtility } from './utilities/process/process.utility.js';
 import { RetryUtility } from './utilities/retry/retry.utility.js';
 
 const emptyAwsFn = (): void => {
   throw new Error('Trying to execute real AWS resources in mock mode!');
 };
 
+const originalMethodRunDetachedProcess = ProcessUtility.runDetachedProcess;
+
 export class OctoAwsCdkPackageMock implements IPackageMock {
   async destroy(): Promise<void> {
+    ProcessUtility.runDetachedProcess = originalMethodRunDetachedProcess;
+
     RetryUtility.setDefaults({
       backOffFactor: 1,
       initialDelayInMs: 10000,
@@ -57,6 +64,11 @@ export class OctoAwsCdkPackageMock implements IPackageMock {
   }
 
   async init(): Promise<void> {
+    ProcessUtility.runDetachedProcess = (): ChildProcessWithoutNullStreams => {
+      const command = process.platform === 'win32' ? 'dir' : 'ls';
+      return originalMethodRunDetachedProcess(command, { shell: true }, 'pipe');
+    };
+
     RetryUtility.setDefaults({ initialDelayInMs: 0 });
   }
 }

@@ -1,40 +1,30 @@
-import { App, LocalStateProvider, TestContainer } from '@quadnix/octo';
-import { existsSync, readFileSync, unlink, writeFile } from 'fs';
+import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { readFileSync, writeFile } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { commit } from '../../../../test/helpers/test-models.js';
-import { OctoAws, RegionId } from '../../../index.js';
+import { OctoAwsCdkPackageMock, RegionId } from '../../../index.js';
 import { S3WebsiteSaveManifestModule } from '../../../modules/s3-website-save-manifest.module.js';
 import { S3StaticWebsiteService } from './s3-static-website.service.model.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const writeFileAsync = promisify(writeFile);
-const unlinkAsync = promisify(unlink);
 
 const resourcesPath = join(__dirname, '../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
 
 describe('S3StaticWebsiteService UT', () => {
-  const filePaths: string[] = [
-    join(__dirname, 'models.json'),
-    join(__dirname, 'resources.json'),
-    join(__dirname, 'test-bucket-manifest.json'),
-  ];
-
-  beforeAll(() => {
-    TestContainer.create({
-      modules: [
-        {
-          name: 'S3WebsiteSaveManifestModule',
-          value: S3WebsiteSaveManifestModule,
-        },
-      ],
-    });
+  beforeAll(async () => {
+    await TestContainer.create(
+      {
+        importFrom: [OctoAwsCdkPackageMock],
+      },
+      { factoryTimeoutInMs: 500 },
+    );
   });
 
-  afterEach(async () => {
-    await Promise.all(filePaths.filter((f) => existsSync(f)).map((f) => unlinkAsync(f)));
+  afterAll(async () => {
+    await TestContainer.reset();
   });
 
   describe('addSource()', () => {
@@ -184,28 +174,35 @@ describe('S3StaticWebsiteService UT', () => {
   });
 
   describe('diff()', () => {
-    let octoAws: OctoAws;
-
-    let app: App;
-    let service: S3StaticWebsiteService;
+    let testModuleContainer: TestModuleContainer;
 
     beforeEach(async () => {
-      octoAws = new OctoAws();
-      await octoAws.initialize(new LocalStateProvider(__dirname));
+      testModuleContainer = new TestModuleContainer({
+        captures: {},
+      });
+      await testModuleContainer.initialize();
 
-      app = new App('test');
-      service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
-      app.addService(service);
+      await testModuleContainer.mock([
+        {
+          type: S3WebsiteSaveManifestModule,
+        },
+      ]);
+    });
 
-      await commit(octoAws, app, { onlyModels: true });
+    afterEach(async () => {
+      await testModuleContainer.reset();
     });
 
     it('should generate an update on addition of a flat directory', async () => {
+      // Create a S3 website.
+      const app = new App('test');
+      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
+      app.addService(service);
+      await testModuleContainer.commit(app);
+
+      // Add files to the website.
       await service.addSource(websiteSourcePath);
-
-      const diffs1 = await octoAws.diff(app);
-
-      expect(diffs1).toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
        [
          {
            "action": "update",
@@ -231,11 +228,15 @@ describe('S3StaticWebsiteService UT', () => {
     });
 
     it('should generate an update on addition of a complex directory', async () => {
+      // Create a S3 website.
+      const app = new App('test');
+      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
+      app.addService(service);
+      await testModuleContainer.commit(app);
+
+      // Add files to the website.
       await service.addSource(resourcesPath);
-
-      const diffs1 = await octoAws.diff(app);
-
-      expect(diffs1).toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
        [
          {
            "action": "update",
@@ -265,13 +266,17 @@ describe('S3StaticWebsiteService UT', () => {
     });
 
     it('should generate an update on addition of a complex directory with excludes', async () => {
+      // Create a S3 website.
+      const app = new App('test');
+      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
+      app.addService(service);
+      await testModuleContainer.commit(app);
+
+      // Add files to the website.
       await service.addSource(resourcesPath, '', (filePath: string) => {
         return filePath !== 's3-static-website';
       });
-
-      const diffs1 = await octoAws.diff(app);
-
-      expect(diffs1).toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
        [
          {
            "action": "update",
@@ -289,11 +294,17 @@ describe('S3StaticWebsiteService UT', () => {
     });
 
     it('should generate an update on deletion', async () => {
+      // Create a S3 website.
+      const app = new App('test');
+      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
+      app.addService(service);
+      await testModuleContainer.commit(app);
+
+      // Add files to the website.
       await service.addSource(`${websiteSourcePath}/error.html`);
       await service.addSource(`${websiteSourcePath}/index.html`);
       await service.addSource(`${websiteSourcePath}/page-1.html`);
-
-      await commit(octoAws, app, { onlyModels: true });
+      await testModuleContainer.commit(app);
 
       // Remove a sourcePath from the service in a subsequent update to service.
       service.sourcePaths.forEach((p, index) => {
@@ -301,9 +312,7 @@ describe('S3StaticWebsiteService UT', () => {
           service.sourcePaths.splice(index, 1);
         }
       });
-
-      const diffs2 = await octoAws.diff(app);
-      expect(diffs2).toMatchInlineSnapshot(`
+      expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
        [
          {
            "action": "update",
@@ -321,19 +330,24 @@ describe('S3StaticWebsiteService UT', () => {
     });
 
     it('should generate an update on update', async () => {
+      // Create a S3 website.
+      const app = new App('test');
+      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
+      app.addService(service);
+      await testModuleContainer.commit(app);
+
+      // Add files to the website.
       await service.addSource(`${websiteSourcePath}/error.html`);
       await service.addSource(`${websiteSourcePath}/index.html`);
       await service.addSource(`${websiteSourcePath}/page-1.html`);
-
-      await commit(octoAws, app, { onlyModels: true });
+      await testModuleContainer.commit(app);
 
       // Update a sourcePath from the service in a subsequent update to service.
       const originalErrorContent = readFileSync(`${websiteSourcePath}/error.html`);
       await writeFileAsync(`${websiteSourcePath}/error.html`, 'New error content!');
 
       try {
-        const diffs2 = await octoAws.diff(app);
-        expect(diffs2).toMatchInlineSnapshot(`
+        expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
          [
            {
              "action": "update",
