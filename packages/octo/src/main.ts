@@ -7,6 +7,8 @@ import { App } from './models/app/app.model.js';
 import { ModuleContainer } from './modules/module.container.js';
 import { IModule } from './modules/module.interface.js';
 import { ResourceDataRepository } from './resources/resource-data.repository.js';
+import { AResource } from './resources/resource.abstract.js';
+import { CaptureService } from './services/capture/capture.service.js';
 import { InputService } from './services/input/input.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
@@ -20,6 +22,7 @@ export class Octo {
 
   private previousApp: App | undefined;
 
+  private captureService: CaptureService;
   private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
   private resourceDataRepository: ResourceDataRepository;
@@ -65,6 +68,7 @@ export class Octo {
 
   async initialize(stateProvider: IStateProvider): Promise<void> {
     [
+      this.captureService,
       this.inputService,
       this.modelSerializationService,
       this.resourceDataRepository,
@@ -72,6 +76,7 @@ export class Octo {
       this.stateManagementService,
       this.transactionService,
     ] = await Promise.all([
+      Container.get(CaptureService),
       Container.get(InputService),
       Container.get(ModelSerializationService),
       Container.get(ResourceDataRepository),
@@ -83,6 +88,14 @@ export class Octo {
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
     this.previousApp = await this.retrieveModelState();
+  }
+
+  registerCapture<T extends AResource<T>>(
+    resourceId: T['resourceId'],
+    properties: Partial<T['properties']>,
+    response: Partial<T['response']>,
+  ): void {
+    this.captureService.registerCapture(resourceId, properties, response);
   }
 
   registerInputs(inputs: ActionInputs): void {

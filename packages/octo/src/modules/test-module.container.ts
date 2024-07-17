@@ -1,50 +1,53 @@
-import type { Constructable, TransactionOptions } from '../app.type.js';
+import type { Constructable } from '../app.type.js';
 import { Container } from '../decorators/container.js';
 import type { Module } from '../decorators/module.decorator.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
+import type { CaptureService } from '../services/capture/capture.service.js';
+import type { InputService } from '../services/input/input.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { ModuleContainer } from './module.container.js';
 import type { IModule } from './module.interface.js';
 
 export class TestModuleContainer {
-  readonly octo: Octo;
+  private readonly captures: CaptureService['captures'] = {};
 
-  constructor() {
+  private readonly inputs: InputService['inputs'] = {};
+
+  private readonly octo: Octo;
+
+  constructor({
+    inputs = {},
+    captures = {},
+  }: { captures?: TestModuleContainer['captures']; inputs?: TestModuleContainer['inputs'] } = {}) {
+    this.captures = captures;
+    this.inputs = inputs;
+
     this.octo = new Octo();
   }
 
-  async commit(
-    app: App,
-    transactionOptions: TransactionOptions = { yieldResourceTransaction: true },
-  ): Promise<{
-    modelDiffs?: DiffMetadata[][];
-    modelTransaction?: DiffMetadata[][];
-    resourceDiffs?: DiffMetadata[][];
-    resourceTransaction?: DiffMetadata[][];
+  async commit(app: App): Promise<{
+    modelDiffs: DiffMetadata[][];
+    modelTransaction: DiffMetadata[][];
+    resourceDiffs: DiffMetadata[][];
+    resourceTransaction: DiffMetadata[][];
   }> {
-    const response: {
-      modelDiffs?: DiffMetadata[][];
-      modelTransaction?: DiffMetadata[][];
-      resourceDiffs?: DiffMetadata[][];
-      resourceTransaction?: DiffMetadata[][];
-    } = {};
+    const generator = await this.octo.beginTransaction(app, {
+      enableResourceCapture: true,
+      yieldModelDiffs: true,
+      yieldModelTransaction: true,
+      yieldResourceDiffs: true,
+      yieldResourceTransaction: true,
+    });
 
-    const generator = await this.octo.beginTransaction(app, transactionOptions);
-    if (transactionOptions.yieldModelDiffs) {
-      response.modelDiffs = (await generator.next()).value;
-    }
-    if (transactionOptions.yieldModelTransaction) {
-      response.modelTransaction = (await generator.next()).value;
-    }
-    if (transactionOptions.yieldResourceDiffs) {
-      response.resourceDiffs = (await generator.next()).value;
-    }
-    if (transactionOptions.yieldResourceTransaction) {
-      response.resourceTransaction = (await generator.next()).value;
-    }
+    const response = {
+      modelDiffs: (await generator.next()).value,
+      modelTransaction: (await generator.next()).value,
+      resourceDiffs: (await generator.next()).value,
+      resourceTransaction: (await generator.next()).value,
+    };
 
     const modelTransactionResult = await generator.next();
     await this.octo.commitTransaction(app, modelTransactionResult.value);
@@ -58,9 +61,15 @@ export class TestModuleContainer {
     } else {
       await this.octo.initialize(new TestStateProvider());
     }
+
+    for (const [key, value] of Object.entries(this.captures)) {
+      this.octo.registerCapture(key, value.properties, value.response);
+    }
+
+    this.octo.registerInputs(this.inputs);
   }
 
-  async mock(
+  async load(
     modules: {
       hidden?: boolean;
       properties?: Parameters<typeof Module>[0];

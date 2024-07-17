@@ -42,7 +42,7 @@ export function Module({
   return function (constructor: Constructable<IModule<unknown>>) {
     Container.get(ModuleContainer).then((moduleContainer) => {
       // Verify classes with @Module implements IModule.
-      if (!('onInit' in constructor)) {
+      if (!('onInit' in constructor.prototype)) {
         throw new Error(`Class "${constructor.name}" does not implement IModule!`);
       }
 

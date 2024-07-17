@@ -182,7 +182,7 @@ describe('S3StaticWebsiteService UT', () => {
       });
       await testModuleContainer.initialize();
 
-      await testModuleContainer.mock([
+      await testModuleContainer.load([
         {
           type: S3WebsiteSaveManifestModule,
         },
