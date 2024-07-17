@@ -11,6 +11,7 @@ import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overl
 import { OverlayService, OverlayServiceFactory } from '../../overlays/overlay.service.js';
 import { type IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
+import { CaptureService, CaptureServiceFactory } from '../capture/capture.service.js';
 import { InputService, InputServiceFactory } from '../input/input.service.js';
 import {
   ResourceSerializationService,
@@ -20,6 +21,7 @@ import { TransactionService, TransactionServiceFactory } from './transaction.ser
 
 describe('TransactionService UT', () => {
   beforeEach(async () => {
+    Container.registerFactory(CaptureService, CaptureServiceFactory);
     Container.registerFactory(InputService, InputServiceFactory);
 
     Container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
@@ -288,6 +290,7 @@ describe('TransactionService UT', () => {
       ACTION_NAME: 'universal',
       filter: () => true,
       handle: jest.fn() as jest.Mocked<any>,
+      mock: jest.fn() as jest.Mocked<any>,
     };
 
     let applyResources;
@@ -344,6 +347,22 @@ describe('TransactionService UT', () => {
       const result = await applyResources([diffMetadata1, diffMetadata2]);
 
       expect(result).toMatchSnapshot();
+    });
+
+    it('should call mock when run with enableResourceCapture flag on', async () => {
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+
+      const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+      const diffMetadata = new DiffMetadata(diff, [universalResourceAction]);
+      diffMetadata.applyOrder = 0;
+
+      const captureService = await Container.get(CaptureService);
+      captureService.registerCapture('resource-1', {}, { 'key-1': 'value-1' });
+
+      await applyResources([diffMetadata], { enableResourceCapture: true });
+
+      expect(universalResourceAction.mock).toHaveBeenCalledTimes(1);
+      expect((universalResourceAction.mock as jest.Mock).mock.calls[0][0]).toEqual({ 'key-1': 'value-1' });
     });
   });
 
@@ -619,6 +638,7 @@ describe('TransactionService UT', () => {
         ACTION_NAME: 'universal',
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
+        mock: jest.fn() as jest.Mocked<any>,
       };
 
       it('should yield resource diffs', async () => {
@@ -644,6 +664,7 @@ describe('TransactionService UT', () => {
         ACTION_NAME: 'universal',
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
+        mock: jest.fn() as jest.Mocked<any>,
       };
 
       it('should yield resource transaction', async () => {
@@ -710,6 +731,7 @@ describe('TransactionService UT', () => {
           ACTION_NAME: 'test',
           filter: (): boolean => true,
           handle: jest.fn() as jest.Mocked<any>,
+          mock: jest.fn() as jest.Mocked<any>,
         },
       ]);
 
@@ -734,6 +756,7 @@ describe('TransactionService UT', () => {
           ACTION_NAME: 'test',
           filter: (): boolean => true,
           handle: jest.fn() as jest.Mocked<any>,
+          mock: jest.fn() as jest.Mocked<any>,
         },
       ]);
 

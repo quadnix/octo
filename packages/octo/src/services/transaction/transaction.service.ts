@@ -13,6 +13,8 @@ import type { IModelAction } from '../../models/model-action.interface.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { IResource } from '../../resources/resource.interface.js';
+import { CaptureService } from '../capture/capture.service.js';
 import { InputService } from '../input/input.service.js';
 
 export class TransactionService {
@@ -21,6 +23,7 @@ export class TransactionService {
   private readonly resourceActions: IResourceAction[] = [];
 
   constructor(
+    private readonly captureService: CaptureService,
     private readonly inputService: InputService,
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
@@ -106,7 +109,10 @@ export class TransactionService {
     return transaction;
   }
 
-  private async applyResources(diffs: DiffMetadata[]): Promise<DiffMetadata[][]> {
+  private async applyResources(
+    diffs: DiffMetadata[],
+    { enableResourceCapture = false }: { enableResourceCapture?: boolean } = {},
+  ): Promise<DiffMetadata[][]> {
     const transaction: DiffMetadata[][] = [];
 
     let currentApplyOrder = 0;
@@ -129,7 +135,13 @@ export class TransactionService {
         const diffToProcess = duplicateDiffs[0].diff;
 
         for (const a of diff.actions as IResourceAction[]) {
-          promiseToApplyActions.push(a.handle(diffToProcess));
+          if (enableResourceCapture) {
+            const capture = this.captureService.getCapture((diff.model as IResource).resourceId);
+            await a.mock(capture?.response, diff);
+            await a.handle(diffToProcess);
+          } else {
+            promiseToApplyActions.push(a.handle(diffToProcess));
+          }
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -222,6 +234,7 @@ export class TransactionService {
   async *beginTransaction(
     diffs: Diff[],
     options: TransactionOptions = {
+      enableResourceCapture: false,
       yieldModelDiffs: false,
       yieldModelTransaction: false,
       yieldResourceDiffs: false,
@@ -279,7 +292,9 @@ export class TransactionService {
     }
 
     // Apply resource diffs.
-    const resourceTransaction = await this.applyResources(resourceDiffs);
+    const resourceTransaction = await this.applyResources(resourceDiffs, {
+      enableResourceCapture: options.enableResourceCapture,
+    });
     if (options.yieldResourceTransaction) {
       yield resourceTransaction;
     }
@@ -365,16 +380,27 @@ export class TransactionServiceFactory {
   private static instance: TransactionService;
 
   static async create(forceNew = false): Promise<TransactionService> {
-    const [inputService, overlayDataRepository, resourceDataRepository] = await Promise.all([
+    const [captureService, inputService, overlayDataRepository, resourceDataRepository] = await Promise.all([
+      Container.get(CaptureService),
       Container.get(InputService),
       Container.get(OverlayDataRepository),
       Container.get(ResourceDataRepository),
     ]);
     if (!this.instance) {
-      this.instance = new TransactionService(inputService, overlayDataRepository, resourceDataRepository);
+      this.instance = new TransactionService(
+        captureService,
+        inputService,
+        overlayDataRepository,
+        resourceDataRepository,
+      );
     }
     if (forceNew) {
-      const newInstance = new TransactionService(inputService, overlayDataRepository, resourceDataRepository);
+      const newInstance = new TransactionService(
+        captureService,
+        inputService,
+        overlayDataRepository,
+        resourceDataRepository,
+      );
       Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;
