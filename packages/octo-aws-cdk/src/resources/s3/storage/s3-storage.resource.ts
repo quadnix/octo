@@ -17,7 +17,9 @@ export class S3Storage extends AResource<S3Storage> {
     const diffs: Diff[] = [];
 
     if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'update-source-paths', this.manifestDiff));
+      diffs.push(
+        new Diff(this, DiffAction.UPDATE, 'update-source-paths', JSON.parse(JSON.stringify(this.manifestDiff))),
+      );
     }
 
     // Empty manifestDiff.

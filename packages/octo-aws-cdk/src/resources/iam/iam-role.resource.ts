@@ -23,7 +23,12 @@ export class IamRole extends AResource<IamRole> {
 
     if (this.policyDiff && Object.keys(this.policyDiff).length > 0) {
       for (const key of Object.keys(this.policyDiff)) {
-        diffs.push(new Diff(this, DiffAction.UPDATE, key, this.policyDiff[key]));
+        diffs.push(
+          new Diff(this, DiffAction.UPDATE, key, {
+            action: this.policyDiff[key].action,
+            overlay: this.policyDiff[key].overlay,
+          }),
+        );
       }
     }
 
