@@ -5,6 +5,7 @@ import { EFSClient } from '@aws-sdk/client-efs';
 import { IAMClient } from '@aws-sdk/client-iam';
 import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
+import { Upload } from '@aws-sdk/lib-storage';
 import type { IPackageMock } from '@quadnix/octo';
 import type { ChildProcessWithoutNullStreams } from 'child_process';
 import * as process from 'process';
@@ -59,6 +60,14 @@ export class OctoAwsCdkPackageMock implements IPackageMock {
       {
         type: STSClient,
         value: { send: emptyAwsFn },
+      },
+      {
+        type: Upload,
+        value: {
+          done: (): Promise<void> => {
+            return Promise.resolve();
+          },
+        },
       },
     ];
   }

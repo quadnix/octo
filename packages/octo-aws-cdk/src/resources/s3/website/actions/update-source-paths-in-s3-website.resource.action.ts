@@ -1,5 +1,5 @@
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
+import { type Options, Upload } from '@aws-sdk/lib-storage';
 import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import mime from 'mime';
@@ -32,16 +32,20 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
       const [operation, filePath] = manifestDiff[remotePath];
       if (operation === 'add' || operation === 'update') {
         const stream = createReadStream(filePath);
-        const upload = new Upload({
-          client: s3Client,
-          leavePartsOnError: false,
-          params: {
-            Body: stream,
-            Bucket: properties.Bucket,
-            ContentType: mime.getType(filePath) || undefined,
-            Key: remotePath,
-          },
-          queueSize: 4,
+        const upload = await Container.get(Upload, {
+          args: [
+            {
+              client: s3Client,
+              leavePartsOnError: false,
+              params: {
+                Body: stream,
+                Bucket: properties.Bucket,
+                ContentType: mime.getType(filePath) || undefined,
+                Key: remotePath,
+              },
+              queueSize: 4,
+            } as Options,
+          ],
         });
         await upload.done();
       } else {

@@ -14,6 +14,7 @@ import './factories/aws/ecs.aws.factory.js';
 import './factories/aws/efs.aws.factory.js';
 import './factories/aws/iam.aws.factory.js';
 import './factories/aws/s3.aws.factory.js';
+import './factories/aws/s3-upload.aws.factory.js';
 import './factories/aws/sts.aws.factory.js';
 
 import './models/app/actions/add-app.model.action.js';
