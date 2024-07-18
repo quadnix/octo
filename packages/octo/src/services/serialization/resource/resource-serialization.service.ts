@@ -115,12 +115,21 @@ export class ResourceSerializationService {
     serializedOutput: ResourceSerializedOutput,
     { freeze = true }: { freeze?: boolean } = {},
   ): Promise<void> {
-    const newResources = this.resourceDataRepository.getByProperties();
-    const oldResources = await this._deserialize(serializedOutput, freeze);
+    // Note 1: Unlike overlays, resources needs to be deserialized twice, once for new resources
+    // and once for old resources. Resources are generated as a product of model and overlay diff.
+    // The user repository code, when runs with a previous state, model and overlay diff won't generate new resources.
+    // That equates to ResourceDataRepository being empty.
+    // On resource diff with the previous resource, DELETE diffs will be produced.
+    // Therefore, it's necessary to load the ResourceDataRepository with new before deserializing the resources.
+    // Note 2: Post commit you can still reference the running overlays, but any resource manipulation should be done
+    // on after fetching the resource from the ResourceDataRepository. Never use the running resources because
+    // post commit they are replaced by a new copy.
+    const newResources = await this._deserialize(JSON.parse(JSON.stringify(serializedOutput)), false);
+    const oldResources = await this._deserialize(JSON.parse(JSON.stringify(serializedOutput)), freeze);
 
     // Refresh the resource data repository.
     await Container.get(ResourceDataRepository, {
-      args: [true, Object.values(oldResources), newResources],
+      args: [true, Object.values(oldResources), Object.values(newResources)],
     });
   }
 

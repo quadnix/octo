@@ -101,7 +101,7 @@ describe('Resource UT', () => {
 
       await commitResources();
 
-      resource1.remove();
+      resourceDataRepository.remove(resource1);
 
       const diffs = await resourceDataRepository.diff();
       expect(diffs).toMatchInlineSnapshot(`
@@ -119,11 +119,12 @@ describe('Resource UT', () => {
     it('should produce an update diff using overridden resource diff()', async () => {
       const resourceDataRepository = await Container.get(ResourceDataRepository);
 
-      const resource1 = new TestResourceWithDiffOverride('resource-1');
+      let resource1 = new TestResourceWithDiffOverride('resource-1');
       resourceDataRepository.add(resource1);
 
       await commitResources();
 
+      resource1 = resourceDataRepository.getById('resource-1') as TestResourceWithDiffOverride;
       const diffOverrideSpy = jest.spyOn(resource1, 'diff');
       await resourceDataRepository.diff();
 
@@ -146,13 +147,14 @@ describe('Resource UT', () => {
     it('should produce an update diff of flat properties', async () => {
       const resourceDataRepository = await Container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      let [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['key1'] = 'value1';
       resource1.properties['key2'] = 'value2';
 
       await commitResources();
 
       // Update resource properties.
+      resource1 = resourceDataRepository.getById('resource-1')!;
       resource1.properties['key2'] = 'value2.1';
       resource1.properties['key3'] = 'value3';
 
@@ -184,13 +186,14 @@ describe('Resource UT', () => {
     it('should produce an update diff of nested properties', async () => {
       const resourceDataRepository = await Container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      let [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['key1'] = { 'key1.1': 'value1.1' };
       resource1.properties['key2'] = { 'key2.1': 'value2.1' };
 
       await commitResources();
 
       // Update resource properties.
+      resource1 = resourceDataRepository.getById('resource-1')!;
       resource1.properties['key1'] = { 'key1.1': 'value1.3', 'key1.2': 'value1.2' };
       resource1.properties['key2'] = { 'key2.1': 'value2.1' };
 
@@ -216,12 +219,13 @@ describe('Resource UT', () => {
     it('should produce an update diff of array properties', async () => {
       const resourceDataRepository = await Container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      let [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['key1'] = ['value1.1', 'value1.2'];
 
       await commitResources();
 
       // Update resource properties.
+      resource1 = resourceDataRepository.getById('resource-1')!;
       resource1.properties['key1'] = ['value1.3', 'value1.4'];
 
       const diffs = await resourceDataRepository.diff();
@@ -246,11 +250,13 @@ describe('Resource UT', () => {
     it('should produce an add parent diffs on parent add', async () => {
       const resourceDataRepository = await Container.get(ResourceDataRepository);
 
-      const [parentResource1, resource1] = await createTestResources({ 'parent-resource-1': [], 'resource-1': [] });
+      await createTestResources({ 'parent-resource-1': [], 'resource-1': [] });
 
       await commitResources();
 
       // Update resource parents.
+      const parentResource1 = resourceDataRepository.getById('parent-resource-1')!;
+      const resource1 = resourceDataRepository.getById('resource-1')!;
       parentResource1.addChild('resourceId', resource1, 'resourceId');
 
       const diffs = await resourceDataRepository.diff();
@@ -267,7 +273,7 @@ describe('Resource UT', () => {
     it('should produce a delete parent diffs on parent delete', async () => {
       const resourceDataRepository = await Container.get(ResourceDataRepository);
 
-      const [parentResource1, resource1] = await createTestResources({
+      await createTestResources({
         'parent-resource-1': [],
         'resource-1': ['parent-resource-1'],
       });
@@ -275,6 +281,8 @@ describe('Resource UT', () => {
       await commitResources();
 
       // Update resource parents.
+      const parentResource1 = resourceDataRepository.getById('parent-resource-1')!;
+      const resource1 = resourceDataRepository.getById('resource-1')!;
       parentResource1.removeRelationship(resource1);
 
       const diffs = await resourceDataRepository.diff();

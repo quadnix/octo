@@ -642,11 +642,13 @@ describe('TransactionService UT', () => {
       };
 
       it('should yield resource diffs', async () => {
+        const resourceDataRepository = await Container.get(ResourceDataRepository);
+
         const [resource1] = await createTestResources({ 'resource-1': [] });
         await commitResources();
 
         // Replace resource1 with resource2.
-        resource1.remove();
+        resourceDataRepository.remove(resource1);
         await createTestResources({ 'resource-2': [] });
 
         const service = await Container.get(TransactionService);
@@ -668,11 +670,13 @@ describe('TransactionService UT', () => {
       };
 
       it('should yield resource transaction', async () => {
+        const resourceDataRepository = await Container.get(ResourceDataRepository);
+
         const [resource1] = await createTestResources({ 'resource-1': [] });
         await commitResources();
 
         // Replace resource1 with resource2.
-        resource1.remove();
+        resourceDataRepository.remove(resource1);
         await createTestResources({ 'resource-2': [] });
 
         const service = await Container.get(TransactionService);
