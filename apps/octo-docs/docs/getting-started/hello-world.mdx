@@ -1,0 +1,156 @@
+---
+sidebar_position: 2
+title: Hello World!
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+No introduction is complete without a classic hello world program.
+And what better way to say hi other than a simple "hello world" project?
+Let's dive in and create the simplest possible infrastructure in Octo - a static website!
+
+### Create a website directory
+In the root of the project,
+```console
+mkdir website
+```
+
+### Create website files
+Create all files in below tabs.
+
+<Tabs>
+  <TabItem value="index.html" label="index.html" default>
+    ```html title="index.html"
+    <html lang='en'>
+    <head>
+      <title>My First Website</title>
+    </head>
+    <body>
+    <h1>Hey! Look at me! This is my first website!</h1>
+    </body>
+    </html>
+    ```
+  </TabItem>
+  <TabItem value="error.html" label="error.html">
+    ```html title="error.html"
+    <html lang='en'>
+    <head>
+      <title>Oh No!</title>
+    </head>
+    <body>
+      <h1>This is an error!</h1>
+    </body>
+    </html>
+    ```
+  </TabItem>
+</Tabs>
+
+### Write infrastructure code
+This is your first Octo code, and here you define your infrastructure. Excited?<br />
+Please create all files in below tabs.
+
+<Tabs>
+  <TabItem value="main.ts" label="main.ts" default>
+    ```typescript title="main.ts"
+    import { App, LocalStateProvider, Octo } from "@quadnix/octo";
+    import { dirname, join } from 'path';
+    import { fileURLToPath } from 'url';
+    import { AppModule } from "./app.module.js";
+
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const octoStatePath = join(__dirname, '..', '.octo'); // TODO
+
+    const octo = new Octo();
+    await octo.initialize(new LocalStateProvider(octoStatePath));
+
+    await octo.compose();
+    const app = (await octo.getModuleOutput<App>(AppModule)) as App;
+
+    const generator = await octo.beginTransaction(app);
+    const modelTransactionResult = await generator.next();
+    await octo.commitTransaction(app, modelTransactionResult.value);
+    ```
+  </TabItem>
+  <TabItem value="app.module.ts" label="app.module.ts">
+    ```typescript title="app.module.ts"
+    import { App, IModule, Module } from "@quadnix/octo";
+    import { RegionId, S3StaticWebsiteService, S3WebsiteSaveManifestModule } from "@quadnix/octo-aws-cdk";
+    import { dirname, join } from 'path';
+    import { fileURLToPath } from 'url';
+
+    const __dirname = dirname(fileURLToPath(import.meta.url));
+    const BUCKET_NAME = '<my-bucket-name>'; // TODO
+    const websiteSourcePath = join(__dirname, '..', 'website');
+
+    @Module({
+      imports: [S3WebsiteSaveManifestModule],
+    })
+    export class AppModule implements IModule<App> {
+      async onInit(): Promise<App> {
+        const app = new App('octo-test');
+
+        const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, BUCKET_NAME);
+        app.addService(service);
+
+        await service.addSource(websiteSourcePath);
+
+        return app;
+      }
+    }
+    ```
+  </TabItem>
+</Tabs>
+
+### Fix TODOs
+Before running Octo, let's fix a few things.
+- Ensure you create the `.octo` directory at the root of your project.
+This is where your Octo state files will be stored.
+- In app.module.ts, change `<my-bucket-name>` with a bucket name of your choice that is available in S3.
+
+### Run the app
+Compile and run your project.
+```console
+npm run build
+```
+```console
+npm start
+```
+
+Modify and visit these URLs and ensure the website is up and running.
+```
+http://<my-bucket-name>.s3-website-us-east-1.amazonaws.com/index.html
+http://<my-bucket-name>.s3-website-us-east-1.amazonaws.com/error.html
+```
+
+Notice some new files in the `.octo` directory! These represent the state of your infrastructure.
+Do not modify or delete these files. If you wish, inspect the file and get familiar with its structure.
+```
+models.json
+resources.json
+<my-bucket-name>-manifest.json
+```
+
+:::tip[Need help ?]
+If the script didn't work out, please open an issue using links at the bottom of this page.
+:::
+
+### Cleaning Up (Optional)
+To clean up all the resources created thus far, simply modify the `app.module.ts` to remove the models.
+```typescript title="app.module.ts"
+export class AppModule implements IModule<App> {
+  async onInit(): Promise<App> {
+    return new App('octo-test');
+  }
+}
+```
+
+Ensure the bucket is deleted from AWS S3.
+Now you can just delete the Octo directory and all the code in it.
+```console
+rm -Rf octo-starter-project
+```
+
+### Summary
+In this comprehensive guide, we hosted a simple website with just a few lines of code.
+Next, we will delve into every detail of how it all worked and explore further possibilities with Octo.

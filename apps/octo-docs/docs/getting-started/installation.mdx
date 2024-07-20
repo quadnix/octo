@@ -1,0 +1,101 @@
+---
+sidebar_position: 1
+title: Installation
+---
+
+import { Link } from '@site/src/components/links';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+## Requirements
+Octo is based on TypeScript, allowing you to use it as either a NodeJS project or a TypeScript project.
+Before you get started, here are a few things you need to ensure are installed and configured properly.
+
+| Program | Description | Version |
+|---------|-------|---|
+| **NodeJS** | Octo requires a JavaScript based engine to run.<br /> There are several help articles available online,<br /> but we really love using [nvm](https://github.com/nvm-sh/nvm). | >= 18.x (Supported) <br /> >= 20.x (Recommended) |
+| **aws-cli** | Assuming you want to build the infrastructure on AWS,<br /> Octo requires access to AWS infrastructure.<br /> We recommend following [aws official docs](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html), or our <Link display="aws setup guide" id="blog" path="/aws-local-setup" />. | >= 2.x (Recommended) |
+
+## Disclaimers
+:::tip[TypeScript vs NodeJS]
+The docs only provide syntax for TypeScript, but of course Octo projects can be written in pure NodeJS.
+If you decide to use just NodeJS, it is up to you to translate all instructions accordingly.
+:::
+
+:::tip[CJS vs MJS]
+Octo exclusively supports ESM modules, requiring ``"type": "module"`` in package.json.
+In <Link display="this blog post" id="blog" path="/octo-in-cjs" />, we explore using Octo with CJS modules.
+Please translate all instructions accordingly.
+:::
+
+## New Project
+### Create a new directory
+```console
+mkdir octo-starter-project
+```
+```console
+cd octo-starter-project
+```
+
+### Create new files
+Octo is a monorepo by design. This is to promote consolidation of all infrastructure in one codebase.
+To create a new repository, please create all files in below tabs.
+
+<Tabs>
+  <TabItem value="package.json" label="package.json" default>
+    ```json title="package.json"
+    {
+      "name": "octo-starter-project",
+      "private": true,
+      "scripts": {
+        "build": "rimraf dist && tsc -p tsconfig.json",
+        "start": "node dist/main.js"
+      },
+      "type": "module",
+      "version": "0.0.1"
+    }
+    ```
+  </TabItem>
+  <TabItem value="tsconfig.json" label="tsconfig.json">
+    ```json title="tsconfig.json"
+    {
+      "compilerOptions": {
+        "allowSyntheticDefaultImports": true,
+        "baseUrl": "./",
+        "declaration": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "forceConsistentCasingInFileNames": true,
+        "incremental": true,
+        "module": "Node16",
+        "moduleResolution": "Node16",
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": false,
+        "noImplicitOverride": true,
+        "outDir": "./dist",
+        "removeComments": true,
+        "skipLibCheck": true,
+        "sourceMap": true,
+        "strictBindCallApply": true,
+        "strictNullChecks": true,
+        "target": "ES2022",
+        "typeRoots": ["node_modules/@types"],
+      },
+      "exclude": ["dist", "node_modules"],
+      "include": ["**/*.json", "**/*.ts"]
+    }
+    ```
+  </TabItem>
+</Tabs>
+
+### Install libraries
+```console
+npm install @quadnix/octo @quadnix/octo-aws-cdk --save-prod
+```
+```console
+npm install @types/node rimraf ts-loader ts-node tsconfig-paths typescript --save-dev
+```
+
+## Summary
+In this article, we explored how to set up Octo on your local machine.
+Next, we will create a "hello world" project to introduce you to Octo.

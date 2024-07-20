@@ -1,0 +1,43 @@
+---
+sidebar_position: 3
+title: Project Structure
+---
+
+## Introduction
+A solid project structure is crucial for a successful and intuitive infrastructure.
+While project structuring can vary based on personal preference and organization,
+we highly recommend following our recommended project structure.
+
+```
+my-app
+├── dist/
+├── node_modules/
+├── src/
+│   │   ├── anchors/
+│   │   ├── factories/
+│   │   │   ├── aws/
+│   │   │   └── ...
+│   │   ├── models/
+│   │   │   ├── app/
+│   │   │   ├── deployment/
+│   │   │   └── ...
+│   │   ├── modules/
+│   │   ├── overlays/
+│   │   └── resources/
+│   │       ├── ecs/
+│   │       ├── iam/
+│   │       ├── vpc/
+│   │       └── ...
+│   ├── app.module.ts
+│   └── main.ts
+├── .gitignore
+├── package.json
+├── README.md
+└── tsconfig.json
+```
+
+:::info
+Under the src directory, you may encounter many unfamiliar terms initially.
+However, as you grasp the fundamentals, the project structure should gradually become clearer.
+The remaining files consist of standard NodeJS/TypeScript boilerplate code.
+:::
