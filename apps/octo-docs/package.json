@@ -12,24 +12,27 @@
     ]
   },
   "dependencies": {
-    "@docusaurus/core": "3.2.0",
-    "@docusaurus/preset-classic": "3.2.0",
-    "@docusaurus/theme-mermaid": "3.2.0",
+    "@docusaurus/core": "3.4.0",
+    "@docusaurus/preset-classic": "3.4.0",
+    "@docusaurus/theme-mermaid": "3.4.0",
+    "@fortawesome/fontawesome-svg-core": "~6.6.0",
+    "@fortawesome/free-solid-svg-icons": "~6.6.0",
+    "@fortawesome/react-fontawesome": "~0.2.2",
     "@mdx-js/react": "^3.0.1",
-    "clsx": "^2.1.0",
+    "clsx": "^2.1.1",
     "docusaurus-plugin-sass": "~0.2.5",
     "prism-react-renderer": "~2.3.1",
-    "react": "~18.2.0",
-    "react-dom": "~18.2.0",
-    "sass": "~1.72.0"
+    "react": "~18.3.1",
+    "react-dom": "~18.3.1",
+    "sass": "~1.77.8"
   },
   "description": "Octo-Docs is the one-stop static documentation website for everything Octo.",
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "3.2.0",
-    "@docusaurus/tsconfig": "3.2.0",
-    "@docusaurus/types": "3.2.0",
-    "@quadnix/octo": "~0.0.17",
-    "@quadnix/octo-aws-cdk": "~0.0.6"
+    "@docusaurus/module-type-aliases": "3.4.0",
+    "@docusaurus/tsconfig": "3.4.0",
+    "@docusaurus/types": "3.4.0",
+    "@quadnix/octo": "~0.0.19",
+    "@quadnix/octo-aws-cdk": "~0.0.8"
   },
   "engines": {
     "node": ">=18.0"
