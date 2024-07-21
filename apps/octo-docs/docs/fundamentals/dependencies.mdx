@@ -1,9 +1,9 @@
 ---
-sidebar_position: 4
-title: Dependency
+sidebar_position: 5
+title: Dependencies
 ---
 
-## Definition
+## Introduction
 A dependency is the edge between two nodes that describes their relationship. It can be one of three types,
 * **Parent**
 <br/> A node is the parent of another node, meaning it must exist before the child node is created.
@@ -15,13 +15,13 @@ For example, an environment is a child of a region, so all environments must be 
 <br /> A node has a relationship with another node that is neither a parent nor a child relationship.
 For example, a server has a relationship with an image.
 The distinction between the "relationship" type and the "parent-child" type is that in a "relationship",
-there is no obligation for either node to exist or be deleted because of the other node.
+there is no obligation for either node to exist or be deleted before of the other node.
 
 :::tip
 * A parent-child dependency is bi-directional, i.e. if Node 1 is parent of Node 2,
 then Node 2 must be a child of Node 1.
-* A "Relationship" dependency is uni-directional, i.e. if Node 1 has relationship with Node 2,
-then it is not necessarily true that Node 2 also has a relationship with Node 1.
+* A "Relationship" dependency is also bi-directional, i.e. if Node 1 has relationship with Node 2,
+then Node 2 also has a relationship with Node 1.
 
 ```mermaid
 flowchart LR;
@@ -34,6 +34,7 @@ flowchart LR;
     node1DepToNode2[[Node 1 Dependency <br> to Node 2]]
     node2DepToNode1[[Node 2 Dependency <br> to Node 1]]
     node1DepToNode3[[Node 1 Dependency <br> to Node 3]]
+    node3DepToNode1[[Node 3 Dependency <br> to Node 1]]
 
     subgraph overview [ ]
         node1_1
@@ -55,31 +56,43 @@ flowchart LR;
         end
         subgraph node3SG [ ]
             node3
+            node3DepToNode1
         end
         node1DepToNode2 -->|is parent of| node2
         node2DepToNode1 -->|is child of| node1
         node1DepToNode3 -. has relationship with .-> node3
+        node3DepToNode1 -. has relationship with .-> node1
     end
 
     overview -. translates to .-> detailed
 ```
 :::
 
+## Node
+A node in Octo can be - a Model, a Resource, a Shared-Resource, or an Overlay.<br />
+In Octo code base, a node is represented with any child of `AModel<I, T>`,
+which is the base abstract class that Model, Resource, Shared-Resource, and Overlay inherit from.
+
+:::info
+The base class `AModel` is not to be confused with its concrete implementation `Model` class.
+The former is a low level implementation detail, vs the latter is a concrete concept.
+:::
+
 ## Dependency Class
 A dependency is not stored as a property in nodes; instead, it is its own class.
-It encompasses both the models on its either end.
+It encompasses two nodes on its either end.
 
 ```js title="Dependency Schema"
 {
-  from: "a model",
-  to: "a model",
+  from: "a node",
+  to: "a node",
   relationship: "parent | child | relationship",
   behaviors: "an array of metadata with individual traits of this dependency."
 }
 ```
 
 A dependency is also serialized and deserialized like models and resources.
-<br />Its a first class citizen in Octo.
+<br />It is a first class citizen of Octo.
 
 ## Summary
 In a graph there are vetices and edges.

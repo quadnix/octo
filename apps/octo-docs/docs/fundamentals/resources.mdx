@@ -1,0 +1,99 @@
+---
+sidebar_position: 3
+title: Resources
+---
+
+## Introduction
+In Octo, a resource represents the true underlying infrastructure.
+It is the decay of Models into individual infrastructure components.
+
+:::note
+The base generic `octo` library does not expose any resources.
+All resource definitions are from the `octo-*-cdk` libraries,
+such as `octo-aws-cdk` resource definitions exposed below.
+:::
+
+Like models, resources are designed to be simple and hierarchical.
+They encapsulate context from models and capture lower-level details of infrastructure.
+
+## Resources in octo-aws-cdk
+This is a partial internal representation of how some resources in `octo-aws-cdk` are interconnected.
+
+```mermaid
+graph TD;
+    codebuild((Code \n Build))
+    ecr((ECR))
+    ecs_cluster((ECS \n Cluster))
+    ecs_service((ECS \n Service))
+    ecs_td((ECS TD))
+    efs((EFS))
+    iam((IAM))
+    ig((Internet \n Gateway))
+    nacl((NACL))
+    rt((Route \n Table))
+    s3((S3))
+    sg((Security \n Group))
+    subnet((Subnet))
+    vpc((VPC))
+    vpc --> ig;
+    vpc --> subnet;
+    vpc --> rt;
+    vpc --> nacl;
+    vpc --> sg;
+    ecr --> ecs_td;
+    efs --> ecs_td;
+    iam --> ecs_td;
+    ecs_cluster --> ecs_service;
+    ecs_td --> ecs_service;
+    subnet --> ecs_service;
+    sg --> ecs_service;
+```
+
+Each node in models can output one or more of these resources.
+The precise relationship between a model and its resources is what makes up the model's definition.
+
+## Shared Resources
+A shared resource is an extension of a resource.
+It behaves as a resource in all aspects except that it doesn't represent any physical infrastructure component.
+Instead, it signifies the sharing of this resource across Octo's defined boundaries.
+
+In Octo, your infrastructure can be partitioned into boundaries,
+ensuring that operations in one part do not affect the other.
+More often than not, the boundary is a Region.<br />
+In `octo-aws-cdk`, a region is equivalent to an [Availability Zone](https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/availability-zones.html).
+For instance, AWS_US_EAST_1A AWS_US_EAST_1B are Octo regions in AWS us-east-1 region in AZ A and B respectively.
+
+For certain resources, duplicating data does not make sense.
+For example, ECR doesn't need to store the same image twice in us-east-1
+just because there are 2 Octo regions within the same AWS region.
+This is where shared resources come into play.
+A shared resource enables you to maintain separate logical copies of resources
+that point to the same underlying infrastructure.
+
+```mermaid
+graph BT;
+    aws_ecr[[AWS \n ECR]]
+    ecr_resource_1((Resource \n ECR))
+    ecr_resource_2((Resource \n ECR))
+    ecr_shared_resource[[Shared Resource \n Logical ECR]]
+    server_1((Server))
+    server_2((Server))
+
+    ecr_shared_resource --> aws_ecr
+    ecr_resource_1 --> ecr_shared_resource
+    ecr_resource_2 --> ecr_shared_resource
+
+    subgraph region1 [Octo Region 1]
+        server_1 --> ecr_resource_1
+    end
+
+    subgraph region 2 [Octo Region 2]
+        server_2 --> ecr_resource_2
+    end
+```
+
+## Summary
+We discussed the concepts behind Resources and Shared-Resources, and how they associate with Models.
+But we haven't covered the internals of Resources, or how to make one.
+Those details will be covered gradually in later sections.
+For now, think of Resources simply as black boxes representing your infrastructure components.

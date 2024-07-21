@@ -1,15 +1,14 @@
 ---
-sidebar_position: 5
+sidebar_position: 7
 title: The Big Picture, Part II
 ---
 
 ## Introduction
-Above concepts should provide a solid foundation for diving into some code.
-<br /> We'll now revisit the [Getting Started](/docs/getting-started.mdx) guide
+All previously discussed concepts should provide a solid foundation to explore some code examples.
+<br /> We'll now revisit the [Hello World](/docs/getting-started/hello-world.mdx) guide
 and offer a much-needed explanation of the code you ran earlier.
 
-
-That code produces one of the basic infrastructure possible in AWS - a S3 bucket that hosts static website files.
+That code produced one of the most basic infrastructure possible in AWS - a S3 bucket that hosts static website files.
 The model and resource graphs are below.
 ```mermaid
 graph TD;
@@ -25,78 +24,93 @@ graph TD;
 ## Code Dissection
 Let's revisit relevant parts of the code, but with more explanation.
 
-```typescript
-const octo = new OctoAws();
-await octo.initialize(new LocalStateProvider(__dirname));
+```typescript title="app.module.ts"
+@Module({
+  imports: [S3WebsiteSaveManifestModule],
+})
+export class AppModule implements IModule<App> {
+  async onInit(): Promise<App> {
+    // ...
+  }
+}
 ```
-The first step is to instantiate the `octo-aws-cdk` library,
-and then to initialize it by passing a `StateProvider`.
+We begin with a [Module](/docs/fundamentals/modules.mdx).
+The AppModule imports the pre-defined `S3WebsiteSaveManifestModule` which is provided in the octo-aws-cdk library.
+That module is responsible for generating a S3 manifest to track all the files uploaded to the website.<br />
+Every module must implement `IModule<T>` where T is the return type.
+You can return anything, including void.<br />
+The `onInit()` method is where the module logic is implemented.
+<br />
+
+```typescript title="app.module.ts"
+async onInit(): Promise<App> {
+  const app = new App('octo-test');
+
+  const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, BUCKET_NAME);
+  app.addService(service);
+
+  await service.addSource(websiteSourcePath);
+
+  return app;
+}
+```
+Within the `onInit()` method we create an app, a `S3StaticWebsiteService` service,
+and point it to the website directory where our static files live.
+<br />
+
+```typescript title="main.ts"
+const octo = new Octo();
+await octo.initialize(new LocalStateProvider(octoStatePath));
+```
+The `main.ts` file is where the project is bootstrapped.
+The Octo class is initialized by passing a `StateProvider`.
 We are using the `LocalStateProvider` which will store the state in a local file.
 <br />
 
-```typescript
-const app = new App('test');
-const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, BUCKET_NAME);
-app.addService(service);
+```typescript title="main.ts"
+await octo.compose();
+const app = (await octo.getModuleOutput<App>(AppModule)) as App;
 ```
-Next, we create an `App` and add a `Service` to it.
-Notice, we are using the `S3StaticWebsiteService` which is provided by the `octo-aws-cdk` library,
-since that service is specific to AWS.
+Next, we call the `compose()` method to get all modules to run.
+In this function, Octo runs the `onInit()` method of each registered and imported modules.<br />
+The `getModuleOutput()` is a helper method to collect the output from any Module.
 <br />
 
-```typescript
-const diffs1 = await octoAws.diff(app);
-const generator1 = await octoAws.beginTransaction(diffs1);
+```typescript title="main.ts"
+const generator = await octo.beginTransaction(app);
+const modelTransactionResult = await generator.next();
+await octo.commitTransaction(app, modelTransactionResult.value);
 ```
-Next, we call the in-built `diff()` method which generates the difference in infrastructure between an earlier state
-and the current state. Since, we don't have a previous state, the diff would reflect adding a new S3 website.
-We encourage you to stop your debugger here and inspect the `diffs` variable.
-<br /> The `diffs` are then passed to the `beginTransaction()` method which returns a
-[generator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Generator).
-The generator can be configured to stop at each step so that we can extract information out of it.
+In this last part of the code, we use the `app` instance to begin the transaction,
+which in turn traverses the app children, and generates diffs to work on.
+A [generator](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Generator)
+is returned.<br />
+Upon calling `next()`, all diffs are processed in order,
+the S3 bucket is created, and all website files are uploaded.<br />
+The output of the generator is passed to `commitTransaction()` which will
+update the state with the new models and resources.
 <br />
 
-```typescript
-const modelTransactionResult1 = await generator1.next();
-```
-Next, we call the `next()` method on the generator to finish its work.
-By this step, all `Actions` have run, and all new AWS resources are created.
-<br />
+:::tip
+The **beginTransaction(app, options)** method returns a generator,
+and accepts 4 options to stop the generator at important milestones to debug the application.
+- **yieldModelDiffs** to output all the differences Octo found in the new model state vs the previous model state.
+- **yieldModelTransaction** to output Octo's model execution plan order.
+- **yieldResourceDiffs** to output all the differences Octo found in the new resource state vs the previous resource state.
+- **yieldResourceTransaction** to output Octo's resource execution plan order.
+:::
 
-```typescript
-await octoAws.commitTransaction(app, modelTransactionResult1.value);
-```
-As a final step, we call the `commitTransaction()` method which will update the state with the new models and resources.
-We now have an empty website!
-<br />
-
-```typescript
-await service.addSource(`${websiteSourcePath}/error.html`);
-await service.addSource(`${websiteSourcePath}/index.html`);
-
-const diffs2 = await octoAws.diff(app);
-const generator2 = await octoAws.beginTransaction(diffs2);
-
-const modelTransactionResult2 = await generator2.next();
-await octoAws.commitTransaction(app, modelTransactionResult2.value);
-```
-We then add files to the website using the built-in methods of `S3StaticWebsiteService`.
-The same `diff()` and `transaction` routines ensures all files are uploaded to S3,
-and are accessible via the website.
-
-## Code Outputs
+## State Files
 Now let's focus on the autogenerated files that represents the state of your infrastructure.
+
 ```
 models.json
 resources.json
-shared-resources.json
 <my-bucket-name>-manifest.json
 ```
 
-The `models`, `resources`, and `shared-resources`, files are standard,
-and contains serialized output of Models, Resources, and Shared Resources respectively.
-
-The `bucket manifest` file is specific to the `S3StaticWebsiteService` service
+The `models.json` and `resources.json` contains serialized output of Models, Resources, and Shared Resources.<br />
+The `<my-bucket-name>-manifest.json` file is specific to the S3StaticWebsiteService service
 and contains all files of the website currently being tracked.
 
-We implore you to open and inspect each of these files to better understand how Octo works!
+We implore you to open and inspect each of these files to better understand how Octo stores state!
