@@ -25,6 +25,7 @@ describe('S3StorageService UT', () => {
           'iam-role-Backend-ServerRole': {
             response: <Partial<IIamRoleResponse>>{
               Arn: 'Arn',
+              // eslint-disable-next-line spellcheck/spell-checker
               policies: { 's3-storage-access-overlay-bef965544998fce2711e8c5b41c7546cdb4f13ac': ['PolicyArn'] },
               RoleId: 'RoleId',
               RoleName: 'RoleName',

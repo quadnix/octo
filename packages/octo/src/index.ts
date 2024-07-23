@@ -5,6 +5,7 @@ export { EnableHook } from './decorators/enable-hook.decorator.js';
 export { Factory } from './decorators/factory.decorator.js';
 export { Model } from './decorators/model.decorator.js';
 export { Module } from './decorators/module.decorator.js';
+export { OnEvent } from './decorators/on-event.decorator.js';
 export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
 export { IPackageMock, TestContainer } from './decorators/test-container.js';
@@ -13,6 +14,10 @@ export { DependencyRelationship } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { DiffMetadata } from './functions/diff/diff-metadata.js';
+
+export { AnchorRegistrationEvent } from './functions/event/anchor-registration.event.js';
+export { ModelRegistrationEvent } from './functions/event/model-registration.event.js';
+export { OverlayRegistrationEvent } from './functions/event/overlay-registration.event.js';
 
 export { type IApp } from './models/app/app.interface.js';
 export { App } from './models/app/app.model.js';

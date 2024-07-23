@@ -47,10 +47,10 @@ export class ModuleContainer {
         }
         return accumulator;
       }, []);
-      for (const [i, { name, isArg }] of (properties.args || []).entries()) {
+      for (const [i, { isArg, name }] of (properties.args || []).entries()) {
         if (!isArg(args[i])) {
           // eslint-disable-next-line max-len
-          const message = `Module "${module.name}" requires an argument at [${i}] of type "${name}", but received "${typeof args[i]}"!`;
+          const message = `Module "${module.name}" requires an argument at position [${i}] of type "${name}", but received "${typeof args[i]}"!`;
           throw new Error(message);
         }
       }
