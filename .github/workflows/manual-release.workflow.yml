@@ -37,7 +37,7 @@ jobs:
       - name: Install Dependencies
         run: npm install
       - name: Build
-        run: ./node_modules/.bin/nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build
+        run: ./node_modules/.bin/nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build @quadnix/octo-event-listeners
       - env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         name: Version & Changelog
@@ -54,6 +54,9 @@ jobs:
           jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-build/package.json package.json > out.json
           mv out.json packages/octo-build/package.json
           cp README.md packages/octo-build/README.md
+          jq -S '. + (input|{bugs, homepage, keywords, license, repository})' packages/octo-event-listeners/package.json package.json > out.json
+          mv out.json packages/octo-event-listeners/package.json
+          cp README.md packages/octo-event-listeners/README.md
       - env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}

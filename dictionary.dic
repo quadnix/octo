@@ -58,6 +58,7 @@ Ipv
 ispec
 jsonc
 len
+loglayer
 lstat
 mdx
 mnt
@@ -67,6 +68,7 @@ noreply
 octo
 octo's
 octob
+pino
 polyrepo
 postbuild
 prettierrc

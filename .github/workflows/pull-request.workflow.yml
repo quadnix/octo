@@ -82,6 +82,6 @@ jobs:
       - name: Install Dependencies
         run: npm install
       - name: Build
-        run: ./node_modules/.bin/nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build
+        run: ./node_modules/.bin/nx run-many -t build -p @quadnix/octo @quadnix/octo-aws-cdk @quadnix/octo-build @quadnix/octo-event-listeners
       - name: Unit Tests
         run: npm test
