@@ -55,11 +55,14 @@ export class TestModuleContainer {
     return response;
   }
 
-  async initialize(stateProvider?: IStateProvider): Promise<void> {
+  async initialize(
+    stateProvider?: IStateProvider,
+    initializeInContainer: Parameters<typeof Octo.prototype.initialize>[1] = [],
+  ): Promise<void> {
     if (stateProvider) {
-      await this.octo.initialize(stateProvider);
+      await this.octo.initialize(stateProvider, initializeInContainer);
     } else {
-      await this.octo.initialize(new TestStateProvider());
+      await this.octo.initialize(new TestStateProvider(), initializeInContainer);
     }
 
     for (const [key, value] of Object.entries(this.captures)) {

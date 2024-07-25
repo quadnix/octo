@@ -66,7 +66,13 @@ export class Octo {
     return moduleContainer.getOutput(module);
   }
 
-  async initialize(stateProvider: IStateProvider): Promise<void> {
+  async initialize(
+    stateProvider: IStateProvider,
+    initializeInContainer: {
+      type: Parameters<typeof Container.get>[0];
+      options: Parameters<typeof Container.get>[1];
+    }[] = [],
+  ): Promise<void> {
     [
       this.captureService,
       this.inputService,
@@ -84,6 +90,10 @@ export class Octo {
       Container.get(StateManagementService, { args: [stateProvider] }),
       Container.get(TransactionService),
     ]);
+
+    for (const initialize of initializeInContainer) {
+      await Container.get(initialize.type, initialize.options);
+    }
 
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
