@@ -6,6 +6,6 @@ export function OnEvent(
   ofType: Constructable<Event<unknown>>,
 ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    EventService.getInstance().registerListeners(ofType, descriptor);
+    EventService.getInstance().registerListeners(ofType, target, descriptor);
   };
 }
