@@ -72,6 +72,9 @@ export class Octo {
       type: Parameters<typeof Container.get>[0];
       options: Parameters<typeof Container.get>[1];
     }[] = [],
+    excludeInContainer: {
+      type: Parameters<typeof Container.unregisterFactory>[0];
+    }[] = [],
   ): Promise<void> {
     [
       this.captureService,
@@ -91,6 +94,9 @@ export class Octo {
       Container.get(TransactionService),
     ]);
 
+    for (const exclude of excludeInContainer) {
+      Container.unregisterFactory(exclude.type);
+    }
     for (const initialize of initializeInContainer) {
       await Container.get(initialize.type, initialize.options);
     }

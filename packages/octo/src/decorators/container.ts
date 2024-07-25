@@ -130,4 +130,9 @@ export class Container {
   static setFactoryTimeout(timeoutInMs: number): void {
     this.FACTORY_TIMEOUT_IN_MS = timeoutInMs;
   }
+
+  static unregisterFactory<T>(type: Constructable<T> | string): void {
+    const name = typeof type === 'string' ? type : type.name;
+    delete this.factories[name];
+  }
 }

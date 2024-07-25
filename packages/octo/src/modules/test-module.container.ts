@@ -57,12 +57,13 @@ export class TestModuleContainer {
 
   async initialize(
     stateProvider?: IStateProvider,
-    initializeInContainer: Parameters<typeof Octo.prototype.initialize>[1] = [],
+    initializeInContainer?: Parameters<typeof Octo.prototype.initialize>[1],
+    excludeInContainer?: Parameters<typeof Octo.prototype.initialize>[2],
   ): Promise<void> {
     if (stateProvider) {
-      await this.octo.initialize(stateProvider, initializeInContainer);
+      await this.octo.initialize(stateProvider, initializeInContainer, excludeInContainer);
     } else {
-      await this.octo.initialize(new TestStateProvider(), initializeInContainer);
+      await this.octo.initialize(new TestStateProvider(), initializeInContainer, excludeInContainer);
     }
 
     for (const [key, value] of Object.entries(this.captures)) {
