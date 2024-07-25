@@ -50,7 +50,7 @@ export class Container {
     }
 
     const newFactoryContainer = {
-      default: false,
+      default: true,
       metadata,
     } as (typeof Container.factories)[keyof typeof Container.factories][0];
     this.factories[name].push(newFactoryContainer);
