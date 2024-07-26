@@ -73,7 +73,7 @@ export class Octo {
       options: Parameters<typeof Container.get>[1];
     }[] = [],
     excludeInContainer: {
-      type: Parameters<typeof Container.unregisterFactory>[0];
+      type: Parameters<typeof Container.unRegisterFactory>[0];
     }[] = [],
   ): Promise<void> {
     [
@@ -95,7 +95,7 @@ export class Octo {
     ]);
 
     for (const exclude of excludeInContainer) {
-      Container.unregisterFactory(exclude.type);
+      Container.unRegisterFactory(exclude.type);
     }
     for (const initialize of initializeInContainer) {
       await Container.get(initialize.type, initialize.options);

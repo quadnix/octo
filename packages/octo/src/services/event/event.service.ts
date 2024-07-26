@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 import { Constructable } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
-import { Event } from '../../functions/event/event.model.js';
+import { Event } from '../../events/event.model.js';
 
 export class EventService {
   private readonly EVENT_BUFFER_SIZE = 50;
@@ -13,7 +13,12 @@ export class EventService {
 
   private static instance: EventService;
 
-  private readonly listeners: { [key: string]: ((event: Event<unknown>) => Promise<any>)[] } = {};
+  private readonly listeners: {
+    [key: string]: {
+      eventClass: Constructable<Event<unknown>>;
+      eventListeners: ((event: Event<unknown>) => Promise<any>)[];
+    };
+  } = {};
 
   constructor() {
     this.emitter.on('*', (event: Event<unknown>) => {
@@ -26,17 +31,25 @@ export class EventService {
       }
       this.eventBuffer[event.constructor.name].push(event);
 
-      // Forward event to it's listeners.
-      for (const listener of this.listeners[event.constructor.name] || []) {
-        listener(event).catch((error) => {
-          console.error(error);
-        });
-      }
+      // Forward event to matching listeners.
+      this.forwardEvent(event);
     });
   }
 
   emit(event: Event<unknown>): void {
     this.emitter.emit('*', event);
+  }
+
+  forwardEvent(event: Event<unknown>): void {
+    for (const eventClassName of Object.keys(this.listeners)) {
+      if (event instanceof this.listeners[eventClassName].eventClass) {
+        for (const listener of this.listeners[eventClassName].eventListeners) {
+          listener(event).catch((error) => {
+            console.error(error);
+          });
+        }
+      }
+    }
   }
 
   static getInstance(): EventService {
@@ -46,9 +59,9 @@ export class EventService {
     return this.instance;
   }
 
-  registerListeners(event: Constructable<Event<unknown>>, target: any, descriptor: PropertyDescriptor): void {
-    if (!this.listeners[event.name]) {
-      this.listeners[event.name] = [];
+  registerListeners(eventClass: Constructable<Event<unknown>>, target: any, descriptor: PropertyDescriptor): void {
+    if (!this.listeners[eventClass.name]) {
+      this.listeners[eventClass.name] = { eventClass, eventListeners: [] };
     }
 
     // Register this listener.
@@ -57,15 +70,13 @@ export class EventService {
       const listener = await Container.get(target.constructor.name);
       return await originalMethod.apply(listener, args);
     };
-    this.listeners[event.name].push(descriptor.value);
+    this.listeners[eventClass.name].eventListeners.push(descriptor.value);
 
     // Replay all previous events that were emitted before this listener was registered.
     const currentTimestamp = Date.now();
-    for (const previousEvent of this.eventBuffer[event.name] || []) {
+    for (const previousEvent of this.eventBuffer[eventClass.name] || []) {
       if (currentTimestamp >= previousEvent.header.timestamp) {
-        descriptor.value(previousEvent).catch((error) => {
-          console.error(error);
-        });
+        this.forwardEvent(previousEvent);
       }
     }
   }

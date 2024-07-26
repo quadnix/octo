@@ -1,4 +1,4 @@
-import type { EventService } from '../../services/event/event.service.js';
+import type { EventService } from '../services/event/event.service.js';
 
 export abstract class Event<T> {
   readonly header: {

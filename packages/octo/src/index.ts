@@ -15,9 +15,12 @@ export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { DiffMetadata } from './functions/diff/diff-metadata.js';
 
-export { AnchorRegistrationEvent } from './functions/event/anchor-registration.event.js';
-export { ModelRegistrationEvent } from './functions/event/model-registration.event.js';
-export { OverlayRegistrationEvent } from './functions/event/overlay-registration.event.js';
+export {
+  AnchorRegistrationEvent,
+  ModelRegistrationEvent,
+  OverlayRegistrationEvent,
+  RegistrationEvent,
+} from './events/registration.event.js';
 
 export { type IApp } from './models/app/app.interface.js';
 export { App } from './models/app/app.model.js';
