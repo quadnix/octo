@@ -15,6 +15,7 @@ export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { DiffMetadata } from './functions/diff/diff-metadata.js';
 
+export { Event } from './events/event.model.js';
 export {
   AnchorRegistrationEvent,
   ModelRegistrationEvent,

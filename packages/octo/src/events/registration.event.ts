@@ -5,7 +5,7 @@ import { AOverlay } from '../overlays/overlay.abstract.js';
 import type { EventService } from '../services/event/event.service.js';
 import { Event } from './event.model.js';
 
-export abstract class RegistrationEvent extends Event<string> {}
+export class RegistrationEvent extends Event<string> {}
 
 export class AnchorRegistrationEvent extends RegistrationEvent {
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {

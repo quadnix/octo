@@ -9,7 +9,9 @@ export class EventService {
 
   private readonly emitter = new EventEmitter();
 
-  private readonly eventBuffer: { [key: string]: Event<unknown>[] } = {};
+  private readonly eventBuffer: {
+    [key: string]: { eventClass: Constructable<Event<unknown>>; events: Event<unknown>[] };
+  } = {};
 
   private static instance: EventService;
 
@@ -24,12 +26,12 @@ export class EventService {
     this.emitter.on('*', (event: Event<unknown>) => {
       // Save event to EventBuffer.
       if (!this.eventBuffer[event.constructor.name]) {
-        this.eventBuffer[event.constructor.name] = [];
+        this.eventBuffer[event.constructor.name] = { eventClass: Object.getPrototypeOf(event).constructor, events: [] };
       }
-      if (this.eventBuffer[event.constructor.name].length >= this.EVENT_BUFFER_SIZE) {
-        this.eventBuffer[event.constructor.name].shift();
+      if (this.eventBuffer[event.constructor.name].events.length >= this.EVENT_BUFFER_SIZE) {
+        this.eventBuffer[event.constructor.name].events.shift();
       }
-      this.eventBuffer[event.constructor.name].push(event);
+      this.eventBuffer[event.constructor.name].events.push(event);
 
       // Forward event to matching listeners.
       this.forwardEvent(event);
@@ -40,14 +42,22 @@ export class EventService {
     this.emitter.emit('*', event);
   }
 
-  forwardEvent(event: Event<unknown>): void {
-    for (const eventClassName of Object.keys(this.listeners)) {
-      if (event instanceof this.listeners[eventClassName].eventClass) {
-        for (const listener of this.listeners[eventClassName].eventListeners) {
-          listener(event).catch((error) => {
-            console.error(error);
-          });
+  forwardEvent(event: Event<unknown>, listeners: ((event: Event<unknown>) => Promise<any>)[] = []): void {
+    if (!listeners.length) {
+      for (const eventClassName of Object.keys(this.listeners)) {
+        if (event instanceof this.listeners[eventClassName].eventClass) {
+          for (const listener of this.listeners[eventClassName].eventListeners) {
+            listener(event).catch((error) => {
+              console.error(error);
+            });
+          }
         }
+      }
+    } else {
+      for (const listener of listeners) {
+        listener(event).catch((error) => {
+          console.error(error);
+        });
       }
     }
   }
@@ -74,9 +84,14 @@ export class EventService {
 
     // Replay all previous events that were emitted before this listener was registered.
     const currentTimestamp = Date.now();
-    for (const previousEvent of this.eventBuffer[eventClass.name] || []) {
-      if (currentTimestamp >= previousEvent.header.timestamp) {
-        this.forwardEvent(previousEvent);
+    for (const previousEventClassName of Object.keys(this.eventBuffer)) {
+      const previousEventClass = this.eventBuffer[previousEventClassName].eventClass;
+      if (previousEventClass.prototype instanceof eventClass || previousEventClass === eventClass) {
+        for (const previousEvent of this.eventBuffer[previousEventClassName].events || []) {
+          if (currentTimestamp >= previousEvent.header.timestamp) {
+            this.forwardEvent(previousEvent, this.listeners[eventClass.name].eventListeners);
+          }
+        }
       }
     }
   }
