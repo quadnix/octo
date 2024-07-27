@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@quadnix/octo": "~0.0.19",
+    "@quadnix/octo": "~0.0.20",
     "loglayer": "~4.4.0",
     "pino": "~9.3.1"
   },
