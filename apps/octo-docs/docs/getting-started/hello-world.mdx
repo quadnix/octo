@@ -54,15 +54,16 @@ Please create all files in below tabs.
   <TabItem value="main.ts" label="main.ts" default>
     ```typescript title="main.ts"
     import { App, LocalStateProvider, Octo } from "@quadnix/octo";
+    import { EventLoggerListener } from "@quadnix/octo-event-listeners";
     import { dirname, join } from 'path';
     import { fileURLToPath } from 'url';
     import { AppModule } from "./app.module.js";
 
     const __dirname = dirname(fileURLToPath(import.meta.url));
-    const octoStatePath = join(__dirname, '..', '.octo'); // TODO
+    const octoStatePath = join(__dirname, '..', '.octo'); // TO-DO
 
     const octo = new Octo();
-    await octo.initialize(new LocalStateProvider(octoStatePath));
+    await octo.initialize(new LocalStateProvider(octoStatePath), [{ type: EventLoggerListener, options: {} }]);
 
     await octo.compose();
     const app = (await octo.getModuleOutput<App>(AppModule)) as App;
@@ -80,7 +81,7 @@ Please create all files in below tabs.
     import { fileURLToPath } from 'url';
 
     const __dirname = dirname(fileURLToPath(import.meta.url));
-    const BUCKET_NAME = '<my-bucket-name>'; // TODO
+    const BUCKET_NAME = '<my-bucket-name>'; // TO-DO
     const websiteSourcePath = join(__dirname, '..', 'website');
 
     @Module({
@@ -102,7 +103,7 @@ Please create all files in below tabs.
   </TabItem>
 </Tabs>
 
-### Fix TODOs
+### Fix TO-DOs
 Before running Octo, let's fix a few things.
 - Ensure you create the `.octo` directory at the root of your project.
 This is where your Octo state files will be stored.

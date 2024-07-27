@@ -60,11 +60,12 @@ and point it to the website directory where our static files live.
 
 ```typescript title="main.ts"
 const octo = new Octo();
-await octo.initialize(new LocalStateProvider(octoStatePath));
+await octo.initialize(new LocalStateProvider(octoStatePath), [{ type: EventLoggerListener, options: {} }]);
 ```
 The `main.ts` file is where the project is bootstrapped.
 The Octo class is initialized by passing a `StateProvider`.
-We are using the `LocalStateProvider` which will store the state in a local file.
+We are using the `LocalStateProvider` which will store the state in a local file.<br />
+Optionally, we also pass the `EventLoggerListener` listener which provides logging support to debug Octo.
 <br />
 
 ```typescript title="main.ts"
