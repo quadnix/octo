@@ -1,3 +1,5 @@
+import { RegistrationErrorEvent } from '../events/error.event.js';
+import { EventService } from '../services/event/event.service.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
 import { Container } from './container.js';
 
@@ -8,7 +10,7 @@ export function Resource(): (constructor: any) => void {
         resourceSerializationService.registerClass(constructor.name, constructor);
       })
       .catch((error) => {
-        console.error(error);
+        EventService.getInstance().emit(new RegistrationErrorEvent(error));
       });
   };
 }

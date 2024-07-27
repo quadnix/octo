@@ -1,8 +1,10 @@
 import { ModelType } from '../app.type.js';
+import { RegistrationErrorEvent } from '../events/error.event.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 import { type IModelAction } from '../models/model-action.interface.js';
 import { type IResourceAction } from '../resources/resource-action.interface.js';
+import { EventService } from '../services/event/event.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { Container } from './container.js';
 
@@ -44,7 +46,7 @@ export function Action(type: ModelType): (constructor: any) => void {
         }
       })
       .catch((error) => {
-        console.error(error);
+        EventService.getInstance().emit(new RegistrationErrorEvent(error));
       });
   };
 }

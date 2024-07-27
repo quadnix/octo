@@ -6,7 +6,9 @@ import {
   type UnknownSharedResource,
 } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
+import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
+import { ModelActionRegistrationEvent, ResourceActionRegistrationEvent } from '../../events/registration.event.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
@@ -302,6 +304,7 @@ export class TransactionService {
     return modelTransaction;
   }
 
+  @EventSource(ModelActionRegistrationEvent)
   registerModelActions(actions: IModelAction[]): void {
     for (const action of actions) {
       if (!this.modelActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
@@ -310,6 +313,7 @@ export class TransactionService {
     }
   }
 
+  @EventSource(ModelActionRegistrationEvent)
   registerOverlayActions(actions: IModelAction[]): void {
     for (const action of actions) {
       if (!this.overlayActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
@@ -318,6 +322,7 @@ export class TransactionService {
     }
   }
 
+  @EventSource(ResourceActionRegistrationEvent)
   registerResourceActions(actions: IResourceAction[]): void {
     for (const action of actions) {
       if (!this.resourceActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {

@@ -1,6 +1,8 @@
 import type { ActionOutputs, ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
 import { Container } from '../../../decorators/container.js';
+import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
+import { ResourceRegistrationEvent } from '../../../events/registration.event.js';
 import type { IDependency } from '../../../functions/dependency/dependency.js';
 import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
@@ -133,6 +135,7 @@ export class ResourceSerializationService {
     });
   }
 
+  @EventSource(ResourceRegistrationEvent)
   registerClass(className: string, deserializationClass: any): void {
     this.classMapping[className] = deserializationClass;
   }

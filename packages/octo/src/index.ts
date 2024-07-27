@@ -15,12 +15,16 @@ export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { DiffMetadata } from './functions/diff/diff-metadata.js';
 
+export { ErrorEvent, RegistrationErrorEvent } from './events/error.event.js';
 export { Event } from './events/event.model.js';
 export {
   AnchorRegistrationEvent,
+  ModelActionRegistrationEvent,
   ModelRegistrationEvent,
   OverlayRegistrationEvent,
   RegistrationEvent,
+  ResourceActionRegistrationEvent,
+  ResourceRegistrationEvent,
 } from './events/registration.event.js';
 
 export { type IApp } from './models/app/app.interface.js';
