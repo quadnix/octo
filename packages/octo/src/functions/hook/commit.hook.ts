@@ -1,6 +1,12 @@
+import {
+  CommitHookCallbackDoneEvent,
+  PostCommitHookCallbackDoneEvent,
+  PreCommitHookCallbackDoneEvent,
+} from '../../events/hook.event.js';
 import type { Octo } from '../../main.js';
 import type { App } from '../../models/app/app.model.js';
 import type { ModuleContainer } from '../../modules/module.container.js';
+import { EventService } from '../../services/event/event.service.js';
 import type { DiffMetadata } from '../diff/diff-metadata.js';
 import type { IHook } from './hook.interface.js';
 
@@ -39,12 +45,15 @@ export class CommitHook implements IHook {
     descriptor.value = async function (...args: [App, DiffMetadata[][]]): Promise<void> {
       for (const callback of self.preCommitHooks) {
         await callback.apply(this, args);
+        EventService.getInstance().emit(new PreCommitHookCallbackDoneEvent());
       }
 
       await originalMethod.apply(this, args);
+      EventService.getInstance().emit(new CommitHookCallbackDoneEvent());
 
       for (const callback of self.postCommitHooks) {
         await callback.apply(this, args);
+        EventService.getInstance().emit(new PostCommitHookCallbackDoneEvent());
       }
     };
   }

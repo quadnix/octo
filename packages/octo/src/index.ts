@@ -18,6 +18,21 @@ export { DiffMetadata } from './functions/diff/diff-metadata.js';
 export { ErrorEvent, RegistrationErrorEvent } from './events/error.event.js';
 export { Event } from './events/event.model.js';
 export {
+  CommitHookCallbackDoneEvent,
+  CommitHookEvent,
+  HookEvent,
+  ModelActionHookCallbackDoneEvent,
+  ModelActionHookEvent,
+  PostCommitHookCallbackDoneEvent,
+  PostModelActionHookCallbackDoneEvent,
+  PostResourceActionHookCallbackDoneEvent,
+  PreCommitHookCallbackDoneEvent,
+  PreModelActionHookCallbackDoneEvent,
+  PreResourceActionHookCallbackDoneEvent,
+  ResourceActionHookCallbackDoneEvent,
+  ResourceActionHookEvent,
+} from './events/hook.event.js';
+export {
   AnchorRegistrationEvent,
   ModelActionRegistrationEvent,
   ModelRegistrationEvent,

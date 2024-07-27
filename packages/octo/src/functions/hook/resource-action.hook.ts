@@ -1,5 +1,11 @@
+import {
+  PostResourceActionHookCallbackDoneEvent,
+  PreResourceActionHookCallbackDoneEvent,
+  ResourceActionHookCallbackDoneEvent,
+} from '../../events/hook.event.js';
 import type { ModuleContainer } from '../../modules/module.container.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
+import { EventService } from '../../services/event/event.service.js';
 import type { Diff } from '../diff/diff.js';
 import type { IHook } from './hook.interface.js';
 
@@ -48,12 +54,15 @@ export class ResourceActionHook implements IHook {
     resourceAction.handle = async function (...args: [Diff]): Promise<void> {
       for (const { handle } of self.preResourceActionHooks[resourceAction.ACTION_NAME] || []) {
         await handle.apply(this, args);
+        EventService.getInstance().emit(new PreResourceActionHookCallbackDoneEvent());
       }
 
       await originalHandleMethod.apply(this, args);
+      EventService.getInstance().emit(new ResourceActionHookCallbackDoneEvent());
 
       for (const { handle } of self.postResourceActionHooks[resourceAction.ACTION_NAME] || []) {
         await handle.apply(this, args);
+        EventService.getInstance().emit(new PostResourceActionHookCallbackDoneEvent());
       }
     };
   }

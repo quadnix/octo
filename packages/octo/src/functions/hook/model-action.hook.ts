@@ -1,7 +1,13 @@
 import type { ActionInputs, ActionOutputs } from '../../app.type.js';
 import { Container } from '../../decorators/container.js';
+import {
+  ModelActionHookCallbackDoneEvent,
+  PostModelActionHookCallbackDoneEvent,
+  PreModelActionHookCallbackDoneEvent,
+} from '../../events/hook.event.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
 import type { ModuleContainer } from '../../modules/module.container.js';
+import { EventService } from '../../services/event/event.service.js';
 import { InputService } from '../../services/input/input.service.js';
 import type { Diff } from '../diff/diff.js';
 import type { IHook } from './hook.interface.js';
@@ -63,9 +69,11 @@ export class ModelActionHook implements IHook {
           return accumulator;
         }, {});
         output = await handle.apply(this, [args[0], resolvedInputs, output]);
+        EventService.getInstance().emit(new PreModelActionHookCallbackDoneEvent());
       }
 
       output = await originalHandleMethod.apply(this, [args[0], args[1], output]);
+      EventService.getInstance().emit(new ModelActionHookCallbackDoneEvent());
 
       for (const { collectInput, handle } of self.postModelActionHooks[modelAction.ACTION_NAME] || []) {
         const inputs = collectInput ? collectInput(args[0]) : [];
@@ -77,6 +85,7 @@ export class ModelActionHook implements IHook {
           return accumulator;
         }, {});
         output = await handle.apply(this, [args[0], resolvedInputs, output]);
+        EventService.getInstance().emit(new PostModelActionHookCallbackDoneEvent());
       }
 
       return output;
