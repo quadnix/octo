@@ -32,6 +32,7 @@ export {
   ResourceActionHookCallbackDoneEvent,
   ResourceActionHookEvent,
 } from './events/hook.event.js';
+export { ModuleEvent } from './events/module.event.js';
 export {
   AnchorRegistrationEvent,
   ModelActionRegistrationEvent,

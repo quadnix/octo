@@ -1,9 +1,11 @@
 import { Constructable } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { type Module } from '../decorators/module.decorator.js';
+import { ModuleEvent } from '../events/module.event.js';
 import { CommitHook } from '../functions/hook/commit.hook.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
+import { EventService } from '../services/event/event.service.js';
 import { IModule } from './module.interface.js';
 
 export class ModuleContainer {
@@ -63,6 +65,7 @@ export class ModuleContainer {
       }
 
       moduleMetadata.applied = true;
+      EventService.getInstance().emit(new ModuleEvent(module.name));
     }
   }
 
