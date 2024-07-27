@@ -42,6 +42,18 @@ export {
   ResourceActionRegistrationEvent,
   ResourceRegistrationEvent,
 } from './events/registration.event.js';
+export {
+  ModelDeserializedEvent,
+  ModelSerializedEvent,
+  ResourceDeserializedEvent,
+  ResourceSerializedEvent,
+  SerializationEvent,
+} from './events/serialization.event.js';
+export {
+  ModelActionTransactionEvent,
+  ResourceActionTransactionEvent,
+  TransactionEvent,
+} from './events/transaction.event.js';
 
 export { type IApp } from './models/app/app.interface.js';
 export { App } from './models/app/app.model.js';

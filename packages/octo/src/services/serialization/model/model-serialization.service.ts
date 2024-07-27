@@ -13,11 +13,13 @@ import {
   ModelRegistrationEvent,
   OverlayRegistrationEvent,
 } from '../../../events/registration.event.js';
+import { ModelDeserializedEvent, ModelSerializedEvent } from '../../../events/serialization.event.js';
 import { Dependency, type IDependency } from '../../../functions/dependency/dependency.js';
 import type { IAnchor } from '../../../overlays/anchor.interface.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
 import type { IOverlay } from '../../../overlays/overlay.interface.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
+import { EventService } from '../../event/event.service.js';
 
 export class ModelSerializationService {
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
@@ -135,6 +137,8 @@ export class ModelSerializationService {
       args: [true, oldOverlays, newOverlays],
     });
 
+    EventService.getInstance().emit(new ModelDeserializedEvent());
+
     return root;
   }
 
@@ -187,6 +191,8 @@ export class ModelSerializationService {
         overlays.push({ className: model.constructor.name, overlay: (model as UnknownOverlay).synth() });
       }
     }
+
+    EventService.getInstance().emit(new ModelSerializedEvent());
 
     return { anchors, dependencies, models, overlays };
   }

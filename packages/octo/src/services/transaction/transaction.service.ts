@@ -9,6 +9,7 @@ import { Container } from '../../decorators/container.js';
 import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { ModelActionRegistrationEvent, ResourceActionRegistrationEvent } from '../../events/registration.event.js';
+import { ModelActionTransactionEvent, ResourceActionTransactionEvent } from '../../events/transaction.event.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
@@ -17,6 +18,7 @@ import type { IResourceAction } from '../../resources/resource-action.interface.
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { IResource } from '../../resources/resource.interface.js';
 import { CaptureService } from '../capture/capture.service.js';
+import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 
 export class TransactionService {
@@ -66,6 +68,8 @@ export class TransactionService {
 
           // Apply all actions on the diff, then update diff metadata with inputs and outputs.
           const promiseToApplyAction = a.handle(diffToProcess, inputs, {}).then((outputs) => {
+            EventService.getInstance().emit(new ModelActionTransactionEvent(a.ACTION_NAME));
+
             duplicateDiffs.forEach((d) => {
               d.updateInputs(inputs);
               d.updateOutputs(outputs);
@@ -142,7 +146,11 @@ export class TransactionService {
             await a.mock(capture?.response, diff);
             await a.handle(diffToProcess);
           } else {
-            promiseToApplyActions.push(a.handle(diffToProcess));
+            promiseToApplyActions.push(
+              a.handle(diffToProcess).then(() => {
+                EventService.getInstance().emit(new ResourceActionTransactionEvent(a.ACTION_NAME));
+              }),
+            );
           }
         }
 

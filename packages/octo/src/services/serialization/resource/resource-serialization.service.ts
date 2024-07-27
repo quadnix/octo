@@ -3,9 +3,11 @@ import { Container } from '../../../decorators/container.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import { ResourceRegistrationEvent } from '../../../events/registration.event.js';
+import { ResourceDeserializedEvent, ResourceSerializedEvent } from '../../../events/serialization.event.js';
 import type { IDependency } from '../../../functions/dependency/dependency.js';
 import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
+import { EventService } from '../../event/event.service.js';
 
 export class ResourceSerializationService {
   private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
@@ -133,6 +135,8 @@ export class ResourceSerializationService {
     await Container.get(ResourceDataRepository, {
       args: [true, Object.values(oldResources), Object.values(newResources)],
     });
+
+    EventService.getInstance().emit(new ResourceDeserializedEvent());
   }
 
   @EventSource(ResourceRegistrationEvent)
@@ -172,6 +176,8 @@ export class ResourceSerializationService {
         };
       }
     }
+
+    EventService.getInstance().emit(new ResourceSerializedEvent());
 
     return { dependencies, resources: serializedResources, sharedResources: sharedSerializedResources };
   }
