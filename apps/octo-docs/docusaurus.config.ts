@@ -1,6 +1,10 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const config: Config = {
   baseUrl: '/',
@@ -14,7 +18,17 @@ const config: Config = {
   },
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
-  plugins: ['docusaurus-plugin-sass'],
+  plugins: [
+    'docusaurus-plugin-sass',
+    [
+      'docusaurus-plugin-typedoc-api',
+      {
+        projectRoot: join(__dirname, '..', '..'),
+        packages: ['packages/octo', 'packages/octo-aws-cdk'],
+        typedocOptions: { useTsLinkResolution: true },
+      },
+    ],
+  ],
   presets: [
     [
       'classic',
@@ -102,7 +116,16 @@ const config: Config = {
           sidebarId: 'docsSidebar',
           type: 'docSidebar',
         },
-        { label: 'Blog', position: 'left', to: '/blog' },
+        {
+          label: 'API',
+          position: 'left',
+          to: '/api',
+        },
+        {
+          label: 'Blog',
+          position: 'left',
+          to: '/blog',
+        },
         {
           href: 'https://github.com/quadnix/octo',
           label: 'GitHub',
