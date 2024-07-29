@@ -8,8 +8,37 @@ import { AResource } from '../resources/resource.abstract.js';
 import type { EventService } from '../services/event/event.service.js';
 import { Event } from './event.model.js';
 
+/**
+ * The RegistrationEvent class is the superclass for all events in relation to class registration.
+ *
+ * :::warning Warning
+ * It is not a good practice to create an event from this class directly,
+ * but should rather create one from one of the subclasses.
+ * This promotes a more accurate classification of events.
+ * :::
+ *
+ * @example
+ * ```ts
+ * const myEvent = new RegistrationEvent('MyClass');
+ * EventService.getInstance().emit(myEvent);
+ * ```
+ * @group Events
+ * @returns The Event instance.
+ */
 export class RegistrationEvent extends Event<string> {}
 
+/**
+ * This event is emitted when a class with `@Anchor()` decorator is registered.
+ * It emits the name of the class.
+ *
+ * @example
+ * ```ts
+ * const myEvent = new AnchorRegistrationEvent('MyClass');
+ * EventService.getInstance().emit(myEvent);
+ * ```
+ * @group Events
+ * @returns The Event instance.
+ */
 export class AnchorRegistrationEvent extends RegistrationEvent {
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod = descriptor.value;
@@ -25,6 +54,18 @@ export class AnchorRegistrationEvent extends RegistrationEvent {
   }
 }
 
+/**
+ * This event is emitted when a class with `@Action(ModelType.MODEL)` decorator is registered.
+ * It emits the name of the class.
+ *
+ * @example
+ * ```ts
+ * const myEvent = new ModelActionRegistrationEvent('MyClass');
+ * EventService.getInstance().emit(myEvent);
+ * ```
+ * @group Events
+ * @returns The Event instance.
+ */
 export class ModelActionRegistrationEvent extends RegistrationEvent {
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod = descriptor.value;
@@ -40,6 +81,18 @@ export class ModelActionRegistrationEvent extends RegistrationEvent {
   }
 }
 
+/**
+ * This event is emitted when a class with `@Model()` decorator is registered.
+ * It emits the name of the class.
+ *
+ * @example
+ * ```ts
+ * const myEvent = new ModelRegistrationEvent('MyClass');
+ * EventService.getInstance().emit(myEvent);
+ * ```
+ * @group Events
+ * @returns The Event instance.
+ */
 export class ModelRegistrationEvent extends RegistrationEvent {
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod = descriptor.value;
@@ -55,6 +108,18 @@ export class ModelRegistrationEvent extends RegistrationEvent {
   }
 }
 
+/**
+ * This event is emitted when a class with `@Overlay()` decorator is registered.
+ * It emits the name of the class.
+ *
+ * @example
+ * ```ts
+ * const myEvent = new OverlayRegistrationEvent('MyClass');
+ * EventService.getInstance().emit(myEvent);
+ * ```
+ * @group Events
+ * @returns The Event instance.
+ */
 export class OverlayRegistrationEvent extends RegistrationEvent {
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod = descriptor.value;
@@ -70,6 +135,19 @@ export class OverlayRegistrationEvent extends RegistrationEvent {
   }
 }
 
+/**
+ * This event is emitted when a class with `@Action(ModelType.RESOURCE)` or `@Action(ModelType.SHARED_RESOURCE)`
+ * decorator is registered.
+ * It emits the name of the class.
+ *
+ * @example
+ * ```ts
+ * const myEvent = new ResourceActionRegistrationEvent('MyClass');
+ * EventService.getInstance().emit(myEvent);
+ * ```
+ * @group Events
+ * @returns The Event instance.
+ */
 export class ResourceActionRegistrationEvent extends RegistrationEvent {
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod = descriptor.value;
@@ -85,6 +163,18 @@ export class ResourceActionRegistrationEvent extends RegistrationEvent {
   }
 }
 
+/**
+ * This event is emitted when a class with `@Resource()` decorator is registered.
+ * It emits the name of the class.
+ *
+ * @example
+ * ```ts
+ * const myEvent = new ResourceRegistrationEvent('MyClass');
+ * EventService.getInstance().emit(myEvent);
+ * ```
+ * @group Events
+ * @returns The Event instance.
+ */
 export class ResourceRegistrationEvent extends RegistrationEvent {
   static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
     const originalMethod = descriptor.value;

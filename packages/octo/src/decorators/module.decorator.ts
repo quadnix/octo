@@ -6,6 +6,58 @@ import { type IModule } from '../modules/module.interface.js';
 import type { IResourceAction } from '../resources/resource-action.interface.js';
 import { Container } from './container.js';
 
+/**
+ * A `@Module` is a class decorator to be placed on top of a class that represents a module.
+ * - A Module class must implement the {@link IModule} interface.
+ * - A Module class constructor is injected with the outputs of the modules it imports.
+ * - The {@link IModule.onInit} method is called to initialize the module,
+ * and is where you will *define* your infrastructure.
+ *
+ * @example
+ * ```ts
+ * @Module({
+ *   args: [{ isArg: (app: App) => app instanceof App, name: 'app' }],
+ *   imports: [OtherModule],
+ *   postModelActionHooks: [{ ACTION_NAME: 'SomeAction', collectInput: () => { ... }, handle: () => { ... } }],
+ * })
+ * export class MyModule implements IModule<Region> {
+ *   constructor(app: App) { ... }
+ *
+ *   async onInit(): Promise<Region> { ... }
+ * }
+ * ```
+ * @group Decorators
+ * @param options - Options to the module.
+ * @param options.args - (optional) An array of arg validators to verify the args passed to the module's constructor.
+ * - The `isArg` method receives an argument, and you must do your own type checking and return a boolean.
+ * - The `name` property is the name of the argument.
+ * @param options.imports - (optional) An array of modules to import.
+ * @param options.postCommitHooks - (optional) An array of post-commit hooks.
+ * - The `callback` method will be called after the transaction is committed.
+ * This method receives the same arguments as {@link Octo.commitTransaction}.
+ * @param options.postModelActionHooks - (optional) An array of post-model action hooks.
+ * - The `ACTION_NAME` identifies the action on which this hook is registered.
+ * - The `collectInput` method can be used to enrich the action inputs. It works the same as in {@link IModelAction}.
+ * - The `handle` method will be called after the action is executed.
+ * This method receives the same arguments as {@link IModelAction.handle}.
+ * @param options.postResourceActionHooks - (optional) An array of post-resource action hooks.
+ * - The `ACTION_NAME` identifies the action on which this hook is registered.
+ * - The `handle` method will be called after the action is executed.
+ * This method receives the same arguments as {@link IResourceAction.handle}.
+ * @param options.preCommitHooks - (optional) An array of pre-commit hooks.
+ * - The `callback` method will be called before the transaction is committed.
+ * This method receives the same arguments as {@link Octo.commitTransaction}.
+ * @param options.preModelActionHooks - (optional) An array of pre-model action hooks.
+ * - The `ACTION_NAME` identifies the action on which this hook is registered.
+ * - The `collectInput` method can be used to enrich the action inputs. It works the same as in {@link IModelAction}.
+ * - The `handle` method will be called before the action is executed.
+ * This method receives the same arguments as {@link IModelAction.handle}.
+ * @param options.preResourceActionHooks - (optional) An array of pre-resource action hooks.
+ * - The `ACTION_NAME` identifies the action on which this hook is registered.
+ * - The `handle` method will be called before the action is executed.
+ * @returns The decorated class.
+ * @see Definition of [Modules](/docs/fundamentals/modules).
+ */
 export function Module({
   args = [],
   imports = [],

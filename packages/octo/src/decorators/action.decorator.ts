@@ -8,6 +8,23 @@ import { EventService } from '../services/event/event.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { Container } from './container.js';
 
+/**
+ * An `@Action` is a class decorator to be placed on top of a class that represents an action of one of ModelType.
+ * - A ModelType.MODEL action must implement the {@link IModelAction} interface.
+ * - A ModelType.OVERLAY action must implement the {@link IModelAction} interface.
+ * - A ModelType.RESOURCE action must implement the {@link IResourceAction} interface.
+ * - A ModelType.SHARED_RESOURCE action must implement the {@link IResourceAction} interface.
+ *
+ * @example
+ * ```ts
+ * @Action(ModelType.MODEL)
+ * export class MyModelAction implements IModelAction { ... }
+ * ```
+ * @group Decorators
+ * @param type The type of Model being decorated.
+ * @returns The decorated class.
+ * @see Definition of [Actions](/docs/fundamentals/actions).
+ */
 export function Action(type: ModelType): (constructor: any) => void {
   return function (constructor: any) {
     Container.get(TransactionService)
