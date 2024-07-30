@@ -3,6 +3,15 @@ import type { Constructable } from '../app.type.js';
 type Factory<T> = { create: (...args: unknown[]) => Promise<T> };
 type FactoryValue<T> = Factory<T> | [Promise<Factory<T>>, (factory: Factory<T>) => void];
 
+/**
+ * The Container class is a box to hold all registered factories.
+ *
+ * In Octo, we minimize the use of the `new` keyword and get instance of a class using its factory.
+ * The factory has full control over how the instance is created.
+ *
+ * By using the Container and Factory concepts, it is possible to override internal class definitions at runtime.
+ * It is an incredibly powerful tool to customize implementation.
+ */
 export class Container {
   private static FACTORY_TIMEOUT_IN_MS = 5000;
 
@@ -14,6 +23,15 @@ export class Container {
     }[];
   } = {};
 
+  /**
+   * `Container.get()` allows to get an instance of a class using its factory.
+   *
+   * @param type The type or name of the class to get.
+   * @param options Allows selection of a specific factory to use to get the instance.
+   * - The `args` option supplies arguments to the factory.
+   * - The `metadata` option identifies the factory.
+   * @returns The instance of the class.
+   */
   static async get<T>(
     type: Constructable<T> | string,
     options?: {
@@ -72,6 +90,15 @@ export class Container {
     return factory.create(...args);
   }
 
+  /**
+   * `Container.registerFactory()` allows to register a factory for a class.
+   *
+   * @param type The type or name of the class for which the factory is registered.
+   * @param factory The factory class being registered.
+   * @param options Distinguishes between different factories of the same class.
+   * - The `metadata` attaches custom metadata to the factory.
+   * @returns void
+   */
   static registerFactory<T>(
     type: Constructable<T> | string,
     factory: Factory<T>,
@@ -111,6 +138,11 @@ export class Container {
     this.setDefault(type, factory);
   }
 
+  /**
+   * `Container.reset()` clears all registered factories and empties the container. This is mostly used in testing.
+   *
+   * @returns void
+   */
   static reset(): void {
     this.FACTORY_TIMEOUT_IN_MS = 5000;
 
@@ -119,6 +151,27 @@ export class Container {
     }
   }
 
+  /**
+   * `Container.setDefault()` sets a default factory for the class.
+   *
+   * @example
+   * ```ts
+   * // Register a factory.
+   * Container.registerFactory(MyClass, MyClassFactory, { metadata: { key: 'value' } });
+   *
+   * // Without default.
+   * Container.get(MyClass, { metadata: { key: 'value' } });
+   *
+   * // Set default.
+   * Container.setDefault(MyClass, MyClassFactory);
+   *
+   * // With default.
+   * Container.get(MyClass);
+   * ```
+   * @param type The type or name of the class for which the default factory is set.
+   * @param factory The factory class being set as default.
+   * @returns void
+   */
   static setDefault<T>(type: Constructable<T> | string, factory: Factory<T>): void {
     const name = typeof type === 'string' ? type : type.name;
 
@@ -127,10 +180,23 @@ export class Container {
     });
   }
 
+  /**
+   * The Container, by default, will wait a maximum of 5 seconds for a factory to resolve and provide an instance.
+   * This method allows to change that timeout.
+   *
+   * @param timeoutInMs The timeout in milliseconds.
+   * @returns void
+   */
   static setFactoryTimeout(timeoutInMs: number): void {
     this.FACTORY_TIMEOUT_IN_MS = timeoutInMs;
   }
 
+  /**
+   * `Container.unRegisterFactory()` will unregister all factories of a class.
+   *
+   * @param type The type or name of the class for which all factory is unregistered.
+   * @returns void
+   */
   static unRegisterFactory<T>(type: Constructable<T> | string): void {
     const name = typeof type === 'string' ? type : type.name;
     delete this.factories[name];

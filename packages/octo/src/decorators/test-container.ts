@@ -24,6 +24,20 @@ export interface IPackageMock {
   init(): Promise<void>;
 }
 
+/**
+ * The TestContainer class is an isolated {@link Container} for tests.
+ *
+ * :::info Info
+ * A test framework like Jest, supports parallel test executions in different cores of the machine.
+ * Each test is a single test file, whose `it()` blocks are executed serially.
+ * :::
+ *
+ * TestContainer is created with testing framework's parallel execution in mind.
+ * A TestContainer should be created in the `beforeAll()` block of your test,
+ * which modifies the Container for the duration of the test.
+ * This TestContainer does not affect other tests in parallel since they are on a separate machine core.
+ * Once tests are done executing, the `afterAll()` block cleans up the Container.
+ */
 export class TestContainer {
   private static packageMocks: IPackageMock[] = [];
 
@@ -37,6 +51,33 @@ export class TestContainer {
     };
   }
 
+  /**
+   * The `TestContainer.create()` method allows you to mock factories.
+   *
+   * @example
+   * ```ts
+   * beforeAll(async () => {
+   *   await TestContainer.create({
+   *     importFrom: [OctoAwsCdkPackageMock],
+   *     mocks: [
+   *       { type: MyClass, value: jest.fn() },
+   *       { metadata: { key: 'value' }, type: AnotherClass, value: new AnotherClass() },
+   *     ],
+   *   }, { factoryTimeoutInMs: 500 });
+   * });
+   *
+   * ```
+   * @param subjects The subjects being mocked.
+   * - `importFrom` is an array of {@link IPackageMock} classes, to import custom mocks,
+   * such as from octo-aws-cdk package - [OctoAwsCdkPackageMock](/api/octo-aws-cdk/class/OctoAwsCdkPackageMock).
+   * - `mocks` is an array of objects, to override the default factories.
+   *   - Use `metadata?: { [key: string]: string }` to identify the factory being mocked.
+   *   - Use `type: Constructable<T> | string` to identify the class being mocked.
+   *   - Use `value: T` to provide the mocked value.
+   * @param options Options to configure TestContainer.
+   * - `factoryTimeoutInMs?: number` is to override the default container timeout.
+   * @returns void
+   */
   static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<void> {
     const oldFactories = { ...Container['factories'] };
     Container.reset();
@@ -79,6 +120,19 @@ export class TestContainer {
     }
   }
 
+  /**
+   * The `TestContainer.reset()` method will completely destroy all factories from the Container.
+   * Because the entire Container is destroyed, and not just the mocks,
+   * it must always be called in your `afterAll()` block.
+   *
+   * @example
+   * ```ts
+   * afterAll(async () => {
+   *   await TestContainer.reset();
+   * });
+   * ```
+   * @returns void
+   */
   static async reset(): Promise<void> {
     for (const mock of this.packageMocks) {
       await mock.destroy();
