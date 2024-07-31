@@ -3,10 +3,25 @@ import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IService } from './service.interface.js';
 
+/**
+ * A Service model can be any third-party service that your application relies on.
+ * What separates them from Server is that Services are hosted and managed outside of your infrastructure.
+ * An external Redis server on the cloud, or a managed Kafka queue from AWS, are a few examples.
+ *
+ * @example
+ * ```ts
+ * const service = new Service('MyService');
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class Service extends AModel<IService, Service> {
   readonly MODEL_NAME: string = 'service';
 
+  /**
+   * The ID of the service.
+   */
   readonly serviceId: string;
 
   constructor(serviceId: string) {

@@ -9,10 +9,24 @@ import { Server } from '../server/server.model.js';
 import { Service } from '../service/service.model.js';
 import type { IApp } from './app.interface.js';
 
+/**
+ * An App model is the parent of all other models.
+ * It represents the main app for whom the infrastructure is being created.
+ *
+ * @example
+ * ```ts
+ * const app = new App('MyApp');
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class App extends AModel<IApp, App> {
   readonly MODEL_NAME: string = 'app';
 
+  /**
+   * The name of the app.
+   */
   readonly name: string;
 
   constructor(name: string) {
@@ -24,6 +38,9 @@ export class App extends AModel<IApp, App> {
     return [];
   }
 
+  /**
+   * To add an {@link Image}.
+   */
   addImage(image: Image): void {
     const childrenDependencies = this.getChildren('image');
     if (!childrenDependencies['image']) childrenDependencies['image'] = [];
@@ -36,6 +53,9 @@ export class App extends AModel<IApp, App> {
     this.addChild('name', image, 'imageId');
   }
 
+  /**
+   * To add a {@link Pipeline}.
+   */
   addPipeline(pipeline: Pipeline): void {
     const childrenDependencies = this.getChildren('pipeline');
     if (!childrenDependencies['pipeline']) childrenDependencies['pipeline'] = [];
@@ -48,6 +68,9 @@ export class App extends AModel<IApp, App> {
     this.addChild('name', pipeline, 'pipelineName');
   }
 
+  /**
+   * To add a {@link Region}.
+   */
   addRegion(region: Region): void {
     const childrenDependencies = this.getChildren('region');
     if (!childrenDependencies['region']) childrenDependencies['region'] = [];
@@ -60,6 +83,9 @@ export class App extends AModel<IApp, App> {
     this.addChild('name', region, 'regionId');
   }
 
+  /**
+   * To add a {@link Server}.
+   */
   addServer(server: Server): void {
     const childrenDependencies = this.getChildren('server');
     if (!childrenDependencies['server']) childrenDependencies['server'] = [];
@@ -72,6 +98,9 @@ export class App extends AModel<IApp, App> {
     this.addChild('name', server, 'serverKey');
   }
 
+  /**
+   * To add a {@link Service}.
+   */
   addService(service: Service): void {
     const childrenDependencies = this.getChildren('service');
     if (!childrenDependencies['service']) childrenDependencies['service'] = [];

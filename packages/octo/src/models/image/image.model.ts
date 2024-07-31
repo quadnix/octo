@@ -5,22 +5,59 @@ import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IImage } from './image.interface.js';
 
+/**
+ * Options passed to the Docker engine while building the image.
+ */
 export interface IImageDockerOptions {
+  /**
+   * Absolute path of the Dockerfile.
+   */
   dockerfilePath: string;
+
+  /**
+   * Build arguments, same as [--build-arg](https://docs.docker.com/build/guide/build-args/) option.
+   */
   buildArgs?: { [key: string]: string };
+
+  /**
+   * To suppress Docker output, same as [--quiet](https://docs.docker.com/reference/cli/docker/container/run/) option.
+   */
   quiet?: boolean;
 }
 
+/**
+ * An Image model represents a Docker image, to either build, or run, your microservices.
+ *
+ * @example
+ * ```ts
+ * const image = new Image('nginx', '2.4', { dockerfilePath: './Dockerfile' });
+ *
+ * const image = new Image('docker/hello-world', '1.0', { dockerfilePath: './Dockerfile' });
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class Image extends AModel<IImage, Image> {
   readonly MODEL_NAME: string = 'image';
 
   readonly dockerOptions: IImageDockerOptions;
 
+  /**
+   * An imageId is the unique identifier for this image.
+   * - Format of imageId is `{imageName}:{imageTag}`
+   */
   readonly imageId: string;
 
+  /**
+   * The name of the image, same as [namespace in Docker](https://docs.docker.com/reference/cli/docker/image/tag/).
+   */
   readonly imageName: string;
 
+  /**
+   * The tag of the image, same as [tag in Docker](https://docs.docker.com/reference/cli/docker/image/tag/).
+   * - Unlike Docker, `imageTag` is mandatory in Octo.
+   */
   readonly imageTag: string;
 
   constructor(imageName: string, imageTag: string, options: IImageDockerOptions) {

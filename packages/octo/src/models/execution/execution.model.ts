@@ -11,10 +11,29 @@ import { Server } from '../server/server.model.js';
 import { Subnet } from '../subnet/subnet.model.js';
 import type { IExecution } from './execution.interface.js';
 
+/**
+ * An Execution model is the combination of a {@link Deployment}, an {@link Environment}, and a {@link Subnet}.
+ * It represents a physical server, running the deployment code, in the given environment, placed in the given subnet.
+ *
+ * @example
+ * ```ts
+ * const deployment = new Deployment('v0.0.1');
+ * const environment = new Environment('qa');
+ * const subnet = new Subnet(region, 'private');
+ * const execution = new Execution(deployment, environment, subnet);
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class Execution extends AModel<IExecution, Execution> {
   readonly MODEL_NAME: string = 'execution';
 
+  /**
+   * A set of environment variables to be passed to the Docker container.
+   * It represents setting the [--env](https://docs.docker.com/compose/environment-variables/set-environment-variables/)
+   * option while running a Docker container.
+   */
   readonly environmentVariables: Map<string, string> = new Map();
 
   constructor(deployment: Deployment, environment: Environment, subnet: Subnet) {
@@ -62,6 +81,10 @@ export class Execution extends AModel<IExecution, Execution> {
     subnet.addChild('subnetId', this, 'executionId');
   }
 
+  /**
+   * An `executionId` is a unique identifier for this execution.
+   * - Format of executionId is `{serverKey}-{deploymentTag}-{regionId}-{environmentName}-{subnetName}`
+   */
   get executionId(): string {
     const parents = this.getParents();
     const deployment = parents['deployment'][0].to as Deployment;

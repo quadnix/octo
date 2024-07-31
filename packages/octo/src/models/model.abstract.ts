@@ -6,9 +6,19 @@ import type { AAnchor } from '../overlays/anchor.abstract.js';
 import type { IModel } from './model.interface.js';
 
 /**
- * This is the base implementation of the Model's interface,
- * and is used to define common functionality between all models.
- * All models are an extension of this class.
+ * This is Octo's base class, and all other classes extend from it.
+ * It helps provide a common set of methods and properties that is core to Octo.
+ *
+ * Octo is built as a graph, and this base class can be considered as a generic node.
+ * Nodes can have children, and siblings, but only if connected via an edge, called {@link Dependency} here.
+ *
+ * From this base class, three more base classes are derived,
+ * - [Models](/docs/fundamentals/models)
+ * - [Resources](/docs/fundamentals/resources)
+ * - [Overlays](/docs/fundamentals/overlay-and-anchor)
+ *
+ * Each of these derived base classes, using the base methods of this class,
+ * define their own specific rules on how their graphs should be constructed.
  */
 export abstract class AModel<I, T> implements IModel<I, T> {
   abstract readonly MODEL_NAME: string;
@@ -22,6 +32,13 @@ export abstract class AModel<I, T> implements IModel<I, T> {
 
   private readonly dependencies: Dependency[] = [];
 
+  /**
+   * To add an {@link Anchor}.
+   *
+   * Each node can store multiple anchors for reference.
+   * These anchors don't necessarily need to be parented by self, but must be unique,
+   * i.e. an anchor, identified by it's parent, cannot be added twice to self's list of anchors.
+   */
   addAnchor(anchor: AAnchor): void {
     const existingAnchor = this.getAnchor(anchor.anchorId, anchor.getParent());
     if (!existingAnchor) {
@@ -29,6 +46,27 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     }
   }
 
+  /**
+   * To add another node as a child of self.
+   *
+   * Every node must have a unique ID against other nodes of the same {@link MODEL_NAME}.
+   * This ID is how Octo differentiates similar nodes, and keeps track of them.
+   * But because each node is free to define their own fields,
+   * the fields containing the ID are a necessary input to this method.
+   *
+   * @example
+   * ```ts
+   * const region = new Region('region');
+   * const environment = new Environment('qa');
+   * region.addChild('regionId', environment, 'environmentName');
+   * ```
+   * @param onField The field in self which contains the unique ID.
+   * @param child The child node.
+   * @param toField The field in child which contains the unique ID.
+   * @returns
+   * - childToParentDependency: The dependency edge from child to self.
+   * - parentToChildDependency: The dependency edge from self to child.
+   */
   addChild(
     onField: keyof T | string,
     child: UnknownModel,
@@ -54,6 +92,20 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return { childToParentDependency, parentToChildDependency };
   }
 
+  /**
+   * To add another node as a sibling of self.
+   *
+   * @example
+   * ```ts
+   * const region1 = new Region('region-1');
+   * const region2 = new Region('region-2');
+   * region1.addSibling(region2);
+   * ```
+   * @param to The sibling node.
+   * @returns
+   * - thatToThisDependency: The dependency edge from sibling to self.
+   * - thisToThatDependency: The dependency edge from self to sibling.
+   */
   addRelationship(to: UnknownModel): { thatToThisDependency: Dependency; thisToThatDependency: Dependency } {
     const thisToThatDependency = new Dependency(this, to);
     this.dependencies.push(thisToThatDependency);
@@ -62,10 +114,25 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return { thatToThisDependency, thisToThatDependency };
   }
 
+  /**
+   * To derive the name of the field in self which contains the ID.
+   *
+   * @remarks This method does a best attempt search of the field name by traversing all dependencies of self.
+   * But if the dependencies lack, or have not been added yet, this method might return `undefined`.
+   * That does not mean that such a field does not exist,
+   * but rather that it wasn't possible to derive the name at that point.
+   * @returns The name of the field in self which contains the ID, or `undefined` if not found.
+   */
   deriveDependencyField(): string | undefined {
     return this.dependencies.find((d) => d.getRelationship() !== undefined)?.getRelationship()!.onField;
   }
 
+  /**
+   * Compares and calculates the difference between the current version of self node, and the previous version.
+   * - Recursively compares self children too.
+   *
+   * @param previous The previous version of self.
+   */
   async diff(previous?: T): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -156,10 +223,19 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return diffs;
   }
 
+  /**
+   * To compare properties of the current version of self node, vs. the previous version.
+   * It is a helper method to the `diff()` method.
+   * - This method is called by the {@link diff()} method.
+   *
+   * @param previous The previous version of self.
+   */
   abstract diffProperties(previous: T): Promise<Diff[]>;
 
   /**
-   * Get an array of ancestors which must exist for self to exist.
+   * To get all ancestors of self.
+   * - Includes parent nodes.
+   * - Might include sibling nodes, if they are necessary for self node to exist.
    */
   getAncestors(): UnknownModel[] {
     const members: UnknownModel[] = [this];
@@ -191,24 +267,45 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return membersProcessed;
   }
 
+  /**
+   * To get an anchor with a given ID and parent.
+   *
+   * @param anchorId The ID of the anchor.
+   * @param parent The parent of the anchor.
+   * - If parent is not given, then self is considered the parent of this anchor.
+   */
   getAnchor(anchorId: string, parent?: UnknownModel): AAnchor | undefined {
     const index = this.getAnchorIndex(anchorId, parent);
     return index > -1 ? this.anchors[index] : undefined;
   }
 
+  /**
+   * To get the index of an anchor with a given ID and parent.
+   *
+   * @param anchorId The ID of the anchor.
+   * @param parent The parent of the anchor.
+   * - If parent is not given, then self is considered the parent of this anchor.
+   */
   getAnchorIndex(anchorId: string, parent?: UnknownModel): number {
     return this.anchors.findIndex(
       (a) => a.anchorId === anchorId && a.getParent().getContext() === (parent || this).getContext(),
     );
   }
 
+  /**
+   * To get all anchors, filtered by anchor properties.
+   *
+   * @param filters A set of filters, where `key` is the property name and `value` is the value to filter by.
+   */
   getAnchors(filters: { key: string; value: any }[] = []): AAnchor[] {
     return this.anchors.filter((a) => filters.every((c) => a[c.key] === c.value));
   }
 
   /**
-   * Get a boundary (sub graph) of a model, i.e. an array of models that must belong together.
-   * To generate a boundary, we must process all children and grand-children of self.
+   * To get a boundary (sub graph) of self.
+   * A boundary is a group of nodes that must belong together.
+   * The boundary consists of all nodes associated with self,
+   * which includes parents, grand parents, children, grand children, and siblings.
    */
   getBoundaryMembers(): UnknownModel[] {
     const extenders: UnknownModel[] = [this];
@@ -284,6 +381,14 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return members;
   }
 
+  /**
+   * To get a child of self that matches the given filters.
+   *
+   * @param modelName The {@link MODEL_NAME} of the child.
+   * @param filters A set of filters, to be applied on children,
+   * where `key` is the property name and `value` is the value to filter by.
+   * @throws {@link Error} If more than one child is found.
+   */
   getChild(modelName: string, filters: { key: string; value: any }[] = []): UnknownModel | undefined {
     const dependencies = this.getChildren(modelName)[modelName]?.filter((d) =>
       filters.every((c) => d.to[c.key] === c.value),
@@ -297,6 +402,18 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return dependencies[0].to;
   }
 
+  /**
+   * To get all children of self.
+   *
+   * @example
+   * ```ts
+   * const children = region.getChildren('environment');
+   * const environments = children['environment'].map((d) => d.to);
+   * ```
+   * @param modelName The {@link MODEL_NAME} of the children.
+   * @returns All children as an object with the {@link MODEL_NAME} as the key,
+   * and self's dependency to the child as the value.
+   */
   getChildren(modelName?: string): { [key: string]: Dependency[] } {
     return this.dependencies
       .filter((d) => d.isParentRelationship() && (modelName ? d.to.MODEL_NAME === modelName : true))
@@ -309,6 +426,18 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       }, {});
   }
 
+  /**
+   * To get the context of self.
+   * A context is a string representation of self that uniquely identifies self in the graph.
+   *
+   * @example
+   * ```ts
+   * const app = new App('my-app');
+   * const region = new Region('my-region');
+   * app.addRegion(region);
+   * const context = region.getContext(); // "region=my-region,app=my-app"
+   * ```
+   */
   getContext(): string {
     if (!this.context) {
       this.context = this.setContext();
@@ -316,6 +445,12 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     return this.context;
   }
 
+  /**
+   * To get all dependencies of self.
+   * - Can be filtered to just dependencies with a single node.
+   *
+   * @param to The other node. If present, will only return dependencies of self with this node.
+   */
   getDependencies(to?: UnknownModel): Dependency[] {
     const filters: { key: string; value: string }[] = [];
     if (to) {
@@ -333,11 +468,25 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     });
   }
 
+  /**
+   * To get a dependency of self with another node.
+   *
+   * @param to The other node.
+   * @param relationship The relationship between self and the other node.
+   * @returns The dependency with the other node having the given relationship, or `undefined` if not found.
+   */
   getDependency(to: UnknownModel, relationship: DependencyRelationship): Dependency | undefined {
     const index = this.getDependencyIndex(to, relationship);
     return index > -1 ? this.dependencies[index] : undefined;
   }
 
+  /**
+   * To get the index of a dependency of self with another node.
+   *
+   * @param to The other node.
+   * @param relationship The relationship between self and the other node.
+   * @returns The index of the dependency with the other node having the given relationship, or `-1` if not found.
+   */
   getDependencyIndex(to: UnknownModel, relationship: DependencyRelationship): number {
     return this.dependencies.findIndex(
       (d) =>
@@ -348,6 +497,18 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     );
   }
 
+  /**
+   * To get all parent of self.
+   *
+   * @example
+   * ```ts
+   * const parents = environment.getParents('region');
+   * const regions = parents['region'].map((d) => d.to);
+   * ```
+   * @param modelName The {@link MODEL_NAME} of the parent.
+   * @returns All parents as an object with the {@link MODEL_NAME} as the key,
+   * and self's dependency to the parent as the value.
+   */
   getParents(modelName?: string): { [key: string]: Dependency[] } {
     return this.dependencies
       .filter((d) => d.isChildRelationship() && (modelName ? d.to.MODEL_NAME === modelName : true))
@@ -360,6 +521,32 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       }, {});
   }
 
+  /**
+   * To get all siblings of self.
+   *
+   * :::note Note
+   * Two environments, or two regions, etc. are not automatically considered siblings,
+   * unless they have a dependency between them.
+   *
+   * ```ts
+   * const environment1 = new Environment('qa');
+   * const environment2 = new Environment('prod');
+   * const region = new Region('region');
+   * region.addEnvironment(environment1);
+   * region.addEnvironment(environment2);
+   * environment1.getSiblings('environment'); // This won't return a dependency to environment2.
+   * ```
+   * :::
+   *
+   * @example
+   * ```ts
+   * const siblings = environment.getSiblings('image');
+   * const images = siblings['image'].map((d) => d.to);
+   * ```
+   * @param modelName The {@link MODEL_NAME} of the sibling.
+   * @returns All siblings as an object with the {@link MODEL_NAME} as the key,
+   * and self's dependency to the sibling as the value.
+   */
   getSiblings(modelName?: string): { [key: string]: Dependency[] } {
     return this.dependencies
       .filter(
@@ -375,6 +562,11 @@ export abstract class AModel<I, T> implements IModel<I, T> {
       }, {});
   }
 
+  /**
+   * To check if given node is an ancestor of self.
+   *
+   * @param model The other node.
+   */
   hasAncestor(model: UnknownModel): boolean {
     const modelParts = model
       .getContext()
@@ -396,10 +588,41 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     });
   }
 
+  /**
+   * To check if self is marked as deleted.
+   * A deleted node will be removed from the graph after the transaction.
+   */
   isMarkedDeleted(): boolean {
     return this._deleteMarker;
   }
 
+  /**
+   * To mark self as deleted.
+   * A deleted node will be removed from the graph after the transaction.
+   * - A node cannot be deleted if it has dependencies.
+   * - Unless the dependency is a sibling dependency and `ignoreDirectRelationships` is `true`.
+   *
+   * @example
+   * ```ts
+   * const region1 = new Region('region-1');
+   * const environment = new Environment('environment');
+   * region1.addEnvironment(environment);
+   * const region2 = new Region('region-2');
+   * region1.addSibling(region2);
+   *
+   * // Cannot remove region1 because it has dependencies.
+   * region1.remove(); // throws.
+   *
+   * // Still can't remove region1 because it has a sibling dependency.
+   * environment.remove(); // ok.
+   * region1.remove(); // throws.
+   *
+   * // But can remove region1 when sibling relationships are ignored.
+   * region1.remove(true); // ok.
+   * ```
+   * @param ignoreDirectRelationships Whether to ignore sibling relationships.
+   * @throws {@link Error} If node contains dependencies to other nodes.
+   */
   remove(ignoreDirectRelationships = false): void {
     // Verify model can be removed.
     for (const dependency of this.dependencies) {
@@ -422,6 +645,9 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     this._deleteMarker = true;
   }
 
+  /**
+   * To remove all anchors from self.
+   */
   removeAllAnchors(): void {
     let anchors = this.getAnchors();
     while (anchors.length > 0) {
@@ -430,6 +656,11 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     }
   }
 
+  /**
+   * To remove an anchor from self.
+   *
+   * @param anchor The anchor to remove.
+   */
   removeAnchor(anchor: AAnchor): void {
     const existingAnchorIndex = this.getAnchorIndex(anchor.anchorId, anchor.getParent());
     if (existingAnchorIndex !== -1) {
@@ -437,12 +668,22 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     }
   }
 
+  /**
+   * To remove a dependency from self.
+   *
+   * @param dependencyIndex The index of the dependency to remove.
+   */
   removeDependency(dependencyIndex: number): void {
     if (dependencyIndex > -1 && dependencyIndex < this.dependencies.length) {
       this.dependencies.splice(dependencyIndex, 1);
     }
   }
 
+  /**
+   * To remove ALL dependencies from self for the given node.
+   *
+   * @param model The other node.
+   */
   removeRelationship(model: UnknownModel): void {
     for (let i = this.dependencies.length - 1; i >= 0; i--) {
       const dependency = this.dependencies[i];
@@ -459,10 +700,22 @@ export abstract class AModel<I, T> implements IModel<I, T> {
     }
   }
 
+  /**
+   * To set the context of self.
+   * A context is a string representation of self that uniquely identifies self in the graph.
+   */
   abstract setContext(): string;
 
+  /**
+   * Generates a serializable representation of self.
+   */
   abstract synth(): I;
 
+  /**
+   * To create self given its serialized representation.
+   * - First argument is the serialized representation.
+   * - Second argument is the `deReferenceContext()` function to resolve other nodes self depends on.
+   */
   static async unSynth(...args: unknown[]): Promise<UnknownModel> {
     if (args.length > 4) {
       throw new Error('Too many args in unSynth()');

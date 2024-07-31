@@ -97,7 +97,6 @@ export class Container {
    * @param factory The factory class being registered.
    * @param options Distinguishes between different factories of the same class.
    * - The `metadata` attaches custom metadata to the factory.
-   * @returns void
    */
   static registerFactory<T>(
     type: Constructable<T> | string,
@@ -140,8 +139,6 @@ export class Container {
 
   /**
    * `Container.reset()` clears all registered factories and empties the container. This is mostly used in testing.
-   *
-   * @returns void
    */
   static reset(): void {
     this.FACTORY_TIMEOUT_IN_MS = 5000;
@@ -170,7 +167,6 @@ export class Container {
    * ```
    * @param type The type or name of the class for which the default factory is set.
    * @param factory The factory class being set as default.
-   * @returns void
    */
   static setDefault<T>(type: Constructable<T> | string, factory: Factory<T>): void {
     const name = typeof type === 'string' ? type : type.name;
@@ -185,7 +181,6 @@ export class Container {
    * This method allows to change that timeout.
    *
    * @param timeoutInMs The timeout in milliseconds.
-   * @returns void
    */
   static setFactoryTimeout(timeoutInMs: number): void {
     this.FACTORY_TIMEOUT_IN_MS = timeoutInMs;
@@ -195,7 +190,6 @@ export class Container {
    * `Container.unRegisterFactory()` will unregister all factories of a class.
    *
    * @param type The type or name of the class for which all factory is unregistered.
-   * @returns void
    */
   static unRegisterFactory<T>(type: Constructable<T> | string): void {
     const name = typeof type === 'string' ? type : type.name;

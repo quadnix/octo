@@ -4,10 +4,25 @@ import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IDeployment } from './deployment.interface.js';
 
+/**
+ * A deployment model is an instance of server's code at a specific point in time.
+ * Every change/commit in server code should generate a new deployment.
+ *
+ * @example
+ * ```ts
+ * const deployment = new Deployment('v0.0.1');
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class Deployment extends AModel<IDeployment, Deployment> {
   readonly MODEL_NAME: string = 'deployment';
 
+  /**
+   * The identifying tag that can point to the server's code at a specific point in time.
+   * Could be a version number or a commit hash.
+   */
   readonly deploymentTag: string;
 
   constructor(deploymentTag: string) {

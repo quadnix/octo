@@ -6,6 +6,18 @@ import { AModel } from '../model.abstract.js';
 import { Subnet } from '../subnet/subnet.model.js';
 import type { IRegion } from './region.interface.js';
 
+/**
+ * A Region model is a physical geographical area where the app can be deployed.
+ * Typically, for redundancy and low latency, an app is deployed in multiple regions.
+ * Therefore, it's common to have multiple region nodes under the app.
+ *
+ * @example
+ * ```ts
+ * const region = new Region('us-east-1');
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class Region extends AModel<IRegion, Region> {
   readonly MODEL_NAME: string = 'region';
@@ -18,6 +30,9 @@ export class Region extends AModel<IRegion, Region> {
     this.regionId = regionId;
   }
 
+  /**
+   * To add an {@link Environment}.
+   */
   addEnvironment(environment: Environment): void {
     const childrenDependencies = this.getChildren('environment');
     if (!childrenDependencies['environment']) childrenDependencies['environment'] = [];
@@ -30,6 +45,9 @@ export class Region extends AModel<IRegion, Region> {
     this.addChild('regionId', environment, 'environmentName');
   }
 
+  /**
+   * To add a {@link Subnet}.
+   */
   addSubnet(subnet: Subnet): void {
     const childrenDependencies = this.getChildren('subnet');
     if (!childrenDependencies['subnet']) childrenDependencies['subnet'] = [];

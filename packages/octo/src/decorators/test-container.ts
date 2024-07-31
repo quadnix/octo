@@ -76,7 +76,6 @@ export class TestContainer {
    *   - Use `value: T` to provide the mocked value.
    * @param options Options to configure TestContainer.
    * - `factoryTimeoutInMs?: number` is to override the default container timeout.
-   * @returns void
    */
   static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<void> {
     const oldFactories = { ...Container['factories'] };
@@ -131,7 +130,6 @@ export class TestContainer {
    *   await TestContainer.reset();
    * });
    * ```
-   * @returns void
    */
   static async reset(): Promise<void> {
     for (const mock of this.packageMocks) {

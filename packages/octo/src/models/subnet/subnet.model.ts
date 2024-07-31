@@ -5,11 +5,36 @@ import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
 import type { ISubnet } from './subnet.interface.js';
 
+/**
+ * The type of subnet.
+ */
 export enum SubnetType {
+  /**
+   * A public subnet is open to the internet,
+   * i.e. an {@link Execution} within this subnet can be accessed from the internet.
+   * Other than access from the internet, any other access needs to be explicitly allowed.
+   */
   PUBLIC = 'public',
+
+  /**
+   * A private subnet has limited access to anything outside of this subnet, including access from the internet.
+   * Access to this subnet needs to be explicitly allowed.
+   */
   PRIVATE = 'private',
 }
 
+/**
+ * A Subnet model is the logical sub-division of the region, e.g. a public and a private subnet.
+ * A subnet is often used to isolate parts of your infrastructure with access gates in the front.
+ * - A subnet can only belong to one region, but a region can have multiple subnets.
+ *
+ * @example
+ * ```ts
+ * const subnet = new Subnet(region, SubnetType.PRIVATE);
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class Subnet extends AModel<ISubnet, Subnet> {
   readonly MODEL_NAME: string = 'subnet';
@@ -19,8 +44,15 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     subnetType: SubnetType.PRIVATE,
   };
 
+  /**
+   * The ID of the subnet.
+   * - Format is `{regionId}-{subnetName}`
+   */
   readonly subnetId: string;
 
+  /**
+   * The name of the subnet.
+   */
   readonly subnetName: string;
 
   constructor(region: Region, name: string) {
@@ -30,6 +62,14 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     this.subnetName = name;
   }
 
+  /**
+   * To block/disable intra-network communication within self.
+   * When this is set to `true`,
+   * any execution within this subnet will not be able to communicate with other executions within the same subnet.
+   *
+   * @defaultValue `false`
+   * @experimental
+   */
   get disableSubnetIntraNetwork(): boolean {
     return this.options.disableSubnetIntraNetwork;
   }
@@ -91,6 +131,15 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     return newSubnet;
   }
 
+  /**
+   * To update the networking rules of this subnet to allow or deny connectivity from another subnet.
+   * The networking rules are bi-directional,
+   * i.e. if subnet A can connect to subnet B, then subnet B can also connect to subnet A.
+   *
+   * @param subnet The other subnet.
+   * @param allowConnections Set to `true` to allow this and the other subnet to connect.
+   * Set to `false` to block this and the other subnet from connecting.
+   */
   updateNetworkingRules(subnet: Subnet, allowConnections: boolean): void {
     const siblingDependencies = this.getSiblings('subnet');
     if (!siblingDependencies['subnet']) siblingDependencies['subnet'] = [];

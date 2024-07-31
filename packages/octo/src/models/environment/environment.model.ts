@@ -5,12 +5,30 @@ import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IEnvironment } from './environment.interface.js';
 
+/**
+ * An Environment model is the logical sub-section of a Region which isolates one runtime environment from another.
+ * E.g. qa, staging, production, etc.
+ *
+ * @example
+ * ```ts
+ * const environment = new Environment('qa');
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class Environment extends AModel<IEnvironment, Environment> {
   readonly MODEL_NAME: string = 'environment';
 
+  /**
+   * The name of the environment.
+   * An environment must be unique within a Region. But multiple Regions can share the same environment name.
+   */
   readonly environmentName: string;
 
+  /**
+   * A set of environment variables to be passed to any {@link Execution} running in this environment.
+   */
   readonly environmentVariables: Map<string, string> = new Map();
 
   constructor(environmentName: string) {

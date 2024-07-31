@@ -43,7 +43,6 @@ export class Event<T> {
    * @param args Arguments are spread out using the array spread operator.
    * - args[0] - Instance of {@link EventService}.
    * - args[1] - [PropertyDescriptor](https://www.typescriptlang.org/docs/handbook/decorators.html).
-   * @returns void
    */
   static registrar(...args: [EventService, PropertyDescriptor]): void {
     if (args.length !== 2) {

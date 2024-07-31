@@ -5,10 +5,24 @@ import { Deployment } from '../deployment/deployment.model.js';
 import { AModel } from '../model.abstract.js';
 import type { IServer } from './server.interface.js';
 
+/**
+ * A Server model is a representation of the logical microservice.
+ * E.g. frontend, backend, database, payment-service, etc.
+ *
+ * @example
+ * ```ts
+ * const server = new Server('backend');
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class Server extends AModel<IServer, Server> {
   readonly MODEL_NAME: string = 'server';
 
+  /**
+   * The name of the server.
+   */
   readonly serverKey: string;
 
   constructor(serverKey: string) {
@@ -16,6 +30,9 @@ export class Server extends AModel<IServer, Server> {
     this.serverKey = serverKey;
   }
 
+  /**
+   * To add a {@link Deployment}.
+   */
   addDeployment(deployment: Deployment): void {
     const childrenDependencies = this.getChildren('deployment');
     if (!childrenDependencies['deployment']) childrenDependencies['deployment'] = [];

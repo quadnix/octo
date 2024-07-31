@@ -5,6 +5,21 @@ import { AModel } from '../model.abstract.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import type { IPipeline } from './pipeline.interface.js';
 
+/**
+ * A Pipeline model is a CI/CD pipeline capable of various automations,
+ * including building and deploying code, running Octo projects, and more.
+ *
+ * :::danger Danger
+ * `Pipeline` is not yet supported in Octo!
+ * :::
+ *
+ * @example
+ * ```ts
+ * const pipeline = new Pipeline('MyPipeline');
+ * ```
+ * @group Models
+ * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
+ */
 @Model()
 export class Pipeline extends AModel<IPipeline, Pipeline> {
   readonly MODEL_NAME: string = 'pipeline';
