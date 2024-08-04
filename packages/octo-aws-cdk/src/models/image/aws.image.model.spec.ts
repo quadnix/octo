@@ -1,5 +1,6 @@
-import { App, Image, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
 import { OctoAwsCdkPackageMock } from '../../index.js';
+import { AwsImage } from './aws.image.model.js';
 
 describe('Image UT', () => {
   beforeAll(async () => {
@@ -34,7 +35,7 @@ describe('Image UT', () => {
     it('should create new image repository and delete it', async () => {
       // Add image.
       const app = new App('test');
-      const image1 = new Image('quadnix/test', '0.0.1', {
+      const image1 = new AwsImage('quadnix/test', '0.0.1', {
         dockerfilePath: 'path/to/Dockerfile',
       });
       app.addImage(image1);

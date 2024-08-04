@@ -1,9 +1,9 @@
-import { App, type DiffMetadata, Image, LocalStateProvider } from '@quadnix/octo';
+import { App, type DiffMetadata, LocalStateProvider } from '@quadnix/octo';
 import { existsSync, unlink } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
-import { EcrService, OctoAws, RegionId } from '../../../src/index.js';
+import { AwsImage, EcrService, OctoAws, RegionId } from '../../../src/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
@@ -23,7 +23,7 @@ describe('Image & ECRService E2E Test', () => {
     });
 
     const app = new App('test');
-    const image1 = new Image('quadnix/test', '0.0.1', {
+    const image1 = new AwsImage('quadnix/test', '0.0.1', {
       dockerfilePath: join(__dirname, '../../../../../resources/images/quadnix/nginx/0.0.1/Dockerfile'),
     });
     app.addImage(image1);

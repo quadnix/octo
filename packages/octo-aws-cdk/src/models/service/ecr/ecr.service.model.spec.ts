@@ -1,6 +1,7 @@
-import { App, Image, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
 import { EcrService, OctoAwsCdkPackageMock, RegionId } from '../../../index.js';
 import type { IEcrImageResponse } from '../../../resources/ecr/ecr-image.interface.js';
+import { AwsImage } from '../../image/aws.image.model.js';
 
 describe('EcrService UT', () => {
   beforeAll(async () => {
@@ -19,7 +20,7 @@ describe('EcrService UT', () => {
   describe('addImage()', () => {
     it('should throw error trying to add an image to a service without region', () => {
       const service = new EcrService('test');
-      const image = new Image('test', '0.0.1', { dockerfilePath: '/dockerExec' });
+      const image = new AwsImage('test', '0.0.1', { dockerfilePath: '/dockerExec' });
 
       expect(() => {
         service.addImage(image);
@@ -31,7 +32,7 @@ describe('EcrService UT', () => {
     it('should throw error trying to add an image to another service', () => {
       const service = new EcrService('test');
       service.addRegion(RegionId.AWS_US_EAST_1A);
-      const image = new Image('another', '0.0.1', { dockerfilePath: '/dockerExec' });
+      const image = new AwsImage('another', '0.0.1', { dockerfilePath: '/dockerExec' });
 
       expect(() => {
         service.addImage(image);
@@ -42,10 +43,10 @@ describe('EcrService UT', () => {
       const service = new EcrService('test');
       service.addRegion(RegionId.AWS_US_EAST_1A);
 
-      const image1 = new Image('test', '0.0.1', { dockerfilePath: '/dockerExec' });
+      const image1 = new AwsImage('test', '0.0.1', { dockerfilePath: '/dockerExec' });
       service.addImage(image1);
 
-      const image2 = new Image('test', '0.0.1', { dockerfilePath: '/dockerExec' });
+      const image2 = new AwsImage('test', '0.0.1', { dockerfilePath: '/dockerExec' });
       service.addImage(image2);
 
       expect(service.images).toHaveLength(1);
@@ -102,9 +103,9 @@ describe('EcrService UT', () => {
     it('should create a new image with ecr and delete it', async () => {
       // Create images.
       const app = new App('test');
-      const image1 = new Image('imageName', '0.0.1', { dockerfilePath: 'Dockerfile' });
+      const image1 = new AwsImage('imageName', '0.0.1', { dockerfilePath: 'Dockerfile' });
       app.addImage(image1);
-      const image2 = new Image('imageName', '0.0.2', { dockerfilePath: 'Dockerfile' });
+      const image2 = new AwsImage('imageName', '0.0.2', { dockerfilePath: 'Dockerfile' });
       app.addImage(image2);
       const service = new EcrService('imageName');
       service.addRegion(RegionId.AWS_US_EAST_1A);

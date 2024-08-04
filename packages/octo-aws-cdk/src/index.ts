@@ -32,6 +32,7 @@ export { AwsExecution } from './models/execution/aws.execution.model.js';
 import './models/execution/actions/add-execution.model.action.js';
 import './models/execution/actions/delete-execution.model.action.js';
 
+export { AwsImage } from './models/image/aws.image.model.js';
 import './models/image/actions/add-image.model.action.js';
 import './models/image/actions/delete-image.model.action.js';
 
