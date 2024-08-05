@@ -16,7 +16,7 @@ export class TestModuleContainer {
 
   private readonly inputs: InputService['inputs'] = {};
 
-  private readonly octo: Octo;
+  readonly octo: Octo;
 
   constructor({
     inputs = {},
@@ -73,7 +73,7 @@ export class TestModuleContainer {
     this.octo.registerInputs(this.inputs);
   }
 
-  async load(
+  async loadModules(
     modules: {
       hidden?: boolean;
       properties?: Parameters<typeof Module>[0];
@@ -89,11 +89,13 @@ export class TestModuleContainer {
       }
 
       const moduleMetadata = moduleContainer.getModuleMetadata(moduleOverrides.type)!;
-      moduleMetadata.module = moduleOverrides.type;
-
-      if (moduleOverrides.hidden !== undefined) {
-        moduleMetadata.hidden = moduleOverrides.hidden;
+      // Override module hidden metadata.
+      if (moduleOverrides.hidden === true) {
+        moduleContainer.unload(moduleMetadata.module);
+      } else {
+        moduleContainer.load(moduleMetadata.module);
       }
+      // Override module properties.
       for (const [key, value] of Object.entries(moduleOverrides.properties || {})) {
         moduleMetadata.properties[key] = value;
       }

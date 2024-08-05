@@ -307,6 +307,7 @@ describe('TransactionService UT', () => {
     });
 
     it('should skip processing diffs that are already applied', async () => {
+      (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
       const [resource1] = await createTestResources({ 'resource-1': [] });
 
       const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
@@ -320,6 +321,7 @@ describe('TransactionService UT', () => {
     });
 
     it('should only process 1 matching diff when duplicates found', async () => {
+      (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
       const [resource1] = await createTestResources({ 'resource-1': [] });
 
       const diff1 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
@@ -335,6 +337,7 @@ describe('TransactionService UT', () => {
     });
 
     it('should process diffs of resources per dependency graph', async () => {
+      (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
       const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
 
       const diff1 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
@@ -670,6 +673,7 @@ describe('TransactionService UT', () => {
       };
 
       it('should yield resource transaction', async () => {
+        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
         const resourceDataRepository = await Container.get(ResourceDataRepository);
 
         const [resource1] = await createTestResources({ 'resource-1': [] });
@@ -734,7 +738,7 @@ describe('TransactionService UT', () => {
         {
           ACTION_NAME: 'test',
           filter: (): boolean => true,
-          handle: jest.fn() as jest.Mocked<any>,
+          handle: (jest.fn() as jest.Mocked<any>).mockResolvedValue(),
           mock: jest.fn() as jest.Mocked<any>,
         },
       ]);

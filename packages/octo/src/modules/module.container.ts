@@ -84,9 +84,16 @@ export class ModuleContainer {
     return name in this.outputs ? (this.outputs[name] as T) : undefined;
   }
 
+  load(module: Constructable<IModule<unknown>>): void {
+    const m = this.getModuleMetadata(module);
+    if (m) {
+      m.hidden = false;
+    }
+  }
+
   register(module: Constructable<IModule<unknown>>, properties: Parameters<typeof Module>[0]): void {
     if (!this.modules.some((m) => m.module.name === module.name)) {
-      this.modules.push({ applied: false, applyOrder: -1, hidden: false, module, properties });
+      this.modules.push({ applied: false, applyOrder: -1, hidden: true, module, properties });
     }
   }
 
@@ -102,7 +109,7 @@ export class ModuleContainer {
     this.modules.map((m) => {
       m.applied = false;
       m.applyOrder = -1;
-      m.hidden = false;
+      m.hidden = true;
     });
   }
 
@@ -131,6 +138,13 @@ export class ModuleContainer {
     }
 
     moduleMetadata.applyOrder = Math.max(...parentModuleApplyOrders) + 1;
+  }
+
+  unload(module: Constructable<IModule<unknown>>): void {
+    const m = this.getModuleMetadata(module);
+    if (m) {
+      m.hidden = true;
+    }
   }
 }
 

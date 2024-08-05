@@ -25,6 +25,7 @@ export class Octo {
   private captureService: CaptureService;
   private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
+  private moduleContainer: ModuleContainer;
   private resourceDataRepository: ResourceDataRepository;
   private resourceSerializationService: ResourceSerializationService;
   private stateManagementService: StateManagementService;
@@ -53,17 +54,15 @@ export class Octo {
   }
 
   async compose(): Promise<void> {
-    const moduleContainer = await Container.get(ModuleContainer);
-    await moduleContainer.apply();
+    await this.moduleContainer.apply();
   }
 
   getAllResources(): UnknownResource[] {
     return this.resourceDataRepository.getByProperties();
   }
 
-  async getModuleOutput<T>(module: Constructable<IModule<T>> | string): Promise<T | undefined> {
-    const moduleContainer = await Container.get(ModuleContainer);
-    return moduleContainer.getOutput(module);
+  getModuleOutput<T>(module: Constructable<IModule<T>> | string): T | undefined {
+    return this.moduleContainer.getOutput(module);
   }
 
   async initialize(
@@ -80,6 +79,7 @@ export class Octo {
       this.captureService,
       this.inputService,
       this.modelSerializationService,
+      this.moduleContainer,
       this.resourceDataRepository,
       this.resourceSerializationService,
       this.stateManagementService,
@@ -88,6 +88,7 @@ export class Octo {
       Container.get(CaptureService),
       Container.get(InputService),
       Container.get(ModelSerializationService),
+      Container.get(ModuleContainer),
       Container.get(ResourceDataRepository),
       Container.get(ResourceSerializationService),
       Container.get(StateManagementService, { args: [stateProvider] }),
@@ -104,6 +105,12 @@ export class Octo {
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
     this.previousApp = await this.retrieveModelState();
+  }
+
+  loadModules(modules: Constructable<IModule<any>>[]): void {
+    for (const module of modules) {
+      this.moduleContainer.load(module);
+    }
   }
 
   registerCapture<T extends AResource<T>>(
