@@ -1,9 +1,11 @@
 import type { Constructable } from '../app.type.js';
+import { RegistrationErrorEvent } from '../events/error.event.js';
 import type { Octo } from '../main.js';
 import type { IModelAction } from '../models/model-action.interface.js';
 import { ModuleContainer } from '../modules/module.container.js';
 import { type IModule } from '../modules/module.interface.js';
 import type { IResourceAction } from '../resources/resource-action.interface.js';
+import { EventService } from '../services/event/event.service.js';
 import { Container } from './container.js';
 
 /**
@@ -92,22 +94,26 @@ export function Module({
   }[];
 }): (constructor: any) => void {
   return function (constructor: Constructable<IModule<unknown>>) {
-    Container.get(ModuleContainer).then((moduleContainer) => {
-      // Verify classes with @Module implements IModule.
-      if (!('onInit' in constructor.prototype)) {
-        throw new Error(`Class "${constructor.name}" does not implement IModule!`);
-      }
+    Container.get(ModuleContainer)
+      .then((moduleContainer) => {
+        // Verify classes with @Module implements IModule.
+        if (!('onInit' in constructor.prototype)) {
+          throw new Error(`Class "${constructor.name}" does not implement IModule!`);
+        }
 
-      moduleContainer.register(constructor, {
-        args,
-        imports,
-        postCommitHooks,
-        postModelActionHooks,
-        postResourceActionHooks,
-        preCommitHooks,
-        preModelActionHooks,
-        preResourceActionHooks,
+        moduleContainer.register(constructor, {
+          args,
+          imports,
+          postCommitHooks,
+          postModelActionHooks,
+          postResourceActionHooks,
+          preCommitHooks,
+          preModelActionHooks,
+          preResourceActionHooks,
+        });
+      })
+      .catch((error) => {
+        EventService.getInstance().emit(new RegistrationErrorEvent(error));
       });
-    });
   };
 }
