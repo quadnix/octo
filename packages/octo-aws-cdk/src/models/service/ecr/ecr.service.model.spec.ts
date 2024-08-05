@@ -89,8 +89,7 @@ describe('EcrService UT', () => {
           },
         },
         inputs: {
-          'input.image.imageName:0.0.1.dockerExecutable': 'docker',
-          'input.image.imageName:0.0.2.dockerExecutable': 'docker',
+          'input.image.dockerExecutable': 'docker',
         },
       });
       await testModuleContainer.initialize();

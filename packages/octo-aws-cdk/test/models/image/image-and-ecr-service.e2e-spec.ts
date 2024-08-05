@@ -19,7 +19,7 @@ describe('Image & ECRService E2E Test', () => {
     const octoAws = new OctoAws();
     await octoAws.initialize(new LocalStateProvider(__dirname));
     octoAws.registerInputs({
-      'input.image.quadnix/test:0.0.1.dockerExecutable': 'docker',
+      'input.image.dockerExecutable': 'docker',
     });
 
     const app = new App('test');

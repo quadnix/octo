@@ -17,10 +17,8 @@ import { EcrService } from '../ecr.service.model.js';
 export class AddImageToEcrModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddImageToEcrModelAction';
 
-  collectInput(diff: Diff): string[] {
-    const { image } = diff.value as { image: Image };
-
-    return [`input.image.${image.imageId}.dockerExecutable`];
+  collectInput(): string[] {
+    return ['input.image.dockerExecutable'];
   }
 
   filter(diff: Diff): boolean {
@@ -36,7 +34,7 @@ export class AddImageToEcrModelAction implements IModelAction {
     // Get properties.
     const { awsRegionId, image } = diff.value as { awsRegionId: string; image: Image };
 
-    const dockerExec = actionInputs[`input.image.${image.imageId}.dockerExecutable`] as string;
+    const dockerExec = actionInputs['input.image.dockerExecutable'] as string;
     const dockerfileParts = parse(image.dockerOptions.dockerfilePath);
 
     // Create ECR.

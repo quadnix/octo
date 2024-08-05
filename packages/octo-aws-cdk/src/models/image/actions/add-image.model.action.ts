@@ -16,10 +16,8 @@ import { ProcessUtility } from '../../../utilities/process/process.utility.js';
 export class AddImageModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddImageModelAction';
 
-  collectInput(diff: Diff): string[] {
-    const { imageId } = diff.model as Image;
-
-    return [`input.image.${imageId}.dockerExecutable`];
+  collectInput(): string[] {
+    return ['input.image.dockerExecutable'];
   }
 
   filter(diff: Diff): boolean {
@@ -34,7 +32,7 @@ export class AddImageModelAction implements IModelAction {
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     const { dockerOptions, imageId } = diff.model as Image;
 
-    const dockerExec = actionInputs[`input.image.${imageId}.dockerExecutable`] as string;
+    const dockerExec = actionInputs['input.image.dockerExecutable'] as string;
 
     // Build command to build image.
     const dockerfileParts = parse(dockerOptions.dockerfilePath);

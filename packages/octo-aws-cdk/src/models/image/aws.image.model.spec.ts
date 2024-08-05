@@ -22,7 +22,7 @@ describe('Image UT', () => {
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
         inputs: {
-          'input.image.quadnix/test:0.0.1.dockerExecutable': 'docker',
+          'input.image.dockerExecutable': 'docker',
         },
       });
       await testModuleContainer.initialize();
