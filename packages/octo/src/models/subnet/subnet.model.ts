@@ -1,5 +1,6 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
@@ -53,6 +54,7 @@ export class Subnet extends AModel<ISubnet, Subnet> {
   /**
    * The name of the subnet.
    */
+  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly subnetName: string;
 
   constructor(region: Region, name: string) {

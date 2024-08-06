@@ -9,6 +9,7 @@ export { OnEvent } from './decorators/on-event.decorator.js';
 export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
 export { IPackageMock, TestContainer } from './decorators/test-container.js';
+export { Validate } from './decorators/validate.decorator.js';
 
 export { DependencyRelationship } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';

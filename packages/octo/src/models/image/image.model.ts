@@ -1,6 +1,7 @@
 import { resolve } from 'path';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IImage } from './image.interface.js';
@@ -52,12 +53,14 @@ export class Image extends AModel<IImage, Image> {
   /**
    * The name of the image, same as [namespace in Docker](https://docs.docker.com/reference/cli/docker/image/tag/).
    */
+  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z@][\w\-\/]*[a-zA-Z0-9]$/ } })
   readonly imageName: string;
 
   /**
    * The tag of the image, same as [tag in Docker](https://docs.docker.com/reference/cli/docker/image/tag/).
    * - Unlike Docker, `imageTag` is mandatory in Octo.
    */
+  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })
   readonly imageTag: string;
 
   constructor(imageName: string, imageTag: string, options: IImageDockerOptions) {

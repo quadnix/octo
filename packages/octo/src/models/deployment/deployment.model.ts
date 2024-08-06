@@ -1,5 +1,6 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IDeployment } from './deployment.interface.js';
@@ -23,6 +24,7 @@ export class Deployment extends AModel<IDeployment, Deployment> {
    * The identifying tag that can point to the server's code at a specific point in time.
    * Could be a version number or a commit hash.
    */
+  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })
   readonly deploymentTag: string;
 
   constructor(deploymentTag: string) {

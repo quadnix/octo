@@ -1,4 +1,4 @@
-import { Container, Model, OverlayService, Region } from '@quadnix/octo';
+import { Container, Model, OverlayService, Region, Validate } from '@quadnix/octo';
 import { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
 import { RegionFilesystemOverlay } from '../../overlays/region-filesystem/region-filesystem.overlay.js';
 import type { IAwsRegion } from './aws.region.interface.js';
@@ -27,6 +27,10 @@ export class AwsRegion extends Region {
 
   readonly awsRegionId: string;
 
+  @Validate({
+    destruct: (value: { filesystemName: string }[]): string[] => value.map((v) => v.filesystemName),
+    options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ },
+  })
   readonly filesystems: { filesystemAnchorName: string; filesystemName: string }[] = [];
 
   override readonly regionId: RegionId;

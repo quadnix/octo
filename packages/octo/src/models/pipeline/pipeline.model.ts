@@ -1,5 +1,6 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import { AModel } from '../model.abstract.js';
 import type { Diff } from '../../functions/diff/diff.js';
@@ -26,6 +27,7 @@ export class Pipeline extends AModel<IPipeline, Pipeline> {
 
   readonly instructionSet: string[] = [];
 
+  @Validate({ options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly pipelineName: string;
 
   constructor(pipelineName: string) {

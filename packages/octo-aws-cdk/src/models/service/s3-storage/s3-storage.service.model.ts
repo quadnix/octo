@@ -1,4 +1,4 @@
-import { Container, Model, OverlayService, Service } from '@quadnix/octo';
+import { Container, Model, OverlayService, Service, Validate } from '@quadnix/octo';
 import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import { S3DirectoryAnchor } from '../../../anchors/s3-directory.anchor.js';
 import { CommonUtility } from '../../../utilities/common/common.utility.js';
@@ -17,6 +17,7 @@ export enum S3StorageAccess {
 export class S3StorageService extends Service {
   readonly awsRegionId: string;
 
+  @Validate({ options: { maxLength: 128, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })
   readonly bucketName: string;
 
   readonly directories: { directoryAnchorName: string; remoteDirectoryPath: string }[] = [];

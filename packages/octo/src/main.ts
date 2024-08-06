@@ -15,6 +15,7 @@ import { ResourceSerializationService } from './services/serialization/resource/
 import { StateManagementService } from './services/state-management/state-management.service.js';
 import { IStateProvider } from './services/state-management/state-provider.interface.js';
 import { TransactionService } from './services/transaction/transaction.service.js';
+import { ValidationService } from './services/validation/validation.service.js';
 
 export class Octo {
   private readonly modelStateFileName: string = 'models.json';
@@ -30,6 +31,7 @@ export class Octo {
   private resourceSerializationService: ResourceSerializationService;
   private stateManagementService: StateManagementService;
   private transactionService: TransactionService;
+  private validationService: ValidationService;
 
   async beginTransaction(
     app: App,
@@ -55,6 +57,11 @@ export class Octo {
 
   async compose(): Promise<void> {
     await this.moduleContainer.apply();
+
+    const result = this.validationService.validate();
+    if (!result.pass) {
+      throw new Error('Validation error!');
+    }
   }
 
   getAllResources(): UnknownResource[] {
@@ -84,6 +91,7 @@ export class Octo {
       this.resourceSerializationService,
       this.stateManagementService,
       this.transactionService,
+      this.validationService,
     ] = await Promise.all([
       Container.get(CaptureService),
       Container.get(InputService),
@@ -93,6 +101,7 @@ export class Octo {
       Container.get(ResourceSerializationService),
       Container.get(StateManagementService, { args: [stateProvider] }),
       Container.get(TransactionService),
+      Container.get(ValidationService),
     ]);
 
     for (const exclude of excludeInContainer) {

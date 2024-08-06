@@ -1,4 +1,5 @@
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IService } from './service.interface.js';
@@ -22,6 +23,7 @@ export class Service extends AModel<IService, Service> {
   /**
    * The ID of the service.
    */
+  @Validate({ options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly serviceId: string;
 
   constructor(serviceId: string) {

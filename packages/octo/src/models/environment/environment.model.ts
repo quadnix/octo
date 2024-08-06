@@ -1,5 +1,6 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
@@ -24,11 +25,18 @@ export class Environment extends AModel<IEnvironment, Environment> {
    * The name of the environment.
    * An environment must be unique within a Region. But multiple Regions can share the same environment name.
    */
+  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly environmentName: string;
 
   /**
    * A set of environment variables to be passed to any {@link Execution} running in this environment.
    */
+  @Validate({
+    destruct: (value: Map<string, string>): string[] => {
+      return Array.from(value.keys());
+    },
+    options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ },
+  })
   readonly environmentVariables: Map<string, string> = new Map();
 
   constructor(environmentName: string) {

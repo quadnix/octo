@@ -1,5 +1,6 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
@@ -22,6 +23,7 @@ import type { IRegion } from './region.interface.js';
 export class Region extends AModel<IRegion, Region> {
   readonly MODEL_NAME: string = 'region';
 
+  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly regionId: string;
 
   constructor(regionId: string) {

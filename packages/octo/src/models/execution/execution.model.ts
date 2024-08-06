@@ -1,5 +1,6 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import { ArrayUtility } from '../../utilities/array/array.utility.js';
@@ -34,6 +35,12 @@ export class Execution extends AModel<IExecution, Execution> {
    * It represents setting the [--env](https://docs.docker.com/compose/environment-variables/set-environment-variables/)
    * option while running a Docker container.
    */
+  @Validate({
+    destruct: (value: Map<string, string>): string[] => {
+      return Array.from(value.keys());
+    },
+    options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ },
+  })
   readonly environmentVariables: Map<string, string> = new Map();
 
   constructor(deployment: Deployment, environment: Environment, subnet: Subnet) {

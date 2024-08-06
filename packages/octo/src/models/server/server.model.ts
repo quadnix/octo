@@ -1,5 +1,6 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { AModel } from '../model.abstract.js';
@@ -23,6 +24,7 @@ export class Server extends AModel<IServer, Server> {
   /**
    * The name of the server.
    */
+  @Validate({ options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly serverKey: string;
 
   constructor(serverKey: string) {

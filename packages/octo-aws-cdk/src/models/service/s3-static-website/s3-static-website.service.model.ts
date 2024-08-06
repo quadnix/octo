@@ -1,4 +1,4 @@
-import { Container, Diff, DiffAction, Model, Service, StateManagementService } from '@quadnix/octo';
+import { Container, Diff, DiffAction, Model, Service, StateManagementService, Validate } from '@quadnix/octo';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
@@ -11,6 +11,7 @@ type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted
 export class S3StaticWebsiteService extends Service {
   readonly awsRegionId: string;
 
+  @Validate({ options: { maxLength: 128, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })
   readonly bucketName: string;
 
   readonly excludePaths: { directoryPath: string; subDirectoryOrFilePath: string }[] = [];

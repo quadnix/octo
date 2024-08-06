@@ -1,5 +1,6 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
+import { Validate } from '../../decorators/validate.decorator.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
@@ -27,6 +28,7 @@ export class App extends AModel<IApp, App> {
   /**
    * The name of the app.
    */
+  @Validate({ options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly name: string;
 
   constructor(name: string) {

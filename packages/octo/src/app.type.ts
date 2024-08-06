@@ -15,6 +15,12 @@ export enum ModelType {
   SHARED_RESOURCE = 'shared-resource',
 }
 
+export enum ValidationType {
+  MAX_LENGTH = 'maxLength',
+  MIN_LENGTH = 'minLength',
+  REGEX = 'regex',
+}
+
 export type ActionInputs = { [key: string]: string | UnknownResource };
 
 export type ActionOutputs = { [key: string]: UnknownResource };
