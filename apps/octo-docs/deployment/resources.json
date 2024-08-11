@@ -1,1 +1,0 @@
-{"dependencies":[],"resources":{"bucket-octo.quadnix.com":{"className":"S3Website","resource":{"properties":{"awsRegionId":"us-east-1","Bucket":"octo.quadnix.com","ErrorDocument":"error.html","IndexDocument":"index.html"},"resourceId":"bucket-octo.quadnix.com","response":{"awsRegionId":"us-east-1"}}}},"version":"0.0.1"}
