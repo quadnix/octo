@@ -1,18 +1,13 @@
-import { ModelType, type UnknownOverlay } from '../app.type.js';
+import { NodeType, type UnknownOverlay } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { IOverlay } from './overlay.interface.js';
 
 export class OverlayDataRepository {
-  constructor(
-    private oldOverlays: UnknownOverlay[] = [],
-    private newOverlays: UnknownOverlay[] = [],
-  ) {
-    Object.freeze(this.oldOverlays);
-  }
+  constructor(private newOverlays: UnknownOverlay[] = []) {}
 
   add(overlay: UnknownOverlay): void {
-    if (overlay.MODEL_TYPE !== ModelType.OVERLAY) {
+    if (overlay.NODE_TYPE !== NodeType.OVERLAY) {
       throw new Error('Adding non-overlay model!');
     }
 
@@ -24,20 +19,9 @@ export class OverlayDataRepository {
   async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
-    for (const overlay of this.oldOverlays) {
-      const newOverlay = this.newOverlays.find((o) => o.overlayId === overlay.overlayId);
-      if (!newOverlay || newOverlay.isMarkedDeleted()) {
-        diffs.push(new Diff(overlay, DiffAction.DELETE, 'overlayId', overlay.overlayId));
-      } else {
-        const oDiff = await newOverlay.diff(overlay);
-        diffs.push(...oDiff);
-      }
-    }
-
     for (const overlay of this.newOverlays) {
-      if (!this.oldOverlays.find((o) => o.overlayId === overlay.overlayId)) {
-        diffs.push(new Diff(overlay, DiffAction.ADD, 'overlayId', overlay.overlayId));
-      }
+      const oDiff = await overlay.diff();
+      diffs.push(...oDiff, new Diff(overlay, DiffAction.ADD, 'overlayId', overlay.overlayId));
     }
 
     return diffs;
@@ -50,38 +34,15 @@ export class OverlayDataRepository {
   getByProperties(filters: { key: string; value: any }[] = []): UnknownOverlay[] {
     return this.newOverlays.filter((o) => filters.every((c) => o.properties[c.key] === c.value));
   }
-
-  remove(overlay: UnknownOverlay): void {
-    if (overlay.MODEL_TYPE !== ModelType.OVERLAY) {
-      throw new Error('Removing non-overlay model!');
-    }
-
-    if (!overlay.isMarkedDeleted()) {
-      overlay.remove();
-    }
-
-    const overlayIndex = this.newOverlays.findIndex((o) => o.overlayId === overlay.overlayId);
-    if (overlayIndex > -1) {
-      this.newOverlays.splice(overlayIndex, 1);
-    }
-  }
 }
 
 @Factory<OverlayDataRepository>(OverlayDataRepository)
 export class OverlayDataRepositoryFactory {
   private static instance: OverlayDataRepository;
 
-  static async create(
-    forceNew: boolean,
-    oldOverlays: UnknownOverlay[],
-    newOverlays: UnknownOverlay[],
-  ): Promise<OverlayDataRepository> {
+  static async create(): Promise<OverlayDataRepository> {
     if (!this.instance) {
-      this.instance = new OverlayDataRepository(oldOverlays, newOverlays);
-    }
-    if (forceNew) {
-      const newInstance = new OverlayDataRepository(oldOverlays, newOverlays);
-      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
+      this.instance = new OverlayDataRepository();
     }
     return this.instance;
   }

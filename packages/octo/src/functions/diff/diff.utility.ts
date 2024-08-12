@@ -1,20 +1,20 @@
-import type { UnknownModel } from '../../app.type.js';
+import type { UnknownNode } from '../../app.type.js';
 import { Diff, DiffAction } from './diff.js';
 
 export class DiffUtility {
-  private static generateDeleteDiff(model: UnknownModel, field: string): Diff[] {
+  private static generateDeleteDiff(node: UnknownNode, field: string): Diff[] {
     const diff: Diff[] = [];
 
-    const children = model.getChildren();
-    for (const modelName of Object.keys(children)) {
-      for (const dependency of children[modelName]) {
+    const children = node.getChildren();
+    for (const name of Object.keys(children)) {
+      for (const dependency of children[name]) {
         const child = dependency.to;
         const childField = dependency.getRelationship()!.toField;
         diff.push(...DiffUtility.generateDeleteDiff(child, childField));
       }
     }
 
-    diff.push(new Diff(model, DiffAction.DELETE, field, model[field]));
+    diff.push(new Diff(node, DiffAction.DELETE, field, node[field]));
     return diff;
   }
 
@@ -29,12 +29,12 @@ export class DiffUtility {
   }
 
   /**
-   * Generate a deep diff of an array of basic types from the previous model vs the latest model.
-   * @param a previous model.
-   * @param b latest model.
+   * Generate a deep diff of an array of basic types from the previous node vs the latest node.
+   * @param a previous node.
+   * @param b latest node.
    * @param field string representing the field parent uses to reference the array.
    */
-  static diffArray(a: UnknownModel, b: UnknownModel, field: string): Diff[] {
+  static diffArray(a: UnknownNode, b: UnknownNode, field: string): Diff[] {
     const diff: Diff[] = [];
     const aSet = new Set(a[field]);
     const bSet = new Set(b[field]);
@@ -60,15 +60,15 @@ export class DiffUtility {
   }
 
   /**
-   * Generate a deep diff of an array of objects from the previous model vs the latest model.
-   * @param a previous model.
-   * @param b latest model.
+   * Generate a deep diff of an array of objects from the previous node vs the latest node.
+   * @param a previous node.
+   * @param b latest node.
    * @param field string representing the field parent uses to reference the array.
    * @param compare function to check if two objects are equal.
    */
   static diffArrayOfObjects(
-    a: UnknownModel,
-    b: UnknownModel,
+    a: UnknownNode,
+    b: UnknownNode,
     field: string,
     compare: (object1, object2) => boolean,
   ): Diff[] {
@@ -95,12 +95,12 @@ export class DiffUtility {
   }
 
   /**
-   * Generate a deep diff of a map of basic types from the previous model vs the latest model.
-   * @param a previous model.
-   * @param b latest model.
+   * Generate a deep diff of a map of basic types from the previous node vs the latest node.
+   * @param a previous node.
+   * @param b latest node.
    * @param field string representing the field parent uses to reference the map.
    */
-  static diffMap(a: UnknownModel, b: UnknownModel, field: string): Diff[] {
+  static diffMap(a: UnknownNode, b: UnknownNode, field: string): Diff[] {
     const diff: Diff[] = [];
 
     // Iterate fields of previous (a). If found in latest (b), consider it an UPDATE.
@@ -126,13 +126,13 @@ export class DiffUtility {
   }
 
   /**
-   * Generate a deep diff of an array of previous models vs latest models.
-   * The diff is generated recursively, i.e. all children of the model are included in the diff.
-   * @param a array of previous models.
-   * @param b array of latest models.
-   * @param field string representing the unique identifier of the model.
+   * Generate a deep diff of an array of previous node vs latest node.
+   * The diff is generated recursively, i.e. all children of the node are included in the diff.
+   * @param a array of previous nodes.
+   * @param b array of latest nodes.
+   * @param field string representing the unique identifier of the node.
    */
-  static async diffModels(a: UnknownModel[], b: UnknownModel[], field: string): Promise<Diff[]> {
+  static async diffNodes(a: UnknownNode[], b: UnknownNode[], field: string): Promise<Diff[]> {
     const diff: Diff[] = [];
 
     // Iterate fields of previous (a). If found in latest (b), get recursive diff of children of b vs a.
@@ -160,12 +160,12 @@ export class DiffUtility {
   }
 
   /**
-   * Generate a deep diff of an object from the previous model vs the latest model.
-   * @param a previous model.
-   * @param b latest model.
+   * Generate a deep diff of an object from the previous node vs the latest node.
+   * @param a previous node.
+   * @param b latest node.
    * @param field string representing the field parent uses to reference the object.
    */
-  static diffObject(a: UnknownModel, b: UnknownModel, field: string): Diff[] {
+  static diffObject(a: UnknownNode, b: UnknownNode, field: string): Diff[] {
     const diff: Diff[] = [];
 
     // Iterate fields of previous (a). If found in latest (b), consider it an UPDATE.

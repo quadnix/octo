@@ -1,7 +1,7 @@
+import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
-import type { Diff } from '../../functions/diff/diff.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
 import { Subnet } from '../subnet/subnet.model.js';
@@ -21,7 +21,7 @@ import type { IRegion } from './region.interface.js';
  */
 @Model()
 export class Region extends AModel<IRegion, Region> {
-  readonly MODEL_NAME: string = 'region';
+  readonly NODE_NAME: string = 'region';
 
   @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly regionId: string;
@@ -62,14 +62,10 @@ export class Region extends AModel<IRegion, Region> {
     this.addChild('regionId', subnet, 'subnetId');
   }
 
-  override async diffProperties(): Promise<Diff[]> {
-    return [];
-  }
-
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
-    return [`${this.MODEL_NAME}=${this.regionId}`, app.getContext()].join(',');
+    return [`${this.NODE_NAME}=${this.regionId}`, app.getContext()].join(',');
   }
 
   override synth(): IRegion {
@@ -80,9 +76,10 @@ export class Region extends AModel<IRegion, Region> {
 
   static override async unSynth(
     region: IRegion,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Region> {
+    assert(!!deReferenceContext);
+
     return new Region(region.regionId);
   }
 }

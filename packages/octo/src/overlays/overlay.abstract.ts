@@ -1,13 +1,12 @@
-import { ModelType, type UnknownModel, type UnknownOverlay } from '../app.type.js';
+import { NodeType, type UnknownModel, type UnknownOverlay } from '../app.type.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
-import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { AModel } from '../models/model.abstract.js';
 import { type AAnchor } from './anchor.abstract.js';
 import type { IOverlay } from './overlay.interface.js';
 
 export abstract class AOverlay<T> extends AModel<IOverlay, T> {
-  abstract override readonly MODEL_NAME: string;
-  override readonly MODEL_TYPE: ModelType = ModelType.OVERLAY;
+  abstract override readonly NODE_NAME: string;
+  override readonly NODE_TYPE: NodeType = NodeType.OVERLAY;
 
   protected constructor(
     readonly overlayId: IOverlay['overlayId'],
@@ -22,65 +21,23 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   }
 
   override addAnchor(anchor: AAnchor): void {
-    try {
-      super.addAnchor(anchor);
-    } catch (error) {
-      if (error.message !== 'Anchor already exists!') {
-        throw error;
-      }
-    }
+    super.addAnchor(anchor);
 
     const { thisToThatDependency, thatToThisDependency } = this.addRelationship(anchor.getParent());
-    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.ADD);
-    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, 'MODEL_NAME', DiffAction.UPDATE);
-    thatToThisDependency.addBehavior('MODEL_NAME', DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
+    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, 'NODE_NAME', DiffAction.ADD);
+    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, 'NODE_NAME', DiffAction.UPDATE);
+    thatToThisDependency.addBehavior('NODE_NAME', DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
   }
 
-  override async diff(previous: T): Promise<Diff[]> {
+  override async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
-    const propertyDiffs = await this.diffProperties(previous);
-    diffs.push(...propertyDiffs);
-
-    const anchorDiffs = await this.diffAnchors(previous);
-    diffs.push(...anchorDiffs);
-
-    return diffs;
-  }
-
-  async diffAnchors(previous: T): Promise<Diff[]> {
-    const diffs: Diff[] = [];
-
-    // Compare previous anchors with current anchors.
-    const previousAnchors = (previous as unknown as UnknownOverlay).getAnchors();
-    for (const previousAnchor of previousAnchors) {
-      const currentAnchor = this.getAnchor(previousAnchor.anchorId, previousAnchor.getParent());
-
-      if (!currentAnchor) {
-        diffs.push(new Diff(this, DiffAction.DELETE, 'anchor', previousAnchor));
-      } else if (!DiffUtility.isObjectDeepEquals(previousAnchor.properties, currentAnchor.properties)) {
-        diffs.push(new Diff(this, DiffAction.UPDATE, 'anchor', currentAnchor));
-      }
-    }
-
-    // Add new anchors not in previous.
     const currentAnchors = this.getAnchors();
     for (const currentAnchor of currentAnchors) {
-      const previousAnchor = (previous as unknown as UnknownOverlay).getAnchor(
-        currentAnchor.anchorId,
-        currentAnchor.getParent(),
-      );
-
-      if (!previousAnchor) {
-        diffs.push(new Diff(this, DiffAction.ADD, 'anchor', currentAnchor));
-      }
+      diffs.push(new Diff(this, DiffAction.ADD, 'anchor', currentAnchor));
     }
 
     return diffs;
-  }
-
-  override async diffProperties(previous: T): Promise<Diff[]> {
-    return DiffUtility.diffObject(previous as unknown as UnknownOverlay, this, 'properties');
   }
 
   override getAnchor(anchorId: string, parent: UnknownModel): AAnchor | undefined {
@@ -89,11 +46,6 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
 
   override getAnchorIndex(anchorId: string, parent: UnknownModel): number {
     return super.getAnchorIndex(anchorId, parent);
-  }
-
-  override remove(ignoreDirectRelationships: boolean = false): void {
-    this.removeAllAnchors();
-    super.remove(ignoreDirectRelationships);
   }
 
   override removeAnchor(anchor: AAnchor): void {
@@ -115,7 +67,7 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   }
 
   override setContext(): string {
-    return `${this.MODEL_NAME}=${this.overlayId}`;
+    return `${this.NODE_NAME}=${this.overlayId}`;
   }
 
   override synth(): IOverlay {

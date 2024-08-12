@@ -1,5 +1,5 @@
 import type { ActionInputs } from '../../app.type.js';
-import { Container } from '../../decorators/container.js';
+import { Container } from '../../functions/container/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 
@@ -11,7 +11,7 @@ export class InputService {
   getInput(name: string): (typeof this.inputs)[keyof typeof this.inputs] {
     if (name.startsWith('resource')) {
       const resourceId = name.substring('resource.'.length);
-      return this.resourceDataRepository.getById(resourceId)!;
+      return this.resourceDataRepository.getNewResourceById(resourceId)!;
     } else {
       return this.inputs[name];
     }
@@ -29,8 +29,8 @@ export class InputServiceFactory {
   private static instance: InputService;
 
   static async create(): Promise<InputService> {
-    const resourceDataRepository = await Container.get(ResourceDataRepository);
     if (!this.instance) {
+      const resourceDataRepository = await Container.get(ResourceDataRepository);
       this.instance = new InputService(resourceDataRepository);
     }
     return this.instance;

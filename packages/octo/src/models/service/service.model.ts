@@ -1,6 +1,5 @@
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
-import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IService } from './service.interface.js';
 
@@ -18,7 +17,7 @@ import type { IService } from './service.interface.js';
  */
 @Model()
 export class Service extends AModel<IService, Service> {
-  readonly MODEL_NAME: string = 'service';
+  readonly NODE_NAME: string = 'service';
 
   /**
    * The ID of the service.
@@ -31,15 +30,10 @@ export class Service extends AModel<IService, Service> {
     this.serviceId = serviceId;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  override async diffProperties(previous: Service): Promise<Diff[]> {
-    return [];
-  }
-
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
-    return [`${this.MODEL_NAME}=${this.serviceId}`, app.getContext()].join(',');
+    return [`${this.NODE_NAME}=${this.serviceId}`, app.getContext()].join(',');
   }
 
   override synth(): IService {

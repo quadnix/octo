@@ -28,7 +28,9 @@ export async function commit<T extends UnknownModel>(model: T): Promise<T> {
 
 export async function commitResources(): Promise<void> {
   const resourceSerializationService = await Container.get(ResourceSerializationService);
-  await resourceSerializationService.deserialize(await resourceSerializationService.serialize());
+  const actualSerializedResources = await resourceSerializationService.serializeActualResources();
+  const oldSerializedResources = await resourceSerializationService.serializeNewResources();
+  await resourceSerializationService.deserialize(actualSerializedResources, oldSerializedResources);
 }
 
 export function create({
@@ -225,7 +227,7 @@ export async function createTestResources(
       return p;
     });
     const resource = new TestResource(resourceId, {}, parents);
-    resourceDataRepository.add(resource);
+    resourceDataRepository.addNewResource(resource);
 
     result.push(resource);
   }
@@ -238,7 +240,7 @@ export async function createTestResources(
       return p;
     });
     const resource = new SharedTestResource(resourceId, {}, parents);
-    resourceDataRepository.add(resource);
+    resourceDataRepository.addNewResource(resource);
 
     result.push(resource);
   }

@@ -1,5 +1,5 @@
 import type { Constructable } from '../app.type.js';
-import { Container } from './container.js';
+import { Container } from '../functions/container/container.js';
 
 /**
  * A `@Factory` is a class decorator to be placed on top of a class that represents a factory.

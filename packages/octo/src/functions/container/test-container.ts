@@ -1,5 +1,5 @@
-import type { Constructable } from '../app.type.js';
-import { DiffUtility } from '../functions/diff/diff.utility.js';
+import type { Constructable } from '../../app.type.js';
+import { DiffUtility } from '../diff/diff.utility.js';
 import { Container } from './container.js';
 
 type Factory<T> = { create: () => Promise<T> };

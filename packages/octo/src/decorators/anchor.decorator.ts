@@ -1,7 +1,7 @@
 import { RegistrationErrorEvent } from '../events/error.event.js';
 import { EventService } from '../services/event/event.service.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
-import { Container } from './container.js';
+import { Container } from '../functions/container/container.js';
 
 /**
  * An `@Anchor` is a class decorator to be placed on top of a class that represents an anchor.

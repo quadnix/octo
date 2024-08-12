@@ -1,6 +1,6 @@
 import { strict as assert } from 'assert';
 import { ActionInputs, Constructable, TransactionOptions, UnknownResource } from './app.type.js';
-import { Container } from './decorators/container.js';
+import { Container } from './functions/container/container.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
 import { App } from './models/app/app.model.js';
@@ -19,9 +19,8 @@ import { ValidationService } from './services/validation/validation.service.js';
 
 export class Octo {
   private readonly modelStateFileName: string = 'models.json';
-  private readonly resourceStateFileName: string = 'resources.json';
-
-  private previousApp: App | undefined;
+  private readonly actualResourceStateFileName: string = 'resources-actual.json';
+  private readonly oldResourceStateFileName: string = 'resources-old.json';
 
   private captureService: CaptureService;
   private inputService: InputService;
@@ -33,18 +32,76 @@ export class Octo {
   private transactionService: TransactionService;
   private validationService: ValidationService;
 
-  async beginTransaction(
+  async *beginTransaction(
     app: App,
-    options?: TransactionOptions,
-  ): Promise<ReturnType<TransactionService['beginTransaction']>> {
-    const diffs = await app.diff(this.previousApp);
-    return this.transactionService.beginTransaction(diffs, options || {});
+    {
+      enableResourceCapture = false,
+      yieldDirtyResourceDiffs = false,
+      yieldDirtyResourceTransaction = false,
+      yieldModelDiffs = false,
+      yieldModelTransaction = false,
+      yieldResourceDiffs = false,
+      yieldResourceTransaction = false,
+    }: TransactionOptions = {},
+  ): ReturnType<TransactionService['beginTransaction']> {
+    const diffs = await app.diff();
+    const transaction = await this.transactionService.beginTransaction(diffs, {
+      enableResourceCapture,
+      yieldDirtyResourceDiffs,
+      yieldDirtyResourceTransaction: true,
+      yieldModelDiffs,
+      yieldModelTransaction: true,
+      yieldResourceDiffs,
+      yieldResourceTransaction: true,
+    });
+
+    if (yieldModelDiffs) {
+      yield (await transaction.next()).value;
+    }
+
+    const modelTransaction = (await transaction.next()).value;
+    if (yieldModelTransaction) {
+      yield modelTransaction;
+    }
+
+    let resourceTransaction: DiffMetadata[][] = [];
+    let dirtyResourceTransaction: DiffMetadata[][] = [];
+    try {
+      if (yieldResourceDiffs) {
+        yield (await transaction.next()).value;
+      }
+
+      resourceTransaction = (await transaction.next()).value;
+      if (yieldResourceTransaction) {
+        yield resourceTransaction;
+      }
+
+      if (yieldDirtyResourceDiffs) {
+        yield (await transaction.next()).value;
+      }
+
+      dirtyResourceTransaction = (await transaction.next()).value;
+      if (yieldDirtyResourceTransaction) {
+        yield dirtyResourceTransaction;
+      }
+
+      return (await transaction.next()).value;
+    } finally {
+      await this.commitTransaction(app, modelTransaction, resourceTransaction, dirtyResourceTransaction);
+    }
   }
 
   @EnableHook('CommitHook')
-  async commitTransaction(app: App, modelTransaction: DiffMetadata[][]): Promise<void> {
+  private async commitTransaction(
+    app: App,
+    modelTransaction: DiffMetadata[][],
+    resourceTransaction: DiffMetadata[][] = [],
+    dirtyResourceTransaction: DiffMetadata[][] = [],
+  ): Promise<void> {
     // `modelTransaction` is used by hooks of type CommitHook.
     assert(!!modelTransaction);
+    assert(!!resourceTransaction);
+    assert(!!dirtyResourceTransaction);
 
     // Save the state of the new app and its resources.
     await this.saveModelState(app);
@@ -52,7 +109,6 @@ export class Octo {
 
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
-    this.previousApp = await this.retrieveModelState();
   }
 
   async compose(): Promise<void> {
@@ -65,7 +121,7 @@ export class Octo {
   }
 
   getAllResources(): UnknownResource[] {
-    return this.resourceDataRepository.getByProperties();
+    return this.resourceDataRepository.getNewResourcesByProperties();
   }
 
   getModuleOutput<T>(module: Constructable<IModule<T>> | string): T | undefined {
@@ -76,7 +132,7 @@ export class Octo {
     stateProvider: IStateProvider,
     initializeInContainer: {
       type: Parameters<typeof Container.get>[0];
-      options: Parameters<typeof Container.get>[1];
+      options?: Parameters<typeof Container.get>[1];
     }[] = [],
     excludeInContainer: {
       type: Parameters<typeof Container.unRegisterFactory>[0];
@@ -113,7 +169,6 @@ export class Octo {
 
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
-    this.previousApp = await this.retrieveModelState();
   }
 
   loadModules(modules: Constructable<IModule<any>>[]): void {
@@ -122,34 +177,24 @@ export class Octo {
     }
   }
 
-  registerCapture<T extends AResource<T>>(
-    resourceId: T['resourceId'],
-    properties: Partial<T['properties']>,
-    response: Partial<T['response']>,
-  ): void {
-    this.captureService.registerCapture(resourceId, properties, response);
+  registerCapture<T extends AResource<T>>(resourceId: T['resourceId'], response: Partial<T['response']>): void {
+    this.captureService.registerCapture(resourceId, response);
   }
 
   registerInputs(inputs: ActionInputs): void {
     this.inputService.registerInputs(inputs);
   }
 
-  private async retrieveModelState(): Promise<App | undefined> {
-    const { data: modelSerializedOutput } = await this.stateManagementService.getModelState(this.modelStateFileName);
-
-    // Initialize previous model state.
-    return Object.keys(modelSerializedOutput.models).length > 0
-      ? ((await this.modelSerializationService.deserialize(modelSerializedOutput)) as App)
-      : undefined;
-  }
-
   private async retrieveResourceState(): Promise<void> {
-    const { data: resourceSerializedOutput } = await this.stateManagementService.getResourceState(
-      this.resourceStateFileName,
+    const { data: actualSerializedOutput } = await this.stateManagementService.getResourceState(
+      this.actualResourceStateFileName,
+    );
+    const { data: oldSerializedOutput } = await this.stateManagementService.getResourceState(
+      this.oldResourceStateFileName,
     );
 
     // Initialize previous resource state.
-    await this.resourceSerializationService.deserialize(resourceSerializedOutput);
+    await this.resourceSerializationService.deserialize(actualSerializedOutput, oldSerializedOutput);
   }
 
   private async saveModelState(app: App): Promise<void> {
@@ -160,8 +205,13 @@ export class Octo {
   }
 
   private async saveResourceState(): Promise<void> {
-    const resourceSerializedOutput = await this.resourceSerializationService.serialize();
-    await this.stateManagementService.saveResourceState(this.resourceStateFileName, resourceSerializedOutput, {
+    const actualSerializedOutput = await this.resourceSerializationService.serializeActualResources();
+    await this.stateManagementService.saveResourceState(this.actualResourceStateFileName, actualSerializedOutput, {
+      version: 1,
+    });
+
+    const oldSerializedOutput = await this.resourceSerializationService.serializeNewResources();
+    await this.stateManagementService.saveResourceState(this.oldResourceStateFileName, oldSerializedOutput, {
       version: 1,
     });
   }

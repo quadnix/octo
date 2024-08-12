@@ -6,7 +6,7 @@ import { ModuleContainer } from '../modules/module.container.js';
 import { type IModule } from '../modules/module.interface.js';
 import type { IResourceAction } from '../resources/resource-action.interface.js';
 import { EventService } from '../services/event/event.service.js';
-import { Container } from './container.js';
+import { Container } from '../functions/container/container.js';
 
 /**
  * A `@Module` is a class decorator to be placed on top of a class that represents a module.

@@ -1,11 +1,11 @@
 import {
   type ActionInputs,
-  type ActionOutputs,
-  ModelType,
+  NodeType,
   type TransactionOptions,
+  type UnknownResource,
   type UnknownSharedResource,
 } from '../../app.type.js';
-import { Container } from '../../decorators/container.js';
+import { Container } from '../../functions/container/container.js';
 import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { ModelActionRegistrationEvent, ResourceActionRegistrationEvent } from '../../events/registration.event.js';
@@ -42,7 +42,6 @@ export class TransactionService {
     while (processed < diffs.length) {
       const diffsInSameLevel = diffs.filter((d) => d.applyOrder === currentApplyOrder);
       const diffsProcessedInSameLevel: DiffMetadata[] = [];
-      const promiseToApplyActions: Promise<ActionOutputs>[] = [];
 
       for (const diff of diffsInSameLevel) {
         if (diff.applied) {
@@ -67,17 +66,26 @@ export class TransactionService {
           });
 
           // Apply all actions on the diff, then update diff metadata with inputs and outputs.
-          const promiseToApplyAction = a.handle(diffToProcess, inputs, {}).then((outputs) => {
-            EventService.getInstance().emit(new ModelActionTransactionEvent(a.ACTION_NAME));
+          const outputs = await a.handle(diffToProcess, inputs, {});
+          // Overwrite previous resources with new resources, except for shared resources,
+          // which can be merged if it exists.
+          for (const [resourceId, resource] of Object.entries(outputs)) {
+            const previousResource = this.resourceDataRepository.getNewResourceById(resourceId);
+            if (resource.NODE_TYPE === 'shared-resource' && previousResource) {
+              this.resourceDataRepository.addNewResource(
+                (resource as UnknownSharedResource).merge(previousResource as UnknownSharedResource),
+              );
+            } else {
+              this.resourceDataRepository.addNewResource(resource);
+            }
+          }
 
-            duplicateDiffs.forEach((d) => {
-              d.updateInputs(inputs);
-              d.updateOutputs(outputs);
-            });
-
-            return outputs;
+          duplicateDiffs.forEach((d) => {
+            d.updateInputs(inputs);
+            d.updateOutputs(outputs);
           });
-          promiseToApplyActions.push(promiseToApplyAction);
+
+          EventService.getInstance().emit(new ModelActionTransactionEvent(a.ACTION_NAME));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -85,24 +93,6 @@ export class TransactionService {
 
         // Mark metadata of each duplicate diffs as applied.
         duplicateDiffs.forEach((d) => (d.applied = true));
-      }
-
-      // Apply all actions of same level, since they can be applied in parallel.
-      const actionsOutputs = await Promise.all(promiseToApplyActions);
-
-      // Overwrite previous resources with new resources, except for shared resources,
-      // which can be merged if it exists.
-      for (const outputs of actionsOutputs) {
-        for (const [resourceId, resource] of Object.entries(outputs)) {
-          const previousResource = this.resourceDataRepository.getById(resourceId);
-          if (resource.MODEL_TYPE === 'shared-resource' && previousResource) {
-            this.resourceDataRepository.add(
-              (resource as UnknownSharedResource).merge(previousResource as UnknownSharedResource),
-            );
-          } else {
-            this.resourceDataRepository.add(resource);
-          }
-        }
       }
 
       // Add all diff in same level to transaction.
@@ -127,14 +117,13 @@ export class TransactionService {
     while (processed < diffs.length) {
       const diffsInSameLevel = diffs.filter((d) => d.applyOrder === currentApplyOrder);
       const diffsProcessedInSameLevel: DiffMetadata[] = [];
-      const promiseToApplyActions: Promise<void>[] = [];
 
       for (const diff of diffsInSameLevel) {
         if (diff.applied) {
           continue;
         }
 
-        // Check for duplicate diffs on the same model and same field.
+        // Check for duplicate diffs on the same resource and same field.
         const duplicateDiffs = this.getDuplicateDiffs(diff, diffsInSameLevel);
 
         // Only process the first diff, given all duplicate diffs are the same.
@@ -142,16 +131,28 @@ export class TransactionService {
 
         for (const a of diff.actions as IResourceAction[]) {
           if (enableResourceCapture) {
-            const capture = this.captureService.getCapture((diff.model as IResource).resourceId);
+            const capture = this.captureService.getCapture((diff.node as unknown as IResource).resourceId);
             await a.mock(capture?.response, diff);
             await a.handle(diffToProcess);
           } else {
-            promiseToApplyActions.push(
-              a.handle(diffToProcess).then(() => {
-                EventService.getInstance().emit(new ResourceActionTransactionEvent(a.ACTION_NAME));
-              }),
-            );
+            await a.handle(diffToProcess);
           }
+
+          // Incrementally apply diff inverse to the respective actual resource.
+          let actualResource = this.resourceDataRepository.getActualResourceById(
+            (diffToProcess.node as UnknownResource).resourceId,
+          )!;
+          if (!actualResource) {
+            const ResourceConstructor = (diffToProcess.node as UnknownResource).constructor;
+            // @ts-expect-error create an empty resource.
+            actualResource = new ResourceConstructor((diffToProcess.node as UnknownResource).resourceId, {}, []);
+            this.resourceDataRepository.addActualResource(actualResource);
+          }
+          await actualResource.diffInverse(diffToProcess, async (resourceId) => {
+            return this.resourceDataRepository.getActualResourceById(resourceId)!;
+          });
+
+          EventService.getInstance().emit(new ResourceActionTransactionEvent(a.ACTION_NAME));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -160,9 +161,6 @@ export class TransactionService {
         // Mark metadata of each duplicate diffs as applied.
         duplicateDiffs.forEach((d) => (d.applied = true));
       }
-
-      // Apply all actions of same level, since they can be applied in parallel.
-      await Promise.all(promiseToApplyActions);
 
       // Add all diff in same level to transaction.
       transaction.push(diffsProcessedInSameLevel);
@@ -177,7 +175,7 @@ export class TransactionService {
   private getDuplicateDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
     return diffs.filter(
       (d) =>
-        d.model.getContext() === diff.model.getContext() &&
+        d.node.getContext() === diff.node.getContext() &&
         d.field === diff.field &&
         d.action === diff.action &&
         d.value === diff.value,
@@ -186,12 +184,12 @@ export class TransactionService {
 
   private getMatchingDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
     return diffs.filter(
-      (d) => d.model.getContext() === diff.model.getContext() && d.field === diff.field && d.value === diff.value,
+      (d) => d.node.getContext() === diff.node.getContext() && d.field === diff.field && d.value === diff.value,
     );
   }
 
   /**
-   * Before assigning order to a diff, all its model's parent diffs must be processed.
+   * Before assigning order to a diff, all its node's parent diffs must be processed.
    * E.g. diff to add environment, depends on region to exist, thus add region diff gets processed first.
    */
   private setApplyOrder(diff: DiffMetadata, diffs: DiffMetadata[], seen: DiffMetadata[] = []): void {
@@ -219,15 +217,15 @@ export class TransactionService {
       return;
     }
 
-    // Get all dependencies of subject model.
-    const dependencies = diff.model.getDependencies();
+    // Get all dependencies of subject node.
+    const dependencies = diff.node.getDependencies();
     const dependencyApplyOrders: number[] = [-1];
 
     for (const dependency of dependencies) {
       // Iterate diffs looking to match dependency on same field and action.
       const matchingParentDiffs = diffs.filter(
         (d) =>
-          d.model.getContext() === dependency.to.getContext() &&
+          d.node.getContext() === dependency.to.getContext() &&
           dependency.hasMatchingBehavior(diff.field, diff.action, d.field, d.action),
       );
 
@@ -243,20 +241,22 @@ export class TransactionService {
 
   async *beginTransaction(
     diffs: Diff[],
-    options: TransactionOptions = {
-      enableResourceCapture: false,
-      yieldModelDiffs: false,
-      yieldModelTransaction: false,
-      yieldResourceDiffs: false,
-      yieldResourceTransaction: false,
-    },
+    {
+      enableResourceCapture = false,
+      yieldDirtyResourceDiffs = false,
+      yieldDirtyResourceTransaction = false,
+      yieldModelDiffs = false,
+      yieldModelTransaction = false,
+      yieldResourceDiffs = false,
+      yieldResourceTransaction = false,
+    }: TransactionOptions = {},
   ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
     // Diff overlays and add to existing diffs.
     diffs.push(...(await this.overlayDataRepository.diff()));
 
     // Generate diff on models.
     const modelDiffs = diffs.map((d) => {
-      if (d.model.MODEL_TYPE === ModelType.OVERLAY) {
+      if (d.node.NODE_TYPE === NodeType.OVERLAY) {
         return new DiffMetadata(
           d,
           this.overlayActions.filter((a) => a.filter(d)),
@@ -273,13 +273,13 @@ export class TransactionService {
       this.setApplyOrder(diff, modelDiffs);
     }
 
-    if (options.yieldModelDiffs) {
+    if (yieldModelDiffs) {
       yield [modelDiffs];
     }
 
     // Apply model diffs.
     const modelTransaction = await this.applyModels(modelDiffs);
-    if (options.yieldModelTransaction) {
+    if (yieldModelTransaction) {
       yield modelTransaction;
     }
 
@@ -297,16 +297,42 @@ export class TransactionService {
       this.setApplyOrder(diff, resourceDiffs);
     }
 
-    if (options.yieldResourceDiffs) {
+    if (yieldResourceDiffs) {
       yield [resourceDiffs];
     }
 
     // Apply resource diffs.
     const resourceTransaction = await this.applyResources(resourceDiffs, {
-      enableResourceCapture: options.enableResourceCapture,
+      enableResourceCapture,
     });
-    if (options.yieldResourceTransaction) {
+    if (yieldResourceTransaction) {
       yield resourceTransaction;
+    }
+
+    // Generate diff on dirty resources.
+    diffs = await this.resourceDataRepository.diffDirty();
+    const dirtyResourceDiffs = diffs.map(
+      (d) =>
+        new DiffMetadata(
+          d,
+          this.resourceActions.filter((a) => a.filter(d)),
+        ),
+    );
+    // Set apply order on dirty resource diffs.
+    for (const diff of dirtyResourceDiffs) {
+      this.setApplyOrder(diff, dirtyResourceDiffs);
+    }
+
+    if (yieldDirtyResourceDiffs) {
+      yield [dirtyResourceDiffs];
+    }
+
+    // Apply dirty resource diffs.
+    const dirtyResourceTransaction = await this.applyResources(dirtyResourceDiffs, {
+      enableResourceCapture,
+    });
+    if (yieldDirtyResourceTransaction) {
+      yield dirtyResourceTransaction;
     }
 
     return modelTransaction;
@@ -337,54 +363,6 @@ export class TransactionService {
         this.resourceActions.push(action);
       }
     }
-  }
-
-  async *rollbackTransaction(
-    modelTransaction: DiffMetadata[][],
-    options: TransactionOptions = {
-      yieldResourceDiffs: false,
-      yieldResourceTransaction: false,
-    },
-  ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
-    // Set revert on model diffs.
-    for (let i = modelTransaction.length - 1; i >= 0; i--) {
-      const diffsProcessedInSameLevel = modelTransaction[i];
-
-      for (const diff of diffsProcessedInSameLevel) {
-        for (const a of diff.actions as IModelAction[]) {
-          const outputs = a.revert(diff.diff, diff.inputs, diff.outputs);
-          for (const outputKey in outputs) {
-            this.resourceDataRepository.add(outputs[outputKey]);
-          }
-        }
-      }
-    }
-
-    // Generate diff on resources.
-    const diffs = await this.resourceDataRepository.diff();
-    const resourceDiffs = diffs.map(
-      (d) =>
-        new DiffMetadata(
-          d,
-          this.resourceActions.filter((a) => a.filter(d)),
-        ),
-    );
-    // Set apply order on resource diffs.
-    for (const diff of resourceDiffs) {
-      this.setApplyOrder(diff, resourceDiffs);
-    }
-
-    if (options.yieldResourceDiffs) {
-      yield [resourceDiffs];
-    }
-
-    // Apply resource diffs.
-    const resourceTransaction = await this.applyResources(resourceDiffs);
-    if (options.yieldResourceTransaction) {
-      yield resourceTransaction;
-    }
-
-    return resourceTransaction;
   }
 }
 

@@ -1,8 +1,8 @@
+import { strict as assert } from 'assert';
 import { resolve } from 'path';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
-import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IImage } from './image.interface.js';
 
@@ -40,7 +40,7 @@ export interface IImageDockerOptions {
  */
 @Model()
 export class Image extends AModel<IImage, Image> {
-  readonly MODEL_NAME: string = 'image';
+  readonly NODE_NAME: string = 'image';
 
   readonly dockerOptions: IImageDockerOptions;
 
@@ -73,14 +73,10 @@ export class Image extends AModel<IImage, Image> {
     this.dockerOptions = options;
   }
 
-  override async diffProperties(): Promise<Diff[]> {
-    return [];
-  }
-
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
-    return [`${this.MODEL_NAME}=${this.imageId}`, app.getContext()].join(',');
+    return [`${this.NODE_NAME}=${this.imageId}`, app.getContext()].join(',');
   }
 
   override synth(): IImage {
@@ -94,9 +90,10 @@ export class Image extends AModel<IImage, Image> {
 
   static override async unSynth(
     image: IImage,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Image> {
+    assert(!!deReferenceContext);
+
     return new Image(image.imageName, image.imageTag, {
       ...image.dockerOptions,
     });

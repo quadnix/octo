@@ -4,21 +4,15 @@ import { IResource } from '../../resources/resource.interface.js';
 
 export class CaptureService {
   private readonly captures: {
-    [key: string]: { properties: Partial<IResource['properties']>; response: Partial<IResource['response']> };
+    [key: string]: { response: Partial<IResource['response']> };
   } = {};
 
-  getCapture<T extends AResource<T>>(
-    resourceId: string,
-  ): { properties: Partial<T['properties']>; response: Partial<T['response']> } | undefined {
+  getCapture<T extends AResource<T>>(resourceId: string): { response: Partial<T['response']> } | undefined {
     return this.captures[resourceId];
   }
 
-  registerCapture<T extends AResource<T>>(
-    resourceId: T['resourceId'],
-    properties: Partial<T['properties']>,
-    response: Partial<T['response']>,
-  ): void {
-    this.captures[resourceId] = { properties, response };
+  registerCapture<T extends AResource<T>>(resourceId: T['resourceId'], response: Partial<T['response']>): void {
+    this.captures[resourceId] = { response };
   }
 }
 

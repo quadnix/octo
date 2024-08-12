@@ -1,14 +1,16 @@
-import { ModelType, type UnknownResource } from '../app.type.js';
+import { NodeType, type UnknownResource } from '../app.type.js';
 import { type Dependency } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
-import { AModel } from '../models/model.abstract.js';
+import { ANode } from '../functions/node/node.abstract.js';
 import type { IResource } from './resource.interface.js';
 import type { ASharedResource } from './shared-resource.abstract.js';
 
-export abstract class AResource<T> extends AModel<IResource, T> {
-  abstract override readonly MODEL_NAME: string;
-  override readonly MODEL_TYPE: ModelType = ModelType.RESOURCE;
+export abstract class AResource<T> extends ANode<IResource, T> {
+  abstract override readonly NODE_NAME: string;
+  override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
+
+  private _deleteMarker = false;
 
   readonly response: IResource['response'] = {};
 
@@ -22,10 +24,6 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     for (const parent of parents) {
       parent.addChild('resourceId', this, 'resourceId');
     }
-  }
-
-  override addAnchor(): void {
-    throw new Error('Anchors are not supported in resources!');
   }
 
   override addRelationship(): { thatToThisDependency: Dependency; thisToThatDependency: Dependency } {
@@ -62,18 +60,108 @@ export abstract class AResource<T> extends AModel<IResource, T> {
     return diffs;
   }
 
+  async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<UnknownResource>): Promise<void> {
+    switch (diff.field) {
+      case 'resourceId': {
+        if (diff.action === DiffAction.ADD) {
+          const parentResourceIds = Object.values(diff.node.getParents())
+            .flat()
+            .map((d) => (d.to as UnknownResource).resourceId);
+          const parents = await Promise.all(parentResourceIds.map((p) => deReferenceResource(p)));
+          for (const parent of parents) {
+            parent.addChild('resourceId', this, 'resourceId');
+          }
+
+          for (const key of Object.keys((diff.node as UnknownResource).properties)) {
+            this.properties[key] = JSON.parse(JSON.stringify((diff.node as UnknownResource).properties[key]));
+          }
+
+          for (const key of Object.keys((diff.node as UnknownResource).response)) {
+            this.response[key] = JSON.parse(JSON.stringify((diff.node as UnknownResource).response[key]));
+          }
+        } else if (diff.action === DiffAction.DELETE) {
+          this.remove();
+        } else {
+          throw new Error('Unknown action on "resourceId" field during diff inverse!');
+        }
+        return;
+      }
+      case 'parent': {
+        if (diff.action === DiffAction.ADD) {
+          const parent = await deReferenceResource((diff.value as UnknownResource).resourceId);
+          parent.addChild('resourceId', this, 'resourceId');
+        } else if (diff.action === DiffAction.DELETE) {
+          const parent = await deReferenceResource((diff.value as UnknownResource).resourceId);
+          this.removeRelationship(parent);
+        } else {
+          throw new Error('Unknown action on "parent" field during diff inverse!');
+        }
+        return;
+      }
+      case 'properties': {
+        if (diff.action === DiffAction.ADD || diff.action === DiffAction.UPDATE) {
+          this.properties[diff.field] = JSON.parse(JSON.stringify(diff.value));
+        } else if (diff.action === DiffAction.DELETE) {
+          delete this.properties[diff.field];
+        } else {
+          throw new Error('Unknown action on "properties" field during diff inverse!');
+        }
+
+        for (const key of Object.keys((diff.node as UnknownResource).response)) {
+          this.response[key] = JSON.parse(JSON.stringify((diff.node as UnknownResource).response[key]));
+        }
+        return;
+      }
+      default: {
+        throw new Error('Unknown field during diff inverse!');
+      }
+    }
+  }
+
   override async diffProperties(previous: T | ASharedResource<T>): Promise<Diff[]> {
     return DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
   }
 
   getSharedResource(): ASharedResource<T> | undefined {
-    const sameModelDependencies = this.getChildren(this.MODEL_NAME)[this.MODEL_NAME];
-    const sharedResourceDependency = sameModelDependencies?.find((d) => d.to.MODEL_TYPE === ModelType.SHARED_RESOURCE);
+    const sameNodeDependencies = this.getChildren(this.NODE_NAME)[this.NODE_NAME];
+    const sharedResourceDependency = sameNodeDependencies?.find((d) => d.to.NODE_TYPE === NodeType.SHARED_RESOURCE);
     return sharedResourceDependency?.to as ASharedResource<T>;
   }
 
+  /**
+   * To check if self is marked as deleted.
+   * A deleted node will be removed from the graph after the transaction.
+   */
+  isMarkedDeleted(): boolean {
+    return this._deleteMarker;
+  }
+
+  /**
+   * To mark self as deleted.
+   * A deleted node will be removed from the graph after the transaction.
+   * - A node cannot be deleted if it has dependencies.
+   *
+   * @throws {@link Error} If node contains dependencies to other nodes.
+   */
+  remove(): void {
+    const dependencies = this.getDependencies();
+
+    // Verify resource can be removed.
+    if (dependencies.some((d) => d.isParentRelationship())) {
+      throw new Error('Cannot remove resource until dependent nodes exist!');
+    }
+
+    // Removing all dependencies that points to this.
+    for (const dependency of dependencies) {
+      const index = dependency.to.getDependencies().findIndex((d) => d.to.getContext() === this.getContext());
+      dependency.to.removeDependency(index);
+    }
+
+    this._deleteMarker = true;
+  }
+
   override setContext(): string {
-    return `${this.MODEL_NAME}=${this.resourceId}`;
+    return `${this.NODE_NAME}=${this.resourceId}`;
   }
 
   override synth(): IResource {

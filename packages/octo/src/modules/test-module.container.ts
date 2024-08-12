@@ -1,5 +1,5 @@
 import type { Constructable } from '../app.type.js';
-import { Container } from '../decorators/container.js';
+import { Container } from '../functions/container/container.js';
 import type { Module } from '../decorators/module.decorator.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
@@ -29,6 +29,8 @@ export class TestModuleContainer {
   }
 
   async commit(app: App): Promise<{
+    dirtyResourceDiffs: DiffMetadata[][];
+    dirtyResourceTransaction: DiffMetadata[][];
     modelDiffs: DiffMetadata[][];
     modelTransaction: DiffMetadata[][];
     resourceDiffs: DiffMetadata[][];
@@ -36,21 +38,22 @@ export class TestModuleContainer {
   }> {
     const generator = await this.octo.beginTransaction(app, {
       enableResourceCapture: true,
+      yieldDirtyResourceDiffs: true,
+      yieldDirtyResourceTransaction: true,
       yieldModelDiffs: true,
       yieldModelTransaction: true,
       yieldResourceDiffs: true,
       yieldResourceTransaction: true,
     });
 
-    const response = {
-      modelDiffs: (await generator.next()).value,
-      modelTransaction: (await generator.next()).value,
-      resourceDiffs: (await generator.next()).value,
-      resourceTransaction: (await generator.next()).value,
-    };
-
-    const modelTransactionResult = await generator.next();
-    await this.octo.commitTransaction(app, modelTransactionResult.value);
+    const response = {} as Awaited<ReturnType<TestModuleContainer['commit']>>;
+    response.modelDiffs = (await generator.next()).value;
+    response.modelTransaction = (await generator.next()).value;
+    response.resourceDiffs = (await generator.next()).value;
+    response.resourceTransaction = (await generator.next()).value;
+    response.dirtyResourceDiffs = (await generator.next()).value;
+    response.dirtyResourceTransaction = (await generator.next()).value;
+    await generator.next();
 
     return response;
   }
@@ -67,7 +70,7 @@ export class TestModuleContainer {
     }
 
     for (const [key, value] of Object.entries(this.captures)) {
-      this.octo.registerCapture(key, value.properties, value.response);
+      this.octo.registerCapture(key, value.response);
     }
 
     this.octo.registerInputs(this.inputs);

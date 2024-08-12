@@ -1,7 +1,7 @@
+import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
-import type { Diff } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import type { IDeployment } from './deployment.interface.js';
 
@@ -18,7 +18,7 @@ import type { IDeployment } from './deployment.interface.js';
  */
 @Model()
 export class Deployment extends AModel<IDeployment, Deployment> {
-  readonly MODEL_NAME: string = 'deployment';
+  readonly NODE_NAME: string = 'deployment';
 
   /**
    * The identifying tag that can point to the server's code at a specific point in time.
@@ -32,14 +32,10 @@ export class Deployment extends AModel<IDeployment, Deployment> {
     this.deploymentTag = deploymentTag;
   }
 
-  override async diffProperties(): Promise<Diff[]> {
-    return [];
-  }
-
   override setContext(): string {
     const parents = this.getParents();
     const parent = parents['server'][0].to;
-    return [`${this.MODEL_NAME}=${this.deploymentTag}`, parent.getContext()].join(',');
+    return [`${this.NODE_NAME}=${this.deploymentTag}`, parent.getContext()].join(',');
   }
 
   override synth(): IDeployment {
@@ -50,9 +46,10 @@ export class Deployment extends AModel<IDeployment, Deployment> {
 
   static override async unSynth(
     deployment: IDeployment,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Deployment> {
+    assert(!!deReferenceContext);
+
     return new Deployment(deployment.deploymentTag);
   }
 }

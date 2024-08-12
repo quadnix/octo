@@ -1,5 +1,5 @@
 import type { ActionInputs, ActionOutputs } from '../../app.type.js';
-import { Container } from '../../decorators/container.js';
+import { Container } from '../container/container.js';
 import {
   ModelActionHookCallbackDoneEvent,
   PostModelActionHookCallbackDoneEvent,

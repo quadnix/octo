@@ -1,8 +1,6 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
-import { DiffUtility } from '../../functions/diff/diff.utility.js';
-import type { Diff } from '../../functions/diff/diff.js';
 import { ArrayUtility } from '../../utilities/array/array.utility.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Environment } from '../environment/environment.model.js';
@@ -28,7 +26,7 @@ import type { IExecution } from './execution.interface.js';
  */
 @Model()
 export class Execution extends AModel<IExecution, Execution> {
-  readonly MODEL_NAME: string = 'execution';
+  readonly NODE_NAME: string = 'execution';
 
   /**
    * A set of environment variables to be passed to the Docker container.
@@ -108,17 +106,13 @@ export class Execution extends AModel<IExecution, Execution> {
     ].join('-');
   }
 
-  override async diffProperties(previous: Execution): Promise<Diff[]> {
-    return DiffUtility.diffMap(previous, this, 'environmentVariables');
-  }
-
   override setContext(): string {
     const parents = this.getParents();
     const deployment = parents['deployment'][0]['to'] as Deployment;
     const environment = parents['environment'][0]['to'] as Environment;
     const subnet = parents['subnet'][0]['to'] as Subnet;
     return [
-      `${this.MODEL_NAME}=${this.executionId}`,
+      `${this.NODE_NAME}=${this.executionId}`,
       deployment.getContext(),
       environment.getContext(),
       subnet.getContext(),

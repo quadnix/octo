@@ -1,7 +1,7 @@
+import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
-import type { Diff } from '../../functions/diff/diff.js';
 import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { Pipeline } from '../pipeline/pipeline.model.js';
@@ -23,7 +23,7 @@ import type { IApp } from './app.interface.js';
  */
 @Model()
 export class App extends AModel<IApp, App> {
-  readonly MODEL_NAME: string = 'app';
+  readonly NODE_NAME: string = 'app';
 
   /**
    * The name of the app.
@@ -34,10 +34,6 @@ export class App extends AModel<IApp, App> {
   constructor(name: string) {
     super();
     this.name = name;
-  }
-
-  override async diffProperties(): Promise<Diff[]> {
-    return [];
   }
 
   /**
@@ -116,7 +112,7 @@ export class App extends AModel<IApp, App> {
   }
 
   override setContext(): string {
-    return `${this.MODEL_NAME}=${this.name}`;
+    return `${this.NODE_NAME}=${this.name}`;
   }
 
   override synth(): IApp {
@@ -127,9 +123,10 @@ export class App extends AModel<IApp, App> {
 
   static override async unSynth(
     app: IApp,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<App> {
+    assert(!!deReferenceContext);
+
     return new App(app.name);
   }
 }

@@ -1,7 +1,7 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
-import { Diff, DiffAction } from '../../functions/diff/diff.js';
+import { DiffAction } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
 import type { ISubnet } from './subnet.interface.js';
@@ -31,14 +31,15 @@ export enum SubnetType {
  *
  * @example
  * ```ts
- * const subnet = new Subnet(region, SubnetType.PRIVATE);
+ * const subnet = new Subnet(region, 'my-subnet');
+ * subnet.subnetType = SubnetType.PUBLIC;
  * ```
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model()
 export class Subnet extends AModel<ISubnet, Subnet> {
-  readonly MODEL_NAME: string = 'subnet';
+  readonly NODE_NAME: string = 'subnet';
 
   private options: { disableSubnetIntraNetwork: boolean; subnetType: SubnetType } = {
     disableSubnetIntraNetwork: false,
@@ -88,24 +89,10 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     this.options.subnetType = subnetType || SubnetType.PRIVATE;
   }
 
-  override async diffProperties(previous: Subnet): Promise<Diff[]> {
-    const diffs: Diff[] = [];
-
-    // Generate diff of options.
-    if (previous.disableSubnetIntraNetwork !== this.disableSubnetIntraNetwork) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'disableSubnetIntraNetwork', this.disableSubnetIntraNetwork));
-    }
-    if (previous.subnetType !== this.subnetType) {
-      throw new Error('Change of subnet type is not supported!');
-    }
-
-    return diffs;
-  }
-
   override setContext(): string {
     const parents = this.getParents();
     const region = parents['region'][0].to;
-    return [`${this.MODEL_NAME}=${this.subnetId}`, region.getContext()].join(',');
+    return [`${this.NODE_NAME}=${this.subnetId}`, region.getContext()].join(',');
   }
 
   override synth(): ISubnet {

@@ -42,7 +42,9 @@ export class CommitHook implements IHook {
 
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: [App, DiffMetadata[][]]): Promise<void> {
+    descriptor.value = async function (
+      ...args: [App, DiffMetadata[][], DiffMetadata[][], DiffMetadata[][]]
+    ): Promise<void> {
       for (const callback of self.preCommitHooks) {
         await callback.apply(this, args);
         EventService.getInstance().emit(new PreCommitHookCallbackDoneEvent());

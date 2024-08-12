@@ -1,9 +1,9 @@
-import { ModelType } from '../app.type.js';
+import { NodeType } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
 import { AResource } from './resource.abstract.js';
 
 export abstract class ASharedResource<T> extends AResource<T> {
-  override readonly MODEL_TYPE: ModelType = ModelType.SHARED_RESOURCE;
+  override readonly NODE_TYPE: NodeType = NodeType.SHARED_RESOURCE;
 
   override async diff(): Promise<Diff[]> {
     return [];

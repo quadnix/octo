@@ -1,45 +1,56 @@
-import type { ModelType } from '../app.type.js';
-import type { Diff } from '../functions/diff/diff.js';
+import type { UnknownModel } from '../app.type.js';
+import type { INode, INodeReference } from '../functions/node/node.interface.js';
+import type { AAnchor } from '../overlays/anchor.abstract.js';
 
 /**
  * {@link AModel} interface.
  */
-export interface IModel<I, T> {
+export interface IModel<I, T> extends INode<I, T> {
   /**
-   * The unique name of the node.
-   * All nodes with same name are of the same category.
+   * To add an {@link Anchor}.
+   *
+   * Each node can store multiple anchors for reference.
+   * These anchors don't necessarily need to be parented by self, but must be unique,
+   * i.e. an anchor, identified by it's parent, cannot be added twice to self's list of anchors.
    */
-  readonly MODEL_NAME: string;
+  addAnchor(anchor: AAnchor): void;
 
   /**
-   * The type of the node.
+   * To get an anchor with a given ID and parent.
+   *
+   * @param anchorId The ID of the anchor.
+   * @param parent The parent of the anchor.
+   * - If parent is not given, then self is considered the parent of this anchor.
    */
-  readonly MODEL_TYPE: ModelType;
+  getAnchor(anchorId: string, parent?: UnknownModel): AAnchor | undefined;
 
   /**
-   * {@inheritDoc AModel.diff}
+   * To get the index of an anchor with a given ID and parent.
+   *
+   * @param anchorId The ID of the anchor.
+   * @param parent The parent of the anchor.
+   * - If parent is not given, then self is considered the parent of this anchor.
    */
-  diff(previous?: T): Promise<Diff[]>;
+  getAnchorIndex(anchorId: string, parent?: UnknownModel): number;
 
   /**
-   * {@inheritDoc AModel.diffProperties}
+   * To get all anchors, filtered by anchor properties.
+   *
+   * @param filters A set of filters, where `key` is the property name and `value` is the value to filter by.
    */
-  diffProperties(previous: T): Promise<Diff[]>;
+  getAnchors(filters: { key: string; value: any }[]): AAnchor[];
 
   /**
-   * {@inheritDoc AModel.setContext}
+   * To remove all anchors from self.
    */
-  setContext(): string;
+  removeAllAnchors(): void;
 
   /**
-   * {@inheritDoc AModel.synth}
+   * To remove an anchor from self.
+   *
+   * @param anchor The anchor to remove.
    */
-  synth(): I;
+  removeAnchor(anchor: AAnchor): void;
 }
 
-/**
- * Model Reference encapsulates identification information of self.
- */
-export interface IModelReference {
-  context: string;
-}
+export interface IModelReference extends INodeReference {}

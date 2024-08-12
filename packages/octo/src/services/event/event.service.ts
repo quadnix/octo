@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { Constructable } from '../../app.type.js';
-import { Container } from '../../decorators/container.js';
+import { Container } from '../../functions/container/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { Event } from '../../events/event.model.js';
 

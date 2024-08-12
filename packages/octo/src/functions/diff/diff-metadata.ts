@@ -1,4 +1,4 @@
-import type { ActionInputs, ActionOutputs, UnknownModel, UnknownResource } from '../../app.type.js';
+import type { ActionInputs, ActionOutputs, UnknownNode } from '../../app.type.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import type { Diff, DiffAction } from './diff.js';
@@ -11,7 +11,7 @@ export class DiffMetadata {
   readonly diff: Diff;
   readonly action: DiffAction;
   readonly field: string;
-  readonly model: UnknownModel | UnknownResource;
+  readonly node: UnknownNode;
   readonly value: unknown;
 
   readonly inputs: ActionInputs = {};
@@ -29,7 +29,7 @@ export class DiffMetadata {
     this.diff = diff;
     this.action = diff.action;
     this.field = diff.field;
-    this.model = diff.model;
+    this.node = diff.node;
     this.value = diff.value;
   }
 

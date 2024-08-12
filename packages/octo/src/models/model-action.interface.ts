@@ -2,8 +2,8 @@ import type { ActionInputs, ActionOutputs } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
 
 /**
- * Actions are translation functions between Diff and underlying infrastructure.
- * An action can translate a specific type of Diff into underlying infrastructure, and can revert it back.
+ * Model Actions are translation functions between Diff and underlying resources.
+ * These actions can translate a specific type of Diff into individual resources.
  */
 export interface IModelAction {
   /**
@@ -27,9 +27,4 @@ export interface IModelAction {
    * This function contains the logic to apply the diff(s) to the underlying infrastructure.
    */
   handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs>;
-
-  /**
-   * This function contains the logic to revert the diff(s) from the underlying infrastructure.
-   */
-  revert(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs>;
 }

@@ -1,7 +1,7 @@
+import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
-import type { Diff } from '../../functions/diff/diff.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { AModel } from '../model.abstract.js';
 import type { IServer } from './server.interface.js';
@@ -19,7 +19,7 @@ import type { IServer } from './server.interface.js';
  */
 @Model()
 export class Server extends AModel<IServer, Server> {
-  readonly MODEL_NAME: string = 'server';
+  readonly NODE_NAME: string = 'server';
 
   /**
    * The name of the server.
@@ -47,14 +47,10 @@ export class Server extends AModel<IServer, Server> {
     this.addChild('serverKey', deployment, 'deploymentTag');
   }
 
-  override async diffProperties(): Promise<Diff[]> {
-    return [];
-  }
-
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
-    return [`${this.MODEL_NAME}=${this.serverKey}`, app.getContext()].join(',');
+    return [`${this.NODE_NAME}=${this.serverKey}`, app.getContext()].join(',');
   }
 
   override synth(): IServer {
@@ -65,9 +61,10 @@ export class Server extends AModel<IServer, Server> {
 
   static override async unSynth(
     server: IServer,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Server> {
+    assert(!!deReferenceContext);
+
     return new Server(server.serverKey);
   }
 }

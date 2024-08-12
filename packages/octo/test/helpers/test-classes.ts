@@ -13,7 +13,7 @@ import {
 } from '../../src/index.js';
 
 export class SharedTestResource extends ASharedResource<TestResource> {
-  readonly MODEL_NAME: string = 'test-resource';
+  readonly NODE_NAME: string = 'test-resource';
 
   constructor(resourceId: string, properties: { [key: string]: unknown }, parents: TestResource[]) {
     super(resourceId, properties, parents as AResource<TestResource>[]);
@@ -41,7 +41,7 @@ export class TestAnchorFactory {
 }
 
 export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsynth> {
-  readonly MODEL_NAME: string = 'test-model';
+  readonly NODE_NAME: string = 'test-model';
 
   override async diffProperties(): Promise<Diff[]> {
     return [];
@@ -57,7 +57,7 @@ export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsy
 }
 
 export class TestOverlay extends AOverlay<TestOverlay> {
-  readonly MODEL_NAME: string = 'test-overlay';
+  readonly NODE_NAME: string = 'test-overlay';
 
   constructor(overlayId: IOverlay['overlayId'], properties: IOverlay['properties'], anchors: AAnchor[]) {
     super(overlayId, properties, anchors);
@@ -65,7 +65,7 @@ export class TestOverlay extends AOverlay<TestOverlay> {
 }
 
 export class TestResource extends AResource<TestResource> {
-  readonly MODEL_NAME: string = 'test-resource';
+  readonly NODE_NAME: string = 'test-resource';
 
   constructor(resourceId: string, properties: IResource['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
@@ -73,7 +73,7 @@ export class TestResource extends AResource<TestResource> {
 }
 
 export class TestResourceWithDiffOverride extends AResource<TestResource> {
-  readonly MODEL_NAME: string = 'test-resource';
+  readonly NODE_NAME: string = 'test-resource';
 
   constructor(resourceId: string, properties: IResource['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);

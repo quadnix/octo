@@ -1,11 +1,11 @@
 import {
   type IUnknownModel,
   type ModelSerializedOutput,
-  ModelType,
+  NodeType,
   type UnknownModel,
   type UnknownOverlay,
 } from '../../../app.type.js';
-import { Container } from '../../../decorators/container.js';
+import { Container } from '../../../functions/container/container.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import {
@@ -157,15 +157,6 @@ export class ModelSerializationService {
     const overlays: { className: string; overlay: IOverlay }[] = [];
 
     for (const model of boundary) {
-      // Skip serializing models marked as deleted.
-      if (model.isMarkedDeleted()) {
-        if (model.MODEL_TYPE === ModelType.OVERLAY) {
-          this.overlayDataRepository.remove(model as UnknownOverlay);
-        }
-
-        continue;
-      }
-
       for (const d of model.getDependencies()) {
         // Skip dependencies that are not part of boundary.
         if (
@@ -178,16 +169,16 @@ export class ModelSerializationService {
         dependencies.push(d.synth());
       }
 
-      if (model.MODEL_TYPE === ModelType.MODEL) {
+      if (model.NODE_TYPE === NodeType.MODEL) {
         const context = model.getContext();
         if (!models[context]) {
           models[context] = { className: model.constructor.name, model: model.synth() as IUnknownModel };
         }
 
-        for (const a of model.getAnchors()) {
+        for (const a of (model as UnknownModel).getAnchors()) {
           anchors.push({ ...a.synth(), className: a.constructor.name });
         }
-      } else if (model.MODEL_TYPE === ModelType.OVERLAY) {
+      } else if (model.NODE_TYPE === NodeType.OVERLAY) {
         overlays.push({ className: model.constructor.name, overlay: (model as UnknownOverlay).synth() });
       }
     }

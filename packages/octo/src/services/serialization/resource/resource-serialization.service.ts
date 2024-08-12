@@ -1,5 +1,5 @@
 import type { ActionOutputs, ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
-import { Container } from '../../../decorators/container.js';
+import { Container } from '../../../functions/container/container.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import { ResourceRegistrationEvent } from '../../../events/registration.event.js';
@@ -116,24 +116,15 @@ export class ResourceSerializationService {
   }
 
   async deserialize(
-    serializedOutput: ResourceSerializedOutput,
-    { freeze = true }: { freeze?: boolean } = {},
+    actualSerializedOutput: ResourceSerializedOutput,
+    oldSerializedOutput: ResourceSerializedOutput,
   ): Promise<void> {
-    // Note 1: Unlike overlays, resources needs to be deserialized twice, once for new resources
-    // and once for old resources. Resources are generated as a product of model and overlay diff.
-    // The user repository code, when runs with a previous state, model and overlay diff won't generate new resources.
-    // That equates to ResourceDataRepository being empty.
-    // On resource diff with the previous resource, DELETE diffs will be produced.
-    // Therefore, it's necessary to load the ResourceDataRepository with new before deserializing the resources.
-    // Note 2: Post commit you can still reference the running overlays, but any resource manipulation should be done
-    // on after fetching the resource from the ResourceDataRepository. Never use the running resources because
-    // post commit they are replaced by a new copy.
-    const newResources = await this._deserialize(JSON.parse(JSON.stringify(serializedOutput)), false);
-    const oldResources = await this._deserialize(JSON.parse(JSON.stringify(serializedOutput)), freeze);
+    const actualResources = await this._deserialize(JSON.parse(JSON.stringify(actualSerializedOutput)), false);
+    const oldResources = await this._deserialize(JSON.parse(JSON.stringify(oldSerializedOutput)), true);
 
     // Refresh the resource data repository.
     await Container.get(ResourceDataRepository, {
-      args: [true, Object.values(oldResources), Object.values(newResources)],
+      args: [true, Object.values(actualResources), Object.values(oldResources), []],
     });
 
     EventService.getInstance().emit(new ResourceDeserializedEvent());
@@ -144,9 +135,7 @@ export class ResourceSerializationService {
     this.classMapping[className] = deserializationClass;
   }
 
-  async serialize(): Promise<ResourceSerializedOutput> {
-    const resources = this.resourceDataRepository.getByProperties();
-
+  private async serialize(resources: UnknownResource[]): Promise<ResourceSerializedOutput> {
     const dependencies: IDependency[] = [];
     const serializedResources: ResourceSerializedOutput['resources'] = {};
     const sharedSerializedResources: ResourceSerializedOutput['sharedResources'] = {};
@@ -154,15 +143,13 @@ export class ResourceSerializationService {
     for (const resource of resources) {
       // Skip serializing resources marked as deleted.
       if (resource.isMarkedDeleted()) {
-        this.resourceDataRepository.remove(resource);
-
         continue;
       }
 
       const resourceDependencies = resource.getDependencies().map((d) => d.synth());
       dependencies.push(...resourceDependencies);
 
-      if (resource.MODEL_TYPE === 'shared-resource') {
+      if (resource.NODE_TYPE === 'shared-resource') {
         sharedSerializedResources[resource.resourceId] = {
           className: resource.constructor.name,
           context: resource.getContext(),
@@ -180,6 +167,16 @@ export class ResourceSerializationService {
     EventService.getInstance().emit(new ResourceSerializedEvent());
 
     return { dependencies, resources: serializedResources, sharedResources: sharedSerializedResources };
+  }
+
+  async serializeActualResources(): Promise<ResourceSerializedOutput> {
+    const resources = this.resourceDataRepository.getActualResourcesByProperties();
+    return this.serialize(resources);
+  }
+
+  async serializeNewResources(): Promise<ResourceSerializedOutput> {
+    const resources = this.resourceDataRepository.getNewResourcesByProperties();
+    return this.serialize(resources);
   }
 
   setResourceDeserializationTimeout(timeoutInMs: number): void {

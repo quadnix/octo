@@ -1,4 +1,5 @@
 import type { IDependency } from './functions/dependency/dependency.js';
+import type { ANode } from './functions/node/node.abstract.js';
 import type { IAnchor } from './overlays/anchor.interface.js';
 import type { AOverlay } from './overlays/overlay.abstract.js';
 import type { AModel } from './models/model.abstract.js';
@@ -45,6 +46,8 @@ export type ResourceSerializedOutput = {
 
 export type TransactionOptions = {
   enableResourceCapture?: boolean;
+  yieldDirtyResourceDiffs?: boolean;
+  yieldDirtyResourceTransaction?: boolean;
   yieldModelDiffs?: boolean;
   yieldModelTransaction?: boolean;
   yieldResourceDiffs?: boolean;
@@ -54,6 +57,8 @@ export type TransactionOptions = {
 export type IUnknownModel = IModel<unknown, unknown>;
 
 export type UnknownModel = AModel<unknown, unknown>;
+
+export type UnknownNode = ANode<unknown, unknown>;
 
 export type UnknownOverlay = AOverlay<unknown>;
 
