@@ -22,7 +22,7 @@ export class Service extends AModel<IService, Service> {
   /**
    * The ID of the service.
    */
-  @Validate({ options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
+  @Validate({ options: { maxLength: 128, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })
   readonly serviceId: string;
 
   constructor(serviceId: string) {
