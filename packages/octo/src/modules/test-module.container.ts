@@ -1,6 +1,6 @@
 import type { Constructable } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
-import type { Module } from '../decorators/module.decorator.js';
+import type { IModuleOptions } from '../decorators/module.decorator.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
@@ -79,7 +79,7 @@ export class TestModuleContainer {
   async loadModules(
     modules: {
       hidden?: boolean;
-      properties?: Parameters<typeof Module>[0];
+      properties?: IModuleOptions;
       type: Constructable<IModule<unknown>>;
     }[],
   ): Promise<void> {

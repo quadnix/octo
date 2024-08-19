@@ -8,6 +8,31 @@ import type { IResourceAction } from '../resources/resource-action.interface.js'
 import { EventService } from '../services/event/event.service.js';
 import { Container } from '../functions/container/container.js';
 
+export interface IModuleOptions {
+  args?: { isArg: (arg: unknown) => boolean; name: string }[];
+  imports?: (Constructable<IModule<unknown>> | string)[];
+  postCommitHooks?: { callback: Octo['commitTransaction'] }[];
+  postModelActionHooks?: {
+    ACTION_NAME: string;
+    collectInput?: IModelAction['collectInput'];
+    handle: IModelAction['handle'];
+  }[];
+  postResourceActionHooks?: {
+    ACTION_NAME: string;
+    handle: IResourceAction['handle'];
+  }[];
+  preCommitHooks?: { callback: Octo['commitTransaction'] }[];
+  preModelActionHooks?: {
+    ACTION_NAME: string;
+    collectInput?: IModelAction['collectInput'];
+    handle: IModelAction['handle'];
+  }[];
+  preResourceActionHooks?: {
+    ACTION_NAME: string;
+    handle: IResourceAction['handle'];
+  }[];
+}
+
 /**
  * A `@Module` is a class decorator to be placed on top of a class that represents a module.
  * - A Module class must implement the {@link IModule} interface.
@@ -69,30 +94,7 @@ export function Module({
   preCommitHooks = [],
   preModelActionHooks = [],
   preResourceActionHooks = [],
-}: {
-  args?: { isArg: (arg: unknown) => boolean; name: string }[];
-  imports?: (Constructable<IModule<unknown>> | string)[];
-  postCommitHooks?: { callback: Octo['commitTransaction'] }[];
-  postModelActionHooks?: {
-    ACTION_NAME: string;
-    collectInput?: IModelAction['collectInput'];
-    handle: IModelAction['handle'];
-  }[];
-  postResourceActionHooks?: {
-    ACTION_NAME: string;
-    handle: IResourceAction['handle'];
-  }[];
-  preCommitHooks?: { callback: Octo['commitTransaction'] }[];
-  preModelActionHooks?: {
-    ACTION_NAME: string;
-    collectInput?: IModelAction['collectInput'];
-    handle: IModelAction['handle'];
-  }[];
-  preResourceActionHooks?: {
-    ACTION_NAME: string;
-    handle: IResourceAction['handle'];
-  }[];
-} = {}): (constructor: any) => void {
+}: IModuleOptions = {}): (constructor: any) => void {
   return function (constructor: Constructable<IModule<unknown>>) {
     Container.get(ModuleContainer)
       .then((moduleContainer) => {

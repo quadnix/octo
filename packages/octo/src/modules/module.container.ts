@@ -1,6 +1,6 @@
 import { Constructable } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
-import { type Module } from '../decorators/module.decorator.js';
+import { type IModuleOptions } from '../decorators/module.decorator.js';
 import { ModuleEvent } from '../events/module.event.js';
 import { CommitHook } from '../functions/hook/commit.hook.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
@@ -14,7 +14,7 @@ export class ModuleContainer {
     applyOrder: number;
     hidden: boolean;
     module: Constructable<IModule<unknown>>;
-    properties: Parameters<typeof Module>[0];
+    properties: IModuleOptions;
   }[] = [];
 
   private readonly outputs: { [key: string]: unknown } = {};
@@ -91,7 +91,7 @@ export class ModuleContainer {
     }
   }
 
-  register(module: Constructable<IModule<unknown>>, properties: Parameters<typeof Module>[0]): void {
+  register(module: Constructable<IModule<unknown>>, properties: IModuleOptions): void {
     if (!this.modules.some((m) => m.module.name === module.name)) {
       this.modules.push({ applied: false, applyOrder: -1, hidden: true, module, properties });
     }

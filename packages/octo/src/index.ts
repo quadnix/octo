@@ -2,7 +2,7 @@ export { Action } from './decorators/action.decorator.js';
 export { Anchor } from './decorators/anchor.decorator.js';
 export { Factory } from './decorators/factory.decorator.js';
 export { Model } from './decorators/model.decorator.js';
-export { Module } from './decorators/module.decorator.js';
+export { type IModuleOptions, Module } from './decorators/module.decorator.js';
 export { OnEvent } from './decorators/on-event.decorator.js';
 export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
