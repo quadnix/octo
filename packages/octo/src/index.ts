@@ -1,60 +1,27 @@
 export { Action } from './decorators/action.decorator.js';
 export { Anchor } from './decorators/anchor.decorator.js';
-export { Container } from './functions/container/container.js';
-export { EnableHook } from './decorators/enable-hook.decorator.js';
 export { Factory } from './decorators/factory.decorator.js';
 export { Model } from './decorators/model.decorator.js';
 export { Module } from './decorators/module.decorator.js';
 export { OnEvent } from './decorators/on-event.decorator.js';
 export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
-export { IPackageMock, TestContainer } from './functions/container/test-container.js';
 export { Validate } from './decorators/validate.decorator.js';
 
-export { DependencyRelationship } from './functions/dependency/dependency.js';
+export * from './events/error.event.js';
+export * from './events/event.model.js';
+export * from './events/hook.event.js';
+export * from './events/module.event.js';
+export * from './events/registration.event.js';
+export * from './events/serialization.event.js';
+export * from './events/transaction.event.js';
+
+export { Container } from './functions/container/container.js';
+export { IPackageMock, TestContainer } from './functions/container/test-container.js';
+export { Dependency, DependencyRelationship, IDependency } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { DiffMetadata } from './functions/diff/diff-metadata.js';
-
-export { ErrorEvent, RegistrationErrorEvent } from './events/error.event.js';
-export { Event } from './events/event.model.js';
-export {
-  CommitHookCallbackDoneEvent,
-  CommitHookEvent,
-  HookEvent,
-  ModelActionHookCallbackDoneEvent,
-  ModelActionHookEvent,
-  PostCommitHookCallbackDoneEvent,
-  PostModelActionHookCallbackDoneEvent,
-  PostResourceActionHookCallbackDoneEvent,
-  PreCommitHookCallbackDoneEvent,
-  PreModelActionHookCallbackDoneEvent,
-  PreResourceActionHookCallbackDoneEvent,
-  ResourceActionHookCallbackDoneEvent,
-  ResourceActionHookEvent,
-} from './events/hook.event.js';
-export { ModuleEvent } from './events/module.event.js';
-export {
-  AnchorRegistrationEvent,
-  ModelActionRegistrationEvent,
-  ModelRegistrationEvent,
-  OverlayRegistrationEvent,
-  RegistrationEvent,
-  ResourceActionRegistrationEvent,
-  ResourceRegistrationEvent,
-} from './events/registration.event.js';
-export {
-  ModelDeserializedEvent,
-  ModelSerializedEvent,
-  ResourceDeserializedEvent,
-  ResourceSerializedEvent,
-  SerializationEvent,
-} from './events/serialization.event.js';
-export {
-  ModelActionTransactionEvent,
-  ResourceActionTransactionEvent,
-  TransactionEvent,
-} from './events/transaction.event.js';
 
 export { type IApp } from './models/app/app.interface.js';
 export { App } from './models/app/app.model.js';

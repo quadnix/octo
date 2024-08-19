@@ -92,7 +92,7 @@ export function Module({
     ACTION_NAME: string;
     handle: IResourceAction['handle'];
   }[];
-}): (constructor: any) => void {
+} = {}): (constructor: any) => void {
   return function (constructor: Constructable<IModule<unknown>>) {
     Container.get(ModuleContainer)
       .then((moduleContainer) => {
