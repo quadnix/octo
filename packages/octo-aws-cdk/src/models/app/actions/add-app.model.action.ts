@@ -6,10 +6,10 @@ import {
   DiffAction,
   Factory,
   IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 
-@Action(ModelType.MODEL)
+@Action(NodeType.MODEL)
 export class AddAppModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddAppModelAction';
 
@@ -18,15 +18,11 @@ export class AddAppModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model.MODEL_NAME === 'app';
+    return diff.action === DiffAction.ADD && diff.node.NODE_NAME === 'app';
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

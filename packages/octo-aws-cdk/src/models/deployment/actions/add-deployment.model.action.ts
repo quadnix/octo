@@ -6,11 +6,11 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import { AwsDeployment } from '../aws.deployment.model.js';
 
-@Action(ModelType.MODEL)
+@Action(NodeType.MODEL)
 export class AddDeploymentModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddDeploymentModelAction';
 
@@ -21,18 +21,14 @@ export class AddDeploymentModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof AwsDeployment &&
-      diff.model.MODEL_NAME === 'deployment' &&
+      diff.node instanceof AwsDeployment &&
+      diff.node.NODE_NAME === 'deployment' &&
       diff.field === 'deploymentTag'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

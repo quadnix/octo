@@ -6,19 +6,19 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import type { INetworkAclProperties } from '../../../resources/network-acl/network-acl.interface.js';
 import { NetworkAcl } from '../../../resources/network-acl/network-acl.resource.js';
 import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { AwsSubnet } from '../aws.subnet.model.js';
 
-@Action(ModelType.MODEL)
+@Action(NodeType.MODEL)
 export class UpdateSubnetAssociationModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'UpdateSubnetAssociationModelAction';
 
   collectInput(diff: Diff): string[] {
-    const subnet = diff.model as AwsSubnet;
+    const subnet = diff.node as AwsSubnet;
 
     const siblings = subnet.getSiblings()['subnet'] ?? [];
     const siblingSubnets = siblings.map((s) => s.to as AwsSubnet);
@@ -31,7 +31,7 @@ export class UpdateSubnetAssociationModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    if (diff.model instanceof AwsSubnet && diff.model.MODEL_NAME === 'subnet') {
+    if (diff.node instanceof AwsSubnet && diff.node.NODE_NAME === 'subnet') {
       if (diff.field === 'disableSubnetIntraNetwork') {
         return diff.action === DiffAction.UPDATE;
       } else if (diff.field === 'sibling') {
@@ -45,7 +45,7 @@ export class UpdateSubnetAssociationModelAction implements IModelAction {
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
-    const subnet = diff.model as AwsSubnet;
+    const subnet = diff.node as AwsSubnet;
 
     const siblings = subnet.getSiblings()['subnet'] ?? [];
     const siblingSubnets = siblings.map((s) => s.to as AwsSubnet);
@@ -98,10 +98,6 @@ export class UpdateSubnetAssociationModelAction implements IModelAction {
     actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

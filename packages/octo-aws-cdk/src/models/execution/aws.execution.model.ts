@@ -1,13 +1,4 @@
-import {
-  Container,
-  Diff,
-  DiffAction,
-  Execution,
-  IExecution,
-  Model,
-  OverlayService,
-  type UnknownModel,
-} from '@quadnix/octo';
+import { Container, DiffAction, Execution, IExecution, Model, OverlayService, type UnknownModel } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
@@ -56,23 +47,6 @@ export class AwsExecution extends Execution {
     if (!existingRule) {
       securityGroupAnchor.properties.rules.push(rule);
     }
-  }
-
-  async destroy(): Promise<void> {
-    const overlayService = await Container.get(OverlayService);
-
-    const executionOverlayId = `execution-overlay-${this.executionId}`;
-    const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
-    overlayService.removeOverlay(executionOverlay);
-
-    const securityGroupOverlayId = `security-group-overlay-${this.executionId}`;
-    const securityGroupOverlay = overlayService.getOverlayById(securityGroupOverlayId) as SecurityGroupOverlay;
-    overlayService.removeOverlay(securityGroupOverlay);
-  }
-
-  override async diffProperties(): Promise<Diff[]> {
-    // Skip diff of environmentVariables, since its done in ExecutionOverlay.
-    return [];
   }
 
   getSecurityGroupRules(): SecurityGroupAnchor['properties']['rules'] {
@@ -188,50 +162,6 @@ export class AwsExecution extends Execution {
     execToSubDep.addBehavior('anchor', DiffAction.UPDATE, 'overlayId', DiffAction.ADD);
     // Before deleting filesystem must update ecs-task-definition.
     subToExecDep.addBehavior('overlayId', DiffAction.DELETE, 'anchor', DiffAction.UPDATE);
-  }
-
-  removeSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
-    const securityGroupAnchor = this.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
-
-    const existingRuleIndex = securityGroupAnchor.properties.rules.findIndex(
-      (r) =>
-        r.CidrBlock === rule.CidrBlock &&
-        r.Egress === rule.Egress &&
-        r.FromPort === rule.FromPort &&
-        r.IpProtocol === rule.IpProtocol &&
-        r.ToPort === rule.ToPort,
-    );
-    if (existingRuleIndex > -1) {
-      securityGroupAnchor.properties.rules.splice(existingRuleIndex, 1);
-    }
-  }
-
-  async unmountFilesystem(filesystemName: string): Promise<void> {
-    const subnet = this.getParents()['subnet'][0].to as AwsSubnet;
-    const filesystemMount = subnet.filesystemMounts.find((f) => f.filesystemName === filesystemName);
-    if (!filesystemMount) {
-      throw new Error('Filesystem not found in AWS subnet!');
-    }
-
-    const overlayService = await Container.get(OverlayService);
-
-    const subnetFilesystemMountAnchor = subnet.getAnchor(
-      filesystemMount.filesystemMountAnchorName,
-    ) as SubnetFilesystemMountAnchor;
-
-    // eslint-disable-next-line max-len
-    const subnetFilesystemMountOverlayId = `subnet-filesystem-mount-overlay-${filesystemMount.filesystemMountAnchorName}`;
-    const subnetFilesystemMountOverlay = overlayService.getOverlayById(
-      subnetFilesystemMountOverlayId,
-    ) as SubnetFilesystemMountOverlay;
-
-    // Update ExecutionOverlay with SubnetFilesystemMountAnchor anchor.
-    const executionOverlayId = `execution-overlay-${this.executionId}`;
-    const executionOverlay = overlayService.getOverlayById(executionOverlayId) as ExecutionOverlay;
-    executionOverlay.removeAnchor(subnetFilesystemMountAnchor);
-
-    // ExecutionOverlay vs SubnetFilesystemMountOverlay relationship.
-    subnetFilesystemMountOverlay.removeRelationship(executionOverlay);
   }
 
   updateDesiredCount(desiredCount: number): void {

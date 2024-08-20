@@ -6,13 +6,13 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import { parse } from 'path';
 import { EcrImage } from '../../../../resources/ecr/ecr-image.resource.js';
 import { EcrService } from '../ecr.service.model.js';
 
-@Action(ModelType.MODEL)
+@Action(NodeType.MODEL)
 export class AddEcrServiceModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddEcrServiceModelAction';
 
@@ -23,16 +23,16 @@ export class AddEcrServiceModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof EcrService &&
-      diff.model.MODEL_NAME === 'service' &&
+      diff.node instanceof EcrService &&
+      diff.node.NODE_NAME === 'service' &&
       diff.field === 'serviceId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     // Get properties.
-    const awsRegionIds = (diff.model as EcrService).awsRegionIds;
-    const images = (diff.model as EcrService).images;
+    const awsRegionIds = (diff.node as EcrService).awsRegionIds;
+    const images = (diff.node as EcrService).images;
 
     const dockerExec = actionInputs['input.image.dockerExecutable'] as string;
     for (const awsRegionId of awsRegionIds) {
@@ -52,10 +52,6 @@ export class AddEcrServiceModelAction implements IModelAction {
     }
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

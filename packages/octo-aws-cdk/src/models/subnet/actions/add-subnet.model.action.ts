@@ -6,7 +6,7 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
   SubnetType,
 } from '@quadnix/octo';
 import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
@@ -18,12 +18,12 @@ import { Vpc } from '../../../resources/vpc/vpc.resource.js';
 import type { AwsRegion } from '../../region/aws.region.model.js';
 import { AwsSubnet } from '../aws.subnet.model.js';
 
-@Action(ModelType.MODEL)
+@Action(NodeType.MODEL)
 export class AddSubnetModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddSubnetModelAction';
 
   collectInput(diff: Diff): string[] {
-    const subnet = diff.model as AwsSubnet;
+    const subnet = diff.node as AwsSubnet;
 
     const parents = subnet.getParents();
     const awsRegion = parents['region'][0].to as AwsRegion;
@@ -43,14 +43,14 @@ export class AddSubnetModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof AwsSubnet &&
-      diff.model.MODEL_NAME === 'subnet' &&
+      diff.node instanceof AwsSubnet &&
+      diff.node.NODE_NAME === 'subnet' &&
       diff.field === 'subnetId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
-    const subnet = diff.model as AwsSubnet;
+    const subnet = diff.node as AwsSubnet;
 
     const parents = subnet.getParents();
     const awsRegion = parents['region'][0].to as AwsRegion;
@@ -135,10 +135,6 @@ export class AddSubnetModelAction implements IModelAction {
     actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

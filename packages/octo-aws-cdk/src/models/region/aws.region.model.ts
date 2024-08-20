@@ -79,23 +79,6 @@ export class AwsRegion extends Region {
     return Object.values(RegionId).find((value) => this.getRegionIdParts(value).awsRegionId === awsRegionId);
   }
 
-  async removeFilesystem(filesystemName: string): Promise<void> {
-    const filesystem = this.filesystems.find((f) => f.filesystemName === filesystemName);
-    if (!filesystem) {
-      throw new Error('Filesystem not found in AWS region!');
-    }
-
-    const overlayService = await Container.get(OverlayService);
-
-    const overlayId = `region-filesystem-overlay-${filesystem.filesystemAnchorName}`;
-    if (overlayService.getOverlaysByAnchor(filesystem.filesystemAnchorName, this, [overlayId]).length > 0) {
-      throw new Error('Cannot remove filesystem while overlay exists!');
-    }
-
-    const overlay = overlayService.getOverlayById(overlayId) as RegionFilesystemOverlay;
-    overlayService.removeOverlay(overlay);
-  }
-
   override synth(): IAwsRegion {
     return {
       awsRegionAZ: this.awsRegionAZ,

@@ -39,22 +39,6 @@ export class AwsServer extends Server {
     return securityGroupAnchor.properties.rules;
   }
 
-  removeSecurityGroupRule(rule: SecurityGroupAnchor['properties']['rules'][0]): void {
-    const securityGroupAnchor = this.getAnchor('SecurityGroupAnchor') as SecurityGroupAnchor;
-
-    const existingRuleIndex = securityGroupAnchor.properties.rules.findIndex(
-      (r) =>
-        r.CidrBlock === rule.CidrBlock &&
-        r.Egress === rule.Egress &&
-        r.FromPort === rule.FromPort &&
-        r.IpProtocol === rule.IpProtocol &&
-        r.ToPort === rule.ToPort,
-    );
-    if (existingRuleIndex > -1) {
-      securityGroupAnchor.properties.rules.splice(existingRuleIndex, 1);
-    }
-  }
-
   static override async unSynth(server: IServer): Promise<AwsServer> {
     return new AwsServer(server.serverKey);
   }

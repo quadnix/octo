@@ -54,35 +54,6 @@ export class AwsSubnet extends Subnet {
     regionFilesystemOverlay.addChild('overlayId', subnetFilesystemMountOverlay, 'overlayId');
   }
 
-  async removeFilesystemMount(filesystemName: string): Promise<void> {
-    const filesystemMount = this.filesystemMounts.find((f) => f.filesystemName === filesystemName);
-    if (!filesystemMount) {
-      throw new Error('Filesystem mount not found in AWS subnet!');
-    }
-
-    const region = this.getParents('region')['region'][0].to as AwsRegion;
-    const regionFilesystem = region.filesystems.find((f) => f.filesystemName === filesystemName);
-    if (!regionFilesystem) {
-      throw new Error('Filesystem not found in AWS region!');
-    }
-
-    const overlayService = await Container.get(OverlayService);
-
-    const regionFilesystemOverlayId = `region-filesystem-overlay-${regionFilesystem.filesystemAnchorName}`;
-    const regionFilesystemOverlay = overlayService.getOverlayById(regionFilesystemOverlayId) as RegionFilesystemOverlay;
-
-    const overlayId = `subnet-filesystem-mount-overlay-${filesystemMount.filesystemMountAnchorName}`;
-    if (overlayService.getOverlaysByAnchor(filesystemMount.filesystemMountAnchorName, this, [overlayId]).length > 0) {
-      throw new Error('Cannot remove filesystem mount while overlay exists!');
-    }
-
-    const overlay = overlayService.getOverlayById(overlayId) as SubnetFilesystemMountOverlay;
-    overlayService.removeOverlay(overlay);
-
-    // RegionFilesystemOverlay vs SubnetFilesystemMountOverlay relationship.
-    regionFilesystemOverlay.removeRelationship(overlay);
-  }
-
   override synth(): IAwsSubnet {
     return {
       ...super.synth(),

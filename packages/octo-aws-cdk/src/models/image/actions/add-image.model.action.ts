@@ -7,12 +7,12 @@ import {
   Factory,
   type IModelAction,
   Image,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import { parse } from 'path';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
 
-@Action(ModelType.MODEL)
+@Action(NodeType.MODEL)
 export class AddImageModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddImageModelAction';
 
@@ -23,14 +23,14 @@ export class AddImageModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof Image &&
-      diff.model.MODEL_NAME === 'image' &&
+      diff.node instanceof Image &&
+      diff.node.NODE_NAME === 'image' &&
       diff.field === 'imageId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
-    const { dockerOptions, imageId } = diff.model as Image;
+    const { dockerOptions, imageId } = diff.node as Image;
 
     const dockerExec = actionInputs['input.image.dockerExecutable'] as string;
 
@@ -74,10 +74,6 @@ export class AddImageModelAction implements IModelAction {
     });
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 
