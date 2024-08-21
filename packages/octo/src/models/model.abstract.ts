@@ -44,7 +44,13 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
       }
     }
 
+    // Add model.
     diffs.push(new Diff(this, DiffAction.ADD, '', ''));
+
+    // Diff model properties.
+    const propertyDiffs = await this.diffProperties();
+    diffs.push(...propertyDiffs);
+
     return diffs;
   }
 

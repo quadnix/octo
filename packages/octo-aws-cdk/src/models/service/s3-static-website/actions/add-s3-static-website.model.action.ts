@@ -6,12 +6,12 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import { S3Website } from '../../../../resources/s3/website/s3-website.resource.js';
 import { S3StaticWebsiteService } from '../s3-static-website.service.model.js';
 
-@Action(ModelType.MODEL)
+@Action(NodeType.MODEL)
 export class AddS3StaticWebsiteModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddS3StaticWebsiteModelAction';
 
@@ -22,14 +22,14 @@ export class AddS3StaticWebsiteModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof S3StaticWebsiteService &&
-      diff.model.MODEL_NAME === 'service' &&
+      diff.node instanceof S3StaticWebsiteService &&
+      diff.node.NODE_NAME === 'service' &&
       diff.field === 'serviceId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
-    const { awsRegionId, bucketName } = diff.model as S3StaticWebsiteService;
+    const { awsRegionId, bucketName } = diff.node as S3StaticWebsiteService;
 
     // Create S3 Website.
     const s3Website = new S3Website(`bucket-${bucketName}`, {
@@ -41,10 +41,6 @@ export class AddS3StaticWebsiteModelAction implements IModelAction {
     actionOutputs[s3Website.resourceId] = s3Website;
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

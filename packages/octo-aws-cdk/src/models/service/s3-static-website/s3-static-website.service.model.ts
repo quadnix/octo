@@ -138,8 +138,8 @@ export class S3StaticWebsiteService extends Service {
     const newManifestData: IManifest = await this.generateSourceManifest();
 
     // Ensure index.html exists.
-    if (this.sourcePaths.length > 0 && !(newManifestData['index.htm'] || newManifestData['index.html'])) {
-      throw new Error('index.htm/index.html missing in root of website!');
+    if (this.sourcePaths.length > 0 && !(newManifestData['error.html'] || newManifestData['index.html'])) {
+      throw new Error('error.html/index.html missing in root of website!');
     }
 
     // Generate difference in old/new manifest.
