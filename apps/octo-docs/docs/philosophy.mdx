@@ -27,7 +27,7 @@ one that has an entirely different set of opinions and beliefs.
     Likewise, developers cannot be expected to have deep understanding of infrastructure and self serve themselves.
 
     Octo provides that interface where these two mights can come together to collaborate,
-    without interfering on each other's work.
+    without interfering each other's work.
   </p>
 </details>
 
@@ -68,6 +68,24 @@ one that has an entirely different set of opinions and beliefs.
   </p>
 </details>
 
+<details>
+  <summary>5. Infrastructure should be testable, just like everything else.</summary>
+  <p>
+    Testing in infrastructure has been inadequate, even with modern IaC tools.
+
+    Testing if a stack or construct will be created is just re-testing the IaC tool.
+    Testing the infrastructure needs to be at a much higher level than testing individual resources and their values.
+
+    - What security rules my service will inherit?
+    - What environment variables will it start with?
+    - What subnet and environments will it be placed in?
+    - When running in QA which S3 buckets will it use?
+    - Which other services can it talk to?
+
+    With Octo you write similar assertions that tests your very understanding of the infrastructure.
+  </p>
+</details>
+
 ## Monolith vs Monorepo
 Octo only supports monolith infrastructure repository by design.
 Having worked several years with large infrastructure code bases for several companies,
@@ -101,7 +119,7 @@ graph TD;
   regionB((Region B))
   environmentA((Environment A))
 
-  subgraph Octo Monolith
+  subgraph Octo Monolith Repo
     app --> regionA
     app --> regionB
     regionA --> environmentA
@@ -111,8 +129,8 @@ graph TD;
 Having the entire infrastructure in one repository is less manual work, less error prone, less dispersed changes,
 single source of truth, and promotes common understanding of the infrastructure.<br/>
 There are of course disadvantages to this approach too - mainly the possibility of blocking future pull requests
-when the previous changes have failed to apply. But, in later section of the document we will talk about how Octo
-deals with such situations.
+when the previous changes have failed to apply. But, Octo has a special way to deal with such situations,
+which you can read about in later pages.
 
 ## Developers vs DevOps
 Unlike other IaC stacks, Octo recognizes the two factions of engineers - developers and devops.

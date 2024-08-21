@@ -2,20 +2,18 @@
 title: Introduction
 ---
 
-import { Link } from '@site/src/components/links';
-
-**Octo is a cloud agnostic general purpose cloud infrastructure modeling and management tool.**
+**Octo is a cloud agnostic, general purpose, cloud infrastructure modeling and management tool.**
 
 Hello, and welcome to Octo ❤️<br />
 Octo is a set of libraries that can help you model and maintain your infrastructure as code.
-The libraries are TypeScript based, and follows a similar modular pattern as Angular or NestJs.
+The libraries are TypeScript based, and follows a similar modular pattern to Angular or NestJs.
 
 Octo has the capability to support multiple Cloud Providers,
 though today it only provides limited support for AWS.
-As our community will grow, we expect to expand Octo's capabilities to other providers such as GCP, and Azure.
+As our community grows, we expect to write CDKs for other providers as well, such as GCP and Azure.
 
 There are many IaC tools - Terraform, AWS CDK, Pulumi, and others.
-But Octo is different from its peers, and is built from ground up.<br/>
+But Octo is different from its peers and is built from the ground up.<br/>
 While other IaC tools interface with cloud resources directly,
 Octo introduces the concept of **Models** - a set of higher order encapsulation of cloud resources that are
 easy and more natural to understand.<br/>
@@ -23,58 +21,35 @@ On top of Models, we introduce another concept called **Modules** - an even high
 Models, which allows you to define and share infrastructure plug-and-play components which makes your infrastructure
 even easier to conceptualize.
 
-
-The former allows you to
-But enough with the boring technical jargon! Let’s talk real life:
-keeping cloud stuff running smoothly nowadays is like herding caffeinated cats on a hot tin roof.
-It’s so complex that companies are basically handing the keys over to their own personal army of DevOps wizards
-just to keep the digital wheels from falling off.
-
-With time, to manage infrastructure, slowly the concept of "Infrastructure as Code (IaC)" emerged -
-set of libraries, and technologies specifically designed to manage infrastructure using code.
-It has numerous benefits, such as versioning of infrastructure, git blame, logic, and sanity!
-
-But IaC brought its own set of challenges, especially for traditional developers,
-who are now expected to utilize CDKs (basically libraries) to self-serve their infrastructure needs,
-while DevOps continue to manage lower-level infrastructure details and base CDK libraries.
-
-Existing CDKs are primarily tailored for devops, posing challenges for developers.
-Their development background often doesn't align seamlessly with Infrastructure as Code (IaC).
-Here's why:
-- Developers are tasked with understanding numerous low-level infrastructure details,
-yet staying abreast of base CDK development can be challenging, resulting in knowledge gaps.
-- DevOps frequently update base CDKs, leading to the adoption of new code without comprehensive context.
-- This process often entails learning a new language or tech stack, adding to the complexity.
-
-Octo aims to bridge the gap between devops and developers by offering familiar constructs understood by both groups.
-These constructs are implemented as classes in TypeScript, catering specifically to JavaScript/TypeScript developers.
-
 ## Overview
 Octo is a tool for modeling cloud infrastructure.
-It helps devops make base CDKs with easy-to-use features, called <Link id="model" />.
-These features then turn into devops-friendly ones, called <Link id="resource" />,
-and are used to build real infrastructure with Cloud APIs.
+It layers the underlying infrastructure into Modules, Models, and Resources.
+
+Here is how it works - you write modules, which generates models, which in turn creates infrastructure resources.
+These resources then map to the real underlying infrastructure.
+Each layer is translated into the next using Actions.<br/>
+The final translation of resources to real infrastructure is done via Cloud APIs and SDKs.
 
 ```mermaid
 graph LR;
-  developer[[Developer written CDK]] --> model((Models));
+  module((Modules)) --> model((Models));
   model --> resource((Resources));
+  module --> overlay((Overlays));
+  module --> anchor((Anchors));
+  overlay --> resource;
+  anchor --> resource;
   resource --> cloudApi[[Native Cloud API calls]];
   cloudApi --> infrastructure[[Real Infrastructure]];
 ```
 
 This setup cleanly divides responsibilities between devops and developers.
-Devops create Models for developers to interact with the infrastructure.
-Octo converts these Models into Resources,
-which devops understand well and are better at representing the cloud infrastructure.
-Then, Resources utilize Cloud APIs to manage the actual infrastructure.
+Devops defines the building blocks that represents the infrastructure.
+They define models, and resources, and the translation actions.<br/>
+Developers write modules and shape the infrastructure and self-serve their needs
+using a common understanding of these components.
 
 ## Example
-Here's a simplified code of a **"Backend server running in QA environment"** in AWS infrastructure.
-
-:::note
-By "simplified" we mean we've intentionally left out some details for clarity.
-:::
+Here's a pseudo Octo code of a **"Backend server running in QA environment"** in AWS infrastructure.
 
 ```typescript
 const app = new App('my-app');
@@ -82,21 +57,21 @@ const app = new App('my-app');
 const region = new AwsRegion(AwsRegionId.AWS_US_EAST_1A);
 app.addRegion(region);
 
-const environment = new Environment('QA');
+const environment = new AwsEnvironment('QA');
 region.addEnvironment(environment);
 
-const server = new Server('Backend');
+const server = new AwsServer('Backend');
 app.addServer(server);
 
-const deployment = new Deployment('v1');
+const deployment = new AwsDeployment('v1');
 server.addDeployment(deployment);
 
-new Execution(deployment, environment);
+new AwsExecution(deployment, environment);
 ```
 
 * `App`, `Environment`, `Execution`, etc are all Models.
-* Developers interact with Models which is represented by the Model graph (below).
-* Models are transformed to Resources which logically represents the AWS infrastructure (below).
+* Developers declare their infrastructure represented by the Model graph (below).
+* Models are transformed into Resources, which logically represent the AWS infrastructure (below).
 * Resources are transformed to AWS infrastructure using native AWS APIs.
 
 ```mermaid
@@ -123,12 +98,18 @@ graph TD;
 making modeling its greatest strength. By facilitating devops in creating clear and intuitive CDKs,
 developers can logically write and test infrastructure changes.
 * **Abstraction for Developers**: Developers are shielded from intricate low-level infrastructure details,
-interacting solely with Models.
+interacting solely with higher constructs.
+* **Modules**: Octo introduces the concept of Modules - shareable and reusable infrastructure components.
 * **TypeScript Advantage**: Being written in TypeScript, Octo inherits the benefits of TS,
 including testing frameworks and the familiarity of one of the most widely used languages.
 * **Graph Representation**: Octo depicts infrastructure as a Graph,
 enabling visualization of infrastructure as a well-defined set of nodes and edges.
 * **Detailed Understanding of Changes**: Any alterations to the infrastructure graph are differentially analyzed
 at both Model and Resource levels, offering developers both simplified and detailed insights into the proposed changes.
-* **Transactional Support**: Octo provides Transactions, allowing unit changes to the infrastructure graph,
-with the capability to revert to a previous state in the event of errors.
+* **Non Blocking Pipelines**: Being a graph, Octo understands the hierarchy and dependencies of resources.
+Failure in one node won't block changes in other non-dependent nodes.
+* **In-Built Testing**: Octo provides a testing framework that can help your write meaningful, intuitive, test cases
+for your infrastructure.
+* **Recovery from Failures**: Octo saves the state of resources after every run and keeps track of
+infrastructure changes. Execution is stopped at failures, and upon re-run, it will pick up from the same point.
+* **& more**: including Captures, and Events.
