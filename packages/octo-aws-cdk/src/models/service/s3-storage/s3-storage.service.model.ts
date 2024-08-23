@@ -77,47 +77,6 @@ export class S3StorageService extends Service {
     overlayService.addOverlay(s3StorageAccessOverlay);
   }
 
-  async removeDirectory(remoteDirectoryPath: string): Promise<void> {
-    const directoryIndex = this.directories.findIndex((d) => d.remoteDirectoryPath === remoteDirectoryPath);
-    if (directoryIndex === -1) {
-      throw new Error('Cannot find remote directory!');
-    }
-
-    const directory = this.directories[directoryIndex];
-
-    const overlayService = await Container.get(OverlayService);
-
-    const overlays = overlayService.getOverlaysByProperties([
-      { key: 'bucketName', value: this.bucketName },
-      { key: 'remoteDirectoryPath', value: directory.remoteDirectoryPath },
-    ]);
-    if (overlays.length > 0) {
-      throw new Error('Cannot remove directory while overlay exists!');
-    }
-
-    this.directories.splice(directoryIndex, 1);
-  }
-
-  async revokeDirectoryAccess(
-    server: AwsServer,
-    remoteDirectoryPath: string,
-    accessLevel: S3StorageAccess,
-  ): Promise<void> {
-    const directory = this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath);
-    if (!directory) {
-      throw new Error('Cannot find remote directory!');
-    }
-
-    const serverRoleAnchor = server.getAnchor('ServerIamRoleAnchor') as IamRoleAnchor;
-
-    const overlayService = await Container.get(OverlayService);
-
-    const overlayIdSuffix = CommonUtility.hash(serverRoleAnchor.anchorId, directory.remoteDirectoryPath, accessLevel);
-    const overlayId = `s3-storage-access-overlay-${overlayIdSuffix}`;
-    const overlay = overlayService.getOverlayById(overlayId) as S3StorageAccessOverlay;
-    overlayService.removeOverlay(overlay);
-  }
-
   override synth(): IS3StorageService {
     return {
       awsRegionId: this.awsRegionId,

@@ -5,23 +5,23 @@ import {
   ECRClient,
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
 import type { IEcrImageResponse } from '../ecr-image.interface.js';
 import { EcrImage } from '../ecr-image.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class AddEcrImageResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEcrImageResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model instanceof EcrImage && diff.model.MODEL_NAME === 'ecr-image';
+    return diff.action === DiffAction.ADD && diff.node instanceof EcrImage && diff.node.NODE_NAME === 'ecr-image';
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const ecrImage = diff.model as EcrImage;
+    const ecrImage = diff.node as EcrImage;
     const properties = ecrImage.properties;
     const response = ecrImage.response;
 

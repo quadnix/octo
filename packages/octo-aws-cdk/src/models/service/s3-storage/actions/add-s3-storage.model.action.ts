@@ -6,12 +6,12 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import { S3Storage } from '../../../../resources/s3/storage/s3-storage.resource.js';
 import { S3StorageService } from '../s3-storage.service.model.js';
 
-@Action(ModelType.MODEL)
+@Action(NodeType.MODEL)
 export class AddS3StorageModelAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddS3StorageModelAction';
 
@@ -22,14 +22,14 @@ export class AddS3StorageModelAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof S3StorageService &&
-      diff.model.MODEL_NAME === 'service' &&
+      diff.node instanceof S3StorageService &&
+      diff.node.NODE_NAME === 'service' &&
       diff.field === 'serviceId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
-    const { awsRegionId, bucketName } = diff.model as S3StorageService;
+    const { awsRegionId, bucketName } = diff.node as S3StorageService;
 
     // Create S3 Bucket.
     const s3Storage = new S3Storage(`bucket-${bucketName}`, {
@@ -39,10 +39,6 @@ export class AddS3StorageModelAction implements IModelAction {
     actionOutputs[s3Storage.resourceId] = s3Storage;
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

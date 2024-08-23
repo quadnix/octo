@@ -4,7 +4,7 @@ import type { IRegionFilesystemOverlayProperties } from './region-filesystem.ove
 
 @Overlay()
 export class RegionFilesystemOverlay extends AOverlay<RegionFilesystemOverlay> {
-  override readonly MODEL_NAME: string = 'region-filesystem-overlay';
+  override readonly NODE_NAME: string = 'region-filesystem-overlay';
 
   declare properties: IRegionFilesystemOverlayProperties;
 

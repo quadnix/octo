@@ -6,18 +6,18 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import type { IamRole } from '../../../resources/iam/iam-role.resource.js';
 import { S3StorageAccessOverlay } from '../s3-storage-access.overlay.js';
 
-@Action(ModelType.OVERLAY)
+@Action(NodeType.OVERLAY)
 export class AddS3StorageAccessOverlayAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddS3StorageAccessOverlayAction';
 
   collectInput(diff: Diff): string[] {
-    const s3StorageAccessOverlay = diff.model as S3StorageAccessOverlay;
+    const s3StorageAccessOverlay = diff.node as S3StorageAccessOverlay;
     const iamRoleAnchor = s3StorageAccessOverlay.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
 
     return [`resource.iam-role-${iamRoleAnchor.properties.iamRoleName}`];
@@ -26,14 +26,14 @@ export class AddS3StorageAccessOverlayAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof S3StorageAccessOverlay &&
-      diff.model.MODEL_NAME === 's3-storage-access-overlay' &&
+      diff.node instanceof S3StorageAccessOverlay &&
+      diff.node.NODE_NAME === 's3-storage-access-overlay' &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
-    const s3StorageAccessOverlay = diff.model as S3StorageAccessOverlay;
+    const s3StorageAccessOverlay = diff.node as S3StorageAccessOverlay;
     const iamRoleAnchor = s3StorageAccessOverlay.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
     const iamRole = actionInputs[`resource.iam-role-${iamRoleAnchor.properties.iamRoleName}`] as IamRole;
 
@@ -43,10 +43,6 @@ export class AddS3StorageAccessOverlayAction implements IModelAction {
     actionOutputs[iamRole.resourceId] = iamRole;
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

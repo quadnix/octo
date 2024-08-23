@@ -5,7 +5,7 @@ import type { IS3StorageAccessOverlayProperties } from './s3-storage-access.over
 
 @Overlay()
 export class S3StorageAccessOverlay extends AOverlay<S3StorageAccessOverlay> {
-  override readonly MODEL_NAME: string = 's3-storage-access-overlay';
+  override readonly NODE_NAME: string = 's3-storage-access-overlay';
 
   declare properties: IS3StorageAccessOverlayProperties;
 

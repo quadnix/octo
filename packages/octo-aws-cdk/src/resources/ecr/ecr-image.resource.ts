@@ -3,7 +3,7 @@ import type { IEcrImageProperties, IEcrImageResponse } from './ecr-image.interfa
 
 @Resource()
 export class EcrImage extends AResource<EcrImage> {
-  readonly MODEL_NAME: string = 'ecr-image';
+  readonly NODE_NAME: string = 'ecr-image';
 
   declare properties: IEcrImageProperties;
   declare response: IEcrImageResponse;

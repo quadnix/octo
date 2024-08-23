@@ -1,4 +1,4 @@
-import { Container, DiffAction, Execution, IExecution, Model, OverlayService, type UnknownModel } from '@quadnix/octo';
+import { Container, Execution, IExecution, Model, OverlayService, type UnknownModel } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
@@ -117,15 +117,7 @@ export class AwsExecution extends Execution {
     overlayService.addOverlay(executionOverlay);
 
     // ExecutionOverlay vs SecurityGroupOverlay relationship.
-    const { childToParentDependency: execToSecDep, parentToChildDependency: SecToExecDep } =
-      securityGroupOverlay.addChild('overlayId', executionOverlay, 'overlayId');
-
-    // Before updating execution must add security-groups.
-    execToSecDep.addBehavior('anchor', DiffAction.UPDATE, 'anchor', DiffAction.ADD);
-    // Before updating execution must update security-groups.
-    execToSecDep.addBehavior('anchor', DiffAction.UPDATE, 'anchor', DiffAction.UPDATE);
-    // Before deleting security-groups must update execution.
-    SecToExecDep.addBehavior('anchor', DiffAction.DELETE, 'anchor', DiffAction.UPDATE);
+    securityGroupOverlay.addChild('overlayId', executionOverlay, 'overlayId');
   }
 
   async mountFilesystem(filesystemName: string): Promise<void> {
@@ -153,15 +145,7 @@ export class AwsExecution extends Execution {
     executionOverlay.addAnchor(subnetFilesystemMountAnchor);
 
     // ExecutionOverlay vs SubnetFilesystemMountOverlay relationship.
-    const { childToParentDependency: execToSubDep, parentToChildDependency: subToExecDep } =
-      subnetFilesystemMountOverlay.addChild('overlayId', executionOverlay, 'overlayId');
-
-    // Before adding ecs-task-definition must add filesystem.
-    execToSubDep.addBehavior('anchor', DiffAction.ADD, 'overlayId', DiffAction.ADD);
-    // Before updating ecs-task-definition must add filesystem.
-    execToSubDep.addBehavior('anchor', DiffAction.UPDATE, 'overlayId', DiffAction.ADD);
-    // Before deleting filesystem must update ecs-task-definition.
-    subToExecDep.addBehavior('overlayId', DiffAction.DELETE, 'anchor', DiffAction.UPDATE);
+    subnetFilesystemMountOverlay.addChild('overlayId', executionOverlay, 'overlayId');
   }
 
   updateDesiredCount(desiredCount: number): void {

@@ -19,15 +19,12 @@ export class UpdateSubnetAssociationModelAction implements IModelAction {
   }
 
   filter(diff: Diff): boolean {
-    if (diff.node instanceof AwsSubnet && diff.node.NODE_NAME === 'subnet') {
-      if (diff.field === 'sibling') {
-        return diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof AwsSubnet &&
+      diff.node.NODE_NAME === 'subnet' &&
+      diff.field === 'sibling'
+    );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {

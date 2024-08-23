@@ -6,7 +6,7 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../../anchors/ecs-service.anchor.js';
 import { EnvironmentVariablesAnchor } from '../../../anchors/environment-variables.anchor.js';
@@ -25,12 +25,12 @@ import { SecurityGroup } from '../../../resources/security-group/security-group.
 import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { ExecutionOverlay } from '../execution.overlay.js';
 
-@Action(ModelType.OVERLAY)
+@Action(NodeType.OVERLAY)
 export class AddExecutionOverlayAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddExecutionOverlayAction';
 
   collectInput(diff: Diff): string[] {
-    const executionOverlay = diff.model as ExecutionOverlay;
+    const executionOverlay = diff.node as ExecutionOverlay;
     const properties = executionOverlay.properties;
 
     const clusterName = [properties.regionId, properties.environmentName].join('-');
@@ -60,15 +60,15 @@ export class AddExecutionOverlayAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof ExecutionOverlay &&
-      diff.model.MODEL_NAME === 'execution-overlay' &&
+      diff.node instanceof ExecutionOverlay &&
+      diff.node.NODE_NAME === 'execution-overlay' &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
     // Get properties.
-    const executionOverlay = diff.model as ExecutionOverlay;
+    const executionOverlay = diff.node as ExecutionOverlay;
     const properties = executionOverlay.properties;
 
     // ECS Service Anchors.
@@ -177,10 +177,6 @@ export class AddExecutionOverlayAction implements IModelAction {
     actionOutputs[ecsService.resourceId] = ecsService;
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

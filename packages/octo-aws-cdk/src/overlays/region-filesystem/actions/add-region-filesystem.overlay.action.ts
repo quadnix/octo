@@ -6,12 +6,12 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import { Efs } from '../../../resources/efs/efs.resource.js';
 import { RegionFilesystemOverlay } from '../region-filesystem.overlay.js';
 
-@Action(ModelType.OVERLAY)
+@Action(NodeType.OVERLAY)
 export class AddRegionFilesystemOverlayAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddRegionFilesystemOverlayAction';
 
@@ -22,14 +22,14 @@ export class AddRegionFilesystemOverlayAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof RegionFilesystemOverlay &&
-      diff.model.MODEL_NAME === 'region-filesystem-overlay' &&
+      diff.node instanceof RegionFilesystemOverlay &&
+      diff.node.NODE_NAME === 'region-filesystem-overlay' &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
-    const regionFilesystemOverlay = diff.model as RegionFilesystemOverlay;
+    const regionFilesystemOverlay = diff.node as RegionFilesystemOverlay;
     const properties = regionFilesystemOverlay.properties;
 
     // Create EFS.
@@ -41,10 +41,6 @@ export class AddRegionFilesystemOverlayAction implements IModelAction {
     actionOutputs[efs.resourceId] = efs;
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

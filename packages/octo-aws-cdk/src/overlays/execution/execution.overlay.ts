@@ -9,7 +9,7 @@ import type { IExecutionOverlayProperties } from './execution.overlay.interface.
 
 @Overlay()
 export class ExecutionOverlay extends AOverlay<ExecutionOverlay> {
-  override readonly MODEL_NAME: string = 'execution-overlay';
+  override readonly NODE_NAME: string = 'execution-overlay';
 
   declare properties: IExecutionOverlayProperties;
 

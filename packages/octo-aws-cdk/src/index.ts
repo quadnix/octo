@@ -18,72 +18,51 @@ import './factories/aws/s3-upload.aws.factory.js';
 import './factories/aws/sts.aws.factory.js';
 
 import './models/app/actions/add-app.model.action.js';
-import './models/app/actions/delete-app.model.action.js';
 
 export { AwsDeployment } from './models/deployment/aws.deployment.model.js';
 import './models/deployment/actions/add-deployment.model.action.js';
-import './models/deployment/actions/delete-deployment.model.action.js';
 
 export { AwsEnvironment } from './models/environment/aws.environment.model.js';
 import './models/environment/actions/add-environment.model.action.js';
-import './models/environment/actions/delete-environment.model.action.js';
 
 export { AwsExecution } from './models/execution/aws.execution.model.js';
 import './models/execution/actions/add-execution.model.action.js';
-import './models/execution/actions/delete-execution.model.action.js';
 
 export { AwsImage } from './models/image/aws.image.model.js';
 import './models/image/actions/add-image.model.action.js';
-import './models/image/actions/delete-image.model.action.js';
 
 export { AwsRegion, RegionId } from './models/region/aws.region.model.js';
 import './models/region/actions/add-region.model.action.js';
-import './models/region/actions/delete-region.model.action.js';
 
 export { AwsServer } from './models/server/aws.server.model.js';
 import './models/server/actions/add-server.model.action.js';
-import './models/server/actions/delete-server.model.action.js';
 
 export { EcrService } from './models/service/ecr/ecr.service.model.js';
 import './models/service/ecr/actions/add-ecr-service.model.action.js';
-import './models/service/ecr/actions/add-image-to-ecr.model.action.js';
-import './models/service/ecr/actions/delete-image-from-ecr.model.action.js';
 
 export { S3StaticWebsiteService } from './models/service/s3-static-website/s3-static-website.service.model.js';
 import './models/service/s3-static-website/actions/add-s3-static-website.model.action.js';
-import './models/service/s3-static-website/actions/delete-s3-static-website.model.action.js';
 import './models/service/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
 
 export { S3StorageAccess, S3StorageService } from './models/service/s3-storage/s3-storage.service.model.js';
 import './models/service/s3-storage/actions/add-s3-storage.model.action.js';
-import './models/service/s3-storage/actions/delete-s3-storage.model.action.js';
 
 export { AwsSubnet } from './models/subnet/aws.subnet.model.js';
 import './models/subnet/actions/add-subnet.model.action.js';
-import './models/subnet/actions/delete-subnet.model.action.js';
 import './models/subnet/actions/update-subnet-association.model.action.js';
 
 export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.module.js';
 
 import './overlays/execution/actions/add-execution.overlay.action.js';
-import './overlays/execution/actions/delete-execution.overlay.action.js';
-import './overlays/execution/actions/update-execution-replace-task-definition.overlay.action.js';
-import './overlays/execution/actions/update-execution-update-service.overlay.action.js';
+import './overlays/execution/actions/update-execution.overlay.action.js';
 
 import './overlays/region-filesystem/actions/add-region-filesystem.overlay.action.js';
-import './overlays/region-filesystem/actions/delete-region-filesystem.overlay.action.js';
 
 import './overlays/s3-storage-access/actions/add-s3-storage-access.overlay.action.js';
-import './overlays/s3-storage-access/actions/delete-s3-storage-access.overlay.action.js';
 
 import './overlays/security-group/actions/add-security-group.overlay.action.js';
-import './overlays/security-group/actions/add-security-group-anchor.overlay.action.js';
-import './overlays/security-group/actions/delete-security-group.overlay.action.js';
-import './overlays/security-group/actions/delete-security-group-anchor.overlay.action.js';
-import './overlays/security-group/actions/update-security-group-anchor.overlay.action.js';
 
 import './overlays/subnet-filesystem-mount/actions/add-subnet-filesystem-mount.overlay.action.js';
-import './overlays/subnet-filesystem-mount/actions/delete-subnet-filesystem-mount.overlay.action.js';
 
 import './resources/ecr/actions/add-ecr-image.resource.action.js';
 import './resources/ecr/actions/delete-ecr-image.resource.action.js';

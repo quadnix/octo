@@ -5,7 +5,7 @@ import type { ISubnetFilesystemMountOverlayProperties } from './subnet-filesyste
 
 @Overlay()
 export class SubnetFilesystemMountOverlay extends AOverlay<SubnetFilesystemMountOverlay> {
-  override readonly MODEL_NAME: string = 'subnet-filesystem-mount-overlay';
+  override readonly NODE_NAME: string = 'subnet-filesystem-mount-overlay';
 
   declare properties: ISubnetFilesystemMountOverlayProperties;
 

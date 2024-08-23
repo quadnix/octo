@@ -11,7 +11,7 @@ export type EcsServicePropertyDiff = {
 
 @Resource()
 export class EcsService extends AResource<EcsService> {
-  readonly MODEL_NAME: string = 'ecs-service';
+  readonly NODE_NAME: string = 'ecs-service';
 
   declare properties: IEcsServiceProperties;
   declare response: IEcsServiceResponse;

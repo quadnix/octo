@@ -6,19 +6,19 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import type { SecurityGroupAnchor } from '../../../anchors/security-group.anchor.js';
 import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
 import type { Vpc } from '../../../resources/vpc/vpc.resource.js';
 import { SecurityGroupOverlay } from '../security-group.overlay.js';
 
-@Action(ModelType.OVERLAY)
+@Action(NodeType.OVERLAY)
 export class AddSecurityGroupOverlayAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddSecurityGroupOverlayAction';
 
   collectInput(diff: Diff): string[] {
-    const securityGroupOverlay = diff.model as SecurityGroupOverlay;
+    const securityGroupOverlay = diff.node as SecurityGroupOverlay;
     const properties = securityGroupOverlay.properties;
 
     return [`resource.vpc-${properties.regionId}`];
@@ -27,14 +27,14 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof SecurityGroupOverlay &&
-      diff.model.MODEL_NAME === 'security-group-overlay' &&
+      diff.node instanceof SecurityGroupOverlay &&
+      diff.node.NODE_NAME === 'security-group-overlay' &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
-    const securityGroupOverlay = diff.model as SecurityGroupOverlay;
+    const securityGroupOverlay = diff.node as SecurityGroupOverlay;
     const properties = securityGroupOverlay.properties;
     const anchors = securityGroupOverlay.getAnchors() as SecurityGroupAnchor[];
 
@@ -57,10 +57,6 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
     }
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 

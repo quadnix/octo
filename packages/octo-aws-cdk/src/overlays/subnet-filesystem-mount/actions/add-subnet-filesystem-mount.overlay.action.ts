@@ -6,7 +6,7 @@ import {
   DiffAction,
   Factory,
   type IModelAction,
-  ModelType,
+  NodeType,
 } from '@quadnix/octo';
 import { RegionFilesystemAnchor } from '../../../anchors/region-filesystem.anchor.js';
 import { SubnetFilesystemMountAnchor } from '../../../anchors/subnet-filesystem-mount.anchor.js';
@@ -17,12 +17,12 @@ import type { Efs } from '../../../resources/efs/efs.resource.js';
 import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
 import { SubnetFilesystemMountOverlay } from '../subnet-filesystem-mount.overlay.js';
 
-@Action(ModelType.OVERLAY)
+@Action(NodeType.OVERLAY)
 export class AddSubnetFilesystemMountOverlayAction implements IModelAction {
   readonly ACTION_NAME: string = 'AddSubnetFilesystemMountOverlayAction';
 
   collectInput(diff: Diff): string[] {
-    const subnetFilesystemMountOverlay = diff.model as SubnetFilesystemMountOverlay;
+    const subnetFilesystemMountOverlay = diff.node as SubnetFilesystemMountOverlay;
 
     const regionFilesystemAnchor = subnetFilesystemMountOverlay
       .getAnchors()
@@ -43,14 +43,14 @@ export class AddSubnetFilesystemMountOverlayAction implements IModelAction {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.model instanceof SubnetFilesystemMountOverlay &&
-      diff.model.MODEL_NAME === 'subnet-filesystem-mount-overlay' &&
+      diff.node instanceof SubnetFilesystemMountOverlay &&
+      diff.node.NODE_NAME === 'subnet-filesystem-mount-overlay' &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
-    const subnetFilesystemMountOverlay = diff.model as SubnetFilesystemMountOverlay;
+    const subnetFilesystemMountOverlay = diff.node as SubnetFilesystemMountOverlay;
 
     const regionFilesystemAnchor = subnetFilesystemMountOverlay
       .getAnchors()
@@ -76,10 +76,6 @@ export class AddSubnetFilesystemMountOverlayAction implements IModelAction {
     actionOutputs[efsMountTarget.resourceId] = efsMountTarget;
 
     return actionOutputs;
-  }
-
-  async revert(): Promise<ActionOutputs> {
-    return {};
   }
 }
 
