@@ -1,6 +1,7 @@
 import type { Constructable } from '../app.type.js';
 import { RegistrationErrorEvent } from '../events/error.event.js';
-import type { Octo } from '../main.js';
+import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
+import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
 import { ModuleContainer } from '../modules/module.container.js';
 import { type IModule } from '../modules/module.interface.js';
@@ -8,10 +9,17 @@ import type { IResourceAction } from '../resources/resource-action.interface.js'
 import { EventService } from '../services/event/event.service.js';
 import { Container } from '../functions/container/container.js';
 
+type CommitHooksCallback = (
+  app: App,
+  modelTransaction: DiffMetadata[][],
+  resourceTransaction: DiffMetadata[][],
+  dirtyResourceTransaction: DiffMetadata[][],
+) => Promise<void>;
+
 export interface IModuleOptions {
   args?: { isArg: (arg: unknown) => boolean; name: string }[];
   imports?: (Constructable<IModule<unknown>> | string)[];
-  postCommitHooks?: { callback: Octo['commitTransaction'] }[];
+  postCommitHooks?: { callback: CommitHooksCallback }[];
   postModelActionHooks?: {
     ACTION_NAME: string;
     collectInput?: IModelAction['collectInput'];
@@ -21,7 +29,7 @@ export interface IModuleOptions {
     ACTION_NAME: string;
     handle: IResourceAction['handle'];
   }[];
-  preCommitHooks?: { callback: Octo['commitTransaction'] }[];
+  preCommitHooks?: { callback: CommitHooksCallback }[];
   preModelActionHooks?: {
     ACTION_NAME: string;
     collectInput?: IModelAction['collectInput'];
