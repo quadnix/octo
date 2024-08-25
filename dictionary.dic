@@ -2,6 +2,7 @@ abcdef
 abcdefghijklmnopqrstuvwxyz
 acl
 acls
+allowfullscreen
 amazonaws
 argv
 arn
@@ -47,6 +48,7 @@ favicon
 filesystem
 filesystems
 firefox
+frameborder
 frontend
 fs
 grp
@@ -84,6 +86,7 @@ qa
 quadnix
 readdir
 redis
+referrerpolicy
 renderer
 rimraf
 rolename
