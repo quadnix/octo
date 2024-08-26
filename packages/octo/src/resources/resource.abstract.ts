@@ -1,5 +1,5 @@
 import { NodeType, type UnknownResource } from '../app.type.js';
-import { type Dependency } from '../functions/dependency/dependency.js';
+import { type Dependency, DependencyRelationship } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
@@ -28,6 +28,52 @@ export abstract class AResource<T> extends ANode<IResource, T> {
 
   override addRelationship(): { thatToThisDependency: Dependency; thisToThatDependency: Dependency } {
     throw new Error('Relationships are not supported in resources!');
+  }
+
+  async cloneResourceFromAnotherGraphTree(
+    sourceResource: UnknownResource,
+    deReferenceResource: (resourceId: string) => Promise<UnknownResource>,
+  ): Promise<void> {
+    // Remove all dependencies from self.
+    const selfParents = Object.values(this.getParents())
+      .flat()
+      .map((d) => d.to as UnknownResource);
+    for (const parent of selfParents) {
+      this.removeRelationship(parent);
+    }
+
+    // From source resource, get all dependencies from source to its parents.
+    const sourceChildToParentDependencies = Object.values(sourceResource.getParents()).flat();
+
+    // Clone each of those dependencies.
+    for (const sourceChildToParentDependency of sourceChildToParentDependencies) {
+      const parent = await deReferenceResource((sourceChildToParentDependency.to as UnknownResource).resourceId);
+      const { childToParentDependency, parentToChildDependency } = parent.addChild('resourceId', this, 'resourceId');
+
+      // Clone behaviours from source to its parent.
+      for (const b of sourceChildToParentDependency.synth().behaviors) {
+        childToParentDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
+      }
+
+      // Clone behaviors from parent to source.
+      const sourceParentToChildDependency = sourceChildToParentDependency.to.getDependency(
+        sourceChildToParentDependency.from,
+        DependencyRelationship.CHILD,
+      )!;
+      for (const b of sourceParentToChildDependency.synth().behaviors) {
+        parentToChildDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
+      }
+    }
+
+    // Clone properties.
+    for (const key of Object.keys(sourceResource.properties)) {
+      this.properties[key] = JSON.parse(JSON.stringify(sourceResource.properties[key]));
+    }
+
+    // Clone responses.
+    for (const key of Object.keys(sourceResource.response)) {
+      this.response[key] = JSON.parse(JSON.stringify(sourceResource.response[key]));
+    }
   }
 
   // @ts-expect-error since this overridden diff() is always called with previous.
@@ -64,21 +110,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     switch (diff.field) {
       case 'resourceId': {
         if (diff.action === DiffAction.ADD) {
-          const parentResourceIds = Object.values(diff.node.getParents())
-            .flat()
-            .map((d) => (d.to as UnknownResource).resourceId);
-          const parents = await Promise.all(parentResourceIds.map((p) => deReferenceResource(p)));
-          for (const parent of parents) {
-            parent.addChild('resourceId', this, 'resourceId');
-          }
-
-          for (const key of Object.keys((diff.node as UnknownResource).properties)) {
-            this.properties[key] = JSON.parse(JSON.stringify((diff.node as UnknownResource).properties[key]));
-          }
-
-          for (const key of Object.keys((diff.node as UnknownResource).response)) {
-            this.response[key] = JSON.parse(JSON.stringify((diff.node as UnknownResource).response[key]));
-          }
+          await this.cloneResourceFromAnotherGraphTree(diff.node as UnknownResource, deReferenceResource);
         } else if (diff.action === DiffAction.DELETE) {
           this.remove();
         } else {
@@ -87,12 +119,8 @@ export abstract class AResource<T> extends ANode<IResource, T> {
         return;
       }
       case 'parent': {
-        if (diff.action === DiffAction.ADD) {
-          const parent = await deReferenceResource((diff.value as UnknownResource).resourceId);
-          parent.addChild('resourceId', this, 'resourceId');
-        } else if (diff.action === DiffAction.DELETE) {
-          const parent = await deReferenceResource((diff.value as UnknownResource).resourceId);
-          this.removeRelationship(parent);
+        if (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE) {
+          await this.cloneResourceFromAnotherGraphTree(diff.node as UnknownResource, deReferenceResource);
         } else {
           throw new Error('Unknown action on "parent" field during diff inverse!');
         }
