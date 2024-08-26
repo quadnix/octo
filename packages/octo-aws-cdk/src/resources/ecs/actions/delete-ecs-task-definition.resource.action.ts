@@ -1,22 +1,22 @@
 import { DeleteTaskDefinitionsCommand, DeregisterTaskDefinitionCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEcsTaskDefinitionResourceAction';
 
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
-      diff.model instanceof EcsTaskDefinition &&
-      diff.model.MODEL_NAME === 'ecs-task-definition'
+      diff.node instanceof EcsTaskDefinition &&
+      diff.node.NODE_NAME === 'ecs-task-definition'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const ecsTaskDefinition = diff.model as EcsTaskDefinition;
+    const ecsTaskDefinition = diff.node as EcsTaskDefinition;
     const properties = ecsTaskDefinition.properties;
     const response = ecsTaskDefinition.response;
 

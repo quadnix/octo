@@ -1,20 +1,20 @@
 import { DeleteClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import { EcsCluster } from '../ecs-cluster.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class DeleteEcsClusterResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEcsClusterResourceAction';
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.DELETE && diff.model instanceof EcsCluster && diff.model.MODEL_NAME === 'ecs-cluster'
+      diff.action === DiffAction.DELETE && diff.node instanceof EcsCluster && diff.node.NODE_NAME === 'ecs-cluster'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const ecsCluster = diff.model as EcsCluster;
+    const ecsCluster = diff.node as EcsCluster;
     const properties = ecsCluster.properties;
 
     // Get instances.
