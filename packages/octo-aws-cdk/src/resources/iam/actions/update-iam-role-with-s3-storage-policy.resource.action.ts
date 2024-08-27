@@ -5,27 +5,27 @@ import {
   DetachRolePolicyCommand,
   IAMClient,
 } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import type { IS3StorageAccessOverlayProperties } from '../../../overlays/s3-storage-access/s3-storage-access.overlay.interface.js';
 import type { IIamRoleResponse } from '../iam-role.interface.js';
 import { IamRole, type IamRolePolicyDiff } from '../iam-role.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'UpdateIamRoleWithS3StoragePolicyResourceAction';
 
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
-      diff.model instanceof IamRole &&
-      diff.model.MODEL_NAME === 'iam-role' &&
-      (diff.value as IamRolePolicyDiff['key']).overlay.MODEL_NAME === 's3-storage-access-overlay'
+      diff.node instanceof IamRole &&
+      diff.node.NODE_NAME === 'iam-role' &&
+      (diff.value as IamRolePolicyDiff['key']).overlay.NODE_NAME === 's3-storage-access-overlay'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const iamRole = diff.model as IamRole;
+    const iamRole = diff.node as IamRole;
     const policyAction = (diff.value as IamRolePolicyDiff['key']).action;
     const overlayId = diff.field;
     const overlayProperties = (diff.value as IamRolePolicyDiff['key']).overlay

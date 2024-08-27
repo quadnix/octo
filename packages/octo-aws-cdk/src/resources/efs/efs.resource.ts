@@ -3,7 +3,7 @@ import type { IEfsProperties, IEfsResponse } from './efs.interface.js';
 
 @Resource()
 export class Efs extends AResource<Efs> {
-  readonly MODEL_NAME: string = 'efs';
+  readonly NODE_NAME: string = 'efs';
 
   declare properties: IEfsProperties;
   declare response: IEfsResponse;

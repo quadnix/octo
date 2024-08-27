@@ -1,20 +1,20 @@
 import { CreateFileSystemCommand, DescribeFileSystemsCommand, EFSClient } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsResponse } from '../efs.interface.js';
 import { Efs } from '../efs.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class AddEfsResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddEfsResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.model instanceof Efs && diff.model.MODEL_NAME === 'efs';
+    return diff.action === DiffAction.ADD && diff.node instanceof Efs && diff.node.NODE_NAME === 'efs';
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const efs = diff.model as Efs;
+    const efs = diff.node as Efs;
     const properties = efs.properties;
     const response = efs.response;
 

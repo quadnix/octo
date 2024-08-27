@@ -3,7 +3,7 @@ import type { IS3WebsiteProperties, IS3WebsiteResponse } from './s3-website.inte
 
 @Resource()
 export class S3Website extends AResource<S3Website> {
-  readonly MODEL_NAME: string = 's3-website';
+  readonly NODE_NAME: string = 's3-website';
 
   declare properties: IS3WebsiteProperties;
   declare response: IS3WebsiteResponse;
@@ -12,6 +12,14 @@ export class S3Website extends AResource<S3Website> {
 
   constructor(resourceId: string, properties: IS3WebsiteProperties) {
     super(resourceId, properties, []);
+  }
+
+  override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
+    if (diff.field === 'update-source-paths' && diff.action === DiffAction.UPDATE) {
+      // do nothing, since nothing in node changes for this diff action.
+    } else {
+      await super.diffInverse(diff, deReferenceResource);
+    }
   }
 
   override async diffProperties(): Promise<Diff[]> {

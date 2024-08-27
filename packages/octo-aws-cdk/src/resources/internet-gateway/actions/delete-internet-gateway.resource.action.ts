@@ -1,23 +1,23 @@
 import { DeleteInternetGatewayCommand, DetachInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import type { Vpc } from '../../vpc/vpc.resource.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class DeleteInternetGatewayResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteInternetGatewayResourceAction';
 
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
-      diff.model instanceof InternetGateway &&
-      diff.model.MODEL_NAME === 'internet-gateway'
+      diff.node instanceof InternetGateway &&
+      diff.node.NODE_NAME === 'internet-gateway'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const internetGateway = diff.model as InternetGateway;
+    const internetGateway = diff.node as InternetGateway;
     const properties = internetGateway.properties;
     const response = internetGateway.response;
 

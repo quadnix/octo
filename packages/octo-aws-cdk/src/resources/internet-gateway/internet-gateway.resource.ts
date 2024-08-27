@@ -4,7 +4,7 @@ import type { IInternetGatewayProperties, IInternetGatewayResponse } from './int
 
 @Resource()
 export class InternetGateway extends AResource<InternetGateway> {
-  readonly MODEL_NAME: string = 'internet-gateway';
+  readonly NODE_NAME: string = 'internet-gateway';
 
   declare properties: IInternetGatewayProperties;
   declare response: IInternetGatewayResponse;

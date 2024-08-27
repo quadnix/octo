@@ -7,7 +7,7 @@ export type IamRolePolicyDiff = {
 
 @Resource()
 export class IamRole extends AResource<IamRole> {
-  readonly MODEL_NAME: string = 'iam-role';
+  readonly NODE_NAME: string = 'iam-role';
 
   declare properties: IIamRoleProperties;
   declare response: IIamRoleResponse;
@@ -16,6 +16,17 @@ export class IamRole extends AResource<IamRole> {
 
   constructor(resourceId: string, properties: IIamRoleProperties) {
     super(resourceId, properties, []);
+  }
+
+  override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
+    if (diff.action === DiffAction.UPDATE) {
+      // Clone responses.
+      for (const key of Object.keys((diff.node as IamRole).response)) {
+        this.response[key] = JSON.parse(JSON.stringify((diff.node as IamRole).response[key]));
+      }
+    } else {
+      await super.diffInverse(diff, deReferenceResource);
+    }
   }
 
   override async diffProperties(): Promise<Diff[]> {

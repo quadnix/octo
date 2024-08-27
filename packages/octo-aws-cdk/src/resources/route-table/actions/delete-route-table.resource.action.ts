@@ -1,20 +1,20 @@
 import { DeleteRouteTableCommand, DisassociateRouteTableCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import { RouteTable } from '../route-table.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class DeleteRouteTableResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteRouteTableResourceAction';
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.DELETE && diff.model instanceof RouteTable && diff.model.MODEL_NAME === 'route-table'
+      diff.action === DiffAction.DELETE && diff.node instanceof RouteTable && diff.node.NODE_NAME === 'route-table'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const routeTable = diff.model as RouteTable;
+    const routeTable = diff.node as RouteTable;
     const properties = routeTable.properties;
     const response = routeTable.response;
 

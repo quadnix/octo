@@ -5,25 +5,23 @@ import {
   EC2Client,
   ReplaceNetworkAclAssociationCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { Vpc } from '../../vpc/vpc.resource.js';
 import type { INetworkAclResponse } from '../network-acl.interface.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class AddNetworkAclResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'AddNetworkAclResourceAction';
 
   filter(diff: Diff): boolean {
-    return (
-      diff.action === DiffAction.ADD && diff.model instanceof NetworkAcl && diff.model.MODEL_NAME === 'network-acl'
-    );
+    return diff.action === DiffAction.ADD && diff.node instanceof NetworkAcl && diff.node.NODE_NAME === 'network-acl';
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const networkAcl = diff.model as NetworkAcl;
+    const networkAcl = diff.node as NetworkAcl;
     const properties = networkAcl.properties;
     const response = networkAcl.response;
 
@@ -88,7 +86,7 @@ export class AddNetworkAclResourceAction implements IResourceAction {
   }
 
   async mock(capture: Partial<INetworkAclResponse>, diff: Diff): Promise<void> {
-    const networkAcl = diff.model as NetworkAcl;
+    const networkAcl = diff.node as NetworkAcl;
     const parents = networkAcl.getParents();
     const subnet = parents['subnet'][0].to as Subnet;
     const subnetResponse = subnet.response;

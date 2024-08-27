@@ -1,18 +1,18 @@
 import { DeleteSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import { Subnet } from '../subnet.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class DeleteSubnetResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteSubnetResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model instanceof Subnet && diff.model.MODEL_NAME === 'subnet';
+    return diff.action === DiffAction.DELETE && diff.node instanceof Subnet && diff.node.NODE_NAME === 'subnet';
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const subnet = diff.model as Subnet;
+    const subnet = diff.node as Subnet;
     const properties = subnet.properties;
     const response = subnet.response;
 

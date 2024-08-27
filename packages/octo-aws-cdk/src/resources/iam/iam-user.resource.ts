@@ -7,7 +7,7 @@ export type IamUserPolicyDiff = {
 
 @Resource()
 export class IamUser extends AResource<IamUser> {
-  readonly MODEL_NAME: string = 'iam-user';
+  readonly NODE_NAME: string = 'iam-user';
 
   declare properties: IIamUserProperties;
   declare response: IIamUserResponse;
@@ -16,6 +16,17 @@ export class IamUser extends AResource<IamUser> {
 
   constructor(resourceId: string, properties: IIamUserProperties) {
     super(resourceId, properties, []);
+  }
+
+  override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
+    if (diff.action === DiffAction.UPDATE) {
+      // Clone responses.
+      for (const key of Object.keys((diff.node as IamUser).response)) {
+        this.response[key] = JSON.parse(JSON.stringify((diff.node as IamUser).response[key]));
+      }
+    } else {
+      await super.diffInverse(diff, deReferenceResource);
+    }
   }
 
   override async diffProperties(): Promise<Diff[]> {

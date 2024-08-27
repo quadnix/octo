@@ -5,7 +5,7 @@ import type { INetworkAclProperties, INetworkAclResponse } from './network-acl.i
 
 @Resource()
 export class NetworkAcl extends AResource<NetworkAcl> {
-  readonly MODEL_NAME: string = 'network-acl';
+  readonly NODE_NAME: string = 'network-acl';
 
   declare properties: INetworkAclProperties;
   declare response: INetworkAclResponse;

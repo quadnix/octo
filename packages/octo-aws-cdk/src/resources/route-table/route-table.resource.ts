@@ -6,7 +6,7 @@ import type { IRouteTableProperties, IRouteTableResponse } from './route-table.i
 
 @Resource()
 export class RouteTable extends AResource<RouteTable> {
-  readonly MODEL_NAME: string = 'route-table';
+  readonly NODE_NAME: string = 'route-table';
 
   declare properties: IRouteTableProperties;
   declare response: IRouteTableResponse;

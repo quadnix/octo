@@ -5,7 +5,7 @@ import type { Efs } from './efs.resource.js';
 
 @Resource()
 export class EfsMountTarget extends AResource<EfsMountTarget> {
-  readonly MODEL_NAME: string = 'efs-mount-target';
+  readonly NODE_NAME: string = 'efs-mount-target';
 
   declare properties: IEfsMountTargetProperties;
   declare response: IEfsMountTargetResponse;

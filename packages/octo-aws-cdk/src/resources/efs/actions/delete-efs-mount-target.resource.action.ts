@@ -4,27 +4,27 @@ import {
   type DescribeMountTargetsCommandOutput,
   EFSClient,
 } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
 import type { Efs } from '../efs.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class DeleteEfsMountTargetResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteEfsMountTargetResourceAction';
 
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
-      diff.model instanceof EfsMountTarget &&
-      diff.model.MODEL_NAME === 'efs-mount-target'
+      diff.node instanceof EfsMountTarget &&
+      diff.node.NODE_NAME === 'efs-mount-target'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const efsMountTarget = diff.model as EfsMountTarget;
+    const efsMountTarget = diff.node as EfsMountTarget;
     const parents = efsMountTarget.getParents();
     const properties = efsMountTarget.properties;
     const response = efsMountTarget.response;
@@ -76,7 +76,7 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction {
   }
 
   async mock(capture: Partial<IEfsMountTargetResponse>, diff: Diff): Promise<void> {
-    const efsMountTarget = diff.model as EfsMountTarget;
+    const efsMountTarget = diff.node as EfsMountTarget;
     const parents = efsMountTarget.getParents();
     const efs = parents['efs'][0].to as Efs;
     const efsResponse = efs.response;

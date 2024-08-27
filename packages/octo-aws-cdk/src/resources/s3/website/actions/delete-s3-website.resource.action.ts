@@ -1,20 +1,18 @@
 import { DeleteBucketCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import { S3Website } from '../s3-website.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class DeleteS3WebsiteResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteS3WebsiteResourceAction';
 
   filter(diff: Diff): boolean {
-    return (
-      diff.action === DiffAction.DELETE && diff.model instanceof S3Website && diff.model.MODEL_NAME === 's3-website'
-    );
+    return diff.action === DiffAction.DELETE && diff.node instanceof S3Website && diff.node.NODE_NAME === 's3-website';
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const s3Website = diff.model as S3Website;
+    const s3Website = diff.node as S3Website;
     const properties = s3Website.properties;
 
     // Get instances.

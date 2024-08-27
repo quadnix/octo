@@ -6,21 +6,21 @@ import {
   type NetworkAclEntry,
   ReplaceNetworkAclEntryCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { INetworkAclProperties } from '../network-acl.interface.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 import pLimit from 'p-limit';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'UpdateNetworkAclEntriesResourceAction';
 
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
-      diff.model instanceof NetworkAcl &&
-      diff.model.MODEL_NAME === 'network-acl' &&
+      diff.node instanceof NetworkAcl &&
+      diff.node.NODE_NAME === 'network-acl' &&
       diff.field === 'properties' &&
       (diff.value as { key: string; value: unknown }).key === 'entries'
     );
@@ -28,7 +28,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const networkAcl = diff.model as NetworkAcl;
+    const networkAcl = diff.node as NetworkAcl;
     const properties = networkAcl.properties;
     const response = networkAcl.response;
 

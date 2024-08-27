@@ -4,7 +4,7 @@ import type { ISubnetProperties, ISubnetResponse } from './subnet.interface.js';
 
 @Resource()
 export class Subnet extends AResource<Subnet> {
-  readonly MODEL_NAME: string = 'subnet';
+  readonly NODE_NAME: string = 'subnet';
 
   declare properties: ISubnetProperties;
   declare response: ISubnetResponse;

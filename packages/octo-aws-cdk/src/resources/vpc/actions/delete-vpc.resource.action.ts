@@ -1,18 +1,18 @@
 import { DeleteVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, ModelType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
 import { Vpc } from '../vpc.resource.js';
 
-@Action(ModelType.RESOURCE)
+@Action(NodeType.RESOURCE)
 export class DeleteVpcResourceAction implements IResourceAction {
   readonly ACTION_NAME: string = 'DeleteVpcResourceAction';
 
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.model instanceof Vpc && diff.model.MODEL_NAME === 'vpc';
+    return diff.action === DiffAction.DELETE && diff.node instanceof Vpc && diff.node.NODE_NAME === 'vpc';
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
-    const vpc = diff.model as Vpc;
+    const vpc = diff.node as Vpc;
     const properties = vpc.properties;
     const response = vpc.response;
 

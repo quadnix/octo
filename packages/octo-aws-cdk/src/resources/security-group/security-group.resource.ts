@@ -4,7 +4,7 @@ import type { ISecurityGroupProperties, ISecurityGroupResponse } from './securit
 
 @Resource()
 export class SecurityGroup extends AResource<SecurityGroup> {
-  readonly MODEL_NAME: string = 'security-group';
+  readonly NODE_NAME: string = 'security-group';
 
   declare properties: ISecurityGroupProperties;
   declare response: ISecurityGroupResponse;
