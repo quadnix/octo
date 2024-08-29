@@ -1,4 +1,4 @@
-import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { App, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { AwsRegion, OctoAwsCdkPackageMock, RegionId } from '../../index.js';
 import type { IEfsResponse } from '../../resources/efs/efs.interface.js';
 import type { IInternetGatewayResponse } from '../../resources/internet-gateway/internet-gateway.interface.js';
@@ -6,6 +6,8 @@ import type { ISecurityGroupResponse } from '../../resources/security-group/secu
 import type { IVpcResponse } from '../../resources/vpc/vpc.interface.js';
 
 describe('AwsRegion UT', () => {
+  const stateProvider = new TestStateProvider();
+
   beforeAll(async () => {
     await TestContainer.create(
       {
@@ -55,25 +57,25 @@ describe('AwsRegion UT', () => {
           'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
         },
       });
-      await testModuleContainer.initialize();
+      await testModuleContainer.initialize(stateProvider);
     });
 
     afterEach(async () => {
       await testModuleContainer.reset();
     });
 
-    it('should create new region and delete it', async () => {
-      // Add region.
+    it('should add region', async () => {
       const app = new App('test');
       const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
       app.addRegion(region);
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "add",
              "field": "resourceId",
-             "model": "vpc=vpc-aws-us-east-1a",
+             "node": "vpc=vpc-aws-us-east-1a",
              "value": "vpc-aws-us-east-1a",
            },
          ],
@@ -81,64 +83,75 @@ describe('AwsRegion UT', () => {
            {
              "action": "add",
              "field": "resourceId",
-             "model": "internet-gateway=igw-aws-us-east-1a",
+             "node": "internet-gateway=igw-aws-us-east-1a",
              "value": "igw-aws-us-east-1a",
            },
            {
              "action": "add",
              "field": "resourceId",
-             "model": "security-group=sec-grp-aws-us-east-1a-access",
+             "node": "security-group=sec-grp-aws-us-east-1a-access",
              "value": "sec-grp-aws-us-east-1a-access",
            },
          ],
        ]
       `);
+    });
 
-      // Add a new filesystem.
+    it('should add region filesystem', async () => {
+      const app = new App('test');
+      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
       await region.addFilesystem('shared-mounts');
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "add",
              "field": "resourceId",
-             "model": "efs=efs-aws-us-east-1a-shared-mounts",
+             "node": "efs=efs-aws-us-east-1a-shared-mounts",
              "value": "efs-aws-us-east-1a-shared-mounts",
            },
          ],
        ]
       `);
+    });
 
-      // Remove the "shared-mounts" filesystem.
-      await region.removeFilesystem('shared-mounts');
+    it('should remove region filesystem', async () => {
+      const app = new App('test');
+      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "efs=efs-aws-us-east-1a-shared-mounts",
+             "node": "efs=efs-aws-us-east-1a-shared-mounts",
              "value": "efs-aws-us-east-1a-shared-mounts",
            },
          ],
        ]
       `);
+    });
 
-      // Remove region.
-      region.remove();
+    it('should remove region', async () => {
+      const app = new App('test');
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "internet-gateway=igw-aws-us-east-1a",
+             "node": "internet-gateway=igw-aws-us-east-1a",
              "value": "igw-aws-us-east-1a",
            },
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "security-group=sec-grp-aws-us-east-1a-access",
+             "node": "security-group=sec-grp-aws-us-east-1a-access",
              "value": "sec-grp-aws-us-east-1a-access",
            },
          ],
@@ -146,7 +159,7 @@ describe('AwsRegion UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "vpc=vpc-aws-us-east-1a",
+             "node": "vpc=vpc-aws-us-east-1a",
              "value": "vpc-aws-us-east-1a",
            },
          ],
