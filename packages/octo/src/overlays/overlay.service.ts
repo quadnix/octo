@@ -29,8 +29,8 @@ export class OverlayServiceFactory {
   private static instance: OverlayService;
 
   static async create(): Promise<OverlayService> {
+    const overlayDataRepository = await Container.get(OverlayDataRepository);
     if (!this.instance) {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
       this.instance = new OverlayService(overlayDataRepository);
     }
     return this.instance;

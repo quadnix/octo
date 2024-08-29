@@ -29,8 +29,8 @@ export class InputServiceFactory {
   private static instance: InputService;
 
   static async create(): Promise<InputService> {
+    const resourceDataRepository = await Container.get(ResourceDataRepository);
     if (!this.instance) {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
       this.instance = new InputService(resourceDataRepository);
     }
     return this.instance;
