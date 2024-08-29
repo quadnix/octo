@@ -45,9 +45,9 @@ export abstract class ANode<I, T> implements INode<I, T> {
     child: UnknownNode,
     toField: string,
   ): { childToParentDependency: Dependency; parentToChildDependency: Dependency } {
-    const cDeps = child.getDependencies(this);
-    const pDeps = this.getDependencies(child);
-    if (cDeps.length > 0 || pDeps.length > 0) {
+    const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
+    const pIndex = this.dependencies.findIndex((d) => Object.is(d.to, child));
+    if (cIndex !== -1 || pIndex !== -1) {
       throw new Error('Dependency relationship already exists!');
     }
 

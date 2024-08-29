@@ -18,6 +18,12 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
     }
   }
 
+  private deriveDependencyField(): string | undefined {
+    return this.getDependencies()
+      .find((d) => d.getRelationship() !== undefined)
+      ?.getRelationship()!.onField;
+  }
+
   override async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -45,7 +51,9 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
     }
 
     // Add model.
-    diffs.push(new Diff(this, DiffAction.ADD, '', ''));
+    const field = this.deriveDependencyField() || '';
+    const fieldValue = field ? this[field] : '';
+    diffs.push(new Diff(this, DiffAction.ADD, field, fieldValue));
 
     // Diff model properties.
     const propertyDiffs = await this.diffProperties();
