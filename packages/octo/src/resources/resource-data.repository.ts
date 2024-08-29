@@ -1,7 +1,6 @@
 import { type ActionOutputs, NodeType, type UnknownResource } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
-import { DiffUtility } from '../functions/diff/diff.utility.js';
 import type { IResource } from './resource.interface.js';
 
 export class ResourceDataRepository {
@@ -14,7 +13,7 @@ export class ResourceDataRepository {
   ) {
     for (const resource of oldResources) {
       const actual = actualResources.find((r) => r.resourceId === resource.resourceId);
-      if (!DiffUtility.isObjectDeepEquals(resource, actual as UnknownResource)) {
+      if (!resource.isDeepEquals(actual)) {
         this.dirtyResources.push(resource);
       }
     }
@@ -50,6 +49,14 @@ export class ResourceDataRepository {
       this.newResources.push(resource);
     } else {
       this.newResources[rIndex] = resource;
+    }
+
+    // Clone response from old.
+    const oIndex = this.oldResources.findIndex((r) => r.resourceId === resource.resourceId);
+    if (oIndex > -1) {
+      for (const key of Object.keys(this.oldResources[oIndex].response)) {
+        resource.response[key] = JSON.parse(JSON.stringify(this.oldResources[oIndex].response[key]));
+      }
     }
   }
 
@@ -249,10 +256,10 @@ export class ResourceDataRepositoryFactory {
   private static instance: ResourceDataRepository;
 
   static async create(
-    forceNew: boolean,
-    actualResources: UnknownResource[],
-    oldResources: UnknownResource[],
-    newResources: UnknownResource[],
+    forceNew: boolean = false,
+    actualResources: UnknownResource[] = [],
+    oldResources: UnknownResource[] = [],
+    newResources: UnknownResource[] = [],
   ): Promise<ResourceDataRepository> {
     if (!this.instance) {
       this.instance = new ResourceDataRepository(actualResources, oldResources, newResources);

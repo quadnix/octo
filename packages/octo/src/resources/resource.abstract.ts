@@ -58,7 +58,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
       // Clone behaviors from parent to source.
       const sourceParentToChildDependency = sourceChildToParentDependency.to.getDependency(
         sourceChildToParentDependency.from,
-        DependencyRelationship.CHILD,
+        DependencyRelationship.PARENT,
       )!;
       for (const b of sourceParentToChildDependency.synth().behaviors) {
         parentToChildDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
@@ -154,6 +154,33 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     const sameNodeDependencies = this.getChildren(this.NODE_NAME)[this.NODE_NAME];
     const sharedResourceDependency = sameNodeDependencies?.find((d) => d.to.NODE_TYPE === NodeType.SHARED_RESOURCE);
     return sharedResourceDependency?.to as ASharedResource<T>;
+  }
+
+  isDeepEquals(other?: UnknownResource): boolean {
+    if (!other) {
+      return false;
+    }
+
+    if (!DiffUtility.isObjectDeepEquals(this.synth(), other.synth())) {
+      return false;
+    }
+
+    if (this.isMarkedDeleted() !== other.isMarkedDeleted()) {
+      return false;
+    }
+
+    const selfDependencies = Object.values(this.getParents()).flat();
+    const otherDependencies = Object.values(other.getParents()).flat();
+    return selfDependencies.every((sd) => {
+      const od = otherDependencies.find((od) => od.isEqual(sd));
+      if (!DiffUtility.isObjectDeepEquals(sd.synth(), od?.synth() || {})) {
+        return false;
+      }
+
+      const sdPd = sd.to.getDependency(sd.from, DependencyRelationship.PARENT)!;
+      const odPd = od!.to.getDependency(od!.from, DependencyRelationship.PARENT)!;
+      return DiffUtility.isObjectDeepEquals(sdPd.synth(), odPd.synth());
+    });
   }
 
   /**
