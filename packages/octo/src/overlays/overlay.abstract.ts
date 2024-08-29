@@ -32,12 +32,28 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   override async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
+    const anchorDiffs = await this.diffAnchors();
+    diffs.push(...anchorDiffs);
+
+    const propertyDiffs = await this.diffProperties();
+    diffs.push(...propertyDiffs);
+
+    return diffs;
+  }
+
+  async diffAnchors(): Promise<Diff[]> {
+    const diffs: Diff[] = [];
+
     const currentAnchors = this.getAnchors();
     for (const currentAnchor of currentAnchors) {
       diffs.push(new Diff(this, DiffAction.ADD, 'anchor', currentAnchor));
     }
 
     return diffs;
+  }
+
+  override async diffProperties(): Promise<Diff[]> {
+    return [];
   }
 
   override getAnchor(anchorId: string, parent: UnknownModel): AAnchor | undefined {
