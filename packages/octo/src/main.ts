@@ -6,6 +6,7 @@ import { DiffMetadata } from './functions/diff/diff-metadata.js';
 import { App } from './models/app/app.model.js';
 import { ModuleContainer } from './modules/module.container.js';
 import { IModule } from './modules/module.interface.js';
+import { OverlayDataRepository } from './overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from './resources/resource-data.repository.js';
 import { AResource } from './resources/resource.abstract.js';
 import { CaptureService } from './services/capture/capture.service.js';
@@ -202,6 +203,8 @@ export class Octo {
     await this.stateManagementService.saveModelState(this.modelStateFileName, modelSerializedOutput, {
       version: 1,
     });
+
+    await Container.get(OverlayDataRepository, { args: [true] });
   }
 
   private async saveResourceState(): Promise<void> {

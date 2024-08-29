@@ -40,9 +40,13 @@ export class OverlayDataRepository {
 export class OverlayDataRepositoryFactory {
   private static instance: OverlayDataRepository;
 
-  static async create(): Promise<OverlayDataRepository> {
+  static async create(forceNew = false): Promise<OverlayDataRepository> {
     if (!this.instance) {
       this.instance = new OverlayDataRepository();
+    }
+    if (forceNew) {
+      const newInstance = new OverlayDataRepository();
+      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;
   }
