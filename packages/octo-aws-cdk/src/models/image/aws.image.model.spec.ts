@@ -1,8 +1,10 @@
-import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { App, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { OctoAwsCdkPackageMock } from '../../index.js';
 import { AwsImage } from './aws.image.model.js';
 
 describe('Image UT', () => {
+  const stateProvider = new TestStateProvider();
+
   beforeAll(async () => {
     await TestContainer.create(
       {
@@ -25,24 +27,26 @@ describe('Image UT', () => {
           'input.image.dockerExecutable': 'docker',
         },
       });
-      await testModuleContainer.initialize();
+      await testModuleContainer.initialize(stateProvider);
     });
 
     afterEach(async () => {
       await testModuleContainer.reset();
     });
 
-    it('should create new image repository and delete it', async () => {
-      // Add image.
+    it('should add image', async () => {
       const app = new App('test');
-      const image1 = new AwsImage('quadnix/test', '0.0.1', {
+      const image = new AwsImage('quadnix/test', '0.0.1', {
         dockerfilePath: 'path/to/Dockerfile',
       });
-      app.addImage(image1);
-      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
+      app.addImage(image);
 
-      // Remove image.
-      image1.remove();
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should remove image', async () => {
+      const app = new App('test');
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
     });
   });

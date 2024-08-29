@@ -1,8 +1,10 @@
-import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { App, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { AwsDeployment, AwsServer, OctoAwsCdkPackageMock } from '../../index.js';
 import type { IIamRoleResponse } from '../../resources/iam/iam-role.interface.js';
 
 describe('AwsDeployment UT', () => {
+  const stateProvider = new TestStateProvider();
+
   beforeAll(async () => {
     await TestContainer.create(
       {
@@ -19,6 +21,9 @@ describe('AwsDeployment UT', () => {
   describe('diff()', () => {
     let testModuleContainer: TestModuleContainer;
 
+    let app: App;
+    let server: AwsServer;
+
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
         captures: {
@@ -31,57 +36,64 @@ describe('AwsDeployment UT', () => {
           },
         },
       });
-      await testModuleContainer.initialize();
+      await testModuleContainer.initialize(stateProvider);
+
+      // Add a server.
+      app = new App('test');
+      server = new AwsServer('Backend');
+      app.addServer(server);
     });
 
     afterEach(async () => {
       await testModuleContainer.reset();
     });
 
-    it('should test e2e', async () => {
-      // Add a server.
-      const app = new App('test');
-      const server = new AwsServer('Backend');
-      app.addServer(server);
+    it('should add deployment', async () => {
+      // Commit state with app and server.
       await testModuleContainer.commit(app);
 
-      // Add a deployment.
       const deployment = new AwsDeployment('v0.0.1');
       server.addDeployment(deployment);
-      // Verify the anchor was added with default values.
-      expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
-     {
-       "image": {
-         "command": "",
-         "ports": [],
-         "uri": "",
-       },
-     }
-    `);
 
-      // Update deployment with a new image.
+      expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
+       {
+         "image": {
+           "command": "",
+           "ports": [],
+           "uri": "",
+         },
+       }
+      `);
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
+    });
+
+    it('should update deployment with new image', async () => {
+      // Commit state with app and server.
+      await testModuleContainer.commit(app);
+
+      const deployment = new AwsDeployment('v0.0.1');
+      server.addDeployment(deployment);
+
       deployment.updateDeploymentImage({
         command: 'command',
         ports: [{ containerPort: 80, protocol: 'tcp' }],
         uri: 'uri',
       });
-      // Verify the anchor was updated with new values.
-      expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
-     {
-       "image": {
-         "command": "command",
-         "ports": [
-           {
-             "containerPort": 80,
-             "protocol": "tcp",
-           },
-         ],
-         "uri": "uri",
-       },
-     }
-    `);
 
-      // Verify resource transaction was as expected, and no resources were added.
+      expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
+       {
+         "image": {
+           "command": "command",
+           "ports": [
+             {
+               "containerPort": 80,
+               "protocol": "tcp",
+             },
+           ],
+           "uri": "uri",
+         },
+       }
+      `);
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
     });
   });
