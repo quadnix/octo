@@ -156,7 +156,7 @@ export class Octo {
       Container.get(ModuleContainer),
       Container.get(ResourceDataRepository),
       Container.get(ResourceSerializationService),
-      Container.get(StateManagementService, { args: [stateProvider] }),
+      Container.get(StateManagementService, { args: [true, stateProvider] }),
       Container.get(TransactionService),
       Container.get(ValidationService),
     ]);
