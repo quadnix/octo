@@ -13,7 +13,6 @@ type CommitHooksCallback = (
   app: App,
   modelTransaction: DiffMetadata[][],
   resourceTransaction: DiffMetadata[][],
-  dirtyResourceTransaction: DiffMetadata[][],
 ) => Promise<void>;
 
 export interface IModuleOptions {

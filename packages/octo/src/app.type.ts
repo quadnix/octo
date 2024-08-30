@@ -46,8 +46,6 @@ export type ResourceSerializedOutput = {
 
 export type TransactionOptions = {
   enableResourceCapture?: boolean;
-  yieldDirtyResourceDiffs?: boolean;
-  yieldDirtyResourceTransaction?: boolean;
   yieldModelDiffs?: boolean;
   yieldModelTransaction?: boolean;
   yieldResourceDiffs?: boolean;

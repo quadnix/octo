@@ -29,8 +29,6 @@ export class TestModuleContainer {
   }
 
   async commit(app: App): Promise<{
-    dirtyResourceDiffs: DiffMetadata[][];
-    dirtyResourceTransaction: DiffMetadata[][];
     modelDiffs: DiffMetadata[][];
     modelTransaction: DiffMetadata[][];
     resourceDiffs: DiffMetadata[][];
@@ -38,8 +36,6 @@ export class TestModuleContainer {
   }> {
     const generator = await this.octo.beginTransaction(app, {
       enableResourceCapture: true,
-      yieldDirtyResourceDiffs: true,
-      yieldDirtyResourceTransaction: true,
       yieldModelDiffs: true,
       yieldModelTransaction: true,
       yieldResourceDiffs: true,
@@ -51,8 +47,6 @@ export class TestModuleContainer {
     response.modelTransaction = (await generator.next()).value;
     response.resourceDiffs = (await generator.next()).value;
     response.resourceTransaction = (await generator.next()).value;
-    response.dirtyResourceDiffs = (await generator.next()).value;
-    response.dirtyResourceTransaction = (await generator.next()).value;
     await generator.next();
 
     return response;

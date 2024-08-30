@@ -37,8 +37,6 @@ export class Octo {
     app: App,
     {
       enableResourceCapture = false,
-      yieldDirtyResourceDiffs = false,
-      yieldDirtyResourceTransaction = false,
       yieldModelDiffs = false,
       yieldModelTransaction = false,
       yieldResourceDiffs = false,
@@ -48,8 +46,6 @@ export class Octo {
     const diffs = await app.diff();
     const transaction = await this.transactionService.beginTransaction(diffs, {
       enableResourceCapture,
-      yieldDirtyResourceDiffs,
-      yieldDirtyResourceTransaction: true,
       yieldModelDiffs,
       yieldModelTransaction: true,
       yieldResourceDiffs,
@@ -66,7 +62,6 @@ export class Octo {
     }
 
     let resourceTransaction: DiffMetadata[][] = [];
-    let dirtyResourceTransaction: DiffMetadata[][] = [];
     try {
       if (yieldResourceDiffs) {
         yield (await transaction.next()).value;
@@ -77,18 +72,9 @@ export class Octo {
         yield resourceTransaction;
       }
 
-      if (yieldDirtyResourceDiffs) {
-        yield (await transaction.next()).value;
-      }
-
-      dirtyResourceTransaction = (await transaction.next()).value;
-      if (yieldDirtyResourceTransaction) {
-        yield dirtyResourceTransaction;
-      }
-
       return (await transaction.next()).value;
     } finally {
-      await this.commitTransaction(app, modelTransaction, resourceTransaction, dirtyResourceTransaction);
+      await this.commitTransaction(app, modelTransaction, resourceTransaction);
     }
   }
 
@@ -97,12 +83,10 @@ export class Octo {
     app: App,
     modelTransaction: DiffMetadata[][],
     resourceTransaction: DiffMetadata[][] = [],
-    dirtyResourceTransaction: DiffMetadata[][] = [],
   ): Promise<void> {
     // `modelTransaction` is used by hooks of type CommitHook.
     assert(!!modelTransaction);
     assert(!!resourceTransaction);
-    assert(!!dirtyResourceTransaction);
 
     // Save the state of the new app and its resources.
     await this.saveModelState(app);
