@@ -29,14 +29,10 @@ export class AddSubnetModelAction implements IModelAction {
     const awsRegion = parents['region'][0].to as AwsRegion;
     const regionId = awsRegion.regionId;
 
-    const siblings = subnet.getSiblings()['subnet'] ?? [];
-    const siblingSubnets = siblings.map((s) => s.to as AwsSubnet);
-
     return [
       `input.region.${regionId}.subnet.${subnet.subnetName}.CidrBlock`,
       `resource.vpc-${regionId}`,
       `resource.igw-${regionId}`,
-      ...siblingSubnets.map((s) => `resource.subnet-${s.subnetId}`),
     ];
   }
 
@@ -56,13 +52,9 @@ export class AddSubnetModelAction implements IModelAction {
     const awsRegion = parents['region'][0].to as AwsRegion;
     const regionId = awsRegion.regionId;
 
-    const siblings = subnet.getSiblings()['subnet'] ?? [];
-    const siblingSubnets = siblings.map((s) => s.to as AwsSubnet);
-
     const subnetCidrBlock = actionInputs[`input.region.${regionId}.subnet.${subnet.subnetName}.CidrBlock`] as string;
     const vpc = actionInputs[`resource.vpc-${regionId}`] as Vpc;
     const internetGateway = actionInputs[`resource.igw-${regionId}`] as InternetGateway;
-    const siblingSubnetsSubnet = siblingSubnets.map((s) => actionInputs[`resource.subnet-${s.subnetId}`] as Subnet);
 
     // Create Subnet.
     const subnetSubnet = new Subnet(
@@ -104,24 +96,6 @@ export class AddSubnetModelAction implements IModelAction {
         RuleNumber: 1,
       });
     }
-    siblingSubnetsSubnet.forEach((s, i) => {
-      subnetNAclEntries.push({
-        CidrBlock: s.properties.CidrBlock,
-        Egress: false,
-        PortRange: { From: -1, To: -1 },
-        Protocol: '-1', // All.
-        RuleAction: 'allow',
-        RuleNumber: (i + 1) * 10,
-      });
-      subnetNAclEntries.push({
-        CidrBlock: s.properties.CidrBlock,
-        Egress: true,
-        PortRange: { From: -1, To: -1 },
-        Protocol: '-1', // All.
-        RuleAction: 'allow',
-        RuleNumber: (i + 1) * 10,
-      });
-    });
 
     // Create Network ACL.
     const subnetNAcl = new NetworkAcl(
