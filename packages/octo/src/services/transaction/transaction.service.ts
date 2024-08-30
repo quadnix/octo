@@ -243,8 +243,6 @@ export class TransactionService {
     diffs: Diff[],
     {
       enableResourceCapture = false,
-      yieldDirtyResourceDiffs = false,
-      yieldDirtyResourceTransaction = false,
       yieldModelDiffs = false,
       yieldModelTransaction = false,
       yieldResourceDiffs = false,
@@ -283,9 +281,48 @@ export class TransactionService {
       yield modelTransaction;
     }
 
+    // Generate resource diffs.
+    const newDiffs = await this.resourceDataRepository.diff();
+    const dirtyDiffs = await this.resourceDataRepository.diffDirty();
+
+    // new diffs = new - old | dirty diffs = new - actual
+    // Any new diff that is also not part of dirty diffs should be skipped, as the actual is already in desired state.
+    for (let i = newDiffs.length - 1; i >= 0; i--) {
+      const newDiff = newDiffs[i];
+      if (
+        !dirtyDiffs.some(
+          (d) =>
+            d.node.getContext() === newDiff.node.getContext() &&
+            d.action === newDiff.action &&
+            d.field === newDiff.field &&
+            d.value === newDiff.value,
+        )
+      ) {
+        newDiffs.splice(i, 1);
+      }
+    }
+
+    // Ensure any new diffs are not operating on dirty resources.
+    this.resourceDataRepository.ensureDiffsNotOperatingOnDirtyResources(newDiffs);
+
+    // Skip processing dirty diffs that are already accounted for in new diffs.
+    for (let i = dirtyDiffs.length - 1; i >= 0; i--) {
+      const dirtyDiff = dirtyDiffs[i];
+      if (
+        newDiffs.some(
+          (d) =>
+            d.node.getContext() === dirtyDiff.node.getContext() &&
+            d.action === dirtyDiff.action &&
+            d.field === dirtyDiff.field &&
+            d.value === dirtyDiff.value,
+        )
+      ) {
+        dirtyDiffs.splice(i, 1);
+      }
+    }
+
     // Generate diff on resources.
-    diffs = await this.resourceDataRepository.diff();
-    const resourceDiffs = diffs.map(
+    const resourceDiffs = newDiffs.map(
       (d) =>
         new DiffMetadata(
           d,
@@ -296,22 +333,8 @@ export class TransactionService {
     for (const diff of resourceDiffs) {
       this.setApplyOrder(diff, resourceDiffs);
     }
-
-    if (yieldResourceDiffs) {
-      yield [resourceDiffs];
-    }
-
-    // Apply resource diffs.
-    const resourceTransaction = await this.applyResources(resourceDiffs, {
-      enableResourceCapture,
-    });
-    if (yieldResourceTransaction) {
-      yield resourceTransaction;
-    }
-
     // Generate diff on dirty resources.
-    diffs = await this.resourceDataRepository.diffDirty();
-    const dirtyResourceDiffs = diffs.map(
+    const dirtyResourceDiffs = dirtyDiffs.map(
       (d) =>
         new DiffMetadata(
           d,
@@ -323,16 +346,20 @@ export class TransactionService {
       this.setApplyOrder(diff, dirtyResourceDiffs);
     }
 
-    if (yieldDirtyResourceDiffs) {
-      yield [dirtyResourceDiffs];
+    if (yieldResourceDiffs) {
+      yield [resourceDiffs, dirtyResourceDiffs];
     }
 
+    // Apply resource diffs.
+    const resourceTransaction = await this.applyResources(resourceDiffs, {
+      enableResourceCapture,
+    });
     // Apply dirty resource diffs.
     const dirtyResourceTransaction = await this.applyResources(dirtyResourceDiffs, {
       enableResourceCapture,
     });
-    if (yieldDirtyResourceTransaction) {
-      yield dirtyResourceTransaction;
+    if (yieldResourceTransaction) {
+      yield [...resourceTransaction, ...dirtyResourceTransaction];
     }
 
     return modelTransaction;

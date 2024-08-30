@@ -117,45 +117,6 @@ export class ResourceDataRepository {
       }
     }
 
-    /**
-     * Splice out diffs that don't need to be applied.
-     * By inspecting (new - actual) we get a sense of what really needs to be done.
-     * (new - old) can produce less or more or same steps than actually required. Hence the need to splice.
-     *
-     * old A B C new | actual D E A B C new | diffs = A B C | dirtyDiffs = D E
-     * In this scenario, old needed few actions to be done to get to new, but actual reported more steps.
-     * So we separate out non-dirty diffs that can be safely applied before the rest.
-     * This allowed us to execute A B C without first running D E which are dirty and are known to fail.
-     *
-     * old A B C new | actual B C new | diffs = B C | dirtyDiffs = empty
-     * In this scenario, old needed few actions to be done to get to new, but actual reported less steps.
-     * This can happen, e.g. on reverts, when few dirty resources are already in the desired state.
-     *
-     * Why not only compare (new - actual)?
-     * Because that would result in all diffs needed to be applied, including the dirty diffs,
-     * and that will block the pipeline for unrelated changes if dirty diffs fail again.
-     */
-    const dirtyDiffs = await this.diffDirty();
-    for (let i = diffs.length - 1; i >= 0; i--) {
-      const diff = diffs[i];
-      if (
-        !dirtyDiffs.some(
-          (d) =>
-            d.node.getContext() === diff.node.getContext() &&
-            d.action === diff.action &&
-            d.field === diff.field &&
-            d.value === diff.value,
-        )
-      ) {
-        diffs.splice(i, 1);
-      }
-    }
-
-    // Ensure remaining diffs are not dirty.
-    if (diffs.some((d) => this.dirtyResources.some((dr) => d.node.hasAncestor(dr)))) {
-      throw new Error('Cannot operate diff on dirty resources!');
-    }
-
     return diffs;
   }
 
@@ -217,6 +178,12 @@ export class ResourceDataRepository {
     }
 
     return diffs;
+  }
+
+  ensureDiffsNotOperatingOnDirtyResources(diffs: Diff[]): void {
+    if (diffs.some((d) => this.dirtyResources.some((dr) => d.node.hasAncestor(dr)))) {
+      throw new Error('Cannot operate diff on dirty resources!');
+    }
   }
 
   getActualResourceById(resourceId: IResource['resourceId']): UnknownResource | undefined {

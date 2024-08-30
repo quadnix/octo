@@ -64,15 +64,11 @@ describe('Transaction Scenarios UT', () => {
 
         await createTestResources({ 'resource-1': [] });
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
         const resourceTransaction = (await generator.next()).value;
         expect(resourceTransaction).toMatchInlineSnapshot(`[]`);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`[]`);
       });
     });
 
@@ -84,7 +80,6 @@ describe('Transaction Scenarios UT', () => {
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
 
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -101,9 +96,6 @@ describe('Transaction Scenarios UT', () => {
            ],
          ]
         `);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`[]`);
       });
     });
 
@@ -122,7 +114,6 @@ describe('Transaction Scenarios UT', () => {
         const [, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
         resource2.remove();
         const generator2 = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -139,9 +130,6 @@ describe('Transaction Scenarios UT', () => {
            ],
          ]
         `);
-
-        const dirtyResourceTransaction = (await generator2.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`[]`);
       });
     });
   });
@@ -169,15 +157,11 @@ describe('Transaction Scenarios UT', () => {
 
         await createTestResources({ 'resource-1': [] });
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
         const resourceTransaction = (await generator.next()).value;
-        expect(resourceTransaction).toMatchInlineSnapshot(`[]`);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`
+        expect(resourceTransaction).toMatchInlineSnapshot(`
          [
            [
              {
@@ -198,7 +182,6 @@ describe('Transaction Scenarios UT', () => {
 
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -213,12 +196,6 @@ describe('Transaction Scenarios UT', () => {
                "value": "resource-2",
              },
            ],
-         ]
-        `);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`
-         [
            [
              {
                "action": "add",
@@ -236,7 +213,6 @@ describe('Transaction Scenarios UT', () => {
 
         await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -252,7 +228,6 @@ describe('Transaction Scenarios UT', () => {
         const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
         resource1.properties['key1'] = 'value1';
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -267,12 +242,6 @@ describe('Transaction Scenarios UT', () => {
                "value": "resource-2",
              },
            ],
-         ]
-        `);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`
-         [
            [
              {
                "action": "add",
@@ -292,15 +261,11 @@ describe('Transaction Scenarios UT', () => {
 
         // Not creating resource-1 is equivalent to reverting the last change in this case.
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
         const resourceTransaction = (await generator.next()).value;
         expect(resourceTransaction).toMatchInlineSnapshot(`[]`);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`[]`);
       });
     });
 
@@ -311,7 +276,6 @@ describe('Transaction Scenarios UT', () => {
         // Not creating resource-1 is equivalent to reverting the last change in this case.
         await createTestResources({ 'resource-2': [] });
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -328,9 +292,6 @@ describe('Transaction Scenarios UT', () => {
            ],
          ]
         `);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`[]`);
       });
     });
   });
@@ -370,15 +331,11 @@ describe('Transaction Scenarios UT', () => {
         const [resource1] = await createTestResources({ 'resource-1': [] });
         resource1.properties['key1'] = 'value1';
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
         const resourceTransaction = (await generator.next()).value;
-        expect(resourceTransaction).toMatchInlineSnapshot(`[]`);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`
+        expect(resourceTransaction).toMatchInlineSnapshot(`
          [
            [
              {
@@ -403,7 +360,6 @@ describe('Transaction Scenarios UT', () => {
         const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
         resource1.properties['key1'] = 'value1';
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -418,12 +374,6 @@ describe('Transaction Scenarios UT', () => {
                "value": "resource-2",
              },
            ],
-         ]
-        `);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`
-         [
            [
              {
                "action": "add",
@@ -445,7 +395,6 @@ describe('Transaction Scenarios UT', () => {
         const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
         resource1.properties['key1'] = 'value1';
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -461,15 +410,11 @@ describe('Transaction Scenarios UT', () => {
         const [resource1] = await createTestResources({ 'resource-1': [] });
         resource1.properties['key1'] = 'value2';
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
         const resourceTransaction = (await generator.next()).value;
-        expect(resourceTransaction).toMatchInlineSnapshot(`[]`);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`
+        expect(resourceTransaction).toMatchInlineSnapshot(`
          [
            [
              {
@@ -493,15 +438,11 @@ describe('Transaction Scenarios UT', () => {
 
         await createTestResources({ 'resource-1': [] });
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
         const resourceTransaction = (await generator.next()).value;
         expect(resourceTransaction).toMatchInlineSnapshot(`[]`);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`[]`);
       });
     });
 
@@ -512,7 +453,6 @@ describe('Transaction Scenarios UT', () => {
         // Not creating resource-1 is equivalent to reverting the last change in this case.
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -529,9 +469,6 @@ describe('Transaction Scenarios UT', () => {
            ],
          ]
         `);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`[]`);
       });
     });
   });
@@ -571,15 +508,11 @@ describe('Transaction Scenarios UT', () => {
         const [resource1] = await createTestResources({ 'resource-1': [] });
         resource1.remove();
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
         const resourceTransaction = (await generator.next()).value;
-        expect(resourceTransaction).toMatchInlineSnapshot(`[]`);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`
+        expect(resourceTransaction).toMatchInlineSnapshot(`
          [
            [
              {
@@ -601,7 +534,6 @@ describe('Transaction Scenarios UT', () => {
         const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
         resource1.remove();
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -616,12 +548,6 @@ describe('Transaction Scenarios UT', () => {
                "value": "resource-2",
              },
            ],
-         ]
-        `);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`
-         [
            [
              {
                "action": "delete",
@@ -641,7 +567,6 @@ describe('Transaction Scenarios UT', () => {
         resource1.remove();
         resource1.addChild('resourceId', resource2, 'resourceId');
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -657,15 +582,11 @@ describe('Transaction Scenarios UT', () => {
         const [resource1] = await createTestResources({ 'resource-1': [] });
         resource1.properties['key1'] = 'value2';
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
         const resourceTransaction = (await generator.next()).value;
-        expect(resourceTransaction).toMatchInlineSnapshot(`[]`);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`
+        expect(resourceTransaction).toMatchInlineSnapshot(`
          [
            [
              {
@@ -689,15 +610,11 @@ describe('Transaction Scenarios UT', () => {
 
         await createTestResources({ 'resource-1': [] });
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
         const resourceTransaction = (await generator.next()).value;
         expect(resourceTransaction).toMatchInlineSnapshot(`[]`);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`[]`);
       });
     });
 
@@ -708,7 +625,6 @@ describe('Transaction Scenarios UT', () => {
         // Not creating resource-1 is equivalent to reverting the last change in this case.
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
         const generator = await transactionService.beginTransaction([], {
-          yieldDirtyResourceTransaction: true,
           yieldResourceTransaction: true,
         });
 
@@ -725,9 +641,6 @@ describe('Transaction Scenarios UT', () => {
            ],
          ]
         `);
-
-        const dirtyResourceTransaction = (await generator.next()).value;
-        expect(dirtyResourceTransaction).toMatchInlineSnapshot(`[]`);
       });
     });
   });
