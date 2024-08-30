@@ -23,10 +23,16 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   override addAnchor(anchor: AAnchor): void {
     super.addAnchor(anchor);
 
-    const { thisToThatDependency, thatToThisDependency } = this.addRelationship(anchor.getParent());
-    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, 'NODE_NAME', DiffAction.ADD);
-    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, 'NODE_NAME', DiffAction.UPDATE);
-    thatToThisDependency.addBehavior('NODE_NAME', DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
+    const anchorParent = anchor.getParent();
+    const anchorParentField = anchorParent.deriveDependencyField();
+    if (!anchorParentField) {
+      throw new Error('Cannot derive anchor parent field!');
+    }
+
+    const { thisToThatDependency, thatToThisDependency } = this.addRelationship(anchorParent);
+    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, anchorParentField, DiffAction.ADD);
+    thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, anchorParentField, DiffAction.UPDATE);
+    thatToThisDependency.addBehavior(anchorParentField, DiffAction.DELETE, 'overlayId', DiffAction.DELETE);
   }
 
   override async diff(): Promise<Diff[]> {
