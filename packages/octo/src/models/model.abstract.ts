@@ -18,7 +18,7 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
     }
   }
 
-  private deriveDependencyField(): string | undefined {
+  deriveDependencyField(): string | undefined {
     return this.getDependencies()
       .find((d) => d.getRelationship() !== undefined)
       ?.getRelationship()!.onField;

@@ -50,7 +50,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
       const parent = await deReferenceResource((sourceChildToParentDependency.to as UnknownResource).resourceId);
       const { childToParentDependency, parentToChildDependency } = parent.addChild('resourceId', this, 'resourceId');
 
-      // Clone behaviours from source to its parent.
+      // Clone behaviors from source to its parent.
       for (const b of sourceChildToParentDependency.synth().behaviors) {
         childToParentDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
       }
@@ -128,7 +128,8 @@ export abstract class AResource<T> extends ANode<IResource, T> {
       }
       case 'properties': {
         if (diff.action === DiffAction.ADD || diff.action === DiffAction.UPDATE) {
-          this.properties[diff.field] = JSON.parse(JSON.stringify(diff.value));
+          const change = diff.value as { key: string; value: any };
+          this.properties[change.key] = JSON.parse(JSON.stringify(change.value));
         } else if (diff.action === DiffAction.DELETE) {
           delete this.properties[diff.field];
         } else {
