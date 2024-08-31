@@ -1,4 +1,4 @@
-import { AOverlay, type IOverlay, Overlay } from '@quadnix/octo';
+import { AOverlay, Diff, type IOverlay, Overlay } from '@quadnix/octo';
 import type { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
 import type { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mount.anchor.js';
 import type { ISubnetFilesystemMountOverlayProperties } from './subnet-filesystem-mount.overlay.interface.js';
@@ -15,5 +15,9 @@ export class SubnetFilesystemMountOverlay extends AOverlay<SubnetFilesystemMount
     anchors: [RegionFilesystemAnchor, SubnetFilesystemMountAnchor],
   ) {
     super(overlayId, properties, anchors);
+  }
+
+  override async diffAnchors(): Promise<Diff[]> {
+    return [];
   }
 }

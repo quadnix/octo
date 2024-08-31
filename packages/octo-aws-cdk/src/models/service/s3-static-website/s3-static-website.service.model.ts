@@ -165,7 +165,12 @@ export class S3StaticWebsiteService extends Service {
     if (Object.keys(manifestDiff).length === 0) {
       return [];
     } else {
-      return [new Diff(this, DiffAction.UPDATE, 'sourcePaths', manifestDiff)];
+      const diff = new Diff(this, DiffAction.UPDATE, 'sourcePaths', manifestDiff);
+      this.addFieldDependency([
+        { forAction: DiffAction.ADD, onAction: DiffAction.UPDATE, onField: 'sourcePaths', toField: 'serviceId' },
+        { forAction: DiffAction.UPDATE, onAction: DiffAction.UPDATE, onField: 'sourcePaths', toField: 'serviceId' },
+      ]);
+      return [diff];
     }
   }
 

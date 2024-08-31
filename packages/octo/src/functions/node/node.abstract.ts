@@ -65,6 +65,34 @@ export abstract class ANode<I, T> implements INode<I, T> {
     return { childToParentDependency, parentToChildDependency };
   }
 
+  addFieldDependency(
+    behaviors: { forAction: DiffAction; onAction: DiffAction; onField: keyof T | string; toField: keyof T | string }[],
+  ): void {
+    const index = this.dependencies.findIndex((d) => Object.is(d.from, this) && Object.is(d.to, this));
+    const dependency = index > -1 ? this.dependencies[index] : new Dependency(this, this);
+    if (index === -1) {
+      this.dependencies.push(dependency);
+    }
+
+    for (const behavior of behaviors) {
+      if (
+        !dependency.hasMatchingBehavior(
+          behavior.onField as string,
+          behavior.onAction,
+          behavior.toField as string,
+          behavior.forAction,
+        )
+      ) {
+        dependency.addBehavior(
+          behavior.onField as string,
+          behavior.onAction,
+          behavior.toField as string,
+          behavior.forAction,
+        );
+      }
+    }
+  }
+
   addRelationship(to: UnknownNode): { thatToThisDependency: Dependency; thisToThatDependency: Dependency } {
     const thisToThatDependency = new Dependency(this, to);
     this.dependencies.push(thisToThatDependency);
