@@ -4,6 +4,7 @@ export interface IIamUserProperties
   extends ModifyInterface<
     IResource['properties'],
     {
+      overlays: { overlayId: string; overlayName: string }[];
       username: string;
     }
   > {}

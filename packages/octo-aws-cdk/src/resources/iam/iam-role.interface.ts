@@ -4,6 +4,7 @@ export interface IIamRoleProperties
   extends ModifyInterface<
     IResource['properties'],
     {
+      overlays: { overlayId: string; overlayName: string }[];
       rolename: string;
     }
   > {}

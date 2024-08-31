@@ -30,11 +30,6 @@ export class S3Storage extends AResource<S3Storage> {
       );
     }
 
-    // Empty manifestDiff.
-    for (const key of Object.keys(this.manifestDiff)) {
-      delete this.manifestDiff[key];
-    }
-
     return diffs;
   }
 

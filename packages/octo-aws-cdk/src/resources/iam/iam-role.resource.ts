@@ -1,9 +1,7 @@
-import { AResource, Diff, DiffAction, Resource, type UnknownOverlay } from '@quadnix/octo';
+import { AResource, Container, Diff, DiffAction, OverlayService, Resource, type UnknownOverlay } from '@quadnix/octo';
 import type { IIamRoleProperties, IIamRoleResponse } from './iam-role.interface.js';
 
-export type IamRolePolicyDiff = {
-  [key: string]: { action: 'add' | 'delete'; overlay: UnknownOverlay };
-};
+export type IamRolePolicyDiff = { action: 'add' | 'delete'; overlay?: UnknownOverlay; overlayName: string };
 
 @Resource()
 export class IamRole extends AResource<IamRole> {
@@ -12,14 +10,17 @@ export class IamRole extends AResource<IamRole> {
   declare properties: IIamRoleProperties;
   declare response: IIamRoleResponse;
 
-  private readonly policyDiff: IamRolePolicyDiff = {};
-
   constructor(resourceId: string, properties: IIamRoleProperties) {
     super(resourceId, properties, []);
   }
 
   override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
     if (diff.action === DiffAction.UPDATE) {
+      // Clone properties.
+      for (const key of Object.keys((diff.node as IamRole).properties)) {
+        this.properties[key] = JSON.parse(JSON.stringify((diff.node as IamRole).properties[key]));
+      }
+
       // Clone responses.
       for (const key of Object.keys((diff.node as IamRole).response)) {
         this.response[key] = JSON.parse(JSON.stringify((diff.node as IamRole).response[key]));
@@ -29,31 +30,39 @@ export class IamRole extends AResource<IamRole> {
     }
   }
 
-  override async diffProperties(): Promise<Diff[]> {
+  override async diffProperties(previous: IamRole): Promise<Diff[]> {
     const diffs: Diff[] = [];
+    const overlayService = await Container.get(OverlayService);
 
-    if (this.policyDiff && Object.keys(this.policyDiff).length > 0) {
-      for (const key of Object.keys(this.policyDiff)) {
+    for (const { overlayId, overlayName } of previous.properties.overlays) {
+      if (!this.properties.overlays.find((o) => overlayId === o.overlayId)) {
         diffs.push(
-          new Diff(this, DiffAction.UPDATE, key, {
-            action: this.policyDiff[key].action,
-            overlay: this.policyDiff[key].overlay,
-          }),
+          new Diff(this, DiffAction.UPDATE, overlayId, {
+            action: 'delete',
+            overlayName,
+          } as IamRolePolicyDiff),
         );
       }
     }
-
-    // Empty policyDiff.
-    for (const key of Object.keys(this.policyDiff)) {
-      delete this.policyDiff[key];
+    for (const { overlayId, overlayName } of this.properties.overlays) {
+      if (!previous.properties.overlays.find((o) => overlayId === o.overlayId)) {
+        diffs.push(
+          new Diff(this, DiffAction.UPDATE, overlayId, {
+            action: 'add',
+            overlay: overlayService.getOverlayById(overlayId),
+            overlayName,
+          } as IamRolePolicyDiff),
+        );
+      }
     }
 
     return diffs;
   }
 
-  updatePolicyDiff(policyDiff: IamRolePolicyDiff): void {
-    for (const key of Object.keys(policyDiff)) {
-      this.policyDiff[key] = { ...policyDiff[key] };
+  updatePolicyDiff(overlay: UnknownOverlay): void {
+    const index = this.properties.overlays.findIndex((o) => o.overlayId === overlay.overlayId);
+    if (index === -1) {
+      this.properties.overlays.push({ overlayId: overlay.overlayId, overlayName: overlay.NODE_NAME });
     }
   }
 }

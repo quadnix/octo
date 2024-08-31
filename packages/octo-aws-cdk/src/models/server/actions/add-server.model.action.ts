@@ -35,7 +35,10 @@ export class AddServerModelAction implements IModelAction {
     const serverIamRoleName = serverIamRole.properties.iamRoleName;
 
     // Create IAM Role.
-    const iamRole = new IamRole(`iam-role-${serverIamRoleName}`, { rolename: `iam-role-${serverIamRoleName}` });
+    const iamRole = new IamRole(`iam-role-${serverIamRoleName}`, {
+      overlays: [],
+      rolename: `iam-role-${serverIamRoleName}`,
+    });
     actionOutputs[iamRole.resourceId] = iamRole;
 
     return actionOutputs;

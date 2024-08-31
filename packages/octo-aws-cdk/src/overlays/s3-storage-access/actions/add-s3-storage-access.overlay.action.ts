@@ -37,9 +37,7 @@ export class AddS3StorageAccessOverlayAction implements IModelAction {
     const iamRoleAnchor = s3StorageAccessOverlay.getAnchors().find((a) => a instanceof IamRoleAnchor) as IamRoleAnchor;
     const iamRole = actionInputs[`resource.iam-role-${iamRoleAnchor.properties.iamRoleName}`] as IamRole;
 
-    iamRole.updatePolicyDiff({
-      [s3StorageAccessOverlay.overlayId]: { action: 'add', overlay: s3StorageAccessOverlay },
-    });
+    iamRole.updatePolicyDiff(s3StorageAccessOverlay);
     actionOutputs[iamRole.resourceId] = iamRole;
 
     return actionOutputs;

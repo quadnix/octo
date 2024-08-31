@@ -31,11 +31,6 @@ export class S3Website extends AResource<S3Website> {
       );
     }
 
-    // Empty manifestDiff.
-    for (const key of Object.keys(this.manifestDiff)) {
-      delete this.manifestDiff[key];
-    }
-
     return diffs;
   }
 

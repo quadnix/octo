@@ -19,17 +19,15 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof IamUser &&
       diff.node.NODE_NAME === 'iam-user' &&
-      (diff.value as IamUserPolicyDiff['key']).overlay.NODE_NAME === 's3-storage-access-overlay'
+      (diff.value as IamUserPolicyDiff).overlayName === 's3-storage-access-overlay'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const iamUser = diff.node as IamUser;
-    const policyAction = (diff.value as IamUserPolicyDiff['key']).action;
+    const policyAction = (diff.value as IamUserPolicyDiff).action;
     const overlayId = diff.field;
-    const overlayProperties = (diff.value as IamUserPolicyDiff['key']).overlay
-      .properties as unknown as IS3StorageAccessOverlayProperties;
     const response = iamUser.response;
 
     // Get instances.
@@ -38,6 +36,8 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     // Attach policies to IAM User to read/write from bucket.
     if (policyAction === 'add') {
       const policyDocument: { Action: string[]; Effect: 'Allow'; Resource: string[]; Sid: string }[] = [];
+      const overlayProperties = (diff.value as IamUserPolicyDiff).overlay!
+        .properties as unknown as IS3StorageAccessOverlayProperties;
 
       if (overlayProperties.allowRead) {
         policyDocument.push({
