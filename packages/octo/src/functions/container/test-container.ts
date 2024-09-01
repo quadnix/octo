@@ -1,11 +1,9 @@
 import type { Constructable } from '../../app.type.js';
-import { DiffUtility } from '../diff/diff.utility.js';
 import { Container } from './container.js';
 
 type Factory<T> = { create: () => Promise<T> };
 
 type FactoryMock<T> = {
-  metadata?: { [key: string]: string };
   type: Constructable<T> | string;
   value: T;
 };
@@ -61,7 +59,7 @@ export class TestContainer {
    *     importFrom: [OctoAwsCdkPackageMock],
    *     mocks: [
    *       { type: MyClass, value: jest.fn() },
-   *       { metadata: { key: 'value' }, type: AnotherClass, value: new AnotherClass() },
+   *       { type: AnotherClass, value: new AnotherClass() },
    *     ],
    *   }, { factoryTimeoutInMs: 500 });
    * });
@@ -71,7 +69,6 @@ export class TestContainer {
    * - `importFrom` is an array of {@link IPackageMock} classes, to import custom mocks,
    * such as from octo-aws-cdk package - [OctoAwsCdkPackageMock](/api/octo-aws-cdk/class/OctoAwsCdkPackageMock).
    * - `mocks` is an array of objects, to override the default factories.
-   *   - Use `metadata?: { [key: string]: string }` to identify the factory being mocked.
    *   - Use `type: Constructable<T> | string` to identify the class being mocked.
    *   - Use `value: T` to provide the mocked value.
    * @param options Options to configure TestContainer.
@@ -98,24 +95,15 @@ export class TestContainer {
 
     for (const mock of subjects.mocks) {
       const mockClassName = typeof mock.type === 'string' ? mock.type : mock.type.name;
-      const mockMetadata = mock.metadata || {};
-      const registeredFactories = oldFactories[mockClassName] || [];
-      const matchingFactoryIndex = registeredFactories.findIndex((f) =>
-        DiffUtility.isObjectDeepEquals(f.metadata, mockMetadata),
-      );
-
-      if (matchingFactoryIndex > -1) {
-        oldFactories[mockClassName][matchingFactoryIndex].factory = this.createTestFactory(mock);
+      if (!oldFactories[mockClassName]) {
+        oldFactories[mockClassName] = { factory: this.createTestFactory(mock) };
+      } else {
+        oldFactories[mockClassName].factory = this.createTestFactory(mock);
       }
     }
 
     for (const name in oldFactories) {
-      for (const oldFactory of oldFactories[name]) {
-        Container.registerFactory(name, oldFactory.factory as Factory<unknown>, { metadata: oldFactory.metadata });
-        if (oldFactory.default) {
-          Container.setDefault(name, oldFactory.factory as Factory<unknown>);
-        }
-      }
+      Container.registerFactory(name, oldFactories[name].factory as Factory<unknown>);
     }
   }
 
