@@ -62,7 +62,6 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction {
             ),
           },
         ],
-        executionRoleArn: 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy',
         family: properties.serverKey,
         networkMode: 'awsvpc',
         taskRoleArn: iamRoleResponse.Arn,

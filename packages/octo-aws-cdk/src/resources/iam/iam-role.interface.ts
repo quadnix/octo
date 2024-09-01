@@ -5,6 +5,7 @@ export interface IIamRoleProperties
     IResource['properties'],
     {
       allowToAssumeRoleForServices: string[];
+      attachAwsPolicies: string[];
       overlays: { overlayId: string; overlayName: string }[];
       rolename: string;
     }

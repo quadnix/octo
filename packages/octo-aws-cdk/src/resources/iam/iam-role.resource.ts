@@ -10,6 +10,7 @@ import {
 } from '@quadnix/octo';
 import type { IIamRoleProperties, IIamRoleResponse } from './iam-role.interface.js';
 
+export type IamRoleAwsPolicyDiff = { add: string[]; remove: string[] };
 export type IamRolePolicyDiff = { action: 'add' | 'delete'; overlay?: UnknownOverlay; overlayName: string };
 
 @Resource()
@@ -53,6 +54,22 @@ export class IamRole extends AResource<IamRole> {
       diffs.push(
         new Diff(this, DiffAction.UPDATE, 'allowToAssumeRoleForServices', this.properties.allowToAssumeRoleForServices),
       );
+    }
+
+    // Diff property attachAwsPolicy.
+    const awsPolicyDiff: IamRoleAwsPolicyDiff = { add: [], remove: [] };
+    for (const policy of previous.properties.attachAwsPolicies) {
+      if (!this.properties.attachAwsPolicies.find((p) => p === policy)) {
+        awsPolicyDiff.remove.push(policy);
+      }
+    }
+    for (const policy of this.properties.attachAwsPolicies) {
+      if (!previous.properties.attachAwsPolicies.find((p) => p === policy)) {
+        awsPolicyDiff.add.push(policy);
+      }
+    }
+    if (awsPolicyDiff.add.length > 0 || awsPolicyDiff.remove.length > 0) {
+      diffs.push(new Diff(this, DiffAction.UPDATE, 'attachAwsPolicy', awsPolicyDiff));
     }
 
     // Diff property overlays.

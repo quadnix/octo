@@ -37,6 +37,7 @@ export class AddServerModelAction implements IModelAction {
     // Create IAM Role.
     const iamRole = new IamRole(`iam-role-${serverIamRoleName}`, {
       allowToAssumeRoleForServices: ['ecs-tasks.amazonaws.com'],
+      attachAwsPolicies: ['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'],
       overlays: [],
       rolename: `iam-role-${serverIamRoleName}`,
     });
