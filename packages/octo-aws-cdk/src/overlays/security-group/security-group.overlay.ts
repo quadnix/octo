@@ -1,4 +1,4 @@
-import { AOverlay, type IOverlay, Overlay } from '@quadnix/octo';
+import { AOverlay, Diff, type IOverlay, Overlay } from '@quadnix/octo';
 import type { SecurityGroupAnchor } from '../../anchors/security-group.anchor.js';
 import type { ISecurityGroupOverlayProperties } from './security-group.overlay.interface.js';
 
@@ -14,5 +14,9 @@ export class SecurityGroupOverlay extends AOverlay<SecurityGroupOverlay> {
     anchors: SecurityGroupAnchor[],
   ) {
     super(overlayId, properties, anchors);
+  }
+
+  override async diffAnchors(): Promise<Diff[]> {
+    return [];
   }
 }

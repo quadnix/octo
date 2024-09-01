@@ -54,7 +54,6 @@ import './models/subnet/actions/update-subnet-association.model.action.js';
 export { S3WebsiteSaveManifestModule } from './modules/s3-website-save-manifest.module.js';
 
 import './overlays/execution/actions/add-execution.overlay.action.js';
-import './overlays/execution/actions/update-execution.overlay.action.js';
 
 import './overlays/region-filesystem/actions/add-region-filesystem.overlay.action.js';
 

@@ -1,4 +1,4 @@
-import { AOverlay, type IOverlay, Overlay } from '@quadnix/octo';
+import { AOverlay, Diff, type IOverlay, Overlay } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import type { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import type { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
@@ -28,5 +28,9 @@ export class ExecutionOverlay extends AOverlay<ExecutionOverlay> {
     ],
   ) {
     super(overlayId, properties, anchors);
+  }
+
+  override async diffAnchors(): Promise<Diff[]> {
+    return [];
   }
 }
