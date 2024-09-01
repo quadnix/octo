@@ -21,6 +21,22 @@ describe('Image UT', () => {
   describe('diff()', () => {
     let testModuleContainer: TestModuleContainer;
 
+    const TestModule = async ({ commit = false, includeImage = false }: Record<string, boolean> = {}): Promise<App> => {
+      const app = new App('test');
+
+      if (includeImage) {
+        const image = new AwsImage('quadnix/test', '0.0.1', {
+          dockerfilePath: 'path/to/Dockerfile',
+        });
+        app.addImage(image);
+      }
+
+      if (commit) {
+        await testModuleContainer.commit(app);
+      }
+      return app;
+    };
+
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
         inputs: {
@@ -34,18 +50,23 @@ describe('Image UT', () => {
       await testModuleContainer.reset();
     });
 
+    it('should setup app', async () => {
+      await expect(TestModule({ commit: true })).resolves.not.toThrow();
+    });
+
     it('should add image', async () => {
-      const app = new App('test');
-      const image = new AwsImage('quadnix/test', '0.0.1', {
-        dockerfilePath: 'path/to/Dockerfile',
+      const app = await TestModule({
+        commit: false,
+        includeImage: true,
       });
-      app.addImage(image);
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
     });
 
     it('should remove image', async () => {
-      const app = new App('test');
+      const app = await TestModule({
+        commit: false,
+      });
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
     });

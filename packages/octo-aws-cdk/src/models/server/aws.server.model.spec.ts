@@ -21,6 +21,35 @@ describe('AwsServer UT', () => {
   describe('diff()', () => {
     let testModuleContainer: TestModuleContainer;
 
+    const TestModule = async ({
+      commit = false,
+      includeSecurityGroups = false,
+      includeServer = false,
+    }: Record<string, boolean> = {}): Promise<App> => {
+      const app = new App('test');
+
+      if (includeServer) {
+        const server = new AwsServer('Backend');
+        app.addServer(server);
+
+        if (includeSecurityGroups) {
+          const securityGroupRule: Parameters<AwsServer['addSecurityGroupRule']>[0] = {
+            CidrBlock: '0.0.0.0/0',
+            Egress: true,
+            FromPort: 0,
+            IpProtocol: 'tcp',
+            ToPort: 65535,
+          };
+          server.addSecurityGroupRule(securityGroupRule);
+        }
+      }
+
+      if (commit) {
+        await testModuleContainer.commit(app);
+      }
+      return app;
+    };
+
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
         captures: {
@@ -40,10 +69,15 @@ describe('AwsServer UT', () => {
       await testModuleContainer.reset();
     });
 
+    it('should setup app', async () => {
+      await expect(TestModule({ commit: true })).resolves.not.toThrow();
+    });
+
     it('should add server', async () => {
-      const app = new App('test');
-      const server = new AwsServer('Backend');
-      app.addServer(server);
+      const app = await TestModule({
+        commit: false,
+        includeServer: true,
+      });
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
@@ -60,24 +94,19 @@ describe('AwsServer UT', () => {
     });
 
     it('should update server with security groups', async () => {
-      const app = new App('test');
-      const server = new AwsServer('Backend');
-      app.addServer(server);
-
-      const securityGroupRule: Parameters<AwsServer['addSecurityGroupRule']>[0] = {
-        CidrBlock: '0.0.0.0/0',
-        Egress: true,
-        FromPort: 0,
-        IpProtocol: 'tcp',
-        ToPort: 65535,
-      };
-      server.addSecurityGroupRule(securityGroupRule);
+      const app = await TestModule({
+        commit: false,
+        includeSecurityGroups: true,
+        includeServer: true,
+      });
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
     });
 
     it('should remove server', async () => {
-      const app = new App('test');
+      const app = await TestModule({
+        commit: false,
+      });
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [

@@ -21,8 +21,33 @@ describe('AwsDeployment UT', () => {
   describe('diff()', () => {
     let testModuleContainer: TestModuleContainer;
 
-    let app: App;
-    let server: AwsServer;
+    const TestModule = async ({
+      commit = false,
+      includeDeployment = false,
+      includeDeploymentImage = false,
+    }: Record<string, boolean> = {}): Promise<App> => {
+      const app = new App('test');
+      const server = new AwsServer('Backend');
+      app.addServer(server);
+
+      if (includeDeployment) {
+        const deployment = new AwsDeployment('v0.0.1');
+        server.addDeployment(deployment);
+
+        if (includeDeploymentImage) {
+          deployment.updateDeploymentImage({
+            command: 'command',
+            ports: [{ containerPort: 80, protocol: 'tcp' }],
+            uri: 'uri',
+          });
+        }
+      }
+
+      if (commit) {
+        await testModuleContainer.commit(app);
+      }
+      return app;
+    };
 
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
@@ -37,23 +62,24 @@ describe('AwsDeployment UT', () => {
         },
       });
       await testModuleContainer.initialize(stateProvider);
-
-      // Add a server.
-      app = new App('test');
-      server = new AwsServer('Backend');
-      app.addServer(server);
     });
 
     afterEach(async () => {
       await testModuleContainer.reset();
     });
 
-    it('should add deployment', async () => {
-      // Commit state with app and server.
-      await testModuleContainer.commit(app);
+    it('should setup app', async () => {
+      await expect(TestModule({ commit: true })).resolves.not.toThrow();
+    });
 
-      const deployment = new AwsDeployment('v0.0.1');
-      server.addDeployment(deployment);
+    it('should add deployment', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeDeployment: true,
+      });
+
+      const server = app.getChild('server', [{ key: 'serverKey', value: 'Backend' }]) as AwsServer;
+      const deployment = server.getChild('deployment', [{ key: 'deploymentTag', value: 'v0.0.1' }]) as AwsDeployment;
 
       expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
        {
@@ -68,17 +94,14 @@ describe('AwsDeployment UT', () => {
     });
 
     it('should update deployment with new image', async () => {
-      // Commit state with app and server.
-      await testModuleContainer.commit(app);
-
-      const deployment = new AwsDeployment('v0.0.1');
-      server.addDeployment(deployment);
-
-      deployment.updateDeploymentImage({
-        command: 'command',
-        ports: [{ containerPort: 80, protocol: 'tcp' }],
-        uri: 'uri',
+      const app = await TestModule({
+        commit: false,
+        includeDeployment: true,
+        includeDeploymentImage: true,
       });
+
+      const server = app.getChild('server', [{ key: 'serverKey', value: 'Backend' }]) as AwsServer;
+      const deployment = server.getChild('deployment', [{ key: 'deploymentTag', value: 'v0.0.1' }]) as AwsDeployment;
 
       expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
        {

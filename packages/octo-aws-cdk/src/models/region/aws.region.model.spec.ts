@@ -24,6 +24,28 @@ describe('AwsRegion UT', () => {
   describe('diff()', () => {
     let testModuleContainer: TestModuleContainer;
 
+    const TestModule = async ({
+      commit = false,
+      includeFilesystem = false,
+      includeRegion = false,
+    }: Record<string, boolean> = {}): Promise<App> => {
+      const app = new App('test');
+
+      if (includeRegion) {
+        const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
+        app.addRegion(region);
+
+        if (includeFilesystem) {
+          await region.addFilesystem('shared-mounts');
+        }
+      }
+
+      if (commit) {
+        await testModuleContainer.commit(app);
+      }
+      return app;
+    };
+
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
         captures: {
@@ -64,10 +86,15 @@ describe('AwsRegion UT', () => {
       await testModuleContainer.reset();
     });
 
+    it('should setup app', async () => {
+      await expect(TestModule({ commit: true })).resolves.not.toThrow();
+    });
+
     it('should add region', async () => {
-      const app = new App('test');
-      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
+      const app = await TestModule({
+        commit: false,
+        includeRegion: true,
+      });
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
@@ -98,10 +125,11 @@ describe('AwsRegion UT', () => {
     });
 
     it('should add region filesystem', async () => {
-      const app = new App('test');
-      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
-      await region.addFilesystem('shared-mounts');
+      const app = await TestModule({
+        commit: false,
+        includeFilesystem: true,
+        includeRegion: true,
+      });
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
@@ -118,9 +146,10 @@ describe('AwsRegion UT', () => {
     });
 
     it('should remove region filesystem', async () => {
-      const app = new App('test');
-      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
+      const app = await TestModule({
+        commit: false,
+        includeRegion: true,
+      });
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
@@ -137,7 +166,9 @@ describe('AwsRegion UT', () => {
     });
 
     it('should remove region', async () => {
-      const app = new App('test');
+      const app = await TestModule({
+        commit: false,
+      });
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [

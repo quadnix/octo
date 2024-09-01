@@ -24,8 +24,24 @@ describe('Environment UT', () => {
   describe('diff()', () => {
     let testModuleContainer: TestModuleContainer;
 
-    let app: App;
-    let region: AwsRegion;
+    const TestModule = async ({
+      commit = false,
+      includeEnvironment = false,
+    }: Record<string, boolean> = {}): Promise<App> => {
+      const app = new App('test');
+      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
+
+      if (includeEnvironment) {
+        const environment = new AwsEnvironment('qa');
+        region.addEnvironment(environment);
+      }
+
+      if (commit) {
+        await testModuleContainer.commit(app);
+      }
+      return app;
+    };
 
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
@@ -60,23 +76,21 @@ describe('Environment UT', () => {
         },
       });
       await testModuleContainer.initialize(stateProvider);
-
-      // Add region.
-      app = new App('test');
-      region = new AwsRegion(RegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
     });
 
     afterEach(async () => {
       await testModuleContainer.reset();
     });
 
-    it('should add environment', async () => {
-      // Commit state with app and region.
-      await testModuleContainer.commit(app);
+    it('should setup app', async () => {
+      await expect(TestModule({ commit: true })).resolves.not.toThrow();
+    });
 
-      const environment = new AwsEnvironment('qa');
-      region.addEnvironment(environment);
+    it('should add environment', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeEnvironment: true,
+      });
 
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
@@ -93,6 +107,10 @@ describe('Environment UT', () => {
     });
 
     it('should remove environment', async () => {
+      const app = await TestModule({
+        commit: false,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [

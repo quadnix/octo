@@ -1,4 +1,4 @@
-import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { App, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import {
   AwsDeployment,
   AwsEnvironment,
@@ -23,6 +23,8 @@ import type { ISubnetResponse } from '../../resources/subnet/subnet.interface.js
 import type { IVpcResponse } from '../../resources/vpc/vpc.interface.js';
 
 describe('Execution UT', () => {
+  const stateProvider = new TestStateProvider();
+
   beforeAll(async () => {
     await TestContainer.create(
       {
@@ -39,12 +41,81 @@ describe('Execution UT', () => {
   describe('diff()', () => {
     let testModuleContainer: TestModuleContainer;
 
+    const TestModule = async ({
+      commit = false,
+      includeExecution = false,
+      includeExecutionFilesystemMount = false,
+      includeExecutionSecurityGroupRules = false,
+      includeExecutionUpdateDesiredCount = false,
+      includeRegionFilesystem = false,
+      includeServerSecurityGroupRules = false,
+      includeSubnetFilesystemMount = false,
+    }: Record<string, boolean> = {}): Promise<App> => {
+      const app = new App('test');
+      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
+      const subnet = new AwsSubnet(region, 'private');
+      region.addSubnet(subnet);
+      const environment = new AwsEnvironment('qa');
+      region.addEnvironment(environment);
+      const server = new AwsServer('backend');
+      app.addServer(server);
+      const deployment = new AwsDeployment('0.0.1');
+      server.addDeployment(deployment);
+
+      if (includeExecution) {
+        const execution = new AwsExecution(deployment, environment, subnet);
+        await execution.init();
+
+        if (includeExecutionSecurityGroupRules) {
+          execution.addSecurityGroupRule({
+            CidrBlock: '0.0.0.0/0',
+            Egress: true,
+            FromPort: 8081,
+            IpProtocol: 'tcp',
+            ToPort: 8081,
+          });
+        }
+
+        if (includeExecutionUpdateDesiredCount) {
+          execution.updateDesiredCount(2);
+        }
+
+        if (includeRegionFilesystem) {
+          await region.addFilesystem('shared-mounts');
+
+          if (includeSubnetFilesystemMount) {
+            await subnet.addFilesystemMount('shared-mounts');
+
+            if (includeExecutionFilesystemMount) {
+              await execution.mountFilesystem('shared-mounts');
+            }
+          }
+        }
+      }
+
+      if (includeServerSecurityGroupRules) {
+        server.addSecurityGroupRule({
+          CidrBlock: '0.0.0.0/0',
+          Egress: true,
+          FromPort: 8080,
+          IpProtocol: 'tcp',
+          ToPort: 8080,
+        });
+      }
+
+      if (commit) {
+        await testModuleContainer.commit(app);
+      }
+      return app;
+    };
+
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
         captures: {
           'ecs-cluster-aws-us-east-1a-qa': {
             response: <Partial<IEcsClusterResponse>>{
-              ClusterArn: 'ClusterArn',
+              clusterArn: 'clusterArn',
             },
           },
           'ecs-service-aws-us-east-1a-backend': {
@@ -162,38 +233,30 @@ describe('Execution UT', () => {
           'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
         },
       });
-      await testModuleContainer.initialize();
+      await testModuleContainer.initialize(stateProvider);
     });
 
     afterEach(async () => {
       await testModuleContainer.reset();
     });
 
-    it('should test e2e', async () => {
-      // Create execution pre-requisites.
-      const app = new App('test');
-      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
-      const subnet = new AwsSubnet(region, 'private');
-      region.addSubnet(subnet);
-      const environment = new AwsEnvironment('qa');
-      region.addEnvironment(environment);
-      const server = new AwsServer('backend');
-      app.addServer(server);
-      const deployment = new AwsDeployment('0.0.1');
-      server.addDeployment(deployment);
-      await testModuleContainer.commit(app);
+    it('should setup app', async () => {
+      await expect(TestModule({ commit: true })).resolves.not.toThrow();
+    });
 
-      // Create a new execution.
-      const execution = new AwsExecution(deployment, environment, subnet);
-      await execution.init();
+    it('should add execution', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeExecution: true,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "add",
              "field": "resourceId",
-             "model": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
+             "node": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
              "value": "ecs-task-definition-aws-us-east-1a-backend-0.0.1",
            },
          ],
@@ -201,28 +264,28 @@ describe('Execution UT', () => {
            {
              "action": "add",
              "field": "resourceId",
-             "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
+             "node": "ecs-service=ecs-service-aws-us-east-1a-backend",
              "value": "ecs-service-aws-us-east-1a-backend",
            },
          ],
        ]
       `);
+    });
 
-      // Add security group rules for the server.
-      server.addSecurityGroupRule({
-        CidrBlock: '0.0.0.0/0',
-        Egress: true,
-        FromPort: 8080,
-        IpProtocol: 'tcp',
-        ToPort: 8080,
+    it('should add server security group rules', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeExecution: true,
+        includeServerSecurityGroupRules: true,
       });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "add",
              "field": "resourceId",
-             "model": "security-group=sec-grp-backend-SecurityGroup",
+             "node": "security-group=sec-grp-backend-SecurityGroup",
              "value": "sec-grp-backend-SecurityGroup",
            },
          ],
@@ -230,28 +293,29 @@ describe('Execution UT', () => {
            {
              "action": "update",
              "field": "resourceId",
-             "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
+             "node": "ecs-service=ecs-service-aws-us-east-1a-backend",
              "value": "",
            },
          ],
        ]
       `);
+    });
 
-      // Add security group rules for the execution.
-      execution.addSecurityGroupRule({
-        CidrBlock: '0.0.0.0/0',
-        Egress: true,
-        FromPort: 8081,
-        IpProtocol: 'tcp',
-        ToPort: 8081,
+    it('should add execution security group rules', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeExecution: true,
+        includeExecutionSecurityGroupRules: true,
+        includeServerSecurityGroupRules: true,
       });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "add",
              "field": "resourceId",
-             "model": "security-group=sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
+             "node": "security-group=sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
              "value": "sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
            },
          ],
@@ -259,24 +323,32 @@ describe('Execution UT', () => {
            {
              "action": "update",
              "field": "resourceId",
-             "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
+             "node": "ecs-service=ecs-service-aws-us-east-1a-backend",
              "value": "",
            },
          ],
        ]
       `);
+    });
 
-      // Mount filesystem.
-      await region.addFilesystem('shared-mounts');
-      await subnet.addFilesystemMount('shared-mounts');
-      await execution.mountFilesystem('shared-mounts');
+    it('should mount filesystem to execution', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeExecution: true,
+        includeExecutionFilesystemMount: true,
+        includeExecutionSecurityGroupRules: true,
+        includeRegionFilesystem: true,
+        includeServerSecurityGroupRules: true,
+        includeSubnetFilesystemMount: true,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "add",
              "field": "resourceId",
-             "model": "efs=efs-aws-us-east-1a-shared-mounts",
+             "node": "efs=efs-aws-us-east-1a-shared-mounts",
              "value": "efs-aws-us-east-1a-shared-mounts",
            },
          ],
@@ -284,13 +356,13 @@ describe('Execution UT', () => {
            {
              "action": "update",
              "field": "resourceId",
-             "model": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
+             "node": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
              "value": "",
            },
            {
              "action": "add",
              "field": "resourceId",
-             "model": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
+             "node": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
            },
          ],
@@ -298,29 +370,32 @@ describe('Execution UT', () => {
            {
              "action": "update",
              "field": "resourceId",
-             "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
+             "node": "ecs-service=ecs-service-aws-us-east-1a-backend",
              "value": "",
            },
          ],
        ]
       `);
+    });
 
-      // Update desired count, and remove a security group.
-      execution.updateDesiredCount(2);
-      execution.removeSecurityGroupRule({
-        CidrBlock: '0.0.0.0/0',
-        Egress: true,
-        FromPort: 8081,
-        IpProtocol: 'tcp',
-        ToPort: 8081,
+    it('should update execution desired count and remove server security group rules', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeExecution: true,
+        includeExecutionFilesystemMount: true,
+        includeExecutionUpdateDesiredCount: true,
+        includeRegionFilesystem: true,
+        includeServerSecurityGroupRules: true,
+        includeSubnetFilesystemMount: true,
       });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "update",
              "field": "resourceId",
-             "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
+             "node": "ecs-service=ecs-service-aws-us-east-1a-backend",
              "value": "",
            },
          ],
@@ -328,37 +403,45 @@ describe('Execution UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "security-group=sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
+             "node": "security-group=sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
              "value": "sec-grp-backend-0.0.1-aws-us-east-1a-qa-private-SecurityGroup",
            },
          ],
+         [
+           {
+             "action": "update",
+             "field": "properties",
+             "node": "ecs-service=ecs-service-aws-us-east-1a-backend",
+             "value": {
+               "key": "desiredCount",
+               "value": 2,
+             },
+           },
+         ],
        ]
       `);
+    });
 
-      // Remove security group.
-      server.removeSecurityGroupRule({
-        CidrBlock: '0.0.0.0/0',
-        Egress: true,
-        FromPort: 8080,
-        IpProtocol: 'tcp',
-        ToPort: 8080,
+    it('should unmount filesystem from execution', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeExecution: true,
+        includeExecutionUpdateDesiredCount: true,
       });
-      await execution.unmountFilesystem('shared-mounts');
-      await subnet.removeFilesystemMount('shared-mounts');
-      await region.removeFilesystem('shared-mounts');
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "update",
              "field": "resourceId",
-             "model": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
+             "node": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
              "value": "",
            },
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
+             "node": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
            },
          ],
@@ -366,13 +449,13 @@ describe('Execution UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "efs=efs-aws-us-east-1a-shared-mounts",
+             "node": "efs=efs-aws-us-east-1a-shared-mounts",
              "value": "efs-aws-us-east-1a-shared-mounts",
            },
            {
              "action": "update",
              "field": "resourceId",
-             "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
+             "node": "ecs-service=ecs-service-aws-us-east-1a-backend",
              "value": "",
            },
          ],
@@ -380,23 +463,26 @@ describe('Execution UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "security-group=sec-grp-backend-SecurityGroup",
+             "node": "security-group=sec-grp-backend-SecurityGroup",
              "value": "sec-grp-backend-SecurityGroup",
            },
          ],
        ]
       `);
+    });
 
-      // Remove execution.
-      await execution.destroy();
-      execution.remove();
+    it('should remove execution', async () => {
+      const app = await TestModule({
+        commit: false,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "ecs-service=ecs-service-aws-us-east-1a-backend",
+             "node": "ecs-service=ecs-service-aws-us-east-1a-backend",
              "value": "ecs-service-aws-us-east-1a-backend",
            },
          ],
@@ -404,7 +490,7 @@ describe('Execution UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
+             "node": "ecs-task-definition=ecs-task-definition-aws-us-east-1a-backend-0.0.1",
              "value": "ecs-task-definition-aws-us-east-1a-backend-0.0.1",
            },
          ],

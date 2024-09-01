@@ -1,4 +1,4 @@
-import { App, SubnetType, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { App, SubnetType, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { AwsRegion, AwsSubnet, OctoAwsCdkPackageMock, RegionId } from '../../index.js';
 import type { IEfsMountTargetResponse } from '../../resources/efs/efs-mount-target.interface.js';
 import type { IEfsResponse } from '../../resources/efs/efs.interface.js';
@@ -10,6 +10,8 @@ import type { ISubnetResponse } from '../../resources/subnet/subnet.interface.js
 import type { IVpcResponse } from '../../resources/vpc/vpc.interface.js';
 
 describe('AwsSubnet UT', () => {
+  const stateProvider = new TestStateProvider();
+
   beforeAll(async () => {
     await TestContainer.create(
       {
@@ -25,6 +27,53 @@ describe('AwsSubnet UT', () => {
 
   describe('diff()', () => {
     let testModuleContainer: TestModuleContainer;
+
+    const TestModule = async ({
+      commit = false,
+      includeDisablingOfPrivateSubnetIntraNetwork = false,
+      includePrivateAndPublicSubnetMounts = false,
+      includePrivateAndPublicSubnets = false,
+      includePublicConnectToPrivateSubnet = false,
+      includePublicDisconnectToPrivateSubnet = false,
+    }: Record<string, boolean> = {}): Promise<App> => {
+      const app = new App('test');
+
+      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
+      app.addRegion(region);
+
+      await region.addFilesystem('shared-mounts');
+
+      if (includePrivateAndPublicSubnets) {
+        // Add private subnet.
+        const privateSubnet = new AwsSubnet(region, 'private');
+        region.addSubnet(privateSubnet);
+        // Add public subnet.
+        const publicSubnet = new AwsSubnet(region, 'public');
+        publicSubnet.subnetType = SubnetType.PUBLIC;
+        region.addSubnet(publicSubnet);
+
+        if (includePublicConnectToPrivateSubnet) {
+          publicSubnet.updateNetworkingRules(privateSubnet, true);
+        }
+        if (includePublicDisconnectToPrivateSubnet) {
+          publicSubnet.updateNetworkingRules(privateSubnet, false);
+        }
+
+        if (includeDisablingOfPrivateSubnetIntraNetwork) {
+          privateSubnet.disableSubnetIntraNetwork = true;
+        }
+
+        if (includePrivateAndPublicSubnetMounts) {
+          await privateSubnet.addFilesystemMount('shared-mounts');
+          await publicSubnet.addFilesystemMount('shared-mounts');
+        }
+      }
+
+      if (commit) {
+        await testModuleContainer.commit(app);
+      }
+      return app;
+    };
 
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
@@ -109,42 +158,36 @@ describe('AwsSubnet UT', () => {
           'input.region.aws-us-east-1a.vpc.CidrBlock': '0.0.0.0/0',
         },
       });
-      await testModuleContainer.initialize();
+      await testModuleContainer.initialize(stateProvider);
     });
 
     afterEach(async () => {
       await testModuleContainer.reset();
     });
 
-    it('should create new subnet and delete it', async () => {
-      // Add region.
-      const app = new App('test');
-      const region = new AwsRegion(RegionId.AWS_US_EAST_1A);
-      app.addRegion(region);
-      // Add shared-mounts filesystem.
-      await region.addFilesystem('shared-mounts');
-      await testModuleContainer.commit(app);
+    it('should setup app', async () => {
+      await expect(TestModule({ commit: true })).resolves.not.toThrow();
+    });
 
-      // Add private subnet.
-      const privateSubnet = new AwsSubnet(region, 'private');
-      region.addSubnet(privateSubnet);
-      // Add public subnet.
-      const publicSubnet = new AwsSubnet(region, 'public');
-      publicSubnet.subnetType = SubnetType.PUBLIC;
-      region.addSubnet(publicSubnet);
+    it('should add public and private subnet', async () => {
+      const app = await TestModule({
+        commit: false,
+        includePrivateAndPublicSubnets: true,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "add",
              "field": "resourceId",
-             "model": "subnet=subnet-aws-us-east-1a-private",
+             "node": "subnet=subnet-aws-us-east-1a-private",
              "value": "subnet-aws-us-east-1a-private",
            },
            {
              "action": "add",
              "field": "resourceId",
-             "model": "subnet=subnet-aws-us-east-1a-public",
+             "node": "subnet=subnet-aws-us-east-1a-public",
              "value": "subnet-aws-us-east-1a-public",
            },
          ],
@@ -152,40 +195,46 @@ describe('AwsSubnet UT', () => {
            {
              "action": "add",
              "field": "resourceId",
-             "model": "route-table=rt-aws-us-east-1a-private",
+             "node": "route-table=rt-aws-us-east-1a-private",
              "value": "rt-aws-us-east-1a-private",
            },
            {
              "action": "add",
              "field": "resourceId",
-             "model": "network-acl=nacl-aws-us-east-1a-private",
+             "node": "network-acl=nacl-aws-us-east-1a-private",
              "value": "nacl-aws-us-east-1a-private",
            },
            {
              "action": "add",
              "field": "resourceId",
-             "model": "route-table=rt-aws-us-east-1a-public",
+             "node": "route-table=rt-aws-us-east-1a-public",
              "value": "rt-aws-us-east-1a-public",
            },
            {
              "action": "add",
              "field": "resourceId",
-             "model": "network-acl=nacl-aws-us-east-1a-public",
+             "node": "network-acl=nacl-aws-us-east-1a-public",
              "value": "nacl-aws-us-east-1a-public",
            },
          ],
        ]
       `);
+    });
 
-      // Allow public subnet to connect to private subnet.
-      publicSubnet.updateNetworkingRules(privateSubnet, true);
+    it('should connect public and private subnet', async () => {
+      const app = await TestModule({
+        commit: false,
+        includePrivateAndPublicSubnets: true,
+        includePublicConnectToPrivateSubnet: true,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "update",
              "field": "properties",
-             "model": "network-acl=nacl-aws-us-east-1a-private",
+             "node": "network-acl=nacl-aws-us-east-1a-private",
              "value": {
                "key": "entries",
                "value": [
@@ -198,7 +247,7 @@ describe('AwsSubnet UT', () => {
                    },
                    "Protocol": "-1",
                    "RuleAction": "allow",
-                   "RuleNumber": 10,
+                   "RuleNumber": 1,
                  },
                  {
                    "CidrBlock": "10.0.0.0/16",
@@ -209,7 +258,7 @@ describe('AwsSubnet UT', () => {
                    },
                    "Protocol": "-1",
                    "RuleAction": "allow",
-                   "RuleNumber": 10,
+                   "RuleNumber": 1,
                  },
                ],
              },
@@ -217,7 +266,7 @@ describe('AwsSubnet UT', () => {
            {
              "action": "update",
              "field": "properties",
-             "model": "network-acl=nacl-aws-us-east-1a-public",
+             "node": "network-acl=nacl-aws-us-east-1a-public",
              "value": {
                "key": "entries",
                "value": [
@@ -230,7 +279,7 @@ describe('AwsSubnet UT', () => {
                    },
                    "Protocol": "-1",
                    "RuleAction": "allow",
-                   "RuleNumber": 10,
+                   "RuleNumber": 1,
                  },
                  {
                    "CidrBlock": "10.1.0.0/16",
@@ -241,7 +290,7 @@ describe('AwsSubnet UT', () => {
                    },
                    "Protocol": "-1",
                    "RuleAction": "allow",
-                   "RuleNumber": 10,
+                   "RuleNumber": 1,
                  },
                ],
              },
@@ -249,16 +298,23 @@ describe('AwsSubnet UT', () => {
          ],
        ]
       `);
+    });
 
-      // Disable private subnet intra networking.
-      privateSubnet.disableSubnetIntraNetwork = true;
+    it('should disable private subnet intra networking', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeDisablingOfPrivateSubnetIntraNetwork: true,
+        includePrivateAndPublicSubnets: true,
+        includePublicConnectToPrivateSubnet: true,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "update",
              "field": "properties",
-             "model": "network-acl=nacl-aws-us-east-1a-private",
+             "node": "network-acl=nacl-aws-us-east-1a-private",
              "value": {
                "key": "entries",
                "value": [
@@ -293,7 +349,7 @@ describe('AwsSubnet UT', () => {
                    },
                    "Protocol": "-1",
                    "RuleAction": "allow",
-                   "RuleNumber": 10,
+                   "RuleNumber": 11,
                  },
                  {
                    "CidrBlock": "10.0.0.0/16",
@@ -304,7 +360,7 @@ describe('AwsSubnet UT', () => {
                    },
                    "Protocol": "-1",
                    "RuleAction": "allow",
-                   "RuleNumber": 10,
+                   "RuleNumber": 11,
                  },
                ],
              },
@@ -312,60 +368,80 @@ describe('AwsSubnet UT', () => {
          ],
        ]
       `);
+    });
 
-      // Mount "shared-mounts" in private and public subnet.
-      await privateSubnet.addFilesystemMount('shared-mounts');
-      await publicSubnet.addFilesystemMount('shared-mounts');
+    it('should mount filesystem in public and private subnet', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeDisablingOfPrivateSubnetIntraNetwork: true,
+        includePrivateAndPublicSubnetMounts: true,
+        includePrivateAndPublicSubnets: true,
+        includePublicConnectToPrivateSubnet: true,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "add",
              "field": "resourceId",
-             "model": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
+             "node": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
            },
            {
              "action": "add",
              "field": "resourceId",
-             "model": "efs-mount-target=efs-mount-aws-us-east-1a-public-shared-mounts",
+             "node": "efs-mount-target=efs-mount-aws-us-east-1a-public-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-public-shared-mounts",
            },
          ],
        ]
       `);
+    });
 
-      // Unmount "shared-mounts" in private and public subnet.
-      await privateSubnet.removeFilesystemMount('shared-mounts');
-      await publicSubnet.removeFilesystemMount('shared-mounts');
+    it('should unmount filesystem in public and private subnet', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeDisablingOfPrivateSubnetIntraNetwork: true,
+        includePrivateAndPublicSubnets: true,
+        includePublicConnectToPrivateSubnet: true,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
+             "node": "efs-mount-target=efs-mount-aws-us-east-1a-private-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-private-shared-mounts",
            },
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "efs-mount-target=efs-mount-aws-us-east-1a-public-shared-mounts",
+             "node": "efs-mount-target=efs-mount-aws-us-east-1a-public-shared-mounts",
              "value": "efs-mount-aws-us-east-1a-public-shared-mounts",
            },
          ],
        ]
       `);
+    });
 
-      // Disconnect public and private subnet connection..
-      publicSubnet.updateNetworkingRules(privateSubnet, false);
+    it('should disconnect public and private subnet', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeDisablingOfPrivateSubnetIntraNetwork: true,
+        includePrivateAndPublicSubnets: true,
+        includePublicDisconnectToPrivateSubnet: true,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "update",
              "field": "properties",
-             "model": "network-acl=nacl-aws-us-east-1a-private",
+             "node": "network-acl=nacl-aws-us-east-1a-private",
              "value": {
                "key": "entries",
                "value": [
@@ -397,7 +473,7 @@ describe('AwsSubnet UT', () => {
            {
              "action": "update",
              "field": "properties",
-             "model": "network-acl=nacl-aws-us-east-1a-public",
+             "node": "network-acl=nacl-aws-us-east-1a-public",
              "value": {
                "key": "entries",
                "value": [],
@@ -406,35 +482,38 @@ describe('AwsSubnet UT', () => {
          ],
        ]
       `);
+    });
 
-      // Remove private and public subnet.
-      await privateSubnet.remove();
-      await publicSubnet.remove();
+    it('should remove public and private subnet', async () => {
+      const app = await TestModule({
+        commit: false,
+      });
+
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
        [
          [
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "route-table=rt-aws-us-east-1a-private",
+             "node": "route-table=rt-aws-us-east-1a-private",
              "value": "rt-aws-us-east-1a-private",
            },
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "network-acl=nacl-aws-us-east-1a-private",
+             "node": "network-acl=nacl-aws-us-east-1a-private",
              "value": "nacl-aws-us-east-1a-private",
            },
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "route-table=rt-aws-us-east-1a-public",
+             "node": "route-table=rt-aws-us-east-1a-public",
              "value": "rt-aws-us-east-1a-public",
            },
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "network-acl=nacl-aws-us-east-1a-public",
+             "node": "network-acl=nacl-aws-us-east-1a-public",
              "value": "nacl-aws-us-east-1a-public",
            },
          ],
@@ -442,13 +521,13 @@ describe('AwsSubnet UT', () => {
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "subnet=subnet-aws-us-east-1a-private",
+             "node": "subnet=subnet-aws-us-east-1a-private",
              "value": "subnet-aws-us-east-1a-private",
            },
            {
              "action": "delete",
              "field": "resourceId",
-             "model": "subnet=subnet-aws-us-east-1a-public",
+             "node": "subnet=subnet-aws-us-east-1a-public",
              "value": "subnet-aws-us-east-1a-public",
            },
          ],

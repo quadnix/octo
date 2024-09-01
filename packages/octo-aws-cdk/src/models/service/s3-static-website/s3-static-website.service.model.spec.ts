@@ -1,4 +1,4 @@
-import { App, TestContainer, TestModuleContainer } from '@quadnix/octo';
+import { App, DiffAction, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { readFileSync, writeFile } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
@@ -14,6 +14,8 @@ const resourcesPath = join(__dirname, '../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
 
 describe('S3StaticWebsiteService UT', () => {
+  const stateProvider = new TestStateProvider();
+
   beforeAll(async () => {
     await TestContainer.create(
       {
@@ -176,11 +178,28 @@ describe('S3StaticWebsiteService UT', () => {
   describe('diff()', () => {
     let testModuleContainer: TestModuleContainer;
 
+    const TestModule = async ({
+      commit = false,
+      includeWebsite = false,
+    }: Record<string, boolean> = {}): Promise<App> => {
+      const app = new App('test');
+
+      if (includeWebsite) {
+        const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
+        app.addService(service);
+      }
+
+      if (commit) {
+        await testModuleContainer.commit(app);
+      }
+      return app;
+    };
+
     beforeEach(async () => {
       testModuleContainer = new TestModuleContainer({
         captures: {},
       });
-      await testModuleContainer.initialize();
+      await testModuleContainer.initialize(stateProvider);
 
       await testModuleContainer.loadModules([
         {
@@ -193,179 +212,226 @@ describe('S3StaticWebsiteService UT', () => {
       await testModuleContainer.reset();
     });
 
-    it('should generate an update on addition of a flat directory', async () => {
-      // Create a S3 website.
-      const app = new App('test');
-      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
-      app.addService(service);
-      await testModuleContainer.commit(app);
+    it('should setup app', async () => {
+      await expect(TestModule({ commit: true })).resolves.not.toThrow();
+    });
 
-      // Add files to the website.
+    it('should add a new website', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeWebsite: true,
+      });
+
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "s3-website=bucket-test-bucket",
+             "value": "bucket-test-bucket",
+           },
+         ],
+       ]
+      `);
+    });
+
+    it('should add files to website', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeWebsite: true,
+      });
+
+      const service = app.getChildren('service')['service'][0].to as S3StaticWebsiteService;
       await service.addSource(websiteSourcePath);
-      expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "sourcePaths",
-           "model": "service=test-bucket-s3-static-website,app=test",
-           "value": {
-             "error.html": [
-               "add",
-               "${websiteSourcePath}/error.html",
-             ],
-             "index.html": [
-               "add",
-               "${websiteSourcePath}/index.html",
-             ],
-             "page-1.html": [
-               "add",
-               "${websiteSourcePath}/page-1.html",
-             ],
-           },
+
+      expect(
+        (await testModuleContainer.commit(app)).modelDiffs[0].find(
+          (d) => d.action === DiffAction.UPDATE && d.field === 'sourcePaths',
+        ),
+      ).toMatchInlineSnapshot(`
+       {
+         "action": "update",
+         "field": "sourcePaths",
+         "node": "service=test-bucket-s3-static-website,app=test",
+         "value": {
+           "error.html": [
+             "add",
+             "${websiteSourcePath}/error.html",
+           ],
+           "index.html": [
+             "add",
+             "${websiteSourcePath}/index.html",
+           ],
+           "page-1.html": [
+             "add",
+             "${websiteSourcePath}/page-1.html",
+           ],
          },
-       ]
-      `);
-    });
-
-    it('should generate an update on addition of a complex directory', async () => {
-      // Create a S3 website.
-      const app = new App('test');
-      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
-      app.addService(service);
-      await testModuleContainer.commit(app);
-
-      // Add files to the website.
-      await service.addSource(resourcesPath);
-      expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "sourcePaths",
-           "model": "service=test-bucket-s3-static-website,app=test",
-           "value": {
-             "index.html": [
-               "add",
-               "${resourcesPath}/index.html",
-             ],
-             "s3-static-website/error.html": [
-               "add",
-               "${websiteSourcePath}/error.html",
-             ],
-             "s3-static-website/index.html": [
-               "add",
-               "${websiteSourcePath}/index.html",
-             ],
-             "s3-static-website/page-1.html": [
-               "add",
-               "${websiteSourcePath}/page-1.html",
-             ],
-           },
-         },
-       ]
-      `);
-    });
-
-    it('should generate an update on addition of a complex directory with excludes', async () => {
-      // Create a S3 website.
-      const app = new App('test');
-      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
-      app.addService(service);
-      await testModuleContainer.commit(app);
-
-      // Add files to the website.
-      await service.addSource(resourcesPath, '', (filePath: string) => {
-        return filePath !== 's3-static-website';
-      });
-      expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "sourcePaths",
-           "model": "service=test-bucket-s3-static-website,app=test",
-           "value": {
-             "index.html": [
-               "add",
-               "${resourcesPath}/index.html",
-             ],
-           },
-         },
-       ]
-      `);
-    });
-
-    it('should generate an update on deletion', async () => {
-      // Create a S3 website.
-      const app = new App('test');
-      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
-      app.addService(service);
-      await testModuleContainer.commit(app);
-
-      // Add files to the website.
-      await service.addSource(`${websiteSourcePath}/error.html`);
-      await service.addSource(`${websiteSourcePath}/index.html`);
-      await service.addSource(`${websiteSourcePath}/page-1.html`);
-      await testModuleContainer.commit(app);
-
-      // Remove a sourcePath from the service in a subsequent update to service.
-      service.sourcePaths.forEach((p, index) => {
-        if (p.remotePath === 'page-1.html') {
-          service.sourcePaths.splice(index, 1);
-        }
-      });
-      expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "sourcePaths",
-           "model": "service=test-bucket-s3-static-website,app=test",
-           "value": {
-             "page-1.html": [
-               "delete",
-               "${websiteSourcePath}/page-1.html",
-             ],
-           },
-         },
-       ]
+       }
       `);
     });
 
     it('should generate an update on update', async () => {
-      // Create a S3 website.
-      const app = new App('test');
-      const service = new S3StaticWebsiteService(RegionId.AWS_US_EAST_1A, 'test-bucket');
-      app.addService(service);
-      await testModuleContainer.commit(app);
+      const app = await TestModule({
+        commit: false,
+        includeWebsite: true,
+      });
 
-      // Add files to the website.
-      await service.addSource(`${websiteSourcePath}/error.html`);
-      await service.addSource(`${websiteSourcePath}/index.html`);
-      await service.addSource(`${websiteSourcePath}/page-1.html`);
-      await testModuleContainer.commit(app);
+      const service = app.getChildren('service')['service'][0].to as S3StaticWebsiteService;
+      await service.addSource(websiteSourcePath);
 
-      // Update a sourcePath from the service in a subsequent update to service.
       const originalErrorContent = readFileSync(`${websiteSourcePath}/error.html`);
       await writeFileAsync(`${websiteSourcePath}/error.html`, 'New error content!');
 
       try {
-        expect((await testModuleContainer.commit(app)).modelDiffs[0]).toMatchInlineSnapshot(`
-         [
-           {
-             "action": "update",
-             "field": "sourcePaths",
-             "model": "service=test-bucket-s3-static-website,app=test",
-             "value": {
-               "error.html": [
-                 "update",
-                 "${websiteSourcePath}/error.html",
-               ],
-             },
+        expect(
+          (await testModuleContainer.commit(app)).modelDiffs[0].find(
+            (d) => d.action === DiffAction.UPDATE && d.field === 'sourcePaths',
+          ),
+        ).toMatchInlineSnapshot(`
+         {
+           "action": "update",
+           "field": "sourcePaths",
+           "node": "service=test-bucket-s3-static-website,app=test",
+           "value": {
+             "error.html": [
+               "update",
+               "${websiteSourcePath}/error.html",
+             ],
            },
-         ]
+         }
         `);
       } finally {
         // Restore error.html
         await writeFileAsync(`${websiteSourcePath}/error.html`, originalErrorContent);
       }
+    });
+
+    it('should generate an update on addition of a complex directory', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeWebsite: true,
+      });
+
+      const service = app.getChildren('service')['service'][0].to as S3StaticWebsiteService;
+      await service.addSource(resourcesPath);
+
+      expect(
+        (await testModuleContainer.commit(app)).modelDiffs[0].find(
+          (d) => d.action === DiffAction.UPDATE && d.field === 'sourcePaths',
+        ),
+      ).toMatchInlineSnapshot(`
+       {
+         "action": "update",
+         "field": "sourcePaths",
+         "node": "service=test-bucket-s3-static-website,app=test",
+         "value": {
+           "error.html": [
+             "delete",
+             "${resourcesPath}/s3-static-website/error.html",
+           ],
+           "page-1.html": [
+             "delete",
+             "${resourcesPath}/s3-static-website/page-1.html",
+           ],
+           "s3-static-website/error.html": [
+             "add",
+             "${resourcesPath}/s3-static-website/error.html",
+           ],
+           "s3-static-website/index.html": [
+             "add",
+             "${resourcesPath}/s3-static-website/index.html",
+           ],
+           "s3-static-website/page-1.html": [
+             "add",
+             "${resourcesPath}/s3-static-website/page-1.html",
+           ],
+         },
+       }
+      `);
+    });
+
+    it('should generate an update on addition of a complex directory with excludes', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeWebsite: true,
+      });
+
+      const service = app.getChildren('service')['service'][0].to as S3StaticWebsiteService;
+      await service.addSource(resourcesPath, '', (filePath: string) => {
+        return filePath !== 's3-static-website';
+      });
+
+      expect(
+        (await testModuleContainer.commit(app)).modelDiffs[0].find(
+          (d) => d.action === DiffAction.UPDATE && d.field === 'sourcePaths',
+        ),
+      ).toMatchInlineSnapshot(`
+       {
+         "action": "update",
+         "field": "sourcePaths",
+         "node": "service=test-bucket-s3-static-website,app=test",
+         "value": {
+           "s3-static-website/error.html": [
+             "delete",
+             "${resourcesPath}/s3-static-website/error.html",
+           ],
+           "s3-static-website/index.html": [
+             "delete",
+             "${resourcesPath}/s3-static-website/index.html",
+           ],
+           "s3-static-website/page-1.html": [
+             "delete",
+             "${resourcesPath}/s3-static-website/page-1.html",
+           ],
+         },
+       }
+      `);
+    });
+
+    it('should generate an update on delete of a directory', async () => {
+      const app = await TestModule({
+        commit: false,
+        includeWebsite: true,
+      });
+
+      expect(
+        (await testModuleContainer.commit(app)).modelDiffs[0].find(
+          (d) => d.action === DiffAction.UPDATE && d.field === 'sourcePaths',
+        ),
+      ).toMatchInlineSnapshot(`
+       {
+         "action": "update",
+         "field": "sourcePaths",
+         "node": "service=test-bucket-s3-static-website,app=test",
+         "value": {
+           "index.html": [
+             "delete",
+             "${resourcesPath}/index.html",
+           ],
+         },
+       }
+      `);
+    });
+
+    it('should remove website', async () => {
+      const app = await TestModule({
+        commit: false,
+      });
+
+      expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "s3-website=bucket-test-bucket",
+             "value": "bucket-test-bucket",
+           },
+         ],
+       ]
+      `);
     });
   });
 });
