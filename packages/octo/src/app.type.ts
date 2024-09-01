@@ -9,7 +9,7 @@ import type { AResource } from './resources/resource.abstract.js';
 import type { IResource } from './resources/resource.interface.js';
 import type { ASharedResource } from './resources/shared-resource.abstract.js';
 
-export enum ModelType {
+export enum NodeType {
   MODEL = 'model',
   OVERLAY = 'overlay',
   RESOURCE = 'resource',
