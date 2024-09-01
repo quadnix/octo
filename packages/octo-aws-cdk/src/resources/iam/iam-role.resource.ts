@@ -1,4 +1,13 @@
-import { AResource, Container, Diff, DiffAction, OverlayService, Resource, type UnknownOverlay } from '@quadnix/octo';
+import {
+  AResource,
+  Container,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  OverlayService,
+  Resource,
+  type UnknownOverlay,
+} from '@quadnix/octo';
 import type { IIamRoleProperties, IIamRoleResponse } from './iam-role.interface.js';
 
 export type IamRolePolicyDiff = { action: 'add' | 'delete'; overlay?: UnknownOverlay; overlayName: string };
@@ -34,6 +43,19 @@ export class IamRole extends AResource<IamRole> {
     const diffs: Diff[] = [];
     const overlayService = await Container.get(OverlayService);
 
+    // Diff property allowToAssumeRoleForServices.
+    if (
+      !DiffUtility.isObjectDeepEquals(
+        previous.properties.allowToAssumeRoleForServices,
+        this.properties.allowToAssumeRoleForServices,
+      )
+    ) {
+      diffs.push(
+        new Diff(this, DiffAction.UPDATE, 'allowToAssumeRoleForServices', this.properties.allowToAssumeRoleForServices),
+      );
+    }
+
+    // Diff property overlays.
     for (const { overlayId, overlayName } of previous.properties.overlays) {
       if (!this.properties.overlays.find((o) => overlayId === o.overlayId)) {
         diffs.push(

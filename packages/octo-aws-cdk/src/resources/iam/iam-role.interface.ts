@@ -4,6 +4,7 @@ export interface IIamRoleProperties
   extends ModifyInterface<
     IResource['properties'],
     {
+      allowToAssumeRoleForServices: string[];
       overlays: { overlayId: string; overlayName: string }[];
       rolename: string;
     }

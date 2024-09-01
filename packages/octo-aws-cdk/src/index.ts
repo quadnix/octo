@@ -84,6 +84,7 @@ import './resources/iam/actions/add-iam-role.resource.action.js';
 import './resources/iam/actions/add-iam-user.resource.action.js';
 import './resources/iam/actions/delete-iam-role.resource.action.js';
 import './resources/iam/actions/delete-iam-user.resource.action.js';
+import './resources/iam/actions/update-iam-role-assume-role-policy.resource.action.js';
 import './resources/iam/actions/update-iam-role-with-s3-storage-policy.resource.action.js';
 import './resources/iam/actions/update-iam-user-with-s3-storage-policy.resource.action.js';
 
