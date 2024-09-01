@@ -5,13 +5,6 @@ import type { EcsCluster } from './ecs-cluster.resource.js';
 import type { IEcsServiceProperties, IEcsServiceResponse } from './ecs-service.interface.js';
 import { EcsTaskDefinition } from './ecs-task-definition.resource.js';
 
-type EcsServiceUpdateDiff = {
-  parents: { securityGroup: string[]; taskDefinition?: string };
-  properties: {
-    desiredCount: number;
-  };
-};
-
 @Resource()
 export class EcsService extends AResource<EcsService> {
   readonly NODE_NAME: string = 'ecs-service';
@@ -33,41 +26,25 @@ export class EcsService extends AResource<EcsService> {
   override async diff(previous: EcsService): Promise<Diff[]> {
     const diffs: Diff[] = await super.diff(previous);
 
-    const sgParentsResourceIds: string[] = [];
-    let taskDefinitionParentResourceId: string | undefined;
     let shouldConsolidateDiffs = false;
-
     for (let i = diffs.length - 1; i >= 0; i--) {
-      // Consolidate all SecurityGroup parent updates into a single UPDATE diff.
       if (diffs[i].field === 'parent' && diffs[i].value instanceof SecurityGroup) {
-        sgParentsResourceIds.push((diffs[i].value as SecurityGroup).resourceId);
+        // Consolidate all SecurityGroup parent updates into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
-      }
-
-      // Translate TaskDefinition parent update into a single UPDATE diff.
-      if (diffs[i].field === 'parent' && diffs[i].value instanceof EcsTaskDefinition) {
-        taskDefinitionParentResourceId = (diffs[i].value as EcsTaskDefinition).resourceId;
+      } else if (diffs[i].field === 'parent' && diffs[i].value instanceof EcsTaskDefinition) {
+        // Translate TaskDefinition parent update into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
-      }
-
-      // Consolidate property diffs - desiredCount.
-      if (diffs[i].action === DiffAction.UPDATE && diffs[i].field === 'desiredCount') {
+      } else if (diffs[i].field === 'desiredCount' && diffs[i].action === DiffAction.UPDATE) {
+        // Consolidate property diffs - desiredCount.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
       }
     }
 
     if (shouldConsolidateDiffs) {
-      diffs.push(
-        new Diff(this, DiffAction.UPDATE, 'resourceId', {
-          parents: { securityGroup: sgParentsResourceIds, taskDefinition: taskDefinitionParentResourceId },
-          properties: {
-            desiredCount: this.properties.desiredCount,
-          },
-        } as EcsServiceUpdateDiff),
-      );
+      diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', ''));
     }
 
     return diffs;
@@ -78,7 +55,7 @@ export class EcsService extends AResource<EcsService> {
     deReferenceResource: (resourceId: string) => Promise<EcsTaskDefinition | SecurityGroup>,
   ): Promise<void> {
     if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
-      await this.cloneResourceFromAnotherGraphTree(diff.node as UnknownResource, deReferenceResource);
+      await this.cloneResourceInPlace(diff.node as UnknownResource, deReferenceResource);
     } else {
       await super.diffInverse(diff, deReferenceResource);
     }

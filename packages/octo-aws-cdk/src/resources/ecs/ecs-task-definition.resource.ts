@@ -1,15 +1,8 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@quadnix/octo';
 import { Efs } from '../efs/efs.resource.js';
 import type { IamRole } from '../iam/iam-role.resource.js';
+import { EcsService } from './ecs-service.resource.js';
 import type { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from './ecs-task-definition.interface.js';
-
-type EcsTaskDefinitionUpdateDiff = {
-  parents: { efs: string[] };
-  properties: {
-    environmentVariables: IEcsTaskDefinitionProperties['environmentVariables'];
-    image: IEcsTaskDefinitionProperties['image'];
-  };
-};
 
 @Resource()
 export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
@@ -27,41 +20,32 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
   override async diff(previous: EcsTaskDefinition): Promise<Diff[]> {
     const diffs = await super.diff(previous);
 
-    const efsParentsResourceIds: string[] = [];
     let shouldConsolidateDiffs = false;
-
     for (let i = diffs.length - 1; i >= 0; i--) {
-      // Consolidate all Efs parent updates into a single UPDATE diff.
       if (diffs[i].field === 'parent' && diffs[i].value instanceof Efs) {
-        efsParentsResourceIds.push((diffs[i].value as Efs).resourceId);
+        // Consolidate all Efs parent updates into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
-      }
-
-      // Consolidate property diffs - environment variables & image.
-      if (
+      } else if (
+        (diffs[i].field === 'environmentVariables' || diffs[i].field === 'image') &&
         (diffs[i].action === DiffAction.ADD ||
           diffs[i].action === DiffAction.UPDATE ||
-          diffs[i].action === DiffAction.DELETE) &&
-        (diffs[i].field === 'environmentVariables' || diffs[i].field === 'image')
+          diffs[i].action === DiffAction.DELETE)
       ) {
+        // Consolidate property diffs - environment variables & image.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
       }
     }
 
     if (shouldConsolidateDiffs) {
-      diffs.push(
-        new Diff(this, DiffAction.UPDATE, 'resourceId', {
-          parents: {
-            efs: efsParentsResourceIds,
-          },
-          properties: {
-            environmentVariables: JSON.parse(JSON.stringify(this.properties.environmentVariables)),
-            image: JSON.parse(JSON.stringify(this.properties.image)),
-          },
-        } as EcsTaskDefinitionUpdateDiff),
-      );
+      diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', ''));
+
+      // When ecs-task-definition is updated, all ecs-service using this must be updated too.
+      const ecsServices = this.getChildren('ecs-service')['ecs-service'].map((d) => d.to as EcsService);
+      for (const ecsService of ecsServices) {
+        diffs.push(new Diff(ecsService, DiffAction.UPDATE, 'resourceId', ''));
+      }
     }
 
     return diffs;
@@ -69,7 +53,7 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
 
   override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<Efs>): Promise<void> {
     if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
-      await this.cloneResourceFromAnotherGraphTree(diff.node as EcsTaskDefinition, deReferenceResource);
+      await this.cloneResourceInPlace(diff.node as EcsTaskDefinition, deReferenceResource);
     } else {
       await super.diffInverse(diff, deReferenceResource);
     }

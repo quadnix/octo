@@ -30,7 +30,27 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     throw new Error('Relationships are not supported in resources!');
   }
 
-  async cloneResourceFromAnotherGraphTree(
+  static async cloneResource<T extends AResource<T>>(
+    sourceResource: T,
+    deReferenceResource: (resourceId: string) => Promise<UnknownResource>,
+  ): Promise<T> {
+    const resource: IResource = {
+      properties: JSON.parse(JSON.stringify(sourceResource.properties)),
+      resourceId: sourceResource.resourceId,
+      response: JSON.parse(JSON.stringify(sourceResource.response)),
+    };
+
+    const parentResourceIds = await Promise.all(
+      Object.values(sourceResource.getParents())
+        .flat()
+        .map((d) => (d.to as UnknownResource).resourceId),
+    );
+
+    const deserializationClass = sourceResource.constructor as any;
+    return deserializationClass.unSynth(deserializationClass, resource, parentResourceIds, deReferenceResource);
+  }
+
+  async cloneResourceInPlace(
     sourceResource: UnknownResource,
     deReferenceResource: (resourceId: string) => Promise<UnknownResource>,
   ): Promise<void> {
@@ -109,9 +129,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
   async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<UnknownResource>): Promise<void> {
     switch (diff.field) {
       case 'resourceId': {
-        if (diff.action === DiffAction.ADD) {
-          await this.cloneResourceFromAnotherGraphTree(diff.node as UnknownResource, deReferenceResource);
-        } else if (diff.action === DiffAction.DELETE) {
+        if (diff.action === DiffAction.DELETE) {
           this.remove();
         } else {
           throw new Error('Unknown action on "resourceId" field during diff inverse!');
@@ -120,7 +138,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
       }
       case 'parent': {
         if (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE) {
-          await this.cloneResourceFromAnotherGraphTree(diff.node as UnknownResource, deReferenceResource);
+          await this.cloneResourceInPlace(diff.node as UnknownResource, deReferenceResource);
         } else {
           throw new Error('Unknown action on "parent" field during diff inverse!');
         }

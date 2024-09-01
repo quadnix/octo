@@ -16,6 +16,7 @@ import type { IModelAction } from '../../models/model-action.interface.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { AResource } from '../../resources/resource.abstract.js';
 import { IResource } from '../../resources/resource.interface.js';
 import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
@@ -138,19 +139,21 @@ export class TransactionService {
             await a.handle(diffToProcess);
           }
 
+          // De-reference from actual resources.
+          const deReferenceResource = async (resourceId): Promise<UnknownResource> => {
+            return this.resourceDataRepository.getActualResourceById(resourceId)!;
+          };
+
           // Incrementally apply diff inverse to the respective actual resource.
           let actualResource = this.resourceDataRepository.getActualResourceById(
             (diffToProcess.node as UnknownResource).resourceId,
           )!;
           if (!actualResource) {
-            const ResourceConstructor = (diffToProcess.node as UnknownResource).constructor;
-            // @ts-expect-error create an empty resource.
-            actualResource = new ResourceConstructor((diffToProcess.node as UnknownResource).resourceId, {}, []);
+            actualResource = await AResource.cloneResource(diffToProcess.node as UnknownResource, deReferenceResource);
             this.resourceDataRepository.addActualResource(actualResource);
+          } else {
+            await actualResource.diffInverse(diffToProcess, deReferenceResource);
           }
-          await actualResource.diffInverse(diffToProcess, async (resourceId) => {
-            return this.resourceDataRepository.getActualResourceById(resourceId)!;
-          });
 
           EventService.getInstance().emit(new ResourceActionTransactionEvent(a.ACTION_NAME));
         }
