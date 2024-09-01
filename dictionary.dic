@@ -27,6 +27,7 @@ commonjs
 compatibilities
 Constructable
 cov
+cpu
 cpus
 dep
 deserializing

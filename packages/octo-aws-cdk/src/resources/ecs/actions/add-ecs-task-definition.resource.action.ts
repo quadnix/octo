@@ -46,7 +46,7 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
               readOnly: false,
               sourceVolume: efs.properties.filesystemName,
             })),
-            name: properties.deploymentTag,
+            name: properties.deploymentTag.replace(/\./g, '_'),
             portMappings: properties.image.ports.map(
               (i): PortMapping => ({
                 containerPort: i.containerPort,
@@ -56,8 +56,11 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
             ),
           },
         ],
+        cpu: String(properties.cpu),
         family: properties.serverKey,
+        memory: String(properties.memory),
         networkMode: 'awsvpc',
+        requiresCompatibilities: ['FARGATE'],
         taskRoleArn: iamRoleResponse.Arn,
         volumes: efsList.map((efs: Efs) => ({
           efsVolumeConfiguration: {

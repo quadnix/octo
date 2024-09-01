@@ -83,11 +83,13 @@ describe('AwsDeployment UT', () => {
 
       expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
        {
+         "cpu": 256,
          "image": {
            "command": "",
            "ports": [],
            "uri": "",
          },
+         "memory": 512,
        }
       `);
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);
@@ -105,6 +107,7 @@ describe('AwsDeployment UT', () => {
 
       expect(deployment.getAnchor('TaskDefinitionAnchor')!.properties).toMatchInlineSnapshot(`
        {
+         "cpu": 256,
          "image": {
            "command": "command",
            "ports": [
@@ -115,6 +118,7 @@ describe('AwsDeployment UT', () => {
            ],
            "uri": "uri",
          },
+         "memory": 512,
        }
       `);
       expect((await testModuleContainer.commit(app)).resourceTransaction).toMatchInlineSnapshot(`[]`);

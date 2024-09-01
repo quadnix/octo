@@ -123,6 +123,7 @@ export class AddExecutionOverlayAction implements IModelAction {
       `ecs-task-definition-${properties.regionId}-${properties.serverKey}-${properties.deploymentTag}`,
       {
         awsRegionId: properties.awsRegionId,
+        cpu: taskDefinitionAnchorProperties.cpu,
         deploymentTag: properties.deploymentTag,
         environmentVariables,
         image: {
@@ -133,6 +134,7 @@ export class AddExecutionOverlayAction implements IModelAction {
           })),
           uri: taskDefinitionAnchorProperties.image.uri,
         },
+        memory: taskDefinitionAnchorProperties.memory,
         serverKey: properties.serverKey,
       },
       taskDefinitionParents,

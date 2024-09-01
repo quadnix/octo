@@ -5,6 +5,7 @@ export interface IEcsTaskDefinitionProperties
     IResource['properties'],
     {
       awsRegionId: string;
+      cpu: number;
       deploymentTag: string;
       environmentVariables: { name: string; value: string }[];
       image: {
@@ -12,6 +13,7 @@ export interface IEcsTaskDefinitionProperties
         ports: { containerPort: number; protocol: 'tcp' | 'udp' }[];
         uri: string;
       };
+      memory: number;
       serverKey: string;
     }
   > {}

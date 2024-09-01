@@ -35,6 +35,10 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
         // Consolidate property diffs - environment variables & image.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
+      } else if ((diffs[i].field === 'cpu' || diffs[i].field === 'memory') && diffs[i].action === DiffAction.UPDATE) {
+        // Consolidate property diffs - cpu & memory.
+        shouldConsolidateDiffs = true;
+        diffs.splice(i, 1);
       }
     }
 
