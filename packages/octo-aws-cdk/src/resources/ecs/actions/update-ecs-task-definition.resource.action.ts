@@ -56,7 +56,7 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction {
             portMappings: properties.image.ports.map(
               (i): PortMapping => ({
                 containerPort: i.containerPort,
-                hostPort: 0,
+                hostPort: i.containerPort,
                 protocol: i.protocol,
               }),
             ),
