@@ -53,7 +53,7 @@ describe('Transaction Scenarios UT', () => {
       transactionService.registerResourceActions([universalResourceAction]);
 
       await createTestResources({ 'resource-1': [] });
-      const generator = await transactionService.beginTransaction([]);
+      const generator = transactionService.beginTransaction([]);
       await generator.next();
       await commitResources();
     });
@@ -63,7 +63,7 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await Container.get(TransactionService);
 
         await createTestResources({ 'resource-1': [] });
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -79,7 +79,7 @@ describe('Transaction Scenarios UT', () => {
 
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
 
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -106,14 +106,14 @@ describe('Transaction Scenarios UT', () => {
 
         // Create a change.
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
-        const generator1 = await transactionService.beginTransaction([]);
+        const generator1 = transactionService.beginTransaction([]);
         await generator1.next();
         await commitResources();
 
         // Revert last change.
         const [, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
         resource2.remove();
-        const generator2 = await transactionService.beginTransaction([], {
+        const generator2 = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -142,7 +142,7 @@ describe('Transaction Scenarios UT', () => {
       transactionService.registerResourceActions([universalResourceAction]);
 
       await createTestResources({ 'resource-1': [] });
-      const generator = await transactionService.beginTransaction([]);
+      const generator = transactionService.beginTransaction([]);
 
       try {
         await generator.next();
@@ -156,7 +156,7 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await Container.get(TransactionService);
 
         await createTestResources({ 'resource-1': [] });
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -181,7 +181,7 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await Container.get(TransactionService);
 
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -212,7 +212,7 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await Container.get(TransactionService);
 
         await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -227,7 +227,7 @@ describe('Transaction Scenarios UT', () => {
         // Modify resource-1 which is already a dirty resource.
         const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
         resource1.properties['key1'] = 'value1';
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -260,7 +260,7 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await Container.get(TransactionService);
 
         // Not creating resource-1 is equivalent to reverting the last change in this case.
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -275,7 +275,7 @@ describe('Transaction Scenarios UT', () => {
 
         // Not creating resource-1 is equivalent to reverting the last change in this case.
         await createTestResources({ 'resource-2': [] });
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -308,14 +308,14 @@ describe('Transaction Scenarios UT', () => {
 
       // Add resource-1.
       await createTestResources({ 'resource-1': [] });
-      const generator1 = await transactionService.beginTransaction([]);
+      const generator1 = transactionService.beginTransaction([]);
       await generator1.next();
       await commitResources();
 
       // Modify resource-1.
       const [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['key1'] = 'value1';
-      const generator2 = await transactionService.beginTransaction([]);
+      const generator2 = transactionService.beginTransaction([]);
 
       try {
         await generator2.next();
@@ -330,7 +330,7 @@ describe('Transaction Scenarios UT', () => {
 
         const [resource1] = await createTestResources({ 'resource-1': [] });
         resource1.properties['key1'] = 'value1';
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -359,7 +359,7 @@ describe('Transaction Scenarios UT', () => {
 
         const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
         resource1.properties['key1'] = 'value1';
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -394,7 +394,7 @@ describe('Transaction Scenarios UT', () => {
 
         const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
         resource1.properties['key1'] = 'value1';
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -409,7 +409,7 @@ describe('Transaction Scenarios UT', () => {
         // Modify resource-1 which is already a dirty resource.
         const [resource1] = await createTestResources({ 'resource-1': [] });
         resource1.properties['key1'] = 'value2';
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -437,7 +437,7 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await Container.get(TransactionService);
 
         await createTestResources({ 'resource-1': [] });
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -452,7 +452,7 @@ describe('Transaction Scenarios UT', () => {
 
         // Not creating resource-1 is equivalent to reverting the last change in this case.
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -485,14 +485,14 @@ describe('Transaction Scenarios UT', () => {
 
       // Add resource-1.
       await createTestResources({ 'resource-1': [] });
-      const generator1 = await transactionService.beginTransaction([]);
+      const generator1 = transactionService.beginTransaction([]);
       await generator1.next();
       await commitResources();
 
       // Delete resource-1.
       const [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.remove();
-      const generator2 = await transactionService.beginTransaction([]);
+      const generator2 = transactionService.beginTransaction([]);
 
       try {
         await generator2.next();
@@ -507,7 +507,7 @@ describe('Transaction Scenarios UT', () => {
 
         const [resource1] = await createTestResources({ 'resource-1': [] });
         resource1.remove();
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -533,7 +533,7 @@ describe('Transaction Scenarios UT', () => {
 
         const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
         resource1.remove();
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -566,7 +566,7 @@ describe('Transaction Scenarios UT', () => {
         const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
         resource1.remove();
         resource1.addChild('resourceId', resource2, 'resourceId');
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -581,7 +581,7 @@ describe('Transaction Scenarios UT', () => {
         // Modify resource-1 which is already a dirty resource.
         const [resource1] = await createTestResources({ 'resource-1': [] });
         resource1.properties['key1'] = 'value2';
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -609,7 +609,7 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await Container.get(TransactionService);
 
         await createTestResources({ 'resource-1': [] });
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 
@@ -624,7 +624,7 @@ describe('Transaction Scenarios UT', () => {
 
         // Not creating resource-1 is equivalent to reverting the last change in this case.
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
-        const generator = await transactionService.beginTransaction([], {
+        const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
 

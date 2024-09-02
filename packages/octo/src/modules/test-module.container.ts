@@ -34,7 +34,7 @@ export class TestModuleContainer {
     resourceDiffs: DiffMetadata[][];
     resourceTransaction: DiffMetadata[][];
   }> {
-    const generator = await this.octo.beginTransaction(app, {
+    const generator = this.octo.beginTransaction(app, {
       enableResourceCapture: true,
       yieldModelDiffs: true,
       yieldModelTransaction: true,

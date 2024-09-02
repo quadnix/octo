@@ -67,7 +67,7 @@ Please create all files in below tabs.
     await octo.compose();
     const app = (await octo.getModuleOutput<App>(AppModule)) as App;
 
-    const generator = await octo.beginTransaction(app);
+    const generator = octo.beginTransaction(app);
     const modelTransactionResult = await generator.next();
     await octo.commitTransaction(app, modelTransactionResult.value);
     ```

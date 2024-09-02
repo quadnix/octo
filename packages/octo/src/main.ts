@@ -44,37 +44,42 @@ export class Octo {
     }: TransactionOptions = {},
   ): ReturnType<TransactionService['beginTransaction']> {
     const diffs = await app.diff();
-    const transaction = await this.transactionService.beginTransaction(diffs, {
+    const transaction = this.transactionService.beginTransaction(diffs, {
       enableResourceCapture,
-      yieldModelDiffs,
+      yieldModelDiffs: true,
       yieldModelTransaction: true,
-      yieldResourceDiffs,
+      yieldResourceDiffs: true,
       yieldResourceTransaction: true,
     });
 
+    const modelDiffs = await transaction.next();
     if (yieldModelDiffs) {
-      yield (await transaction.next()).value;
+      yield modelDiffs.value;
     }
 
-    const modelTransaction = (await transaction.next()).value;
+    const modelTransaction = await transaction.next();
     if (yieldModelTransaction) {
-      yield modelTransaction;
+      yield modelTransaction.value;
     }
 
-    let resourceTransaction: DiffMetadata[][] = [];
-    try {
-      if (yieldResourceDiffs) {
-        yield (await transaction.next()).value;
-      }
+    const resourceDiffs = await transaction.next();
+    if (yieldResourceDiffs) {
+      yield resourceDiffs.value;
+    }
 
-      resourceTransaction = (await transaction.next()).value;
+    let resourceTransaction:
+      | IteratorYieldResult<DiffMetadata[][]>
+      | IteratorReturnResult<DiffMetadata[][]>
+      | undefined = undefined;
+    try {
+      resourceTransaction = await transaction.next();
       if (yieldResourceTransaction) {
-        yield resourceTransaction;
+        yield resourceTransaction.value;
       }
 
       return (await transaction.next()).value;
     } finally {
-      await this.commitTransaction(app, modelTransaction, resourceTransaction);
+      await this.commitTransaction(app, modelTransaction.value, resourceTransaction ? resourceTransaction.value : []);
     }
   }
 

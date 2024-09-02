@@ -77,7 +77,7 @@ The `getModuleOutput()` is a helper method to collect the output from any Module
 <br />
 
 ```typescript title="main.ts"
-const generator = await octo.beginTransaction(app);
+const generator = octo.beginTransaction(app);
 const modelTransactionResult = await generator.next();
 await octo.commitTransaction(app, modelTransactionResult.value);
 ```

@@ -44,7 +44,7 @@ An action belongs to an entity, consists of a set of inputs, and can generate ou
 Looking back at the code we wrote in the [Getting Started](/docs/getting-started/hello-world.mdx) guide,
 ```js
 const diffs1 = await octoAws.diff(app);
-const generator1 = await octoAws.beginTransaction(diffs1);
+const generator1 = octoAws.beginTransaction(diffs1);
 ```
 * The `diff()` generates the action tasks.
 * A new transaction is started using `beginTransaction()`.
