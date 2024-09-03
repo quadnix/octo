@@ -1,5 +1,5 @@
 import type { Constructable } from '../app.type.js';
-import type { Event } from '../events/event.model.js';
+import type { Event } from '../events/index.js';
 import { EventService } from '../services/event/event.service.js';
 
 /**

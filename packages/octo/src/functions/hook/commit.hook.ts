@@ -2,7 +2,7 @@ import {
   CommitHookCallbackDoneEvent,
   PostCommitHookCallbackDoneEvent,
   PreCommitHookCallbackDoneEvent,
-} from '../../events/hook.event.js';
+} from '../../events/index.js';
 import type { Octo } from '../../main.js';
 import type { App } from '../../models/app/app.model.js';
 import type { ModuleContainer } from '../../modules/module.container.js';

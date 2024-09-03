@@ -2,7 +2,7 @@ import {
   PostResourceActionHookCallbackDoneEvent,
   PreResourceActionHookCallbackDoneEvent,
   ResourceActionHookCallbackDoneEvent,
-} from '../../events/hook.event.js';
+} from '../../events/index.js';
 import type { ModuleContainer } from '../../modules/module.container.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { EventService } from '../../services/event/event.service.js';

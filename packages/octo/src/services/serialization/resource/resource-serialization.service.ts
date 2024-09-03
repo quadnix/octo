@@ -2,12 +2,15 @@ import type { ActionOutputs, ResourceSerializedOutput, UnknownResource } from '.
 import { Container } from '../../../functions/container/container.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
-import { ResourceRegistrationEvent } from '../../../events/registration.event.js';
-import { ResourceDeserializedEvent, ResourceSerializedEvent } from '../../../events/serialization.event.js';
+import {
+  ActualResourceSerializedEvent,
+  NewResourceSerializedEvent,
+  ResourceDeserializedEvent,
+  ResourceRegistrationEvent,
+} from '../../../events/index.js';
 import type { IDependency } from '../../../functions/dependency/dependency.js';
 import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
-import { EventService } from '../../event/event.service.js';
 
 export class ResourceSerializationService {
   private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
@@ -115,6 +118,7 @@ export class ResourceSerializationService {
     return seen;
   }
 
+  @EventSource(ResourceDeserializedEvent)
   async deserialize(
     actualSerializedOutput: ResourceSerializedOutput,
     oldSerializedOutput: ResourceSerializedOutput,
@@ -126,8 +130,6 @@ export class ResourceSerializationService {
     await Container.get(ResourceDataRepository, {
       args: [true, Object.values(actualResources), Object.values(oldResources), []],
     });
-
-    EventService.getInstance().emit(new ResourceDeserializedEvent());
   }
 
   @EventSource(ResourceRegistrationEvent)
@@ -164,16 +166,16 @@ export class ResourceSerializationService {
       }
     }
 
-    EventService.getInstance().emit(new ResourceSerializedEvent());
-
     return { dependencies, resources: serializedResources, sharedResources: sharedSerializedResources };
   }
 
+  @EventSource(ActualResourceSerializedEvent)
   async serializeActualResources(): Promise<ResourceSerializedOutput> {
     const resources = this.resourceDataRepository.getActualResourcesByProperties();
     return this.serialize(resources);
   }
 
+  @EventSource(NewResourceSerializedEvent)
   async serializeNewResources(): Promise<ResourceSerializedOutput> {
     const resources = this.resourceDataRepository.getNewResourcesByProperties();
     return this.serialize(resources);

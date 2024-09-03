@@ -5,11 +5,20 @@ import {
   type UnknownResource,
   type UnknownSharedResource,
 } from '../../app.type.js';
+import {
+  DiffsOnDirtyResourcesTransactionErrorEvent,
+  ModelActionRegistrationEvent,
+  ModelActionTransactionEvent,
+  ModelDiffsTransactionEvent,
+  ModelTransactionTransactionEvent,
+  ResourceActionRegistrationEvent,
+  ResourceActionTransactionEvent,
+  ResourceDiffsTransactionEvent,
+  ResourceTransactionTransactionEvent,
+} from '../../events/index.js';
 import { Container } from '../../functions/container/container.js';
 import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
-import { ModelActionRegistrationEvent, ResourceActionRegistrationEvent } from '../../events/registration.event.js';
-import { ModelActionTransactionEvent, ResourceActionTransactionEvent } from '../../events/transaction.event.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
@@ -274,12 +283,15 @@ export class TransactionService {
       this.setApplyOrder(diff, modelDiffs);
     }
 
+    EventService.getInstance().emit(new ModelDiffsTransactionEvent([modelDiffs]));
     if (yieldModelDiffs) {
       yield [modelDiffs];
     }
 
     // Apply model diffs.
     const modelTransaction = await this.applyModels(modelDiffs);
+
+    EventService.getInstance().emit(new ModelTransactionTransactionEvent(modelTransaction));
     if (yieldModelTransaction) {
       yield modelTransaction;
     }
@@ -306,7 +318,12 @@ export class TransactionService {
     }
 
     // Ensure any new diffs are not operating on dirty resources.
-    this.resourceDataRepository.ensureDiffsNotOperatingOnDirtyResources(newDiffs);
+    try {
+      this.resourceDataRepository.ensureDiffsNotOperatingOnDirtyResources(newDiffs);
+    } catch (error) {
+      EventService.getInstance().emit(new DiffsOnDirtyResourcesTransactionErrorEvent(error));
+      throw error;
+    }
 
     // Skip processing dirty diffs that are already accounted for in new diffs.
     for (let i = dirtyDiffs.length - 1; i >= 0; i--) {
@@ -349,6 +366,7 @@ export class TransactionService {
       this.setApplyOrder(diff, dirtyResourceDiffs);
     }
 
+    EventService.getInstance().emit(new ResourceDiffsTransactionEvent([[resourceDiffs], [dirtyResourceDiffs]]));
     if (yieldResourceDiffs) {
       yield [resourceDiffs, dirtyResourceDiffs];
     }
@@ -361,6 +379,10 @@ export class TransactionService {
     const dirtyResourceTransaction = await this.applyResources(dirtyResourceDiffs, {
       enableResourceCapture,
     });
+
+    EventService.getInstance().emit(
+      new ResourceTransactionTransactionEvent([resourceTransaction, dirtyResourceTransaction]),
+    );
     if (yieldResourceTransaction) {
       yield [...resourceTransaction, ...dirtyResourceTransaction];
     }

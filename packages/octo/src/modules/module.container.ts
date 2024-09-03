@@ -1,7 +1,7 @@
 import { Constructable } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { type IModuleOptions } from '../decorators/module.decorator.js';
-import { ModuleEvent } from '../events/module.event.js';
+import { ModuleEvent } from '../events/index.js';
 import { CommitHook } from '../functions/hook/commit.hook.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';

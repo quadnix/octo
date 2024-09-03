@@ -28,12 +28,14 @@ export class Diff {
   /**
    * Overrides JSON.serialize() to output a more succinct representation of diff.
    */
-  toJSON(): object {
+  toJSON(): { action: string; field: string; node: string; value: unknown } {
     let value = this.value;
     if (value instanceof ANode) {
       value = value.getContext();
     } else if (value instanceof AAnchor) {
       value = `anchorId=${value.anchorId}`;
+    } else {
+      value = JSON.parse(JSON.stringify(value));
     }
 
     return {

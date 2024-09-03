@@ -4,7 +4,7 @@ import {
   ModelActionHookCallbackDoneEvent,
   PostModelActionHookCallbackDoneEvent,
   PreModelActionHookCallbackDoneEvent,
-} from '../../events/hook.event.js';
+} from '../../events/index.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
 import type { ModuleContainer } from '../../modules/module.container.js';
 import { EventService } from '../../services/event/event.service.js';

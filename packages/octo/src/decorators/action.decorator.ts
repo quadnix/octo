@@ -1,5 +1,5 @@
 import { NodeType } from '../app.type.js';
-import { RegistrationErrorEvent } from '../events/error.event.js';
+import { RegistrationErrorEvent } from '../events/index.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 import { type IModelAction } from '../models/model-action.interface.js';

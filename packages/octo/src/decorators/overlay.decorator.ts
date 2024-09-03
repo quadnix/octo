@@ -1,4 +1,4 @@
-import { RegistrationErrorEvent } from '../events/error.event.js';
+import { RegistrationErrorEvent } from '../events/index.js';
 import { EventService } from '../services/event/event.service.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
 import { Container } from '../functions/container/container.js';

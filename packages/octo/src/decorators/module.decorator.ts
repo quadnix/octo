@@ -1,5 +1,5 @@
 import type { Constructable } from '../app.type.js';
-import { RegistrationErrorEvent } from '../events/error.event.js';
+import { RegistrationErrorEvent } from '../events/index.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';

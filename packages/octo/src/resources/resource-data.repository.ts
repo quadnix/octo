@@ -1,5 +1,6 @@
 import { type ActionOutputs, NodeType, type UnknownResource } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
+import { DiffsOnDirtyResourcesTransactionError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { IResource } from './resource.interface.js';
 
@@ -182,7 +183,11 @@ export class ResourceDataRepository {
 
   ensureDiffsNotOperatingOnDirtyResources(diffs: Diff[]): void {
     if (diffs.some((d) => this.dirtyResources.some((dr) => d.node.hasAncestor(dr)))) {
-      throw new Error('Cannot operate diff on dirty resources!');
+      throw new DiffsOnDirtyResourcesTransactionError(
+        'Cannot operate diff on dirty resources!',
+        diffs.map((d) => d.toJSON()),
+        this.dirtyResources.map((r) => r.synth()),
+      );
     }
   }
 

@@ -8,13 +8,8 @@ export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
 export { Validate } from './decorators/validate.decorator.js';
 
-export * from './events/error.event.js';
-export * from './events/event.model.js';
-export * from './events/hook.event.js';
-export * from './events/module.event.js';
-export * from './events/registration.event.js';
-export * from './events/serialization.event.js';
-export * from './events/transaction.event.js';
+export * from './errors/index.js';
+export * from './events/index.js';
 
 export { Container } from './functions/container/container.js';
 export { IPackageMock, TestContainer } from './functions/container/test-container.js';

@@ -5,12 +5,6 @@ import type { EventService } from '../services/event/event.service.js';
  * An event is generated when something important happens in Octo.
  * The body of the event contains a header, a payload, and an optional user data.
  *
- * :::warning Warning
- * It is not a good practice to create an event from this class directly,
- * but should rather create one from one of the subclasses.
- * This promotes a more accurate classification of events.
- * :::
- *
  * @example
  * ```ts
  * const myEvent = new Event<string>('my payload', { key: 'value' });
@@ -38,7 +32,7 @@ export class Event<T> {
 
   /**
    * The `registrar()` method is explicitly called by the {@link EventSource} decorator for a method
-   * to enhance the method to auto-emit events.
+   * to enhance that method to auto-emit events.
    *
    * @param args Arguments are spread out using the array spread operator.
    * - args[0] - Instance of {@link EventService}.
