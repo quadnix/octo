@@ -157,6 +157,9 @@ export class Octo {
       await Container.get(initialize.type, initialize.options);
     }
 
+    // Wait for all factories to resolve.
+    await Container.waitToResolveAllFactories();
+
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
   }

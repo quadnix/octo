@@ -121,4 +121,17 @@ export class Container {
     const name = typeof type === 'string' ? type : type.name;
     delete this.factories[name];
   }
+
+  static async waitToResolveAllFactories(): Promise<void> {
+    const promiseToResolveAllFactories: Promise<Factory<unknown>>[] = [];
+
+    for (const name of Object.keys(this.factories)) {
+      const factoryContainer = this.factories[name];
+      if (factoryContainer?.factory && Array.isArray(factoryContainer.factory)) {
+        promiseToResolveAllFactories.push(factoryContainer.factory[0]);
+      }
+    }
+
+    await Promise.all(promiseToResolveAllFactories);
+  }
 }
