@@ -6,7 +6,6 @@ import {
   type UnknownSharedResource,
 } from '../../app.type.js';
 import {
-  DiffsOnDirtyResourcesTransactionErrorEvent,
   ModelActionRegistrationEvent,
   ModelActionTransactionEvent,
   ModelDiffsTransactionEvent,
@@ -318,12 +317,7 @@ export class TransactionService {
     }
 
     // Ensure any new diffs are not operating on dirty resources.
-    try {
-      this.resourceDataRepository.ensureDiffsNotOperatingOnDirtyResources(newDiffs);
-    } catch (error) {
-      EventService.getInstance().emit(new DiffsOnDirtyResourcesTransactionErrorEvent(error));
-      throw error;
-    }
+    this.resourceDataRepository.ensureDiffsNotOperatingOnDirtyResources(newDiffs);
 
     // Skip processing dirty diffs that are already accounted for in new diffs.
     for (let i = dirtyDiffs.length - 1; i >= 0; i--) {

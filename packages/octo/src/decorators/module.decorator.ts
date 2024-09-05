@@ -1,12 +1,10 @@
 import type { Constructable } from '../app.type.js';
-import { RegistrationErrorEvent } from '../events/index.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
 import { ModuleContainer } from '../modules/module.container.js';
 import { type IModule } from '../modules/module.interface.js';
 import type { IResourceAction } from '../resources/resource-action.interface.js';
-import { EventService } from '../services/event/event.service.js';
 import { Container } from '../functions/container/container.js';
 
 type CommitHooksCallback = (
@@ -103,26 +101,23 @@ export function Module({
   preResourceActionHooks = [],
 }: IModuleOptions = {}): (constructor: any) => void {
   return function (constructor: Constructable<IModule<unknown>>) {
-    Container.get(ModuleContainer)
-      .then((moduleContainer) => {
-        // Verify classes with @Module implements IModule.
-        if (!('onInit' in constructor.prototype)) {
-          throw new Error(`Class "${constructor.name}" does not implement IModule!`);
-        }
+    const promise = Container.get(ModuleContainer).then((moduleContainer) => {
+      // Verify classes with @Module implements IModule.
+      if (!('onInit' in constructor.prototype)) {
+        throw new Error(`Class "${constructor.name}" does not implement IModule!`);
+      }
 
-        moduleContainer.register(constructor, {
-          args,
-          imports,
-          postCommitHooks,
-          postModelActionHooks,
-          postResourceActionHooks,
-          preCommitHooks,
-          preModelActionHooks,
-          preResourceActionHooks,
-        });
-      })
-      .catch((error) => {
-        EventService.getInstance().emit(new RegistrationErrorEvent(error));
+      moduleContainer.register(constructor, {
+        args,
+        imports,
+        postCommitHooks,
+        postModelActionHooks,
+        postResourceActionHooks,
+        preCommitHooks,
+        preModelActionHooks,
+        preResourceActionHooks,
       });
+    });
+    Container.registerStartupUnhandledPromise(promise);
   };
 }

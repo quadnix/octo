@@ -17,6 +17,8 @@ export class Container {
 
   private static readonly factories: { [key: string]: { factory: FactoryValue<any> } } = {};
 
+  private static startupUnhandledPromises: Promise<unknown>[] = [];
+
   /**
    * `Container.get()` allows to get an instance of a class using its factory.
    *
@@ -91,6 +93,10 @@ export class Container {
     }
   }
 
+  static registerStartupUnhandledPromise<T>(promise: Promise<T>): void {
+    this.startupUnhandledPromises.push(promise);
+  }
+
   /**
    * `Container.reset()` clears all registered factories and empties the container. This is mostly used in testing.
    */
@@ -132,6 +138,6 @@ export class Container {
       }
     }
 
-    await Promise.all(promiseToResolveAllFactories);
+    await Promise.all([...promiseToResolveAllFactories, this.startupUnhandledPromises]);
   }
 }

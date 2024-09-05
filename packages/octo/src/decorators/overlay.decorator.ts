@@ -1,5 +1,3 @@
-import { RegistrationErrorEvent } from '../events/index.js';
-import { EventService } from '../services/event/event.service.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
 import { Container } from '../functions/container/container.js';
 
@@ -18,12 +16,9 @@ import { Container } from '../functions/container/container.js';
  */
 export function Overlay(): (constructor: any) => void {
   return function (constructor: any) {
-    Container.get(ModelSerializationService)
-      .then((modelSerializationService) => {
-        modelSerializationService.registerClass(constructor.name, constructor);
-      })
-      .catch((error) => {
-        EventService.getInstance().emit(new RegistrationErrorEvent(error));
-      });
+    const promise = Container.get(ModelSerializationService).then((modelSerializationService) => {
+      modelSerializationService.registerClass(constructor.name, constructor);
+    });
+    Container.registerStartupUnhandledPromise(promise);
   };
 }
