@@ -1,3 +1,4 @@
+import { TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
 export class TestStateProvider implements IStateProvider {
@@ -5,7 +6,7 @@ export class TestStateProvider implements IStateProvider {
 
   async getState(stateFileName: string): Promise<Buffer> {
     if (!(stateFileName in this.localState)) {
-      throw new Error('No state found!');
+      throw new TransactionError('No state found!');
     }
     return this.localState[stateFileName];
   }

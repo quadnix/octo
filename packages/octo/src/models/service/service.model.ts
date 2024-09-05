@@ -1,5 +1,6 @@
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
+import { ModelError } from '../../errors/index.js';
 import { AModel } from '../model.abstract.js';
 import type { IService } from './service.interface.js';
 
@@ -37,6 +38,6 @@ export class Service extends AModel<IService, Service> {
   }
 
   override synth(): IService {
-    throw new Error('Method not implemented! Use subclass');
+    throw new ModelError('Method not implemented! Use subclass', this);
   }
 }

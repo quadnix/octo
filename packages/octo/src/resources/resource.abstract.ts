@@ -1,4 +1,5 @@
 import { NodeType, type UnknownResource } from '../app.type.js';
+import { DiffInverseResourceError, RemoveResourceError, ResourceError } from '../errors/index.js';
 import { type Dependency, DependencyRelationship } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
@@ -27,7 +28,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
   }
 
   override addRelationship(): { thatToThisDependency: Dependency; thisToThatDependency: Dependency } {
-    throw new Error('Relationships are not supported in resources!');
+    throw new ResourceError('Relationships are not supported in resources!', this);
   }
 
   static async cloneResource<T extends AResource<T>>(
@@ -132,7 +133,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
         if (diff.action === DiffAction.DELETE) {
           this.remove();
         } else {
-          throw new Error('Unknown action on "resourceId" field during diff inverse!');
+          throw new DiffInverseResourceError('Unknown action on "resourceId" field during diff inverse!', this, diff);
         }
         return;
       }
@@ -140,7 +141,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
         if (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE) {
           await this.cloneResourceInPlace(diff.node as UnknownResource, deReferenceResource);
         } else {
-          throw new Error('Unknown action on "parent" field during diff inverse!');
+          throw new DiffInverseResourceError('Unknown action on "parent" field during diff inverse!', this, diff);
         }
         return;
       }
@@ -151,7 +152,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
         } else if (diff.action === DiffAction.DELETE) {
           delete this.properties[diff.field];
         } else {
-          throw new Error('Unknown action on "properties" field during diff inverse!');
+          throw new DiffInverseResourceError('Unknown action on "properties" field during diff inverse!', this, diff);
         }
 
         for (const key of Object.keys((diff.node as UnknownResource).response)) {
@@ -160,7 +161,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
         return;
       }
       default: {
-        throw new Error('Unknown field during diff inverse!');
+        throw new DiffInverseResourceError('Unknown field during diff inverse!', this, diff);
       }
     }
   }
@@ -221,8 +222,13 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     const dependencies = this.getDependencies();
 
     // Verify resource can be removed.
-    if (dependencies.some((d) => d.isParentRelationship())) {
-      throw new Error('Cannot remove resource until dependent nodes exist!');
+    const children = dependencies.filter((d) => d.isParentRelationship()).map((d) => d.to);
+    if (children.length > 0) {
+      throw new RemoveResourceError(
+        'Cannot remove resource until dependent nodes exist!',
+        this,
+        children as UnknownResource[],
+      );
     }
 
     // Removing all dependencies that points to this.

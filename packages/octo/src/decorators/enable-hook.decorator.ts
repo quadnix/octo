@@ -23,7 +23,7 @@ export function EnableHook(hook: Hook): (target: any, propertyKey: string, descr
         CommitHook.getInstance().registrar(descriptor);
         break;
       default:
-        throw new Error('Invalid hook!');
+        throw new Error(`Invalid hook "${hook}"!`);
     }
   };
 }

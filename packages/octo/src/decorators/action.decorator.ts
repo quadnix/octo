@@ -55,7 +55,7 @@ export function Action(type: NodeType): (constructor: any) => void {
           break;
         }
         default: {
-          throw new Error('ModelType not recognized in @Action decorator!');
+          throw new Error(`ModelType "${type}" not recognized in @Action decorator!`);
         }
       }
     });

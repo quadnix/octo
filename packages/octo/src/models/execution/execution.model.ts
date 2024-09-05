@@ -1,6 +1,7 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
+import { ModelError } from '../../errors/index.js';
 import { ArrayUtility } from '../../utilities/array/array.utility.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { Environment } from '../environment/environment.model.js';
@@ -52,7 +53,7 @@ export class Execution extends AModel<IExecution, Execution> {
       subnetRegions.length > 0 &&
       (environmentRegions[0].to as Region).regionId !== (subnetRegions[0].to as Region).regionId
     ) {
-      throw new Error('Environment and Subnet must be in the same region!');
+      throw new ModelError('Environment and Subnet must be in the same region!', this);
     }
 
     // Check for duplicates.
@@ -76,7 +77,7 @@ export class Execution extends AModel<IExecution, Execution> {
         subnetExecutions,
       ).length > 0
     ) {
-      throw new Error('Execution already exists!');
+      throw new ModelError('Execution already exists!', this);
     }
 
     // In order for this execution to properly have defined its parent-child relationship, all parents

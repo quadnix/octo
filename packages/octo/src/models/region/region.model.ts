@@ -2,6 +2,7 @@ import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
+import { ModelError } from '../../errors/index.js';
 import { Environment } from '../environment/environment.model.js';
 import { AModel } from '../model.abstract.js';
 import { Subnet } from '../subnet/subnet.model.js';
@@ -42,7 +43,7 @@ export class Region extends AModel<IRegion, Region> {
     // Check for duplicates.
     const environments = childrenDependencies['environment'].map((d) => d.to);
     if (environments.find((e: Environment) => e.environmentName === environment.environmentName)) {
-      throw new Error('Environment already exists!');
+      throw new ModelError('Environment already exists!', this);
     }
     this.addChild('regionId', environment, 'environmentName');
   }
@@ -57,7 +58,7 @@ export class Region extends AModel<IRegion, Region> {
     // Check for duplicates.
     const subnets = childrenDependencies['subnet'].map((d) => d.to);
     if (subnets.find((z: Subnet) => z.subnetId === subnet.subnetId)) {
-      throw new Error('Subnet already exists!');
+      throw new ModelError('Subnet already exists!', this);
     }
     this.addChild('regionId', subnet, 'subnetId');
   }

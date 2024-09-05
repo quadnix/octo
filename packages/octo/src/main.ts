@@ -1,5 +1,6 @@
 import { strict as assert } from 'assert';
 import { ActionInputs, Constructable, TransactionOptions, UnknownResource } from './app.type.js';
+import { ValidationTransactionError } from './errors/index.js';
 import { Container } from './functions/container/container.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
@@ -106,7 +107,7 @@ export class Octo {
 
     const result = this.validationService.validate();
     if (!result.pass) {
-      throw new Error('Validation error!');
+      throw new ValidationTransactionError('Validation error!', result);
     }
   }
 

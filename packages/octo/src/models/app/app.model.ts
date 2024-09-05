@@ -2,6 +2,7 @@ import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
+import { ModelError } from '../../errors/index.js';
 import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
 import { Pipeline } from '../pipeline/pipeline.model.js';
@@ -46,7 +47,7 @@ export class App extends AModel<IApp, App> {
     // Check for duplicates.
     const images = childrenDependencies['image'].map((d) => d.to);
     if (images.find((i: Image) => i.imageId === image.imageId)) {
-      throw new Error('Image already exists!');
+      throw new ModelError('Image already exists!', this);
     }
     this.addChild('name', image, 'imageId');
   }
@@ -61,7 +62,7 @@ export class App extends AModel<IApp, App> {
     // Check for duplicates.
     const pipelines = childrenDependencies['pipeline'].map((d) => d.to);
     if (pipelines.find((p: Pipeline) => p.pipelineName === pipeline.pipelineName)) {
-      throw new Error('Pipeline already exists!');
+      throw new ModelError('Pipeline already exists!', this);
     }
     this.addChild('name', pipeline, 'pipelineName');
   }
@@ -76,7 +77,7 @@ export class App extends AModel<IApp, App> {
     // Check for duplicates.
     const regions = childrenDependencies['region'].map((d) => d.to);
     if (regions.find((r: Region) => r.regionId === region.regionId)) {
-      throw new Error('Region already exists!');
+      throw new ModelError('Region already exists!', this);
     }
     this.addChild('name', region, 'regionId');
   }
@@ -91,7 +92,7 @@ export class App extends AModel<IApp, App> {
     // Check for duplicates.
     const servers = childrenDependencies['server'].map((d) => d.to);
     if (servers.find((s: Server) => s.serverKey === server.serverKey)) {
-      throw new Error('Server already exists!');
+      throw new ModelError('Server already exists!', this);
     }
     this.addChild('name', server, 'serverKey');
   }
@@ -106,7 +107,7 @@ export class App extends AModel<IApp, App> {
     // Check for duplicates.
     const services = childrenDependencies['service'].map((d) => d.to);
     if (services.find((s: Service) => s.serviceId === service.serviceId)) {
-      throw new Error('Service already exists!');
+      throw new ModelError('Service already exists!', this);
     }
     this.addChild('name', service, 'serviceId');
   }

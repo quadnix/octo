@@ -1,4 +1,5 @@
 import type { ActionInputs, ActionOutputs, UnknownNode } from '../../app.type.js';
+import { NoMatchingActionFoundTransactionError } from '../../errors/index.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import type { Diff, DiffAction } from './diff.js';
@@ -19,7 +20,7 @@ export class DiffMetadata {
 
   constructor(diff: Diff, actions: IModelAction[] | IResourceAction[]) {
     if (!actions?.length) {
-      throw new Error('No matching action given for diff!');
+      throw new NoMatchingActionFoundTransactionError('No matching action given for diff!', diff);
     }
 
     this.actions = actions;

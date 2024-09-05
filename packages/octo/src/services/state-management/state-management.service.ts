@@ -1,5 +1,6 @@
 import { ModelSerializedOutput, ResourceSerializedOutput } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
+import { TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
 export class StateManagementService {
@@ -92,7 +93,9 @@ export class StateManagementServiceFactory {
   static async create(forceNew = false, stateProvider: IStateProvider): Promise<StateManagementService> {
     if (!this.instance || forceNew) {
       if (!stateProvider) {
-        throw new Error(`Failed to create instance of ${StateManagementService.name} due to insufficient arguments!`);
+        throw new TransactionError(
+          `Failed to create instance of "${StateManagementService.name}" due to insufficient arguments!`,
+        );
       }
       this.instance = new StateManagementService(stateProvider);
     }

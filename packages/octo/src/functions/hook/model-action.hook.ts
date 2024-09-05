@@ -1,4 +1,5 @@
 import type { ActionInputs, ActionOutputs } from '../../app.type.js';
+import { InputNotFoundTransactionError } from '../../errors/index.js';
 import { Container } from '../container/container.js';
 import {
   ModelActionHookCallbackDoneEvent,
@@ -64,7 +65,12 @@ export class ModelActionHook implements IHook {
         const resolvedInputs = inputs.reduce((accumulator, currentValue) => {
           accumulator[currentValue] = inputService.getInput(currentValue);
           if (!accumulator[currentValue]) {
-            throw new Error('No matching input found to process module!');
+            throw new InputNotFoundTransactionError(
+              'No matching input found to process module!',
+              { action: modelAction.ACTION_NAME } as unknown as IModelAction,
+              args[0],
+              currentValue,
+            );
           }
           return accumulator;
         }, {});
@@ -80,7 +86,12 @@ export class ModelActionHook implements IHook {
         const resolvedInputs = inputs.reduce((accumulator, currentValue) => {
           accumulator[currentValue] = inputService.getInput(currentValue);
           if (!accumulator[currentValue]) {
-            throw new Error('No matching input found to process module!');
+            throw new InputNotFoundTransactionError(
+              'No matching input found to process module!',
+              { action: modelAction.ACTION_NAME } as unknown as IModelAction,
+              args[0],
+              currentValue,
+            );
           }
           return accumulator;
         }, {});

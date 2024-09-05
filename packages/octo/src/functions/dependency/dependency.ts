@@ -1,4 +1,5 @@
 import type { UnknownNode } from '../../app.type.js';
+import { DependencyError } from '../../errors/index.js';
 import type { DiffAction } from '../diff/diff.js';
 
 class DependencyBehavior {
@@ -70,14 +71,14 @@ export class Dependency {
 
   addChildRelationship(onField: string, toField: string): void {
     if (this.relationship) {
-      throw new Error('Dependency relationship already exists!');
+      throw new DependencyError('Dependency relationship already exists!', this);
     }
     this.relationship = { onField, toField, type: DependencyRelationship.CHILD };
   }
 
   addParentRelationship(onField: string, toField: string): void {
     if (this.relationship) {
-      throw new Error('Dependency relationship already exists!');
+      throw new DependencyError('Dependency relationship already exists!', this);
     }
     this.relationship = { onField, toField, type: DependencyRelationship.PARENT };
   }
@@ -113,7 +114,7 @@ export class Dependency {
   removeBehavior(onField: string, onAction: DiffAction, toField: string, forAction: DiffAction): void {
     const index = this.getBehaviorIndex(onField, onAction, toField, forAction);
     if (index === -1) {
-      throw new Error('Dependency behavior not found!');
+      throw new DependencyError('Dependency behavior not found!', this);
     }
 
     this.behaviors.splice(index, 1);

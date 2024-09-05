@@ -1,4 +1,5 @@
 import type { NodeType, UnknownNode } from '../../app.type.js';
+import { NodeError } from '../../errors/index.js';
 import { Dependency, type DependencyRelationship } from '../dependency/dependency.js';
 import { type Diff, DiffAction } from '../diff/diff.js';
 import type { INode } from './node.interface.js';
@@ -48,7 +49,7 @@ export abstract class ANode<I, T> implements INode<I, T> {
     const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
     const pIndex = this.dependencies.findIndex((d) => Object.is(d.to, child));
     if (cIndex !== -1 || pIndex !== -1) {
-      throw new Error('Dependency relationship already exists!');
+      throw new NodeError('Dependency relationship already exists!', this);
     }
 
     const childToParentDependency = new Dependency(child, this);
@@ -179,7 +180,7 @@ export abstract class ANode<I, T> implements INode<I, T> {
           while (toProcess.length > 0) {
             const context = toProcess.pop() as string;
             if (seen[context]) {
-              throw new Error('Found circular dependencies!');
+              throw new NodeError('Found circular dependencies!', this);
             } else {
               seen[context] = true;
             }
@@ -215,7 +216,7 @@ export abstract class ANode<I, T> implements INode<I, T> {
       return undefined;
     }
     if (dependencies.length > 1) {
-      throw new Error('More than one children found! Use getChildren() instead.');
+      throw new NodeError('More than one children found! Use getChildren() instead.', this);
     }
     return dependencies[0].to;
   }

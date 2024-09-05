@@ -5,6 +5,7 @@ import {
   type UnknownResource,
   type UnknownSharedResource,
 } from '../../app.type.js';
+import { InputNotFoundTransactionError, TransactionError } from '../../errors/index.js';
 import {
   ModelActionRegistrationEvent,
   ModelActionTransactionEvent,
@@ -70,7 +71,12 @@ export class TransactionService {
           inputKeys.forEach((k) => {
             inputs[k] = this.inputService.getInput(k);
             if (!inputs[k]) {
-              throw new Error('No matching input found to process action!');
+              throw new InputNotFoundTransactionError(
+                'No matching input found to process action!',
+                a,
+                diffToProcess,
+                k,
+              );
             }
           });
 
@@ -206,7 +212,7 @@ export class TransactionService {
   private setApplyOrder(diff: DiffMetadata, diffs: DiffMetadata[], seen: DiffMetadata[] = []): void {
     // Detect circular dependencies.
     if (this.getDuplicateDiffs(diff, seen).length > 0) {
-      throw new Error('Found circular dependencies!');
+      throw new TransactionError('Found circular dependencies!');
     }
 
     // Detect conflicting actions in transaction.
@@ -220,7 +226,7 @@ export class TransactionService {
       (diffActions[DiffAction.ADD] && diffActions[DiffAction.DELETE]) ||
       (diffActions[DiffAction.DELETE] && diffActions[DiffAction.UPDATE])
     ) {
-      throw new Error('Found conflicting actions in same transaction!');
+      throw new TransactionError('Found conflicting actions in same transaction!');
     }
 
     // Skip processing diff that already has the applyOrder set.

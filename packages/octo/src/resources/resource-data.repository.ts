@@ -1,6 +1,6 @@
 import { type ActionOutputs, NodeType, type UnknownResource } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
-import { DiffsOnDirtyResourcesTransactionError } from '../errors/index.js';
+import { DiffsOnDirtyResourcesTransactionError, ResourceError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { IResource } from './resource.interface.js';
 
@@ -27,7 +27,7 @@ export class ResourceDataRepository {
 
   addActualResource(resource: UnknownResource): void {
     if (resource.NODE_TYPE !== NodeType.RESOURCE && resource.NODE_TYPE !== NodeType.SHARED_RESOURCE) {
-      throw new Error('Adding non-resource node!');
+      throw new ResourceError('Adding non-resource node!', resource);
     }
 
     // Insert or replace resources.
@@ -41,7 +41,7 @@ export class ResourceDataRepository {
 
   addNewResource(resource: UnknownResource): void {
     if (resource.NODE_TYPE !== NodeType.RESOURCE && resource.NODE_TYPE !== NodeType.SHARED_RESOURCE) {
-      throw new Error('Adding non-resource node!');
+      throw new ResourceError('Adding non-resource node!', resource);
     }
 
     // Insert or replace resources.
@@ -185,8 +185,8 @@ export class ResourceDataRepository {
     if (diffs.some((d) => this.dirtyResources.some((dr) => d.node.hasAncestor(dr)))) {
       throw new DiffsOnDirtyResourcesTransactionError(
         'Cannot operate diff on dirty resources!',
-        diffs.map((d) => d.toJSON()),
-        this.dirtyResources.map((r) => r.synth()),
+        diffs,
+        this.dirtyResources,
       );
     }
   }
@@ -209,7 +209,7 @@ export class ResourceDataRepository {
 
   removeNewResource(resource: UnknownResource): void {
     if (resource.NODE_TYPE !== NodeType.RESOURCE && resource.NODE_TYPE !== NodeType.SHARED_RESOURCE) {
-      throw new Error('Removing non-resource node!');
+      throw new ResourceError('Removing non-resource node!', resource);
     }
 
     if (!resource.isMarkedDeleted()) {

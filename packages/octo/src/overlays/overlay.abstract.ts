@@ -1,4 +1,5 @@
 import { NodeType, type UnknownModel, type UnknownOverlay } from '../app.type.js';
+import { ModelError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { AModel } from '../models/model.abstract.js';
 import { type AAnchor } from './anchor.abstract.js';
@@ -26,7 +27,7 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     const anchorParent = anchor.getParent();
     const anchorParentField = anchorParent.deriveDependencyField();
     if (!anchorParentField) {
-      throw new Error('Cannot derive anchor parent field!');
+      throw new ModelError('Cannot derive anchor parent field!', this);
     }
 
     const { thisToThatDependency, thatToThisDependency } = this.addRelationship(anchorParent);
@@ -110,7 +111,9 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
         const parent = await deReferenceContext(a.parent.context);
         const anchor = parent.getAnchor(a.anchorId);
         if (!anchor) {
-          throw new Error('Cannot find anchor while deserializing overlay!');
+          throw new ModelError('Cannot find anchor while deserializing overlay!', {
+            NODE_NAME: overlay.overlayId,
+          } as UnknownModel);
         }
         return anchor;
       }),

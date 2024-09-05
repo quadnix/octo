@@ -2,6 +2,7 @@ import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
+import { ModelError } from '../../errors/index.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { AModel } from '../model.abstract.js';
 import type { IServer } from './server.interface.js';
@@ -42,7 +43,7 @@ export class Server extends AModel<IServer, Server> {
     // Check for duplicates.
     const deployments = childrenDependencies['deployment'].map((d) => d.to);
     if (deployments.find((d: Deployment) => d.deploymentTag === deployment.deploymentTag)) {
-      throw new Error('Deployment already exists!');
+      throw new ModelError('Deployment already exists!', this);
     }
     this.addChild('serverKey', deployment, 'deploymentTag');
   }

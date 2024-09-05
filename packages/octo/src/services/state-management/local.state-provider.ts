@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'fs';
 import { join, resolve } from 'path';
 import { promisify } from 'util';
+import { TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
 const readFileAsync = promisify(readFile);
@@ -18,7 +19,7 @@ export class LocalStateProvider implements IStateProvider {
       return await readFileAsync(join(this.localStateDirectoryPath, stateFileName));
     } catch (error) {
       if (error.code === 'ENOENT') {
-        throw new Error('No state found!');
+        throw new TransactionError('No state found!');
       }
       throw error;
     }

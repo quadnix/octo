@@ -1,6 +1,7 @@
 import { Constructable } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { type IModuleOptions } from '../decorators/module.decorator.js';
+import { InvalidArgumentsModuleError, ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
 import { CommitHook } from '../functions/hook/commit.hook.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
@@ -51,9 +52,13 @@ export class ModuleContainer {
       }, []);
       for (const [i, { isArg, name }] of (properties.args || []).entries()) {
         if (!isArg(args[i])) {
-          // eslint-disable-next-line max-len
-          const message = `Module "${module.name}" requires an argument at position [${i}] of type "${name}", but received "${typeof args[i]}"!`;
-          throw new Error(message);
+          throw new InvalidArgumentsModuleError(
+            'Module was supplied invalid arguments',
+            module.name,
+            i,
+            name,
+            typeof args[i],
+          );
         }
       }
 
@@ -122,7 +127,7 @@ export class ModuleContainer {
     }
 
     if (seen.find((m) => m.name === moduleMetadata.module.name)) {
-      throw new Error('Found circular dependencies in modules!');
+      throw new ModuleError('Found circular dependencies in modules!', moduleMetadata.module.name);
     }
 
     const parentModuleApplyOrders: number[] = [-1];
@@ -130,7 +135,7 @@ export class ModuleContainer {
       const name = typeof parent === 'string' ? parent : parent.name;
       const parentModuleMetadata = this.modules.find((m) => m.module.name === name);
       if (!parentModuleMetadata) {
-        throw new Error(`Found unregistered module "${name}" while processing modules!`);
+        throw new ModuleError('Found unregistered module while processing modules!', name);
       }
 
       this.setApplyOrder(parentModuleMetadata, [...seen, parentModuleMetadata.module]);

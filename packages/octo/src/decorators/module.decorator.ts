@@ -1,4 +1,5 @@
 import type { Constructable } from '../app.type.js';
+import { ModuleError } from '../errors/index.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
@@ -104,7 +105,7 @@ export function Module({
     const promise = Container.get(ModuleContainer).then((moduleContainer) => {
       // Verify classes with @Module implements IModule.
       if (!('onInit' in constructor.prototype)) {
-        throw new Error(`Class "${constructor.name}" does not implement IModule!`);
+        throw new ModuleError('Module does not implement IModule!', constructor.name);
       }
 
       moduleContainer.register(constructor, {
