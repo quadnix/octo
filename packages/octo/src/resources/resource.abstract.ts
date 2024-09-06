@@ -216,7 +216,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
    * A deleted node will be removed from the graph after the transaction.
    * - A node cannot be deleted if it has dependencies.
    *
-   * @throws {@link Error} If node contains dependencies to other nodes.
+   * @throws {@link RemoveResourceError} If node contains dependencies to other nodes.
    */
   remove(): void {
     const dependencies = this.getDependencies();

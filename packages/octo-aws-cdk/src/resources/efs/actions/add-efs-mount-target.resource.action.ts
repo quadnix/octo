@@ -1,5 +1,14 @@
 import { CreateMountTargetCommand, DescribeMountTargetsCommand, EFSClient } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  NodeType,
+  TransactionError,
+} from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { Subnet } from '../../subnet/subnet.resource.js';
 import type { IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
@@ -53,10 +62,10 @@ export class AddEfsMountTargetResourceAction implements IResourceAction {
 
         const mountTarget = result.MountTargets?.find((m) => m.FileSystemId === efsResponse.FileSystemId);
         if (!mountTarget) {
-          throw new Error('EFS FileSystem MountTarget does not exist!');
+          throw new TransactionError('EFS FileSystem MountTarget does not exist!');
         }
         if (mountTarget.LifeCycleState!.toLowerCase() === 'error') {
-          throw new Error('EFS FileSystem MountTarget could not be created!');
+          throw new TransactionError('EFS FileSystem MountTarget could not be created!');
         }
 
         return mountTarget.LifeCycleState!.toLowerCase() === 'available';

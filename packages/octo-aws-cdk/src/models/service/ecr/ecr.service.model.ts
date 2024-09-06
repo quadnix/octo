@@ -1,4 +1,4 @@
-import { Image, Model, Service, type UnknownModel } from '@quadnix/octo';
+import { Image, Model, ModelError, Service, type UnknownModel } from '@quadnix/octo';
 import { AwsRegion, RegionId } from '../../region/aws.region.model.js';
 import type { IEcrService } from './ecr.service.interface.js';
 
@@ -17,10 +17,10 @@ export class EcrService extends Service {
 
   addImage(image: Image): void {
     if (this.awsRegionIds.length === 0) {
-      throw new Error('This service has not been configured with a region yet! Please add a region first.');
+      throw new ModelError('This service has not been configured with a region yet! Please add a region first.', this);
     }
     if (this.imageName !== image.imageName) {
-      throw new Error('Invalid image! This ECR container is not for the given image.');
+      throw new ModelError('Invalid image! This ECR container is not for the given image.', this);
     }
 
     if (!this.images.find((i) => i.imageTag === image.imageTag)) {

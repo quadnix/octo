@@ -26,7 +26,7 @@ export interface INode<I, T> {
    * @returns
    * - childToParentDependency: The dependency edge from child to self.
    * - parentToChildDependency: The dependency edge from self to child.
-   * @throws {@link Error} Dependency relationship already exists!
+   * @throws {@link NodeError} If dependency relationship already exists!
    */
   addChild(
     onField: keyof T | string,
@@ -83,7 +83,7 @@ export interface INode<I, T> {
    * @param name The {@link NODE_NAME} of the child.
    * @param filters A set of filters, to be applied on children,
    * where `key` is the property name and `value` is the value to filter by.
-   * @throws {@link Error} If more than one child is found.
+   * @throws {@link NodeError} If more than one child is found.
    */
   getChild(name: string, filters: { key: string; value: any }[]): UnknownNode | undefined;
 

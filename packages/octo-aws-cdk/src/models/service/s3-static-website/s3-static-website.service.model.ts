@@ -1,4 +1,13 @@
-import { Container, Diff, DiffAction, Model, Service, StateManagementService, Validate } from '@quadnix/octo';
+import {
+  Container,
+  Diff,
+  DiffAction,
+  Model,
+  ModelError,
+  Service,
+  StateManagementService,
+  Validate,
+} from '@quadnix/octo';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
@@ -139,7 +148,7 @@ export class S3StaticWebsiteService extends Service {
 
     // Ensure index.html exists.
     if (this.sourcePaths.length > 0 && !(newManifestData['error.html'] || newManifestData['index.html'])) {
-      throw new Error('error.html/index.html missing in root of website!');
+      throw new ModelError('error.html/index.html missing in root of website!', this);
     }
 
     // Generate difference in old/new manifest.

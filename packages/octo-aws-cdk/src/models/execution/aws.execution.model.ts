@@ -1,4 +1,4 @@
-import { Container, Execution, IExecution, Model, OverlayService, type UnknownModel } from '@quadnix/octo';
+import { Container, Execution, IExecution, Model, ModelError, OverlayService, type UnknownModel } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../anchors/ecs-service.anchor.js';
 import { EnvironmentVariablesAnchor } from '../../anchors/environment-variables.anchor.js';
 import { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
@@ -124,7 +124,7 @@ export class AwsExecution extends Execution {
     const subnet = this.getParents()['subnet'][0].to as AwsSubnet;
     const filesystemMount = subnet.filesystemMounts.find((f) => f.filesystemName === filesystemName);
     if (!filesystemMount) {
-      throw new Error('Filesystem not found in AWS subnet!');
+      throw new ModelError('Filesystem not found in AWS subnet!', this);
     }
 
     const overlayService = await Container.get(OverlayService);

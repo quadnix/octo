@@ -1,5 +1,14 @@
 import { CreateFileSystemCommand, DescribeFileSystemsCommand, EFSClient } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  NodeType,
+  TransactionError,
+} from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsResponse } from '../efs.interface.js';
 import { Efs } from '../efs.resource.js';
@@ -42,10 +51,10 @@ export class AddEfsResourceAction implements IResourceAction {
 
         const filesystem = result.FileSystems?.find((f) => f.FileSystemId === data.FileSystemId);
         if (!filesystem) {
-          throw new Error('EFS FileSystem does not exist!');
+          throw new TransactionError('EFS FileSystem does not exist!');
         }
         if (filesystem.LifeCycleState!.toLowerCase() === 'error') {
-          throw new Error('EFS FileSystem could not be created!');
+          throw new TransactionError('EFS FileSystem could not be created!');
         }
 
         return filesystem.LifeCycleState!.toLowerCase() === 'available';

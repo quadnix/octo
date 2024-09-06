@@ -1,4 +1,4 @@
-import { Container, Model, OverlayService, Service, Validate } from '@quadnix/octo';
+import { Container, Model, ModelError, OverlayService, Service, Validate } from '@quadnix/octo';
 import { IamRoleAnchor } from '../../../anchors/iam-role.anchor.js';
 import { S3DirectoryAnchor } from '../../../anchors/s3-directory.anchor.js';
 import { CommonUtility } from '../../../utilities/common/common.utility.js';
@@ -31,7 +31,7 @@ export class S3StorageService extends Service {
 
   addDirectory(remoteDirectoryPath: string): void {
     if (this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath)) {
-      throw new Error('Remote directory already added in S3 bucket!');
+      throw new ModelError('Remote directory already added in S3 bucket!', this);
     }
 
     const directoryAnchorName = `${CommonUtility.hash(remoteDirectoryPath).substring(0, 12)}S3DirectoryAnchor`;
@@ -48,7 +48,7 @@ export class S3StorageService extends Service {
   ): Promise<void> {
     const directory = this.directories.find((d) => d.remoteDirectoryPath === remoteDirectoryPath);
     if (!directory) {
-      throw new Error('Cannot find remote directory!');
+      throw new ModelError('Cannot find remote directory!', this);
     }
 
     const allowRead = accessLevel === S3StorageAccess.READ || accessLevel === S3StorageAccess.READ_WRITE;

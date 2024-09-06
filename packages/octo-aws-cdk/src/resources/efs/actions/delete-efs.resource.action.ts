@@ -4,7 +4,16 @@ import {
   type DescribeFileSystemsCommandOutput,
   EFSClient,
 } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  NodeType,
+  TransactionError,
+} from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsResponse } from '../efs.interface.js';
 import { Efs } from '../efs.resource.js';
@@ -53,7 +62,7 @@ export class DeleteEfsResourceAction implements IResourceAction {
           return true;
         }
         if (filesystem.LifeCycleState!.toLowerCase() === 'error') {
-          throw new Error('EFS FileSystem could not be deleted!');
+          throw new TransactionError('EFS FileSystem could not be deleted!');
         }
 
         return filesystem.LifeCycleState!.toLowerCase() === 'deleted';

@@ -1,4 +1,4 @@
-import { Container, Model, OverlayService, Subnet, type UnknownModel } from '@quadnix/octo';
+import { Container, Model, ModelError, OverlayService, Subnet, type UnknownModel } from '@quadnix/octo';
 import { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
 import { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mount.anchor.js';
 import { RegionFilesystemOverlay } from '../../overlays/region-filesystem/region-filesystem.overlay.js';
@@ -16,13 +16,13 @@ export class AwsSubnet extends Subnet {
 
   async addFilesystemMount(filesystemName: string): Promise<void> {
     if (this.filesystemMounts.find((f) => f.filesystemName === filesystemName)) {
-      throw new Error('Filesystem mount already added in AWS subnet!');
+      throw new ModelError('Filesystem mount already added in AWS subnet!', this);
     }
 
     const region = this.getParents('region')['region'][0].to as AwsRegion;
     const regionFilesystem = region.filesystems.find((f) => f.filesystemName === filesystemName);
     if (!regionFilesystem) {
-      throw new Error('Filesystem not found in AWS region!');
+      throw new ModelError('Filesystem not found in AWS region!', this);
     }
 
     const overlayService = await Container.get(OverlayService);

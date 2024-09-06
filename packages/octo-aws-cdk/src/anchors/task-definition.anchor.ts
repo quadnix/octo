@@ -1,4 +1,4 @@
-import { AAnchor, Anchor, type IAnchor, ModifyInterface } from '@quadnix/octo';
+import { AAnchor, Anchor, type IAnchor, ModelError, ModifyInterface } from '@quadnix/octo';
 import type { AwsDeployment } from '../models/deployment/aws.deployment.model.js';
 import { TaskDefinitionUtility } from '../utilities/task-definition/task-definition.utility.js';
 
@@ -24,7 +24,7 @@ export class TaskDefinitionAnchor extends AAnchor {
     super(anchorId, properties, parent);
 
     if (!TaskDefinitionUtility.isCpuAndMemoryValid(properties.cpu, properties.memory)) {
-      throw new Error('Invalid values for CPU and/or memory!');
+      throw new ModelError('Invalid values for CPU and/or memory!', parent);
     }
   }
 }

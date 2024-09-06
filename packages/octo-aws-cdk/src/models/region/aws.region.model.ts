@@ -1,4 +1,4 @@
-import { Container, Model, OverlayService, Region, Validate } from '@quadnix/octo';
+import { Container, Model, ModelError, OverlayService, Region, Validate } from '@quadnix/octo';
 import { RegionFilesystemAnchor } from '../../anchors/region-filesystem.anchor.js';
 import { RegionFilesystemOverlay } from '../../overlays/region-filesystem/region-filesystem.overlay.js';
 import type { IAwsRegion } from './aws.region.interface.js';
@@ -48,7 +48,7 @@ export class AwsRegion extends Region {
 
   async addFilesystem(filesystemName: string): Promise<void> {
     if (this.filesystems.find((f) => f.filesystemName === filesystemName)) {
-      throw new Error('Filesystem already added in AWS region!');
+      throw new ModelError('Filesystem already added in AWS region!', this);
     }
 
     const regionFilesystemAnchorName = `${this.awsRegionId}-${filesystemName}-FilesystemAnchor`;

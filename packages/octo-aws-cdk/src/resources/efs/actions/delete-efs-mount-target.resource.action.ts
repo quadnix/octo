@@ -4,7 +4,16 @@ import {
   type DescribeMountTargetsCommandOutput,
   EFSClient,
 } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  NodeType,
+  TransactionError,
+} from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
@@ -63,7 +72,7 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction {
         }
 
         if (mountTarget.LifeCycleState!.toLowerCase() === 'error') {
-          throw new Error('EFS FileSystem MountTarget could not be deleted!');
+          throw new TransactionError('EFS FileSystem MountTarget could not be deleted!');
         }
 
         return mountTarget.LifeCycleState!.toLowerCase() === 'deleted';

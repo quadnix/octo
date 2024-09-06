@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   NodeType,
+  TransactionError,
 } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../../anchors/ecs-service.anchor.js';
 import { EnvironmentVariablesAnchor } from '../../../anchors/environment-variables.anchor.js';
@@ -163,7 +164,7 @@ export class AddExecutionOverlayAction implements IModelAction {
 
     // Ensure there are no more than 5 security groups.
     if (ecsServiceParents.filter((p) => p instanceof SecurityGroup).length > 5) {
-      throw new Error('Cannot have more than 5 security groups in ECS Service!');
+      throw new TransactionError('Cannot have more than 5 security groups in ECS Service!');
     }
 
     // Create ECS Service.
