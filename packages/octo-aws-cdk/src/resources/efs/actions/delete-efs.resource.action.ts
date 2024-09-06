@@ -75,7 +75,7 @@ export class DeleteEfsResourceAction implements IResourceAction {
   }
 
   async mock(capture: Partial<IEfsResponse>): Promise<void> {
-    const efsClient = await Container.get(EFSClient);
+    const efsClient = await Container.get(EFSClient, { args: ['mock'] });
     efsClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof DeleteFileSystemCommand) {
         return;

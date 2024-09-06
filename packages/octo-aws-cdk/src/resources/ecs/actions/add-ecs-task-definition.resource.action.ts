@@ -77,7 +77,7 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
   }
 
   async mock(capture: Partial<IEcsTaskDefinitionResponse>): Promise<void> {
-    const ecsClient = await Container.get(ECSClient);
+    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
     ecsClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof RegisterTaskDefinitionCommand) {
         return { taskDefinition: { revision: capture.revision, taskDefinitionArn: capture.taskDefinitionArn } };

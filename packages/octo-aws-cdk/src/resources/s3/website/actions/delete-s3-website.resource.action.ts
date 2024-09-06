@@ -51,7 +51,7 @@ export class DeleteS3WebsiteResourceAction implements IResourceAction {
   }
 
   async mock(): Promise<void> {
-    const s3Client = await Container.get(S3Client);
+    const s3Client = await Container.get(S3Client, { args: ['mock'] });
     s3Client.send = async (instance): Promise<unknown> => {
       if (instance instanceof ListObjectsV2Command) {
         return { Contents: [], NextContinuationToken: undefined };

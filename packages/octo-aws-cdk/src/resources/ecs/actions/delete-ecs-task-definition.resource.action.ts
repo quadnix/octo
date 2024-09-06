@@ -45,7 +45,7 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction {
   }
 
   async mock(): Promise<void> {
-    const ecsClient = await Container.get(ECSClient);
+    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
     ecsClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof DeregisterTaskDefinitionCommand) {
         return;

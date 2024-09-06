@@ -131,7 +131,7 @@ export class AddEcrImageResourceAction implements IResourceAction {
   }
 
   async mock(capture: Partial<IEcrImageResponse>): Promise<void> {
-    const ecrClient = await Container.get(ECRClient);
+    const ecrClient = await Container.get(ECRClient, { args: ['mock'] });
     ecrClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof DescribeImagesCommand) {
         return { imageDetails: [{ registryId: capture.registryId, repositoryName: capture.repositoryName }] };

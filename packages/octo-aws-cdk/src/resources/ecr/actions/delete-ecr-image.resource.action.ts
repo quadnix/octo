@@ -31,7 +31,7 @@ export class DeleteEcrImageResourceAction implements IResourceAction {
   }
 
   async mock(): Promise<void> {
-    const ecrClient = await Container.get(ECRClient);
+    const ecrClient = await Container.get(ECRClient, { args: ['mock'] });
     ecrClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof BatchDeleteImageCommand) {
         return;

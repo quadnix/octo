@@ -38,7 +38,7 @@ export class DeleteNetworkAclResourceAction implements IResourceAction {
   }
 
   async mock(): Promise<void> {
-    const ec2Client = await Container.get(EC2Client);
+    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
     ec2Client.send = async (instance): Promise<unknown> => {
       if (instance instanceof ReplaceNetworkAclAssociationCommand) {
         return;

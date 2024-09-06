@@ -91,7 +91,7 @@ export class AddNetworkAclResourceAction implements IResourceAction {
     const subnet = parents['subnet'][0].to as Subnet;
     const subnetResponse = subnet.response;
 
-    const ec2Client = await Container.get(EC2Client);
+    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
     ec2Client.send = async (instance): Promise<unknown> => {
       if (instance instanceof DescribeNetworkAclsCommand) {
         return {

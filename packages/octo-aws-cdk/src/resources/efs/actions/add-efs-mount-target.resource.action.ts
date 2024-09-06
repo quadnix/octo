@@ -87,7 +87,7 @@ export class AddEfsMountTargetResourceAction implements IResourceAction {
     const efs = parents['efs'][0].to as Efs;
     const efsResponse = efs.response;
 
-    const efsClient = await Container.get(EFSClient);
+    const efsClient = await Container.get(EFSClient, { args: ['mock'] });
     efsClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof CreateMountTargetCommand) {
         return { MountTargetId: capture.MountTargetId, NetworkInterfaceId: capture.NetworkInterfaceId };

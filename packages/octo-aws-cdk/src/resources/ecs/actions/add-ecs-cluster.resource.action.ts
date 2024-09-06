@@ -32,7 +32,7 @@ export class AddEcsClusterResourceAction implements IResourceAction {
   }
 
   async mock(capture: Partial<IEcsClusterResponse>): Promise<void> {
-    const ecsClient = await Container.get(ECSClient);
+    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
     ecsClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof CreateClusterCommand) {
         return { cluster: { clusterArn: capture.clusterArn } };

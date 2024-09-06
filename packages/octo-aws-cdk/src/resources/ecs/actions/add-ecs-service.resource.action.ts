@@ -59,7 +59,7 @@ export class AddEcsServiceResourceAction implements IResourceAction {
   }
 
   async mock(capture: Partial<IEcsServiceResponse>): Promise<void> {
-    const ecsClient = await Container.get(ECSClient);
+    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
     ecsClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof CreateServiceCommand) {
         return { service: { serviceArn: capture.serviceArn } };
