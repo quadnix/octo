@@ -1,4 +1,4 @@
-import { NodeType } from '../app.type.js';
+import { type Constructable, type UnknownNode, isModel, isOverlay, isResource } from '../app.type.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 import { type IModelAction } from '../models/model-action.interface.js';
@@ -15,48 +15,40 @@ import { Container } from '../functions/container/container.js';
  *
  * @example
  * ```ts
- * @Action(ModelType.MODEL)
+ * @Action(MyModelClass)
  * export class MyModelAction implements IModelAction { ... }
  * ```
  * @group Decorators
- * @param type The type of Model being decorated.
+ * @param forNode The class of node for which this action is being declared.
  * @returns The decorated class.
  * @see Definition of [Actions](/docs/fundamentals/actions).
  */
-export function Action(type: NodeType): (constructor: any) => void {
+export function Action(forNode: Constructable<UnknownNode>): (constructor: any) => void {
   return function (constructor: any) {
     const promise = Container.get(TransactionService).then(async (transactionService) => {
-      switch (type) {
-        case NodeType.MODEL: {
-          // Register model action.
-          const modelAction = await Container.get<IModelAction>(constructor.name);
-          transactionService.registerModelActions([modelAction]);
+      if (isModel(forNode) && !isOverlay(forNode)) {
+        // Register model action.
+        const modelAction = await Container.get<IModelAction>(constructor.name);
+        transactionService.registerModelActions(forNode, [modelAction]);
 
-          // Wrap model action with hooks.
-          ModelActionHook.getInstance().registrar(modelAction);
-          break;
-        }
-        case NodeType.OVERLAY: {
-          // Register overlay action.
-          const modelAction = await Container.get<IModelAction>(constructor.name);
-          transactionService.registerOverlayActions([modelAction]);
+        // Wrap model action with hooks.
+        ModelActionHook.getInstance().registrar(modelAction);
+      } else if (isOverlay(forNode)) {
+        // Register overlay action.
+        const modelAction = await Container.get<IModelAction>(constructor.name);
+        transactionService.registerOverlayActions(forNode, [modelAction]);
 
-          // Wrap overlay action with hooks.
-          ModelActionHook.getInstance().registrar(modelAction);
-          break;
-        }
-        case NodeType.RESOURCE: {
-          // Register resource action.
-          const resourceAction = await Container.get<IResourceAction>(constructor.name);
-          transactionService.registerResourceActions([resourceAction]);
+        // Wrap overlay action with hooks.
+        ModelActionHook.getInstance().registrar(modelAction);
+      } else if (isResource(forNode)) {
+        // Register resource action.
+        const resourceAction = await Container.get<IResourceAction>(constructor.name);
+        transactionService.registerResourceActions(forNode, [resourceAction]);
 
-          // Wrap resource action with hooks.
-          ResourceActionHook.getInstance().registrar(resourceAction);
-          break;
-        }
-        default: {
-          throw new Error(`ModelType "${type}" not recognized in @Action decorator!`);
-        }
+        // Wrap resource action with hooks.
+        ResourceActionHook.getInstance().registrar(resourceAction);
+      } else {
+        throw new Error(`Class "${forNode.name}" is not recognized in @Action decorator!`);
       }
     });
     Container.registerStartupUnhandledPromise(promise);

@@ -86,6 +86,7 @@ promisify
 qa
 quadnix
 readdir
+readonly
 redis
 referrerpolicy
 renderer
