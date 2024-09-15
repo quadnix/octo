@@ -18,10 +18,8 @@ import type { IServer } from './server.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'server')
 export class Server extends AModel<IServer, Server> {
-  readonly NODE_NAME: string = 'server';
-
   /**
    * The name of the server.
    */
@@ -51,7 +49,7 @@ export class Server extends AModel<IServer, Server> {
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
-    return [`${this.NODE_NAME}=${this.serverKey}`, app.getContext()].join(',');
+    return [`${(this.constructor as typeof Server).NODE_NAME}=${this.serverKey}`, app.getContext()].join(',');
   }
 
   override synth(): IServer {

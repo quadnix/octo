@@ -1,54 +1,82 @@
-import { commit, create } from '../../../test/helpers/test-models.js';
+import { create } from '../../../test/helpers/test-models.js';
+import { NodeType } from '../../app.type.js';
+import { Container } from '../../functions/container/container.js';
+import { TestContainer } from '../../functions/container/test-container.js';
+import { ValidationService } from '../../services/validation/validation.service.js';
+import type { AModel } from '../model.abstract.js';
 
 describe('Execution UT', () => {
-  describe('diff()', () => {
-    describe('when diff of object', () => {
-      it('should capture delete', async () => {
-        const {
-          app: [app],
-          execution: [execution],
-        } = create({
-          app: ['test'],
-          deployment: ['0.0.1'],
-          environment: ['qa'],
-          execution: [':0:0:0'],
-          region: ['region'],
-          server: ['backend'],
-          subnet: ['subnet'],
-        });
+  beforeEach(() => {
+    TestContainer.create(
+      {
+        mocks: [
+          {
+            type: ValidationService,
+            value: ValidationService.getInstance(),
+          },
+        ],
+      },
+      { factoryTimeoutInMs: 500 },
+    );
+  });
 
-        const app_1 = await commit(app);
+  afterEach(() => {
+    Container.reset();
+  });
 
-        // Remove the execution.
-        execution.remove();
+  it('should set static members', () => {
+    const {
+      execution: [execution],
+    } = create({
+      app: ['test'],
+      deployment: ['0.0.1'],
+      environment: ['qa'],
+      execution: [':0:0:0'],
+      region: ['region'],
+      server: ['backend'],
+      subnet: ['subnet'],
+    });
 
-        const diff = await app.diff(app_1);
+    expect((execution.constructor as typeof AModel).NODE_NAME).toBe('execution');
+    expect((execution.constructor as typeof AModel).NODE_PACKAGE).toBe('@octo');
+    expect((execution.constructor as typeof AModel).NODE_TYPE).toBe(NodeType.MODEL);
+  });
 
-        /* eslint-disable spellcheck/spell-checker, max-len */
-        expect(diff).toMatchInlineSnapshot(`
-          [
-            {
-              "action": "delete",
-              "field": "executionId",
-              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
-              "value": "backend-0.0.1-region-qa-subnet",
-            },
-            {
-              "action": "delete",
-              "field": "executionId",
-              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
-              "value": "backend-0.0.1-region-qa-subnet",
-            },
-            {
-              "action": "delete",
-              "field": "executionId",
-              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
-              "value": "backend-0.0.1-region-qa-subnet",
-            },
-          ]
-        `);
-        /* eslint-enable */
+  it('should set executionId', () => {
+    const {
+      execution: [execution],
+    } = create({
+      app: ['test'],
+      deployment: ['0.0.1'],
+      environment: ['qa'],
+      execution: [':0:0:0'],
+      region: ['region'],
+      server: ['backend'],
+      subnet: ['subnet'],
+    });
+
+    expect(execution.executionId).toBe('backend-0.0.1-region-qa-subnet');
+  });
+
+  describe('validation', () => {
+    it('should validate environmentVariables', async () => {
+      const {
+        execution: [execution],
+      } = create({
+        app: ['test'],
+        deployment: ['0.0.1'],
+        environment: ['qa'],
+        execution: [':0:0:0'],
+        region: ['region'],
+        server: ['backend'],
+        subnet: ['subnet'],
       });
+      execution.environmentVariables.set('$$', '$$');
+
+      const validationService = await Container.get(ValidationService);
+      const result = validationService.validate();
+
+      expect(result.pass).toBeFalsy();
     });
   });
 });

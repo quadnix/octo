@@ -16,10 +16,8 @@ import type { IDeployment } from './deployment.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'deployment')
 export class Deployment extends AModel<IDeployment, Deployment> {
-  readonly NODE_NAME: string = 'deployment';
-
   /**
    * The identifying tag that can point to the server's code at a specific point in time.
    * Could be a version number or a commit hash.
@@ -35,7 +33,9 @@ export class Deployment extends AModel<IDeployment, Deployment> {
   override setContext(): string {
     const parents = this.getParents();
     const parent = parents['server'][0].to;
-    return [`${this.NODE_NAME}=${this.deploymentTag}`, parent.getContext()].join(',');
+    return [`${(this.constructor as typeof Deployment).NODE_NAME}=${this.deploymentTag}`, parent.getContext()].join(
+      ',',
+    );
   }
 
   override synth(): IDeployment {

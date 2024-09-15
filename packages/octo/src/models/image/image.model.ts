@@ -38,10 +38,8 @@ export interface IImageDockerOptions {
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'image')
 export class Image extends AModel<IImage, Image> {
-  readonly NODE_NAME: string = 'image';
-
   readonly dockerOptions: IImageDockerOptions;
 
   /**
@@ -76,7 +74,7 @@ export class Image extends AModel<IImage, Image> {
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
-    return [`${this.NODE_NAME}=${this.imageId}`, app.getContext()].join(',');
+    return [`${(this.constructor as typeof Image).NODE_NAME}=${this.imageId}`, app.getContext()].join(',');
   }
 
   override synth(): IImage {

@@ -20,10 +20,8 @@ import type { IRegion } from './region.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'region')
 export class Region extends AModel<IRegion, Region> {
-  readonly NODE_NAME: string = 'region';
-
   @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly regionId: string;
 
@@ -66,7 +64,7 @@ export class Region extends AModel<IRegion, Region> {
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
-    return [`${this.NODE_NAME}=${this.regionId}`, app.getContext()].join(',');
+    return [`${(this.constructor as typeof Region).NODE_NAME}=${this.regionId}`, app.getContext()].join(',');
   }
 
   override synth(): IRegion {

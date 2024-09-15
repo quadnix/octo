@@ -16,10 +16,8 @@ import type { IService } from './service.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'service')
 export class Service extends AModel<IService, Service> {
-  readonly NODE_NAME: string = 'service';
-
   /**
    * The ID of the service.
    */
@@ -34,7 +32,7 @@ export class Service extends AModel<IService, Service> {
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
-    return [`${this.NODE_NAME}=${this.serviceId}`, app.getContext()].join(',');
+    return [`${(this.constructor as typeof Service).NODE_NAME}=${this.serviceId}`, app.getContext()].join(',');
   }
 
   override synth(): IService {

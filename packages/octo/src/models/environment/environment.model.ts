@@ -16,10 +16,8 @@ import type { IEnvironment } from './environment.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'environment')
 export class Environment extends AModel<IEnvironment, Environment> {
-  readonly NODE_NAME: string = 'environment';
-
   /**
    * The name of the environment.
    * An environment must be unique within a Region. But multiple Regions can share the same environment name.
@@ -46,7 +44,9 @@ export class Environment extends AModel<IEnvironment, Environment> {
   override setContext(): string {
     const parents = this.getParents();
     const region = parents['region'][0].to;
-    return [`${this.NODE_NAME}=${this.environmentName}`, region.getContext()].join(',');
+    return [`${(this.constructor as typeof Environment).NODE_NAME}=${this.environmentName}`, region.getContext()].join(
+      ',',
+    );
   }
 
   override synth(): IEnvironment {

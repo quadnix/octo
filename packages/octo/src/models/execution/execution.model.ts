@@ -25,10 +25,8 @@ import type { IExecution } from './execution.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'execution')
 export class Execution extends AModel<IExecution, Execution> {
-  readonly NODE_NAME: string = 'execution';
-
   /**
    * A set of environment variables to be passed to the Docker container.
    * It represents setting the [--env](https://docs.docker.com/compose/environment-variables/set-environment-variables/)
@@ -113,7 +111,7 @@ export class Execution extends AModel<IExecution, Execution> {
     const environment = parents['environment'][0]['to'] as Environment;
     const subnet = parents['subnet'][0]['to'] as Subnet;
     return [
-      `${this.NODE_NAME}=${this.executionId}`,
+      `${(this.constructor as typeof Execution).NODE_NAME}=${this.executionId}`,
       deployment.getContext(),
       environment.getContext(),
       subnet.getContext(),

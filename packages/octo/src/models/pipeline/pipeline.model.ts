@@ -20,10 +20,8 @@ import type { IPipeline } from './pipeline.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'pipeline')
 export class Pipeline extends AModel<IPipeline, Pipeline> {
-  readonly NODE_NAME: string = 'pipeline';
-
   readonly instructionSet: string[] = [];
 
   @Validate({ options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
@@ -37,7 +35,7 @@ export class Pipeline extends AModel<IPipeline, Pipeline> {
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
-    return [`${this.NODE_NAME}=${this.pipelineName}`, app.getContext()].join(',');
+    return [`${(this.constructor as typeof Pipeline).NODE_NAME}=${this.pipelineName}`, app.getContext()].join(',');
   }
 
   override synth(): IPipeline {

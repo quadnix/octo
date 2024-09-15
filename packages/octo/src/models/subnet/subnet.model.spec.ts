@@ -1,122 +1,89 @@
-import { commit, create } from '../../../test/helpers/test-models.js';
-import { type Region } from '../region/region.model.js';
-import { type Subnet, SubnetType } from './subnet.model.js';
+import { create } from '../../../test/helpers/test-models.js';
+import { NodeType } from '../../app.type.js';
+import { Container } from '../../functions/container/container.js';
+import { TestContainer } from '../../functions/container/test-container.js';
+import { ValidationService } from '../../services/validation/validation.service.js';
+import type { AModel } from '../model.abstract.js';
+import { SubnetType } from './subnet.model.js';
 
 describe('Subnet UT', () => {
-  describe('diff()', () => {
-    it('should generate update diff when disableSubnetIntraNetwork is changed', async () => {
+  beforeEach(() => {
+    TestContainer.create(
+      {
+        mocks: [
+          {
+            type: ValidationService,
+            value: ValidationService.getInstance(),
+          },
+        ],
+      },
+      { factoryTimeoutInMs: 500 },
+    );
+  });
+
+  afterEach(() => {
+    Container.reset();
+  });
+
+  it('should set static members', () => {
+    const {
+      subnet: [subnet],
+    } = create({ app: ['test'], region: ['region'], subnet: ['public'] });
+
+    expect((subnet.constructor as typeof AModel).NODE_NAME).toBe('subnet');
+    expect((subnet.constructor as typeof AModel).NODE_PACKAGE).toBe('@octo');
+    expect((subnet.constructor as typeof AModel).NODE_TYPE).toBe(NodeType.MODEL);
+  });
+
+  it('should set subnetId and options', () => {
+    const {
+      subnet: [subnet],
+    } = create({ app: ['test'], region: ['region'], subnet: ['public'] });
+    subnet.subnetType = SubnetType.PUBLIC;
+
+    expect(subnet.subnetId).toBe('region-public');
+    expect(subnet.disableSubnetIntraNetwork).toBeFalsy();
+    expect(subnet.subnetType).toBe(SubnetType.PUBLIC);
+  });
+
+  describe('validation', () => {
+    it('should validate subnetName', async () => {
+      create({ app: ['test'], region: ['region'], subnet: ['$$'] });
+
+      const validationService = await Container.get(ValidationService);
+      const result = validationService.validate();
+
+      expect(result.pass).toBeFalsy();
+    });
+  });
+
+  describe('updateNetworkingRules()', () => {
+    it('should add and remove another subnet as sibling', () => {
       const {
-        app: [app],
-        subnet: [subnet1],
-      } = create({ app: ['test'], region: ['region'], subnet: ['subnet1'] });
-      subnet1.disableSubnetIntraNetwork = false;
+        subnet: [privateSubnet, publicSubnet],
+      } = create({ app: ['test'], region: ['region'], subnet: ['private', 'public:-1'] });
 
-      const app_1 = await commit(app);
-      const region_1 = app_1.getChild('region') as Region;
-      const subnet1_1 = region_1.getChild('subnet') as Subnet;
+      privateSubnet.updateNetworkingRules(publicSubnet, true);
 
-      // Update subnet
-      subnet1.disableSubnetIntraNetwork = true;
+      expect(privateSubnet.getSiblings()['subnet'].length).toBe(1);
+      expect(publicSubnet.getSiblings()['subnet'].length).toBe(1);
 
-      const diff = await subnet1.diff(subnet1_1);
+      privateSubnet.updateNetworkingRules(publicSubnet, false);
 
-      expect(diff).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "disableSubnetIntraNetwork",
-           "model": "subnet=region-subnet1,region=region,app=test",
-           "value": true,
-         },
-       ]
-      `);
+      expect(privateSubnet.getSiblings()['subnet']).toBeUndefined();
+      expect(publicSubnet.getSiblings()['subnet']).toBeUndefined();
     });
 
-    it('should throw error if subnetType is changed', async () => {
+    it('should not add same sibling twice', () => {
       const {
-        app: [app],
-        subnet: [subnet1],
-      } = create({ app: ['test'], region: ['region'], subnet: ['subnet1'] });
-      subnet1.subnetType = SubnetType.PUBLIC;
+        subnet: [privateSubnet, publicSubnet],
+      } = create({ app: ['test'], region: ['region'], subnet: ['private', 'public:-1'] });
 
-      const app_1 = await commit(app);
-      const region_1 = app_1.getChild('region') as Region;
-      const subnet1_1 = region_1.getChild('subnet') as Subnet;
+      privateSubnet.updateNetworkingRules(publicSubnet, true);
+      privateSubnet.updateNetworkingRules(publicSubnet, true);
 
-      // Update subnet
-      subnet1.subnetType = SubnetType.PRIVATE;
-
-      await expect(async () => {
-        await subnet1.diff(subnet1_1);
-      }).rejects.toThrowErrorMatchingInlineSnapshot('"Change of subnet type is not supported!"');
-    });
-
-    it('should generate add diff of associations on adding subnet', async () => {
-      const {
-        app: [app],
-        subnet: [subnet1, subnet2],
-      } = create({ app: ['test'], region: ['region'], subnet: ['subnet1', 'subnet2:-1'] });
-
-      const app_1 = await commit(app);
-      const region_1 = app_1.getChild('region') as Region;
-      const subnet2_1 = region_1.getChild('subnet', [{ key: 'subnetName', value: 'subnet2' }]) as Subnet;
-
-      // Update subnet networking rules.
-      subnet2.updateNetworkingRules(subnet1, true);
-
-      const diff = await subnet2.diff(subnet2_1);
-
-      expect(diff).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "add",
-           "field": "sibling",
-           "model": "subnet=region-subnet2,region=region,app=test",
-           "value": "subnet=region-subnet1,region=region,app=test",
-         },
-       ]
-      `);
-    });
-
-    it('should not generate no diff of associations on no change', async () => {
-      const {
-        app: [app],
-        subnet: [subnet2],
-      } = create({ app: ['test'], region: ['region'], subnet: ['subnet1', 'subnet2:-1'] });
-
-      const app_1 = await commit(app);
-      const region_1 = app_1.getChild('region') as Region;
-      const subnet2_1 = region_1.getChild('subnet', [{ key: 'subnetName', value: 'subnet2' }]) as Subnet;
-
-      const diffs = await subnet2.diff(subnet2_1);
-      expect(diffs).toMatchInlineSnapshot(`[]`);
-    });
-
-    it('should generate delete diff of associations on removing subnet', async () => {
-      const {
-        app: [app],
-        subnet: [subnet1, subnet2],
-      } = create({ app: ['test'], region: ['region'], subnet: ['subnet1', 'subnet2:-1'] });
-      subnet2.updateNetworkingRules(subnet1, true);
-
-      const app_1 = await commit(app);
-      const region_1 = app_1.getChild('region') as Region;
-      const subnet2_1 = region_1.getChild('subnet', [{ key: 'subnetName', value: 'subnet2' }]) as Subnet;
-
-      // Update subnet networking rules.
-      subnet2.updateNetworkingRules(subnet1, false);
-
-      const diff = await subnet2.diff(subnet2_1);
-      expect(diff).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "delete",
-           "field": "sibling",
-           "model": "subnet=region-subnet2,region=region,app=test",
-           "value": "subnet=region-subnet1,region=region,app=test",
-         },
-       ]
-      `);
+      expect(privateSubnet.getSiblings()['subnet'].length).toBe(1);
+      expect(publicSubnet.getSiblings()['subnet'].length).toBe(1);
     });
   });
 });

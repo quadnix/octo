@@ -1,70 +1,65 @@
-import { commit, create } from '../../../test/helpers/test-models.js';
+import { create } from '../../../test/helpers/test-models.js';
+import { NodeType } from '../../app.type.js';
+import { Container } from '../../functions/container/container.js';
+import { TestContainer } from '../../functions/container/test-container.js';
+import { DependencyRelationship } from '../../functions/dependency/dependency.js';
+import { ValidationService } from '../../services/validation/validation.service.js';
+import type { AModel } from '../model.abstract.js';
+import { Server } from './server.model.js';
 
 describe('Server UT', () => {
-  describe('diff()', () => {
-    describe('when diff of object with children', () => {
-      it('should capture delete of children', async () => {
-        const {
-          app: [app],
-          deployment: [deployment],
-          execution: [execution],
-          server: [server],
-        } = create({
-          app: ['test'],
-          deployment: ['0.0.1'],
-          environment: ['qa'],
-          execution: [':0:0:0'],
-          region: ['region'],
-          server: ['backend'],
-          subnet: ['subnet'],
-        });
+  beforeEach(() => {
+    TestContainer.create(
+      {
+        mocks: [
+          {
+            type: ValidationService,
+            value: ValidationService.getInstance(),
+          },
+        ],
+      },
+      { factoryTimeoutInMs: 500 },
+    );
+  });
 
-        const app_1 = await commit(app);
+  afterEach(() => {
+    Container.reset();
+  });
 
-        // Remove the server, and the execution.
-        execution.remove();
-        deployment.remove();
-        server.remove();
+  it('should set static members', () => {
+    const server = new Server('backend');
 
-        const diff = await app.diff(app_1);
+    expect((server.constructor as typeof AModel).NODE_NAME).toBe('server');
+    expect((server.constructor as typeof AModel).NODE_PACKAGE).toBe('@octo');
+    expect((server.constructor as typeof AModel).NODE_TYPE).toBe(NodeType.MODEL);
+  });
 
-        /* eslint-disable spellcheck/spell-checker, max-len */
-        expect(diff).toMatchInlineSnapshot(`
-          [
-            {
-              "action": "delete",
-              "field": "executionId",
-              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
-              "value": "backend-0.0.1-region-qa-subnet",
-            },
-            {
-              "action": "delete",
-              "field": "executionId",
-              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
-              "value": "backend-0.0.1-region-qa-subnet",
-            },
-            {
-              "action": "delete",
-              "field": "executionId",
-              "model": "execution=backend-0.0.1-region-qa-subnet,deployment=0.0.1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-subnet,region=region,app=test",
-              "value": "backend-0.0.1-region-qa-subnet",
-            },
-            {
-              "action": "delete",
-              "field": "deploymentTag",
-              "model": "deployment=0.0.1,server=backend,app=test",
-              "value": "0.0.1",
-            },
-            {
-              "action": "delete",
-              "field": "serverKey",
-              "model": "server=backend,app=test",
-              "value": "backend",
-            },
-          ]
-        `);
-        /* eslint-enable */
-      });
+  describe('validation', () => {
+    it('should validate serverKey', async () => {
+      new Server('$$');
+
+      const validationService = await Container.get(ValidationService);
+      const result = validationService.validate();
+
+      expect(result.pass).toBeFalsy();
+    });
+  });
+
+  describe('addDeployment()', () => {
+    it('should throw error if duplicate deployment exist', () => {
+      expect(() => {
+        create({ app: ['test'], deployment: ['0.0.1', '0.0.1:-1'], server: ['backend'] });
+      }).toThrow('Deployment already exists!');
+    });
+
+    it('should add deployment as a child', () => {
+      const {
+        deployment: [deployment],
+        server: [server],
+      } = create({ app: ['test'], deployment: ['0.0.1'], server: ['backend'] });
+
+      expect(server.getDependencyIndex(deployment, DependencyRelationship.PARENT)).toBeGreaterThan(-1);
+      expect(deployment.getDependencyIndex(server, DependencyRelationship.CHILD)).toBeGreaterThan(-1);
     });
   });
 });

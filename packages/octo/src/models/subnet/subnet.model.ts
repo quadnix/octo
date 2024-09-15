@@ -37,10 +37,8 @@ export enum SubnetType {
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'subnet')
 export class Subnet extends AModel<ISubnet, Subnet> {
-  readonly NODE_NAME: string = 'subnet';
-
   private options: { disableSubnetIntraNetwork: boolean; subnetType: SubnetType } = {
     disableSubnetIntraNetwork: false,
     subnetType: SubnetType.PRIVATE,
@@ -92,7 +90,7 @@ export class Subnet extends AModel<ISubnet, Subnet> {
   override setContext(): string {
     const parents = this.getParents();
     const region = parents['region'][0].to;
-    return [`${this.NODE_NAME}=${this.subnetId}`, region.getContext()].join(',');
+    return [`${(this.constructor as typeof Subnet).NODE_NAME}=${this.subnetId}`, region.getContext()].join(',');
   }
 
   override synth(): ISubnet {

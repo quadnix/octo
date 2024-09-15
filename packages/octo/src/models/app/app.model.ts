@@ -22,10 +22,8 @@ import type { IApp } from './app.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model()
+@Model('@octo', 'app')
 export class App extends AModel<IApp, App> {
-  readonly NODE_NAME: string = 'app';
-
   /**
    * The name of the app.
    */
@@ -113,7 +111,7 @@ export class App extends AModel<IApp, App> {
   }
 
   override setContext(): string {
-    return `${this.NODE_NAME}=${this.name}`;
+    return `${(this.constructor as typeof App).NODE_NAME}=${this.name}`;
   }
 
   override synth(): IApp {
