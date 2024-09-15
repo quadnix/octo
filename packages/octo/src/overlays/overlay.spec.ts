@@ -4,7 +4,6 @@ import { NodeType } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { App } from '../models/app/app.model.js';
-import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
 import { OverlayDataRepository } from './overlay-data.repository.js';
 import { AOverlay } from './overlay.abstract.js';
 import { OverlayService } from './overlay.service.js';
@@ -16,10 +15,6 @@ describe('Overlay UT', () => {
     await TestContainer.create(
       {
         mocks: [
-          {
-            type: ModelSerializationService,
-            value: new ModelSerializationService(overlayDataRepository),
-          },
           {
             type: OverlayDataRepository,
             value: overlayDataRepository,
