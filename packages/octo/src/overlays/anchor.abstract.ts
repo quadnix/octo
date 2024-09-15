@@ -2,6 +2,11 @@ import type { UnknownModel } from '../app.type.js';
 import type { IAnchor } from './anchor.interface.js';
 
 export abstract class AAnchor {
+  /**
+   * The package of the anchor.
+   */
+  static readonly NODE_PACKAGE: string;
+
   protected constructor(
     readonly anchorId: string,
     readonly properties: IAnchor['properties'],

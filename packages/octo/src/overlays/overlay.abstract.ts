@@ -1,14 +1,11 @@
-import { NodeType, type UnknownModel, type UnknownOverlay } from '../app.type.js';
-import { ModelError } from '../errors/index.js';
+import { type UnknownModel, type UnknownOverlay } from '../app.type.js';
+import { ModelError, NodeUnsynthError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { AModel } from '../models/model.abstract.js';
 import { type AAnchor } from './anchor.abstract.js';
 import type { IOverlay } from './overlay.interface.js';
 
 export abstract class AOverlay<T> extends AModel<IOverlay, T> {
-  abstract override readonly NODE_NAME: string;
-  override readonly NODE_TYPE: NodeType = NodeType.OVERLAY;
-
   protected constructor(
     readonly overlayId: IOverlay['overlayId'],
     readonly properties: IOverlay['properties'],
@@ -90,7 +87,7 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   }
 
   override setContext(): string {
-    return `${this.NODE_NAME}=${this.overlayId}`;
+    return `${(this.constructor as typeof AOverlay).NODE_NAME}=${this.overlayId}`;
   }
 
   override synth(): IOverlay {
@@ -111,9 +108,7 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
         const parent = await deReferenceContext(a.parent.context);
         const anchor = parent.getAnchor(a.anchorId);
         if (!anchor) {
-          throw new ModelError('Cannot find anchor while deserializing overlay!', {
-            NODE_NAME: overlay.overlayId,
-          } as UnknownModel);
+          throw new NodeUnsynthError('Cannot find anchor while deserializing overlay!', overlay.overlayId);
         }
         return anchor;
       }),

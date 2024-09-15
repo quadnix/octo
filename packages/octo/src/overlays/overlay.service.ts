@@ -10,13 +10,27 @@ export class OverlayService {
     this.overlayDataRepository.add(overlay);
   }
 
-  getOverlaysByAnchor(anchorId: string, parent: UnknownModel, excludeOverlayIds: string[] = []): UnknownOverlay[] {
-    const overlays = this.getOverlaysByProperties();
-    return overlays.filter((o) => !excludeOverlayIds.includes(o.overlayId) && o.getAnchor(anchorId, parent));
-  }
-
   getOverlayById(overlayId: string): UnknownOverlay | undefined {
     return this.overlayDataRepository.getById(overlayId);
+  }
+
+  getOverlays(filters?: {
+    anchor?: { anchorId: string; parent: UnknownModel };
+    excludeOverlayIds?: string[];
+  }): UnknownOverlay[] {
+    const overlays = this.getOverlaysByProperties();
+    return overlays.filter((o) => {
+      let shouldReturn = true;
+
+      if (filters?.excludeOverlayIds && filters.excludeOverlayIds.includes(o.overlayId)) {
+        shouldReturn = false;
+      }
+      if (filters?.anchor) {
+        shouldReturn = !!(shouldReturn && o.getAnchor(filters.anchor.anchorId, filters.anchor.parent));
+      }
+
+      return shouldReturn;
+    });
   }
 
   getOverlaysByProperties(filters: { key: string; value: any }[] = []): UnknownOverlay[] {

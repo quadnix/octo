@@ -1,66 +1,110 @@
-import { TestAnchor, TestOverlay } from '../../test/helpers/test-classes.js';
-import { commit, create, createTestOverlays } from '../../test/helpers/test-models.js';
-import { Container } from '../decorators/container.js';
+import { TestAnchor, TestOverlay, TestOverlayWithDecorator } from '../../test/helpers/test-classes.js';
+import { create, createTestOverlays } from '../../test/helpers/test-models.js';
+import { NodeType } from '../app.type.js';
+import { Container } from '../functions/container/container.js';
+import { TestContainer } from '../functions/container/test-container.js';
 import { App } from '../models/app/app.model.js';
-import {
-  ModelSerializationService,
-  ModelSerializationServiceFactory,
-} from '../services/serialization/model/model-serialization.service.js';
-import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlay-data.repository.js';
+import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
+import { OverlayDataRepository } from './overlay-data.repository.js';
 import { AOverlay } from './overlay.abstract.js';
-import { OverlayService, OverlayServiceFactory } from './overlay.service.js';
+import { OverlayService } from './overlay.service.js';
 
 describe('Overlay UT', () => {
   beforeEach(async () => {
-    Container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
-    await Container.get(OverlayDataRepository, { args: [true, [], []] });
+    const overlayDataRepository = new OverlayDataRepository([]);
 
-    Container.registerFactory(OverlayService, OverlayServiceFactory);
-
-    Container.registerFactory(ModelSerializationService, ModelSerializationServiceFactory);
-    const modelSerializationService = await Container.get(ModelSerializationService, { args: [true] });
-    modelSerializationService.registerClass('App', App);
-    modelSerializationService.registerClass('TestAnchor', TestAnchor);
-    modelSerializationService.registerClass('TestOverlay', TestOverlay);
+    await TestContainer.create(
+      {
+        mocks: [
+          {
+            type: ModelSerializationService,
+            value: new ModelSerializationService(overlayDataRepository),
+          },
+          {
+            type: OverlayDataRepository,
+            value: overlayDataRepository,
+          },
+          {
+            type: OverlayService,
+            value: new OverlayService(overlayDataRepository),
+          },
+        ],
+      },
+      {
+        factoryTimeoutInMs: 500,
+      },
+    );
   });
 
   afterEach(() => {
     Container.reset();
   });
 
-  it('should not create duplicate anchors', async () => {
+  it('should set static members', () => {
+    const overlay = new TestOverlayWithDecorator('overlay-1', { key1: 'value-1' }, []);
+
+    expect((overlay.constructor as typeof AOverlay).NODE_NAME).toBe('test-overlay');
+    expect((overlay.constructor as typeof AOverlay).NODE_PACKAGE).toBe('@octo');
+    expect((overlay.constructor as typeof AOverlay).NODE_TYPE).toBe(NodeType.OVERLAY);
+  });
+
+  it('should set context', async () => {
     const {
       app: [app],
-    } = create({ app: ['test'] });
+    } = create({ app: ['test'], region: ['region'] });
     const anchor1 = new TestAnchor('anchor-1', {}, app);
     app.addAnchor(anchor1);
 
     const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
-    expect(overlay1.getAnchors()).toHaveLength(1);
 
-    overlay1.addAnchor(anchor1);
-    expect(overlay1.getAnchors()).toHaveLength(1);
+    expect(overlay1.getContext()).toBe('test-overlay=overlay-1');
   });
 
   describe('addAnchor()', () => {
-    it('should create dependency between overlay and anchor parents', async () => {
+    it('should throw error when parent field cannot be determined', async () => {
       const {
         app: [app],
       } = create({ app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
+      await expect(async () => {
+        await createTestOverlays({ 'overlay-1': [anchor1] });
+      }).rejects.toMatchInlineSnapshot(`[Error: Cannot derive anchor parent field!]`);
+    });
+
+    it('should not create duplicate anchors', async () => {
+      const {
+        app: [app],
+      } = create({ app: ['test'], region: ['region'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      expect(overlay1.getAnchors()).toHaveLength(1);
+
+      overlay1.addAnchor(anchor1);
+      expect(overlay1.getAnchors()).toHaveLength(1);
+    });
+
+    it('should create dependency between overlay and anchor parents', async () => {
+      const {
+        app: [app],
+      } = create({ app: ['test'], region: ['region'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
       const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
 
       // App to Overlay dependency.
-      expect(app.getDependencies().map((d) => d.synth())).toMatchInlineSnapshot(`
+      expect(app.getSiblings()['test-overlay'].map((d) => d.synth())).toMatchInlineSnapshot(`
        [
          {
            "behaviors": [
              {
                "forAction": "delete",
                "onAction": "delete",
-               "onField": "MODEL_NAME",
+               "onField": "name",
                "toField": "overlayId",
              },
            ],
@@ -80,13 +124,13 @@ describe('Overlay UT', () => {
                "forAction": "add",
                "onAction": "add",
                "onField": "overlayId",
-               "toField": "MODEL_NAME",
+               "toField": "name",
              },
              {
                "forAction": "update",
                "onAction": "add",
                "onField": "overlayId",
-               "toField": "MODEL_NAME",
+               "toField": "name",
              },
            ],
            "from": "test-overlay=overlay-1",
@@ -99,347 +143,104 @@ describe('Overlay UT', () => {
   });
 
   describe('diff()', () => {
-    it('should produce an add diff', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-
-      await createTestOverlays({ 'overlay-1': [] });
-
-      const diffs = await overlayDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "add",
-           "field": "overlayId",
-           "model": "test-overlay=overlay-1",
-           "value": "overlay-1",
-         },
-       ]
-      `);
-    });
-
-    it('should produce a delete diff', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-      const overlayService = await Container.get(OverlayService);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [] });
-
-      await commit(overlay1);
-
-      // Remove overlay.
-      overlayService.removeOverlay(overlay1);
-
-      const diffs = await overlayDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "delete",
-           "field": "overlayId",
-           "model": "test-overlay=overlay-1",
-           "value": "overlay-1",
-         },
-       ]
-      `);
-    });
-
-    it('should produce an update diff of flat properties', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [] });
-      overlay1.properties['key1'] = 'value1';
-      overlay1.properties['key2'] = 'value2';
-
-      await commit(overlay1);
-
-      // Update overlay properties.
-      overlay1.properties['key2'] = 'value2.1';
-      overlay1.properties['key3'] = 'value3';
-
-      const diffs = await overlayDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "model": "test-overlay=overlay-1",
-           "value": {
-             "key": "key2",
-             "value": "value2.1",
-           },
-         },
-         {
-           "action": "add",
-           "field": "properties",
-           "model": "test-overlay=overlay-1",
-           "value": {
-             "key": "key3",
-             "value": "value3",
-           },
-         },
-       ]
-      `);
-    });
-
-    it('should produce an update diff of nested properties', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [] });
-      overlay1.properties['key1'] = { 'key1.1': 'value1.1' };
-      overlay1.properties['key2'] = { 'key2.1': 'value2.1' };
-
-      await commit(overlay1);
-
-      // Update overlay properties.
-      overlay1.properties['key1'] = { 'key1.1': 'value1.3', 'key1.2': 'value1.2' };
-      overlay1.properties['key2'] = { 'key2.1': 'value2.1' };
-
-      const diffs = await overlayDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "model": "test-overlay=overlay-1",
-           "value": {
-             "key": "key1",
-             "value": {
-               "key1.1": "value1.3",
-               "key1.2": "value1.2",
-             },
-           },
-         },
-       ]
-      `);
-    });
-
-    it('should produce an update diff of array properties', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [] });
-      overlay1.properties['key1'] = ['value1.1', 'value1.2'];
-
-      await commit(overlay1);
-
-      // Update overlay properties.
-      overlay1.properties['key1'] = ['value1.3', 'value1.4'];
-
-      const diffs = await overlayDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "model": "test-overlay=overlay-1",
-           "value": {
-             "key": "key1",
-             "value": [
-               "value1.3",
-               "value1.4",
-             ],
-           },
-         },
-       ]
-      `);
-    });
-
-    it('should produce an add diff of anchors', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [] });
-
-      await commit(overlay1);
-
+    it('should produce an add diff for an anchor', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'] });
-      const anchor1 = new TestAnchor('anchor-1', { key1: 'value1' }, app);
+      } = create({ app: ['test'], region: ['region'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      // Add anchor.
-      overlay1.addAnchor(anchor1);
+      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
 
-      const diffs = await overlayDataRepository.diff();
+      const diffs = await overlay1.diff();
       expect(diffs).toMatchInlineSnapshot(`
        [
          {
            "action": "add",
            "field": "anchor",
-           "model": "test-overlay=overlay-1",
+           "node": "test-overlay=overlay-1",
            "value": "anchorId=anchor-1",
          },
        ]
       `);
     });
 
-    it('should not produce an update diff of anchors with no change', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
+    it('should not produce any diff for properties', async () => {
+      const [overlay1] = await createTestOverlays({ 'overlay-1': [] });
+      overlay1.properties.key1 = 'value1';
 
-      const {
-        app: [app],
-      } = create({ app: ['test'] });
-      const anchor1 = new TestAnchor('anchor-1', { key1: 'value1' }, app);
-      app.addAnchor(anchor1);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
-
-      await commit(overlay1);
-
-      const diffs = await overlayDataRepository.diff();
+      const diffs = await overlay1.diff();
       expect(diffs).toMatchInlineSnapshot(`[]`);
-    });
-
-    it('should produce an update diff of anchors with flat properties', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-
-      const {
-        app: [app],
-      } = create({ app: ['test'] });
-      const anchor1 = new TestAnchor('anchor-1', { key1: 'value1' }, app);
-      app.addAnchor(anchor1);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
-
-      await commit(overlay1);
-
-      // Update anchor properties.
-      overlay1.getAnchor('anchor-1', app)!.properties['key2'] = 'value2';
-
-      const diffs = await overlayDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "anchor",
-           "model": "test-overlay=overlay-1",
-           "value": "anchorId=anchor-1",
-         },
-       ]
-      `);
-    });
-
-    it('should produce an update diff of anchors with nested properties', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-
-      const {
-        app: [app],
-      } = create({ app: ['test'] });
-      const anchor1 = new TestAnchor('anchor-1', { key1: { key2: 'value2' } }, app);
-      app.addAnchor(anchor1);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
-
-      await commit(overlay1);
-
-      // Update anchor properties.
-      overlay1.getAnchor('anchor-1', app)!.properties['key1'] = { key2: 'value3' };
-
-      const diffs = await overlayDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "update",
-           "field": "anchor",
-           "model": "test-overlay=overlay-1",
-           "value": "anchorId=anchor-1",
-         },
-       ]
-      `);
-    });
-
-    it('should produce a delete diff of anchors', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-
-      const {
-        app: [app],
-      } = create({ app: ['test'] });
-      const anchor1 = new TestAnchor('anchor-1', { key1: 'value1' }, app);
-      app.addAnchor(anchor1);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
-
-      await commit(overlay1);
-
-      // Remove anchor.
-      overlay1.removeAnchor(anchor1);
-
-      const diffs = await overlayDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "delete",
-           "field": "anchor",
-           "model": "test-overlay=overlay-1",
-           "value": "anchorId=anchor-1",
-         },
-       ]
-      `);
     });
   });
 
-  describe('remove()', () => {
-    it('should be able to mark an overlay as deleted', async () => {
-      const overlayService = await Container.get(OverlayService);
-
+  describe('getAnchor()', () => {
+    it('should return an anchor', async () => {
       const {
         app: [app],
-      } = create({ app: ['test-app'] });
-      const anchor1 = new TestAnchor('anchor-1', { key1: 'value1' }, app);
+      } = create({ app: ['test'], region: ['region'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      await createTestOverlays({ 'overlay-1': [anchor1] });
-
-      const overlay1 = overlayService.getOverlayById('overlay-1')!;
-      overlay1.remove();
-
-      expect(overlay1).not.toBe(undefined);
-      expect(overlay1.isMarkedDeleted()).toBe(true);
-      expect(overlayService.getOverlayById('overlay-1')).not.toBe(undefined);
+      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      expect(overlay1.getAnchor('anchor-1', app)).toBe(anchor1);
     });
+  });
 
-    it('should be able to completely remove an overlay from repository', async () => {
-      const overlayService = await Container.get(OverlayService);
-
+  describe('getAnchorIndex()', () => {
+    it('should return the anchor index', async () => {
       const {
         app: [app],
-      } = create({ app: ['test-app'] });
-      const anchor1 = new TestAnchor('anchor-1', { key1: 'value1' }, app);
+      } = create({ app: ['test'], region: ['region'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      await createTestOverlays({ 'overlay-1': [anchor1] });
-
-      const overlay1 = overlayService.getOverlayById('overlay-1')!;
-      overlayService.removeOverlay(overlay1);
-
-      expect(overlay1).not.toBe(undefined);
-      expect(overlay1.isMarkedDeleted()).toBe(true);
-      expect(overlayService.getOverlayById('overlay-1')).toBe(undefined);
+      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      expect(overlay1.getAnchorIndex('anchor-1', app)).toBeGreaterThan(-1);
     });
   });
 
   describe('removeAnchor()', () => {
+    it('should not remove an anchor that is not in the overlay', async () => {
+      const {
+        app: [app],
+      } = create({ app: ['test1'], region: ['region'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+      const anchor2 = new TestAnchor('anchor-2', {}, app);
+      app.addAnchor(anchor2);
+
+      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+
+      expect(overlay1.getAnchors().length).toBe(1);
+
+      overlay1.removeAnchor(anchor2);
+
+      expect(overlay1.getAnchors().length).toBe(1);
+    });
+
     it('should remove dependency between overlay and anchor parents', async () => {
       const {
-        app: [app1, app2],
-      } = create({ app: ['test1', 'test2'] });
-      const anchor1 = new TestAnchor('anchor-1', {}, app1);
-      app1.addAnchor(anchor1);
-      const anchor2 = new TestAnchor('anchor-2', {}, app2);
-      app2.addAnchor(anchor2);
+        app: [app],
+      } = create({ app: ['test1'], region: ['region'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
+      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
 
-      expect(overlay1.getDependencies(app1)).toHaveLength(1);
-      expect(overlay1.getDependencies(app2)).toHaveLength(1);
+      expect(app.getSiblings()['test-overlay'].length).toBe(1);
+      expect(overlay1.getSiblings()['app'].length).toBe(1);
 
       overlay1.removeAnchor(anchor1);
 
-      expect(overlay1.getDependencies(app1)).toHaveLength(0);
-      expect(overlay1.getDependencies(app2)).toHaveLength(1);
+      expect(app.getSiblings()['test-overlay']).toBeUndefined();
+      expect(overlay1.getSiblings()['app']).toBeUndefined();
     });
 
     it('should only remove one dependency with parent when multiple anchors have same parent', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'] });
+      } = create({ app: ['test'], region: ['region'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -447,41 +248,35 @@ describe('Overlay UT', () => {
 
       const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
 
-      expect(overlay1.getAnchors()).toHaveLength(2);
-      expect(app.getDependencies(overlay1)).toHaveLength(2);
-      expect(overlay1.getDependencies(app)).toHaveLength(2);
+      expect(app.getSiblings()['test-overlay'].length).toBe(2);
+      expect(overlay1.getSiblings()['app'].length).toBe(2);
 
       overlay1.removeAnchor(anchor1);
 
-      expect(overlay1.getAnchors()).toHaveLength(1);
-      expect(app.getDependencies(overlay1)).toHaveLength(1);
-      expect(overlay1.getDependencies(app)).toHaveLength(1);
+      expect(app.getSiblings()['test-overlay'].length).toBe(1);
+      expect(overlay1.getSiblings()['app'].length).toBe(1);
     });
   });
 
   describe('removeAllAnchors()', () => {
     it('should remove all anchors with parent dependencies', async () => {
       const {
-        app: [app1, app2],
-      } = create({ app: ['test1', 'test2'] });
-      const anchor1 = new TestAnchor('anchor-1', {}, app1);
-      app1.addAnchor(anchor1);
-      const anchor2 = new TestAnchor('anchor-2', {}, app2);
-      app2.addAnchor(anchor2);
+        app: [app],
+      } = create({ app: ['test'], region: ['region'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+      const anchor2 = new TestAnchor('anchor-2', {}, app);
+      app.addAnchor(anchor2);
 
       const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
 
-      expect(overlay1.getAnchors()).toHaveLength(2);
-      expect(app1.getDependencies()).toHaveLength(1);
-      expect(app2.getDependencies()).toHaveLength(1);
-      expect(overlay1.getDependencies()).toHaveLength(2);
+      expect(app.getSiblings()['test-overlay'].length).toBe(2);
+      expect(overlay1.getSiblings()['app'].length).toBe(2);
 
       overlay1.removeAllAnchors();
 
-      expect(overlay1.getAnchors()).toHaveLength(0);
-      expect(app1.getDependencies()).toHaveLength(0);
-      expect(app2.getDependencies()).toHaveLength(0);
-      expect(overlay1.getDependencies()).toHaveLength(0);
+      expect(app.getSiblings()['test-overlay']).toBeUndefined();
+      expect(overlay1.getSiblings()['app']).toBeUndefined();
     });
   });
 
@@ -501,7 +296,7 @@ describe('Overlay UT', () => {
     it('should be able to synth with anchors', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'] });
+      } = create({ app: ['test'], region: ['region'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -541,7 +336,7 @@ describe('Overlay UT', () => {
     it('should throw error while unSynth if anchor not found', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'] });
+      } = create({ app: ['test'], region: ['region'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -567,7 +362,7 @@ describe('Overlay UT', () => {
     it('should be able to unSynth with anchors', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'] });
+      } = create({ app: ['test'], region: ['region'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);

@@ -4,16 +4,21 @@ import {
   AOverlay,
   AResource,
   ASharedResource,
+  Anchor,
   type Diff,
   type IAnchor,
   type IOverlay,
   type IResource,
+  NodeType,
+  Overlay,
   type UnknownModel,
   type UnknownResource,
 } from '../../src/index.js';
 
 export class SharedTestResource extends ASharedResource<TestResource> {
-  readonly NODE_NAME: string = 'test-resource';
+  static override readonly NODE_NAME: string = 'test-resource';
+  static override readonly NODE_PACKAGE: string = '@octo';
+  static override readonly NODE_TYPE: NodeType = NodeType.SHARED_RESOURCE;
 
   constructor(resourceId: string, properties: { [key: string]: unknown }, parents: TestResource[]) {
     super(resourceId, properties, parents as AResource<TestResource>[]);
@@ -22,26 +27,25 @@ export class SharedTestResource extends ASharedResource<TestResource> {
 
 export class TestAction {}
 
-export class TestActionFactory {
-  static async create(): Promise<TestAction> {
-    return new TestAction();
-  }
-}
-
 export class TestAnchor extends AAnchor {
+  static override readonly NODE_PACKAGE: string = '@octo';
+
   constructor(anchorId: string, properties: IAnchor['properties'], parent: UnknownModel) {
     super(anchorId, properties, parent);
   }
 }
 
-export class TestAnchorFactory {
-  static async create(): Promise<TestAnchor> {
-    return new TestAnchor('anchorId', {}, {} as UnknownModel);
+@Anchor('@octo')
+export class TestAnchorWithDecorator extends AAnchor {
+  constructor(anchorId: string, properties: IAnchor['properties'], parent: UnknownModel) {
+    super(anchorId, properties, parent);
   }
 }
 
 export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsynth> {
-  readonly NODE_NAME: string = 'test-model';
+  static override readonly NODE_NAME: string = 'test-model';
+  static override readonly NODE_PACKAGE: string = '@octo';
+  static override readonly NODE_TYPE: NodeType = NodeType.MODEL;
 
   override async diffProperties(): Promise<Diff[]> {
     return [];
@@ -57,15 +61,26 @@ export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsy
 }
 
 export class TestOverlay extends AOverlay<TestOverlay> {
-  readonly NODE_NAME: string = 'test-overlay';
+  static override readonly NODE_NAME: string = 'test-overlay';
+  static override readonly NODE_PACKAGE: string = '@octo';
+  static override readonly NODE_TYPE: NodeType = NodeType.OVERLAY;
 
   constructor(overlayId: IOverlay['overlayId'], properties: IOverlay['properties'], anchors: AAnchor[]) {
     super(overlayId, properties, anchors);
   }
 }
 
+@Overlay('@octo', 'test-overlay')
+export class TestOverlayWithDecorator extends AOverlay<TestOverlay> {
+  constructor(overlayId: IOverlay['overlayId'], properties: IOverlay['properties'], anchors: AAnchor[]) {
+    super(overlayId, properties, anchors);
+  }
+}
+
 export class TestResource extends AResource<TestResource> {
-  readonly NODE_NAME: string = 'test-resource';
+  static override readonly NODE_NAME: string = 'test-resource';
+  static override readonly NODE_PACKAGE: string = '@octo';
+  static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
   constructor(resourceId: string, properties: IResource['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
@@ -73,7 +88,9 @@ export class TestResource extends AResource<TestResource> {
 }
 
 export class TestResourceWithDiffOverride extends AResource<TestResource> {
-  readonly NODE_NAME: string = 'test-resource';
+  static override readonly NODE_NAME: string = 'test-resource';
+  static override readonly NODE_PACKAGE: string = '@octo';
+  static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
   constructor(resourceId: string, properties: IResource['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
