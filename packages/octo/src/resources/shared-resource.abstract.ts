@@ -1,24 +1,38 @@
-import { NodeType } from '../app.type.js';
+import { ResourceError } from '../errors/index.js';
 import type { Diff } from '../functions/diff/diff.js';
 import { AResource } from './resource.abstract.js';
 
 export abstract class ASharedResource<T> extends AResource<T> {
-  override readonly NODE_TYPE: NodeType = NodeType.SHARED_RESOURCE;
+  /**
+   * @deprecated Cloning is not supported in shared resources!
+   */
+  static override async cloneResource<T extends AResource<T>>(): Promise<T> {
+    throw new ResourceError('Cloning is not supported in shared resources!', this);
+  }
+
+  /**
+   * @deprecated Cloning is not supported in shared resources!
+   */
+  override async cloneResourceInPlace(): Promise<void> {
+    throw new ResourceError('Cloning is not supported in shared resources!', this);
+  }
 
   override async diff(): Promise<Diff[]> {
     return [];
   }
 
-  findParentsByProperty(filters: { key: keyof AResource<T>['properties']; value: any }[]): AResource<T>[] {
-    const parents: AResource<T>[] = [];
-    const dependencies = Object.values(this.getParents()).flat();
-    for (const d of dependencies) {
-      const resource = d.to as AResource<T>;
-      if (filters.every((c) => resource.properties[c.key] === c.value)) {
-        parents.push(resource);
-      }
-    }
-    return parents;
+  /**
+   * @deprecated Diff inverse is not supported in shared resources!
+   */
+  override async diffInverse(): Promise<void> {
+    throw new ResourceError('Diff inverse is not supported in shared resources!', this);
+  }
+
+  /**
+   * @deprecated Diff properties is not supported in shared resources!
+   */
+  override async diffProperties(): Promise<Diff[]> {
+    throw new ResourceError('Diff properties is not supported in shared resources!', this);
   }
 
   override getSharedResource(): ASharedResource<T> | undefined {

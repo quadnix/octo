@@ -1,4 +1,4 @@
-import { NodeType, type UnknownResource } from '../app.type.js';
+import { NodeType, type UnknownNode, type UnknownResource } from '../app.type.js';
 import { DiffInverseResourceError, RemoveResourceError, ResourceError } from '../errors/index.js';
 import { type Dependency, DependencyRelationship } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
@@ -8,9 +8,6 @@ import type { IResource } from './resource.interface.js';
 import type { ASharedResource } from './shared-resource.abstract.js';
 
 export abstract class AResource<T> extends ANode<IResource, T> {
-  abstract override readonly NODE_NAME: string;
-  override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
-
   private _deleteMarker = false;
 
   readonly response: IResource['response'] = {};
@@ -27,8 +24,27 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     }
   }
 
+  /**
+   * @deprecated Field dependencies are not supported in resources!
+   */
+  override addFieldDependency(): void {
+    throw new ResourceError('Field dependencies are not supported in resources!', this);
+  }
+
+  /**
+   * @deprecated Relationships are not supported in resources!
+   */
   override addRelationship(): { thatToThisDependency: Dependency; thisToThatDependency: Dependency } {
     throw new ResourceError('Relationships are not supported in resources!', this);
+  }
+
+  clonePropertiesInPlace(sourceResource: UnknownResource): void {
+    for (const key of Object.keys(this.properties)) {
+      delete this.properties[key];
+    }
+    for (const key of Object.keys(sourceResource.properties)) {
+      this.properties[key] = JSON.parse(JSON.stringify(sourceResource.properties[key]));
+    }
   }
 
   static async cloneResource<T extends AResource<T>>(
@@ -86,12 +102,16 @@ export abstract class AResource<T> extends ANode<IResource, T> {
       }
     }
 
-    // Clone properties.
-    for (const key of Object.keys(sourceResource.properties)) {
-      this.properties[key] = JSON.parse(JSON.stringify(sourceResource.properties[key]));
-    }
+    // Replace properties.
+    this.clonePropertiesInPlace(sourceResource);
+    // Replace responses.
+    this.cloneResponseInPlace(sourceResource);
+  }
 
-    // Clone responses.
+  cloneResponseInPlace(sourceResource: UnknownResource): void {
+    for (const key of Object.keys(this.response)) {
+      delete this.response[key];
+    }
     for (const key of Object.keys(sourceResource.response)) {
       this.response[key] = JSON.parse(JSON.stringify(sourceResource.response[key]));
     }
@@ -150,14 +170,15 @@ export abstract class AResource<T> extends ANode<IResource, T> {
           const change = diff.value as { key: string; value: any };
           this.properties[change.key] = JSON.parse(JSON.stringify(change.value));
         } else if (diff.action === DiffAction.DELETE) {
-          delete this.properties[diff.field];
+          const change = diff.value as { key: string; value: any };
+          delete this.properties[change.key];
         } else {
           throw new DiffInverseResourceError('Unknown action on "properties" field during diff inverse!', this, diff);
         }
 
-        for (const key of Object.keys((diff.node as UnknownResource).response)) {
-          this.response[key] = JSON.parse(JSON.stringify((diff.node as UnknownResource).response[key]));
-        }
+        // Replace response.
+        this.cloneResponseInPlace(diff.node as UnknownResource);
+
         return;
       }
       default: {
@@ -170,10 +191,38 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     return DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
   }
 
+  findParentsByProperty(filters: { key: keyof AResource<T>['properties']; value: unknown }[]): AResource<T>[] {
+    const parents: AResource<T>[] = [];
+    const dependencies = Object.values(this.getParents()).flat();
+    for (const d of dependencies) {
+      const resource = d.to as AResource<T>;
+      if (filters.every((c) => resource.properties[c.key] === c.value)) {
+        parents.push(resource);
+      }
+    }
+    return parents;
+  }
+
+  /**
+   * @deprecated Boundary is not supported in resources!
+   */
+  override getBoundaryMembers(): UnknownNode[] {
+    throw new ResourceError('Boundary is not supported in resources!', this);
+  }
+
   getSharedResource(): ASharedResource<T> | undefined {
-    const sameNodeDependencies = this.getChildren(this.NODE_NAME)[this.NODE_NAME];
-    const sharedResourceDependency = sameNodeDependencies?.find((d) => d.to.NODE_TYPE === NodeType.SHARED_RESOURCE);
+    const sameNodeDependencies = this.getChildren()[(this.constructor as typeof AResource).NODE_NAME];
+    const sharedResourceDependency = sameNodeDependencies?.find(
+      (d) => (d.to.constructor as typeof AResource).NODE_TYPE === NodeType.SHARED_RESOURCE,
+    );
     return sharedResourceDependency?.to as ASharedResource<T>;
+  }
+
+  /**
+   * @deprecated Siblings are not supported in resources!
+   */
+  override getSiblings(): { [p: string]: Dependency[] } {
+    throw new ResourceError('Siblings are not supported in resources!', this);
   }
 
   isDeepEquals(other?: UnknownResource): boolean {
@@ -241,7 +290,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
   }
 
   override setContext(): string {
-    return `${this.NODE_NAME}=${this.resourceId}`;
+    return `${(this.constructor as typeof AResource).NODE_NAME}=${this.resourceId}`;
   }
 
   override synth(): IResource {

@@ -2,6 +2,7 @@ import { type ActionOutputs, NodeType, type UnknownResource } from '../app.type.
 import { Factory } from '../decorators/factory.decorator.js';
 import { DiffsOnDirtyResourcesTransactionError, ResourceError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
+import type { AResource } from './resource.abstract.js';
 import type { IResource } from './resource.interface.js';
 
 export class ResourceDataRepository {
@@ -26,7 +27,10 @@ export class ResourceDataRepository {
   }
 
   addActualResource(resource: UnknownResource): void {
-    if (resource.NODE_TYPE !== NodeType.RESOURCE && resource.NODE_TYPE !== NodeType.SHARED_RESOURCE) {
+    if (
+      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE &&
+      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.SHARED_RESOURCE
+    ) {
       throw new ResourceError('Adding non-resource node!', resource);
     }
 
@@ -40,7 +44,10 @@ export class ResourceDataRepository {
   }
 
   addNewResource(resource: UnknownResource): void {
-    if (resource.NODE_TYPE !== NodeType.RESOURCE && resource.NODE_TYPE !== NodeType.SHARED_RESOURCE) {
+    if (
+      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE &&
+      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.SHARED_RESOURCE
+    ) {
       throw new ResourceError('Adding non-resource node!', resource);
     }
 
@@ -55,9 +62,7 @@ export class ResourceDataRepository {
     // Clone response from old.
     const oIndex = this.oldResources.findIndex((r) => r.resourceId === resource.resourceId);
     if (oIndex > -1) {
-      for (const key of Object.keys(this.oldResources[oIndex].response)) {
-        resource.response[key] = JSON.parse(JSON.stringify(this.oldResources[oIndex].response[key]));
-      }
+      resource.cloneResponseInPlace(this.oldResources[oIndex]);
     }
   }
 
@@ -101,7 +106,7 @@ export class ResourceDataRepository {
       const newResource = newResources[newResourceId];
 
       // A shared resource is being added, but shared resources don't have diffs.
-      if (newResource.NODE_TYPE === 'shared-resource') {
+      if ((newResource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
         continue;
       }
 
@@ -161,7 +166,7 @@ export class ResourceDataRepository {
       const newResource = newResources[newResourceId];
 
       // A shared resource is being added, but shared resources don't have diffs.
-      if (newResource.NODE_TYPE === 'shared-resource') {
+      if ((newResource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
         continue;
       }
 
@@ -208,7 +213,10 @@ export class ResourceDataRepository {
   }
 
   removeNewResource(resource: UnknownResource): void {
-    if (resource.NODE_TYPE !== NodeType.RESOURCE && resource.NODE_TYPE !== NodeType.SHARED_RESOURCE) {
+    if (
+      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE &&
+      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.SHARED_RESOURCE
+    ) {
       throw new ResourceError('Removing non-resource node!', resource);
     }
 

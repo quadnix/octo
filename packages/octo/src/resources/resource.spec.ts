@@ -1,170 +1,230 @@
 import { jest } from '@jest/globals';
-import { SharedTestResource, TestResource, TestResourceWithDiffOverride } from '../../test/helpers/test-classes.js';
-import { commitResources, createTestResources } from '../../test/helpers/test-models.js';
-import { Container } from '../decorators/container.js';
-import {
-  ResourceSerializationService,
-  ResourceSerializationServiceFactory,
-} from '../services/serialization/resource/resource-serialization.service.js';
-import { ResourceDataRepository, ResourceDataRepositoryFactory } from './resource-data.repository.js';
+import { TestResource, TestResourceWithDecorator } from '../../test/helpers/test-classes.js';
+import { createTestResources } from '../../test/helpers/test-models.js';
+import { NodeType, type UnknownResource } from '../app.type.js';
+import { Container } from '../functions/container/container.js';
+import { TestContainer } from '../functions/container/test-container.js';
+import { Diff, DiffAction } from '../functions/diff/diff.js';
+import { ResourceDataRepository } from './resource-data.repository.js';
 import { AResource } from './resource.abstract.js';
 
 describe('Resource UT', () => {
   beforeEach(async () => {
-    Container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
-    await Container.get(ResourceDataRepository, { args: [true, [], []] });
+    const resourceDataRepository = new ResourceDataRepository([], [], []);
 
-    Container.registerFactory(ResourceSerializationService, ResourceSerializationServiceFactory);
-    const resourceSerializationService = await Container.get(ResourceSerializationService, { args: [true] });
-    resourceSerializationService.registerClass('SharedTestResource', SharedTestResource);
-    resourceSerializationService.registerClass('TestResource', TestResource);
-    resourceSerializationService.registerClass('TestResourceWithDiffOverride', TestResourceWithDiffOverride);
+    await TestContainer.create(
+      {
+        mocks: [
+          {
+            type: ResourceDataRepository,
+            value: resourceDataRepository,
+          },
+        ],
+      },
+      {
+        factoryTimeoutInMs: 500,
+      },
+    );
   });
 
   afterEach(() => {
     Container.reset();
+
+    jest.restoreAllMocks();
   });
 
-  it('should be able to associate with another resource as its child', async () => {
+  it('should set static members', async () => {
+    const resource = new TestResourceWithDecorator('resource-1', {}, []);
+
+    expect((resource.constructor as typeof AResource).NODE_NAME).toBe('test-resource');
+    expect((resource.constructor as typeof AResource).NODE_PACKAGE).toBe('@octo');
+    expect((resource.constructor as typeof AResource).NODE_TYPE).toBe(NodeType.RESOURCE);
+  });
+
+  it('should add parent', async () => {
     const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
 
     expect((resource1.getChildren()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe('resource-2');
     expect((resource2.getParents()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe('resource-1');
   });
 
-  it('should not be able to associate with another resource multiple times', async () => {
+  it('should not add same parent twice', async () => {
     await expect(async () => {
       await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1', 'resource-1'] });
     }).rejects.toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
   });
 
+  describe('cloneResource()', () => {
+    it('should clone a resource', async () => {
+      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      resource2.properties.key1 = 'value1';
+      resource2.response.key1 = 'value1';
+
+      const resource2Copy = await AResource.cloneResource(resource2, async (resourceId: string) => {
+        if (resourceId === 'resource-1') {
+          return resource1;
+        } else if (resourceId === 'resource-2') {
+          return resource2;
+        }
+        throw new Error('Unknown resource!');
+      });
+
+      expect(resource2Copy.synth()).toMatchInlineSnapshot(`
+       {
+         "properties": {
+           "key1": "value1",
+         },
+         "resourceId": "resource-2",
+         "response": {
+           "key1": "value1",
+         },
+       }
+      `);
+      expect(resource2Copy.getParents()['test-resource'].length).toBe(1);
+    });
+  });
+
+  describe('cloneResourceInPlace()', () => {
+    it('should clone an empty resource in place', async () => {
+      const [resource1, resource2, resource3] = await createTestResources({
+        'resource-1': [],
+        'resource-2': ['resource-1'],
+        'resource-3': [],
+      });
+      resource2.properties.key1 = 'value1';
+      resource2.response.key1 = 'value1';
+
+      await resource3.cloneResourceInPlace(resource2, async (resourceId: string) => {
+        if (resourceId === 'resource-1') {
+          return resource1;
+        } else if (resourceId === 'resource-2') {
+          return resource2;
+        }
+        throw new Error('Unknown resource!');
+      });
+
+      expect(resource3.synth()).toMatchInlineSnapshot(`
+       {
+         "properties": {
+           "key1": "value1",
+         },
+         "resourceId": "resource-3",
+         "response": {
+           "key1": "value1",
+         },
+       }
+      `);
+      expect(resource3.getParents()['test-resource'].length).toBe(1);
+    });
+
+    it('should clone an existing resource in place', async () => {
+      const [resource1, resource2, , resource4] = await createTestResources({
+        'resource-1': [],
+        'resource-2': ['resource-1'],
+        'resource-3': [],
+        'resource-4': ['resource-3'],
+      });
+      resource2.properties.key1 = 'value1';
+      resource2.response.key1 = 'value1';
+      resource4.properties.key1 = 'value1';
+      resource4.response.key1 = 'value1';
+
+      await resource4.cloneResourceInPlace(resource2, async (resourceId: string) => {
+        if (resourceId === 'resource-1') {
+          return resource1;
+        } else if (resourceId === 'resource-2') {
+          return resource2;
+        }
+        throw new Error('Unknown resource!');
+      });
+
+      expect(resource4.synth()).toMatchInlineSnapshot(`
+       {
+         "properties": {
+           "key1": "value1",
+         },
+         "resourceId": "resource-4",
+         "response": {
+           "key1": "value1",
+         },
+       }
+      `);
+      expect(resource4.getParents()['test-resource'].length).toBe(1);
+      expect((resource4.getParents()['test-resource'][0].to as UnknownResource).resourceId).toBe('resource-1');
+    });
+
+    it('should clone an existing resource in place and replace properties and response', async () => {
+      const [resource1, resource2, , resource4] = await createTestResources({
+        'resource-1': [],
+        'resource-2': ['resource-1'],
+        'resource-3': [],
+        'resource-4': ['resource-3'],
+      });
+      resource2.properties.key1 = 'value1';
+      resource2.response.key1 = 'value1';
+      resource4.properties.key2 = 'value1';
+      resource4.response.key2 = 'value1';
+
+      await resource4.cloneResourceInPlace(resource2, async (resourceId: string) => {
+        if (resourceId === 'resource-1') {
+          return resource1;
+        } else if (resourceId === 'resource-2') {
+          return resource2;
+        }
+        throw new Error('Unknown resource!');
+      });
+
+      expect(resource4.synth()).toMatchInlineSnapshot(`
+       {
+         "properties": {
+           "key1": "value1",
+         },
+         "resourceId": "resource-4",
+         "response": {
+           "key1": "value1",
+         },
+       }
+      `);
+      expect(resource4.getParents()['test-resource'].length).toBe(1);
+      expect((resource4.getParents()['test-resource'][0].to as UnknownResource).resourceId).toBe('resource-1');
+    });
+  });
+
   describe('diff()', () => {
-    it('should produce an add diff', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
-
-      await createTestResources({ 'resource-1': [] });
-
-      const diffs = await resourceDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "model": "test-resource=resource-1",
-           "value": "resource-1",
-         },
-       ]
-      `);
-    });
-
-    it('should produce diff of a resource associated with a shared resource using the overridden diff()', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
-
-      const resource1 = new TestResourceWithDiffOverride('resource-1');
-      resourceDataRepository.add(resource1);
-      await createTestResources({}, { 'shared-resource-1': [resource1] });
-
-      const diffOverrideSpy = jest.spyOn(resource1, 'diff');
-      await resourceDataRepository.diff();
-
-      expect(diffOverrideSpy).toHaveBeenCalledTimes(1);
-      expect(diffOverrideSpy.mock.calls[0]).toHaveLength(1);
-      expect((diffOverrideSpy.mock.calls[0] as any)[0].resourceId).toBe('shared-resource-1');
-    });
-
-    it('should produce a delete diff', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
-
-      const [resource1] = await createTestResources({ 'resource-1': [] });
-
-      await commitResources();
-
-      resourceDataRepository.remove(resource1);
-
-      const diffs = await resourceDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "model": "test-resource=resource-1",
-           "value": "resource-1",
-         },
-       ]
-      `);
-    });
-
-    it('should produce a delete diff when resource is removed', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
-
-      const [resource1] = await createTestResources({ 'resource-1': [] });
-
-      await commitResources();
-
-      resourceDataRepository.remove(resource1);
-
-      const diffs = await resourceDataRepository.diff();
-      expect(diffs).toMatchInlineSnapshot(`
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "model": "test-resource=resource-1",
-           "value": "resource-1",
-         },
-       ]
-      `);
-    });
-
-    it('should produce an update diff using overridden resource diff()', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
-
-      let resource1 = new TestResourceWithDiffOverride('resource-1');
-      resourceDataRepository.add(resource1);
-
-      await commitResources();
-
-      resource1 = resourceDataRepository.getById('resource-1') as TestResourceWithDiffOverride;
-      const diffOverrideSpy = jest.spyOn(resource1, 'diff');
-      await resourceDataRepository.diff();
-
-      expect(diffOverrideSpy).toHaveBeenCalledTimes(1);
-      expect(diffOverrideSpy.mock.calls[0]).toHaveLength(1);
-      expect((diffOverrideSpy.mock.calls[0] as any)[0].resourceId).toBe('resource-1');
-    });
-
     it('should not produce an update diff if no changes found', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resource1 = new TestResource('resource-1', {}, []);
+      const resource2 = new TestResource('resource-2', {}, [resource1]);
 
-      await createTestResources({ 'resource-1': [] });
+      const diffs = await resource2.diff(resource2);
 
-      await commitResources();
-
-      const diffs = await resourceDataRepository.diff();
       expect(diffs).toMatchInlineSnapshot(`[]`);
     });
 
     it('should produce an update diff of flat properties', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
-
-      let [resource1] = await createTestResources({ 'resource-1': [] });
+      const resource1 = new TestResource('resource-1', {}, []);
       resource1.properties['key1'] = 'value1';
       resource1.properties['key2'] = 'value2';
 
-      await commitResources();
+      const resource1New = new TestResource('resource-1', {}, []);
+      resource1New.properties['key2'] = 'value2.1';
+      resource1New.properties['key3'] = 'value3';
 
-      // Update resource properties.
-      resource1 = resourceDataRepository.getById('resource-1')!;
-      resource1.properties['key2'] = 'value2.1';
-      resource1.properties['key3'] = 'value3';
-
-      const diffs = await resourceDataRepository.diff();
+      const diffs = await resource1New.diff(resource1);
       expect(diffs).toMatchInlineSnapshot(`
        [
          {
+           "action": "delete",
+           "field": "properties",
+           "node": "test-resource=resource-1",
+           "value": {
+             "key": "key1",
+             "value": "value1",
+           },
+         },
+         {
            "action": "update",
            "field": "properties",
-           "model": "test-resource=resource-1",
+           "node": "test-resource=resource-1",
            "value": {
              "key": "key2",
              "value": "value2.1",
@@ -173,7 +233,7 @@ describe('Resource UT', () => {
          {
            "action": "add",
            "field": "properties",
-           "model": "test-resource=resource-1",
+           "node": "test-resource=resource-1",
            "value": {
              "key": "key3",
              "value": "value3",
@@ -184,26 +244,21 @@ describe('Resource UT', () => {
     });
 
     it('should produce an update diff of nested properties', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
-
-      let [resource1] = await createTestResources({ 'resource-1': [] });
+      const resource1 = new TestResource('resource-1', {}, []);
       resource1.properties['key1'] = { 'key1.1': 'value1.1' };
       resource1.properties['key2'] = { 'key2.1': 'value2.1' };
 
-      await commitResources();
+      const resource1New = new TestResource('resource-1', {}, []);
+      resource1New.properties['key1'] = { 'key1.1': 'value1.3', 'key1.2': 'value1.2' };
+      resource1New.properties['key2'] = { 'key2.1': 'value2.1' };
 
-      // Update resource properties.
-      resource1 = resourceDataRepository.getById('resource-1')!;
-      resource1.properties['key1'] = { 'key1.1': 'value1.3', 'key1.2': 'value1.2' };
-      resource1.properties['key2'] = { 'key2.1': 'value2.1' };
-
-      const diffs = await resourceDataRepository.diff();
+      const diffs = await resource1New.diff(resource1);
       expect(diffs).toMatchInlineSnapshot(`
        [
          {
            "action": "update",
            "field": "properties",
-           "model": "test-resource=resource-1",
+           "node": "test-resource=resource-1",
            "value": {
              "key": "key1",
              "value": {
@@ -217,24 +272,19 @@ describe('Resource UT', () => {
     });
 
     it('should produce an update diff of array properties', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
-
-      let [resource1] = await createTestResources({ 'resource-1': [] });
+      const resource1 = new TestResource('resource-1', {}, []);
       resource1.properties['key1'] = ['value1.1', 'value1.2'];
 
-      await commitResources();
+      const resource1New = new TestResource('resource-1', {}, []);
+      resource1New.properties['key1'] = ['value1.3', 'value1.4'];
 
-      // Update resource properties.
-      resource1 = resourceDataRepository.getById('resource-1')!;
-      resource1.properties['key1'] = ['value1.3', 'value1.4'];
-
-      const diffs = await resourceDataRepository.diff();
+      const diffs = await resource1New.diff(resource1);
       expect(diffs).toMatchInlineSnapshot(`
        [
          {
            "action": "update",
            "field": "properties",
-           "model": "test-resource=resource-1",
+           "node": "test-resource=resource-1",
            "value": {
              "key": "key1",
              "value": [
@@ -248,18 +298,12 @@ describe('Resource UT', () => {
     });
 
     it('should produce an add parent diffs on parent add', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resource1 = new TestResource('resource-1', {}, []);
 
-      await createTestResources({ 'parent-resource-1': [], 'resource-1': [] });
+      const parentResource1New = new TestResource('parent-resource-1', {}, []);
+      const resource1New = new TestResource('resource-1', {}, [parentResource1New]);
 
-      await commitResources();
-
-      // Update resource parents.
-      const parentResource1 = resourceDataRepository.getById('parent-resource-1')!;
-      const resource1 = resourceDataRepository.getById('resource-1')!;
-      parentResource1.addChild('resourceId', resource1, 'resourceId');
-
-      const diffs = await resourceDataRepository.diff();
+      const diffs = await resource1New.diff(resource1);
       expect(diffs.map((d) => ({ action: d.action, field: d.field }))).toMatchInlineSnapshot(`
        [
          {
@@ -271,21 +315,12 @@ describe('Resource UT', () => {
     });
 
     it('should produce a delete parent diffs on parent delete', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const parentResource1 = new TestResource('parent-resource-1', {}, []);
+      const resource1 = new TestResource('resource-1', {}, [parentResource1]);
 
-      await createTestResources({
-        'parent-resource-1': [],
-        'resource-1': ['parent-resource-1'],
-      });
+      const resource1New = new TestResource('resource-1', {}, []);
 
-      await commitResources();
-
-      // Update resource parents.
-      const parentResource1 = resourceDataRepository.getById('parent-resource-1')!;
-      const resource1 = resourceDataRepository.getById('resource-1')!;
-      parentResource1.removeRelationship(resource1);
-
-      const diffs = await resourceDataRepository.diff();
+      const diffs = await resource1New.diff(resource1);
       expect(diffs.map((d) => ({ action: d.action, field: d.field }))).toMatchInlineSnapshot(`
        [
          {
@@ -294,6 +329,274 @@ describe('Resource UT', () => {
          },
        ]
       `);
+    });
+  });
+
+  describe('diffInverse()', () => {
+    it('should throw error when diff field is unknown', async () => {
+      const resource1 = new TestResource('resource-1', {}, []);
+      const diff = new Diff(resource1, DiffAction.ADD, 'field', 'value');
+
+      await expect(async () => {
+        await resource1.diffInverse(diff, async () => resource1);
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Unknown field during diff inverse!"`);
+    });
+
+    describe('when diff field is resourceId', () => {
+      it('should call remove() when action is DELETE', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        const diff = new Diff(resource1, DiffAction.DELETE, 'resourceId', 'value');
+
+        jest.spyOn(resource1, 'remove').mockImplementation(() => {});
+
+        await resource1.diffInverse(diff, async () => resource1);
+        expect(resource1.remove).toHaveBeenCalledTimes(1);
+      });
+
+      it('should throw error when action is not DELETE', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'value');
+
+        await expect(async () => {
+          await resource1.diffInverse(diff, async () => resource1);
+        }).rejects.toThrowErrorMatchingInlineSnapshot(`"Unknown action on "resourceId" field during diff inverse!"`);
+      });
+    });
+
+    describe('when diff field is parent', () => {
+      it('should call cloneResourceInPlace() when action is ADD', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        const diff = new Diff(resource1, DiffAction.ADD, 'parent', 'value');
+
+        jest.spyOn(resource1, 'cloneResourceInPlace').mockImplementation(async () => {});
+
+        await resource1.diffInverse(diff, async () => resource1);
+        expect(resource1.cloneResourceInPlace).toHaveBeenCalledTimes(1);
+      });
+
+      it('should call cloneResourceInPlace() when action is DELETE', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        const diff = new Diff(resource1, DiffAction.DELETE, 'parent', 'value');
+
+        jest.spyOn(resource1, 'cloneResourceInPlace').mockImplementation(async () => {});
+
+        await resource1.diffInverse(diff, async () => resource1);
+        expect(resource1.cloneResourceInPlace).toHaveBeenCalledTimes(1);
+      });
+
+      it('should throw error when action is not ADD or DELETE', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        const diff = new Diff(resource1, DiffAction.UPDATE, 'parent', 'value');
+
+        await expect(async () => {
+          await resource1.diffInverse(diff, async () => resource1);
+        }).rejects.toThrowErrorMatchingInlineSnapshot(`"Unknown action on "parent" field during diff inverse!"`);
+      });
+    });
+
+    describe('when diff field is properties', () => {
+      it('should add property when action is ADD', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        const diff = new Diff(resource1, DiffAction.ADD, 'properties', { key: 'key1', value: 'value1' });
+
+        await resource1.diffInverse(diff, async () => resource1);
+
+        expect(resource1.properties).toMatchInlineSnapshot(`
+         {
+           "key1": "value1",
+         }
+        `);
+      });
+
+      it('should update property when action is UPDATE', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        resource1.properties.key1 = 'value';
+        const diff = new Diff(resource1, DiffAction.UPDATE, 'properties', { key: 'key1', value: 'value1' });
+
+        await resource1.diffInverse(diff, async () => resource1);
+
+        expect(resource1.properties).toMatchInlineSnapshot(`
+         {
+           "key1": "value1",
+         }
+        `);
+      });
+
+      it('should delete property when action is DELETE', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        resource1.properties.key1 = 'value';
+        const diff = new Diff(resource1, DiffAction.DELETE, 'properties', { key: 'key1' });
+
+        await resource1.diffInverse(diff, async () => resource1);
+
+        expect(resource1.properties).toMatchInlineSnapshot(`{}`);
+      });
+
+      it('should throw error when action is not ADD, UPDATE, or DELETE', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        const diff = new Diff(resource1, DiffAction.REPLACE, 'properties', '');
+
+        await expect(async () => {
+          await resource1.diffInverse(diff, async () => resource1);
+        }).rejects.toThrowErrorMatchingInlineSnapshot(`"Unknown action on "properties" field during diff inverse!"`);
+      });
+
+      it('should replace response', async () => {
+        const resource1 = new TestResource('resource-1', {}, []);
+        resource1.response.key1 = 'value1';
+        const diff = new Diff(resource1, DiffAction.ADD, 'properties', { key: 'key1', value: 'value1' });
+
+        const resource2 = new TestResource('resource-2', {}, []);
+        resource2.response.key2 = 'value2';
+        await resource2.diffInverse(diff, async () => resource1);
+
+        expect(resource2.response).toMatchInlineSnapshot(`
+         {
+           "key1": "value1",
+         }
+        `);
+      });
+    });
+  });
+
+  describe('findParentsByProperty()', () => {
+    it('should return empty array when filters do not match', async () => {
+      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      resource1.properties.key1 = 'value1';
+
+      const parents = resource2.findParentsByProperty([{ key: 'key1', value: 'value2' }]);
+
+      expect(parents).toEqual([]);
+    });
+
+    it('should return matching parents in array when filters match', async () => {
+      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      resource1.properties.key1 = 'value1';
+
+      const parents = resource2.findParentsByProperty([{ key: 'key1', value: 'value1' }]);
+
+      expect(parents.length).toBe(1);
+      expect(parents[0]).toBe(resource1);
+    });
+  });
+
+  describe('getAncestors()', () => {
+    it('should return self where there are no ancestors', async () => {
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+
+      const ancestors = resource1.getAncestors();
+
+      expect(ancestors.map((r: UnknownResource) => r.resourceId)).toMatchInlineSnapshot(`
+       [
+         "resource-1",
+       ]
+      `);
+    });
+
+    it('should return self and ancestors where there are ancestors', async () => {
+      const [, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+
+      const ancestors = resource2.getAncestors();
+
+      expect(ancestors.map((r: UnknownResource) => r.resourceId)).toMatchInlineSnapshot(`
+       [
+         "resource-2",
+         "resource-1",
+       ]
+      `);
+    });
+  });
+
+  describe('getSharedResource()', () => {
+    it('should return undefined when this resource is not shared', async () => {
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+
+      expect(resource1.getSharedResource()).toBeUndefined();
+    });
+
+    it('should return shared resource when this resource is shared', async () => {
+      const [resource1, sharedResource1] = await createTestResources(
+        { 'resource-1': [] },
+        { 'shared-resource-1': ['resource-1'] },
+      );
+
+      expect(resource1.getSharedResource()).toBe(sharedResource1);
+    });
+  });
+
+  describe('hasAncestor()', () => {
+    it('should return false when resource is not an ancestor', async () => {
+      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
+
+      const isAncestor = resource2.hasAncestor(resource1);
+
+      expect(isAncestor).toBe(false);
+    });
+
+    it('should return true when resource is an ancestor', async () => {
+      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+
+      const isAncestor = resource2.hasAncestor(resource1);
+
+      expect(isAncestor).toBe(true);
+    });
+
+    it('should return true when resource is checked against itself', async () => {
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+
+      const isAncestor = resource1.hasAncestor(resource1);
+
+      expect(isAncestor).toBe(true);
+    });
+  });
+
+  describe('isDeepEquals()', () => {
+    it('should return false when no other resource', async () => {
+      const resource1 = new TestResource('resource-1', {}, []);
+
+      const result = resource1.isDeepEquals();
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when other resource is not the same resource', async () => {
+      const resource1 = new TestResource('resource-1', {}, []);
+      resource1.properties.key1 = 'value1';
+      const resource1New = new TestResource('resource-1', {}, []);
+
+      const result = resource1.isDeepEquals(resource1New);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when the other resource differs in deletion', async () => {
+      const resource1 = new TestResource('resource-1', {}, []);
+      resource1.remove();
+      const resource1New = new TestResource('resource-1', {}, []);
+
+      const result = resource1.isDeepEquals(resource1New);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false when the other resource has different parents', async () => {
+      const resource1 = new TestResource('resource-1', {}, []);
+      const resource2 = new TestResource('resource-2', {}, [resource1]);
+      const resource2New = new TestResource('resource-2', {}, []);
+
+      const result = resource2.isDeepEquals(resource2New);
+
+      expect(result).toBe(false);
+    });
+
+    it('should return true when the other resource is same including parents', async () => {
+      const resource1 = new TestResource('resource-1', {}, []);
+      const resource2 = new TestResource('resource-2', {}, [resource1]);
+      const resource2New = new TestResource('resource-2', {}, [resource1]);
+
+      const result = resource2.isDeepEquals(resource2New);
+
+      expect(result).toBe(true);
     });
   });
 
@@ -307,7 +610,7 @@ describe('Resource UT', () => {
 
       expect(() => {
         resource1.remove();
-      }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove model until dependent models exist!"`);
+      }).toThrowErrorMatchingInlineSnapshot(`"Cannot remove resource until dependent nodes exist!"`);
     });
 
     it('should be able to remove leaf resources', async () => {
@@ -324,19 +627,29 @@ describe('Resource UT', () => {
     });
   });
 
+  describe('setContext()', () => {
+    it('should be able to get context', async () => {
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+
+      expect(resource1.getContext()).toMatchInlineSnapshot(`"test-resource=resource-1"`);
+    });
+  });
+
   describe('synth()', () => {
     it('should be able to synth a resource', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
-      resource1.properties['key1'] = 'value1';
-      resource2.properties['key1'] = 'value1';
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+      resource1.properties.key1 = 'value1';
+      resource1.response.key1 = 'value1';
 
-      expect(resource2.synth()).toMatchInlineSnapshot(`
+      expect(resource1.synth()).toMatchInlineSnapshot(`
        {
          "properties": {
            "key1": "value1",
          },
-         "resourceId": "resource-2",
-         "response": {},
+         "resourceId": "resource-1",
+         "response": {
+           "key1": "value1",
+         },
        }
       `);
     });
@@ -348,11 +661,12 @@ describe('Resource UT', () => {
       resource1.properties['key1'] = 'value1';
       resource2.properties['key2'] = 'value2';
 
-      const deReferenceResource = async (resourceId: string): Promise<TestResource> => {
-        return new TestResource(resourceId);
-      };
-
-      const resource2_1 = await AResource.unSynth(TestResource, resource2.synth(), ['resource-1'], deReferenceResource);
+      const resource2_1 = await AResource.unSynth(
+        TestResource,
+        resource2.synth(),
+        ['resource-1'],
+        async () => resource1,
+      );
 
       expect(resource2_1.getParents()['test-resource']).toHaveLength(1);
     });
