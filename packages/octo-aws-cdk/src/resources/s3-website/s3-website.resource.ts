@@ -1,15 +1,14 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import type { IS3StorageProperties } from './s3-storage.interface.js';
+import type { IS3WebsiteProperties, IS3WebsiteResponse } from './s3-website.interface.js';
 
-@Resource()
-export class S3Storage extends AResource<S3Storage> {
-  readonly NODE_NAME: string = 's3-storage';
+@Resource('@octo', 's3-website')
+export class S3Website extends AResource<S3Website> {
+  declare properties: IS3WebsiteProperties;
+  declare response: IS3WebsiteResponse;
 
-  declare properties: IS3StorageProperties;
+  private readonly manifestDiff: { [key: string]: ['add' | 'delete' | 'update', string] } = {};
 
-  private readonly manifestDiff: { [key: string]: ['add' | 'delete' | 'deleteDirectory', string] } = {};
-
-  constructor(resourceId: string, properties: IS3StorageProperties) {
+  constructor(resourceId: string, properties: IS3WebsiteProperties) {
     super(resourceId, properties, []);
   }
 
@@ -33,7 +32,7 @@ export class S3Storage extends AResource<S3Storage> {
     return diffs;
   }
 
-  updateManifestDiff(manifestDiff: S3Storage['manifestDiff']): void {
+  updateManifestDiff(manifestDiff: S3Website['manifestDiff']): void {
     for (const key of Object.keys(manifestDiff)) {
       this.manifestDiff[key] = [...manifestDiff[key]];
     }

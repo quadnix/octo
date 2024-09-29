@@ -1,19 +1,17 @@
 import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { Options, Upload } from '@aws-sdk/lib-storage';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import mime from 'mime';
 import { S3Storage } from '../s3-storage.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(S3Storage)
 export class UpdateSourcePathsInS3StorageResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'UpdateSourcePathsInS3StorageResourceAction';
-
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof S3Storage &&
-      diff.node.NODE_NAME === 's3-storage' &&
+      (diff.node.constructor as typeof S3Storage).NODE_NAME === 's3-storage' &&
       diff.field === 'update-source-paths'
     );
   }
