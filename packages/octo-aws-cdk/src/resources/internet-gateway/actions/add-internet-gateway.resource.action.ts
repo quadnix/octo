@@ -1,18 +1,16 @@
 import { AttachInternetGatewayCommand, CreateInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
-import type { Vpc } from '../../vpc/vpc.resource.js';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { Vpc } from '../../vpc/index.js';
 import type { IInternetGatewayResponse } from '../internet-gateway.interface.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(InternetGateway)
 export class AddInternetGatewayResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'AddInternetGatewayResourceAction';
-
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof InternetGateway &&
-      diff.node.NODE_NAME === 'internet-gateway'
+      (diff.node.constructor as typeof InternetGateway).NODE_NAME === 'internet-gateway'
     );
   }
 

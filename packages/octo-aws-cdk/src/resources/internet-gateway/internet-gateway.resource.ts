@@ -1,11 +1,9 @@
 import { AResource, Resource } from '@quadnix/octo';
-import type { Vpc } from '../vpc/vpc.resource.js';
+import type { Vpc } from '../vpc/index.js';
 import type { IInternetGatewayProperties, IInternetGatewayResponse } from './internet-gateway.interface.js';
 
-@Resource()
+@Resource('@octo', 'internet-gateway')
 export class InternetGateway extends AResource<InternetGateway> {
-  readonly NODE_NAME: string = 'internet-gateway';
-
   declare properties: IInternetGatewayProperties;
   declare response: IInternetGatewayResponse;
 
