@@ -1,13 +1,11 @@
 import { AResource, Resource } from '@quadnix/octo';
-import type { InternetGateway } from '../internet-gateway/internet-gateway.resource.js';
-import type { Subnet } from '../subnet/subnet.resource.js';
-import type { Vpc } from '../vpc/vpc.resource.js';
+import type { InternetGateway } from '../internet-gateway/index.js';
+import type { Subnet } from '../subnet/index.js';
+import type { Vpc } from '../vpc/index.js';
 import type { IRouteTableProperties, IRouteTableResponse } from './route-table.interface.js';
 
-@Resource()
+@Resource('@octo', 'route-table')
 export class RouteTable extends AResource<RouteTable> {
-  readonly NODE_NAME: string = 'route-table';
-
   declare properties: IRouteTableProperties;
   declare response: IRouteTableResponse;
 

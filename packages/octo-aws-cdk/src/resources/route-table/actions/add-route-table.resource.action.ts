@@ -4,19 +4,21 @@ import {
   CreateRouteTableCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
-import type { InternetGateway } from '../../internet-gateway/internet-gateway.resource.js';
-import type { Subnet } from '../../subnet/subnet.resource.js';
-import type { Vpc } from '../../vpc/vpc.resource.js';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { InternetGateway } from '../../internet-gateway/index.js';
+import type { Subnet } from '../../subnet/index.js';
+import type { Vpc } from '../../vpc/index.js';
 import type { IRouteTableResponse } from '../route-table.interface.js';
 import { RouteTable } from '../route-table.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(RouteTable)
 export class AddRouteTableResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'AddRouteTableResourceAction';
-
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.node instanceof RouteTable && diff.node.NODE_NAME === 'route-table';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof RouteTable &&
+      (diff.node.constructor as typeof RouteTable).NODE_NAME === 'route-table'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {
