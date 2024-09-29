@@ -1,16 +1,16 @@
 import { DeleteServiceCommand, DescribeServicesCommand, ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { EcsCluster } from '../ecs-cluster.resource.js';
+import type { EcsCluster } from '../../ecs-cluster/index.js';
 import { EcsService } from '../ecs-service.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(EcsService)
 export class DeleteEcsServiceResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'DeleteEcsServiceResourceAction';
-
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.DELETE && diff.node instanceof EcsService && diff.node.NODE_NAME === 'ecs-service'
+      diff.action === DiffAction.DELETE &&
+      diff.node instanceof EcsService &&
+      (diff.node.constructor as typeof EcsService).NODE_NAME === 'ecs-service'
     );
   }
 
@@ -24,6 +24,17 @@ export class DeleteEcsServiceResourceAction implements IResourceAction {
 
     // Get instances.
     const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
+
+    // Check if service is ACTIVE.
+    const describeResult = await ecsClient.send(
+      new DescribeServicesCommand({
+        cluster: ecsClusterProperties.clusterName,
+        services: [properties.serviceName],
+      }),
+    );
+    if (describeResult.services?.length === 0 || describeResult.services![0].status!.toUpperCase() === 'INACTIVE') {
+      return;
+    }
 
     // Scale down the service to 0.
     await ecsClient.send(
@@ -44,7 +55,7 @@ export class DeleteEcsServiceResourceAction implements IResourceAction {
           }),
         );
 
-        return result.services?.length === 1 && result.services[0].status!.toUpperCase() === 'INACTIVE';
+        return result.services?.length === 1 && result.services[0].runningCount === 0;
       },
       {
         maxRetries: 36,

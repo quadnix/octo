@@ -1,14 +1,12 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, Resource, UnknownResource } from '@quadnix/octo';
-import { SecurityGroup } from '../security-group/security-group.resource.js';
-import type { Subnet } from '../subnet/subnet.resource.js';
-import type { EcsCluster } from './ecs-cluster.resource.js';
+import { EcsTaskDefinition } from '../ecs-task-definition/index.js';
+import { SecurityGroup } from '../security-group/index.js';
+import type { Subnet } from '../subnet/index.js';
+import type { EcsCluster } from '../ecs-cluster/index.js';
 import type { IEcsServiceProperties, IEcsServiceResponse } from './ecs-service.interface.js';
-import { EcsTaskDefinition } from './ecs-task-definition.resource.js';
 
-@Resource()
+@Resource('@octo', 'ecs-service')
 export class EcsService extends AResource<EcsService> {
-  readonly NODE_NAME: string = 'ecs-service';
-
   declare properties: IEcsServiceProperties;
   declare response: IEcsServiceResponse;
 
@@ -36,7 +34,7 @@ export class EcsService extends AResource<EcsService> {
         // Translate TaskDefinition parent update into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
-      } else if (diffs[i].field === 'desiredCount' && diffs[i].action === DiffAction.UPDATE) {
+      } else if (diffs[i].field === 'properties' && diffs[i].action === DiffAction.UPDATE) {
         // Consolidate property diffs - desiredCount.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);

@@ -1,18 +1,20 @@
 import { CreateServiceCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
-import type { SecurityGroup } from '../../security-group/security-group.resource.js';
-import type { Subnet } from '../../subnet/subnet.resource.js';
-import type { EcsCluster } from '../ecs-cluster.resource.js';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { EcsTaskDefinition } from '../../ecs-task-definition/index.js';
+import type { SecurityGroup } from '../../security-group/index.js';
+import type { Subnet } from '../../subnet/index.js';
+import type { EcsCluster } from '../../ecs-cluster/index.js';
 import type { IEcsServiceResponse } from '../ecs-service.interface.js';
 import { EcsService } from '../ecs-service.resource.js';
-import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(EcsService)
 export class AddEcsServiceResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'AddEcsServiceResourceAction';
-
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.node instanceof EcsService && diff.node.NODE_NAME === 'ecs-service';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof EcsService &&
+      (diff.node.constructor as typeof EcsService).NODE_NAME === 'ecs-service'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

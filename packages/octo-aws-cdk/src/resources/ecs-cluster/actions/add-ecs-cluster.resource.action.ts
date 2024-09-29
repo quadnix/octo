@@ -1,14 +1,16 @@
 import { CreateClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { IEcsClusterResponse } from '../ecs-cluster.interface.js';
 import { EcsCluster } from '../ecs-cluster.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(EcsCluster)
 export class AddEcsClusterResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'AddEcsClusterResourceAction';
-
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.node instanceof EcsCluster && diff.node.NODE_NAME === 'ecs-cluster';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof EcsCluster &&
+      (diff.node.constructor as typeof EcsCluster).NODE_NAME === 'ecs-cluster'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

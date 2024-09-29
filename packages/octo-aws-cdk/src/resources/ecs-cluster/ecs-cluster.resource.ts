@@ -1,10 +1,8 @@
 import { AResource, Resource } from '@quadnix/octo';
 import type { IEcsClusterProperties, IEcsClusterResponse } from './ecs-cluster.interface.js';
 
-@Resource()
+@Resource('@octo', 'ecs-cluster')
 export class EcsCluster extends AResource<EcsCluster> {
-  readonly NODE_NAME: string = 'ecs-cluster';
-
   declare properties: IEcsClusterProperties;
   declare response: IEcsClusterResponse;
 

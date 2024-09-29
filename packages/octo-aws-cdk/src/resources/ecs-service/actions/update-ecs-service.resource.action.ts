@@ -1,17 +1,19 @@
 import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
-import type { SecurityGroup } from '../../security-group/security-group.resource.js';
-import type { Subnet } from '../../subnet/subnet.resource.js';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { EcsCluster } from '../../ecs-cluster/index.js';
+import type { EcsTaskDefinition } from '../../ecs-task-definition/index.js';
+import type { SecurityGroup } from '../../security-group/index.js';
+import type { Subnet } from '../../subnet/index.js';
+import type { IEcsServiceResponse } from '../ecs-service.interface.js';
 import { EcsService } from '../ecs-service.resource.js';
-import type { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(EcsService)
 export class UpdateEcsServiceResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'UpdateEcsServiceResourceAction';
-
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.UPDATE && diff.node instanceof EcsService && diff.node.NODE_NAME === 'ecs-service'
+      diff.action === DiffAction.UPDATE &&
+      diff.node instanceof EcsService &&
+      (diff.node.constructor as typeof EcsService).NODE_NAME === 'ecs-service'
     );
   }
 
@@ -20,6 +22,10 @@ export class UpdateEcsServiceResourceAction implements IResourceAction {
     const ecsService = diff.node as EcsService;
     const parents = ecsService.getParents();
     const properties = ecsService.properties;
+    const response = ecsService.response;
+
+    const ecsCluster = parents['ecs-cluster'][0].to as EcsCluster;
+    const ecsClusterProperties = ecsCluster.properties;
 
     const ecsTaskDefinition = parents['ecs-task-definition'][0].to as EcsTaskDefinition;
     const ecsTaskDefinitionResponse = ecsTaskDefinition.response;
@@ -34,8 +40,9 @@ export class UpdateEcsServiceResourceAction implements IResourceAction {
     const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
 
     // Update the service.
-    await ecsClient.send(
+    const data = await ecsClient.send(
       new UpdateServiceCommand({
+        cluster: ecsClusterProperties.clusterName,
         desiredCount: properties.desiredCount,
         networkConfiguration: {
           awsvpcConfiguration: {
@@ -47,13 +54,16 @@ export class UpdateEcsServiceResourceAction implements IResourceAction {
         taskDefinition: ecsTaskDefinitionResponse.taskDefinitionArn,
       }),
     );
+
+    // Set response.
+    response.serviceArn = data.service!.serviceArn!;
   }
 
-  async mock(): Promise<void> {
-    const ecsClient = await Container.get(ECSClient);
+  async mock(capture: Partial<IEcsServiceResponse>): Promise<void> {
+    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
     ecsClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof UpdateServiceCommand) {
-        return;
+        return { service: { serviceArn: capture.serviceArn } };
       }
     };
   }

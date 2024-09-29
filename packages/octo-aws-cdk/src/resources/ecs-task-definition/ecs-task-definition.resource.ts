@@ -1,13 +1,11 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@quadnix/octo';
-import { Efs } from '../efs/efs.resource.js';
-import type { IamRole } from '../iam/iam-role.resource.js';
-import { EcsService } from './ecs-service.resource.js';
+import { Efs } from '../efs/index.js';
+import type { IamRole } from '../iam-role/index.js';
+import { EcsService } from '../ecs-service/index.js';
 import type { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from './ecs-task-definition.interface.js';
 
-@Resource()
+@Resource('@octo', 'ecs-task-definition')
 export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
-  readonly NODE_NAME: string = 'ecs-task-definition';
-
   declare properties: IEcsTaskDefinitionProperties;
   declare response: IEcsTaskDefinitionResponse;
 
@@ -26,17 +24,8 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
         // Consolidate all Efs parent updates into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
-      } else if (
-        (diffs[i].field === 'environmentVariables' || diffs[i].field === 'image') &&
-        (diffs[i].action === DiffAction.ADD ||
-          diffs[i].action === DiffAction.UPDATE ||
-          diffs[i].action === DiffAction.DELETE)
-      ) {
-        // Consolidate property diffs - environment variables & image.
-        shouldConsolidateDiffs = true;
-        diffs.splice(i, 1);
-      } else if ((diffs[i].field === 'cpu' || diffs[i].field === 'memory') && diffs[i].action === DiffAction.UPDATE) {
-        // Consolidate property diffs - cpu & memory.
+      } else if (diffs[i].field === 'properties' && diffs[i].action === DiffAction.UPDATE) {
+        // Consolidate property diffs - cpu, environmentVariables, image, & memory.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
       }
@@ -45,7 +34,7 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
     if (shouldConsolidateDiffs) {
       diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', ''));
 
-      // When ecs-task-definition is updated, all ecs-service using this must be updated too.
+      // Since ecs-task-definition is updated, all ecs-service using this must be updated too.
       const ecsServices = this.getChildren('ecs-service')['ecs-service'].map((d) => d.to as EcsService);
       for (const ecsService of ecsServices) {
         diffs.push(new Diff(ecsService, DiffAction.UPDATE, 'resourceId', ''));
