@@ -4,18 +4,18 @@ import {
   CreateSecurityGroupCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
-import type { Vpc } from '../../vpc/vpc.resource.js';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { Vpc } from '../../vpc/index.js';
 import type { ISecurityGroupResponse } from '../security-group.interface.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(SecurityGroup)
 export class AddSecurityGroupResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'AddSecurityGroupResourceAction';
-
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.ADD && diff.node instanceof SecurityGroup && diff.node.NODE_NAME === 'security-group'
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof SecurityGroup &&
+      (diff.node.constructor as typeof SecurityGroup).NODE_NAME === 'security-group'
     );
   }
 

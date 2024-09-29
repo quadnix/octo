@@ -1,11 +1,9 @@
 import { AResource, Resource } from '@quadnix/octo';
-import type { Vpc } from '../vpc/vpc.resource.js';
+import type { Vpc } from '../vpc/index.js';
 import type { ISecurityGroupProperties, ISecurityGroupResponse } from './security-group.interface.js';
 
-@Resource()
+@Resource('@octo', 'security-group')
 export class SecurityGroup extends AResource<SecurityGroup> {
-  readonly NODE_NAME: string = 'security-group';
-
   declare properties: ISecurityGroupProperties;
   declare response: ISecurityGroupResponse;
 
