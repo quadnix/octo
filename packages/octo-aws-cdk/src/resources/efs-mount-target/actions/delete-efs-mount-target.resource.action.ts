@@ -4,30 +4,19 @@ import {
   type DescribeMountTargetsCommandOutput,
   EFSClient,
 } from '@aws-sdk/client-efs';
-import {
-  Action,
-  Container,
-  Diff,
-  DiffAction,
-  Factory,
-  type IResourceAction,
-  NodeType,
-  TransactionError,
-} from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, TransactionError } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
-import type { Efs } from '../efs.resource.js';
+import type { Efs } from '../../efs/index.js';
 
-@Action(NodeType.RESOURCE)
+@Action(EfsMountTarget)
 export class DeleteEfsMountTargetResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'DeleteEfsMountTargetResourceAction';
-
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof EfsMountTarget &&
-      diff.node.NODE_NAME === 'efs-mount-target'
+      (diff.node.constructor as typeof EfsMountTarget).NODE_NAME === 'efs-mount-target'
     );
   }
 

@@ -1,12 +1,10 @@
 import { AResource, Resource } from '@quadnix/octo';
-import type { Subnet } from '../subnet/subnet.resource.js';
+import type { Subnet } from '../subnet/index.js';
 import type { IEfsMountTargetProperties, IEfsMountTargetResponse } from './efs-mount-target.interface.js';
-import type { Efs } from './efs.resource.js';
+import type { Efs } from '../efs/index.js';
 
-@Resource()
+@Resource('@octo', 'efs-mount-target')
 export class EfsMountTarget extends AResource<EfsMountTarget> {
-  readonly NODE_NAME: string = 'efs-mount-target';
-
   declare properties: IEfsMountTargetProperties;
   declare response: IEfsMountTargetResponse;
 

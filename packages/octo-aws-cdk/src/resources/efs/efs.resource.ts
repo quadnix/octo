@@ -1,10 +1,8 @@
 import { AResource, Resource } from '@quadnix/octo';
 import type { IEfsProperties, IEfsResponse } from './efs.interface.js';
 
-@Resource()
+@Resource('@octo', 'efs')
 export class Efs extends AResource<Efs> {
-  readonly NODE_NAME: string = 'efs';
-
   declare properties: IEfsProperties;
   declare response: IEfsResponse;
 
