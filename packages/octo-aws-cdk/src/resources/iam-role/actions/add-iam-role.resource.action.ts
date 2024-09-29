@@ -1,14 +1,16 @@
 import { CreateRoleCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { IIamRoleResponse } from '../iam-role.interface.js';
 import { IamRole } from '../iam-role.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(IamRole)
 export class AddIamRoleResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'AddIamRoleResourceAction';
-
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.node instanceof IamRole && diff.node.NODE_NAME === 'iam-role';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof IamRole &&
+      (diff.node.constructor as typeof IamRole).NODE_NAME === 'iam-role'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {
@@ -20,24 +22,11 @@ export class AddIamRoleResourceAction implements IResourceAction {
     // Get instances.
     const iamClient = await Container.get(IAMClient);
 
-    const assumeRolePolicyDocumentStatements: { Action: string; Effect: string; Principal: { Service: string } }[] = [];
-    for (const service of properties.allowToAssumeRoleForServices) {
-      if (service === 'ecs-tasks.amazonaws.com') {
-        assumeRolePolicyDocumentStatements.push({
-          Action: 'sts:AssumeRole',
-          Effect: 'Allow',
-          Principal: {
-            Service: 'ecs-tasks.amazonaws.com',
-          },
-        });
-      }
-    }
-
     // Create IAM role.
     const data = await iamClient.send(
       new CreateRoleCommand({
         AssumeRolePolicyDocument: JSON.stringify({
-          Statement: assumeRolePolicyDocumentStatements,
+          Statement: [],
           Version: '2012-10-17',
         }),
         RoleName: properties.rolename,

@@ -1,14 +1,16 @@
 import { CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { IIamUserResponse } from '../iam-user.interface.js';
 import { IamUser } from '../iam-user.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(IamUser)
 export class AddIamUserResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'AddIamUserResourceAction';
-
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.node instanceof IamUser && diff.node.NODE_NAME === 'iam-user';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof IamUser &&
+      (diff.node.constructor as typeof IamUser).NODE_NAME === 'iam-user'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {

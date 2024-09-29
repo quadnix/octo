@@ -5,41 +5,36 @@ import {
   DetachUserPolicyCommand,
   IAMClient,
 } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
-import type { IS3StorageAccessOverlayProperties } from '../../../overlays/s3-storage-access/s3-storage-access.overlay.interface.js';
-import type { IIamUserResponse } from '../iam-user.interface.js';
-import { IamUser, type IamUserPolicyDiff } from '../iam-user.resource.js';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { IIamUserResponse, IIamUserS3BucketPolicy } from '../iam-user.interface.js';
+import { type IIamUserPolicyDiff, IamUser, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-user.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(IamUser)
 export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'UpdateIamUserWithS3StoragePolicyResourceAction';
-
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof IamUser &&
-      diff.node.NODE_NAME === 'iam-user' &&
-      (diff.value as IamUserPolicyDiff).overlayName === 's3-storage-access-overlay'
+      (diff.node.constructor as typeof IamUser).NODE_NAME === 'iam-user' &&
+      diff.field === 's3-storage-access-policy'
     );
   }
 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const iamUser = diff.node as IamUser;
-    const policyAction = (diff.value as IamUserPolicyDiff).action;
-    const overlayId = diff.field;
+    const iamUserPolicyDiff = diff.value as IIamUserPolicyDiff;
     const response = iamUser.response;
 
     // Get instances.
     const iamClient = await Container.get(IAMClient);
 
     // Attach policies to IAM User to read/write from bucket.
-    if (policyAction === 'add') {
+    if (isAddPolicyDiff(iamUserPolicyDiff)) {
       const policyDocument: { Action: string[]; Effect: 'Allow'; Resource: string[]; Sid: string }[] = [];
-      const overlayProperties = (diff.value as IamUserPolicyDiff).overlay!
-        .properties as unknown as IS3StorageAccessOverlayProperties;
+      const policy = iamUserPolicyDiff.policy as IIamUserS3BucketPolicy;
 
-      if (overlayProperties.allowRead) {
+      if (policy.allowRead) {
         policyDocument.push({
           Action: [
             's3:GetObject',
@@ -51,19 +46,25 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
             's3:ListBucket',
           ],
           Effect: 'Allow',
-          Resource: [
-            `arn:aws:s3:::${overlayProperties.bucketName}/${overlayProperties.remoteDirectoryPath}`,
-            `arn:aws:s3:::${overlayProperties.bucketName}/${overlayProperties.remoteDirectoryPath}/*`,
-          ],
-          Sid: 'Allow read',
+          Resource:
+            policy.remoteDirectoryPath === '' || policy.remoteDirectoryPath === '/'
+              ? [`arn:aws:s3:::${policy.bucketName}`, `arn:aws:s3:::${policy.bucketName}/*`]
+              : [
+                  `arn:aws:s3:::${policy.bucketName}/${policy.remoteDirectoryPath}`,
+                  `arn:aws:s3:::${policy.bucketName}/${policy.remoteDirectoryPath}/*`,
+                ],
+          Sid: `Allow read from bucket ${policy.bucketName}`,
         });
       }
-      if (overlayProperties.allowWrite) {
+      if (policy.allowWrite) {
         policyDocument.push({
           Action: ['s3:PutObject', 's3:DeleteObjectVersion', 's3:DeleteObject'],
           Effect: 'Allow',
-          Resource: [`arn:aws:s3:::${overlayProperties.bucketName}/${overlayProperties.remoteDirectoryPath}/*`],
-          Sid: 'Allow write',
+          Resource:
+            policy.remoteDirectoryPath === '' || policy.remoteDirectoryPath === '/'
+              ? [`arn:aws:s3:::${policy.bucketName}`, `arn:aws:s3:::${policy.bucketName}/*`]
+              : [`arn:aws:s3:::${policy.bucketName}/${policy.remoteDirectoryPath}/*`],
+          Sid: `Allow write from bucket ${policy.bucketName}`,
         });
       }
 
@@ -72,7 +73,7 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
           PolicyDocument: JSON.stringify({
             Statement: policyDocument,
           }),
-          PolicyName: overlayId,
+          PolicyName: iamUserPolicyDiff.policyId,
         }),
       );
       await iamClient.send(
@@ -83,11 +84,11 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
       );
 
       // Set response.
-      response.policies[overlayId] = [data.Policy!.Arn!];
-    } else if (policyAction === 'delete') {
-      const policies = response.policies[overlayId] || [];
+      response.policies[iamUserPolicyDiff.policyId] = [data.Policy!.Arn!];
+    } else if (isDeletePolicyDiff(iamUserPolicyDiff)) {
+      const policyARNs = response.policies[iamUserPolicyDiff.policyId] || [];
       await Promise.all(
-        policies.map(async (policyArn) => {
+        policyARNs.map(async (policyArn) => {
           await iamClient.send(
             new DetachUserPolicyCommand({
               PolicyArn: policyArn,
@@ -103,17 +104,17 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
       );
 
       // Set response.
-      delete response.policies[overlayId];
+      delete response.policies[iamUserPolicyDiff.policyId];
     }
   }
 
   async mock(capture: Partial<IIamUserResponse>, diff: Diff): Promise<void> {
-    const overlayId = diff.field;
+    const iamUserPolicyDiff = diff.value as IIamUserPolicyDiff;
 
     const iamClient = await Container.get(IAMClient);
     iamClient.send = async (instance): Promise<unknown> => {
       if (instance instanceof CreatePolicyCommand) {
-        return { Policy: { Arn: capture.policies![overlayId][0] } };
+        return { Policy: { Arn: capture.policies![iamUserPolicyDiff.policyId][0] } };
       } else if (instance instanceof AttachUserPolicyCommand) {
         return;
       } else if (instance instanceof DetachUserPolicyCommand) {
