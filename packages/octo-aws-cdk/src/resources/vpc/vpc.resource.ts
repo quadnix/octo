@@ -1,10 +1,8 @@
 import { AResource, Resource } from '@quadnix/octo';
 import type { IVpcProperties, IVpcResponse } from './vpc.interface.js';
 
-@Resource()
+@Resource('@octo', 'vpc')
 export class Vpc extends AResource<Vpc> {
-  readonly NODE_NAME: string = 'vpc';
-
   declare properties: IVpcProperties;
   declare response: IVpcResponse;
 
