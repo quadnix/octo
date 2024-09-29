@@ -1,13 +1,15 @@
 import { BatchDeleteImageCommand, ECRClient } from '@aws-sdk/client-ecr';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EcrImage } from '../ecr-image.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(EcrImage)
 export class DeleteEcrImageResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'DeleteEcrImageResourceAction';
-
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.DELETE && diff.node instanceof EcrImage && diff.node.NODE_NAME === 'ecr-image';
+    return (
+      diff.action === DiffAction.DELETE &&
+      diff.node instanceof EcrImage &&
+      (diff.node.constructor as typeof EcrImage).NODE_NAME === 'ecr-image'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {
