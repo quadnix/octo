@@ -1,14 +1,14 @@
 import { DeleteNetworkAclCommand, EC2Client, ReplaceNetworkAclAssociationCommand } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { NetworkAcl } from '../network-acl.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(NetworkAcl)
 export class DeleteNetworkAclResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'DeleteNetworkAclResourceAction';
-
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.DELETE && diff.node instanceof NetworkAcl && diff.node.NODE_NAME === 'network-acl'
+      diff.action === DiffAction.DELETE &&
+      diff.node instanceof NetworkAcl &&
+      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl'
     );
   }
 

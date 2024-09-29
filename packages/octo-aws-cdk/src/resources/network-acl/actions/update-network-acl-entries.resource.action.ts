@@ -6,21 +6,20 @@ import {
   type NetworkAclEntry,
   ReplaceNetworkAclEntryCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
-import type { Subnet } from '../../subnet/subnet.resource.js';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import pLimit from 'p-limit';
+import { NetworkAclUtility } from '../../../utilities/network-acl/network-acl.utility.js';
+import type { Subnet } from '../../subnet/index.js';
 import type { INetworkAclProperties } from '../network-acl.interface.js';
 import { NetworkAcl } from '../network-acl.resource.js';
-import pLimit from 'p-limit';
 
-@Action(NodeType.RESOURCE)
+@Action(NetworkAcl)
 export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'UpdateNetworkAclEntriesResourceAction';
-
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof NetworkAcl &&
-      diff.node.NODE_NAME === 'network-acl' &&
+      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl' &&
       diff.field === 'properties' &&
       (diff.value as { key: string; value: unknown }).key === 'entries'
     );
@@ -53,8 +52,8 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
     );
     const nAclEntries = nAclOutput!.NetworkAcls![0].Entries!;
 
-    const nAclEgressEntries = nAclEntries.filter((e) => e.Egress);
-    const nAclIngressEntries = nAclEntries.filter((e) => !e.Egress);
+    const nAclEgressEntries = nAclEntries.filter((e) => e.Egress && e.RuleNumber! <= 32766);
+    const nAclIngressEntries = nAclEntries.filter((e) => !e.Egress && e.RuleNumber! <= 32766);
     const propertiesEgressEntries = properties.entries.filter((e) => e.Egress);
     const propertiesIngressEntries = properties.entries.filter((e) => !e.Egress);
 
@@ -67,7 +66,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
 
       if (index === -1) {
         entriesToDelete.push(e);
-      } else if (index >= 0 && !this.isNAclEntryEqual(e, propertiesEgressEntries[index])) {
+      } else if (index >= 0 && !NetworkAclUtility.isNAclEntryEqual(e, propertiesEgressEntries[index])) {
         entriesToReplace.push(propertiesEgressEntries[index]);
       }
     });
@@ -76,7 +75,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
 
       if (index === -1) {
         entriesToDelete.push(e);
-      } else if (index >= 0 && !this.isNAclEntryEqual(e, propertiesIngressEntries[index])) {
+      } else if (index >= 0 && !NetworkAclUtility.isNAclEntryEqual(e, propertiesIngressEntries[index])) {
         entriesToReplace.push(propertiesIngressEntries[index]);
       }
     });
@@ -135,18 +134,6 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
         );
       }),
     ]);
-  }
-
-  private isNAclEntryEqual(e: NetworkAclEntry, pe: INetworkAclProperties['entries'][0]): boolean {
-    return (
-      e.CidrBlock === pe.CidrBlock &&
-      e.Egress === pe.Egress &&
-      e.PortRange!.From === pe.PortRange.From &&
-      e.PortRange!.To === pe.PortRange.To &&
-      e.Protocol === pe.Protocol &&
-      e.RuleAction === pe.RuleAction &&
-      e.RuleNumber === pe.RuleNumber
-    );
   }
 
   async mock(): Promise<void> {

@@ -5,18 +5,20 @@ import {
   EC2Client,
   ReplaceNetworkAclAssociationCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, NodeType } from '@quadnix/octo';
-import type { Subnet } from '../../subnet/subnet.resource.js';
-import type { Vpc } from '../../vpc/vpc.resource.js';
+import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { Subnet } from '../../subnet/index.js';
+import type { Vpc } from '../../vpc/index.js';
 import type { INetworkAclResponse } from '../network-acl.interface.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
-@Action(NodeType.RESOURCE)
+@Action(NetworkAcl)
 export class AddNetworkAclResourceAction implements IResourceAction {
-  readonly ACTION_NAME: string = 'AddNetworkAclResourceAction';
-
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && diff.node instanceof NetworkAcl && diff.node.NODE_NAME === 'network-acl';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof NetworkAcl &&
+      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl'
+    );
   }
 
   async handle(diff: Diff): Promise<void> {
