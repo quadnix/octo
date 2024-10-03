@@ -9,7 +9,7 @@ interface IEcsServiceAnchorProperties
     }
   > {}
 
-@Anchor()
+@Anchor('@octo')
 export class EcsServiceAnchor extends AAnchor {
   declare properties: IEcsServiceAnchorProperties;
 

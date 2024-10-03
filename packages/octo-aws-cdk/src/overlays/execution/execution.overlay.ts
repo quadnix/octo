@@ -7,10 +7,8 @@ import { SubnetFilesystemMountAnchor } from '../../anchors/subnet-filesystem-mou
 import { TaskDefinitionAnchor } from '../../anchors/task-definition.anchor.js';
 import type { IExecutionOverlayProperties } from './execution.overlay.interface.js';
 
-@Overlay()
+@Overlay('@octo', 'execution-overlay')
 export class ExecutionOverlay extends AOverlay<ExecutionOverlay> {
-  override readonly NODE_NAME: string = 'execution-overlay';
-
   declare properties: IExecutionOverlayProperties;
 
   constructor(

@@ -2,11 +2,10 @@ import {
   Action,
   type ActionInputs,
   type ActionOutputs,
-  Diff,
+  type Diff,
   DiffAction,
   Factory,
   type IModelAction,
-  NodeType,
   TransactionError,
 } from '@quadnix/octo';
 import { EcsServiceAnchor } from '../../../anchors/ecs-service.anchor.js';
@@ -17,19 +16,17 @@ import { SubnetFilesystemMountAnchor } from '../../../anchors/subnet-filesystem-
 import { TaskDefinitionAnchor } from '../../../anchors/task-definition.anchor.js';
 import type { AwsEnvironment } from '../../../models/environment/aws.environment.model.js';
 import type { AwsExecution } from '../../../models/execution/aws.execution.model.js';
-import type { EcsCluster } from '../../../resources/ecs/ecs-cluster.resource.js';
-import { EcsService } from '../../../resources/ecs/ecs-service.resource.js';
-import { EcsTaskDefinition } from '../../../resources/ecs/ecs-task-definition.resource.js';
-import type { Efs } from '../../../resources/efs/efs.resource.js';
-import type { IamRole } from '../../../resources/iam/iam-role.resource.js';
-import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
-import type { Subnet } from '../../../resources/subnet/subnet.resource.js';
+import type { EcsCluster } from '../../../resources/ecs-cluster/index.js';
+import { EcsService } from '../../../resources/ecs-service/index.js';
+import { EcsTaskDefinition } from '../../../resources/ecs-task-definition/index.js';
+import type { Efs } from '../../../resources/efs/index.js';
+import type { IamRole } from '../../../resources/iam-role/index.js';
+import { SecurityGroup } from '../../../resources/security-group/index.js';
+import type { Subnet } from '../../../resources/subnet/index.js';
 import { ExecutionOverlay } from '../execution.overlay.js';
 
-@Action(NodeType.OVERLAY)
+@Action(ExecutionOverlay)
 export class AddExecutionOverlayAction implements IModelAction {
-  readonly ACTION_NAME: string = 'AddExecutionOverlayAction';
-
   collectInput(diff: Diff): string[] {
     const executionOverlay = diff.node as ExecutionOverlay;
     const properties = executionOverlay.properties;
@@ -62,7 +59,7 @@ export class AddExecutionOverlayAction implements IModelAction {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof ExecutionOverlay &&
-      diff.node.NODE_NAME === 'execution-overlay' &&
+      (diff.node.constructor as typeof ExecutionOverlay).NODE_NAME === 'execution-overlay' &&
       diff.field === 'overlayId'
     );
   }
@@ -173,7 +170,7 @@ export class AddExecutionOverlayAction implements IModelAction {
       {
         awsRegionId: properties.awsRegionId,
         desiredCount: ecsServiceAnchorProperties.desiredCount,
-        serviceName: ['service', properties.serverKey].join('-'),
+        serviceName: properties.executionId.replace(/\./g, '_'),
       },
       ecsServiceParents,
     );

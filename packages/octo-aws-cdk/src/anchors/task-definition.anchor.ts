@@ -15,7 +15,7 @@ interface ITaskDefinitionAnchorProperties
     }
   > {}
 
-@Anchor()
+@Anchor('@octo')
 export class TaskDefinitionAnchor extends AAnchor {
   declare properties: ITaskDefinitionAnchorProperties;
 

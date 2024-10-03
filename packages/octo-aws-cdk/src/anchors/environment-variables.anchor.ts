@@ -2,9 +2,9 @@ import { AAnchor, Anchor, IAnchor, ModifyInterface } from '@quadnix/octo';
 import type { AwsEnvironment } from '../models/environment/aws.environment.model.js';
 import type { AwsExecution } from '../models/execution/aws.execution.model.js';
 
-interface IEnvironmentVariablesAnchorProperties extends ModifyInterface<IAnchor['properties'], Record<string, never>> {}
+interface IEnvironmentVariablesAnchorProperties extends ModifyInterface<IAnchor['properties'], Record<never, never>> {}
 
-@Anchor()
+@Anchor('@octo')
 export class EnvironmentVariablesAnchor extends AAnchor {
   declare properties: IEnvironmentVariablesAnchorProperties;
 
