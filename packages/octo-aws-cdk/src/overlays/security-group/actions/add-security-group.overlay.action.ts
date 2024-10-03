@@ -2,21 +2,18 @@ import {
   Action,
   type ActionInputs,
   type ActionOutputs,
-  Diff,
+  type Diff,
   DiffAction,
   Factory,
   type IModelAction,
-  NodeType,
 } from '@quadnix/octo';
 import type { SecurityGroupAnchor } from '../../../anchors/security-group.anchor.js';
-import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
-import type { Vpc } from '../../../resources/vpc/vpc.resource.js';
+import { SecurityGroup } from '../../../resources/security-group/index.js';
+import type { Vpc } from '../../../resources/vpc/index.js';
 import { SecurityGroupOverlay } from '../security-group.overlay.js';
 
-@Action(NodeType.OVERLAY)
+@Action(SecurityGroupOverlay)
 export class AddSecurityGroupOverlayAction implements IModelAction {
-  readonly ACTION_NAME: string = 'AddSecurityGroupOverlayAction';
-
   collectInput(diff: Diff): string[] {
     const securityGroupOverlay = diff.node as SecurityGroupOverlay;
     const properties = securityGroupOverlay.properties;
@@ -28,7 +25,7 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof SecurityGroupOverlay &&
-      diff.node.NODE_NAME === 'security-group-overlay' &&
+      (diff.node.constructor as typeof SecurityGroupOverlay).NODE_NAME === 'security-group-overlay' &&
       diff.field === 'overlayId'
     );
   }
@@ -49,7 +46,13 @@ export class AddSecurityGroupOverlayAction implements IModelAction {
         `sec-grp-${anchor.properties.securityGroupName}`,
         {
           awsRegionId: properties.awsRegionId,
-          rules: anchor.properties.rules,
+          rules: anchor.properties.rules.map((rule) => ({
+            CidrBlock: rule.CidrBlock,
+            Egress: rule.Egress,
+            FromPort: rule.FromPort,
+            IpProtocol: rule.IpProtocol,
+            ToPort: rule.ToPort,
+          })),
         },
         [vpc],
       );

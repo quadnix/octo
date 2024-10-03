@@ -19,7 +19,7 @@ interface ISecurityGroupAnchorRule {
   ToPort: number;
 }
 
-@Anchor()
+@Anchor('@octo')
 export class SecurityGroupAnchor extends AAnchor {
   declare properties: ISecurityGroupAnchorProperties;
 
