@@ -9,7 +9,7 @@ interface IIamRoleAnchorProperties
     }
   > {}
 
-@Anchor()
+@Anchor('@octo')
 export class IamRoleAnchor extends AAnchor {
   declare properties: IIamRoleAnchorProperties;
 

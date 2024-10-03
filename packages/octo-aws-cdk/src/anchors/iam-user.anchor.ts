@@ -9,7 +9,7 @@ interface IIamUserAnchorProperties
     }
   > {}
 
-@Anchor()
+@Anchor('@octo')
 export class IamUserAnchor extends AAnchor {
   declare properties: IIamUserAnchorProperties;
 

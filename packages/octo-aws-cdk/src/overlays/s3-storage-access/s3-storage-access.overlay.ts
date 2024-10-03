@@ -3,10 +3,8 @@ import type { IamRoleAnchor } from '../../anchors/iam-role.anchor.js';
 import type { S3DirectoryAnchor } from '../../anchors/s3-directory.anchor.js';
 import type { IS3StorageAccessOverlayProperties } from './s3-storage-access.overlay.interface.js';
 
-@Overlay()
+@Overlay('@octo', 's3-storage-access-overlay')
 export class S3StorageAccessOverlay extends AOverlay<S3StorageAccessOverlay> {
-  override readonly NODE_NAME: string = 's3-storage-access-overlay';
-
   declare properties: IS3StorageAccessOverlayProperties;
 
   constructor(
