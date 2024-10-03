@@ -6,10 +6,12 @@ interface ISubnetFilesystemMountAnchorProperties
     IAnchor['properties'],
     {
       filesystemName: string;
+      subnetId: string;
+      subnetName: string;
     }
   > {}
 
-@Anchor()
+@Anchor('@octo')
 export class SubnetFilesystemMountAnchor extends AAnchor {
   declare properties: ISubnetFilesystemMountAnchorProperties;
 
