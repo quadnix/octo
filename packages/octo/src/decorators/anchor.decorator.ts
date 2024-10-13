@@ -17,6 +17,8 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @see Definition of [Anchors](/docs/fundamentals/overlay-and-anchor).
  */
 export function Anchor(packageName: string): (constructor: any) => void {
+  const container = Container.getInstance();
+
   return function (constructor: any) {
     if (!ValidationUtility.validateRegex(packageName, /^[@A-Za-z][\w-]+[A-Za-z]$/)) {
       throw new Error(`Invalid package name: ${packageName}`);
@@ -27,9 +29,9 @@ export function Anchor(packageName: string): (constructor: any) => void {
 
     constructor.NODE_PACKAGE = packageName;
 
-    const promise = Container.get(ModelSerializationService).then((modelSerializationService) => {
+    const promise = container.get(ModelSerializationService).then((modelSerializationService) => {
       modelSerializationService.registerClass(`${packageName}/${constructor.name}`, constructor);
     });
-    Container.registerStartupUnhandledPromise(promise);
+    container.registerStartupUnhandledPromise(promise);
   };
 }

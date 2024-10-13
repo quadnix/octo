@@ -102,23 +102,25 @@ export function Module({
   preResourceActionHooks = [],
 }: IModuleOptions = {}): (constructor: any) => void {
   return function (constructor: Constructable<IModule<unknown>>) {
-    const promise = Container.get(ModuleContainer).then((moduleContainer) => {
-      // Verify classes with @Module implements IModule.
-      if (!('onInit' in constructor.prototype)) {
-        throw new ModuleError('Module does not implement IModule!', constructor.name);
-      }
+    const promise = Container.getInstance()
+      .get(ModuleContainer)
+      .then((moduleContainer) => {
+        // Verify classes with @Module implements IModule.
+        if (!('onInit' in constructor.prototype)) {
+          throw new ModuleError('Module does not implement IModule!', constructor.name);
+        }
 
-      moduleContainer.register(constructor, {
-        args,
-        imports,
-        postCommitHooks,
-        postModelActionHooks,
-        postResourceActionHooks,
-        preCommitHooks,
-        preModelActionHooks,
-        preResourceActionHooks,
+        moduleContainer.register(constructor, {
+          args,
+          imports,
+          postCommitHooks,
+          postModelActionHooks,
+          postResourceActionHooks,
+          preCommitHooks,
+          preModelActionHooks,
+          preResourceActionHooks,
+        });
       });
-    });
-    Container.registerStartupUnhandledPromise(promise);
+    Container.getInstance().registerStartupUnhandledPromise(promise);
   };
 }

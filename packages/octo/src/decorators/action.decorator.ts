@@ -24,25 +24,27 @@ import { Container } from '../functions/container/container.js';
  * @see Definition of [Actions](/docs/fundamentals/actions).
  */
 export function Action(forNode: Constructable<UnknownNode>): (constructor: any) => void {
+  const container = Container.getInstance();
+
   return function (constructor: any) {
-    const promise = Container.get(TransactionService).then(async (transactionService) => {
+    const promise = container.get(TransactionService).then(async (transactionService) => {
       if (isModel(forNode) && !isOverlay(forNode)) {
         // Register model action.
-        const modelAction = await Container.get<IModelAction>(constructor.name);
+        const modelAction = await container.get<IModelAction>(constructor.name);
         transactionService.registerModelActions(forNode, [modelAction]);
 
         // Wrap model action with hooks.
         ModelActionHook.getInstance().registrar(modelAction);
       } else if (isOverlay(forNode)) {
         // Register overlay action.
-        const modelAction = await Container.get<IModelAction>(constructor.name);
+        const modelAction = await container.get<IModelAction>(constructor.name);
         transactionService.registerOverlayActions(forNode, [modelAction]);
 
         // Wrap overlay action with hooks.
         ModelActionHook.getInstance().registrar(modelAction);
       } else if (isResource(forNode)) {
         // Register resource action.
-        const resourceAction = await Container.get<IResourceAction>(constructor.name);
+        const resourceAction = await container.get<IResourceAction>(constructor.name);
         transactionService.registerResourceActions(forNode, [resourceAction]);
 
         // Wrap resource action with hooks.
@@ -51,6 +53,6 @@ export function Action(forNode: Constructable<UnknownNode>): (constructor: any) 
         throw new Error(`Class "${forNode.name}" is not recognized in @Action decorator!`);
       }
     });
-    Container.registerStartupUnhandledPromise(promise);
+    container.registerStartupUnhandledPromise(promise);
   };
 }

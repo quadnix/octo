@@ -1,14 +1,16 @@
 import { jest } from '@jest/globals';
 import { TestModelWithoutUnsynth, TestOverlay } from '../../test/helpers/test-classes.js';
 import { NodeType } from '../app.type.js';
-import { Container } from '../functions/container/container.js';
+import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
 import { Model } from './model.decorator.js';
 
 describe('Model UT', () => {
-  beforeEach(() => {
-    TestContainer.create(
+  let container: Container;
+
+  beforeEach(async () => {
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -37,7 +39,7 @@ describe('Model UT', () => {
     // @ts-expect-error static members are readonly.
     TestModelWithoutUnsynth['NODE_TYPE'] = undefined;
 
-    Container.reset();
+    TestContainer.reset();
   });
 
   it('should throw error when packageName is invalid', () => {
@@ -73,14 +75,14 @@ describe('Model UT', () => {
   it('should register a model', async () => {
     Model('@octo', 'test')(TestModelWithoutUnsynth);
 
-    await Container.waitToResolveAllFactories();
+    await container.waitToResolveAllFactories();
 
-    const modelSerializationService = await Container.get(ModelSerializationService);
+    const modelSerializationService = await container.get(ModelSerializationService);
     expect(modelSerializationService.registerClass).toHaveBeenCalledTimes(1);
   });
 
   it('should throw error when registration fails', async () => {
-    const modelSerializationService = await Container.get(ModelSerializationService);
+    const modelSerializationService = await container.get(ModelSerializationService);
     jest.spyOn(modelSerializationService, 'registerClass').mockImplementation(() => {
       throw new Error('error');
     });
@@ -88,7 +90,7 @@ describe('Model UT', () => {
     Model('@octo', 'test')(TestModelWithoutUnsynth);
 
     await expect(async () => {
-      await Container.waitToResolveAllFactories();
+      await container.waitToResolveAllFactories();
     }).rejects.toThrowErrorMatchingInlineSnapshot(`"error"`);
   });
 });

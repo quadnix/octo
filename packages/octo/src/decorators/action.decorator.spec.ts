@@ -2,12 +2,14 @@ import { jest } from '@jest/globals';
 import { TestAction, TestModelWithoutUnsynth, TestOverlay, TestResource } from '../../test/helpers/test-classes.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { Action } from './action.decorator.js';
-import { Container } from '../functions/container/container.js';
+import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 
 describe('Action UT', () => {
-  beforeEach(() => {
-    TestContainer.create(
+  let container: Container;
+
+  beforeEach(async () => {
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -31,7 +33,7 @@ describe('Action UT', () => {
   });
 
   afterEach(() => {
-    Container.reset();
+    TestContainer.reset();
   });
 
   it('should throw error when constructor is not a recognized node', async () => {
@@ -40,39 +42,39 @@ describe('Action UT', () => {
     Action(Test as any)(TestAction);
 
     await expect(async () => {
-      await Container.waitToResolveAllFactories();
+      await container.waitToResolveAllFactories();
     }).rejects.toThrowErrorMatchingInlineSnapshot(`"Class "Test" is not recognized in @Action decorator!"`);
   });
 
   it('should register an action for model', async () => {
     Action(TestModelWithoutUnsynth)(TestAction);
 
-    await Container.waitToResolveAllFactories();
+    await container.waitToResolveAllFactories();
 
-    const transactionService = await Container.get(TransactionService);
+    const transactionService = await container.get(TransactionService);
     expect(transactionService.registerModelActions).toHaveBeenCalledTimes(1);
   });
 
   it('should register an action for overlay', async () => {
     Action(TestOverlay)(TestAction);
 
-    await Container.waitToResolveAllFactories();
+    await container.waitToResolveAllFactories();
 
-    const transactionService = await Container.get(TransactionService);
+    const transactionService = await container.get(TransactionService);
     expect(transactionService.registerOverlayActions).toHaveBeenCalledTimes(1);
   });
 
-  it('should register ModelType.RESOURCE', async () => {
+  it('should register an action for resource', async () => {
     Action(TestResource)(TestAction);
 
-    await Container.waitToResolveAllFactories();
+    await container.waitToResolveAllFactories();
 
-    const transactionService = await Container.get(TransactionService);
+    const transactionService = await container.get(TransactionService);
     expect(transactionService.registerResourceActions).toHaveBeenCalledTimes(1);
   });
 
   it('should throw error when registration fails', async () => {
-    const transactionService = await Container.get(TransactionService);
+    const transactionService = await container.get(TransactionService);
     jest.spyOn(transactionService, 'registerModelActions').mockImplementation(() => {
       throw new Error('error');
     });
@@ -80,7 +82,7 @@ describe('Action UT', () => {
     Action(TestModelWithoutUnsynth)(TestAction);
 
     await expect(async () => {
-      await Container.waitToResolveAllFactories();
+      await container.waitToResolveAllFactories();
     }).rejects.toThrowErrorMatchingInlineSnapshot(`"error"`);
   });
 });

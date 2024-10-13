@@ -1,14 +1,16 @@
 import { jest } from '@jest/globals';
 import { SharedTestResource, TestOverlay, TestResource } from '../../test/helpers/test-classes.js';
 import { NodeType } from '../app.type.js';
-import { Container } from '../functions/container/container.js';
+import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
 import { Resource } from './resource.decorator.js';
 
 describe('Resource UT', () => {
-  beforeEach(() => {
-    TestContainer.create(
+  let container: Container;
+
+  beforeEach(async () => {
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -47,7 +49,7 @@ describe('Resource UT', () => {
     // @ts-expect-error static members are readonly.
     TestResource['NODE_TYPE'] = undefined;
 
-    Container.reset();
+    TestContainer.reset();
   });
 
   it('should throw error when packageName is invalid', () => {
@@ -69,7 +71,7 @@ describe('Resource UT', () => {
   });
 
   it('should throw error when registration fails', async () => {
-    const resourceSerializationService = await Container.get(ResourceSerializationService);
+    const resourceSerializationService = await container.get(ResourceSerializationService);
     jest.spyOn(resourceSerializationService, 'registerClass').mockImplementation(() => {
       throw new Error('error');
     });
@@ -77,7 +79,7 @@ describe('Resource UT', () => {
     Resource('@octo', 'test')(TestResource);
 
     await expect(async () => {
-      await Container.waitToResolveAllFactories();
+      await container.waitToResolveAllFactories();
     }).rejects.toThrowErrorMatchingInlineSnapshot(`"error"`);
   });
 
@@ -97,9 +99,9 @@ describe('Resource UT', () => {
     it('should register a resource', async () => {
       Resource('@octo', 'test')(TestResource);
 
-      await Container.waitToResolveAllFactories();
+      await container.waitToResolveAllFactories();
 
-      const resourceSerializationService = await Container.get(ResourceSerializationService);
+      const resourceSerializationService = await container.get(ResourceSerializationService);
       expect(resourceSerializationService.registerClass).toHaveBeenCalledTimes(1);
     });
   });
@@ -120,9 +122,9 @@ describe('Resource UT', () => {
     it('should register a shared-resource', async () => {
       Resource('@octo', 'test')(SharedTestResource);
 
-      await Container.waitToResolveAllFactories();
+      await container.waitToResolveAllFactories();
 
-      const resourceSerializationService = await Container.get(ResourceSerializationService);
+      const resourceSerializationService = await container.get(ResourceSerializationService);
       expect(resourceSerializationService.registerClass).toHaveBeenCalledTimes(1);
     });
   });

@@ -19,6 +19,8 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @see Definition of [Resources](http://localhost:3000/docs/fundamentals/resources).
  */
 export function Resource(packageName: string, resourceName: string): (constructor: any) => void {
+  const container = Container.getInstance();
+
   return function (constructor: any) {
     if (!ValidationUtility.validateRegex(packageName, /^[@A-Za-z][\w-]+[A-Za-z]$/)) {
       throw new Error(`Invalid package name: ${packageName}`);
@@ -35,9 +37,9 @@ export function Resource(packageName: string, resourceName: string): (constructo
     constructor.NODE_TYPE =
       constructor.prototype instanceof ASharedResource ? NodeType.SHARED_RESOURCE : NodeType.RESOURCE;
 
-    const promise = Container.get(ResourceSerializationService).then((resourceSerializationService) => {
+    const promise = container.get(ResourceSerializationService).then((resourceSerializationService) => {
       resourceSerializationService.registerClass(`${packageName}/${constructor.name}`, constructor);
     });
-    Container.registerStartupUnhandledPromise(promise);
+    container.registerStartupUnhandledPromise(promise);
   };
 }
