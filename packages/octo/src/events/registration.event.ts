@@ -17,7 +17,7 @@ import { Event } from './event.model.js';
 export class RegistrationEvent extends Event<string> {}
 
 /**
- * This event is emitted when a class with `@Anchor()` decorator is registered.
+ * This event is emitted when a class with `@Anchor('my-package')` decorator is registered.
  * It emits the name of the class.
  *
  * @group Events
@@ -35,15 +35,90 @@ export class AnchorRegistrationEvent extends RegistrationEvent {
       originalMethod.apply(this, args);
 
       if (args[1].prototype instanceof AAnchor) {
-        eventService.emit(new AnchorRegistrationEvent(args[1].name));
+        eventService.emit(new AnchorRegistrationEvent(args[0]));
       }
     };
   }
 }
 
 /**
- * This event is emitted when a class with `@Action(ModelType.MODEL)` decorator is registered.
+ * This event is emitted when a class with `@Model('my-package')` decorator is registered.
  * It emits the name of the class.
+ *
+ * @group Events
+ * @returns The Event instance.
+ */
+export class ModelRegistrationEvent extends RegistrationEvent {
+  static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
+    const originalMethod: (
+      ...args: Parameters<ModelSerializationService['registerClass']>
+    ) => ReturnType<ModelSerializationService['registerClass']> = descriptor.value;
+
+    descriptor.value = function (
+      ...args: Parameters<ModelSerializationService['registerClass']>
+    ): ReturnType<ModelSerializationService['registerClass']> {
+      originalMethod.apply(this, args);
+
+      if (args[1].prototype instanceof AModel) {
+        eventService.emit(new ModelRegistrationEvent(args[0]));
+      }
+    };
+  }
+}
+
+/**
+ * This event is emitted when a class with `@Overlay('my-package')` decorator is registered.
+ * It emits the name of the class.
+ *
+ * @group Events
+ * @returns The Event instance.
+ */
+export class OverlayRegistrationEvent extends RegistrationEvent {
+  static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
+    const originalMethod: (
+      ...args: Parameters<ModelSerializationService['registerClass']>
+    ) => ReturnType<ModelSerializationService['registerClass']> = descriptor.value;
+
+    descriptor.value = function (
+      ...args: Parameters<ModelSerializationService['registerClass']>
+    ): ReturnType<ModelSerializationService['registerClass']> {
+      originalMethod.apply(this, args);
+
+      if (args[1].prototype instanceof AOverlay) {
+        eventService.emit(new OverlayRegistrationEvent(args[0]));
+      }
+    };
+  }
+}
+
+/**
+ * This event is emitted when a class with `@Resource('my-package')` decorator is registered.
+ * It emits the name of the class.
+ *
+ * @group Events
+ * @returns The Event instance.
+ */
+export class ResourceRegistrationEvent extends RegistrationEvent {
+  static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
+    const originalMethod: (
+      ...args: Parameters<ResourceSerializationService['registerClass']>
+    ) => ReturnType<ResourceSerializationService['registerClass']> = descriptor.value;
+
+    descriptor.value = function (
+      ...args: Parameters<ResourceSerializationService['registerClass']>
+    ): ReturnType<ResourceSerializationService['registerClass']> {
+      originalMethod.apply(this, args);
+
+      if (args[1].prototype instanceof AResource) {
+        eventService.emit(new ResourceRegistrationEvent(args[0]));
+      }
+    };
+  }
+}
+
+/**
+ * This event is emitted when a class with `@Action(ModelClass)` decorator is registered.
+ * It emits the name of the model class and the name of the action.
  *
  * @group Events
  * @returns The Event instance.
@@ -62,67 +137,17 @@ export class ModelActionRegistrationEvent extends RegistrationEvent {
     descriptor.value = function (...args: MethodParameters): MethodReturnType {
       originalMethod.apply(this, args);
 
-      for (const action of args[0]) {
-        eventService.emit(new ModelActionRegistrationEvent(action.ACTION_NAME));
+      for (const action of args[1]) {
+        eventService.emit(new ModelActionRegistrationEvent(`${args[0].name}:${action.constructor.name}`));
       }
     };
   }
 }
 
 /**
- * This event is emitted when a class with `@Model()` decorator is registered.
- * It emits the name of the class.
- *
- * @group Events
- * @returns The Event instance.
- */
-export class ModelRegistrationEvent extends RegistrationEvent {
-  static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
-    const originalMethod: (
-      ...args: Parameters<ModelSerializationService['registerClass']>
-    ) => ReturnType<ModelSerializationService['registerClass']> = descriptor.value;
-
-    descriptor.value = function (
-      ...args: Parameters<ModelSerializationService['registerClass']>
-    ): ReturnType<ModelSerializationService['registerClass']> {
-      originalMethod.apply(this, args);
-
-      if (args[1].prototype instanceof AModel) {
-        eventService.emit(new ModelRegistrationEvent(args[1].name));
-      }
-    };
-  }
-}
-
-/**
- * This event is emitted when a class with `@Overlay()` decorator is registered.
- * It emits the name of the class.
- *
- * @group Events
- * @returns The Event instance.
- */
-export class OverlayRegistrationEvent extends RegistrationEvent {
-  static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
-    const originalMethod: (
-      ...args: Parameters<ModelSerializationService['registerClass']>
-    ) => ReturnType<ModelSerializationService['registerClass']> = descriptor.value;
-
-    descriptor.value = function (
-      ...args: Parameters<ModelSerializationService['registerClass']>
-    ): ReturnType<ModelSerializationService['registerClass']> {
-      originalMethod.apply(this, args);
-
-      if (args[1].prototype instanceof AOverlay) {
-        eventService.emit(new OverlayRegistrationEvent(args[1].name));
-      }
-    };
-  }
-}
-
-/**
- * This event is emitted when a class with `@Action(ModelType.RESOURCE)` or `@Action(ModelType.SHARED_RESOURCE)`
+ * This event is emitted when a class with `@Action(ResourceClass)` or `@Action(SharedResourceClass)`
  * decorator is registered.
- * It emits the name of the class.
+ * It emits the name of the resource class and the name of the action.
  *
  * @group Events
  * @returns The Event instance.
@@ -138,33 +163,8 @@ export class ResourceActionRegistrationEvent extends RegistrationEvent {
     ): ReturnType<TransactionService['registerResourceActions']> {
       originalMethod.apply(this, args);
 
-      for (const action of args[0]) {
-        eventService.emit(new ResourceActionRegistrationEvent(action.ACTION_NAME));
-      }
-    };
-  }
-}
-
-/**
- * This event is emitted when a class with `@Resource()` decorator is registered.
- * It emits the name of the class.
- *
- * @group Events
- * @returns The Event instance.
- */
-export class ResourceRegistrationEvent extends RegistrationEvent {
-  static override registrar(eventService: EventService, descriptor: PropertyDescriptor): void {
-    const originalMethod: (
-      ...args: Parameters<ResourceSerializationService['registerClass']>
-    ) => ReturnType<ResourceSerializationService['registerClass']> = descriptor.value;
-
-    descriptor.value = function (
-      ...args: Parameters<ResourceSerializationService['registerClass']>
-    ): ReturnType<ResourceSerializationService['registerClass']> {
-      originalMethod.apply(this, args);
-
-      if (args[1].prototype instanceof AResource) {
-        eventService.emit(new ResourceRegistrationEvent(args[1].name));
+      for (const action of args[1]) {
+        eventService.emit(new ResourceActionRegistrationEvent(`${args[0].name}:${action.constructor.name}`));
       }
     };
   }
