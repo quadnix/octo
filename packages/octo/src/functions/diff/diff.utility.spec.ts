@@ -1,8 +1,20 @@
-import { type UnknownModel } from '../../app.type.js';
+import { type UnknownNode } from '../../app.type.js';
 import { DiffUtility } from './diff.utility.js';
 
 describe('Diff Utility UT', () => {
   describe('isObjectDeepEquals()', () => {
+    it('should return false when one object is undefined', () => {
+      expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, undefined as any)).toEqual(false);
+      expect(DiffUtility.isObjectDeepEquals(undefined as any, { a: 1, b: 2 })).toEqual(false);
+      expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, null as any)).toEqual(false);
+      expect(DiffUtility.isObjectDeepEquals(null as any, { a: 1, b: 2 })).toEqual(false);
+    });
+
+    it('should return true when both objects are undefined', () => {
+      expect(DiffUtility.isObjectDeepEquals(undefined as any, undefined as any)).toEqual(true);
+      expect(DiffUtility.isObjectDeepEquals(null as any, null as any)).toEqual(true);
+    });
+
     it('should return true when objects are equal', () => {
       expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, { a: 1, b: 2 })).toEqual(true);
     });
@@ -56,8 +68,8 @@ describe('Diff Utility UT', () => {
     it('should return an update diff when both arrays are equal', () => {
       expect(
         DiffUtility.diffArray(
-          { a: [1], b: 2 } as unknown as UnknownModel,
-          { a: [1], b: 2 } as unknown as UnknownModel,
+          { a: [1], b: 2, getContext: () => ({ a: [1], b: 2 }) } as unknown as UnknownNode,
+          { a: [1], b: 2, getContext: () => ({ a: [1], b: 2 }) } as unknown as UnknownNode,
           'a',
         ),
       ).toMatchInlineSnapshot(`
@@ -65,7 +77,7 @@ describe('Diff Utility UT', () => {
          {
            "action": "update",
            "field": "a",
-           "model": {
+           "node": {
              "a": [
                1,
              ],
@@ -80,8 +92,8 @@ describe('Diff Utility UT', () => {
     it('should return a delete diff when new array is empty', () => {
       expect(
         DiffUtility.diffArray(
-          { a: [1], b: 2 } as unknown as UnknownModel,
-          { a: [], b: 2 } as unknown as UnknownModel,
+          { a: [1], b: 2, getContext: () => ({ a: [1], b: 2 }) } as unknown as UnknownNode,
+          { a: [], b: 2, getContext: () => ({ a: [], b: 2 }) } as unknown as UnknownNode,
           'a',
         ),
       ).toMatchInlineSnapshot(`
@@ -89,7 +101,7 @@ describe('Diff Utility UT', () => {
          {
            "action": "delete",
            "field": "a",
-           "model": {
+           "node": {
              "a": [
                1,
              ],
@@ -104,8 +116,8 @@ describe('Diff Utility UT', () => {
     it('should return an add diff when old array is empty', () => {
       expect(
         DiffUtility.diffArray(
-          { a: [], b: 2 } as unknown as UnknownModel,
-          { a: [1], b: 2 } as unknown as UnknownModel,
+          { a: [], b: 2, getContext: () => ({ a: [], b: 2 }) } as unknown as UnknownNode,
+          { a: [1], b: 2, getContext: () => ({ a: [1], b: 2 }) } as unknown as UnknownNode,
           'a',
         ),
       ).toMatchInlineSnapshot(`
@@ -113,7 +125,7 @@ describe('Diff Utility UT', () => {
          {
            "action": "add",
            "field": "a",
-           "model": {
+           "node": {
              "a": [
                1,
              ],
@@ -130,8 +142,8 @@ describe('Diff Utility UT', () => {
     it('should return an update diff when both arrays are equal', () => {
       expect(
         DiffUtility.diffArrayOfObjects(
-          { a: [{ a: 1 }], b: 2 } as unknown as UnknownModel,
-          { a: [{ a: 1 }], b: 2 } as unknown as UnknownModel,
+          { a: [{ a: 1 }], b: 2, getContext: () => ({ a: [{ a: 1 }], b: 2 }) } as unknown as UnknownNode,
+          { a: [{ a: 1 }], b: 2, getContext: () => ({ a: [{ a: 1 }], b: 2 }) } as unknown as UnknownNode,
           'a',
           (object1, object2) => object1.a === object2.a,
         ),
@@ -140,7 +152,7 @@ describe('Diff Utility UT', () => {
          {
            "action": "update",
            "field": "a",
-           "model": {
+           "node": {
              "a": [
                {
                  "a": 1,
@@ -159,8 +171,8 @@ describe('Diff Utility UT', () => {
     it('should return a delete diff when new array is empty', () => {
       expect(
         DiffUtility.diffArrayOfObjects(
-          { a: [{ a: 1 }], b: 2 } as unknown as UnknownModel,
-          { a: [], b: 2 } as unknown as UnknownModel,
+          { a: [{ a: 1 }], b: 2, getContext: () => ({ a: [{ a: 1 }], b: 2 }) } as unknown as UnknownNode,
+          { a: [], b: 2, getContext: () => ({ a: [], b: 2 }) } as unknown as UnknownNode,
           'a',
           (object1, object2) => object1.a === object2.a,
         ),
@@ -169,7 +181,7 @@ describe('Diff Utility UT', () => {
          {
            "action": "delete",
            "field": "a",
-           "model": {
+           "node": {
              "a": [
                {
                  "a": 1,
@@ -188,8 +200,8 @@ describe('Diff Utility UT', () => {
     it('should return an add diff when old array is empty', () => {
       expect(
         DiffUtility.diffArrayOfObjects(
-          { a: [], b: 2 } as unknown as UnknownModel,
-          { a: [{ a: 1 }], b: 2 } as unknown as UnknownModel,
+          { a: [], b: 2, getContext: () => ({ a: [], b: 2 }) } as unknown as UnknownNode,
+          { a: [{ a: 1 }], b: 2, getContext: () => ({ a: [{ a: 1 }], b: 2 }) } as unknown as UnknownNode,
           'a',
           (object1, object2) => object1.a === object2.a,
         ),
@@ -198,7 +210,7 @@ describe('Diff Utility UT', () => {
          {
            "action": "add",
            "field": "a",
-           "model": {
+           "node": {
              "a": [
                {
                  "a": 1,
