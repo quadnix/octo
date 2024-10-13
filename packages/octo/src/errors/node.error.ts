@@ -1,6 +1,8 @@
-import type { UnknownModel, UnknownNode, UnknownResource } from '../app.type.js';
+import type { UnknownModel, UnknownNode, UnknownOverlay, UnknownResource } from '../app.type.js';
 import type { Dependency, IDependency } from '../functions/dependency/dependency.js';
 import type { Diff } from '../functions/diff/diff.js';
+import type { ANode } from '../functions/node/node.abstract.js';
+import type { AResource } from '../resources/resource.abstract.js';
 
 export class DependencyError extends Error {
   readonly dependency: IDependency;
@@ -14,37 +16,49 @@ export class DependencyError extends Error {
   }
 }
 
-export class ModelError extends Error {
-  readonly model: string;
+export class NodeUnsynthError extends Error {
+  readonly subject: string;
 
-  constructor(message: string, model: UnknownModel) {
+  constructor(message: string, subject: string) {
     super(message);
 
-    this.model = model.NODE_NAME;
+    this.subject = subject;
 
-    Object.setPrototypeOf(this, ModelError.prototype);
+    Object.setPrototypeOf(this, NodeUnsynthError.prototype);
   }
 }
 
 export class NodeError extends Error {
   readonly node: string;
 
-  constructor(message: string, node: UnknownNode) {
+  constructor(message: string, node: typeof AResource | UnknownNode) {
     super(message);
 
-    this.node = node.NODE_NAME;
+    this.node = (node as unknown as typeof ANode).NODE_NAME || (node.constructor as typeof ANode).NODE_NAME;
 
     Object.setPrototypeOf(this, NodeError.prototype);
   }
 }
 
-export class ResourceError extends Error {
-  readonly resource: string;
+export class ModelError extends NodeError {
+  constructor(message: string, model: UnknownModel) {
+    super(message, model);
 
-  constructor(message: string, resource: UnknownResource) {
-    super(message);
+    Object.setPrototypeOf(this, ModelError.prototype);
+  }
+}
 
-    this.resource = resource.NODE_NAME;
+export class OverlayError extends NodeError {
+  constructor(message: string, overlay: UnknownOverlay) {
+    super(message, overlay);
+
+    Object.setPrototypeOf(this, OverlayError.prototype);
+  }
+}
+
+export class ResourceError extends NodeError {
+  constructor(message: string, resource: typeof AResource | UnknownResource) {
+    super(message, resource);
 
     Object.setPrototypeOf(this, ResourceError.prototype);
   }
@@ -68,7 +82,7 @@ export class RemoveResourceError extends ResourceError {
   constructor(message: string, resource: UnknownResource, childrenResources: UnknownResource[]) {
     super(message, resource);
 
-    this.childrenResources = childrenResources.map((r) => r.NODE_NAME);
+    this.childrenResources = childrenResources.map((r) => (r.constructor as typeof ANode).NODE_NAME);
 
     Object.setPrototypeOf(this, RemoveResourceError.prototype);
   }

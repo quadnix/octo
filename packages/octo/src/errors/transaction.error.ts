@@ -34,7 +34,7 @@ export class InputNotFoundTransactionError extends TransactionError {
   constructor(message: string, action: IModelAction, diff: Diff, key: string) {
     super(message);
 
-    this.action = action.ACTION_NAME;
+    this.action = action.constructor.name;
     this.diff = diff.toJSON();
     this.key = key;
 
