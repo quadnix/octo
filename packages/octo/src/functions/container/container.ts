@@ -1,7 +1,9 @@
 import type { Constructable } from '../../app.type.js';
+import { DiffUtility } from '../diff/diff.utility.js';
 
 type Factory<T> = { create: (...args: unknown[]) => Promise<T> };
 type FactoryValue<T> = Factory<T> | [Promise<Factory<T>>, (factory: Factory<T>) => void];
+type FactoryContainer<T> = { factory: FactoryValue<T>; metadata: { [key: string]: string } };
 
 /**
  * The Container class is a box to hold all registered factories.
@@ -13,31 +15,42 @@ type FactoryValue<T> = Factory<T> | [Promise<Factory<T>>, (factory: Factory<T>) 
  * It is an incredibly powerful tool to customize implementation.
  */
 export class Container {
-  private static FACTORY_TIMEOUT_IN_MS = 5000;
+  private FACTORY_TIMEOUT_IN_MS = 5000;
 
-  private static readonly factories: { [key: string]: { factory: FactoryValue<any> } } = {};
+  private readonly factories: { [key: string]: FactoryContainer<unknown>[] } = {};
 
-  private static startupUnhandledPromises: Promise<unknown>[] = [];
+  private static instance: Container;
+
+  private readonly startupUnhandledPromises: Promise<unknown>[] = [];
+
+  private constructor() {}
 
   /**
-   * `Container.get()` allows to get an instance of a class using its factory.
+   * `container.get()` allows to get an instance of a class using its factory.
+   * If the factory is not yet registered, it places a blocking promise in the queue to wait for the registration.
    *
    * @param type The type or name of the class to get.
    * @param options Allows selection of a specific factory to use to get the instance.
    * - The `args` option supplies arguments to the factory.
+   * - The `metadata` option identifies the factory.
    * @returns The instance of the class.
    */
-  static async get<T>(
+  async get<T>(
     type: Constructable<T> | string,
     options?: {
       args?: unknown[];
+      metadata?: { [key: string]: string };
     },
   ): Promise<T> {
     const args = options?.args || [];
+    const metadata = options?.metadata || {};
     const name = typeof type === 'string' ? type : type.name;
 
-    const factoryContainer: (typeof Container.factories)[keyof typeof Container.factories] | undefined =
-      this.factories[name];
+    if (!(name in this.factories)) {
+      this.factories[name] = [];
+    }
+
+    const factoryContainer = this.factories[name].find((f) => DiffUtility.isObjectDeepEquals(f.metadata, metadata));
     if (factoryContainer?.factory) {
       if (!Array.isArray(factoryContainer.factory)) {
         return (factoryContainer.factory as Factory<T>).create(...args);
@@ -47,14 +60,16 @@ export class Container {
       }
     }
 
-    const newFactoryContainer = {} as (typeof Container.factories)[keyof typeof Container.factories];
-    this.factories[name] = newFactoryContainer;
+    const newFactoryContainer: FactoryContainer<T> = {
+      metadata,
+    } as FactoryContainer<T>;
+    this.factories[name].push(newFactoryContainer);
 
     let promiseResolver;
     let promiseTimeout;
     const promise = new Promise<Factory<T>>((resolve, reject) => {
       promiseTimeout = setTimeout(() => {
-        reject(new Error(`Timed out waiting for factory ${name} to resolve!`));
+        reject(new Error(`Timed out waiting for factory "${name}" to resolve!`));
       }, this.FACTORY_TIMEOUT_IN_MS);
       promiseResolver = resolve;
     });
@@ -67,45 +82,86 @@ export class Container {
     return factory.create(...args);
   }
 
+  static getInstance(forceNew = false): Container {
+    if (!this.instance || forceNew) {
+      this.instance = new Container();
+    }
+    return this.instance;
+  }
+
   /**
    * `Container.registerFactory()` allows to register a factory for a class.
    *
    * @param type The type or name of the class for which the factory is registered.
    * @param factory The factory class being registered.
+   * @param options Distinguishes between different factories of the same class.
+   * - The `metadata` attaches custom metadata to the factory.
    */
-  static registerFactory<T>(type: Constructable<T> | string, factory: Factory<T>): void {
+  registerFactory<T>(
+    type: Constructable<T> | string,
+    factory: Factory<T>,
+    options?: {
+      metadata?: { [key: string]: string };
+    },
+  ): void {
+    const metadata = options?.metadata || {};
     const name = typeof type === 'string' ? type : type.name;
 
-    const factoryContainer = this.factories[name];
+    if (!(name in this.factories)) {
+      this.factories[name] = [];
+    }
+
+    const factoryContainer = this.factories[name].find((f) => DiffUtility.isObjectDeepEquals(f.metadata, metadata));
     if (factoryContainer?.factory) {
       // If factory is not a promise set by get() above, it has already been registered.
       if (!Array.isArray(factoryContainer.factory)) {
-        return;
+        throw new Error(`Factory "${name}" has already been registered!`);
       }
 
+      factoryContainer.metadata = metadata;
       const resolve = factoryContainer.factory[1] as (factory: Factory<T>) => void;
       resolve(factory);
       factoryContainer.factory = factory;
 
       return;
-    } else {
-      this.factories[name] = { factory };
     }
+
+    this.factories[name].push({ factory, metadata });
   }
 
-  static registerStartupUnhandledPromise<T>(promise: Promise<T>): void {
+  registerValue<T>(
+    type: Constructable<T> | string,
+    value: T,
+    options?: {
+      metadata?: { [key: string]: string };
+    },
+  ): void {
+    this.registerFactory(
+      type,
+      class {
+        static async create(): Promise<T> {
+          return value;
+        }
+      },
+      options,
+    );
+  }
+
+  registerStartupUnhandledPromise<T>(promise: Promise<T>): void {
     this.startupUnhandledPromises.push(promise);
   }
 
   /**
    * `Container.reset()` clears all registered factories and empties the container. This is mostly used in testing.
    */
-  static reset(): void {
+  reset(): void {
     this.FACTORY_TIMEOUT_IN_MS = 5000;
 
     for (const name in this.factories) {
       delete this.factories[name];
     }
+
+    this.startupUnhandledPromises.splice(0, this.startupUnhandledPromises.length);
   }
 
   /**
@@ -114,7 +170,7 @@ export class Container {
    *
    * @param timeoutInMs The timeout in milliseconds.
    */
-  static setFactoryTimeout(timeoutInMs: number): void {
+  setFactoryTimeout(timeoutInMs: number): void {
     this.FACTORY_TIMEOUT_IN_MS = timeoutInMs;
   }
 
@@ -123,21 +179,22 @@ export class Container {
    *
    * @param type The type or name of the class for which all factory is unregistered.
    */
-  static unRegisterFactory<T>(type: Constructable<T> | string): void {
+  unRegisterFactory<T>(type: Constructable<T> | string): void {
     const name = typeof type === 'string' ? type : type.name;
     delete this.factories[name];
   }
 
-  static async waitToResolveAllFactories(): Promise<void> {
+  async waitToResolveAllFactories(): Promise<void> {
     const promiseToResolveAllFactories: Promise<Factory<unknown>>[] = [];
 
     for (const name of Object.keys(this.factories)) {
-      const factoryContainer = this.factories[name];
-      if (factoryContainer?.factory && Array.isArray(factoryContainer.factory)) {
-        promiseToResolveAllFactories.push(factoryContainer.factory[0]);
+      for (const factoryContainer of this.factories[name]) {
+        if (factoryContainer?.factory && Array.isArray(factoryContainer.factory)) {
+          promiseToResolveAllFactories.push(factoryContainer.factory[0]);
+        }
       }
     }
 
-    await Promise.all([...promiseToResolveAllFactories, this.startupUnhandledPromises]);
+    await Promise.all([...promiseToResolveAllFactories, ...this.startupUnhandledPromises]);
   }
 }
