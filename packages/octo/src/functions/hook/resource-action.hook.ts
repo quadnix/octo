@@ -3,37 +3,44 @@ import {
   PreResourceActionHookCallbackDoneEvent,
   ResourceActionHookCallbackDoneEvent,
 } from '../../events/index.js';
-import type { ModuleContainer } from '../../modules/module.container.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { EventService } from '../../services/event/event.service.js';
-import type { Diff } from '../diff/diff.js';
 import type { IHook } from './hook.interface.js';
 
-export class ResourceActionHook implements IHook {
+type PostHookSignature = {
+  action: IResourceAction;
+  handle: IResourceAction['handle'];
+};
+type PreHookSignature = {
+  action: IResourceAction;
+  handle: IResourceAction['handle'];
+};
+
+export class ResourceActionHook implements IHook<PreHookSignature, PostHookSignature> {
   private static instance: ResourceActionHook;
 
   private readonly postResourceActionHooks: {
-    [key: string]: { handle: IResourceAction['handle'] }[];
+    [key: string]: Omit<PostHookSignature, 'action'>[];
   } = {};
   private readonly preResourceActionHooks: {
-    [key: string]: { handle: IResourceAction['handle'] }[];
+    [key: string]: Omit<PostHookSignature, 'action'>[];
   } = {};
 
-  collectHooks(registeredModules: ModuleContainer['modules']): void {
-    for (const m of registeredModules) {
-      for (const { ACTION_NAME, handle } of m.properties.postResourceActionHooks || []) {
-        if (!this.postResourceActionHooks[ACTION_NAME]) {
-          this.postResourceActionHooks[ACTION_NAME] = [];
-        }
-        this.postResourceActionHooks[ACTION_NAME].push({ handle });
-      }
+  private constructor() {}
 
-      for (const { ACTION_NAME, handle } of m.properties.preResourceActionHooks || []) {
-        if (!this.preResourceActionHooks[ACTION_NAME]) {
-          this.preResourceActionHooks[ACTION_NAME] = [];
-        }
-        this.preResourceActionHooks[ACTION_NAME].push({ handle });
+  collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
+    for (const { action, handle } of hooks.postHooks || []) {
+      if (!this.postResourceActionHooks[action.constructor.name]) {
+        this.postResourceActionHooks[action.constructor.name] = [];
       }
+      this.postResourceActionHooks[action.constructor.name].push({ handle });
+    }
+
+    for (const { action, handle } of hooks.preHooks || []) {
+      if (!this.preResourceActionHooks[action.constructor.name]) {
+        this.preResourceActionHooks[action.constructor.name] = [];
+      }
+      this.preResourceActionHooks[action.constructor.name].push({ handle });
     }
   }
 
@@ -51,8 +58,8 @@ export class ResourceActionHook implements IHook {
 
     const originalHandleMethod = resourceAction.handle;
 
-    resourceAction.handle = async function (...args: [Diff]): Promise<void> {
-      for (const { handle } of self.preResourceActionHooks[resourceAction.ACTION_NAME] || []) {
+    resourceAction.handle = async function (...args: Parameters<IResourceAction['handle']>): Promise<void> {
+      for (const { handle } of self.preResourceActionHooks[resourceAction.constructor.name] || []) {
         await handle.apply(this, args);
         EventService.getInstance().emit(new PreResourceActionHookCallbackDoneEvent());
       }
@@ -60,7 +67,7 @@ export class ResourceActionHook implements IHook {
       await originalHandleMethod.apply(this, args);
       EventService.getInstance().emit(new ResourceActionHookCallbackDoneEvent());
 
-      for (const { handle } of self.postResourceActionHooks[resourceAction.ACTION_NAME] || []) {
+      for (const { handle } of self.postResourceActionHooks[resourceAction.constructor.name] || []) {
         await handle.apply(this, args);
         EventService.getInstance().emit(new PostResourceActionHookCallbackDoneEvent());
       }

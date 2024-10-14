@@ -1,4 +1,4 @@
-import type { ActionInputs, ActionOutputs } from '../../app.type.js';
+import type { ActionOutputs } from '../../app.type.js';
 import { InputNotFoundTransactionError } from '../../errors/index.js';
 import { Container } from '../container/container.js';
 import {
@@ -7,37 +7,46 @@ import {
   PreModelActionHookCallbackDoneEvent,
 } from '../../events/index.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
-import type { ModuleContainer } from '../../modules/module.container.js';
 import { EventService } from '../../services/event/event.service.js';
 import { InputService } from '../../services/input/input.service.js';
-import type { Diff } from '../diff/diff.js';
 import type { IHook } from './hook.interface.js';
 
-export class ModelActionHook implements IHook {
+type PostHookSignature = {
+  action: IModelAction;
+  collectInput?: IModelAction['collectInput'];
+  handle: IModelAction['handle'];
+};
+type PreHookSignature = {
+  action: IModelAction;
+  collectInput?: IModelAction['collectInput'];
+  handle: IModelAction['handle'];
+};
+
+export class ModelActionHook implements IHook<PreHookSignature, PostHookSignature> {
   private static instance: ModelActionHook;
 
   private readonly postModelActionHooks: {
-    [key: string]: { collectInput?: IModelAction['collectInput']; handle: IModelAction['handle'] }[];
+    [key: string]: Omit<PostHookSignature, 'action'>[];
   } = {};
   private readonly preModelActionHooks: {
-    [key: string]: { collectInput?: IModelAction['collectInput']; handle: IModelAction['handle'] }[];
+    [key: string]: Omit<PreHookSignature, 'action'>[];
   } = {};
 
-  collectHooks(registeredModules: ModuleContainer['modules']): void {
-    for (const m of registeredModules) {
-      for (const { ACTION_NAME, collectInput, handle } of m.properties.postModelActionHooks || []) {
-        if (!this.postModelActionHooks[ACTION_NAME]) {
-          this.postModelActionHooks[ACTION_NAME] = [];
-        }
-        this.postModelActionHooks[ACTION_NAME].push({ collectInput, handle });
-      }
+  private constructor() {}
 
-      for (const { ACTION_NAME, collectInput, handle } of m.properties.preModelActionHooks || []) {
-        if (!this.preModelActionHooks[ACTION_NAME]) {
-          this.preModelActionHooks[ACTION_NAME] = [];
-        }
-        this.preModelActionHooks[ACTION_NAME].push({ collectInput, handle });
+  collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
+    for (const { action, collectInput, handle } of hooks.postHooks || []) {
+      if (!this.postModelActionHooks[action.constructor.name]) {
+        this.postModelActionHooks[action.constructor.name] = [];
       }
+      this.postModelActionHooks[action.constructor.name].push({ collectInput, handle });
+    }
+
+    for (const { action, collectInput, handle } of hooks.preHooks || []) {
+      if (!this.preModelActionHooks[action.constructor.name]) {
+        this.preModelActionHooks[action.constructor.name] = [];
+      }
+      this.preModelActionHooks[action.constructor.name].push({ collectInput, handle });
     }
   }
 
@@ -55,19 +64,19 @@ export class ModelActionHook implements IHook {
 
     const originalHandleMethod = modelAction.handle;
 
-    modelAction.handle = async function (...args: [Diff, ActionInputs, ActionOutputs]): Promise<ActionOutputs> {
-      const inputService = await Container.get(InputService);
+    modelAction.handle = async function (...args: Parameters<IModelAction['handle']>): Promise<ActionOutputs> {
+      const inputService = await Container.getInstance().get(InputService);
 
       let output = args[2] || {};
 
-      for (const { collectInput, handle } of self.preModelActionHooks[modelAction.ACTION_NAME] || []) {
+      for (const { collectInput, handle } of self.preModelActionHooks[modelAction.constructor.name] || []) {
         const inputs = collectInput ? collectInput(args[0]) : [];
         const resolvedInputs = inputs.reduce((accumulator, currentValue) => {
           accumulator[currentValue] = inputService.getInput(currentValue);
           if (!accumulator[currentValue]) {
             throw new InputNotFoundTransactionError(
-              'No matching input found to process module!',
-              { action: modelAction.ACTION_NAME } as unknown as IModelAction,
+              'No matching input found to process hook!',
+              { action: modelAction.constructor.name } as unknown as IModelAction,
               args[0],
               currentValue,
             );
@@ -81,14 +90,14 @@ export class ModelActionHook implements IHook {
       output = await originalHandleMethod.apply(this, [args[0], args[1], output]);
       EventService.getInstance().emit(new ModelActionHookCallbackDoneEvent());
 
-      for (const { collectInput, handle } of self.postModelActionHooks[modelAction.ACTION_NAME] || []) {
+      for (const { collectInput, handle } of self.postModelActionHooks[modelAction.constructor.name] || []) {
         const inputs = collectInput ? collectInput(args[0]) : [];
         const resolvedInputs = inputs.reduce((accumulator, currentValue) => {
           accumulator[currentValue] = inputService.getInput(currentValue);
           if (!accumulator[currentValue]) {
             throw new InputNotFoundTransactionError(
-              'No matching input found to process module!',
-              { action: modelAction.ACTION_NAME } as unknown as IModelAction,
+              'No matching input found to process hook!',
+              { action: modelAction.constructor.name } as unknown as IModelAction,
               args[0],
               currentValue,
             );

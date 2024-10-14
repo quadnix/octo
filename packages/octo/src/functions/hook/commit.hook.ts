@@ -4,27 +4,27 @@ import {
   PreCommitHookCallbackDoneEvent,
 } from '../../events/index.js';
 import type { Octo } from '../../main.js';
-import type { App } from '../../models/app/app.model.js';
-import type { ModuleContainer } from '../../modules/module.container.js';
 import { EventService } from '../../services/event/event.service.js';
-import type { DiffMetadata } from '../diff/diff-metadata.js';
 import type { IHook } from './hook.interface.js';
 
-export class CommitHook implements IHook {
+type PostHookSignature = { handle: Octo['commitTransaction'] };
+type PreHookSignature = { handle: Octo['commitTransaction'] };
+
+export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
   private static instance: CommitHook;
 
-  private readonly postCommitHooks: Octo['commitTransaction'][] = [];
-  private readonly preCommitHooks: Octo['commitTransaction'][] = [];
+  private readonly postCommitHooks: PostHookSignature[] = [];
+  private readonly preCommitHooks: PreHookSignature[] = [];
 
-  collectHooks(registeredModules: ModuleContainer['modules']): void {
-    for (const m of registeredModules) {
-      for (const { callback } of m.properties.postCommitHooks || []) {
-        this.postCommitHooks.push(callback);
-      }
+  private constructor() {}
 
-      for (const { callback } of m.properties.preCommitHooks || []) {
-        this.preCommitHooks.push(callback);
-      }
+  collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
+    for (const { handle } of hooks.postHooks || []) {
+      this.postCommitHooks.push({ handle });
+    }
+
+    for (const { handle } of hooks.preHooks || []) {
+      this.preCommitHooks.push({ handle });
     }
   }
 
@@ -42,17 +42,17 @@ export class CommitHook implements IHook {
 
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: [App, DiffMetadata[][], DiffMetadata[][]]): Promise<void> {
-      for (const callback of self.preCommitHooks) {
-        await callback.apply(this, args);
+    descriptor.value = async function (...args: Parameters<Octo['commitTransaction']>): Promise<void> {
+      for (const { handle } of self.preCommitHooks) {
+        await handle.apply(this, args);
         EventService.getInstance().emit(new PreCommitHookCallbackDoneEvent());
       }
 
       await originalMethod.apply(this, args);
       EventService.getInstance().emit(new CommitHookCallbackDoneEvent());
 
-      for (const callback of self.postCommitHooks) {
-        await callback.apply(this, args);
+      for (const { handle } of self.postCommitHooks) {
+        await handle.apply(this, args);
         EventService.getInstance().emit(new PostCommitHookCallbackDoneEvent());
       }
     };
