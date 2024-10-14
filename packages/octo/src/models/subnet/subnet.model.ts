@@ -58,7 +58,6 @@ export class Subnet extends AModel<ISubnet, Subnet> {
 
   constructor(region: Region, name: string) {
     super();
-
     this.subnetId = region.regionId + '-' + name;
     this.subnetName = name;
   }

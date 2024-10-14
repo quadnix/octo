@@ -7,12 +7,6 @@ import type { Diff } from '../functions/diff/diff.js';
  */
 export interface IModelAction {
   /**
-   * The name of the action.
-   * It can be used to easily identify an action and its purpose.
-   */
-  readonly ACTION_NAME: string;
-
-  /**
    * This function contains the list of inputs to ask before processing the diff.
    * A missing input key will not be populated in the inputs provided to the action.
    */

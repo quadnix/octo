@@ -1,6 +1,6 @@
 import { create } from '../../../test/helpers/test-models.js';
 import { NodeType } from '../../app.type.js';
-import { Container } from '../../functions/container/container.js';
+import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { DependencyRelationship } from '../../functions/dependency/dependency.js';
 import { ValidationService } from '../../services/validation/validation.service.js';
@@ -8,8 +8,10 @@ import type { AModel } from '../model.abstract.js';
 import { Region } from './region.model.js';
 
 describe('Region UT', () => {
-  beforeEach(() => {
-    TestContainer.create(
+  let container: Container;
+
+  beforeEach(async () => {
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -23,7 +25,7 @@ describe('Region UT', () => {
   });
 
   afterEach(() => {
-    Container.reset();
+    TestContainer.reset();
   });
 
   it('should set static members', () => {
@@ -38,7 +40,7 @@ describe('Region UT', () => {
     it('should validate regionId', async () => {
       new Region('$$');
 
-      const validationService = await Container.get(ValidationService);
+      const validationService = await container.get(ValidationService);
       const result = validationService.validate();
 
       expect(result.pass).toBeFalsy();
@@ -60,6 +62,24 @@ describe('Region UT', () => {
 
       expect(region.getDependencyIndex(environment, DependencyRelationship.PARENT)).toBeGreaterThan(-1);
       expect(environment.getDependencyIndex(region, DependencyRelationship.CHILD)).toBeGreaterThan(-1);
+    });
+  });
+
+  describe('addFilesystem()', () => {
+    it('should throw error if duplicate filesystems exist', () => {
+      expect(() => {
+        create({ app: ['test'], filesystem: ['fs', 'fs:-1'], region: ['region-1'] });
+      }).toThrow('Filesystem already exists!');
+    });
+
+    it('should add filesystem as a child', () => {
+      const {
+        filesystem: [filesystem],
+        region: [region],
+      } = create({ app: ['test'], filesystem: ['fs'], region: ['region-1'] });
+
+      expect(region.getDependencyIndex(filesystem, DependencyRelationship.PARENT)).toBeGreaterThan(-1);
+      expect(filesystem.getDependencyIndex(region, DependencyRelationship.CHILD)).toBeGreaterThan(-1);
     });
   });
 

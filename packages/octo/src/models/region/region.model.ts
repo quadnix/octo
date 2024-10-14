@@ -4,6 +4,7 @@ import { Model } from '../../decorators/model.decorator.js';
 import { Validate } from '../../decorators/validate.decorator.js';
 import { ModelError } from '../../errors/index.js';
 import { Environment } from '../environment/environment.model.js';
+import type { Filesystem } from '../filesystem/filesystem.model.js';
 import { AModel } from '../model.abstract.js';
 import { Subnet } from '../subnet/subnet.model.js';
 import type { IRegion } from './region.interface.js';
@@ -27,7 +28,6 @@ export class Region extends AModel<IRegion, Region> {
 
   constructor(regionId: string) {
     super();
-
     this.regionId = regionId;
   }
 
@@ -44,6 +44,18 @@ export class Region extends AModel<IRegion, Region> {
       throw new ModelError('Environment already exists!', this);
     }
     this.addChild('regionId', environment, 'environmentName');
+  }
+
+  addFilesystem(filesystem: Filesystem): void {
+    const childrenDependencies = this.getChildren('filesystem');
+    if (!childrenDependencies['filesystem']) childrenDependencies['filesystem'] = [];
+
+    // Check for duplicates.
+    const filesystems = childrenDependencies['filesystem'].map((d) => d.to);
+    if (filesystems.find((f: Filesystem) => f.filesystemName === filesystem.filesystemName)) {
+      throw new ModelError('Filesystem already exists!', this);
+    }
+    this.addChild('regionId', filesystem, 'filesystemName');
   }
 
   /**

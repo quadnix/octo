@@ -1,4 +1,5 @@
-import { NodeType, type UnknownModel } from '../app.type.js';
+import { type Constructable, NodeType, type UnknownModel } from '../app.type.js';
+import { NodeError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
@@ -6,14 +7,13 @@ import type { AAnchor } from '../overlays/anchor.abstract.js';
 import type { IModel } from './model.interface.js';
 
 export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
-  abstract override readonly NODE_NAME: string;
-  override readonly NODE_TYPE: NodeType = NodeType.MODEL;
-
   private readonly anchors: AAnchor[] = [];
 
   addAnchor(anchor: AAnchor): void {
     const existingAnchor = this.getAnchor(anchor.anchorId, anchor.getParent());
-    if (!existingAnchor) {
+    if (existingAnchor) {
+      throw new NodeError('Anchor already exists!', this);
+    } else {
       this.anchors.push(anchor);
     }
   }
@@ -26,6 +26,11 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
 
   override async diff(): Promise<Diff[]> {
     const diffs: Diff[] = [];
+
+    const field = this.deriveDependencyField();
+    if (!field) {
+      throw new NodeError('Cannot derive dependency field!', this);
+    }
 
     const currentChildrenByModels = this.getChildren();
     for (const modelName of Object.keys(currentChildrenByModels)) {
@@ -42,7 +47,7 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
 
       for (const cd of currentSiblings) {
         // Skip OVERLAY sibling, since overlays are diffed separately.
-        if (cd.to.NODE_TYPE === NodeType.OVERLAY) {
+        if ((cd.to.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
           continue;
         }
 
@@ -51,9 +56,7 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
     }
 
     // Add model.
-    const field = this.deriveDependencyField() || '';
-    const fieldValue = field ? this[field] : '';
-    diffs.push(new Diff(this, DiffAction.ADD, field, fieldValue));
+    diffs.push(new Diff(this, DiffAction.ADD, field, this[field]));
 
     // Diff model properties.
     const propertyDiffs = await this.diffProperties();
@@ -77,8 +80,10 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
     );
   }
 
-  getAnchors(filters: { key: string; value: any }[] = []): AAnchor[] {
-    return this.anchors.filter((a) => filters.every((c) => a[c.key] === c.value));
+  getAnchors(filters: { key: string; value: any }[] = [], types: Constructable<AAnchor>[] = []): AAnchor[] {
+    return this.anchors
+      .filter((a) => !types.length || types.some((t) => a instanceof t))
+      .filter((a) => filters.every((c) => a.properties[c.key] === c.value));
   }
 
   removeAllAnchors(): void {
