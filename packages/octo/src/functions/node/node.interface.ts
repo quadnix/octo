@@ -1,22 +1,11 @@
-import type { NodeType, UnknownNode } from '../../app.type.js';
+import type { UnknownNode } from '../../app.type.js';
 import type { Dependency, DependencyRelationship } from '../dependency/dependency.js';
-import type { Diff } from '../diff/diff.js';
+import type { Diff, DiffAction } from '../diff/diff.js';
 
 /**
  * {@link ANode} interface.
  */
 export interface INode<I, T> {
-  /**
-   * The unique name of the node.
-   * All nodes with same name are of the same category.
-   */
-  readonly NODE_NAME: string;
-
-  /**
-   * The type of the node.
-   */
-  readonly NODE_TYPE: NodeType;
-
   /**
    * To add another node as a child of self.
    *
@@ -33,6 +22,15 @@ export interface INode<I, T> {
     child: UnknownNode,
     toField: string,
   ): { childToParentDependency: Dependency; parentToChildDependency: Dependency };
+
+  /**
+   * To add a behavior on self to order multiple actions of self.
+   *
+   * @param behaviors
+   */
+  addFieldDependency(
+    behaviors: { forAction: DiffAction; onAction: DiffAction; onField: keyof T | string; toField: keyof T | string }[],
+  ): void;
 
   /**
    * To add another node as a sibling of self.

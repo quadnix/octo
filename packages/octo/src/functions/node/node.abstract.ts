@@ -21,14 +21,20 @@ import type { INode } from './node.interface.js';
  */
 export abstract class ANode<I, T> implements INode<I, T> {
   /**
-   * {@inheritDoc INode.NODE_NAME}
+   * The name of the node.
+   * All nodes with same name are of the same category.
    */
-  abstract readonly NODE_NAME: string;
+  static readonly NODE_NAME: string;
 
   /**
-   * {@inheritDoc INode.NODE_TYPE}
+   * The package of the node.
    */
-  abstract readonly NODE_TYPE: NodeType;
+  static readonly NODE_PACKAGE: string;
+
+  /**
+   * The type of the node.
+   */
+  static readonly NODE_TYPE: NodeType;
 
   /**
    * The context of the node.
@@ -223,12 +229,12 @@ export abstract class ANode<I, T> implements INode<I, T> {
 
   getChildren(name?: string): { [key: string]: Dependency[] } {
     return this.dependencies
-      .filter((d) => d.isParentRelationship() && (name ? d.to.NODE_NAME === name : true))
+      .filter((d) => d.isParentRelationship() && (name ? (d.to.constructor as typeof ANode).NODE_NAME === name : true))
       .reduce((accumulator, currentValue) => {
-        if (!(currentValue.to.NODE_NAME in accumulator)) {
-          accumulator[currentValue.to.NODE_NAME] = [];
+        if (!((currentValue.to.constructor as typeof ANode).NODE_NAME in accumulator)) {
+          accumulator[(currentValue.to.constructor as typeof ANode).NODE_NAME] = [];
         }
-        accumulator[currentValue.to.NODE_NAME].push(currentValue);
+        accumulator[(currentValue.to.constructor as typeof ANode).NODE_NAME].push(currentValue);
         return accumulator;
       }, {});
   }
@@ -274,24 +280,29 @@ export abstract class ANode<I, T> implements INode<I, T> {
 
   getParents(name?: string): { [key: string]: Dependency[] } {
     return this.dependencies
-      .filter((d) => d.isChildRelationship() && (name ? d.to.NODE_NAME === name : true))
+      .filter((d) => d.isChildRelationship() && (name ? (d.to.constructor as typeof ANode).NODE_NAME === name : true))
       .reduce((accumulator, currentValue) => {
-        if (!(currentValue.to.NODE_NAME in accumulator)) {
-          accumulator[currentValue.to.NODE_NAME] = [];
+        if (!((currentValue.to.constructor as typeof ANode).NODE_NAME in accumulator)) {
+          accumulator[(currentValue.to.constructor as typeof ANode).NODE_NAME] = [];
         }
-        accumulator[currentValue.to.NODE_NAME].push(currentValue);
+        accumulator[(currentValue.to.constructor as typeof ANode).NODE_NAME].push(currentValue);
         return accumulator;
       }, {});
   }
 
   getSiblings(name?: string): { [key: string]: Dependency[] } {
     return this.dependencies
-      .filter((d) => !d.isChildRelationship() && !d.isParentRelationship() && (name ? d.to.NODE_NAME === name : true))
+      .filter(
+        (d) =>
+          !d.isChildRelationship() &&
+          !d.isParentRelationship() &&
+          (name ? (d.to.constructor as typeof ANode).NODE_NAME === name : true),
+      )
       .reduce((accumulator, currentValue) => {
-        if (!(currentValue.to.NODE_NAME in accumulator)) {
-          accumulator[currentValue.to.NODE_NAME] = [];
+        if (!((currentValue.to.constructor as typeof ANode).NODE_NAME in accumulator)) {
+          accumulator[(currentValue.to.constructor as typeof ANode).NODE_NAME] = [];
         }
-        accumulator[currentValue.to.NODE_NAME].push(currentValue);
+        accumulator[(currentValue.to.constructor as typeof ANode).NODE_NAME].push(currentValue);
         return accumulator;
       }, {});
   }
