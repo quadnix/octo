@@ -1,6 +1,5 @@
 import type { SharedTestResource } from '../../test/helpers/test-classes.js';
 import { createTestResources } from '../../test/helpers/test-models.js';
-import { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { ResourceDataRepository } from './resource-data.repository.js';
 
@@ -24,7 +23,7 @@ describe('SharedResource UT', () => {
   });
 
   afterEach(() => {
-    Container.reset();
+    TestContainer.reset();
   });
 
   describe('diff()', () => {

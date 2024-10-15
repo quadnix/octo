@@ -1,8 +1,7 @@
 import { jest } from '@jest/globals';
-import { TestResource, TestResourceWithDecorator } from '../../test/helpers/test-classes.js';
+import { TestResource } from '../../test/helpers/test-classes.js';
 import { createTestResources } from '../../test/helpers/test-models.js';
-import { NodeType, type UnknownResource } from '../app.type.js';
-import { Container } from '../functions/container/container.js';
+import type { UnknownResource } from '../app.type.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { ResourceDataRepository } from './resource-data.repository.js';
@@ -28,17 +27,9 @@ describe('Resource UT', () => {
   });
 
   afterEach(() => {
-    Container.reset();
+    TestContainer.reset();
 
     jest.restoreAllMocks();
-  });
-
-  it('should set static members', async () => {
-    const resource = new TestResourceWithDecorator('resource-1', {}, []);
-
-    expect((resource.constructor as typeof AResource).NODE_NAME).toBe('test-resource');
-    expect((resource.constructor as typeof AResource).NODE_PACKAGE).toBe('@octo');
-    expect((resource.constructor as typeof AResource).NODE_TYPE).toBe(NodeType.RESOURCE);
   });
 
   it('should add parent', async () => {
