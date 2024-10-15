@@ -1,6 +1,6 @@
 import { NodeType, type UnknownOverlay } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
-import { ModelError } from '../errors/index.js';
+import { OverlayError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { AOverlay } from './overlay.abstract.js';
 import type { IOverlay } from './overlay.interface.js';
@@ -10,10 +10,13 @@ export class OverlayDataRepository {
 
   add(overlay: UnknownOverlay): void {
     if ((overlay.constructor as typeof AOverlay).NODE_TYPE !== NodeType.OVERLAY) {
-      throw new ModelError('Adding non-overlay model!', overlay);
+      throw new OverlayError('Adding non-overlay model!', overlay);
     }
 
-    if (!this.getById(overlay.overlayId)) {
+    const existingOverlay = this.getById(overlay.overlayId);
+    if (existingOverlay) {
+      throw new OverlayError('Overlay already exists!', existingOverlay);
+    } else {
       this.newOverlays.push(overlay);
     }
   }

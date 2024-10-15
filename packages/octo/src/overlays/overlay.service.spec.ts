@@ -1,15 +1,17 @@
 import { TestAnchor, TestOverlay } from '../../test/helpers/test-classes.js';
 import { create } from '../../test/helpers/test-models.js';
-import { Container } from '../functions/container/container.js';
+import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { OverlayDataRepository } from './overlay-data.repository.js';
 import { OverlayService } from './overlay.service.js';
 
 describe('OverlayService UT', () => {
+  let container: Container;
+
   beforeEach(async () => {
     const overlayDataRepository = new OverlayDataRepository([]);
 
-    await TestContainer.create(
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -29,12 +31,12 @@ describe('OverlayService UT', () => {
   });
 
   afterEach(() => {
-    Container.reset();
+    TestContainer.reset();
   });
 
   describe('addOverlay()', () => {
     it('should add an overlay', async () => {
-      const overlayService = await Container.get(OverlayService);
+      const overlayService = await container.get(OverlayService);
 
       const overlay1 = new TestOverlay('overlay-1', {}, []);
       overlayService.addOverlay(overlay1);
@@ -45,7 +47,7 @@ describe('OverlayService UT', () => {
 
   describe('getOverlayById()', () => {
     it('should get an overlay by id', async () => {
-      const overlayService = await Container.get(OverlayService);
+      const overlayService = await container.get(OverlayService);
 
       const overlay1 = new TestOverlay('overlay-1', {}, []);
       overlayService.addOverlay(overlay1);
@@ -56,7 +58,7 @@ describe('OverlayService UT', () => {
 
   describe('getOverlays()', () => {
     it('should get all overlays', async () => {
-      const overlayService = await Container.get(OverlayService);
+      const overlayService = await container.get(OverlayService);
 
       const overlay1 = new TestOverlay('overlay-1', {}, []);
       overlayService.addOverlay(overlay1);
@@ -68,7 +70,7 @@ describe('OverlayService UT', () => {
     });
 
     it('should be able to filter excluded overlays', async () => {
-      const overlayService = await Container.get(OverlayService);
+      const overlayService = await container.get(OverlayService);
 
       const overlay1 = new TestOverlay('overlay-1', {}, []);
       overlayService.addOverlay(overlay1);
@@ -79,7 +81,7 @@ describe('OverlayService UT', () => {
     });
 
     it('should be able to filter overlays by anchor', async () => {
-      const overlayService = await Container.get(OverlayService);
+      const overlayService = await container.get(OverlayService);
 
       const {
         app: [app],
@@ -102,7 +104,7 @@ describe('OverlayService UT', () => {
     });
 
     it('should be able to apply all filters', async () => {
-      const overlayService = await Container.get(OverlayService);
+      const overlayService = await container.get(OverlayService);
 
       const {
         app: [app],
@@ -125,7 +127,7 @@ describe('OverlayService UT', () => {
 
   describe('getOverlaysByProperties()', () => {
     it('should get all overlays without any filters', async () => {
-      const overlayService = await Container.get(OverlayService);
+      const overlayService = await container.get(OverlayService);
 
       const overlay1 = new TestOverlay('overlay-1', {}, []);
       overlayService.addOverlay(overlay1);
@@ -136,7 +138,7 @@ describe('OverlayService UT', () => {
     });
 
     it('should be able to filter overlays based on filters', async () => {
-      const overlayService = await Container.get(OverlayService);
+      const overlayService = await container.get(OverlayService);
 
       const overlay1 = new TestOverlay('overlay-1', {}, []);
       overlay1.properties.key1 = 'value1';

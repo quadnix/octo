@@ -1,27 +1,18 @@
-import { TestAnchor, TestAnchorWithDecorator } from '../../test/helpers/test-classes.js';
+import { TestAnchor } from '../../test/helpers/test-classes.js';
 import { create } from '../../test/helpers/test-models.js';
-import type { AAnchor } from './anchor.abstract.js';
 
 describe('Anchor UT', () => {
-  it('should not be able to add an anchor twice to the same parent', () => {
+  it('should throw error adding an anchor twice to the same parent', () => {
     const {
       app: [app],
     } = create({ app: ['test'] });
-    const anchor1_0 = new TestAnchor('anchor-1', {}, app);
-    app.addAnchor(anchor1_0);
-    const anchor1_1 = new TestAnchor('anchor-1', {}, app);
-    app.addAnchor(anchor1_1);
 
-    expect(app.getAnchors()).toHaveLength(1);
-  });
-
-  it('should set static members', () => {
-    const {
-      app: [app],
-    } = create({ app: ['test'] });
-    const anchor = new TestAnchorWithDecorator('anchor-1', { key1: 'value-1' }, app);
-
-    expect((anchor.constructor as typeof AAnchor).NODE_PACKAGE).toBe('@octo');
+    expect(() => {
+      const anchor1_0 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1_0);
+      const anchor1_1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1_1);
+    }).toThrowErrorMatchingInlineSnapshot(`"Anchor already exists!"`);
   });
 
   describe('synth()', () => {

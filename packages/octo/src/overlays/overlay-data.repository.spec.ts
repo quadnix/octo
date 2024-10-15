@@ -1,13 +1,15 @@
 import { TestOverlay } from '../../test/helpers/test-classes.js';
 import type { UnknownOverlay } from '../app.type.js';
-import { Container } from '../functions/container/container.js';
+import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { App } from '../models/app/app.model.js';
 import { OverlayDataRepository } from './overlay-data.repository.js';
 
 describe('OverlayDataRepository UT', () => {
+  let container: Container;
+
   beforeEach(async () => {
-    await TestContainer.create(
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -23,12 +25,12 @@ describe('OverlayDataRepository UT', () => {
   });
 
   afterEach(() => {
-    Container.reset();
+    TestContainer.reset();
   });
 
   describe('add()', () => {
     it('should throw error if instance is not an overlay', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
+      const overlayDataRepository = await container.get(OverlayDataRepository);
 
       expect(() => {
         const app = new App('test');
@@ -37,7 +39,7 @@ describe('OverlayDataRepository UT', () => {
     });
 
     it('should add an overlay', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
+      const overlayDataRepository = await container.get(OverlayDataRepository);
 
       const overlay = new TestOverlay('overlay-1', {}, []);
       overlayDataRepository.add(overlay);
@@ -45,20 +47,20 @@ describe('OverlayDataRepository UT', () => {
       expect(overlayDataRepository.getById('overlay-1')).toBe(overlay);
     });
 
-    it('should not add the same overlay twice', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
+    it('should throw error adding same overlay twice', async () => {
+      const overlayDataRepository = await container.get(OverlayDataRepository);
 
-      const overlay = new TestOverlay('overlay-1', {}, []);
-      overlayDataRepository.add(overlay);
-      overlayDataRepository.add(overlay);
-
-      expect(overlayDataRepository.getByProperties().length).toBe(1);
+      expect(() => {
+        const overlay = new TestOverlay('overlay-1', {}, []);
+        overlayDataRepository.add(overlay);
+        overlayDataRepository.add(overlay);
+      }).toThrowErrorMatchingInlineSnapshot(`"Overlay already exists!"`);
     });
   });
 
   describe('getById()', () => {
     it('should get an overlay by id', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
+      const overlayDataRepository = await container.get(OverlayDataRepository);
 
       const overlay = new TestOverlay('overlay-1', {}, []);
       overlayDataRepository.add(overlay);
@@ -69,7 +71,7 @@ describe('OverlayDataRepository UT', () => {
 
   describe('getByProperties()', () => {
     it('should get all overlays without any filters', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
+      const overlayDataRepository = await container.get(OverlayDataRepository);
 
       const overlay1 = new TestOverlay('overlay-1', {}, []);
       overlayDataRepository.add(overlay1);
@@ -80,7 +82,7 @@ describe('OverlayDataRepository UT', () => {
     });
 
     it('should be able to filter overlays based on filters', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
+      const overlayDataRepository = await container.get(OverlayDataRepository);
 
       const overlay1 = new TestOverlay('overlay-1', {}, []);
       overlay1.properties.key1 = 'value1';

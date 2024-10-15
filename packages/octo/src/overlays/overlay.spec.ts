@@ -1,7 +1,5 @@
-import { TestAnchor, TestOverlay, TestOverlayWithDecorator } from '../../test/helpers/test-classes.js';
+import { TestAnchor, TestOverlay } from '../../test/helpers/test-classes.js';
 import { create, createTestOverlays } from '../../test/helpers/test-models.js';
-import { NodeType } from '../app.type.js';
-import { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { App } from '../models/app/app.model.js';
 import { OverlayDataRepository } from './overlay-data.repository.js';
@@ -32,15 +30,7 @@ describe('Overlay UT', () => {
   });
 
   afterEach(() => {
-    Container.reset();
-  });
-
-  it('should set static members', () => {
-    const overlay = new TestOverlayWithDecorator('overlay-1', { key1: 'value-1' }, []);
-
-    expect((overlay.constructor as typeof AOverlay).NODE_NAME).toBe('test-overlay');
-    expect((overlay.constructor as typeof AOverlay).NODE_PACKAGE).toBe('@octo');
-    expect((overlay.constructor as typeof AOverlay).NODE_TYPE).toBe(NodeType.OVERLAY);
+    TestContainer.reset();
   });
 
   it('should set context', async () => {
@@ -68,7 +58,7 @@ describe('Overlay UT', () => {
       }).rejects.toMatchInlineSnapshot(`[Error: Cannot derive anchor parent field!]`);
     });
 
-    it('should not create duplicate anchors', async () => {
+    it('should throw error creating duplicate anchors', async () => {
       const {
         app: [app],
       } = create({ app: ['test'], region: ['region'] });
@@ -78,8 +68,9 @@ describe('Overlay UT', () => {
       const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
       expect(overlay1.getAnchors()).toHaveLength(1);
 
-      overlay1.addAnchor(anchor1);
-      expect(overlay1.getAnchors()).toHaveLength(1);
+      expect(() => {
+        overlay1.addAnchor(anchor1);
+      }).toThrowErrorMatchingInlineSnapshot(`"Anchor already exists!"`);
     });
 
     it('should create dependency between overlay and anchor parents', async () => {
