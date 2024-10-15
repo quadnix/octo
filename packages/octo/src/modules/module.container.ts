@@ -1,13 +1,16 @@
-import { Constructable } from '../app.type.js';
+import type { Constructable } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
-import { type IModuleOptions } from '../decorators/module.decorator.js';
-import { InvalidArgumentsModuleError, ModuleError } from '../errors/index.js';
+import { ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
-import { CommitHook } from '../functions/hook/commit.hook.js';
-import { ModelActionHook } from '../functions/hook/model-action.hook.js';
-import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 import { EventService } from '../services/event/event.service.js';
 import { IModule } from './module.interface.js';
+
+type ModuleConstructorArgs<M> = M extends new (...args: infer I) => IModule<any> ? I : never;
+
+type ModuleOptions = {
+  inputs: { [key: string]: unknown };
+  packageName: string;
+};
 
 export class ModuleContainer {
   private readonly modules: {
@@ -15,54 +18,19 @@ export class ModuleContainer {
     applyOrder: number;
     hidden: boolean;
     module: Constructable<IModule<unknown>>;
-    properties: IModuleOptions;
+    properties: ModuleOptions;
   }[] = [];
 
   private readonly outputs: { [key: string]: unknown } = {};
 
-  constructor(
-    private readonly commitHook: CommitHook,
-    private readonly modelActionHook: ModelActionHook,
-    private readonly resourceActionHook: ResourceActionHook,
-  ) {}
-
   async apply(): Promise<void> {
-    for (const moduleMetadata of this.modules) {
-      this.setApplyOrder(moduleMetadata);
-    }
-    this.modules.sort((a, b) => a.applyOrder - b.applyOrder);
-
     for (const moduleMetadata of this.modules) {
       if (moduleMetadata.applied || moduleMetadata.hidden) {
         continue;
       }
 
       const { module, properties } = moduleMetadata;
-
-      this.commitHook.collectHooks([moduleMetadata]);
-      this.modelActionHook.collectHooks([moduleMetadata]);
-      this.resourceActionHook.collectHooks([moduleMetadata]);
-
-      const args = (properties.imports || []).reduce((accumulator: unknown[], importedModule) => {
-        const name = typeof importedModule === 'string' ? importedModule : importedModule.name;
-        if (name in this.outputs) {
-          accumulator.push(this.outputs[name]);
-        }
-        return accumulator;
-      }, []);
-      for (const [i, { isArg, name }] of (properties.args || []).entries()) {
-        if (!isArg(args[i])) {
-          throw new InvalidArgumentsModuleError(
-            'Module was supplied invalid arguments',
-            module.name,
-            i,
-            name,
-            typeof args[i],
-          );
-        }
-      }
-
-      const instance = new module(...args);
+      const instance = new module(properties.inputs);
 
       const output = await instance.onInit();
       if (output) {
@@ -89,24 +57,26 @@ export class ModuleContainer {
     return name in this.outputs ? (this.outputs[name] as T) : undefined;
   }
 
-  load(module: Constructable<IModule<unknown>>): void {
+  load<M>(module: { new (...args: any): IModule<unknown> }, inputs: ModuleConstructorArgs<M>[0]): void {
     const m = this.getModuleMetadata(module);
-    if (m) {
-      m.hidden = false;
+    if (!m) {
+      throw new ModuleError(`Module ${module.name} not yet registered!`, module.name);
+    }
+
+    m.hidden = false;
+
+    for (const [key, value] of Object.entries(inputs || {})) {
+      m.properties.inputs[key] = JSON.parse(JSON.stringify(value));
     }
   }
 
-  register(module: Constructable<IModule<unknown>>, properties: IModuleOptions): void {
+  register(module: Constructable<IModule<unknown>>, properties: ModuleOptions): void {
     if (!this.modules.some((m) => m.module.name === module.name)) {
       this.modules.push({ applied: false, applyOrder: -1, hidden: true, module, properties });
     }
   }
 
   reset(): void {
-    this.commitHook.reset();
-    this.modelActionHook.reset();
-    this.resourceActionHook.reset();
-
     for (const name in this.outputs) {
       delete this.outputs[name];
     }
@@ -116,33 +86,6 @@ export class ModuleContainer {
       m.applyOrder = -1;
       m.hidden = true;
     });
-  }
-
-  private setApplyOrder(
-    moduleMetadata: ModuleContainer['modules'][0],
-    seen: ModuleContainer['modules'][0]['module'][] = [],
-  ): void {
-    if (moduleMetadata.applyOrder >= 0) {
-      return;
-    }
-
-    if (seen.find((m) => m.name === moduleMetadata.module.name)) {
-      throw new ModuleError('Found circular dependencies in modules!', moduleMetadata.module.name);
-    }
-
-    const parentModuleApplyOrders: number[] = [-1];
-    for (const parent of moduleMetadata.properties.imports || []) {
-      const name = typeof parent === 'string' ? parent : parent.name;
-      const parentModuleMetadata = this.modules.find((m) => m.module.name === name);
-      if (!parentModuleMetadata) {
-        throw new ModuleError('Found unregistered module while processing modules!', name);
-      }
-
-      this.setApplyOrder(parentModuleMetadata, [...seen, parentModuleMetadata.module]);
-      parentModuleApplyOrders.push(parentModuleMetadata.applyOrder);
-    }
-
-    moduleMetadata.applyOrder = Math.max(...parentModuleApplyOrders) + 1;
   }
 
   unload(module: Constructable<IModule<unknown>>): void {
@@ -159,10 +102,7 @@ export class ModuleContainerFactory {
 
   static async create(): Promise<ModuleContainer> {
     if (!this.instance) {
-      const commitHook = CommitHook.getInstance();
-      const modelActionHook = ModelActionHook.getInstance();
-      const resourceActionHook = ResourceActionHook.getInstance();
-      this.instance = new ModuleContainer(commitHook, modelActionHook, resourceActionHook);
+      this.instance = new ModuleContainer();
     }
     return this.instance;
   }
