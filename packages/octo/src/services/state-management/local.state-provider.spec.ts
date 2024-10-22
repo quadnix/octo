@@ -3,7 +3,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { create, createTestResources } from '../../../test/helpers/test-models.js';
-import { Container } from '../../decorators/container.js';
+import { Container } from '../../functions/container/container.js';
 import { ModelSerializationService } from '../serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
 import { LocalStateProvider } from './local.state-provider.js';

@@ -1,14 +1,5 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Model Serialization Service UT serialize() should not serialize deleted models 1`] = `
-{
-  "anchors": [],
-  "dependencies": [],
-  "models": {},
-  "overlays": [],
-}
-`;
-
 exports[`Model Serialization Service UT serialize() should serialize a non-empty app 1`] = `
 {
   "anchors": [],
@@ -176,20 +167,20 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
   ],
   "models": {
     "app=test-app": {
-      "className": "App",
+      "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
     },
     "environment=qa,region=region-1,app=test-app": {
-      "className": "Environment",
+      "className": "@octo/Environment",
       "model": {
         "environmentName": "qa",
         "environmentVariables": {},
       },
     },
     "image=image:v1,app=test-app": {
-      "className": "Image",
+      "className": "@octo/Image",
       "model": {
         "dockerOptions": {
           "dockerfilePath": "/Dockerfile",
@@ -200,13 +191,13 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       },
     },
     "region=region-1,app=test-app": {
-      "className": "Region",
+      "className": "@octo/Region",
       "model": {
         "regionId": "region-1",
       },
     },
     "server=backend,app=test-app": {
-      "className": "Server",
+      "className": "@octo/Server",
       "model": {
         "serverKey": "backend",
       },
@@ -222,7 +213,7 @@ exports[`Model Serialization Service UT serialize() should serialize an empty ap
   "dependencies": [],
   "models": {
     "app=test-app": {
-      "className": "App",
+      "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
@@ -237,7 +228,7 @@ exports[`Model Serialization Service UT serialize() should serialize model ancho
   "anchors": [
     {
       "anchorId": "anchor-1",
-      "className": "TestAnchor",
+      "className": "@octo/TestAnchor",
       "parent": {
         "context": "app=test-app",
       },
@@ -247,7 +238,7 @@ exports[`Model Serialization Service UT serialize() should serialize model ancho
   "dependencies": [],
   "models": {
     "app=test-app": {
-      "className": "App",
+      "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
@@ -344,20 +335,20 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
   ],
   "models": {
     "app=test-app": {
-      "className": "App",
+      "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
     },
     "environment=qa,region=region-1,app=test-app": {
-      "className": "Environment",
+      "className": "@octo/Environment",
       "model": {
         "environmentName": "qa",
         "environmentVariables": {},
       },
     },
     "region=region-1,app=test-app": {
-      "className": "Region",
+      "className": "@octo/Region",
       "model": {
         "regionId": "region-1",
       },
@@ -372,7 +363,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
   "anchors": [
     {
       "anchorId": "anchor-1",
-      "className": "TestAnchor",
+      "className": "@octo/TestAnchor",
       "parent": {
         "context": "app=test-app",
       },
@@ -380,7 +371,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
     },
     {
       "anchorId": "anchor-2",
-      "className": "TestAnchor",
+      "className": "@octo/TestAnchor",
       "parent": {
         "context": "app=test-app",
       },
@@ -393,7 +384,24 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "MODEL_NAME",
+          "onField": "name",
+          "toField": "imageId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "imageId",
+        "type": "parent",
+      },
+      "to": "image=image:v1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
           "toField": "overlayId",
         },
       ],
@@ -406,7 +414,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "MODEL_NAME",
+          "onField": "name",
           "toField": "overlayId",
         },
       ],
@@ -420,13 +428,13 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
           "forAction": "add",
           "onAction": "add",
           "onField": "overlayId",
-          "toField": "MODEL_NAME",
+          "toField": "name",
         },
         {
           "forAction": "update",
           "onAction": "add",
           "onField": "overlayId",
-          "toField": "MODEL_NAME",
+          "toField": "name",
         },
       ],
       "from": "test-overlay=overlay-1",
@@ -439,31 +447,65 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
           "forAction": "add",
           "onAction": "add",
           "onField": "overlayId",
-          "toField": "MODEL_NAME",
+          "toField": "name",
         },
         {
           "forAction": "update",
           "onAction": "add",
           "onField": "overlayId",
-          "toField": "MODEL_NAME",
+          "toField": "name",
         },
       ],
       "from": "test-overlay=overlay-1",
       "relationship": undefined,
       "to": "app=test-app",
     },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+      ],
+      "from": "image=image:v1,app=test-app",
+      "relationship": {
+        "onField": "imageId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
   ],
   "models": {
     "app=test-app": {
-      "className": "App",
+      "className": "@octo/App",
       "model": {
         "name": "test-app",
+      },
+    },
+    "image=image:v1,app=test-app": {
+      "className": "@octo/Image",
+      "model": {
+        "dockerOptions": {
+          "dockerfilePath": "/Dockerfile",
+        },
+        "imageId": "v1",
+        "imageName": "image",
+        "imageTag": "v1",
       },
     },
   },
   "overlays": [
     {
-      "className": "TestOverlay",
+      "className": "@octo/TestOverlay",
       "overlay": {
         "anchors": [
           {
@@ -494,7 +536,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
   "anchors": [
     {
       "anchorId": "anchor-1",
-      "className": "TestAnchor",
+      "className": "@octo/TestAnchor",
       "parent": {
         "context": "app=test-app",
       },
@@ -502,7 +544,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
     },
     {
       "anchorId": "anchor-2",
-      "className": "TestAnchor",
+      "className": "@octo/TestAnchor",
       "parent": {
         "context": "app=test-app",
       },
@@ -515,7 +557,24 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "MODEL_NAME",
+          "onField": "name",
+          "toField": "imageId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "imageId",
+        "type": "parent",
+      },
+      "to": "image=image:v1,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
           "toField": "overlayId",
         },
       ],
@@ -528,7 +587,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "MODEL_NAME",
+          "onField": "name",
           "toField": "overlayId",
         },
       ],
@@ -542,13 +601,13 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
           "forAction": "add",
           "onAction": "add",
           "onField": "overlayId",
-          "toField": "MODEL_NAME",
+          "toField": "name",
         },
         {
           "forAction": "update",
           "onAction": "add",
           "onField": "overlayId",
-          "toField": "MODEL_NAME",
+          "toField": "name",
         },
       ],
       "from": "test-overlay=overlay-2",
@@ -567,13 +626,13 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
           "forAction": "add",
           "onAction": "add",
           "onField": "overlayId",
-          "toField": "MODEL_NAME",
+          "toField": "name",
         },
         {
           "forAction": "update",
           "onAction": "add",
           "onField": "overlayId",
-          "toField": "MODEL_NAME",
+          "toField": "name",
         },
       ],
       "from": "test-overlay=overlay-1",
@@ -586,18 +645,52 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
       "relationship": undefined,
       "to": "test-overlay=overlay-2",
     },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "imageId",
+          "toField": "name",
+        },
+      ],
+      "from": "image=image:v1,app=test-app",
+      "relationship": {
+        "onField": "imageId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
   ],
   "models": {
     "app=test-app": {
-      "className": "App",
+      "className": "@octo/App",
       "model": {
         "name": "test-app",
+      },
+    },
+    "image=image:v1,app=test-app": {
+      "className": "@octo/Image",
+      "model": {
+        "dockerOptions": {
+          "dockerfilePath": "/Dockerfile",
+        },
+        "imageId": "v1",
+        "imageName": "image",
+        "imageTag": "v1",
       },
     },
   },
   "overlays": [
     {
-      "className": "TestOverlay",
+      "className": "@octo/TestOverlay",
       "overlay": {
         "anchors": [
           {
@@ -613,7 +706,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
       },
     },
     {
-      "className": "TestOverlay",
+      "className": "@octo/TestOverlay",
       "overlay": {
         "anchors": [
           {

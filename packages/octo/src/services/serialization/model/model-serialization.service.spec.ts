@@ -1,7 +1,8 @@
 import { TestAnchor, TestOverlay } from '../../../../test/helpers/test-classes.js';
 import { commit, create, createTestOverlays } from '../../../../test/helpers/test-models.js';
 import { type ModelSerializedOutput } from '../../../app.type.js';
-import { Container } from '../../../decorators/container.js';
+import type { Container } from '../../../functions/container/container.js';
+import { TestContainer } from '../../../functions/container/test-container.js';
 import { type IDependency } from '../../../functions/dependency/dependency.js';
 import { App } from '../../../models/app/app.model.js';
 import { Image } from '../../../models/image/image.model.js';
@@ -10,33 +11,47 @@ import { Service } from '../../../models/service/service.model.js';
 import { Subnet } from '../../../models/subnet/subnet.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
 import { OverlayService, OverlayServiceFactory } from '../../../overlays/overlay.service.js';
-import { ModelSerializationService, ModelSerializationServiceFactory } from './model-serialization.service.js';
+import { ModelSerializationService } from './model-serialization.service.js';
 
 describe('Model Serialization Service UT', () => {
+  let container: Container;
+
   beforeEach(async () => {
-    Container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
-    await Container.get(OverlayDataRepository, { args: [true, [], []] });
+    container = await TestContainer.create(
+      {
+        mocks: [],
+      },
+      {
+        factoryTimeoutInMs: 500,
+      },
+    );
 
-    Container.registerFactory(OverlayService, OverlayServiceFactory);
+    // In these tests, we commit models, which resets the OverlayDataRepository.
+    // We cannot use TestContainer to mock OverlayDataRepositoryFactory,
+    // or else commit of models won't reset anything.
+    container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
+    await container.get(OverlayDataRepository, { args: [true] });
 
-    Container.registerFactory(ModelSerializationService, ModelSerializationServiceFactory);
-    const modelSerializationService = await Container.get(ModelSerializationService, { args: [true] });
-    modelSerializationService.registerClass('App', App);
-    modelSerializationService.registerClass('Image', Image);
-    modelSerializationService.registerClass('Region', Region);
-    modelSerializationService.registerClass('Service', Service);
-    modelSerializationService.registerClass('Subnet', Subnet);
-    modelSerializationService.registerClass('TestAnchor', TestAnchor);
-    modelSerializationService.registerClass('TestOverlay', TestOverlay);
+    container.registerFactory(OverlayService, OverlayServiceFactory);
+
+    const modelSerializationService = new ModelSerializationService();
+    modelSerializationService.registerClass('@octo/App', App);
+    modelSerializationService.registerClass('@octo/Image', Image);
+    modelSerializationService.registerClass('@octo/Region', Region);
+    modelSerializationService.registerClass('@octo/Service', Service);
+    modelSerializationService.registerClass('@octo/Subnet', Subnet);
+    modelSerializationService.registerClass('@octo/TestAnchor', TestAnchor);
+    modelSerializationService.registerClass('@octo/TestOverlay', TestOverlay);
+    container.registerValue<ModelSerializationService>(ModelSerializationService, modelSerializationService);
   });
 
   afterEach(() => {
-    Container.reset();
+    TestContainer.reset();
   });
 
   describe('deserialize()', () => {
     it('should throw error when de-serializing an unknown class', async () => {
-      const service = await Container.get(ModelSerializationService);
+      const service = await container.get(ModelSerializationService);
 
       const serializedOutput: ModelSerializedOutput = {
         anchors: [],
@@ -57,7 +72,7 @@ describe('Model Serialization Service UT', () => {
     });
 
     it('should throw error when de-serializing a class with default unSynth', async () => {
-      const service = await Container.get(ModelSerializationService);
+      const service = await container.get(ModelSerializationService);
 
       const serializedOutput: ModelSerializedOutput = {
         anchors: [],
@@ -67,7 +82,7 @@ describe('Model Serialization Service UT', () => {
           } as IDependency,
         ],
         models: {
-          'app=name': { className: 'Service', model: null },
+          'app=name': { className: '@octo/Service', model: null },
         } as any,
         overlays: [],
       };
@@ -108,7 +123,7 @@ describe('Model Serialization Service UT', () => {
     });
 
     it('should have exact same dependencies on deserialized object as original object', async () => {
-      const service = await Container.get(ModelSerializationService);
+      const service = await container.get(ModelSerializationService);
 
       const {
         app: [app],
@@ -126,11 +141,11 @@ describe('Model Serialization Service UT', () => {
     });
 
     it('should deserialize overlay with multiple anchors of same parent', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
+      const overlayDataRepository = await container.get(OverlayDataRepository);
 
       const {
         app: [app],
-      } = create({ app: ['test-app'] });
+      } = create({ app: ['test-app'], region: ['region'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -138,66 +153,48 @@ describe('Model Serialization Service UT', () => {
 
       await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
 
-      expect(overlayDataRepository['oldOverlays']).toHaveLength(0);
       const app_1 = await commit(app);
-      expect(overlayDataRepository['oldOverlays']).toHaveLength(1);
+      expect(overlayDataRepository['newOverlays']).toHaveLength(1);
 
-      const overlay1_1 = overlayDataRepository['oldOverlays'][0];
+      const overlay1_1 = overlayDataRepository['newOverlays'][0];
       expect(overlay1_1.getAnchors().map((a) => a.getParent().getContext())).toEqual([
         app_1.getContext(),
         app_1.getContext(),
       ]);
     });
 
-    it('should not share any models between old and new overlays', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
+    /**
+     * Users are not required to deserialize models and overlays because models and overlays are not diff-ed.
+     * This feature is only kept around for future use by Octo web clients.
+     * Upon deserialization, a new copy of models are created, and the old overlays are kept in OverlayDataRepository
+     * as new overlays. Even the web client would only ever deserialize models and overlays to programmatically
+     * read the old state.
+     */
+    it('should deserialize overlay and ensure it still points to the old models', async () => {
+      const overlayDataRepository = await container.get(OverlayDataRepository);
 
       const {
         app: [app],
-      } = create({ app: ['test-app'] });
+      } = create({ app: ['test-app'], image: ['image'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
       await createTestOverlays({ 'overlay-1': [anchor1] });
 
-      expect(overlayDataRepository['oldOverlays']).toHaveLength(0);
+      // Before commit the overlay has reference to the app, and the app has no region children.
+      expect(overlayDataRepository['newOverlays'][0].getAnchors()[0].getParent().getChildren()['region']).toBe(
+        undefined,
+      );
       await commit(app);
-      expect(overlayDataRepository['oldOverlays']).toHaveLength(1);
 
       // Modify the new app.
       app.addRegion(new Region('region-1'));
 
-      // Ensure the new and old overlays in the OverlayDataRepository are not shared.
-      expect(overlayDataRepository['oldOverlays'][0].getAnchors()[0].getParent().getChildren()['region']).toBe(
+      // After commit the overlay is deserialized and the newOverlays still reference the old models.
+      // Updates to new models should not be reflected in the old models.
+      expect(overlayDataRepository['newOverlays'][0].getAnchors()[0].getParent().getChildren()['region']).toBe(
         undefined,
       );
-      expect(overlayDataRepository['newOverlays'][0].getAnchors()[0].getParent().getChildren()['region']).toHaveLength(
-        1,
-      );
-    });
-
-    it('should not initialize OverlayDataRepository with new overlays marked for deletion', async () => {
-      const overlayDataRepository = await Container.get(OverlayDataRepository);
-      const overlayService = await Container.get(OverlayService);
-
-      const {
-        app: [app],
-      } = create({ app: ['test-app'] });
-      const anchor1 = new TestAnchor('anchor-1', {}, app);
-      app.addAnchor(anchor1);
-
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
-
-      expect(overlayDataRepository['oldOverlays']).toHaveLength(0);
-      await commit(app);
-      expect(overlayDataRepository['oldOverlays']).toHaveLength(1);
-
-      // Remove the new overlay.
-      overlayService.removeOverlay(overlay1);
-
-      expect(overlayDataRepository['oldOverlays']).toHaveLength(1);
-      await commit(app);
-      expect(overlayDataRepository['oldOverlays']).toHaveLength(0);
     });
   });
 
@@ -207,7 +204,7 @@ describe('Model Serialization Service UT', () => {
         app: [app],
       } = create({ app: ['test-app'] });
 
-      const service = await Container.get(ModelSerializationService);
+      const service = await container.get(ModelSerializationService);
 
       expect(await service.serialize(app)).toMatchSnapshot();
     });
@@ -223,18 +220,7 @@ describe('Model Serialization Service UT', () => {
         server: ['backend'],
       });
 
-      const service = await Container.get(ModelSerializationService);
-
-      expect(await service.serialize(app)).toMatchSnapshot();
-    });
-
-    it('should not serialize deleted models', async () => {
-      const {
-        app: [app],
-      } = create({ app: ['test-app'] });
-      app.remove();
-
-      const service = await Container.get(ModelSerializationService);
+      const service = await container.get(ModelSerializationService);
 
       expect(await service.serialize(app)).toMatchSnapshot();
     });
@@ -246,7 +232,7 @@ describe('Model Serialization Service UT', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      const service = await Container.get(ModelSerializationService);
+      const service = await container.get(ModelSerializationService);
 
       expect(await service.serialize(app)).toMatchSnapshot();
     });
@@ -256,7 +242,7 @@ describe('Model Serialization Service UT', () => {
         region: [region1],
       } = create({ app: ['test-app'], environment: ['qa', 'qa'], region: ['region-1', 'region-2:-1'] });
 
-      const service = await Container.get(ModelSerializationService);
+      const service = await container.get(ModelSerializationService);
 
       expect(await service.serialize(region1)).toMatchSnapshot();
     });
@@ -264,7 +250,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize overlay with multiple anchors of same parent', async () => {
       const {
         app: [app],
-      } = create({ app: ['test-app'] });
+      } = create({ app: ['test-app'], image: ['image'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -272,7 +258,7 @@ describe('Model Serialization Service UT', () => {
 
       await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
 
-      const service = await Container.get(ModelSerializationService);
+      const service = await container.get(ModelSerializationService);
 
       expect(await service.serialize(app)).toMatchSnapshot();
     });
@@ -280,7 +266,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize two overlay dependencies with each other', async () => {
       const {
         app: [app],
-      } = create({ app: ['test-app'] });
+      } = create({ app: ['test-app'], image: ['image'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -289,7 +275,7 @@ describe('Model Serialization Service UT', () => {
       const [overlay1, overlay2] = await createTestOverlays({ 'overlay-1': [anchor1], 'overlay-2': [anchor2] });
       overlay1.addRelationship(overlay2);
 
-      const service = await Container.get(ModelSerializationService);
+      const service = await container.get(ModelSerializationService);
 
       expect(await service.serialize(app)).toMatchSnapshot();
     });

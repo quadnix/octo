@@ -16,6 +16,8 @@ import {
   OverlayRegistrationEvent,
 } from '../../../events/index.js';
 import { Dependency, type IDependency } from '../../../functions/dependency/dependency.js';
+import type { ANode } from '../../../functions/node/node.abstract.js';
+import type { AAnchor } from '../../../overlays/anchor.abstract.js';
 import type { IAnchor } from '../../../overlays/anchor.interface.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
 import type { IOverlay } from '../../../overlays/overlay.interface.js';
@@ -25,8 +27,6 @@ export class ModelSerializationService {
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
 
   private readonly classMapping: { [key: string]: any } = {};
-
-  constructor(private readonly overlayDataRepository: OverlayDataRepository) {}
 
   private async _deserialize(
     serializedOutput: ModelSerializedOutput,
@@ -130,13 +130,10 @@ export class ModelSerializationService {
     serializedOutput: ModelSerializedOutput,
     { freeze = true }: { freeze?: boolean } = {},
   ): Promise<UnknownModel> {
-    const newOverlays = this.overlayDataRepository.getByProperties();
     const { overlays: oldOverlays, root } = await this._deserialize(serializedOutput, freeze);
 
     // Refresh the overlay data repository.
-    await Container.get(OverlayDataRepository, {
-      args: [true, oldOverlays, newOverlays],
-    });
+    await Container.getInstance().get(OverlayDataRepository, { args: [true, oldOverlays] });
 
     return root;
   }
@@ -145,6 +142,9 @@ export class ModelSerializationService {
   @EventSource(ModelRegistrationEvent)
   @EventSource(OverlayRegistrationEvent)
   registerClass(className: string, deserializationClass: any): void {
+    if (this.classMapping[className]) {
+      throw new Error(`Class "${className}" is already registered!`);
+    }
     this.classMapping[className] = deserializationClass;
   }
 
@@ -169,17 +169,26 @@ export class ModelSerializationService {
         dependencies.push(d.synth());
       }
 
-      if (model.NODE_TYPE === NodeType.MODEL) {
+      if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.MODEL) {
         const context = model.getContext();
         if (!models[context]) {
-          models[context] = { className: model.constructor.name, model: model.synth() as IUnknownModel };
+          models[context] = {
+            className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
+            model: model.synth() as IUnknownModel,
+          };
         }
 
         for (const a of (model as UnknownModel).getAnchors()) {
-          anchors.push({ ...a.synth(), className: a.constructor.name });
+          anchors.push({
+            ...a.synth(),
+            className: `${(a.constructor as typeof AAnchor).NODE_PACKAGE}/${a.constructor.name}`,
+          });
         }
-      } else if (model.NODE_TYPE === NodeType.OVERLAY) {
-        overlays.push({ className: model.constructor.name, overlay: (model as UnknownOverlay).synth() });
+      } else if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
+        overlays.push({
+          className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
+          overlay: (model as UnknownOverlay).synth(),
+        });
       }
     }
 
@@ -196,12 +205,11 @@ export class ModelSerializationServiceFactory {
   private static instance: ModelSerializationService;
 
   static async create(forceNew = false): Promise<ModelSerializationService> {
-    const overlayDataRepository = await Container.get(OverlayDataRepository);
     if (!this.instance) {
-      this.instance = new ModelSerializationService(overlayDataRepository);
+      this.instance = new ModelSerializationService();
     }
     if (forceNew) {
-      const newInstance = new ModelSerializationService(overlayDataRepository);
+      const newInstance = new ModelSerializationService();
       Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;
