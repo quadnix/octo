@@ -77,7 +77,7 @@ export class EventService {
     // Register this listener.
     const originalMethod = descriptor.value;
     descriptor.value = async function (...args: [Event<unknown>]): Promise<any> {
-      const listener = await Container.get(target.constructor.name);
+      const listener = await Container.getInstance().get(target.constructor.name);
       return await originalMethod.apply(listener, args);
     };
     this.listeners[eventClass.name].eventListeners.push(descriptor.value);
