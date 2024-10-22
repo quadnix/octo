@@ -9,7 +9,10 @@ import {
   ResourceRegistrationEvent,
 } from '../../../events/index.js';
 import type { IDependency } from '../../../functions/dependency/dependency.js';
-import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
+import {
+  ResourceDataRepository,
+  type ResourceDataRepositoryFactory,
+} from '../../../resources/resource-data.repository.js';
 import type { AResource } from '../../../resources/resource.abstract.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
@@ -128,9 +131,12 @@ export class ResourceSerializationService {
     const oldResources = await this._deserialize(JSON.parse(JSON.stringify(oldSerializedOutput)), true);
 
     // Refresh the resource data repository.
-    await Container.getInstance().get(ResourceDataRepository, {
-      args: [true, Object.values(actualResources), Object.values(oldResources), []],
-    });
+    await Container.getInstance().get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
+      ResourceDataRepository,
+      {
+        args: [true, Object.values(actualResources), Object.values(oldResources), []],
+      },
+    );
   }
 
   @EventSource(ResourceRegistrationEvent)

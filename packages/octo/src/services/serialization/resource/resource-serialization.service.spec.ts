@@ -24,7 +24,10 @@ describe('Resource Serialization Service UT', () => {
     // We cannot use TestContainer to mock ResourceDataRepositoryFactory,
     // or else commit of resources won't reset anything.
     container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
-    const resourceDataRepository = await container.get(ResourceDataRepository, { args: [true, [], [], []] });
+    const resourceDataRepository = await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
+      ResourceDataRepository,
+      { args: [true, [], [], []] },
+    );
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
     resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);

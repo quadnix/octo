@@ -30,7 +30,9 @@ describe('Model Serialization Service UT', () => {
     // We cannot use TestContainer to mock OverlayDataRepositoryFactory,
     // or else commit of models won't reset anything.
     container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
-    await container.get(OverlayDataRepository, { args: [true] });
+    await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
+      args: [true],
+    });
 
     container.registerFactory(OverlayService, OverlayServiceFactory);
 

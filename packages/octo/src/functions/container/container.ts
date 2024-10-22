@@ -35,10 +35,10 @@ export class Container {
    * - The `metadata` option identifies the factory.
    * @returns The instance of the class.
    */
-  async get<T>(
+  async get<T, F extends Factory<T> = never>(
     type: Constructable<T> | string,
     options?: {
-      args?: unknown[];
+      args?: Parameters<F['create']>;
       metadata?: { [key: string]: string };
     },
   ): Promise<T> {

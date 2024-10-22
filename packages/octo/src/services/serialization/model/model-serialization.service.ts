@@ -19,7 +19,7 @@ import { Dependency, type IDependency } from '../../../functions/dependency/depe
 import type { ANode } from '../../../functions/node/node.abstract.js';
 import type { AAnchor } from '../../../overlays/anchor.abstract.js';
 import type { IAnchor } from '../../../overlays/anchor.interface.js';
-import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
+import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
 import type { IOverlay } from '../../../overlays/overlay.interface.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
@@ -133,7 +133,10 @@ export class ModelSerializationService {
     const { overlays: oldOverlays, root } = await this._deserialize(serializedOutput, freeze);
 
     // Refresh the overlay data repository.
-    await Container.getInstance().get(OverlayDataRepository, { args: [true, oldOverlays] });
+    await Container.getInstance().get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
+      OverlayDataRepository,
+      { args: [true, oldOverlays] },
+    );
 
     return root;
   }
