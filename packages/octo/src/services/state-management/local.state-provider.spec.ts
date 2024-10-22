@@ -3,7 +3,9 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { promisify } from 'util';
 import { create, createTestResources } from '../../../test/helpers/test-models.js';
-import { Container } from '../../functions/container/container.js';
+import type { Container } from '../../functions/container/container.js';
+import { TestContainer } from '../../functions/container/test-container.js';
+import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { ModelSerializationService } from '../serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
 import { LocalStateProvider } from './local.state-provider.js';
@@ -13,15 +15,34 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const unlinkAsync = promisify(unlink);
 
 describe('LocalStateProvider UT', () => {
+  let container: Container;
+  let filePath: string;
+
+  beforeEach(async () => {
+    const resourceDataRepository = new ResourceDataRepository([], [], []);
+
+    container = await TestContainer.create(
+      {
+        mocks: [
+          { type: ModelSerializationService, value: new ModelSerializationService() },
+          { type: ResourceDataRepository, value: resourceDataRepository },
+          { type: ResourceSerializationService, value: new ResourceSerializationService(resourceDataRepository) },
+        ],
+      },
+      { factoryTimeoutInMs: 500 },
+    );
+  });
+
+  afterEach(async () => {
+    await TestContainer.reset();
+
+    if (filePath) {
+      await unlinkAsync(filePath);
+      filePath = '';
+    }
+  });
+
   describe('getModelState()', () => {
-    let filePath;
-
-    afterEach(async () => {
-      if (filePath) {
-        await unlinkAsync(filePath);
-      }
-    });
-
     it('should be able to get a default state', async () => {
       const localStateProvider = new LocalStateProvider(__dirname);
       const stateManagementService = new StateManagementService(localStateProvider);
@@ -40,7 +61,7 @@ describe('LocalStateProvider UT', () => {
 
     it('should be able to retrieve a frozen state', async () => {
       filePath = join(__dirname, 'models2.json');
-      const modelSerializationService = await Container.get(ModelSerializationService);
+      const modelSerializationService = await container.get(ModelSerializationService);
 
       const {
         app: [app],
@@ -64,14 +85,6 @@ describe('LocalStateProvider UT', () => {
   });
 
   describe('getResourceState()', () => {
-    let filePath;
-
-    afterEach(async () => {
-      if (filePath) {
-        await unlinkAsync(filePath);
-      }
-    });
-
     it('should be able to get a default state', async () => {
       const localStateProvider = new LocalStateProvider(__dirname);
       const stateManagementService = new StateManagementService(localStateProvider);
@@ -89,11 +102,11 @@ describe('LocalStateProvider UT', () => {
 
     it('should be able to retrieve a frozen state', async () => {
       filePath = join(__dirname, 'resources2.json');
-      const resourceSerializationService = await Container.get(ResourceSerializationService);
+      const resourceSerializationService = await container.get(ResourceSerializationService);
 
       await createTestResources({ 'resource-1': [] });
 
-      const serializedOutput = await resourceSerializationService.serialize();
+      const serializedOutput = await resourceSerializationService.serializeNewResources();
 
       const localStateProvider = new LocalStateProvider(__dirname);
       const stateManagementService = new StateManagementService(localStateProvider);
@@ -111,14 +124,6 @@ describe('LocalStateProvider UT', () => {
   });
 
   describe('getState()', () => {
-    let filePath;
-
-    afterEach(async () => {
-      if (filePath) {
-        await unlinkAsync(filePath);
-      }
-    });
-
     it('should be able to get a default state', async () => {
       const localStateProvider = new LocalStateProvider(__dirname);
       const stateManagementService = new StateManagementService(localStateProvider);
