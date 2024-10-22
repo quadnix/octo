@@ -6,7 +6,7 @@ import type { AOverlay } from './overlay.abstract.js';
 import type { IOverlay } from './overlay.interface.js';
 
 export class OverlayDataRepository {
-  constructor(private newOverlays: UnknownOverlay[] = []) {}
+  constructor(private newOverlays: UnknownOverlay[]) {}
 
   add(overlay: UnknownOverlay): void {
     if ((overlay.constructor as typeof AOverlay).NODE_TYPE !== NodeType.OVERLAY) {
@@ -45,12 +45,12 @@ export class OverlayDataRepository {
 export class OverlayDataRepositoryFactory {
   private static instance: OverlayDataRepository;
 
-  static async create(forceNew = false): Promise<OverlayDataRepository> {
+  static async create(forceNew = false, newOverlays: UnknownOverlay[] = []): Promise<OverlayDataRepository> {
     if (!this.instance) {
-      this.instance = new OverlayDataRepository();
+      this.instance = new OverlayDataRepository(newOverlays);
     }
     if (forceNew) {
-      const newInstance = new OverlayDataRepository();
+      const newInstance = new OverlayDataRepository(newOverlays);
       Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;
