@@ -1,29 +1,44 @@
 import { SharedTestResource, TestResource } from '../../../../test/helpers/test-classes.js';
 import { commitResources, createTestResources } from '../../../../test/helpers/test-models.js';
 import { type ResourceSerializedOutput } from '../../../app.type.js';
-import { Container } from '../../../decorators/container.js';
+import type { Container } from '../../../functions/container/container.js';
+import { TestContainer } from '../../../functions/container/test-container.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../../resources/resource-data.repository.js';
 import { type AResource } from '../../../resources/resource.abstract.js';
-import { ResourceSerializationService, ResourceSerializationServiceFactory } from './resource-serialization.service.js';
+import { ResourceSerializationService } from './resource-serialization.service.js';
 
 describe('Resource Serialization Service UT', () => {
-  beforeEach(async () => {
-    Container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
-    await Container.get(ResourceDataRepository, { args: [true, [], []] });
+  let container: Container;
 
-    Container.registerFactory(ResourceSerializationService, ResourceSerializationServiceFactory);
-    const resourceSerializationService = await Container.get(ResourceSerializationService, { args: [true] });
-    resourceSerializationService.registerClass('SharedTestResource', SharedTestResource);
-    resourceSerializationService.registerClass('TestResource', TestResource);
+  beforeEach(async () => {
+    container = await TestContainer.create(
+      {
+        mocks: [],
+      },
+      {
+        factoryTimeoutInMs: 500,
+      },
+    );
+
+    // In these tests, we commit resources, which resets the ResourceDataRepository.
+    // We cannot use TestContainer to mock ResourceDataRepositoryFactory,
+    // or else commit of resources won't reset anything.
+    container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
+    const resourceDataRepository = await container.get(ResourceDataRepository, { args: [true, [], [], []] });
+
+    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
+    resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
+    resourceSerializationService.registerClass('@octo/TestResource', TestResource);
+    container.registerValue<ResourceSerializationService>(ResourceSerializationService, resourceSerializationService);
   });
 
   afterEach(() => {
-    Container.reset();
+    TestContainer.reset();
   });
 
   describe('deserialize()', () => {
     it('should throw error when de-serializing an unknown class', async () => {
-      const service = await Container.get(ResourceSerializationService);
+      const service = await container.get(ResourceSerializationService);
 
       const serializedOutput: ResourceSerializedOutput = {
         dependencies: [],
@@ -42,12 +57,12 @@ describe('Resource Serialization Service UT', () => {
       };
 
       await expect(async () => {
-        await service.deserialize(serializedOutput);
+        await service.deserialize(serializedOutput, serializedOutput);
       }).rejects.toThrow();
     });
 
     it('should deserialize a single resource', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
 
       const [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['key1'] = 'value1';
@@ -61,7 +76,7 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should deserialize a resource with complex properties', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
 
       const [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['key1'] = { key2: { key3: 'value3' }, key4: 'value4' };
@@ -75,7 +90,7 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should deserialize a single shared resource', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
 
       const [resource1] = await createTestResources({ 'resource-1': [] }, { 'resource-2': ['resource-1'] });
       resource1.properties['key1'] = 'value1';
@@ -89,7 +104,7 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should deserialize dependencies', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
 
       const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
       resource1.properties['key1'] = 'value1';
@@ -112,7 +127,7 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should deserialize dependencies in reverse order', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
 
       // Reverse order of resources.
       // eslint-disable-next-line sort-keys
@@ -138,7 +153,7 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should have exact same dependencies on deserialized object as original object', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
 
       const [resource1, resource2] = await createTestResources(
         { 'resource-1': [], 'resource-2': ['resource-1'] },
@@ -149,23 +164,25 @@ describe('Resource Serialization Service UT', () => {
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
 
-      expect(resourceDataRepository['oldResources']).toHaveLength(0);
-      await commitResources();
-      expect(resourceDataRepository['oldResources']).toHaveLength(3);
+      expect(resourceDataRepository['newResources']).toHaveLength(3);
+      const previousResourceDependencies = resourceDataRepository['newResources']
+        .map((r) => r.getDependencies().map((d) => d.synth()))
+        .flat()
+        .sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
 
-      const previousResourceDependencies = resourceDataRepository['oldResources']
+      await commitResources();
+
+      expect(resourceDataRepository['oldResources']).toHaveLength(3);
+      const currentResourceDependencies = resourceDataRepository['oldResources']
         .map((r) => r.getDependencies().map((d) => d.synth()))
         .flat()
         .sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
-      const currentResourceDependencies = resourceDataRepository['newResources']
-        .map((r) => r.getDependencies().map((d) => d.synth()))
-        .flat()
-        .sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
+
       expect(previousResourceDependencies).toEqual(currentResourceDependencies);
     });
 
     it('should initialize ResourceDataRepository with separate old and new resources', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
 
       const [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['key1'] = 'value1';
@@ -175,14 +192,13 @@ describe('Resource Serialization Service UT', () => {
       await commitResources();
       expect(resourceDataRepository['oldResources']).toHaveLength(1);
 
-      expect(resourceDataRepository['newResources'][0]).toEqual(resourceDataRepository['oldResources'][0]);
       // Manipulate new resources.
-      resourceDataRepository.getById('resource-1')!.properties['key1'] = 'value2';
-      expect(resourceDataRepository['newResources'][0]).not.toEqual(resourceDataRepository['oldResources'][0]);
+      resourceDataRepository.getActualResourceById('resource-1')!.properties['key1'] = 'value2';
+      expect(resourceDataRepository['actualResources'][0]).not.toEqual(resourceDataRepository['oldResources'][0]);
     });
 
     it('should not initialize ResourceDataRepository with new resources marked for deletion', async () => {
-      const resourceDataRepository = await Container.get(ResourceDataRepository);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
 
       const [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['key1'] = 'value1';
@@ -193,7 +209,7 @@ describe('Resource Serialization Service UT', () => {
       expect(resourceDataRepository['oldResources']).toHaveLength(1);
 
       // Remove the new resource.
-      resourceDataRepository.remove(resource1);
+      resourceDataRepository.removeNewResource(resource1);
 
       expect(resourceDataRepository['oldResources']).toHaveLength(1);
       await commitResources();
@@ -203,17 +219,17 @@ describe('Resource Serialization Service UT', () => {
 
   describe('serialize()', () => {
     it('should serialize an empty array', async () => {
-      const service = await Container.get(ResourceSerializationService);
+      const service = await container.get(ResourceSerializationService);
 
-      expect(await service.serialize()).toMatchSnapshot();
+      expect(await service.serializeNewResources()).toMatchSnapshot();
     });
 
     it('should serialize non-empty array', async () => {
       await createTestResources({ 'resource-1': [] });
 
-      const service = await Container.get(ResourceSerializationService);
+      const service = await container.get(ResourceSerializationService);
 
-      expect(await service.serialize()).toMatchSnapshot();
+      expect(await service.serializeNewResources()).toMatchSnapshot();
     });
 
     it('should not serialize deleted resources', async () => {
@@ -224,9 +240,9 @@ describe('Resource Serialization Service UT', () => {
       resource2.response['response2'] = 'value2';
       resource2.remove();
 
-      const service = await Container.get(ResourceSerializationService);
+      const service = await container.get(ResourceSerializationService);
 
-      expect(await service.serialize()).toMatchSnapshot();
+      expect(await service.serializeNewResources()).toMatchSnapshot();
     });
 
     it('should serialize dependencies and properties and resources', async () => {
@@ -236,9 +252,9 @@ describe('Resource Serialization Service UT', () => {
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
 
-      const service = await Container.get(ResourceSerializationService);
+      const service = await container.get(ResourceSerializationService);
 
-      expect(await service.serialize()).toMatchSnapshot();
+      expect(await service.serializeNewResources()).toMatchSnapshot();
     });
 
     it('should serialize shared resources', async () => {
@@ -248,9 +264,9 @@ describe('Resource Serialization Service UT', () => {
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
 
-      const service = await Container.get(ResourceSerializationService);
+      const service = await container.get(ResourceSerializationService);
 
-      expect(await service.serialize()).toMatchSnapshot();
+      expect(await service.serializeNewResources()).toMatchSnapshot();
     });
   });
 });

@@ -10,6 +10,7 @@ import {
 } from '../../../events/index.js';
 import type { IDependency } from '../../../functions/dependency/dependency.js';
 import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
+import type { AResource } from '../../../resources/resource.abstract.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
 export class ResourceSerializationService {
@@ -127,13 +128,16 @@ export class ResourceSerializationService {
     const oldResources = await this._deserialize(JSON.parse(JSON.stringify(oldSerializedOutput)), true);
 
     // Refresh the resource data repository.
-    await Container.get(ResourceDataRepository, {
+    await Container.getInstance().get(ResourceDataRepository, {
       args: [true, Object.values(actualResources), Object.values(oldResources), []],
     });
   }
 
   @EventSource(ResourceRegistrationEvent)
   registerClass(className: string, deserializationClass: any): void {
+    if (this.classMapping[className]) {
+      throw new Error(`Class "${className}" is already registered!`);
+    }
     this.classMapping[className] = deserializationClass;
   }
 
@@ -151,15 +155,15 @@ export class ResourceSerializationService {
       const resourceDependencies = resource.getDependencies().map((d) => d.synth());
       dependencies.push(...resourceDependencies);
 
-      if (resource.NODE_TYPE === 'shared-resource') {
+      if ((resource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
         sharedSerializedResources[resource.resourceId] = {
-          className: resource.constructor.name,
+          className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
           context: resource.getContext(),
           resource: resource.synth(),
         };
       } else {
         serializedResources[resource.resourceId] = {
-          className: resource.constructor.name,
+          className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
           context: resource.getContext(),
           resource: resource.synth(),
         };
@@ -191,7 +195,7 @@ export class ResourceSerializationServiceFactory {
   private static instance: ResourceSerializationService;
 
   static async create(forceNew = false): Promise<ResourceSerializationService> {
-    const resourceDataRepository = await Container.get(ResourceDataRepository);
+    const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
     if (!this.instance) {
       this.instance = new ResourceSerializationService(resourceDataRepository);
     }

@@ -3,10 +3,7 @@
 exports[`Resource Serialization Service UT deserialize() should deserialize a resource with complex properties 1`] = `
 [
   TestResource {
-    "MODEL_NAME": "test-resource",
-    "MODEL_TYPE": "resource",
     "_deleteMarker": false,
-    "anchors": [],
     "context": "test-resource=resource-1",
     "dependencies": [],
     "properties": {
@@ -28,10 +25,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a re
 exports[`Resource Serialization Service UT deserialize() should deserialize a single resource 1`] = `
 [
   TestResource {
-    "MODEL_NAME": "test-resource",
-    "MODEL_TYPE": "resource",
     "_deleteMarker": false,
-    "anchors": [],
     "context": "test-resource=resource-1",
     "dependencies": [],
     "properties": {
@@ -57,7 +51,7 @@ exports[`Resource Serialization Service UT serialize() should not serialize dele
   "dependencies": [],
   "resources": {
     "resource-1": {
-      "className": "TestResource",
+      "className": "@octo/TestResource",
       "context": "test-resource=resource-1",
       "resource": {
         "properties": {
@@ -128,7 +122,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
   ],
   "resources": {
     "resource-1": {
-      "className": "TestResource",
+      "className": "@octo/TestResource",
       "context": "test-resource=resource-1",
       "resource": {
         "properties": {
@@ -141,7 +135,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
       },
     },
     "resource-2": {
-      "className": "TestResource",
+      "className": "@octo/TestResource",
       "context": "test-resource=resource-2",
       "resource": {
         "properties": {
@@ -163,7 +157,7 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
   "dependencies": [],
   "resources": {
     "resource-1": {
-      "className": "TestResource",
+      "className": "@octo/TestResource",
       "context": "test-resource=resource-1",
       "resource": {
         "properties": {},
@@ -222,7 +216,7 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
   ],
   "resources": {
     "resource-1": {
-      "className": "TestResource",
+      "className": "@octo/TestResource",
       "context": "test-resource=resource-1",
       "resource": {
         "properties": {
@@ -237,7 +231,7 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
   },
   "sharedResources": {
     "resource-2": {
-      "className": "SharedTestResource",
+      "className": "@octo/SharedTestResource",
       "context": "test-resource=resource-2",
       "resource": {
         "properties": {
