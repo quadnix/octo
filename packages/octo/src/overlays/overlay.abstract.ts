@@ -114,6 +114,10 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
       }),
     );
 
-    return new deserializationClass(overlay.overlayId, overlay.properties, anchors);
+    const newOverlay: UnknownOverlay = new deserializationClass(overlay.overlayId, overlay.properties, []);
+    for (const anchor of anchors) {
+      newOverlay['anchors'].push(anchor);
+    }
+    return newOverlay;
   }
 }
