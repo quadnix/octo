@@ -1,6 +1,6 @@
 import { create } from '../../../test/helpers/test-models.js';
 import { NodeType } from '../../app.type.js';
-import { Container } from '../../functions/container/container.js';
+import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { DependencyRelationship } from '../../functions/dependency/dependency.js';
 import { ValidationService } from '../../services/validation/validation.service.js';
@@ -8,8 +8,10 @@ import type { AModel } from '../model.abstract.js';
 import { Server } from './server.model.js';
 
 describe('Server UT', () => {
-  beforeEach(() => {
-    TestContainer.create(
+  let container: Container;
+
+  beforeEach(async () => {
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -22,8 +24,8 @@ describe('Server UT', () => {
     );
   });
 
-  afterEach(() => {
-    Container.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   it('should set static members', () => {
@@ -38,7 +40,7 @@ describe('Server UT', () => {
     it('should validate serverKey', async () => {
       new Server('$$');
 
-      const validationService = await Container.get(ValidationService);
+      const validationService = await container.get(ValidationService);
       const result = validationService.validate();
 
       expect(result.pass).toBeFalsy();

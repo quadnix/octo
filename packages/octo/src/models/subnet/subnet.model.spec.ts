@@ -1,14 +1,16 @@
 import { create } from '../../../test/helpers/test-models.js';
 import { NodeType } from '../../app.type.js';
-import { Container } from '../../functions/container/container.js';
+import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { ValidationService } from '../../services/validation/validation.service.js';
 import type { AModel } from '../model.abstract.js';
 import { SubnetType } from './subnet.model.js';
 
 describe('Subnet UT', () => {
-  beforeEach(() => {
-    TestContainer.create(
+  let container: Container;
+
+  beforeEach(async () => {
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -21,8 +23,8 @@ describe('Subnet UT', () => {
     );
   });
 
-  afterEach(() => {
-    Container.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   it('should set static members', () => {
@@ -50,7 +52,7 @@ describe('Subnet UT', () => {
     it('should validate subnetName', async () => {
       create({ app: ['test'], region: ['region'], subnet: ['$$'] });
 
-      const validationService = await Container.get(ValidationService);
+      const validationService = await container.get(ValidationService);
       const result = validationService.validate();
 
       expect(result.pass).toBeFalsy();
