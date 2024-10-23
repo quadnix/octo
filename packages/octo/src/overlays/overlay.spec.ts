@@ -29,8 +29,8 @@ describe('Overlay UT', () => {
     );
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   it('should set context', async () => {

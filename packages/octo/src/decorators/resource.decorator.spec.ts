@@ -35,7 +35,7 @@ describe('Resource UT', () => {
     );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // @ts-expect-error static members are readonly.
     SharedTestResource['NODE_NAME'] = undefined;
     // @ts-expect-error static members are readonly.
@@ -49,7 +49,7 @@ describe('Resource UT', () => {
     // @ts-expect-error static members are readonly.
     TestResource['NODE_TYPE'] = undefined;
 
-    TestContainer.reset();
+    await TestContainer.reset();
   });
 
   it('should throw error when packageName is invalid', () => {

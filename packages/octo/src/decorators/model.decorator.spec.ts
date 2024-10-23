@@ -31,7 +31,7 @@ describe('Model UT', () => {
     );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // @ts-expect-error static members are readonly.
     TestModelWithoutUnsynth['NODE_NAME'] = undefined;
     // @ts-expect-error static members are readonly.
@@ -39,7 +39,7 @@ describe('Model UT', () => {
     // @ts-expect-error static members are readonly.
     TestModelWithoutUnsynth['NODE_TYPE'] = undefined;
 
-    TestContainer.reset();
+    await TestContainer.reset();
   });
 
   it('should throw error when packageName is invalid', () => {

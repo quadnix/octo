@@ -26,8 +26,8 @@ describe('Resource UT', () => {
     );
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
 
     jest.restoreAllMocks();
   });

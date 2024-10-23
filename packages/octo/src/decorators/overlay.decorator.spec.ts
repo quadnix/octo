@@ -31,7 +31,7 @@ describe('Overlay UT', () => {
     );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // @ts-expect-error static members are readonly.
     TestOverlay['NODE_NAME'] = undefined;
     // @ts-expect-error static members are readonly.
@@ -39,7 +39,7 @@ describe('Overlay UT', () => {
     // @ts-expect-error static members are readonly.
     TestOverlay['NODE_TYPE'] = undefined;
 
-    TestContainer.reset();
+    await TestContainer.reset();
   });
 
   it('should throw error when packageName is invalid', () => {

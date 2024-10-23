@@ -30,8 +30,8 @@ describe('OverlayService UT', () => {
     );
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   describe('addOverlay()', () => {

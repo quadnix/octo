@@ -31,11 +31,11 @@ describe('Anchor UT', () => {
     );
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // @ts-expect-error static members are readonly.
     TestAnchor['NODE_PACKAGE'] = undefined;
 
-    TestContainer.reset();
+    await TestContainer.reset();
   });
 
   it('should throw error when packageName is invalid', () => {

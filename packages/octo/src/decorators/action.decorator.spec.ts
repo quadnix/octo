@@ -32,8 +32,8 @@ describe('Action UT', () => {
     );
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   it('should throw error when constructor is not a recognized node', async () => {

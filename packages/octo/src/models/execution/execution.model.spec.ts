@@ -22,8 +22,8 @@ describe('Execution UT', () => {
     );
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   it('should set static members', () => {

@@ -47,8 +47,8 @@ describe('Model Serialization Service UT', () => {
     container.registerValue<ModelSerializationService>(ModelSerializationService, modelSerializationService);
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   describe('deserialize()', () => {

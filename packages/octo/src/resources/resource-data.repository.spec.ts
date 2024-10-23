@@ -35,8 +35,8 @@ describe('ResourceDataRepository UT', () => {
     container.registerValue<ResourceSerializationService>(ResourceSerializationService, resourceSerializationService);
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
 
     jest.restoreAllMocks();
   });

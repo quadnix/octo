@@ -35,8 +35,8 @@ describe('Module UT', () => {
     );
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   it('should throw error when packageName is invalid', () => {

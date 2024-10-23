@@ -24,8 +24,8 @@ describe('OverlayDataRepository UT', () => {
     );
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   describe('add()', () => {

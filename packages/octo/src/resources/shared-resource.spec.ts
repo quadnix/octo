@@ -22,8 +22,8 @@ describe('SharedResource UT', () => {
     );
   });
 
-  afterEach(() => {
-    TestContainer.reset();
+  afterEach(async () => {
+    await TestContainer.reset();
   });
 
   describe('diff()', () => {
