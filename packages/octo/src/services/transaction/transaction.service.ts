@@ -1,7 +1,10 @@
 import {
   type ActionInputs,
+  type Constructable,
   NodeType,
   type TransactionOptions,
+  type UnknownModel,
+  type UnknownOverlay,
   type UnknownResource,
   type UnknownSharedResource,
 } from '../../app.type.js';
@@ -21,8 +24,11 @@ import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
+import type { ANode } from '../../functions/node/node.abstract.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
+import type { AModel } from '../../models/model.abstract.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
+import type { AOverlay } from '../../overlays/overlay.abstract.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
@@ -32,9 +38,10 @@ import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 
 export class TransactionService {
-  private readonly modelActions: IModelAction[] = [];
-  private readonly overlayActions: IModelAction[] = [];
-  private readonly resourceActions: IResourceAction[] = [];
+  private readonly modelActions: { modelClass: Constructable<UnknownModel>; actions: IModelAction[] }[] = [];
+  private readonly overlayActions: { overlayClass: Constructable<UnknownOverlay>; actions: IModelAction[] }[] = [];
+  private readonly resourceActions: { resourceClass: Constructable<UnknownResource>; actions: IResourceAction[] }[] =
+    [];
 
   constructor(
     private readonly captureService: CaptureService,
@@ -86,7 +93,7 @@ export class TransactionService {
           // which can be merged if it exists.
           for (const [resourceId, resource] of Object.entries(outputs)) {
             const previousResource = this.resourceDataRepository.getNewResourceById(resourceId);
-            if (resource.NODE_TYPE === 'shared-resource' && previousResource) {
+            if ((resource.constructor as typeof AResource).NODE_TYPE === 'shared-resource' && previousResource) {
               this.resourceDataRepository.addNewResource(
                 (resource as UnknownSharedResource).merge(previousResource as UnknownSharedResource),
               );
@@ -100,7 +107,7 @@ export class TransactionService {
             d.updateOutputs(outputs);
           });
 
-          EventService.getInstance().emit(new ModelActionTransactionEvent(a.ACTION_NAME));
+          EventService.getInstance().emit(new ModelActionTransactionEvent(a.constructor.name));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -169,7 +176,7 @@ export class TransactionService {
             await actualResource.diffInverse(diffToProcess, deReferenceResource);
           }
 
-          EventService.getInstance().emit(new ResourceActionTransactionEvent(a.ACTION_NAME));
+          EventService.getInstance().emit(new ResourceActionTransactionEvent(a.constructor.name));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -271,15 +278,23 @@ export class TransactionService {
 
     // Generate diff on models.
     const modelDiffs = diffs.map((d) => {
-      if (d.node.NODE_TYPE === NodeType.OVERLAY) {
+      if ((d.node.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
         return new DiffMetadata(
           d,
-          this.overlayActions.filter((a) => a.filter(d)),
+          (
+            this.overlayActions.find(
+              (a) => (a.overlayClass as unknown as typeof AOverlay) === (d.node.constructor as typeof AOverlay),
+            )?.actions || []
+          ).filter((a) => a.filter(d)),
         );
       } else {
         return new DiffMetadata(
           d,
-          this.modelActions.filter((a) => a.filter(d)),
+          (
+            this.modelActions.find(
+              (a) => (a.modelClass as unknown as typeof AModel) === (d.node.constructor as typeof AModel),
+            )?.actions || []
+          ).filter((a) => a.filter(d)),
         );
       }
     });
@@ -346,7 +361,11 @@ export class TransactionService {
       (d) =>
         new DiffMetadata(
           d,
-          this.resourceActions.filter((a) => a.filter(d)),
+          (
+            this.resourceActions.find(
+              (a) => (a.resourceClass as unknown as typeof AResource) === (d.node.constructor as typeof AResource),
+            )?.actions || []
+          ).filter((a) => a.filter(d)),
         ),
     );
     // Set apply order on resource diffs.
@@ -358,7 +377,11 @@ export class TransactionService {
       (d) =>
         new DiffMetadata(
           d,
-          this.resourceActions.filter((a) => a.filter(d)),
+          (
+            this.resourceActions.find(
+              (a) => (a.resourceClass as unknown as typeof AResource) === (d.node.constructor as typeof AResource),
+            )?.actions || []
+          ).filter((a) => a.filter(d)),
         ),
     );
     // Set apply order on dirty resource diffs.
@@ -391,28 +414,46 @@ export class TransactionService {
   }
 
   @EventSource(ModelActionRegistrationEvent)
-  registerModelActions(actions: IModelAction[]): void {
-    for (const action of actions) {
-      if (!this.modelActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
-        this.modelActions.push(action);
+  registerModelActions(forModel: Constructable<UnknownModel>, actions: IModelAction[]): void {
+    const modelActions = this.modelActions.find((a) => a.modelClass === forModel);
+    if (!modelActions) {
+      this.modelActions.push({ actions: actions, modelClass: forModel });
+    } else {
+      for (const action of actions) {
+        if (modelActions.actions.find((a) => a.constructor.name === action.constructor.name)) {
+          throw new Error(`Action "${action.constructor.name}" already registered for model "${forModel.name}"!`);
+        }
+        modelActions.actions.push(action);
       }
     }
   }
 
   @EventSource(ModelActionRegistrationEvent)
-  registerOverlayActions(actions: IModelAction[]): void {
-    for (const action of actions) {
-      if (!this.overlayActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
-        this.overlayActions.push(action);
+  registerOverlayActions(forOverlay: Constructable<UnknownOverlay>, actions: IModelAction[]): void {
+    const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
+    if (!overlayActions) {
+      this.overlayActions.push({ actions: actions, overlayClass: forOverlay });
+    } else {
+      for (const action of actions) {
+        if (overlayActions.actions.find((a) => a.constructor.name === action.constructor.name)) {
+          throw new Error(`Action "${action.constructor.name}" already registered for overlay "${forOverlay.name}"!`);
+        }
+        overlayActions.actions.push(action);
       }
     }
   }
 
   @EventSource(ResourceActionRegistrationEvent)
-  registerResourceActions(actions: IResourceAction[]): void {
-    for (const action of actions) {
-      if (!this.resourceActions.find((a) => a.ACTION_NAME === action.ACTION_NAME)) {
-        this.resourceActions.push(action);
+  registerResourceActions(forResource: Constructable<UnknownResource>, actions: IResourceAction[]): void {
+    const resourceActions = this.resourceActions.find((a) => a.resourceClass === forResource);
+    if (!resourceActions) {
+      this.resourceActions.push({ actions: actions, resourceClass: forResource });
+    } else {
+      for (const action of actions) {
+        if (resourceActions.actions.find((a) => a.constructor.name === action.constructor.name)) {
+          throw new Error(`Action "${action.constructor.name}" already registered for resource "${forResource.name}"!`);
+        }
+        resourceActions.actions.push(action);
       }
     }
   }
@@ -423,11 +464,13 @@ export class TransactionServiceFactory {
   private static instance: TransactionService;
 
   static async create(forceNew = false): Promise<TransactionService> {
+    const container = Container.getInstance();
+
     const [captureService, inputService, overlayDataRepository, resourceDataRepository] = await Promise.all([
-      Container.get(CaptureService),
-      Container.get(InputService),
-      Container.get(OverlayDataRepository),
-      Container.get(ResourceDataRepository),
+      container.get(CaptureService),
+      container.get(InputService),
+      container.get(OverlayDataRepository),
+      container.get(ResourceDataRepository),
     ]);
     if (!this.instance) {
       this.instance = new TransactionService(
