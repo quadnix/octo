@@ -1,5 +1,6 @@
 import type { IDependency } from './functions/dependency/dependency.js';
 import type { ANode } from './functions/node/node.abstract.js';
+import type { IModule } from './modules/module.interface.js';
 import type { IAnchor } from './overlays/anchor.interface.js';
 import { AOverlay } from './overlays/overlay.abstract.js';
 import { AModel } from './models/model.abstract.js';
@@ -37,6 +38,8 @@ export type ModelSerializedOutput = {
 
 // https://stackoverflow.com/a/55032655/1834562
 export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
+
+export type ModuleConstructorArgs<M> = M extends new (...args: infer I) => IModule<any> ? I : never;
 
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];

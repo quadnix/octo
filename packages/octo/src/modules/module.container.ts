@@ -1,11 +1,9 @@
-import type { Constructable } from '../app.type.js';
+import type { Constructable, ModuleConstructorArgs } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
 import { EventService } from '../services/event/event.service.js';
 import { IModule } from './module.interface.js';
-
-type ModuleConstructorArgs<M> = M extends new (...args: infer I) => IModule<any> ? I : never;
 
 type ModuleOptions = {
   inputs: { [key: string]: unknown };

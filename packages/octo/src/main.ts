@@ -1,20 +1,32 @@
 import { strict as assert } from 'assert';
-import { ActionInputs, Constructable, TransactionOptions, UnknownResource } from './app.type.js';
+import type {
+  ActionInputs,
+  Constructable,
+  ModuleConstructorArgs,
+  TransactionOptions,
+  UnknownResource,
+} from './app.type.js';
 import { ValidationTransactionError } from './errors/index.js';
 import { Container } from './functions/container/container.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
+import { CommitHook } from './functions/hook/commit.hook.js';
+import { ModelActionHook } from './functions/hook/model-action.hook.js';
+import { ResourceActionHook } from './functions/hook/resource-action.hook.js';
 import { App } from './models/app/app.model.js';
 import { ModuleContainer } from './modules/module.container.js';
 import { IModule } from './modules/module.interface.js';
-import { OverlayDataRepository } from './overlays/overlay-data.repository.js';
+import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from './resources/resource-data.repository.js';
 import { AResource } from './resources/resource.abstract.js';
 import { CaptureService } from './services/capture/capture.service.js';
 import { InputService } from './services/input/input.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
-import { StateManagementService } from './services/state-management/state-management.service.js';
+import {
+  StateManagementService,
+  StateManagementServiceFactory,
+} from './services/state-management/state-management.service.js';
 import { IStateProvider } from './services/state-management/state-provider.interface.js';
 import { TransactionService } from './services/transaction/transaction.service.js';
 import { ValidationService } from './services/validation/validation.service.js';
@@ -90,7 +102,7 @@ export class Octo {
     modelTransaction: DiffMetadata[][],
     resourceTransaction: DiffMetadata[][] = [],
   ): Promise<void> {
-    // `modelTransaction` is used by hooks of type CommitHook.
+    // `modelTransaction` and `resourceTransaction` is used by hooks of type CommitHook.
     assert(!!modelTransaction);
     assert(!!resourceTransaction);
 
@@ -122,13 +134,15 @@ export class Octo {
   async initialize(
     stateProvider: IStateProvider,
     initializeInContainer: {
-      type: Parameters<typeof Container.get>[0];
-      options?: Parameters<typeof Container.get>[1];
+      type: Parameters<Container['get']>[0];
+      options?: Parameters<Container['get']>[1];
     }[] = [],
     excludeInContainer: {
-      type: Parameters<typeof Container.unRegisterFactory>[0];
+      type: Parameters<Container['unRegisterFactory']>[0];
     }[] = [],
   ): Promise<void> {
+    const container = Container.getInstance();
+
     [
       this.captureService,
       this.inputService,
@@ -140,39 +154,62 @@ export class Octo {
       this.transactionService,
       this.validationService,
     ] = await Promise.all([
-      Container.get(CaptureService),
-      Container.get(InputService),
-      Container.get(ModelSerializationService),
-      Container.get(ModuleContainer),
-      Container.get(ResourceDataRepository),
-      Container.get(ResourceSerializationService),
-      Container.get(StateManagementService, { args: [true, stateProvider] }),
-      Container.get(TransactionService),
-      Container.get(ValidationService),
+      container.get(CaptureService),
+      container.get(InputService),
+      container.get(ModelSerializationService),
+      container.get(ModuleContainer),
+      container.get(ResourceDataRepository),
+      container.get(ResourceSerializationService),
+      container.get<StateManagementService, typeof StateManagementServiceFactory>(StateManagementService, {
+        args: [true, stateProvider],
+      }),
+      container.get(TransactionService),
+      container.get(ValidationService),
     ]);
 
     for (const exclude of excludeInContainer) {
-      Container.unRegisterFactory(exclude.type);
+      container.unRegisterFactory(exclude.type);
     }
     for (const initialize of initializeInContainer) {
-      await Container.get(initialize.type, initialize.options);
+      await container.get(initialize.type, initialize.options as any);
     }
 
     // Wait for all factories and startup promises to resolve.
-    await Container.waitToResolveAllFactories();
+    await container.waitToResolveAllFactories();
 
     // Reset the runtime environment with the latest state.
     await this.retrieveResourceState();
   }
 
-  loadModules(modules: Constructable<IModule<any>>[]): void {
-    for (const module of modules) {
-      this.moduleContainer.load(module);
-    }
+  loadModule<M>(module: { new (...args: any): IModule<unknown> }, inputs: ModuleConstructorArgs<M>[0]): void {
+    this.moduleContainer.load(module, inputs);
   }
 
   registerCapture<T extends AResource<T>>(resourceId: T['resourceId'], response: Partial<T['response']>): void {
     this.captureService.registerCapture(resourceId, response);
+  }
+
+  registerHooks({
+    postCommitHooks,
+    postModelActionHooks,
+    postResourceActionHooks,
+    preCommitHooks,
+    preModelActionHooks,
+    preResourceActionHooks,
+  }: {
+    postCommitHooks?: Parameters<CommitHook['collectHooks']>[0]['postHooks'];
+    postModelActionHooks?: Parameters<ModelActionHook['collectHooks']>[0]['postHooks'];
+    postResourceActionHooks?: Parameters<ResourceActionHook['collectHooks']>[0]['postHooks'];
+    preCommitHooks?: Parameters<CommitHook['collectHooks']>[0]['preHooks'];
+    preModelActionHooks?: Parameters<ModelActionHook['collectHooks']>[0]['preHooks'];
+    preResourceActionHooks?: Parameters<ResourceActionHook['collectHooks']>[0]['preHooks'];
+  } = {}): void {
+    CommitHook.getInstance().collectHooks({ postHooks: postCommitHooks, preHooks: preCommitHooks });
+    ModelActionHook.getInstance().collectHooks({ postHooks: postModelActionHooks, preHooks: preModelActionHooks });
+    ResourceActionHook.getInstance().collectHooks({
+      postHooks: postResourceActionHooks,
+      preHooks: preResourceActionHooks,
+    });
   }
 
   registerInputs(inputs: ActionInputs): void {
@@ -197,7 +234,10 @@ export class Octo {
       version: 1,
     });
 
-    await Container.get(OverlayDataRepository, { args: [true] });
+    await Container.getInstance().get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
+      OverlayDataRepository,
+      { args: [true] },
+    );
   }
 
   private async saveResourceState(): Promise<void> {

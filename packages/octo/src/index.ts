@@ -2,7 +2,7 @@ export { Action } from './decorators/action.decorator.js';
 export { Anchor } from './decorators/anchor.decorator.js';
 export { Factory } from './decorators/factory.decorator.js';
 export { Model } from './decorators/model.decorator.js';
-export { type IModuleOptions, Module } from './decorators/module.decorator.js';
+export { Module } from './decorators/module.decorator.js';
 export { OnEvent } from './decorators/on-event.decorator.js';
 export { Overlay } from './decorators/overlay.decorator.js';
 export { Resource } from './decorators/resource.decorator.js';
@@ -18,6 +18,9 @@ export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { DiffMetadata } from './functions/diff/diff-metadata.js';
 
+export { ANode } from './functions/node/node.abstract.js';
+export { type INode, type INodeReference } from './functions/node/node.interface.js';
+
 export { type IApp } from './models/app/app.interface.js';
 export { App } from './models/app/app.model.js';
 export { type IDeployment } from './models/deployment/deployment.interface.js';
@@ -26,6 +29,8 @@ export { type IEnvironment } from './models/environment/environment.interface.js
 export { Environment } from './models/environment/environment.model.js';
 export { type IExecution } from './models/execution/execution.interface.js';
 export { Execution } from './models/execution/execution.model.js';
+export { type IFilesystem } from './models/filesystem/filesystem.interface.js';
+export { Filesystem } from './models/filesystem/filesystem.model.js';
 export { type IImage } from './models/image/image.interface.js';
 export { type IImageDockerOptions, Image } from './models/image/image.model.js';
 export { type IPipeline } from './models/pipeline/pipeline.interface.js';
