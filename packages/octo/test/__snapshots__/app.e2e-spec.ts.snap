@@ -3,43 +3,76 @@
 exports[`App E2E Test should generate app diff 1`] = `
 [
   {
-    "action": "update",
-    "field": "environmentVariables",
-    "model": "environment=qa,region=region,app=test-app",
-    "value": {
-      "key": "env",
-      "value": "qa",
-    },
+    "action": "add",
+    "field": "imageId",
+    "node": "image=image:v1,app=test-app",
+    "value": "image:v1",
+  },
+  {
+    "action": "add",
+    "field": "pipelineName",
+    "node": "pipeline=pipeline,app=test-app",
+    "value": "pipeline",
+  },
+  {
+    "action": "add",
+    "field": "executionId",
+    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,app=test-app,environment=qa,region=region,app=test-app,subnet=region-public,region=region,app=test-app",
+    "value": "backend-v0.0.1-region-qa-public",
   },
   {
     "action": "add",
     "field": "environmentName",
-    "model": "environment=staging,region=region,app=test-app",
-    "value": "staging",
+    "node": "environment=qa,region=region,app=test-app",
+    "value": "qa",
+  },
+  {
+    "action": "add",
+    "field": "filesystemName",
+    "node": "filesystem=filesystem,region=region,app=test-app",
+    "value": "filesystem",
+  },
+  {
+    "action": "add",
+    "field": "executionId",
+    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,app=test-app,environment=qa,region=region,app=test-app,subnet=region-public,region=region,app=test-app",
+    "value": "backend-v0.0.1-region-qa-public",
   },
   {
     "action": "add",
     "field": "subnetId",
-    "model": "subnet=region-public,region=region,app=test-app",
+    "node": "subnet=region-public,region=region,app=test-app",
     "value": "region-public",
   },
   {
     "action": "add",
-    "field": "deploymentTag",
-    "model": "deployment=v0.0.1,server=backend,app=test-app",
-    "value": "v0.0.1",
+    "field": "regionId",
+    "node": "region=region,app=test-app",
+    "value": "region",
+  },
+  {
+    "action": "add",
+    "field": "executionId",
+    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,app=test-app,environment=qa,region=region,app=test-app,subnet=region-public,region=region,app=test-app",
+    "value": "backend-v0.0.1-region-qa-public",
   },
   {
     "action": "add",
     "field": "deploymentTag",
-    "model": "deployment=v0.0.1,server=database,app=test-app",
+    "node": "deployment=v0.0.1,server=backend,app=test-app",
     "value": "v0.0.1",
   },
   {
     "action": "add",
     "field": "serverKey",
-    "model": "server=database,app=test-app",
-    "value": "database",
+    "node": "server=backend,app=test-app",
+    "value": "backend",
+  },
+  {
+    "action": "add",
+    "field": "name",
+    "node": "app=test-app",
+    "value": "test-app",
   },
 ]
 `;

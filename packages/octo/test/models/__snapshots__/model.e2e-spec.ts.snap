@@ -16,6 +16,468 @@ exports[`Model E2E Test addRelationship() should create a bi-directional relatio
 ]
 `;
 
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "dockerOptions": [Object], "imageId": "image:v1", Symbol(): "image", Symbol(): "v1"} getAncestors() 1`] = `
+[
+  "image=image:v1,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "dockerOptions": [Object], "imageId": "image:v1", Symbol(): "image", Symbol(): "v1"} getBoundaryMembers() 1`] = `
+[
+  "image=image:v1,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "dockerOptions": [Object], "imageId": "image:v1", Symbol(): "image", Symbol(): "v1"} getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "dockerOptions": [Object], "imageId": "image:v1", Symbol(): "image", Symbol(): "v1"} getContext() 1`] = `"image=image:v1,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "dockerOptions": [Object], "imageId": "image:v1", Symbol(): "image", Symbol(): "v1"} getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "dockerOptions": [Object], "imageId": "image:v1", Symbol(): "image", Symbol(): "v1"} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "dockerOptions": [Object], "imageId": "image:v1", Symbol(): "image", Symbol(): "v1"} synth() 1`] = `
+{
+  "dockerOptions": {
+    "dockerfilePath": "/Dockerfile",
+  },
+  "imageId": "v1",
+  "imageName": "image",
+  "imageTag": "v1",
+}
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "instructionSet": [Array], Symbol(): "pipeline"} getAncestors() 1`] = `
+[
+  "pipeline=pipeline,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "instructionSet": [Array], Symbol(): "pipeline"} getBoundaryMembers() 1`] = `
+[
+  "pipeline=pipeline,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "instructionSet": [Array], Symbol(): "pipeline"} getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "instructionSet": [Array], Symbol(): "pipeline"} getContext() 1`] = `"pipeline=pipeline,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "instructionSet": [Array], Symbol(): "pipeline"} getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "instructionSet": [Array], Symbol(): "pipeline"} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "instructionSet": [Array], Symbol(): "pipeline"} synth() 1`] = `
+{
+  "instructionSet": [],
+  "pipelineName": "pipeline",
+}
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "options": [Object], "subnetId": "region-public", Symbol(): "public"} getAncestors() 1`] = `
+[
+  "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
+  "region=region,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "options": [Object], "subnetId": "region-public", Symbol(): "public"} getBoundaryMembers() 1`] = `
+[
+  "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
+  "region=region,app=test",
+  "app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "environment=qa,region=region,app=test",
+  "deployment=v1,server=backend,app=test",
+  "server=backend,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "options": [Object], "subnetId": "region-public", Symbol(): "public"} getChildren() 1`] = `
+[
+  "execution",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "options": [Object], "subnetId": "region-public", Symbol(): "public"} getContext() 1`] = `"subnet=region-public,region=region,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "options": [Object], "subnetId": "region-public", Symbol(): "public"} getParents() 1`] = `
+[
+  "region",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "options": [Object], "subnetId": "region-public", Symbol(): "public"} getSiblings() 1`] = `
+[
+  "subnet",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], "options": [Object], "subnetId": "region-public", Symbol(): "public"} synth() 1`] = `
+{
+  "options": {
+    "disableSubnetIntraNetwork": false,
+    "subnetType": "private",
+  },
+  "region": {
+    "context": "region=region,app=test",
+  },
+  "subnetId": "region-public",
+  "subnetName": "public",
+}
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "backend"} getAncestors() 1`] = `
+[
+  "server=backend,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "backend"} getBoundaryMembers() 1`] = `
+[
+  "server=backend,app=test",
+  "app=test",
+  "deployment=v1,server=backend,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
+  "region=region,app=test",
+  "environment=qa,region=region,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "backend"} getChildren() 1`] = `
+[
+  "deployment",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "backend"} getContext() 1`] = `"server=backend,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "backend"} getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "backend"} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "backend"} synth() 1`] = `
+{
+  "serverKey": "backend",
+}
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "filesystem"} getAncestors() 1`] = `
+[
+  "filesystem=filesystem,region=region,app=test",
+  "region=region,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "filesystem"} getBoundaryMembers() 1`] = `
+[
+  "filesystem=filesystem,region=region,app=test",
+  "region=region,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "filesystem"} getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "filesystem"} getContext() 1`] = `"filesystem=filesystem,region=region,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "filesystem"} getParents() 1`] = `
+[
+  "region",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "filesystem"} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "filesystem"} synth() 1`] = `
+{
+  "filesystemName": "filesystem",
+}
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "region"} getAncestors() 1`] = `
+[
+  "region=region,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "region"} getBoundaryMembers() 1`] = `
+[
+  "region=region,app=test",
+  "app=test",
+  "subnet=region-private,region=region,app=test",
+  "subnet=region-public,region=region,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "environment=qa,region=region,app=test",
+  "deployment=v1,server=backend,app=test",
+  "server=backend,app=test",
+  "filesystem=filesystem,region=region,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "region"} getChildren() 1`] = `
+[
+  "environment",
+  "filesystem",
+  "subnet",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "region"} getContext() 1`] = `"region=region,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "region"} getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "region"} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "region"} synth() 1`] = `
+{
+  "regionId": "region",
+}
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "service"} getAncestors() 1`] = `
+[
+  "service=service,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "service"} getBoundaryMembers() 1`] = `
+[
+  "service=service,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "service"} getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "service"} getContext() 1`] = `"service=service,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "service"} getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "service"} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "service"} synth() 1`] = `"Method not implemented! Use subclass"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "test"} getAncestors() 1`] = `
+[
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "test"} getBoundaryMembers() 1`] = `
+[
+  "app=test",
+  "service=service,app=test",
+  "server=backend,app=test",
+  "deployment=v1,server=backend,app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
+  "region=region,app=test",
+  "environment=qa,region=region,app=test",
+  "filesystem=filesystem,region=region,app=test",
+  "pipeline=pipeline,app=test",
+  "image=image:v1,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "test"} getChildren() 1`] = `
+[
+  "image",
+  "pipeline",
+  "region",
+  "server",
+  "service",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "test"} getContext() 1`] = `"app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "test"} getParents() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "test"} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "test"} synth() 1`] = `
+{
+  "name": "test",
+}
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "v1"} getAncestors() 1`] = `
+[
+  "deployment=v1,server=backend,app=test",
+  "server=backend,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "v1"} getBoundaryMembers() 1`] = `
+[
+  "deployment=v1,server=backend,app=test",
+  "server=backend,app=test",
+  "app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
+  "region=region,app=test",
+  "environment=qa,region=region,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "v1"} getChildren() 1`] = `
+[
+  "execution",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "v1"} getContext() 1`] = `"deployment=v1,server=backend,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "v1"} getParents() 1`] = `
+[
+  "server",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "v1"} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): "v1"} synth() 1`] = `
+{
+  "deploymentTag": "v1",
+}
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map], Symbol(): "qa"} getAncestors() 1`] = `
+[
+  "environment=qa,region=region,app=test",
+  "region=region,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map], Symbol(): "qa"} getBoundaryMembers() 1`] = `
+[
+  "environment=qa,region=region,app=test",
+  "region=region,app=test",
+  "app=test",
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
+  "deployment=v1,server=backend,app=test",
+  "server=backend,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map], Symbol(): "qa"} getChildren() 1`] = `
+[
+  "execution",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map], Symbol(): "qa"} getContext() 1`] = `"environment=qa,region=region,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map], Symbol(): "qa"} getParents() 1`] = `
+[
+  "region",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map], Symbol(): "qa"} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map], Symbol(): "qa"} synth() 1`] = `
+{
+  "environmentName": "qa",
+  "environmentVariables": {},
+}
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map]} getAncestors() 1`] = `
+[
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
+  "region=region,app=test",
+  "app=test",
+  "environment=qa,region=region,app=test",
+  "deployment=v1,server=backend,app=test",
+  "server=backend,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map]} getBoundaryMembers() 1`] = `
+[
+  "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test",
+  "subnet=region-public,region=region,app=test",
+  "subnet=region-private,region=region,app=test",
+  "region=region,app=test",
+  "app=test",
+  "environment=qa,region=region,app=test",
+  "deployment=v1,server=backend,app=test",
+  "server=backend,app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map]} getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map]} getContext() 1`] = `"execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test,environment=qa,region=region,app=test,subnet=region-public,region=region,app=test"`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map]} getParents() 1`] = `
+[
+  "deployment",
+  "environment",
+  "subnet",
+]
+`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map]} getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test {"anchors": [Array], "dependencies": [Array], Symbol(): [Map]} synth() 1`] = `
+{
+  "deployment": {
+    "context": "deployment=v1,server=backend,app=test",
+  },
+  "environment": {
+    "context": "environment=qa,region=region,app=test",
+  },
+  "environmentVariables": {},
+  "subnet": {
+    "context": "subnet=region-public,region=region,app=test",
+  },
+}
+`;
+
 exports[`Model E2E Test common functions Test app getAncestors() 1`] = `
 [
   "app=test",

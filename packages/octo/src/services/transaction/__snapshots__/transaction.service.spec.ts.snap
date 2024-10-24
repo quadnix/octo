@@ -17,12 +17,6 @@ exports[`TransactionService UT applyModels() should call action and collect all 
 ]
 `;
 
-exports[`TransactionService UT applyModels() should call action and collect all input and output 2`] = `
-[
-  "resource1",
-]
-`;
-
 exports[`TransactionService UT applyModels() should call multiple actions and collect all input and output 1`] = `
 [
   [
@@ -54,19 +48,6 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
     },
     {},
   ],
-]
-`;
-
-exports[`TransactionService UT applyModels() should call multiple actions and collect all input and output 3`] = `
-[
-  "resource1",
-  "resource2",
-]
-`;
-
-exports[`TransactionService UT applyModels() should merge the shared-resource with existing set of resources 1`] = `
-[
-  "shared-resource",
 ]
 `;
 
@@ -109,27 +90,6 @@ exports[`TransactionService UT applyResources() should only process 1 matching d
   [
     {
       "action": "add",
-      "field": "resourceId",
-      "node": "test-resource=resource-1",
-      "value": "resource-1",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT applyResources() should process diffs of deleting resources per dependency graph 1`] = `
-[
-  [
-    {
-      "action": "delete",
-      "field": "resourceId",
-      "node": "test-resource=resource-2",
-      "value": "resource-2",
-    },
-  ],
-  [
-    {
-      "action": "delete",
       "field": "resourceId",
       "node": "test-resource=resource-1",
       "value": "resource-1",
@@ -258,47 +218,6 @@ exports[`TransactionService UT beginTransaction() yieldResourceTransaction shoul
       "node": "test-resource=resource-2",
       "value": "resource-2",
     },
-  ],
-]
-`;
-
-exports[`TransactionService UT rollbackTransaction() should be able to revert addition of resources 1`] = `
-[
-  [
-    {
-      "action": "delete",
-      "field": "resourceId",
-      "node": "test-resource=resource-1",
-      "value": "resource-1",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT rollbackTransaction() should be able to revert deletion of resources 1`] = `
-[
-  [
-    {
-      "action": "add",
-      "field": "resourceId",
-      "node": "test-resource=resource-1",
-      "value": "resource-1",
-    },
-  ],
-]
-`;
-
-exports[`TransactionService UT rollbackTransaction() should call revert() for every diff in transaction 1`] = `
-[
-  [
-    {
-      "action": "add",
-      "field": "name",
-      "node": "app=app",
-      "value": "app",
-    },
-    {},
-    {},
   ],
 ]
 `;
