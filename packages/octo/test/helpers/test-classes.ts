@@ -4,13 +4,11 @@ import {
   AOverlay,
   AResource,
   ASharedResource,
-  Anchor,
   type Diff,
   type IAnchor,
   type IOverlay,
   type IResource,
   NodeType,
-  Overlay,
   type UnknownModel,
   type UnknownResource,
 } from '../../src/index.js';
@@ -30,13 +28,6 @@ export class TestAction {}
 export class TestAnchor extends AAnchor {
   static override readonly NODE_PACKAGE: string = '@octo';
 
-  constructor(anchorId: string, properties: IAnchor['properties'], parent: UnknownModel) {
-    super(anchorId, properties, parent);
-  }
-}
-
-@Anchor('@octo')
-export class TestAnchorWithDecorator extends AAnchor {
   constructor(anchorId: string, properties: IAnchor['properties'], parent: UnknownModel) {
     super(anchorId, properties, parent);
   }
@@ -65,13 +56,6 @@ export class TestOverlay extends AOverlay<TestOverlay> {
   static override readonly NODE_PACKAGE: string = '@octo';
   static override readonly NODE_TYPE: NodeType = NodeType.OVERLAY;
 
-  constructor(overlayId: IOverlay['overlayId'], properties: IOverlay['properties'], anchors: AAnchor[]) {
-    super(overlayId, properties, anchors);
-  }
-}
-
-@Overlay('@octo', 'test-overlay')
-export class TestOverlayWithDecorator extends AOverlay<TestOverlay> {
   constructor(overlayId: IOverlay['overlayId'], properties: IOverlay['properties'], anchors: AAnchor[]) {
     super(overlayId, properties, anchors);
   }

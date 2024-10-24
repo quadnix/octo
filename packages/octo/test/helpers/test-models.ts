@@ -5,6 +5,7 @@ import {
   Deployment,
   Environment,
   Execution,
+  Filesystem,
   Image,
   OverlayService,
   Pipeline,
@@ -22,12 +23,23 @@ import { ResourceSerializationService } from '../../src/services/serialization/r
 import { SharedTestResource, TestOverlay, TestResource } from './test-classes.js';
 
 export async function commit<T extends UnknownModel>(model: T): Promise<T> {
-  const modelSerializationService = await Container.get(ModelSerializationService);
+  const modelSerializationService = await Container.getInstance().get(ModelSerializationService);
   return (await modelSerializationService.deserialize(await modelSerializationService.serialize(model))) as T;
 }
 
-export async function commitResources(): Promise<void> {
-  const resourceSerializationService = await Container.get(ResourceSerializationService);
+export async function commitResources({
+  skipAddActualResource = false,
+}: {
+  skipAddActualResource?: boolean;
+} = {}): Promise<void> {
+  if (!skipAddActualResource) {
+    const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
+    for (const resource of resourceDataRepository.getNewResourcesByProperties()) {
+      resourceDataRepository.addActualResource(resource);
+    }
+  }
+
+  const resourceSerializationService = await Container.getInstance().get(ResourceSerializationService);
   const actualSerializedResources = await resourceSerializationService.serializeActualResources();
   const oldSerializedResources = await resourceSerializationService.serializeNewResources();
   await resourceSerializationService.deserialize(actualSerializedResources, oldSerializedResources);
@@ -38,6 +50,7 @@ export function create({
   deployment = [],
   environment = [],
   execution = [],
+  filesystem = [],
   image = [],
   pipeline = [],
   region = [],
@@ -49,6 +62,7 @@ export function create({
   deployment?: (string | undefined)[];
   environment?: (string | undefined)[];
   execution?: (string | undefined)[];
+  filesystem?: (string | undefined)[];
   image?: (string | undefined)[];
   pipeline?: (string | undefined)[];
   region?: (string | undefined)[];
@@ -60,6 +74,7 @@ export function create({
   deployment: Deployment[];
   environment: Environment[];
   execution: Execution[];
+  filesystem: Filesystem[];
   image: Image[];
   pipeline: Pipeline[];
   region: Region[];
@@ -72,6 +87,7 @@ export function create({
     deployment: [],
     environment: [],
     execution: [],
+    filesystem: [],
     image: [],
     pipeline: [],
     region: [],
@@ -137,6 +153,18 @@ export function create({
     result.environment.push(environment);
   }
 
+  for (const [index, entry] of filesystem.entries()) {
+    if (entry === undefined) {
+      continue;
+    }
+    const [id, i] = splitEntry(entry, index);
+
+    const filesystem = new Filesystem(id);
+    const region = result.region[i];
+    region.addFilesystem(filesystem);
+    result.filesystem.push(filesystem);
+  }
+
   for (const [index, entry] of subnet.entries()) {
     if (entry === undefined) {
       continue;
@@ -199,7 +227,7 @@ export function create({
 }
 
 export async function createTestOverlays(overlays: { [key: string]: AAnchor[] }): Promise<UnknownOverlay[]> {
-  const overlayService = await Container.get(OverlayService);
+  const overlayService = await Container.getInstance().get(OverlayService);
   const result: UnknownOverlay[] = [];
 
   for (const [overlayId, anchors] of Object.entries(overlays)) {
@@ -216,7 +244,7 @@ export async function createTestResources(
   resources: { [key: string]: (UnknownResource | string)[] },
   sharedResources: { [key: string]: (UnknownResource | string)[] } = {},
 ): Promise<UnknownResource[]> {
-  const resourceDataRepository = await Container.get(ResourceDataRepository);
+  const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
   const result: UnknownResource[] = [];
 
   for (const [resourceId, parentEntries] of Object.entries(resources)) {
