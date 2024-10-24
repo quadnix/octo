@@ -1,6 +1,5 @@
 import type { Constructable } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
-import type { IModuleOptions } from '../decorators/module.decorator.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
@@ -73,16 +72,16 @@ export class TestModuleContainer {
   async loadModules(
     modules: {
       hidden?: boolean;
-      properties?: IModuleOptions;
+      properties?: { [key: string]: unknown };
       type: Constructable<IModule<unknown>>;
     }[],
   ): Promise<void> {
-    const moduleContainer = await Container.get(ModuleContainer);
+    const moduleContainer = await Container.getInstance().get(ModuleContainer);
 
     for (const moduleOverrides of modules) {
       const moduleMetadataIndex = moduleContainer.getModuleMetadataIndex(moduleOverrides.type);
       if (moduleMetadataIndex === -1) {
-        moduleContainer.register(moduleOverrides.type, moduleOverrides.properties || {});
+        moduleContainer.register(moduleOverrides.type, moduleOverrides.properties || ({} as any));
       }
 
       const moduleMetadata = moduleContainer.getModuleMetadata(moduleOverrides.type)!;
@@ -90,7 +89,7 @@ export class TestModuleContainer {
       if (moduleOverrides.hidden === true) {
         moduleContainer.unload(moduleMetadata.module);
       } else {
-        moduleContainer.load(moduleMetadata.module);
+        moduleContainer.load(moduleMetadata.module, {} as never);
       }
       // Override module properties.
       for (const [key, value] of Object.entries(moduleOverrides.properties || {})) {
@@ -102,7 +101,7 @@ export class TestModuleContainer {
   }
 
   async reset(): Promise<void> {
-    const moduleContainer = await Container.get(ModuleContainer);
+    const moduleContainer = await Container.getInstance().get(ModuleContainer);
     moduleContainer.reset();
   }
 }

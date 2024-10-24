@@ -1,9 +1,8 @@
 import type { Constructable } from '../../app.type.js';
 import { Container } from './container.js';
 
-type Factory<T> = { create: () => Promise<T> };
-
 type FactoryMock<T> = {
+  metadata?: { [key: string]: string };
   type: Constructable<T> | string;
   value: T;
 };
@@ -39,16 +38,6 @@ export interface IPackageMock {
 export class TestContainer {
   private static packageMocks: IPackageMock[] = [];
 
-  private static createTestFactory<T>(mock: FactoryMock<T>): Factory<T> {
-    return class {
-      static mock: FactoryMock<T> = mock;
-
-      static async create(): Promise<T> {
-        return this.mock.value;
-      }
-    };
-  }
-
   /**
    * The `TestContainer.create()` method allows you to mock factories.
    *
@@ -59,7 +48,7 @@ export class TestContainer {
    *     importFrom: [OctoAwsCdkPackageMock],
    *     mocks: [
    *       { type: MyClass, value: jest.fn() },
-   *       { type: AnotherClass, value: new AnotherClass() },
+   *       { metadata: { key: 'value' }, type: AnotherClass, value: new AnotherClass() },
    *     ],
    *   }, { factoryTimeoutInMs: 500 });
    * });
@@ -69,17 +58,17 @@ export class TestContainer {
    * - `importFrom` is an array of {@link IPackageMock} classes, to import custom mocks,
    * such as from octo-aws-cdk package - [OctoAwsCdkPackageMock](/api/octo-aws-cdk/class/OctoAwsCdkPackageMock).
    * - `mocks` is an array of objects, to override the default factories.
+   *   - Use `metadata?: { [key: string]: string }` to identify the factory being mocked.
    *   - Use `type: Constructable<T> | string` to identify the class being mocked.
    *   - Use `value: T` to provide the mocked value.
    * @param options Options to configure TestContainer.
    * - `factoryTimeoutInMs?: number` is to override the default container timeout.
    */
-  static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<void> {
-    const oldFactories = { ...Container['factories'] };
-    Container.reset();
+  static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<Container> {
+    const container = Container.getInstance(true);
 
     if (options?.factoryTimeoutInMs) {
-      Container.setFactoryTimeout(options.factoryTimeoutInMs);
+      container.setFactoryTimeout(options.factoryTimeoutInMs);
     }
 
     const importedMocks: FactoryMock<unknown>[] = [];
@@ -94,17 +83,10 @@ export class TestContainer {
     subjects.mocks = [...importedMocks, ...(subjects.mocks || [])];
 
     for (const mock of subjects.mocks) {
-      const mockClassName = typeof mock.type === 'string' ? mock.type : mock.type.name;
-      if (!oldFactories[mockClassName]) {
-        oldFactories[mockClassName] = { factory: this.createTestFactory(mock) };
-      } else {
-        oldFactories[mockClassName].factory = this.createTestFactory(mock);
-      }
+      container.registerValue(mock.type, mock.value, { metadata: mock.metadata });
     }
 
-    for (const name in oldFactories) {
-      Container.registerFactory(name, oldFactories[name].factory as Factory<unknown>);
-    }
+    return container;
   }
 
   /**
@@ -123,6 +105,6 @@ export class TestContainer {
     for (const mock of this.packageMocks) {
       await mock.destroy();
     }
-    Container.reset();
+    Container.getInstance().reset();
   }
 }
