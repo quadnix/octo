@@ -1,6 +1,5 @@
 import type { UnknownNode } from '../../app.type.js';
-import { AAnchor } from '../../overlays/anchor.abstract.js';
-import { ANode } from '../node/node.abstract.js';
+import type { AAnchor } from '../../overlays/anchor.abstract.js';
 
 export enum DiffAction {
   ADD = 'add',
@@ -30,10 +29,10 @@ export class Diff {
    */
   toJSON(): { action: string; field: string; node: string; value: unknown } {
     let value = this.value;
-    if (value instanceof ANode) {
-      value = value.getContext();
-    } else if (value instanceof AAnchor) {
-      value = `anchorId=${value.anchorId}`;
+    if ((value as UnknownNode).hasOwnProperty('getContext')) {
+      value = (value as UnknownNode).getContext();
+    } else if ((value as AAnchor).hasOwnProperty('anchorId')) {
+      value = `anchorId=${(value as AAnchor).anchorId}`;
     } else {
       value = JSON.parse(JSON.stringify(value));
     }

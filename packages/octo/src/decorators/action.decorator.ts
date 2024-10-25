@@ -1,10 +1,25 @@
-import { type Constructable, type UnknownNode, isModel, isOverlay, isResource } from '../app.type.js';
+import type { Constructable, UnknownModel, UnknownNode, UnknownOverlay, UnknownResource } from '../app.type.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 import { type IModelAction } from '../models/model-action.interface.js';
+import { AModel } from '../models/model.abstract.js';
+import { AOverlay } from '../overlays/overlay.abstract.js';
 import { type IResourceAction } from '../resources/resource-action.interface.js';
+import { AResource } from '../resources/resource.abstract.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { Container } from '../functions/container/container.js';
+
+function isModel(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownModel> {
+  return nodeClass.prototype instanceof AModel;
+}
+
+function isOverlay(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownOverlay> {
+  return nodeClass.prototype instanceof AOverlay;
+}
+
+function isResource(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownResource> {
+  return nodeClass.prototype instanceof AResource;
+}
 
 /**
  * An `@Action` is a class decorator to be placed on top of a class that represents an action of one of ModelType.

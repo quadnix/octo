@@ -2,11 +2,11 @@ import type { IDependency } from './functions/dependency/dependency.js';
 import type { ANode } from './functions/node/node.abstract.js';
 import type { IModule } from './modules/module.interface.js';
 import type { IAnchor } from './overlays/anchor.interface.js';
-import { AOverlay } from './overlays/overlay.abstract.js';
-import { AModel } from './models/model.abstract.js';
+import type { AOverlay } from './overlays/overlay.abstract.js';
+import type { AModel } from './models/model.abstract.js';
 import type { IModel } from './models/model.interface.js';
 import type { IOverlay } from './overlays/overlay.interface.js';
-import { AResource } from './resources/resource.abstract.js';
+import type { AResource } from './resources/resource.abstract.js';
 import type { IResource } from './resources/resource.interface.js';
 import type { ASharedResource } from './resources/shared-resource.abstract.js';
 
@@ -66,15 +66,3 @@ export type UnknownOverlay = AOverlay<unknown>;
 export type UnknownResource = AResource<unknown>;
 
 export type UnknownSharedResource = ASharedResource<unknown>;
-
-export function isModel(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownModel> {
-  return nodeClass.prototype instanceof AModel;
-}
-
-export function isOverlay(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownOverlay> {
-  return nodeClass.prototype instanceof AOverlay;
-}
-
-export function isResource(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownResource> {
-  return nodeClass.prototype instanceof AResource;
-}

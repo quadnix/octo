@@ -1,4 +1,4 @@
-import { type UnknownModel, type UnknownOverlay } from '../app.type.js';
+import type { UnknownModel, UnknownOverlay } from '../app.type.js';
 import { ModelError, NodeUnsynthError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { AModel } from '../models/model.abstract.js';
