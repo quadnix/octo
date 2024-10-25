@@ -22,5 +22,26 @@ module.exports = {
         ],
       },
     ],
+    'boundaries/element-types': [
+      'error',
+      {
+        default: 'allow',
+        rules: [],
+      },
+    ],
+    'boundaries/external': ['off'],
+  },
+  settings: {
+    'boundaries/elements': [
+      {
+        pattern: 'src',
+        type: 'src',
+      }
+    ],
+    'import/resolver': {
+      typescript: {
+        alwaysTryTypes: true,
+      },
+    },
   },
 };

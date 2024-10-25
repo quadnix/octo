@@ -10,6 +10,7 @@
     },
     extends: [
       'plugin:@typescript-eslint/recommended',
+      'plugin:boundaries/recommended',
       'plugin:jsonc/recommended-with-jsonc',
       'plugin:prettier/recommended',
     ],
@@ -30,7 +31,7 @@
       sourceType: 'module',
       tsconfigRootDir: __dirname,
     },
-    plugins: ['@nx', '@typescript-eslint/eslint-plugin', 'import', 'spellcheck'],
+    plugins: ['@nx', '@typescript-eslint/eslint-plugin', 'boundaries', 'import', 'spellcheck'],
     root: true,
     rules: {
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports'}],

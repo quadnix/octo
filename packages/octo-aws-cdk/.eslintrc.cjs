@@ -22,5 +22,44 @@ module.exports = {
         ],
       },
     ],
+    'boundaries/element-types': [
+      'error',
+      {
+        default: 'allow',
+        rules: [
+          {
+            allow: ['resources', 'utilities'],
+            disallow: ['models', 'overlays'],
+            from: ['resources'],
+          },
+        ],
+      },
+    ],
+    'boundaries/external': ['off'],
+  },
+  settings: {
+    'boundaries/elements': [
+      {
+        pattern: 'src/models',
+        type: 'models',
+      },
+      {
+        pattern: 'src/overlays',
+        type: 'overlays',
+      },
+      {
+        pattern: 'src/resources',
+        type: 'resources',
+      },
+      {
+        pattern: 'src/utilities',
+        type: 'utilities',
+      },
+    ],
+    'import/resolver': {
+      typescript: {
+        alwaysTryTypes: true,
+      },
+    },
   },
 };

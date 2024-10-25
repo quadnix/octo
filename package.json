@@ -16,6 +16,8 @@
     "dpdm": "~3.14.0",
     "eslint": "~8.57.0",
     "eslint-config-prettier": "~9.1.0",
+    "eslint-import-resolver-typescript": "~3.6.3",
+    "eslint-plugin-boundaries": "~4.2.2",
     "eslint-plugin-import": "~2.29.1",
     "eslint-plugin-jsonc": "~2.15.0",
     "eslint-plugin-prettier": "~5.1.3",
@@ -49,7 +51,7 @@
   "scripts": {
     "build": "nx run-many -t build",
     "format": "nx run-many -t format",
-    "install:local-octo": "rimraf node_modules/@quadnix && nx run @quadnix/octo:build && npm install",
+    "install:local-octo": "rimraf node_modules/@quadnix && nx run @quadnix/octo:build && nx run @quadnix/octo-aws-cdk:build && npm install",
     "lint": "nx run-many -t lint",
     "lint:fix": "nx run-many -t lint:fix",
     "prepare": "husky install",
