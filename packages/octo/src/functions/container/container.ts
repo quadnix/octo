@@ -1,4 +1,5 @@
 import type { Constructable } from '../../app.type.js';
+import type { InputService } from '../../services/input/input.service.js';
 import { DiffUtility } from '../diff/diff.utility.js';
 
 type Factory<T> = { create: (...args: unknown[]) => Promise<T> };
@@ -87,6 +88,11 @@ export class Container {
       this.instance = new Container();
     }
     return this.instance;
+  }
+
+  async registerActionInput(type: string, value: string): Promise<void> {
+    const inputService = await this.get<InputService>('InputService');
+    inputService.registerInputs({ [type]: value });
   }
 
   /**

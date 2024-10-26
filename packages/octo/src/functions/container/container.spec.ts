@@ -1,3 +1,5 @@
+import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
+import { InputService, InputServiceFactory } from '../../services/input/input.service.js';
 import { Container } from './container.js';
 
 interface ITest {
@@ -40,6 +42,27 @@ describe('Container UT', () => {
       await expect(async () => {
         await container.get(Test, { metadata: { type: 'metadata' } });
       }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
+    });
+  });
+
+  describe('registerActionInput()', () => {
+    beforeEach(() => {
+      container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
+      container.registerFactory(InputService, InputServiceFactory);
+    });
+
+    it('should be able to register an input', async () => {
+      await container.registerActionInput('Test', 'value');
+
+      const inputService = await container.get<InputService>(InputService);
+      expect(inputService.getInput('Test')).toBe('value');
+    });
+
+    it('should throw error when attempting to register same input multiple times', async () => {
+      await expect(async () => {
+        await container.registerActionInput('Test', 'value');
+        await container.registerActionInput('Test', 'value');
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Input "Test" has already been registered!"`);
     });
   });
 

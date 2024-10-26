@@ -19,6 +19,9 @@ export class InputService {
 
   registerInputs(inputs: ActionInputs): void {
     for (const key in inputs) {
+      if (this.inputs.hasOwnProperty(key)) {
+        throw new Error(`Input "${key}" has already been registered!`);
+      }
       this.inputs[key] = inputs[key];
     }
   }
