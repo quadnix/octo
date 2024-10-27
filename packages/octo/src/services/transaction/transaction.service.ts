@@ -35,7 +35,6 @@ import { AResource } from '../../resources/resource.abstract.js';
 import { IResource } from '../../resources/resource.interface.js';
 import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
-import { InputService } from '../input/input.service.js';
 
 export class TransactionService {
   private readonly modelActions: { modelClass: Constructable<UnknownModel>; actions: IModelAction[] }[] = [];
@@ -45,7 +44,6 @@ export class TransactionService {
 
   constructor(
     private readonly captureService: CaptureService,
-    private readonly inputService: InputService,
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
   ) {}
@@ -73,10 +71,16 @@ export class TransactionService {
 
         for (const a of diff.actions as IModelAction[]) {
           // Resolve input requests.
+          const container = Container.getInstance();
           const inputs: ActionInputs = {};
           const inputKeys = a.collectInput(diffToProcess);
-          inputKeys.forEach((k) => {
-            inputs[k] = this.inputService.getInput(k);
+          for (const k of inputKeys) {
+            if (k.startsWith('input.')) {
+              inputs[k] = (await container.getActionInput(k))!;
+            } else if (k.startsWith('resource.')) {
+              inputs[k] = (await container.getResource(k.substring('resource.'.length)))!;
+            }
+
             if (!inputs[k]) {
               throw new InputNotFoundTransactionError(
                 'No matching input found to process action!',
@@ -85,7 +89,7 @@ export class TransactionService {
                 k,
               );
             }
-          });
+          }
 
           // Apply all actions on the diff, then update diff metadata with inputs and outputs.
           const outputs = await a.handle(diffToProcess, inputs, {});
@@ -466,27 +470,16 @@ export class TransactionServiceFactory {
   static async create(forceNew = false): Promise<TransactionService> {
     const container = Container.getInstance();
 
-    const [captureService, inputService, overlayDataRepository, resourceDataRepository] = await Promise.all([
+    const [captureService, overlayDataRepository, resourceDataRepository] = await Promise.all([
       container.get(CaptureService),
-      container.get(InputService),
       container.get(OverlayDataRepository),
       container.get(ResourceDataRepository),
     ]);
     if (!this.instance) {
-      this.instance = new TransactionService(
-        captureService,
-        inputService,
-        overlayDataRepository,
-        resourceDataRepository,
-      );
+      this.instance = new TransactionService(captureService, overlayDataRepository, resourceDataRepository);
     }
     if (forceNew) {
-      const newInstance = new TransactionService(
-        captureService,
-        inputService,
-        overlayDataRepository,
-        resourceDataRepository,
-      );
+      const newInstance = new TransactionService(captureService, overlayDataRepository, resourceDataRepository);
       Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;

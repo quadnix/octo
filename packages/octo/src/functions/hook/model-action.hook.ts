@@ -8,7 +8,6 @@ import {
 } from '../../events/index.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
 import { EventService } from '../../services/event/event.service.js';
-import { InputService } from '../../services/input/input.service.js';
 import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = {
@@ -65,14 +64,18 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     const originalHandleMethod = modelAction.handle;
 
     modelAction.handle = async function (...args: Parameters<IModelAction['handle']>): Promise<ActionOutputs> {
-      const inputService = await Container.getInstance().get(InputService);
+      const container = Container.getInstance();
 
       let output = args[2] || {};
 
       for (const { collectInput, handle } of self.preModelActionHooks[modelAction.constructor.name] || []) {
         const inputs = collectInput ? collectInput(args[0]) : [];
         const resolvedInputs = inputs.reduce((accumulator, currentValue) => {
-          accumulator[currentValue] = inputService.getInput(currentValue);
+          if (currentValue.startsWith('input.')) {
+            accumulator[currentValue] = container.getActionInput(currentValue);
+          } else if (currentValue.startsWith('resource.')) {
+            accumulator[currentValue] = container.getResource(currentValue.substring('resource.'.length));
+          }
           if (!accumulator[currentValue]) {
             throw new InputNotFoundTransactionError(
               'No matching input found to process hook!',
@@ -93,7 +96,11 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
       for (const { collectInput, handle } of self.postModelActionHooks[modelAction.constructor.name] || []) {
         const inputs = collectInput ? collectInput(args[0]) : [];
         const resolvedInputs = inputs.reduce((accumulator, currentValue) => {
-          accumulator[currentValue] = inputService.getInput(currentValue);
+          if (currentValue.startsWith('input.')) {
+            accumulator[currentValue] = container.getActionInput(currentValue);
+          } else if (currentValue.startsWith('resource.')) {
+            accumulator[currentValue] = container.getResource(currentValue.substring('resource.'.length));
+          }
           if (!accumulator[currentValue]) {
             throw new InputNotFoundTransactionError(
               'No matching input found to process hook!',

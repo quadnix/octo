@@ -46,7 +46,7 @@ describe('TransactionService UT', () => {
     const captureService = new CaptureService();
     container.registerValue(CaptureService, captureService);
 
-    const inputService = new InputService(resourceDataRepository);
+    const inputService = new InputService();
     container.registerValue(InputService, inputService);
 
     container.registerValue(OverlayService, new OverlayService(overlayDataRepository));
@@ -58,7 +58,7 @@ describe('TransactionService UT', () => {
 
     container.registerValue(
       TransactionService,
-      new TransactionService(captureService, inputService, overlayDataRepository, resourceDataRepository),
+      new TransactionService(captureService, overlayDataRepository, resourceDataRepository),
     );
   });
 
@@ -164,8 +164,7 @@ describe('TransactionService UT', () => {
         resource1: new TestResource('resource1'),
       });
 
-      const inputService = await container.get(InputService);
-      inputService.registerInputs({ 'input.key1': 'value1' });
+      await container.registerActionInput('input.key1', 'value1');
 
       const app = new App('app');
 
@@ -187,8 +186,7 @@ describe('TransactionService UT', () => {
       };
       (modelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
 
-      const inputService = await container.get(InputService);
-      inputService.registerInputs({ 'input.key1': 'value1' });
+      await container.registerActionInput('input.key1', 'value1');
 
       const app = new App('app');
 
@@ -218,8 +216,8 @@ describe('TransactionService UT', () => {
       };
       (modelAction2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: new TestResource('resource2') });
 
-      const inputService = await container.get(InputService);
-      inputService.registerInputs({ 'input.key1': 'value1', 'input.key2': 'value2' });
+      await container.registerActionInput('input.key1', 'value1');
+      await container.registerActionInput('input.key2', 'value2');
 
       const app = new App('app');
 

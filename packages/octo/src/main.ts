@@ -1,11 +1,5 @@
 import { strict as assert } from 'assert';
-import type {
-  ActionInputs,
-  Constructable,
-  ModuleConstructorArgs,
-  TransactionOptions,
-  UnknownResource,
-} from './app.type.js';
+import type { ModuleConstructorArgs, TransactionOptions } from './app.type.js';
 import { ValidationTransactionError } from './errors/index.js';
 import { Container } from './functions/container/container.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
@@ -20,7 +14,6 @@ import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/
 import { ResourceDataRepository } from './resources/resource-data.repository.js';
 import { AResource } from './resources/resource.abstract.js';
 import { CaptureService } from './services/capture/capture.service.js';
-import { InputService } from './services/input/input.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
 import {
@@ -37,7 +30,6 @@ export class Octo {
   private readonly oldResourceStateFileName: string = 'resources-old.json';
 
   private captureService: CaptureService;
-  private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
   private moduleContainer: ModuleContainer;
   private resourceDataRepository: ResourceDataRepository;
@@ -123,14 +115,6 @@ export class Octo {
     }
   }
 
-  getAllResources(): UnknownResource[] {
-    return this.resourceDataRepository.getNewResourcesByProperties();
-  }
-
-  getModuleOutput<T>(module: Constructable<IModule<T>> | string): T | undefined {
-    return this.moduleContainer.getOutput(module);
-  }
-
   async initialize(
     stateProvider: IStateProvider,
     initializeInContainer: {
@@ -145,7 +129,6 @@ export class Octo {
 
     [
       this.captureService,
-      this.inputService,
       this.modelSerializationService,
       this.moduleContainer,
       this.resourceDataRepository,
@@ -155,7 +138,6 @@ export class Octo {
       this.validationService,
     ] = await Promise.all([
       container.get(CaptureService),
-      container.get(InputService),
       container.get(ModelSerializationService),
       container.get(ModuleContainer),
       container.get(ResourceDataRepository),
@@ -210,10 +192,6 @@ export class Octo {
       postHooks: postResourceActionHooks,
       preHooks: preResourceActionHooks,
     });
-  }
-
-  registerInputs(inputs: ActionInputs): void {
-    this.inputService.registerInputs(inputs);
   }
 
   private async retrieveResourceState(): Promise<void> {

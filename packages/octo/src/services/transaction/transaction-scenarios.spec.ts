@@ -47,7 +47,7 @@ describe('Transaction Scenarios UT', () => {
     const captureService = new CaptureService();
     container.registerValue(CaptureService, captureService);
 
-    const inputService = new InputService(resourceDataRepository);
+    const inputService = new InputService();
     container.registerValue(InputService, inputService);
 
     container.registerValue(OverlayService, new OverlayService(overlayDataRepository));
@@ -59,7 +59,7 @@ describe('Transaction Scenarios UT', () => {
 
     container.registerValue(
       TransactionService,
-      new TransactionService(captureService, inputService, overlayDataRepository, resourceDataRepository),
+      new TransactionService(captureService, overlayDataRepository, resourceDataRepository),
     );
   });
 

@@ -1,4 +1,6 @@
-import type { Constructable } from '../../app.type.js';
+import type { Constructable, UnknownModel, UnknownOverlay, UnknownResource } from '../../app.type.js';
+import type { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
+import type { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import type { InputService } from '../../services/input/input.service.js';
 import { DiffUtility } from '../diff/diff.utility.js';
 
@@ -83,11 +85,34 @@ export class Container {
     return factory.create(...args);
   }
 
+  async getActionInput(type: string): Promise<string | undefined> {
+    const inputService = await this.get<InputService>('InputService');
+    return inputService.getInput(type) as string | undefined;
+  }
+
   static getInstance(forceNew = false): Container {
     if (!this.instance || forceNew) {
       this.instance = new Container();
     }
     return this.instance;
+  }
+
+  async getModel<T extends UnknownModel>(
+    type: Constructable<T>,
+    filters: { key: string; value: string }[] = [],
+  ): Promise<T | undefined> {
+    const inputService = await this.get<InputService>('InputService');
+    return inputService.getModel(type, filters);
+  }
+
+  async getOverlay<T extends UnknownOverlay>(overlayId: string): Promise<T | undefined> {
+    const overlayDataRepository = await this.get<OverlayDataRepository>('OverlayDataRepository');
+    return overlayDataRepository.getById(overlayId) as T;
+  }
+
+  async getResource<T extends UnknownResource>(resourceId: string): Promise<T | undefined> {
+    const resourceDataRepository = await this.get<ResourceDataRepository>('ResourceDataRepository');
+    return resourceDataRepository.getNewResourceById(resourceId) as T;
   }
 
   async registerActionInput(type: string, value: string): Promise<void> {
