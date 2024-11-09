@@ -1,7 +1,5 @@
-import { ModuleError } from '../errors/index.js';
-import type { AModel } from '../models/model.abstract.js';
+import { AModule } from '../modules/module.abstract.js';
 import { ModuleContainer } from '../modules/module.container.js';
-import type { IModule } from '../modules/module.interface.js';
 import { Container } from '../functions/container/container.js';
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
@@ -24,26 +22,21 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @returns The decorated class.
  * @see Definition of [Modules](/docs/fundamentals/modules).
  */
-export function Module<I, O extends AModel<unknown, unknown>>(
-  packageName: string,
-): (constructor: { new (inputs: I): IModule<O> }) => void {
+export function Module(packageName: string): (constructor: any) => void {
   const container = Container.getInstance();
 
-  return function (constructor: { new (inputs: I): IModule<O> }) {
+  return function (constructor: any) {
     if (!ValidationUtility.validateRegex(packageName, /^[@A-Za-z][\w-]+[A-Za-z]$/)) {
       throw new Error(`Invalid package name: ${packageName}`);
     }
+    if (!(constructor.prototype instanceof AModule)) {
+      throw new Error(`Class "${constructor.name}" must extend the AModule class!`);
+    }
+
+    constructor.MODULE_PACKAGE = packageName;
 
     const promise = container.get(ModuleContainer).then((moduleContainer) => {
-      // Verify classes with @Module implements IModule.
-      if (!('onInit' in constructor.prototype)) {
-        throw new ModuleError('Module does not implement IModule!', constructor.name);
-      }
-
-      moduleContainer.register(constructor, {
-        inputs: {},
-        packageName,
-      });
+      moduleContainer.register(constructor, { packageName });
     });
     container.registerStartupUnhandledPromise(promise);
   };

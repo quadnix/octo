@@ -49,7 +49,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
 
   static async cloneResource<T extends AResource<T>>(
     sourceResource: T,
-    deReferenceResource: (resourceId: string) => Promise<UnknownResource>,
+    deReferenceResource: (context: string) => Promise<UnknownResource>,
   ): Promise<T> {
     const resource: IResource = {
       properties: JSON.parse(JSON.stringify(sourceResource.properties)),
@@ -57,19 +57,19 @@ export abstract class AResource<T> extends ANode<IResource, T> {
       response: JSON.parse(JSON.stringify(sourceResource.response)),
     };
 
-    const parentResourceIds = await Promise.all(
+    const parentContexts = await Promise.all(
       Object.values(sourceResource.getParents())
         .flat()
-        .map((d) => (d.to as UnknownResource).resourceId),
+        .map((d) => (d.to as UnknownResource).getContext()),
     );
 
     const deserializationClass = sourceResource.constructor as any;
-    return deserializationClass.unSynth(deserializationClass, resource, parentResourceIds, deReferenceResource);
+    return deserializationClass.unSynth(deserializationClass, resource, parentContexts, deReferenceResource);
   }
 
   async cloneResourceInPlace(
     sourceResource: UnknownResource,
-    deReferenceResource: (resourceId: string) => Promise<UnknownResource>,
+    deReferenceResource: (context: string) => Promise<UnknownResource>,
   ): Promise<void> {
     // Remove all dependencies from self.
     const selfParents = Object.values(this.getParents())
@@ -84,7 +84,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
 
     // Clone each of those dependencies.
     for (const sourceChildToParentDependency of sourceChildToParentDependencies) {
-      const parent = await deReferenceResource((sourceChildToParentDependency.to as UnknownResource).resourceId);
+      const parent = await deReferenceResource((sourceChildToParentDependency.to as UnknownResource).getContext());
       const { childToParentDependency, parentToChildDependency } = parent.addChild('resourceId', this, 'resourceId');
 
       // Clone behaviors from source to its parent.
@@ -147,7 +147,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     return diffs;
   }
 
-  async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<UnknownResource>): Promise<void> {
+  async diffInverse(diff: Diff, deReferenceResource: (context: string) => Promise<UnknownResource>): Promise<void> {
     switch (diff.field) {
       case 'resourceId': {
         if (diff.action === DiffAction.DELETE) {
@@ -290,7 +290,9 @@ export abstract class AResource<T> extends ANode<IResource, T> {
   }
 
   override setContext(): string {
-    return `${(this.constructor as typeof AResource).NODE_NAME}=${this.resourceId}`;
+    const nodePackage = (this.constructor as typeof AResource).NODE_PACKAGE;
+    const nodeName = (this.constructor as typeof AResource).NODE_NAME;
+    return `${nodePackage}/${nodeName}=${this.resourceId}`;
   }
 
   override synth(): IResource {
@@ -304,10 +306,10 @@ export abstract class AResource<T> extends ANode<IResource, T> {
   static override async unSynth(
     deserializationClass: any,
     resource: IResource,
-    parentResourceIds: string[],
-    deReferenceResource: (resourceId: string) => Promise<UnknownResource>,
+    parentContexts: string[],
+    deReferenceResource: (context: string) => Promise<UnknownResource>,
   ): Promise<UnknownResource> {
-    const parents = await Promise.all(parentResourceIds.map((p) => deReferenceResource(p)));
+    const parents = await Promise.all(parentContexts.map((p) => deReferenceResource(p)));
     const newResource = new deserializationClass(resource.resourceId, resource.properties, parents);
     for (const key of Object.keys(resource.response)) {
       newResource.response[key] = resource.response[key];

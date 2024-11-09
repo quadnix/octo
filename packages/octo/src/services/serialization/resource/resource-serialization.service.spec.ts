@@ -196,7 +196,8 @@ describe('Resource Serialization Service UT', () => {
       expect(resourceDataRepository['oldResources']).toHaveLength(1);
 
       // Manipulate new resources.
-      resourceDataRepository.getActualResourceById('resource-1')!.properties['key1'] = 'value2';
+      resourceDataRepository.getActualResourceByContext('@octo/test-resource=resource-1')!.properties['key1'] =
+        'value2';
       expect(resourceDataRepository['actualResources'][0]).not.toEqual(resourceDataRepository['oldResources'][0]);
     });
 

@@ -28,13 +28,13 @@ import type { ANode } from '../../functions/node/node.abstract.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
 import type { AModel } from '../../models/model.abstract.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
-import type { AOverlay } from '../../overlays/overlay.abstract.js';
+import { AOverlay } from '../../overlays/overlay.abstract.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
-import { IResource } from '../../resources/resource.interface.js';
 import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
+import { InputService } from '../input/input.service.js';
 
 export class TransactionService {
   private readonly modelActions: { modelClass: Constructable<UnknownModel>; actions: IModelAction[] }[] = [];
@@ -44,6 +44,7 @@ export class TransactionService {
 
   constructor(
     private readonly captureService: CaptureService,
+    private readonly inputService: InputService,
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
   ) {}
@@ -71,16 +72,19 @@ export class TransactionService {
 
         for (const a of diff.actions as IModelAction[]) {
           // Resolve input requests.
-          const container = Container.getInstance();
           const inputs: ActionInputs = {};
-          const inputKeys = a.collectInput(diffToProcess);
-          for (const k of inputKeys) {
-            if (k.startsWith('input.')) {
-              inputs[k] = (await container.getActionInput(k))!;
-            } else if (k.startsWith('resource.')) {
-              inputs[k] = (await container.getResource(k.substring('resource.'.length)))!;
+          const inputKeys = a.collectInputs(diffToProcess).map((i) => {
+            let moduleId: string;
+            if (diff.node instanceof AOverlay) {
+              moduleId = this.inputService.getModuleIdFromOverlay(diff.node);
+            } else {
+              moduleId = this.inputService.getModuleIdFromModel(diff.node as UnknownModel);
             }
 
+            return `${moduleId}.input.${i}`;
+          });
+          for (const k of inputKeys) {
+            inputs[k] = this.inputService.resolve(k);
             if (!inputs[k]) {
               throw new InputNotFoundTransactionError(
                 'No matching input found to process action!',
@@ -93,10 +97,9 @@ export class TransactionService {
 
           // Apply all actions on the diff, then update diff metadata with inputs and outputs.
           const outputs = await a.handle(diffToProcess, inputs, {});
-          // Overwrite previous resources with new resources, except for shared resources,
-          // which can be merged if it exists.
-          for (const [resourceId, resource] of Object.entries(outputs)) {
-            const previousResource = this.resourceDataRepository.getNewResourceById(resourceId);
+          // Add new resources, except for shared resources, which can be merged if it exists.
+          for (const resource of Object.values(outputs)) {
+            const previousResource = this.resourceDataRepository.getNewResourceByContext(resource.getContext());
             if ((resource.constructor as typeof AResource).NODE_TYPE === 'shared-resource' && previousResource) {
               this.resourceDataRepository.addNewResource(
                 (resource as UnknownSharedResource).merge(previousResource as UnknownSharedResource),
@@ -104,6 +107,14 @@ export class TransactionService {
             } else {
               this.resourceDataRepository.addNewResource(resource);
             }
+
+            let moduleId: string;
+            if (diffToProcess.node instanceof AOverlay) {
+              moduleId = this.inputService.getModuleIdFromOverlay(diffToProcess.node);
+            } else {
+              moduleId = this.inputService.getModuleIdFromModel(diffToProcess.node as UnknownModel);
+            }
+            this.inputService.registerResource(moduleId, resource);
           }
 
           duplicateDiffs.forEach((d) => {
@@ -157,7 +168,7 @@ export class TransactionService {
 
         for (const a of diff.actions as IResourceAction[]) {
           if (enableResourceCapture) {
-            const capture = this.captureService.getCapture((diff.node as unknown as IResource).resourceId);
+            const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
             await a.mock(capture?.response, diff);
             await a.handle(diffToProcess);
           } else {
@@ -165,14 +176,12 @@ export class TransactionService {
           }
 
           // De-reference from actual resources.
-          const deReferenceResource = async (resourceId): Promise<UnknownResource> => {
-            return this.resourceDataRepository.getActualResourceById(resourceId)!;
+          const deReferenceResource = async (context: string): Promise<UnknownResource> => {
+            return this.resourceDataRepository.getActualResourceByContext(context)!;
           };
 
           // Incrementally apply diff inverse to the respective actual resource.
-          let actualResource = this.resourceDataRepository.getActualResourceById(
-            (diffToProcess.node as UnknownResource).resourceId,
-          )!;
+          let actualResource = this.resourceDataRepository.getActualResourceByContext(diffToProcess.node.getContext())!;
           if (!actualResource) {
             actualResource = await AResource.cloneResource(diffToProcess.node as UnknownResource, deReferenceResource);
             this.resourceDataRepository.addActualResource(actualResource);
@@ -470,16 +479,27 @@ export class TransactionServiceFactory {
   static async create(forceNew = false): Promise<TransactionService> {
     const container = Container.getInstance();
 
-    const [captureService, overlayDataRepository, resourceDataRepository] = await Promise.all([
+    const [captureService, inputService, overlayDataRepository, resourceDataRepository] = await Promise.all([
       container.get(CaptureService),
+      container.get(InputService),
       container.get(OverlayDataRepository),
       container.get(ResourceDataRepository),
     ]);
     if (!this.instance) {
-      this.instance = new TransactionService(captureService, overlayDataRepository, resourceDataRepository);
+      this.instance = new TransactionService(
+        captureService,
+        inputService,
+        overlayDataRepository,
+        resourceDataRepository,
+      );
     }
     if (forceNew) {
-      const newInstance = new TransactionService(captureService, overlayDataRepository, resourceDataRepository);
+      const newInstance = new TransactionService(
+        captureService,
+        inputService,
+        overlayDataRepository,
+        resourceDataRepository,
+      );
       Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
     }
     return this.instance;

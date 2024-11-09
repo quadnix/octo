@@ -30,36 +30,36 @@ export class ResourceSerializationService {
     const parents: { [p: string]: string[] } = {};
     const seen: ActionOutputs = {};
 
-    const deReferenceResource = async (resourceId: string): Promise<UnknownResource> => {
-      if (!seen[resourceId]) {
-        if (deReferencePromises[resourceId]) {
-          await deReferencePromises[resourceId][0];
+    const deReferenceResource = async (context: string): Promise<UnknownResource> => {
+      if (!seen[context]) {
+        if (deReferencePromises[context]) {
+          await deReferencePromises[context][0];
         } else {
-          deReferencePromises[resourceId] = [] as any;
+          deReferencePromises[context] = [] as any;
           const promise = new Promise<boolean>((resolve, reject) => {
-            deReferencePromises[resourceId][1] = resolve;
-            deReferencePromises[resourceId][2] = reject;
+            deReferencePromises[context][1] = resolve;
+            deReferencePromises[context][2] = reject;
           });
-          deReferencePromises[resourceId][0] = promise;
+          deReferencePromises[context][0] = promise;
 
-          deReferencePromises[resourceId][3] = setTimeout(() => {
-            deReferencePromises[resourceId][2](new Error('DeReferencing resource operation timed out!'));
+          deReferencePromises[context][3] = setTimeout(() => {
+            deReferencePromises[context][2](new Error('DeReferencing resource operation timed out!'));
           }, this.RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS);
           await promise;
         }
       }
 
-      return seen[resourceId];
+      return seen[context];
     };
 
     const deserializeResource = async (
-      resourceId: string,
+      context: string,
       parents: string[],
       isSharedResource: boolean,
     ): Promise<UnknownResource> => {
-      const { className, context, resource } = isSharedResource
-        ? serializedOutput.sharedResources[resourceId]
-        : serializedOutput.resources[resourceId];
+      const { className, resource } = isSharedResource
+        ? serializedOutput.sharedResources[context]
+        : serializedOutput.resources[context];
       const deserializationClass = this.classMapping[className];
 
       const deserializedResource = await deserializationClass.unSynth(
@@ -70,10 +70,10 @@ export class ResourceSerializationService {
       );
       deserializedResource['context'] = context;
 
-      seen[resourceId] = deserializedResource;
-      if (deReferencePromises[resourceId]) {
-        deReferencePromises[resourceId][1](true);
-        clearTimeout(deReferencePromises[resourceId][3]);
+      seen[context] = deserializedResource;
+      if (deReferencePromises[context]) {
+        deReferencePromises[context][1](true);
+        clearTimeout(deReferencePromises[context][3]);
       }
 
       return deserializedResource;
@@ -81,35 +81,35 @@ export class ResourceSerializationService {
 
     // Re-generate resource parents from dependencies.
     for (const d of serializedOutput.dependencies) {
-      const fromResourceId = d.from.split('=')[1];
-      const toResourceId = d.to.split('=')[1];
+      const fromResourceContext = d.from;
+      const toResourceContext = d.to;
 
-      if (!parents[fromResourceId]) {
-        parents[fromResourceId] = [];
+      if (!parents[fromResourceContext]) {
+        parents[fromResourceContext] = [];
       }
-      if (!parents[toResourceId]) {
-        parents[toResourceId] = [];
+      if (!parents[toResourceContext]) {
+        parents[toResourceContext] = [];
       }
 
       // Resources don't have other relationships than parent-child relations.
-      if (d.relationship?.type === 'child' && !parents[fromResourceId].includes(toResourceId)) {
-        parents[fromResourceId].push(toResourceId);
-      } else if (d.relationship?.type === 'parent' && !parents[toResourceId].includes(fromResourceId)) {
-        parents[toResourceId].push(fromResourceId);
+      if (d.relationship?.type === 'child' && !parents[fromResourceContext].includes(toResourceContext)) {
+        parents[fromResourceContext].push(toResourceContext);
+      } else if (d.relationship?.type === 'parent' && !parents[toResourceContext].includes(fromResourceContext)) {
+        parents[toResourceContext].push(fromResourceContext);
       }
     }
 
     // Deserialize all serialized resources.
     const promiseToDeserializeResources: Promise<UnknownResource>[] = [];
-    for (const resourceId in serializedOutput.resources) {
-      promiseToDeserializeResources.push(deserializeResource(resourceId, parents[resourceId], false));
+    for (const context in serializedOutput.resources) {
+      promiseToDeserializeResources.push(deserializeResource(context, parents[context], false));
     }
     await Promise.all(promiseToDeserializeResources);
 
     // Deserialize all serialized shared-resources.
     const promiseToDeserializeSharedResources: Promise<UnknownResource>[] = [];
-    for (const resourceId in serializedOutput.sharedResources) {
-      promiseToDeserializeSharedResources.push(deserializeResource(resourceId, parents[resourceId], true));
+    for (const context in serializedOutput.sharedResources) {
+      promiseToDeserializeSharedResources.push(deserializeResource(context, parents[context], true));
     }
     await Promise.all(promiseToDeserializeSharedResources);
 
@@ -162,13 +162,13 @@ export class ResourceSerializationService {
       dependencies.push(...resourceDependencies);
 
       if ((resource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
-        sharedSerializedResources[resource.resourceId] = {
+        sharedSerializedResources[resource.getContext()] = {
           className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
           context: resource.getContext(),
           resource: resource.synth(),
         };
       } else {
-        serializedResources[resource.resourceId] = {
+        serializedResources[resource.getContext()] = {
           className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
           context: resource.getContext(),
           resource: resource.synth(),

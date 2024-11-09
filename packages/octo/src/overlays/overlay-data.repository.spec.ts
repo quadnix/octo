@@ -44,7 +44,7 @@ describe('OverlayDataRepository UT', () => {
       const overlay = new TestOverlay('overlay-1', {}, []);
       overlayDataRepository.add(overlay);
 
-      expect(overlayDataRepository.getById('overlay-1')).toBe(overlay);
+      expect(overlayDataRepository.getByContext(overlay.getContext())).toBe(overlay);
     });
 
     it('should throw error adding same overlay twice', async () => {
@@ -58,14 +58,14 @@ describe('OverlayDataRepository UT', () => {
     });
   });
 
-  describe('getById()', () => {
-    it('should get an overlay by id', async () => {
+  describe('getByContext()', () => {
+    it('should get an overlay by context', async () => {
       const overlayDataRepository = await container.get(OverlayDataRepository);
 
       const overlay = new TestOverlay('overlay-1', {}, []);
       overlayDataRepository.add(overlay);
 
-      expect(overlayDataRepository.getById('overlay-1')).toBe(overlay);
+      expect(overlayDataRepository.getByContext(overlay.getContext())).toBe(overlay);
     });
   });
 

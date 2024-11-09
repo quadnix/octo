@@ -4,7 +4,6 @@ import {
   DependencyRelationship,
   DiffAction,
   Environment,
-  OverlayService,
   Region,
   TestContainer,
   type UnknownModel,
@@ -15,15 +14,9 @@ import { create, createTestOverlays } from '../helpers/test-models.js';
 
 describe('Model E2E Test', () => {
   beforeEach(async () => {
-    const overlayDataRepository = new OverlayDataRepository([]);
-    const overlayService = new OverlayService(overlayDataRepository);
-
     await TestContainer.create(
       {
-        mocks: [
-          { type: OverlayDataRepository, value: overlayDataRepository },
-          { type: OverlayService, value: overlayService },
-        ],
+        mocks: [{ type: OverlayDataRepository, value: new OverlayDataRepository([]) }],
       },
       { factoryTimeoutInMs: 500 },
     );
@@ -331,14 +324,14 @@ describe('Model E2E Test', () => {
 
       expect(overlay.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
        [
-         "test-overlay=test-overlay",
+         "@octo/test-overlay=test-overlay",
          "app=app",
        ]
       `);
       expect(app.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
         [
           "app=app",
-          "test-overlay=test-overlay",
+          "@octo/test-overlay=test-overlay",
           "image=image:v1,app=app",
         ]
       `);

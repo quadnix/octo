@@ -4,7 +4,6 @@ import { commitResources, createTestResources } from '../../../test/helpers/test
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
-import { OverlayService } from '../../overlays/overlay.service.js';
 import { type IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
 import { CaptureService } from '../capture/capture.service.js';
@@ -44,13 +43,11 @@ describe('Transaction Scenarios UT', () => {
       { args: [true, [], [], []] },
     );
 
-    const captureService = new CaptureService();
-    container.registerValue(CaptureService, captureService);
-
-    const inputService = new InputService();
+    const inputService = new InputService(overlayDataRepository, resourceDataRepository);
     container.registerValue(InputService, inputService);
 
-    container.registerValue(OverlayService, new OverlayService(overlayDataRepository));
+    const captureService = new CaptureService();
+    container.registerValue(CaptureService, captureService);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
     resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
@@ -59,7 +56,7 @@ describe('Transaction Scenarios UT', () => {
 
     container.registerValue(
       TransactionService,
-      new TransactionService(captureService, overlayDataRepository, resourceDataRepository),
+      new TransactionService(captureService, inputService, overlayDataRepository, resourceDataRepository),
     );
   });
 
@@ -111,8 +108,8 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-2",
-               "value": "resource-2",
+               "node": "@octo/test-resource=resource-2",
+               "value": "@octo/test-resource=resource-2",
              },
            ],
          ]
@@ -144,8 +141,8 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "delete",
                "field": "resourceId",
-               "node": "test-resource=resource-2",
-               "value": "resource-2",
+               "node": "@octo/test-resource=resource-2",
+               "value": "@octo/test-resource=resource-2",
              },
            ],
          ]
@@ -187,8 +184,8 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-1",
-               "value": "resource-1",
+               "node": "@octo/test-resource=resource-1",
+               "value": "@octo/test-resource=resource-1",
              },
            ],
          ]
@@ -212,16 +209,16 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-2",
-               "value": "resource-2",
+               "node": "@octo/test-resource=resource-2",
+               "value": "@octo/test-resource=resource-2",
              },
            ],
            [
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-1",
-               "value": "resource-1",
+               "node": "@octo/test-resource=resource-1",
+               "value": "@octo/test-resource=resource-1",
              },
            ],
          ]
@@ -258,16 +255,16 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-2",
-               "value": "resource-2",
+               "node": "@octo/test-resource=resource-2",
+               "value": "@octo/test-resource=resource-2",
              },
            ],
            [
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-1",
-               "value": "resource-1",
+               "node": "@octo/test-resource=resource-1",
+               "value": "@octo/test-resource=resource-1",
              },
            ],
          ]
@@ -306,8 +303,8 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-2",
-               "value": "resource-2",
+               "node": "@octo/test-resource=resource-2",
+               "value": "@octo/test-resource=resource-2",
              },
            ],
          ]
@@ -361,7 +358,7 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "properties",
-               "node": "test-resource=resource-1",
+               "node": "@octo/test-resource=resource-1",
                "value": {
                  "key": "key1",
                  "value": "value1",
@@ -390,15 +387,15 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-2",
-               "value": "resource-2",
+               "node": "@octo/test-resource=resource-2",
+               "value": "@octo/test-resource=resource-2",
              },
            ],
            [
              {
                "action": "add",
                "field": "properties",
-               "node": "test-resource=resource-1",
+               "node": "@octo/test-resource=resource-1",
                "value": {
                  "key": "key1",
                  "value": "value1",
@@ -440,7 +437,7 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "properties",
-               "node": "test-resource=resource-1",
+               "node": "@octo/test-resource=resource-1",
                "value": {
                  "key": "key1",
                  "value": "value2",
@@ -483,8 +480,8 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-2",
-               "value": "resource-2",
+               "node": "@octo/test-resource=resource-2",
+               "value": "@octo/test-resource=resource-2",
              },
            ],
          ]
@@ -538,8 +535,8 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "delete",
                "field": "resourceId",
-               "node": "test-resource=resource-1",
-               "value": "resource-1",
+               "node": "@octo/test-resource=resource-1",
+               "value": "@octo/test-resource=resource-1",
              },
            ],
          ]
@@ -564,16 +561,16 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-2",
-               "value": "resource-2",
+               "node": "@octo/test-resource=resource-2",
+               "value": "@octo/test-resource=resource-2",
              },
            ],
            [
              {
                "action": "delete",
                "field": "resourceId",
-               "node": "test-resource=resource-1",
-               "value": "resource-1",
+               "node": "@octo/test-resource=resource-1",
+               "value": "@octo/test-resource=resource-1",
              },
            ],
          ]
@@ -612,7 +609,7 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "properties",
-               "node": "test-resource=resource-1",
+               "node": "@octo/test-resource=resource-1",
                "value": {
                  "key": "key1",
                  "value": "value2",
@@ -655,8 +652,8 @@ describe('Transaction Scenarios UT', () => {
              {
                "action": "add",
                "field": "resourceId",
-               "node": "test-resource=resource-2",
-               "value": "resource-2",
+               "node": "@octo/test-resource=resource-2",
+               "value": "@octo/test-resource=resource-2",
              },
            ],
          ]

@@ -1,6 +1,6 @@
 import type { IDependency } from './functions/dependency/dependency.js';
 import type { ANode } from './functions/node/node.abstract.js';
-import type { IModule } from './modules/module.interface.js';
+import type { AModule } from './modules/module.abstract.js';
 import type { IAnchor } from './overlays/anchor.interface.js';
 import type { AOverlay } from './overlays/overlay.abstract.js';
 import type { AModel } from './models/model.abstract.js';
@@ -23,7 +23,7 @@ export enum ValidationType {
   REGEX = 'regex',
 }
 
-export type ActionInputs = { [key: string]: string | UnknownResource };
+export type ActionInputs = { [key: string]: unknown };
 
 export type ActionOutputs = { [key: string]: UnknownResource };
 
@@ -39,7 +39,7 @@ export type ModelSerializedOutput = {
 // https://stackoverflow.com/a/55032655/1834562
 export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
 
-export type ModuleConstructorArgs<M> = M extends new (...args: infer I) => IModule<any> ? I : never;
+export type ModuleInputs<M> = M extends AModule<infer I, any> ? I : never;
 
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
@@ -58,6 +58,8 @@ export type TransactionOptions = {
 export type IUnknownModel = IModel<unknown, unknown>;
 
 export type UnknownModel = AModel<unknown, unknown>;
+
+export type UnknownModule = AModule<{ [key: string]: unknown }, unknown>;
 
 export type UnknownNode = ANode<unknown, unknown>;
 

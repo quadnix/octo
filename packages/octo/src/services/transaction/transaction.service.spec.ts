@@ -9,7 +9,6 @@ import { type IModelAction } from '../../models/model-action.interface.js';
 import { App } from '../../models/app/app.model.js';
 import { Region } from '../../models/region/region.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
-import { OverlayService } from '../../overlays/overlay.service.js';
 import { type IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
 import { CaptureService } from '../capture/capture.service.js';
@@ -43,13 +42,11 @@ describe('TransactionService UT', () => {
       { args: [true, [], [], []] },
     );
 
-    const captureService = new CaptureService();
-    container.registerValue(CaptureService, captureService);
-
-    const inputService = new InputService();
+    const inputService = new InputService(overlayDataRepository, resourceDataRepository);
     container.registerValue(InputService, inputService);
 
-    container.registerValue(OverlayService, new OverlayService(overlayDataRepository));
+    const captureService = new CaptureService();
+    container.registerValue(CaptureService, captureService);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
     resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
@@ -58,7 +55,7 @@ describe('TransactionService UT', () => {
 
     container.registerValue(
       TransactionService,
-      new TransactionService(captureService, overlayDataRepository, resourceDataRepository),
+      new TransactionService(captureService, inputService, overlayDataRepository, resourceDataRepository),
     );
   });
 
@@ -70,7 +67,7 @@ describe('TransactionService UT', () => {
 
   describe('applyModels()', () => {
     const universalModelAction: IModelAction = {
-      collectInput: () => [],
+      collectInputs: () => [],
       filter: () => true,
       handle: jest.fn() as jest.Mocked<any>,
     };
@@ -90,12 +87,15 @@ describe('TransactionService UT', () => {
 
     it('should throw error when action inputs are not found', async () => {
       const modelAction: IModelAction = {
-        collectInput: () => ['input.key1'],
+        collectInputs: () => ['key1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };
 
       const app = new App('app');
+
+      const inputService = await container.get(InputService);
+      inputService.registerModel('moduleId', app);
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [modelAction]);
@@ -108,12 +108,15 @@ describe('TransactionService UT', () => {
 
     it('should throw error when action resource inputs are not found', async () => {
       const modelAction: IModelAction = {
-        collectInput: () => ['resource.key1'],
+        collectInputs: () => ['key1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };
 
       const app = new App('app');
+
+      const inputService = await container.get(InputService);
+      inputService.registerModel('moduleId', app);
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [modelAction]);
@@ -156,7 +159,7 @@ describe('TransactionService UT', () => {
 
     it('should call action and collect all input and output', async () => {
       const modelAction: IModelAction = {
-        collectInput: () => ['input.key1'],
+        collectInputs: () => ['key1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };
@@ -164,9 +167,11 @@ describe('TransactionService UT', () => {
         resource1: new TestResource('resource1'),
       });
 
-      await container.registerActionInput('input.key1', 'value1');
+      const inputService = await container.get(InputService);
+      inputService.registerInput('moduleId', 'key1', 'value1');
 
       const app = new App('app');
+      inputService.registerModel('moduleId', app);
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [modelAction]);
@@ -180,15 +185,17 @@ describe('TransactionService UT', () => {
 
     it('should update diff metadata with inputs and outputs', async () => {
       const modelAction: IModelAction = {
-        collectInput: () => ['input.key1'],
+        collectInputs: () => ['key1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };
       (modelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
 
-      await container.registerActionInput('input.key1', 'value1');
+      const inputService = await container.get(InputService);
+      inputService.registerInput('moduleId', 'key1', 'value1');
 
       const app = new App('app');
+      inputService.registerModel('moduleId', app);
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [modelAction]);
@@ -197,29 +204,31 @@ describe('TransactionService UT', () => {
       await applyModels([diffMetadata]);
 
       expect(diffMetadata.inputs).toEqual({
-        'input.key1': 'value1',
+        'moduleId.input.key1': 'value1',
       });
       expect(diffMetadata.outputs['resource1'].resourceId).toBe('resource1');
     });
 
     it('should call multiple actions and collect all input and output', async () => {
       const modelAction1: IModelAction = {
-        collectInput: () => ['input.key1'],
+        collectInputs: () => ['key1'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };
       (modelAction1.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
       const modelAction2: IModelAction = {
-        collectInput: () => ['input.key2'],
+        collectInputs: () => ['key2'],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };
       (modelAction2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: new TestResource('resource2') });
 
-      await container.registerActionInput('input.key1', 'value1');
-      await container.registerActionInput('input.key2', 'value2');
+      const inputService = await container.get(InputService);
+      inputService.registerInput('moduleId', 'key1', 'value1');
+      inputService.registerInput('moduleId', 'key2', 'value2');
 
       const app = new App('app');
+      inputService.registerModel('moduleId', app);
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [modelAction1, modelAction2]);
@@ -260,6 +269,9 @@ describe('TransactionService UT', () => {
 
       const app = new App('app');
 
+      const inputService = await container.get(InputService);
+      inputService.registerModel('moduleId', app);
+
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
       diffMetadata.applyOrder = 0;
@@ -278,6 +290,9 @@ describe('TransactionService UT', () => {
       const mergeFunction = jest.spyOn(sharedResource2 as SharedTestResource, 'merge');
 
       const app = new App('app');
+
+      const inputService = await container.get(InputService);
+      inputService.registerModel('moduleId', app);
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
@@ -359,12 +374,15 @@ describe('TransactionService UT', () => {
     it('should call mock when run with enableResourceCapture flag on', async () => {
       const [resource1] = await createTestResources({ 'resource-1': [] });
 
+      const inputService = await container.get(InputService);
+      inputService.registerResource('moduleId', resource1);
+
       const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
       const diffMetadata = new DiffMetadata(diff, [universalResourceAction]);
       diffMetadata.applyOrder = 0;
 
       const captureService = await container.get(CaptureService);
-      captureService.registerCapture('resource-1', { 'key-1': 'value-1' });
+      captureService.registerCapture('@octo/test-resource=resource-1', { 'key-1': 'value-1' });
 
       await applyResources([diffMetadata], { enableResourceCapture: true });
 
@@ -376,7 +394,7 @@ describe('TransactionService UT', () => {
   describe('setApplyOrder()', () => {
     const modelActions: IModelAction[] = [
       {
-        collectInput: () => [],
+        collectInputs: () => [],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       },
@@ -550,7 +568,7 @@ describe('TransactionService UT', () => {
   describe('beginTransaction()', () => {
     describe('yieldModelDiffs', () => {
       const universalModelAction: IModelAction = {
-        collectInput: () => [],
+        collectInputs: () => [],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };
@@ -593,7 +611,7 @@ describe('TransactionService UT', () => {
 
     describe('yieldModelTransaction', () => {
       const universalModelAction: IModelAction = {
-        collectInput: () => [],
+        collectInputs: () => [],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };

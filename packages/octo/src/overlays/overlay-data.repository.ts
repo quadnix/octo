@@ -3,7 +3,6 @@ import { Factory } from '../decorators/factory.decorator.js';
 import { OverlayError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { AOverlay } from './overlay.abstract.js';
-import type { IOverlay } from './overlay.interface.js';
 
 export class OverlayDataRepository {
   constructor(private newOverlays: UnknownOverlay[]) {}
@@ -13,7 +12,7 @@ export class OverlayDataRepository {
       throw new OverlayError('Adding non-overlay model!', overlay);
     }
 
-    const existingOverlay = this.getById(overlay.overlayId);
+    const existingOverlay = this.getByContext(overlay.getContext());
     if (existingOverlay) {
       throw new OverlayError('Overlay already exists!', existingOverlay);
     } else {
@@ -32,8 +31,8 @@ export class OverlayDataRepository {
     return diffs;
   }
 
-  getById(overlayId: IOverlay['overlayId']): UnknownOverlay | undefined {
-    return this.newOverlays.find((o) => o.overlayId === overlayId);
+  getByContext(overlayContext: string): UnknownOverlay | undefined {
+    return this.newOverlays.find((o) => o.getContext() === overlayContext);
   }
 
   getByProperties(filters: { key: string; value: any }[] = []): UnknownOverlay[] {

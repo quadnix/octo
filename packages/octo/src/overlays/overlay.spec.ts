@@ -4,22 +4,15 @@ import { TestContainer } from '../functions/container/test-container.js';
 import { App } from '../models/app/app.model.js';
 import { OverlayDataRepository } from './overlay-data.repository.js';
 import { AOverlay } from './overlay.abstract.js';
-import { OverlayService } from './overlay.service.js';
 
 describe('Overlay UT', () => {
   beforeEach(async () => {
-    const overlayDataRepository = new OverlayDataRepository([]);
-
     await TestContainer.create(
       {
         mocks: [
           {
             type: OverlayDataRepository,
-            value: overlayDataRepository,
-          },
-          {
-            type: OverlayService,
-            value: new OverlayService(overlayDataRepository),
+            value: new OverlayDataRepository([]),
           },
         ],
       },
@@ -42,7 +35,7 @@ describe('Overlay UT', () => {
 
     const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
 
-    expect(overlay1.getContext()).toBe('test-overlay=overlay-1');
+    expect(overlay1.getContext()).toBe('@octo/test-overlay=overlay-1');
   });
 
   describe('addAnchor()', () => {
@@ -96,7 +89,7 @@ describe('Overlay UT', () => {
            ],
            "from": "app=test",
            "relationship": undefined,
-           "to": "test-overlay=overlay-1",
+           "to": "@octo/test-overlay=overlay-1",
          },
        ]
       `);
@@ -119,7 +112,7 @@ describe('Overlay UT', () => {
                "toField": "name",
              },
            ],
-           "from": "test-overlay=overlay-1",
+           "from": "@octo/test-overlay=overlay-1",
            "relationship": undefined,
            "to": "app=test",
          },
@@ -144,7 +137,7 @@ describe('Overlay UT', () => {
          {
            "action": "add",
            "field": "anchor",
-           "node": "test-overlay=overlay-1",
+           "node": "@octo/test-overlay=overlay-1",
            "value": "anchorId=anchor-1",
          },
        ]

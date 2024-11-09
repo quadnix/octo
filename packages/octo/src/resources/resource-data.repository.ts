@@ -3,7 +3,6 @@ import { Factory } from '../decorators/factory.decorator.js';
 import { DiffsOnDirtyResourcesTransactionError, ResourceError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { AResource } from './resource.abstract.js';
-import type { IResource } from './resource.interface.js';
 
 export class ResourceDataRepository {
   private dirtyResources: UnknownResource[] = [];
@@ -14,13 +13,13 @@ export class ResourceDataRepository {
     private newResources: UnknownResource[],
   ) {
     for (const resource of oldResources) {
-      const actual = actualResources.find((r) => r.resourceId === resource.resourceId);
+      const actual = actualResources.find((r) => r.getContext() === resource.getContext());
       if (!resource.isDeepEquals(actual)) {
         this.dirtyResources.push(resource);
       }
     }
     for (const resource of actualResources) {
-      if (!oldResources.find((r) => r.resourceId === resource.resourceId)) {
+      if (!oldResources.find((r) => r.getContext() === resource.getContext())) {
         this.dirtyResources.push(resource);
       }
     }
@@ -35,7 +34,7 @@ export class ResourceDataRepository {
     }
 
     // Insert or replace resources.
-    const rIndex = this.actualResources.findIndex((r) => r.resourceId === resource.resourceId);
+    const rIndex = this.actualResources.findIndex((r) => r.getContext() === resource.getContext());
     if (rIndex === -1) {
       this.actualResources.push(resource);
     } else {
@@ -52,7 +51,7 @@ export class ResourceDataRepository {
     }
 
     // Insert or replace resources.
-    const rIndex = this.newResources.findIndex((r) => r.resourceId === resource.resourceId);
+    const rIndex = this.newResources.findIndex((r) => r.getContext() === resource.getContext());
     if (rIndex === -1) {
       this.newResources.push(resource);
     } else {
@@ -60,7 +59,7 @@ export class ResourceDataRepository {
     }
 
     // Clone response from old.
-    const oIndex = this.oldResources.findIndex((r) => r.resourceId === resource.resourceId);
+    const oIndex = this.oldResources.findIndex((r) => r.getContext() === resource.getContext());
     if (oIndex > -1) {
       resource.cloneResponseInPlace(this.oldResources[oIndex]);
     }
@@ -68,11 +67,11 @@ export class ResourceDataRepository {
 
   async diff(): Promise<Diff[]> {
     const oldResources: ActionOutputs = this.oldResources.reduce(
-      (accumulator, current) => ({ ...accumulator, [current.resourceId]: current }),
+      (accumulator, current) => ({ ...accumulator, [current.getContext()]: current }),
       {},
     );
     const newResources: ActionOutputs = this.newResources.reduce(
-      (accumulator, current) => ({ ...accumulator, [current.resourceId]: current }),
+      (accumulator, current) => ({ ...accumulator, [current.getContext()]: current }),
       {},
     );
 
@@ -80,30 +79,30 @@ export class ResourceDataRepository {
 
     for (const oldResource of Object.values(oldResources)) {
       if (oldResource.isMarkedDeleted()) {
-        delete oldResources[oldResource.resourceId];
+        delete oldResources[oldResource.getContext()];
       }
     }
     for (const newResource of Object.values(newResources)) {
       if (newResource.isMarkedDeleted()) {
-        delete newResources[newResource.resourceId];
+        delete newResources[newResource.getContext()];
       }
     }
 
-    for (const oldResourceId of Object.keys(oldResources)) {
-      if (!newResources[oldResourceId] || newResources[oldResourceId].isMarkedDeleted()) {
-        diffs.push(new Diff(oldResources[oldResourceId], DiffAction.DELETE, 'resourceId', oldResourceId));
+    for (const oldResourceContext of Object.keys(oldResources)) {
+      if (!newResources[oldResourceContext] || newResources[oldResourceContext].isMarkedDeleted()) {
+        diffs.push(new Diff(oldResources[oldResourceContext], DiffAction.DELETE, 'resourceId', oldResourceContext));
       } else {
-        const rDiff = await newResources[oldResourceId].diff(oldResources[oldResourceId]);
+        const rDiff = await newResources[oldResourceContext].diff(oldResources[oldResourceContext]);
         diffs.push(...rDiff);
       }
     }
 
-    for (const newResourceId of Object.keys(newResources)) {
-      if (oldResources[newResourceId]) {
+    for (const newResourceContext of Object.keys(newResources)) {
+      if (oldResources[newResourceContext]) {
         continue;
       }
 
-      const newResource = newResources[newResourceId];
+      const newResource = newResources[newResourceContext];
 
       // A shared resource is being added, but shared resources don't have diffs.
       if ((newResource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
@@ -119,7 +118,7 @@ export class ResourceDataRepository {
         diffs.push(...rDiff);
       } else {
         // The resource is a normal resource, and just needs to be added.
-        diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResource.resourceId));
+        diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext));
       }
     }
 
@@ -128,11 +127,11 @@ export class ResourceDataRepository {
 
   async diffDirty(): Promise<Diff[]> {
     const actualResources: ActionOutputs = this.actualResources.reduce(
-      (accumulator, current) => ({ ...accumulator, [current.resourceId]: current }),
+      (accumulator, current) => ({ ...accumulator, [current.getContext()]: current }),
       {},
     );
     const newResources: ActionOutputs = this.newResources.reduce(
-      (accumulator, current) => ({ ...accumulator, [current.resourceId]: current }),
+      (accumulator, current) => ({ ...accumulator, [current.getContext()]: current }),
       {},
     );
 
@@ -140,30 +139,32 @@ export class ResourceDataRepository {
 
     for (const actualResource of Object.values(actualResources)) {
       if (actualResource.isMarkedDeleted()) {
-        delete actualResources[actualResource.resourceId];
+        delete actualResources[actualResource.getContext()];
       }
     }
     for (const newResource of Object.values(newResources)) {
       if (newResource.isMarkedDeleted()) {
-        delete newResources[newResource.resourceId];
+        delete newResources[newResource.getContext()];
       }
     }
 
-    for (const actualResourceId of Object.keys(actualResources)) {
-      if (!newResources[actualResourceId] || newResources[actualResourceId].isMarkedDeleted()) {
-        diffs.push(new Diff(actualResources[actualResourceId], DiffAction.DELETE, 'resourceId', actualResourceId));
+    for (const actualResourceContext of Object.keys(actualResources)) {
+      if (!newResources[actualResourceContext] || newResources[actualResourceContext].isMarkedDeleted()) {
+        diffs.push(
+          new Diff(actualResources[actualResourceContext], DiffAction.DELETE, 'resourceId', actualResourceContext),
+        );
       } else {
-        const rDiff = await newResources[actualResourceId].diff(actualResources[actualResourceId]);
+        const rDiff = await newResources[actualResourceContext].diff(actualResources[actualResourceContext]);
         diffs.push(...rDiff);
       }
     }
 
-    for (const newResourceId of Object.keys(newResources)) {
-      if (actualResources[newResourceId]) {
+    for (const newResourceContext of Object.keys(newResources)) {
+      if (actualResources[newResourceContext]) {
         continue;
       }
 
-      const newResource = newResources[newResourceId];
+      const newResource = newResources[newResourceContext];
 
       // A shared resource is being added, but shared resources don't have diffs.
       if ((newResource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
@@ -179,7 +180,7 @@ export class ResourceDataRepository {
         diffs.push(...rDiff);
       } else {
         // The resource is a normal resource, and just needs to be added.
-        diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResource.resourceId));
+        diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext));
       }
     }
 
@@ -196,12 +197,12 @@ export class ResourceDataRepository {
     }
   }
 
-  getActualResourceById(resourceId: IResource['resourceId']): UnknownResource | undefined {
-    return this.actualResources.find((r) => r.resourceId === resourceId);
+  getActualResourceByContext(context: string): UnknownResource | undefined {
+    return this.actualResources.find((r) => r.getContext() === context);
   }
 
-  getNewResourceById(resourceId: IResource['resourceId']): UnknownResource | undefined {
-    return this.newResources.find((r) => r.resourceId === resourceId);
+  getNewResourceByContext(context: string): UnknownResource | undefined {
+    return this.newResources.find((r) => r.getContext() === context);
   }
 
   getActualResourcesByProperties(filters: { key: string; value: any }[] = []): UnknownResource[] {
@@ -224,7 +225,7 @@ export class ResourceDataRepository {
       resource.remove();
     }
 
-    const rIndex = this.newResources.findIndex((r) => r.resourceId === resource.resourceId);
+    const rIndex = this.newResources.findIndex((r) => r.getContext() === resource.getContext());
     if (rIndex > -1) {
       this.newResources.splice(rIndex, 1);
     }

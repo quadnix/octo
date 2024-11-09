@@ -407,7 +407,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
       ],
       "from": "app=test-app",
       "relationship": undefined,
-      "to": "test-overlay=overlay-1",
+      "to": "@octo/test-overlay=overlay-1",
     },
     {
       "behaviors": [
@@ -420,7 +420,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
       ],
       "from": "app=test-app",
       "relationship": undefined,
-      "to": "test-overlay=overlay-1",
+      "to": "@octo/test-overlay=overlay-1",
     },
     {
       "behaviors": [
@@ -437,7 +437,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
           "toField": "name",
         },
       ],
-      "from": "test-overlay=overlay-1",
+      "from": "@octo/test-overlay=overlay-1",
       "relationship": undefined,
       "to": "app=test-app",
     },
@@ -456,7 +456,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
           "toField": "name",
         },
       ],
-      "from": "test-overlay=overlay-1",
+      "from": "@octo/test-overlay=overlay-1",
       "relationship": undefined,
       "to": "app=test-app",
     },
@@ -580,7 +580,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
       ],
       "from": "app=test-app",
       "relationship": undefined,
-      "to": "test-overlay=overlay-1",
+      "to": "@octo/test-overlay=overlay-1",
     },
     {
       "behaviors": [
@@ -593,7 +593,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
       ],
       "from": "app=test-app",
       "relationship": undefined,
-      "to": "test-overlay=overlay-2",
+      "to": "@octo/test-overlay=overlay-2",
     },
     {
       "behaviors": [
@@ -610,15 +610,15 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
           "toField": "name",
         },
       ],
-      "from": "test-overlay=overlay-2",
+      "from": "@octo/test-overlay=overlay-2",
       "relationship": undefined,
       "to": "app=test-app",
     },
     {
       "behaviors": [],
-      "from": "test-overlay=overlay-2",
+      "from": "@octo/test-overlay=overlay-2",
       "relationship": undefined,
-      "to": "test-overlay=overlay-1",
+      "to": "@octo/test-overlay=overlay-1",
     },
     {
       "behaviors": [
@@ -635,15 +635,15 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
           "toField": "name",
         },
       ],
-      "from": "test-overlay=overlay-1",
+      "from": "@octo/test-overlay=overlay-1",
       "relationship": undefined,
       "to": "app=test-app",
     },
     {
       "behaviors": [],
-      "from": "test-overlay=overlay-1",
+      "from": "@octo/test-overlay=overlay-1",
       "relationship": undefined,
-      "to": "test-overlay=overlay-2",
+      "to": "@octo/test-overlay=overlay-2",
     },
     {
       "behaviors": [

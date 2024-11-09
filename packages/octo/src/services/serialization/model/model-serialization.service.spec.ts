@@ -10,7 +10,6 @@ import { Region } from '../../../models/region/region.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Subnet } from '../../../models/subnet/subnet.model.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
-import { OverlayService, OverlayServiceFactory } from '../../../overlays/overlay.service.js';
 import { ModelSerializationService } from './model-serialization.service.js';
 
 describe('Model Serialization Service UT', () => {
@@ -33,8 +32,6 @@ describe('Model Serialization Service UT', () => {
     await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
       args: [true],
     });
-
-    container.registerFactory(OverlayService, OverlayServiceFactory);
 
     const modelSerializationService = new ModelSerializationService();
     modelSerializationService.registerClass('@octo/App', App);

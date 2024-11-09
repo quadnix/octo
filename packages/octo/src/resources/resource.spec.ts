@@ -51,10 +51,10 @@ describe('Resource UT', () => {
       resource2.properties.key1 = 'value1';
       resource2.response.key1 = 'value1';
 
-      const resource2Copy = await AResource.cloneResource(resource2, async (resourceId: string) => {
-        if (resourceId === 'resource-1') {
+      const resource2Copy = await AResource.cloneResource(resource2, async (context: string) => {
+        if (context === '@octo/test-resource=resource-1') {
           return resource1;
-        } else if (resourceId === 'resource-2') {
+        } else if (context === '@octo/test-resource=resource-2') {
           return resource2;
         }
         throw new Error('Unknown resource!');
@@ -85,10 +85,10 @@ describe('Resource UT', () => {
       resource2.properties.key1 = 'value1';
       resource2.response.key1 = 'value1';
 
-      await resource3.cloneResourceInPlace(resource2, async (resourceId: string) => {
-        if (resourceId === 'resource-1') {
+      await resource3.cloneResourceInPlace(resource2, async (context: string) => {
+        if (context === '@octo/test-resource=resource-1') {
           return resource1;
-        } else if (resourceId === 'resource-2') {
+        } else if (context === '@octo/test-resource=resource-2') {
           return resource2;
         }
         throw new Error('Unknown resource!');
@@ -120,10 +120,10 @@ describe('Resource UT', () => {
       resource4.properties.key1 = 'value1';
       resource4.response.key1 = 'value1';
 
-      await resource4.cloneResourceInPlace(resource2, async (resourceId: string) => {
-        if (resourceId === 'resource-1') {
+      await resource4.cloneResourceInPlace(resource2, async (context: string) => {
+        if (context === '@octo/test-resource=resource-1') {
           return resource1;
-        } else if (resourceId === 'resource-2') {
+        } else if (context === '@octo/test-resource=resource-2') {
           return resource2;
         }
         throw new Error('Unknown resource!');
@@ -156,10 +156,10 @@ describe('Resource UT', () => {
       resource4.properties.key2 = 'value1';
       resource4.response.key2 = 'value1';
 
-      await resource4.cloneResourceInPlace(resource2, async (resourceId: string) => {
-        if (resourceId === 'resource-1') {
+      await resource4.cloneResourceInPlace(resource2, async (context: string) => {
+        if (context === '@octo/test-resource=resource-1') {
           return resource1;
-        } else if (resourceId === 'resource-2') {
+        } else if (context === '@octo/test-resource=resource-2') {
           return resource2;
         }
         throw new Error('Unknown resource!');
@@ -206,7 +206,7 @@ describe('Resource UT', () => {
          {
            "action": "delete",
            "field": "properties",
-           "node": "test-resource=resource-1",
+           "node": "@octo/test-resource=resource-1",
            "value": {
              "key": "key1",
              "value": "value1",
@@ -215,7 +215,7 @@ describe('Resource UT', () => {
          {
            "action": "update",
            "field": "properties",
-           "node": "test-resource=resource-1",
+           "node": "@octo/test-resource=resource-1",
            "value": {
              "key": "key2",
              "value": "value2.1",
@@ -224,7 +224,7 @@ describe('Resource UT', () => {
          {
            "action": "add",
            "field": "properties",
-           "node": "test-resource=resource-1",
+           "node": "@octo/test-resource=resource-1",
            "value": {
              "key": "key3",
              "value": "value3",
@@ -249,7 +249,7 @@ describe('Resource UT', () => {
          {
            "action": "update",
            "field": "properties",
-           "node": "test-resource=resource-1",
+           "node": "@octo/test-resource=resource-1",
            "value": {
              "key": "key1",
              "value": {
@@ -275,7 +275,7 @@ describe('Resource UT', () => {
          {
            "action": "update",
            "field": "properties",
-           "node": "test-resource=resource-1",
+           "node": "@octo/test-resource=resource-1",
            "value": {
              "key": "key1",
              "value": [
@@ -622,7 +622,7 @@ describe('Resource UT', () => {
     it('should be able to get context', async () => {
       const [resource1] = await createTestResources({ 'resource-1': [] });
 
-      expect(resource1.getContext()).toMatchInlineSnapshot(`"test-resource=resource-1"`);
+      expect(resource1.getContext()).toMatchInlineSnapshot(`"@octo/test-resource=resource-1"`);
     });
   });
 

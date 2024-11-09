@@ -8,18 +8,9 @@ type FactoryMock<T> = {
 };
 
 type TestContainerSubjects = {
-  importFrom?: Constructable<IPackageMock>[];
   mocks?: FactoryMock<unknown>[];
 };
 type TestContainerOptions = { factoryTimeoutInMs?: number };
-
-export interface IPackageMock {
-  destroy: () => Promise<void>;
-
-  getMocks: () => FactoryMock<unknown>[];
-
-  init(): Promise<void>;
-}
 
 /**
  * The TestContainer class is an isolated {@link Container} for tests.
@@ -36,8 +27,6 @@ export interface IPackageMock {
  * Once tests are done executing, the `afterAll()` block cleans up the Container.
  */
 export class TestContainer {
-  private static packageMocks: IPackageMock[] = [];
-
   /**
    * The `TestContainer.create()` method allows you to mock factories.
    *
@@ -45,7 +34,6 @@ export class TestContainer {
    * ```ts
    * beforeAll(async () => {
    *   await TestContainer.create({
-   *     importFrom: [OctoAwsCdkPackageMock],
    *     mocks: [
    *       { type: MyClass, value: jest.fn() },
    *       { metadata: { key: 'value' }, type: AnotherClass, value: new AnotherClass() },
@@ -55,8 +43,6 @@ export class TestContainer {
    *
    * ```
    * @param subjects The subjects being mocked.
-   * - `importFrom` is an array of {@link IPackageMock} classes, to import custom mocks,
-   * such as from octo-aws-cdk package - [OctoAwsCdkPackageMock](/api/octo-aws-cdk/class/OctoAwsCdkPackageMock).
    * - `mocks` is an array of objects, to override the default factories.
    *   - Use `metadata?: { [key: string]: string }` to identify the factory being mocked.
    *   - Use `type: Constructable<T> | string` to identify the class being mocked.
@@ -71,18 +57,7 @@ export class TestContainer {
       container.setFactoryTimeout(options.factoryTimeoutInMs);
     }
 
-    const importedMocks: FactoryMock<unknown>[] = [];
-    for (const mockClass of subjects.importFrom || []) {
-      const mock = new mockClass();
-      await mock.init();
-
-      importedMocks.push(...mock.getMocks());
-      this.packageMocks.push(mock);
-    }
-
-    subjects.mocks = [...importedMocks, ...(subjects.mocks || [])];
-
-    for (const mock of subjects.mocks) {
+    for (const mock of subjects.mocks || []) {
       container.registerValue(mock.type, mock.value, { metadata: mock.metadata });
     }
 
@@ -102,9 +77,6 @@ export class TestContainer {
    * ```
    */
   static async reset(): Promise<void> {
-    for (const mock of this.packageMocks) {
-      await mock.destroy();
-    }
     Container.getInstance().reset();
   }
 }

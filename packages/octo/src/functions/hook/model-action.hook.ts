@@ -1,6 +1,4 @@
 import type { ActionOutputs } from '../../app.type.js';
-import { InputNotFoundTransactionError } from '../../errors/index.js';
-import { Container } from '../container/container.js';
 import {
   ModelActionHookCallbackDoneEvent,
   PostModelActionHookCallbackDoneEvent,
@@ -12,12 +10,10 @@ import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = {
   action: IModelAction;
-  collectInput?: IModelAction['collectInput'];
   handle: IModelAction['handle'];
 };
 type PreHookSignature = {
   action: IModelAction;
-  collectInput?: IModelAction['collectInput'];
   handle: IModelAction['handle'];
 };
 
@@ -34,18 +30,18 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
   private constructor() {}
 
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
-    for (const { action, collectInput, handle } of hooks.postHooks || []) {
+    for (const { action, handle } of hooks.postHooks || []) {
       if (!this.postModelActionHooks[action.constructor.name]) {
         this.postModelActionHooks[action.constructor.name] = [];
       }
-      this.postModelActionHooks[action.constructor.name].push({ collectInput, handle });
+      this.postModelActionHooks[action.constructor.name].push({ handle });
     }
 
-    for (const { action, collectInput, handle } of hooks.preHooks || []) {
+    for (const { action, handle } of hooks.preHooks || []) {
       if (!this.preModelActionHooks[action.constructor.name]) {
         this.preModelActionHooks[action.constructor.name] = [];
       }
-      this.preModelActionHooks[action.constructor.name].push({ collectInput, handle });
+      this.preModelActionHooks[action.constructor.name].push({ handle });
     }
   }
 
@@ -64,54 +60,18 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     const originalHandleMethod = modelAction.handle;
 
     modelAction.handle = async function (...args: Parameters<IModelAction['handle']>): Promise<ActionOutputs> {
-      const container = Container.getInstance();
-
       let output = args[2] || {};
 
-      for (const { collectInput, handle } of self.preModelActionHooks[modelAction.constructor.name] || []) {
-        const inputs = collectInput ? collectInput(args[0]) : [];
-        const resolvedInputs = inputs.reduce((accumulator, currentValue) => {
-          if (currentValue.startsWith('input.')) {
-            accumulator[currentValue] = container.getActionInput(currentValue);
-          } else if (currentValue.startsWith('resource.')) {
-            accumulator[currentValue] = container.getResource(currentValue.substring('resource.'.length));
-          }
-          if (!accumulator[currentValue]) {
-            throw new InputNotFoundTransactionError(
-              'No matching input found to process hook!',
-              { action: modelAction.constructor.name } as unknown as IModelAction,
-              args[0],
-              currentValue,
-            );
-          }
-          return accumulator;
-        }, {});
-        output = await handle.apply(this, [args[0], resolvedInputs, output]);
+      for (const { handle } of self.preModelActionHooks[modelAction.constructor.name] || []) {
+        output = await handle.apply(this, [args[0], args[1], output]);
         EventService.getInstance().emit(new PreModelActionHookCallbackDoneEvent());
       }
 
       output = await originalHandleMethod.apply(this, [args[0], args[1], output]);
       EventService.getInstance().emit(new ModelActionHookCallbackDoneEvent());
 
-      for (const { collectInput, handle } of self.postModelActionHooks[modelAction.constructor.name] || []) {
-        const inputs = collectInput ? collectInput(args[0]) : [];
-        const resolvedInputs = inputs.reduce((accumulator, currentValue) => {
-          if (currentValue.startsWith('input.')) {
-            accumulator[currentValue] = container.getActionInput(currentValue);
-          } else if (currentValue.startsWith('resource.')) {
-            accumulator[currentValue] = container.getResource(currentValue.substring('resource.'.length));
-          }
-          if (!accumulator[currentValue]) {
-            throw new InputNotFoundTransactionError(
-              'No matching input found to process hook!',
-              { action: modelAction.constructor.name } as unknown as IModelAction,
-              args[0],
-              currentValue,
-            );
-          }
-          return accumulator;
-        }, {});
-        output = await handle.apply(this, [args[0], resolvedInputs, output]);
+      for (const { handle } of self.postModelActionHooks[modelAction.constructor.name] || []) {
+        output = await handle.apply(this, [args[0], args[1], output]);
         EventService.getInstance().emit(new PostModelActionHookCallbackDoneEvent());
       }
 

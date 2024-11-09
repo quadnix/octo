@@ -1,7 +1,3 @@
-import { create } from '../../../test/helpers/test-models.js';
-import { App } from '../../models/app/app.model.js';
-import { Region } from '../../models/region/region.model.js';
-import { InputService } from '../../services/input/input.service.js';
 import type { Container } from './container.js';
 import { TestContainer } from './test-container.js';
 
@@ -33,10 +29,7 @@ describe('Container UT', () => {
   let container: Container;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
-      { mocks: [{ type: InputService, value: new InputService() }] },
-      { factoryTimeoutInMs: 500 },
-    );
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
   afterEach(async () => {
@@ -52,92 +45,6 @@ describe('Container UT', () => {
       await expect(async () => {
         await container.get(Test, { metadata: { type: 'metadata' } });
       }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
-    });
-  });
-
-  describe('getActionInput()', () => {
-    it('should return undefined when no input found', async () => {
-      const result = await container.getActionInput('input.test');
-      expect(result).toBeUndefined();
-    });
-
-    it('should return value when input found', async () => {
-      await container.registerActionInput('input.test', 'value');
-
-      const result = await container.getActionInput('input.test');
-      expect(result).toBe('value');
-    });
-  });
-
-  describe('getModel()', () => {
-    it('should return undefined when no model found', async () => {
-      const result = await container.getModel(App);
-      expect(result).toBeUndefined();
-    });
-
-    it('should return model when model found', async () => {
-      const inputService = await container.get<InputService>(InputService);
-
-      const {
-        app: [app],
-      } = create({
-        app: ['app'],
-      });
-      inputService.registerModels([app]);
-
-      const result = await container.getModel(App);
-      expect(result).toBe(app);
-    });
-
-    it('should throw error when multiple models found', async () => {
-      const inputService = await container.get<InputService>(InputService);
-
-      const {
-        app: [app],
-        region: [region1, region2],
-      } = create({
-        app: ['app'],
-        region: ['region1', 'region2:-1'],
-      });
-      inputService.registerModels([app, region1, region2]);
-
-      await expect(async () => {
-        await container.getModel(Region);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"More than one models found! Use more filters to narrow it down."`,
-      );
-    });
-
-    it('should return model after applying filters', async () => {
-      const inputService = await container.get<InputService>(InputService);
-
-      const {
-        app: [app],
-        region: [region1, region2],
-      } = create({
-        app: ['app'],
-        region: ['region1', 'region2:-1'],
-      });
-      inputService.registerModels([app, region1, region2]);
-
-      const result = await container.getModel(Region, [{ key: 'region', value: 'region1' }]);
-      expect(result).toBe(region1);
-    });
-  });
-
-  describe('registerActionInput()', () => {
-    it('should be able to register an input', async () => {
-      await container.registerActionInput('input.test', 'value');
-
-      const result = await container.getActionInput('input.test');
-      expect(result).toBe('value');
-    });
-
-    it('should throw error when attempting to register same input multiple times', async () => {
-      await expect(async () => {
-        await container.registerActionInput('input.test', 'value');
-        await container.registerActionInput('input.test', 'value');
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Input "input.test" has already been registered!"`);
     });
   });
 

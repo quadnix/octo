@@ -7,7 +7,6 @@ import {
   Execution,
   Filesystem,
   Image,
-  OverlayService,
   Pipeline,
   Region,
   Server,
@@ -17,6 +16,7 @@ import {
   type UnknownOverlay,
   type UnknownResource,
 } from '../../src/index.js';
+import { OverlayDataRepository } from '../../src/overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../src/resources/resource-data.repository.js';
 import { ModelSerializationService } from '../../src/services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../../src/services/serialization/resource/resource-serialization.service.js';
@@ -227,12 +227,12 @@ export function create({
 }
 
 export async function createTestOverlays(overlays: { [key: string]: AAnchor[] }): Promise<UnknownOverlay[]> {
-  const overlayService = await Container.getInstance().get(OverlayService);
+  const overlayDataRepository = await Container.getInstance().get(OverlayDataRepository);
   const result: UnknownOverlay[] = [];
 
   for (const [overlayId, anchors] of Object.entries(overlays)) {
     const overlay = new TestOverlay(overlayId, {}, anchors);
-    overlayService.addOverlay(overlay);
+    overlayDataRepository.add(overlay);
 
     result.push(overlay);
   }

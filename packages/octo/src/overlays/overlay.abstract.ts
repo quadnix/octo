@@ -87,7 +87,9 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
   }
 
   override setContext(): string {
-    return `${(this.constructor as typeof AOverlay).NODE_NAME}=${this.overlayId}`;
+    const nodePackage = (this.constructor as typeof AOverlay).NODE_PACKAGE;
+    const nodeName = (this.constructor as typeof AOverlay).NODE_NAME;
+    return `${nodePackage}/${nodeName}=${this.overlayId}`;
   }
 
   override synth(): IOverlay {

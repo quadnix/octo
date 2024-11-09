@@ -1,5 +1,5 @@
 import { strict as assert } from 'assert';
-import type { ModuleConstructorArgs, TransactionOptions } from './app.type.js';
+import type { Constructable, ModuleInputs, TransactionOptions, UnknownModule } from './app.type.js';
 import { ValidationTransactionError } from './errors/index.js';
 import { Container } from './functions/container/container.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
@@ -9,7 +9,6 @@ import { ModelActionHook } from './functions/hook/model-action.hook.js';
 import { ResourceActionHook } from './functions/hook/resource-action.hook.js';
 import { App } from './models/app/app.model.js';
 import { ModuleContainer } from './modules/module.container.js';
-import { IModule } from './modules/module.interface.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from './resources/resource-data.repository.js';
 import { AResource } from './resources/resource.abstract.js';
@@ -163,12 +162,12 @@ export class Octo {
     await this.retrieveResourceState();
   }
 
-  loadModule<M>(module: { new (...args: any): IModule<unknown> }, inputs: ModuleConstructorArgs<M>[0]): void {
-    this.moduleContainer.load(module, inputs);
+  loadModule<M extends UnknownModule>(module: Constructable<M>, moduleId: string, inputs: ModuleInputs<M>): void {
+    this.moduleContainer.load(module, moduleId, inputs);
   }
 
-  registerCapture<T extends AResource<T>>(resourceId: T['resourceId'], response: Partial<T['response']>): void {
-    this.captureService.registerCapture(resourceId, response);
+  registerCapture<T extends AResource<T>>(resourceContext: string, response: Partial<T['response']>): void {
+    this.captureService.registerCapture(resourceContext, response);
   }
 
   registerHooks({

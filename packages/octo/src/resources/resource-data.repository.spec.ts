@@ -53,8 +53,8 @@ describe('ResourceDataRepository UT', () => {
          {
            "action": "add",
            "field": "resourceId",
-           "node": "test-resource=resource-1",
-           "value": "resource-1",
+           "node": "@octo/test-resource=resource-1",
+           "value": "@octo/test-resource=resource-1",
          },
        ]
       `);
@@ -90,8 +90,8 @@ describe('ResourceDataRepository UT', () => {
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "test-resource=resource-1",
-           "value": "resource-1",
+           "node": "@octo/test-resource=resource-1",
+           "value": "@octo/test-resource=resource-1",
          },
        ]
       `);
@@ -108,7 +108,9 @@ describe('ResourceDataRepository UT', () => {
       resource1 = new TestResourceWithDiffOverride('resource-1');
       resourceDataRepository.addNewResource(resource1);
 
-      resource1 = resourceDataRepository.getNewResourceById('resource-1') as TestResourceWithDiffOverride;
+      resource1 = resourceDataRepository.getNewResourceByContext(
+        '@octo/test-resource=resource-1',
+      ) as TestResourceWithDiffOverride;
       const diffOverrideSpy = jest.spyOn(resource1, 'diff');
       await resourceDataRepository.diff();
 

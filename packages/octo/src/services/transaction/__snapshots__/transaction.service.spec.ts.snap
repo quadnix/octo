@@ -10,7 +10,7 @@ exports[`TransactionService UT applyModels() should call action and collect all 
       "value": "app",
     },
     {
-      "input.key1": "value1",
+      "moduleId.input.key1": "value1",
     },
     {},
   ],
@@ -27,7 +27,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
       "value": "app",
     },
     {
-      "input.key1": "value1",
+      "moduleId.input.key1": "value1",
     },
     {},
   ],
@@ -44,7 +44,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
       "value": "app",
     },
     {
-      "input.key2": "value2",
+      "moduleId.input.key2": "value2",
     },
     {},
   ],
@@ -91,7 +91,7 @@ exports[`TransactionService UT applyResources() should only process 1 matching d
     {
       "action": "add",
       "field": "resourceId",
-      "node": "test-resource=resource-1",
+      "node": "@octo/test-resource=resource-1",
       "value": "resource-1",
     },
   ],
@@ -104,7 +104,7 @@ exports[`TransactionService UT applyResources() should process diffs of resource
     {
       "action": "add",
       "field": "resourceId",
-      "node": "test-resource=resource-1",
+      "node": "@octo/test-resource=resource-1",
       "value": "resource-1",
     },
   ],
@@ -112,7 +112,7 @@ exports[`TransactionService UT applyResources() should process diffs of resource
     {
       "action": "add",
       "field": "resourceId",
-      "node": "test-resource=resource-2",
+      "node": "@octo/test-resource=resource-2",
       "value": "resource-2",
     },
   ],
@@ -138,13 +138,13 @@ exports[`TransactionService UT beginTransaction() yieldModelDiffs should yield m
     {
       "action": "add",
       "field": "anchor",
-      "node": "test-overlay=test-overlay",
+      "node": "@octo/test-overlay=test-overlay",
       "value": "anchorId=anchor-1",
     },
     {
       "action": "add",
       "field": "overlayId",
-      "node": "test-overlay=test-overlay",
+      "node": "@octo/test-overlay=test-overlay",
       "value": "test-overlay",
     },
   ],
@@ -170,13 +170,13 @@ exports[`TransactionService UT beginTransaction() yieldModelTransaction should y
     {
       "action": "add",
       "field": "anchor",
-      "node": "test-overlay=test-overlay",
+      "node": "@octo/test-overlay=test-overlay",
       "value": "anchorId=anchor-1",
     },
     {
       "action": "add",
       "field": "overlayId",
-      "node": "test-overlay=test-overlay",
+      "node": "@octo/test-overlay=test-overlay",
       "value": "test-overlay",
     },
   ],
@@ -189,14 +189,14 @@ exports[`TransactionService UT beginTransaction() yieldResourceDiffs should yiel
     {
       "action": "delete",
       "field": "resourceId",
-      "node": "test-resource=resource-1",
-      "value": "resource-1",
+      "node": "@octo/test-resource=resource-1",
+      "value": "@octo/test-resource=resource-1",
     },
     {
       "action": "add",
       "field": "resourceId",
-      "node": "test-resource=resource-2",
-      "value": "resource-2",
+      "node": "@octo/test-resource=resource-2",
+      "value": "@octo/test-resource=resource-2",
     },
   ],
   [],
@@ -209,14 +209,14 @@ exports[`TransactionService UT beginTransaction() yieldResourceTransaction shoul
     {
       "action": "delete",
       "field": "resourceId",
-      "node": "test-resource=resource-1",
-      "value": "resource-1",
+      "node": "@octo/test-resource=resource-1",
+      "value": "@octo/test-resource=resource-1",
     },
     {
       "action": "add",
       "field": "resourceId",
-      "node": "test-resource=resource-2",
-      "value": "resource-2",
+      "node": "@octo/test-resource=resource-2",
+      "value": "@octo/test-resource=resource-2",
     },
   ],
 ]

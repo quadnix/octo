@@ -4,7 +4,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a re
 [
   TestResource {
     "_deleteMarker": false,
-    "context": "test-resource=resource-1",
+    "context": "@octo/test-resource=resource-1",
     "dependencies": [],
     "properties": {
       "key1": {
@@ -26,7 +26,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
 [
   TestResource {
     "_deleteMarker": false,
-    "context": "test-resource=resource-1",
+    "context": "@octo/test-resource=resource-1",
     "dependencies": [],
     "properties": {
       "key1": "value1",
@@ -41,8 +41,8 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
 
 exports[`Resource Serialization Service UT deserialize() should deserialize a single shared resource 1`] = `
 [
-  "test-resource=resource-1",
-  "test-resource=resource-2",
+  "@octo/test-resource=resource-1",
+  "@octo/test-resource=resource-2",
 ]
 `;
 
@@ -50,9 +50,9 @@ exports[`Resource Serialization Service UT serialize() should not serialize dele
 {
   "dependencies": [],
   "resources": {
-    "resource-1": {
+    "@octo/test-resource=resource-1": {
       "className": "@octo/TestResource",
-      "context": "test-resource=resource-1",
+      "context": "@octo/test-resource=resource-1",
       "resource": {
         "properties": {
           "key1": "value1",
@@ -88,13 +88,13 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
           "toField": "resourceId",
         },
       ],
-      "from": "test-resource=resource-1",
+      "from": "@octo/test-resource=resource-1",
       "relationship": {
         "onField": "resourceId",
         "toField": "resourceId",
         "type": "parent",
       },
-      "to": "test-resource=resource-2",
+      "to": "@octo/test-resource=resource-2",
     },
     {
       "behaviors": [
@@ -111,19 +111,19 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
           "toField": "resourceId",
         },
       ],
-      "from": "test-resource=resource-2",
+      "from": "@octo/test-resource=resource-2",
       "relationship": {
         "onField": "resourceId",
         "toField": "resourceId",
         "type": "child",
       },
-      "to": "test-resource=resource-1",
+      "to": "@octo/test-resource=resource-1",
     },
   ],
   "resources": {
-    "resource-1": {
+    "@octo/test-resource=resource-1": {
       "className": "@octo/TestResource",
-      "context": "test-resource=resource-1",
+      "context": "@octo/test-resource=resource-1",
       "resource": {
         "properties": {
           "key1": "value1",
@@ -134,9 +134,9 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
         },
       },
     },
-    "resource-2": {
+    "@octo/test-resource=resource-2": {
       "className": "@octo/TestResource",
-      "context": "test-resource=resource-2",
+      "context": "@octo/test-resource=resource-2",
       "resource": {
         "properties": {
           "key2": "value2",
@@ -156,9 +156,9 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
 {
   "dependencies": [],
   "resources": {
-    "resource-1": {
+    "@octo/test-resource=resource-1": {
       "className": "@octo/TestResource",
-      "context": "test-resource=resource-1",
+      "context": "@octo/test-resource=resource-1",
       "resource": {
         "properties": {},
         "resourceId": "resource-1",
@@ -182,13 +182,13 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
           "toField": "resourceId",
         },
       ],
-      "from": "test-resource=resource-1",
+      "from": "@octo/test-resource=resource-1",
       "relationship": {
         "onField": "resourceId",
         "toField": "resourceId",
         "type": "parent",
       },
-      "to": "test-resource=resource-2",
+      "to": "@octo/test-resource=resource-2",
     },
     {
       "behaviors": [
@@ -205,19 +205,19 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
           "toField": "resourceId",
         },
       ],
-      "from": "test-resource=resource-2",
+      "from": "@octo/test-resource=resource-2",
       "relationship": {
         "onField": "resourceId",
         "toField": "resourceId",
         "type": "child",
       },
-      "to": "test-resource=resource-1",
+      "to": "@octo/test-resource=resource-1",
     },
   ],
   "resources": {
-    "resource-1": {
+    "@octo/test-resource=resource-1": {
       "className": "@octo/TestResource",
-      "context": "test-resource=resource-1",
+      "context": "@octo/test-resource=resource-1",
       "resource": {
         "properties": {
           "key1": "value1",
@@ -230,9 +230,9 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
     },
   },
   "sharedResources": {
-    "resource-2": {
+    "@octo/test-resource=resource-2": {
       "className": "@octo/SharedTestResource",
-      "context": "test-resource=resource-2",
+      "context": "@octo/test-resource=resource-2",
       "resource": {
         "properties": {
           "key2": "value2",

@@ -11,15 +11,10 @@ export { Validate } from './decorators/validate.decorator.js';
 export * from './errors/index.js';
 export * from './events/index.js';
 
-export { Container } from './functions/container/container.js';
-export { IPackageMock, TestContainer } from './functions/container/test-container.js';
+export { TestContainer } from './functions/container/test-container.js';
 export { Dependency, DependencyRelationship, IDependency } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
-export { DiffMetadata } from './functions/diff/diff-metadata.js';
-
-export { ANode } from './functions/node/node.abstract.js';
-export { type INode, type INodeReference } from './functions/node/node.interface.js';
 
 export { type IApp } from './models/app/app.interface.js';
 export { App } from './models/app/app.model.js';
@@ -48,6 +43,7 @@ export { AModel } from './models/model.abstract.js';
 export { type IModel, type IModelReference } from './models/model.interface.js';
 export { type IModelAction } from './models/model-action.interface.js';
 
+export { AModule } from './modules/module.abstract.js';
 export { type IModule } from './modules/module.interface.js';
 export { TestModuleContainer } from './modules/test-module.container.js';
 
@@ -55,7 +51,6 @@ export { AAnchor } from './overlays/anchor.abstract.js';
 export { type IAnchor } from './overlays/anchor.interface.js';
 export { AOverlay } from './overlays/overlay.abstract.js';
 export { type IOverlay } from './overlays/overlay.interface.js';
-export { OverlayService } from './overlays/overlay.service.js';
 
 export { AResource } from './resources/resource.abstract.js';
 export { type IResource } from './resources/resource.interface.js';

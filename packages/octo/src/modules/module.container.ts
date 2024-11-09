@@ -1,23 +1,22 @@
-import type { Constructable, ModuleConstructorArgs, UnknownModel } from '../app.type.js';
+import type { Constructable, ModuleInputs, UnknownModel, UnknownModule } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
+import { AOverlay } from '../overlays/overlay.abstract.js';
 import { EventService } from '../services/event/event.service.js';
 import { InputService } from '../services/input/input.service.js';
-import { IModule } from './module.interface.js';
+import type { AModule } from './module.abstract.js';
 
 type ModuleOptions = {
-  inputs: { [key: string]: unknown };
   packageName: string;
 };
 
 export class ModuleContainer {
   private readonly modules: {
-    applied: boolean;
-    applyOrder: number;
     hidden: boolean;
-    module: Constructable<IModule<unknown>>;
+    instances: string[];
+    module: Constructable<UnknownModule>;
     properties: ModuleOptions;
   }[] = [];
 
@@ -25,59 +24,77 @@ export class ModuleContainer {
 
   async apply(): Promise<void> {
     for (const moduleMetadata of this.modules) {
-      if (moduleMetadata.applied || moduleMetadata.hidden) {
+      if (moduleMetadata.hidden) {
         continue;
       }
 
-      const { module, properties } = moduleMetadata;
-      const instance = new module(properties.inputs);
+      const { instances, module, properties } = moduleMetadata;
+      for (const moduleId of instances) {
+        const instance = new module();
+        const moduleInputs = instance.collectInputs();
 
-      const model = (await instance.onInit()) as UnknownModel;
-      this.inputService.registerModels([model]);
+        const resolvedModuleInputs = moduleInputs.reduce((accumulator, current) => {
+          const resolvedInput = this.inputService.resolve(`${moduleId}.input.${current}`);
+          if (!resolvedInput) {
+            const moduleName = `${properties.packageName}/${module.name}`;
+            throw new ModuleError(`Module "${moduleName}" inputs are not resolved!`, moduleName);
+          }
+          accumulator[current] = resolvedInput;
+          return accumulator;
+        }, {});
 
-      moduleMetadata.applied = true;
+        const model = (await instance.onInit(resolvedModuleInputs)) as UnknownModel;
+        if (model instanceof AOverlay) {
+          this.inputService.registerOverlay(moduleId, model);
+        } else {
+          this.inputService.registerModel(moduleId, model);
+        }
+      }
+
       EventService.getInstance().emit(new ModuleEvent(module.name));
     }
   }
 
-  getModuleMetadata(module: Constructable<IModule<unknown>> | string): ModuleContainer['modules'][0] | undefined {
+  getModuleMetadata(module: Constructable<UnknownModule> | string): ModuleContainer['modules'][0] | undefined {
     const index = this.getModuleMetadataIndex(module);
     return index === -1 ? undefined : this.modules[index];
   }
 
-  getModuleMetadataIndex(module: Constructable<IModule<unknown>> | string): number {
-    const name = typeof module === 'string' ? module : module.name;
-    return this.modules.findIndex((m) => m.module.name === name);
+  getModuleMetadataIndex(module: Constructable<UnknownModule> | string): number {
+    const moduleName =
+      typeof module === 'string' ? module : `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;
+    return this.modules.findIndex((m) => `${m.properties.packageName}/${m.module.name}` === moduleName);
   }
 
-  load<M>(module: { new (...args: any): IModule<unknown> }, inputs: ModuleConstructorArgs<M>[0]): void {
+  load<M extends UnknownModule>(module: Constructable<M> | string, moduleId: string, inputs: ModuleInputs<M>): void {
+    const moduleName =
+      typeof module === 'string' ? module : `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;
     const m = this.getModuleMetadata(module);
     if (!m) {
-      throw new ModuleError(`Module ${module.name} not yet registered!`, module.name);
+      throw new ModuleError(`Module "${moduleName}" not yet registered!`, moduleName);
     }
 
     m.hidden = false;
 
-    for (const [key, value] of Object.entries(inputs || {})) {
-      m.properties.inputs[key] = JSON.parse(JSON.stringify(value));
+    for (const [key, value] of Object.entries(inputs)) {
+      this.inputService.registerInput(moduleId, key, JSON.parse(JSON.stringify(value)));
     }
   }
 
-  register(module: Constructable<IModule<unknown>>, properties: ModuleOptions): void {
-    if (!this.modules.some((m) => m.module.name === module.name)) {
-      this.modules.push({ applied: false, applyOrder: -1, hidden: true, module, properties });
+  register(module: Constructable<UnknownModule>, properties: ModuleOptions): void {
+    const moduleName = `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;
+    if (!this.modules.some((m) => `${m.properties.packageName}/${m.module.name}` === moduleName)) {
+      this.modules.push({ hidden: true, instances: [], module, properties });
     }
   }
 
   reset(): void {
     this.modules.map((m) => {
-      m.applied = false;
-      m.applyOrder = -1;
       m.hidden = true;
     });
   }
 
-  unload(module: Constructable<IModule<unknown>>): void {
+  unload(module: Constructable<UnknownModule>): void {
     const m = this.getModuleMetadata(module);
     if (m) {
       m.hidden = true;
@@ -90,8 +107,8 @@ export class ModuleContainerFactory {
   private static instance: ModuleContainer;
 
   static async create(): Promise<ModuleContainer> {
-    const inputService = await Container.getInstance().get(InputService);
     if (!this.instance) {
+      const inputService = await Container.getInstance().get(InputService);
       this.instance = new ModuleContainer(inputService);
     }
     return this.instance;

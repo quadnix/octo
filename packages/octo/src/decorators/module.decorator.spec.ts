@@ -2,11 +2,15 @@ import { jest } from '@jest/globals';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { App } from '../models/app/app.model.js';
+import { AModule } from '../modules/module.abstract.js';
 import { ModuleContainer } from '../modules/module.container.js';
-import type { IModule } from '../modules/module.interface.js';
 import { Module } from './module.decorator.js';
 
-class TestModule implements IModule<App> {
+class TestModule extends AModule<{ key: 'value' }, App> {
+  override collectInputs(): string[] {
+    return [];
+  }
+
   async onInit(): Promise<App> {
     return new App('test');
   }
@@ -36,6 +40,9 @@ describe('Module UT', () => {
   });
 
   afterEach(async () => {
+    // @ts-expect-error static members are readonly.
+    TestModule['MODULE_PACKAGE'] = undefined;
+
     await TestContainer.reset();
   });
 
@@ -45,12 +52,18 @@ describe('Module UT', () => {
     }).toThrowErrorMatchingInlineSnapshot(`"Invalid package name: $$"`);
   });
 
-  it('should throw error when class does not implement IModule', async () => {
-    Module('@octo')(TestModuleWithoutOnInit as any);
-
+  it('should throw error when class does not extend AModule', async () => {
     await expect(async () => {
-      await container.waitToResolveAllFactories();
-    }).rejects.toThrowErrorMatchingInlineSnapshot(`"Module does not implement IModule!"`);
+      Module('@octo')(TestModuleWithoutOnInit as any);
+    }).rejects.toThrowErrorMatchingInlineSnapshot(`"Class "TestModuleWithoutOnInit" must extend the AModule class!"`);
+  });
+
+  it('should set static members', async () => {
+    expect(TestModule.MODULE_PACKAGE).toBeUndefined();
+
+    Module('@octo')(TestModule);
+
+    expect(TestModule.MODULE_PACKAGE).toBe('@octo');
   });
 
   it('should register a module', async () => {

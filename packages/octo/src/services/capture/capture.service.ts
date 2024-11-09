@@ -7,12 +7,14 @@ export class CaptureService {
     [key: string]: { response: Partial<IResource['response']> };
   } = {};
 
-  getCapture<T extends AResource<T>>(resourceId: string): { response: Partial<T['response']> } | undefined {
-    return this.captures[resourceId];
+  constructor() {}
+
+  getCapture<T extends AResource<T>>(context: string): { response: Partial<T['response']> } | undefined {
+    return this.captures[context];
   }
 
-  registerCapture<T extends AResource<T>>(resourceId: T['resourceId'], response: Partial<T['response']>): void {
-    this.captures[resourceId] = { response };
+  registerCapture<T extends AResource<T>>(resourceContext: string, response: Partial<T['response']>): void {
+    this.captures[resourceContext] = { response };
   }
 }
 
