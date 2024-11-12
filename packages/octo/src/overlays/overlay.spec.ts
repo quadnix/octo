@@ -1,25 +1,13 @@
 import { TestAnchor, TestOverlay } from '../../test/helpers/test-classes.js';
 import { create, createTestOverlays } from '../../test/helpers/test-models.js';
 import { TestContainer } from '../functions/container/test-container.js';
+import type { ANode } from '../functions/node/node.abstract.js';
 import { App } from '../models/app/app.model.js';
-import { OverlayDataRepository } from './overlay-data.repository.js';
 import { AOverlay } from './overlay.abstract.js';
 
 describe('Overlay UT', () => {
   beforeEach(async () => {
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            type: OverlayDataRepository,
-            value: new OverlayDataRepository([]),
-          },
-        ],
-      },
-      {
-        factoryTimeoutInMs: 500,
-      },
-    );
+    await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
   afterEach(async () => {
@@ -46,9 +34,17 @@ describe('Overlay UT', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
+      // Ensure parent field cannot be calculated.
+      // @ts-expect-error static members are readonly.
+      (app.constructor as typeof ANode)['NODE_NAME'] = 'unknown';
+
       await expect(async () => {
         await createTestOverlays({ 'overlay-1': [anchor1] });
       }).rejects.toMatchInlineSnapshot(`[Error: Cannot derive anchor parent field!]`);
+
+      // Reset app NODE_NAME
+      // @ts-expect-error static members are readonly.
+      (app.constructor as typeof ANode)['NODE_NAME'] = 'app';
     });
 
     it('should throw error creating duplicate anchors', async () => {

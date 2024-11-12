@@ -11,6 +11,7 @@ export { Validate } from './decorators/validate.decorator.js';
 export * from './errors/index.js';
 export * from './events/index.js';
 
+export { Container } from './functions/container/container.js';
 export { TestContainer } from './functions/container/test-container.js';
 export { Dependency, DependencyRelationship, IDependency } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';

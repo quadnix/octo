@@ -9,31 +9,16 @@ import { Image } from '../../../models/image/image.model.js';
 import { Region } from '../../../models/region/region.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Subnet } from '../../../models/subnet/subnet.model.js';
-import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
+import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
 import { ModelSerializationService } from './model-serialization.service.js';
 
 describe('Model Serialization Service UT', () => {
   let container: Container;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
-      {
-        mocks: [],
-      },
-      {
-        factoryTimeoutInMs: 500,
-      },
-    );
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    // In these tests, we commit models, which resets the OverlayDataRepository.
-    // We cannot use TestContainer to mock OverlayDataRepositoryFactory,
-    // or else commit of models won't reset anything.
-    container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
-    await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
-      args: [true],
-    });
-
-    const modelSerializationService = new ModelSerializationService();
+    const modelSerializationService = await container.get(ModelSerializationService);
     modelSerializationService.registerClass('@octo/App', App);
     modelSerializationService.registerClass('@octo/Image', Image);
     modelSerializationService.registerClass('@octo/Region', Region);
@@ -41,7 +26,6 @@ describe('Model Serialization Service UT', () => {
     modelSerializationService.registerClass('@octo/Subnet', Subnet);
     modelSerializationService.registerClass('@octo/TestAnchor', TestAnchor);
     modelSerializationService.registerClass('@octo/TestOverlay', TestOverlay);
-    container.registerValue<ModelSerializationService>(ModelSerializationService, modelSerializationService);
   });
 
   afterEach(async () => {

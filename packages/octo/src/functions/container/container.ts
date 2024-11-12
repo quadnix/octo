@@ -178,10 +178,21 @@ export class Container {
    * `Container.unRegisterFactory()` will unregister all factories of a class.
    *
    * @param type The type or name of the class for which all factory is unregistered.
+   * @param options
    */
-  unRegisterFactory<T>(type: Constructable<T> | string): void {
+  unRegisterFactory<T>(type: Constructable<T> | string, options?: { metadata?: { [key: string]: string } }): void {
     const name = typeof type === 'string' ? type : type.name;
-    delete this.factories[name];
+
+    if (!options) {
+      delete this.factories[name];
+      return;
+    }
+
+    const metadata = options?.metadata || {};
+    const index = this.factories[name]?.findIndex((f) => DiffUtility.isObjectDeepEquals(f.metadata, metadata));
+    if (index > -1) {
+      this.factories[name].splice(index, 1);
+    }
   }
 
   async waitToResolveAllFactories(): Promise<void> {

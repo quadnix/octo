@@ -8,18 +8,12 @@ import {
   TestContainer,
   type UnknownModel,
 } from '../../src/index.js';
-import { OverlayDataRepository } from '../../src/overlays/overlay-data.repository.js';
 import { TestAnchor, TestModelWithoutUnsynth } from '../helpers/test-classes.js';
 import { create, createTestOverlays } from '../helpers/test-models.js';
 
 describe('Model E2E Test', () => {
   beforeEach(async () => {
-    await TestContainer.create(
-      {
-        mocks: [{ type: OverlayDataRepository, value: new OverlayDataRepository([]) }],
-      },
-      { factoryTimeoutInMs: 500 },
-    );
+    await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
   describe('common functions', () => {

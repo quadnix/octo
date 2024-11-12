@@ -5,7 +5,6 @@ import { promisify } from 'util';
 import { create, createTestResources } from '../../../test/helpers/test-models.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
-import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { ModelSerializationService } from '../serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
 import { LocalStateProvider } from './local.state-provider.js';
@@ -19,18 +18,7 @@ describe('LocalStateProvider UT', () => {
   let filePath: string;
 
   beforeEach(async () => {
-    const resourceDataRepository = new ResourceDataRepository([], [], []);
-
-    container = await TestContainer.create(
-      {
-        mocks: [
-          { type: ModelSerializationService, value: new ModelSerializationService() },
-          { type: ResourceDataRepository, value: resourceDataRepository },
-          { type: ResourceSerializationService, value: new ResourceSerializationService(resourceDataRepository) },
-        ],
-      },
-      { factoryTimeoutInMs: 500 },
-    );
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
   afterEach(async () => {

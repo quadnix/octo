@@ -10,17 +10,7 @@ describe('Subnet UT', () => {
   let container: Container;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
-      {
-        mocks: [
-          {
-            type: ValidationService,
-            value: ValidationService.getInstance(),
-          },
-        ],
-      },
-      { factoryTimeoutInMs: 500 },
-    );
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
   afterEach(async () => {

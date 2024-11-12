@@ -1,40 +1,35 @@
-import type { Constructable } from '../app.type.js';
+import type { Constructable, ModuleInputs, UnknownModule } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
 import type { CaptureService } from '../services/capture/capture.service.js';
-import type { InputService } from '../services/input/input.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { ModuleContainer } from './module.container.js';
-import type { IModule } from './module.interface.js';
 
 export class TestModuleContainer {
   private readonly captures: CaptureService['captures'] = {};
 
-  private readonly inputs: InputService['inputs'] = {};
-
   readonly octo: Octo;
 
-  constructor({
-    inputs = {},
-    captures = {},
-  }: { captures?: TestModuleContainer['captures']; inputs?: TestModuleContainer['inputs'] } = {}) {
+  constructor({ captures = {} }: { captures?: TestModuleContainer['captures'] } = {}) {
     this.captures = captures;
-    this.inputs = inputs;
 
     this.octo = new Octo();
   }
 
-  async commit(app: App): Promise<{
+  async commit(
+    app: App,
+    { enableResourceCapture = false } = {},
+  ): Promise<{
     modelDiffs: DiffMetadata[][];
     modelTransaction: DiffMetadata[][];
     resourceDiffs: DiffMetadata[][];
     resourceTransaction: DiffMetadata[][];
   }> {
     const generator = this.octo.beginTransaction(app, {
-      enableResourceCapture: true,
+      enableResourceCapture,
       yieldModelDiffs: true,
       yieldModelTransaction: true,
       yieldResourceDiffs: true,
@@ -65,15 +60,15 @@ export class TestModuleContainer {
     for (const [key, value] of Object.entries(this.captures)) {
       this.octo.registerCapture(key, value.response);
     }
-
-    this.octo.registerInputs(this.inputs);
   }
 
-  async loadModules(
+  async loadModules<M>(
     modules: {
       hidden?: boolean;
+      inputs: ModuleInputs<M>;
+      moduleId: string;
       properties?: { [key: string]: unknown };
-      type: Constructable<IModule<unknown>>;
+      type: Constructable<UnknownModule>;
     }[],
   ): Promise<void> {
     const moduleContainer = await Container.getInstance().get(ModuleContainer);
@@ -89,7 +84,7 @@ export class TestModuleContainer {
       if (moduleOverrides.hidden === true) {
         moduleContainer.unload(moduleMetadata.module);
       } else {
-        moduleContainer.load(moduleMetadata.module, {} as never);
+        moduleContainer.load(moduleMetadata.module, moduleOverrides.moduleId, moduleOverrides.inputs);
       }
       // Override module properties.
       for (const [key, value] of Object.entries(moduleOverrides.properties || {})) {

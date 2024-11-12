@@ -1,25 +1,10 @@
 import type { SharedTestResource } from '../../test/helpers/test-classes.js';
 import { createTestResources } from '../../test/helpers/test-models.js';
 import { TestContainer } from '../functions/container/test-container.js';
-import { ResourceDataRepository } from './resource-data.repository.js';
 
 describe('SharedResource UT', () => {
   beforeEach(async () => {
-    const resourceDataRepository = new ResourceDataRepository([], [], []);
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            type: ResourceDataRepository,
-            value: resourceDataRepository,
-          },
-        ],
-      },
-      {
-        factoryTimeoutInMs: 500,
-      },
-    );
+    await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
   afterEach(async () => {

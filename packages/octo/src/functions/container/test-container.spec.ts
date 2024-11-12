@@ -40,6 +40,8 @@ describe('TestContainer UT', () => {
   });
 
   it('should timeout waiting for factories that are not setup with TestContainer', async () => {
+    container.unRegisterFactory(ResourceSerializationService);
+
     await expect(async () => {
       await container.get(ResourceSerializationService);
     }).rejects.toThrowErrorMatchingInlineSnapshot(

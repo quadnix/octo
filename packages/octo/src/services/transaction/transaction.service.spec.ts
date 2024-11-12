@@ -8,9 +8,7 @@ import { Diff, DiffAction } from '../../functions/diff/diff.js';
 import { type IModelAction } from '../../models/model-action.interface.js';
 import { App } from '../../models/app/app.model.js';
 import { Region } from '../../models/region/region.model.js';
-import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
 import { type IResourceAction } from '../../resources/resource-action.interface.js';
-import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
 import { CaptureService } from '../capture/capture.service.js';
 import { InputService } from '../input/input.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
@@ -22,41 +20,9 @@ describe('TransactionService UT', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    // In these tests, we commit models, which resets the OverlayDataRepository.
-    // We cannot use TestContainer to mock OverlayDataRepositoryFactory,
-    // or else commit of models won't reset anything.
-    container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
-    const overlayDataRepository = await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
-      OverlayDataRepository,
-      {
-        args: [true],
-      },
-    );
-
-    // In these tests, we commit resources, which resets the ResourceDataRepository.
-    // We cannot use TestContainer to mock ResourceDataRepositoryFactory,
-    // or else commit of resources won't reset anything.
-    container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
-    const resourceDataRepository = await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
-      ResourceDataRepository,
-      { args: [true, [], [], []] },
-    );
-
-    const inputService = new InputService(overlayDataRepository, resourceDataRepository);
-    container.registerValue(InputService, inputService);
-
-    const captureService = new CaptureService();
-    container.registerValue(CaptureService, captureService);
-
-    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
+    const resourceSerializationService = await container.get(ResourceSerializationService);
     resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
     resourceSerializationService.registerClass('@octo/TestResource', TestResource);
-    container.registerValue<ResourceSerializationService>(ResourceSerializationService, resourceSerializationService);
-
-    container.registerValue(
-      TransactionService,
-      new TransactionService(captureService, inputService, overlayDataRepository, resourceDataRepository),
-    );
   });
 
   afterEach(async () => {
@@ -72,7 +38,7 @@ describe('TransactionService UT', () => {
       handle: jest.fn() as jest.Mocked<any>,
     };
 
-    let applyModels;
+    let applyModels: TransactionService['applyModels'];
     beforeEach(async () => {
       const service = await container.get(TransactionService);
       applyModels = service['applyModels'];
@@ -312,7 +278,7 @@ describe('TransactionService UT', () => {
       mock: jest.fn() as jest.Mocked<any>,
     };
 
-    let applyResources;
+    let applyResources: TransactionService['applyResources'];
     beforeEach(async () => {
       const service = await container.get(TransactionService);
       applyResources = service['applyResources'];

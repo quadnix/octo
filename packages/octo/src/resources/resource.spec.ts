@@ -4,26 +4,11 @@ import { createTestResources } from '../../test/helpers/test-models.js';
 import type { UnknownResource } from '../app.type.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
-import { ResourceDataRepository } from './resource-data.repository.js';
 import { AResource } from './resource.abstract.js';
 
 describe('Resource UT', () => {
   beforeEach(async () => {
-    const resourceDataRepository = new ResourceDataRepository([], [], []);
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            type: ResourceDataRepository,
-            value: resourceDataRepository,
-          },
-        ],
-      },
-      {
-        factoryTimeoutInMs: 500,
-      },
-    );
+    await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
   afterEach(async () => {

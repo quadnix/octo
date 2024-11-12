@@ -1,4 +1,14 @@
 import type { Constructable } from '../../app.type.js';
+import { ModuleContainer } from '../../modules/module.container.js';
+import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
+import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
+import { CaptureService } from '../../services/capture/capture.service.js';
+import { EventService } from '../../services/event/event.service.js';
+import { InputService } from '../../services/input/input.service.js';
+import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
+import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
+import { TransactionService } from '../../services/transaction/transaction.service.js';
+import { ValidationService } from '../../services/validation/validation.service.js';
 import { Container } from './container.js';
 
 type FactoryMock<T> = {
@@ -27,6 +37,51 @@ type TestContainerOptions = { factoryTimeoutInMs?: number };
  * Once tests are done executing, the `afterAll()` block cleans up the Container.
  */
 export class TestContainer {
+  private static async bootstrap(container: Container): Promise<void> {
+    container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
+    const overlayDataRepository = await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
+      OverlayDataRepository,
+      {
+        args: [true],
+      },
+    );
+
+    container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
+    const resourceDataRepository = await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
+      ResourceDataRepository,
+      { args: [true, [], [], []] },
+    );
+
+    const eventService = EventService.getInstance();
+    container.registerValue(EventService, eventService);
+
+    const captureService = new CaptureService();
+    container.registerValue(CaptureService, captureService);
+
+    const inputService = new InputService(overlayDataRepository, resourceDataRepository);
+    container.registerValue(InputService, inputService);
+
+    const modelSerializationService = new ModelSerializationService();
+    container.registerValue(ModelSerializationService, modelSerializationService);
+
+    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
+    container.registerValue(ResourceSerializationService, resourceSerializationService);
+
+    const transactionService = new TransactionService(
+      captureService,
+      inputService,
+      overlayDataRepository,
+      resourceDataRepository,
+    );
+    container.registerValue(TransactionService, transactionService);
+
+    const validationService = ValidationService.getInstance();
+    container.registerValue(ValidationService, validationService);
+
+    const moduleContainer = new ModuleContainer(inputService);
+    container.registerValue(ModuleContainer, moduleContainer);
+  }
+
   /**
    * The `TestContainer.create()` method allows you to mock factories.
    *
@@ -52,12 +107,14 @@ export class TestContainer {
    */
   static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<Container> {
     const container = Container.getInstance(true);
+    await this.bootstrap(container);
 
     if (options?.factoryTimeoutInMs) {
       container.setFactoryTimeout(options.factoryTimeoutInMs);
     }
 
     for (const mock of subjects.mocks || []) {
+      container.unRegisterFactory(mock.type, { metadata: mock.metadata });
       container.registerValue(mock.type, mock.value, { metadata: mock.metadata });
     }
 

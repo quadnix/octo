@@ -9,19 +9,7 @@ describe('OverlayDataRepository UT', () => {
   let container: Container;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
-      {
-        mocks: [
-          {
-            type: OverlayDataRepository,
-            value: new OverlayDataRepository([]),
-          },
-        ],
-      },
-      {
-        factoryTimeoutInMs: 500,
-      },
-    );
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
   afterEach(async () => {

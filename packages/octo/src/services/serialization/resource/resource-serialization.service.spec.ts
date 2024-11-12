@@ -3,7 +3,7 @@ import { commitResources, createTestResources } from '../../../../test/helpers/t
 import { type ResourceSerializedOutput } from '../../../app.type.js';
 import type { Container } from '../../../functions/container/container.js';
 import { TestContainer } from '../../../functions/container/test-container.js';
-import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../../resources/resource-data.repository.js';
+import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
 import { type AResource } from '../../../resources/resource.abstract.js';
 import { ResourceSerializationService } from './resource-serialization.service.js';
 
@@ -11,28 +11,11 @@ describe('Resource Serialization Service UT', () => {
   let container: Container;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
-      {
-        mocks: [],
-      },
-      {
-        factoryTimeoutInMs: 500,
-      },
-    );
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    // In these tests, we commit resources, which resets the ResourceDataRepository.
-    // We cannot use TestContainer to mock ResourceDataRepositoryFactory,
-    // or else commit of resources won't reset anything.
-    container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
-    const resourceDataRepository = await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
-      ResourceDataRepository,
-      { args: [true, [], [], []] },
-    );
-
-    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
+    const resourceSerializationService = await container.get(ResourceSerializationService);
     resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
     resourceSerializationService.registerClass('@octo/TestResource', TestResource);
-    container.registerValue<ResourceSerializationService>(ResourceSerializationService, resourceSerializationService);
   });
 
   afterEach(async () => {

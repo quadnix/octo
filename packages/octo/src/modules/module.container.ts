@@ -76,6 +76,11 @@ export class ModuleContainer {
 
     m.hidden = false;
 
+    if (m.instances.includes(moduleId)) {
+      throw new ModuleError('Module already loaded!', moduleName);
+    }
+    m.instances.push(moduleId);
+
     for (const [key, value] of Object.entries(inputs)) {
       this.inputService.registerInput(moduleId, key, JSON.parse(JSON.stringify(value)));
     }

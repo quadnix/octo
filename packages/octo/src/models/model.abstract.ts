@@ -19,6 +19,10 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
   }
 
   deriveDependencyField(): string | undefined {
+    if (this.getDependencies().length === 0 && (this.constructor as typeof ANode).NODE_NAME === 'app') {
+      return 'name';
+    }
+
     return this.getDependencies()
       .find((d) => d.getRelationship() !== undefined)
       ?.getRelationship()!.onField;
