@@ -62,24 +62,29 @@ export class TestModuleContainer {
     }
   }
 
-  async loadModules<M>(
+  async orderModules(modules: (Constructable<UnknownModule> | string)[]): Promise<void> {
+    const moduleContainer = await Container.getInstance().get(ModuleContainer);
+    moduleContainer.order(modules);
+  }
+
+  async loadModule<M extends UnknownModule>(
     modules: {
       hidden?: boolean;
       inputs: ModuleInputs<M>;
       moduleId: string;
       properties?: { [key: string]: unknown };
-      type: Constructable<UnknownModule>;
+      type: Constructable<M>;
     }[],
   ): Promise<void> {
     const moduleContainer = await Container.getInstance().get(ModuleContainer);
 
     for (const moduleOverrides of modules) {
-      const moduleMetadataIndex = moduleContainer.getModuleMetadataIndex(moduleOverrides.type);
+      const moduleMetadataIndex = moduleContainer.getMetadataIndex(moduleOverrides.type);
       if (moduleMetadataIndex === -1) {
         moduleContainer.register(moduleOverrides.type, moduleOverrides.properties || ({} as any));
       }
 
-      const moduleMetadata = moduleContainer.getModuleMetadata(moduleOverrides.type)!;
+      const moduleMetadata = moduleContainer.getMetadata(moduleOverrides.type)!;
       // Override module hidden metadata.
       if (moduleOverrides.hidden === true) {
         moduleContainer.unload(moduleMetadata.module);
@@ -91,12 +96,5 @@ export class TestModuleContainer {
         moduleMetadata.properties[key] = value;
       }
     }
-
-    await this.octo.compose();
-  }
-
-  async reset(): Promise<void> {
-    const moduleContainer = await Container.getInstance().get(ModuleContainer);
-    moduleContainer.reset();
   }
 }

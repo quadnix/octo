@@ -13,14 +13,17 @@ type ModuleOptions = {
 };
 
 export class ModuleContainer {
-  private readonly modules: {
+  private modules: {
     hidden: boolean;
     instances: string[];
     module: Constructable<UnknownModule>;
     properties: ModuleOptions;
   }[] = [];
 
-  constructor(private readonly inputService: InputService) {}
+  constructor(
+    private readonly eventService: EventService,
+    private readonly inputService: InputService,
+  ) {}
 
   async apply(): Promise<void> {
     for (const moduleMetadata of this.modules) {
@@ -51,16 +54,16 @@ export class ModuleContainer {
         }
       }
 
-      EventService.getInstance().emit(new ModuleEvent(module.name));
+      this.eventService.emit(new ModuleEvent(module.name));
     }
   }
 
-  getModuleMetadata(module: Constructable<UnknownModule> | string): ModuleContainer['modules'][0] | undefined {
-    const index = this.getModuleMetadataIndex(module);
+  getMetadata(module: Constructable<UnknownModule> | string): ModuleContainer['modules'][0] | undefined {
+    const index = this.getMetadataIndex(module);
     return index === -1 ? undefined : this.modules[index];
   }
 
-  getModuleMetadataIndex(module: Constructable<UnknownModule> | string): number {
+  getMetadataIndex(module: Constructable<UnknownModule> | string): number {
     const moduleName =
       typeof module === 'string' ? module : `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;
     return this.modules.findIndex((m) => `${m.properties.packageName}/${m.module.name}` === moduleName);
@@ -69,7 +72,7 @@ export class ModuleContainer {
   load<M extends UnknownModule>(module: Constructable<M> | string, moduleId: string, inputs: ModuleInputs<M>): void {
     const moduleName =
       typeof module === 'string' ? module : `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;
-    const m = this.getModuleMetadata(module);
+    const m = this.getMetadata(module);
     if (!m) {
       throw new ModuleError(`Module "${moduleName}" not yet registered!`, moduleName);
     }
@@ -86,6 +89,20 @@ export class ModuleContainer {
     }
   }
 
+  order(modules: (Constructable<UnknownModule> | string)[]): void {
+    this.modules.sort((a, b) => {
+      const aIndex = modules.findIndex((m) => {
+        const moduleName = typeof m === 'string' ? m : `${(m as unknown as typeof AModule).MODULE_PACKAGE}/${m.name}`;
+        return `${a.properties.packageName}/${a.module.name}` === moduleName;
+      });
+      const bIndex = modules.findIndex((m) => {
+        const moduleName = typeof m === 'string' ? m : `${(m as unknown as typeof AModule).MODULE_PACKAGE}/${m.name}`;
+        return `${b.properties.packageName}/${b.module.name}` === moduleName;
+      });
+      return aIndex - bIndex;
+    });
+  }
+
   register(module: Constructable<UnknownModule>, properties: ModuleOptions): void {
     const moduleName = `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;
     if (!this.modules.some((m) => `${m.properties.packageName}/${m.module.name}` === moduleName)) {
@@ -96,11 +113,12 @@ export class ModuleContainer {
   reset(): void {
     this.modules.map((m) => {
       m.hidden = true;
+      m.instances = [];
     });
   }
 
   unload(module: Constructable<UnknownModule>): void {
-    const m = this.getModuleMetadata(module);
+    const m = this.getMetadata(module);
     if (m) {
       m.hidden = true;
     }
@@ -111,11 +129,20 @@ export class ModuleContainer {
 export class ModuleContainerFactory {
   private static instance: ModuleContainer;
 
-  static async create(): Promise<ModuleContainer> {
+  static async create(forceNew: boolean = false): Promise<ModuleContainer> {
+    const [eventService, inputService] = await Promise.all([
+      Container.getInstance().get(EventService),
+      Container.getInstance().get(InputService),
+    ]);
+
     if (!this.instance) {
-      const inputService = await Container.getInstance().get(InputService);
-      this.instance = new ModuleContainer(inputService);
+      this.instance = new ModuleContainer(eventService, inputService);
     }
+
+    if (forceNew) {
+      this.instance.reset();
+    }
+
     return this.instance;
   }
 }

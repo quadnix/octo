@@ -3,7 +3,12 @@ import { SharedTestResource, TestResource } from '../../../test/helpers/test-cla
 import { commitResources, createTestResources } from '../../../test/helpers/test-models.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
+import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { type IResourceAction } from '../../resources/resource-action.interface.js';
+import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { CaptureService } from '../capture/capture.service.js';
+import { EventService } from '../event/event.service.js';
+import { InputService } from '../input/input.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
 import { TransactionService } from './transaction.service.js';
 
@@ -19,9 +24,27 @@ describe('Transaction Scenarios UT', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const resourceSerializationService = await container.get(ResourceSerializationService);
+    const captureService = await container.get(CaptureService);
+    const eventService = await container.get(EventService);
+    const inputService = await container.get(InputService);
+    const overlayDataRepository = await container.get(OverlayDataRepository);
+    const resourceDataRepository = await container.get(ResourceDataRepository);
+
+    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
     resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
     resourceSerializationService.registerClass('@octo/TestResource', TestResource);
+    container.unRegisterFactory(ResourceSerializationService);
+    container.registerValue(ResourceSerializationService, resourceSerializationService);
+
+    const transactionService = new TransactionService(
+      captureService,
+      eventService,
+      inputService,
+      overlayDataRepository,
+      resourceDataRepository,
+    );
+    container.unRegisterFactory(TransactionService);
+    container.registerValue(TransactionService, transactionService);
   });
 
   afterEach(async () => {

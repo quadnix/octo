@@ -4,7 +4,7 @@ import {
   PreCommitHookCallbackDoneEvent,
 } from '../../events/index.js';
 import type { Octo } from '../../main.js';
-import { EventService } from '../../services/event/event.service.js';
+import type { EventService } from '../../services/event/event.service.js';
 import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = { handle: Octo['commitTransaction'] };
@@ -16,7 +16,7 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
   private readonly postCommitHooks: PostHookSignature[] = [];
   private readonly preCommitHooks: PreHookSignature[] = [];
 
-  private constructor() {}
+  private constructor(private readonly eventService: EventService) {}
 
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { handle } of hooks.postHooks || []) {
@@ -28,9 +28,9 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
     }
   }
 
-  static getInstance(): CommitHook {
+  static getInstance(eventService: EventService): CommitHook {
     if (!this.instance) {
-      this.instance = new CommitHook();
+      this.instance = new CommitHook(eventService);
     }
     return this.instance;
   }
@@ -45,15 +45,15 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
     descriptor.value = async function (...args: Parameters<Octo['commitTransaction']>): Promise<void> {
       for (const { handle } of self.preCommitHooks) {
         await handle.apply(this, args);
-        EventService.getInstance().emit(new PreCommitHookCallbackDoneEvent());
+        self.eventService.emit(new PreCommitHookCallbackDoneEvent());
       }
 
       await originalMethod.apply(this, args);
-      EventService.getInstance().emit(new CommitHookCallbackDoneEvent());
+      self.eventService.emit(new CommitHookCallbackDoneEvent());
 
       for (const { handle } of self.postCommitHooks) {
         await handle.apply(this, args);
-        EventService.getInstance().emit(new PostCommitHookCallbackDoneEvent());
+        self.eventService.emit(new PostCommitHookCallbackDoneEvent());
       }
     };
   }

@@ -1,5 +1,5 @@
 import { strict as assert } from 'assert';
-import type { Constructable, ModuleInputs, TransactionOptions, UnknownModule } from './app.type.js';
+import type { Constructable, ModuleInputs, TransactionOptions, UnknownModel, UnknownModule } from './app.type.js';
 import { ValidationTransactionError } from './errors/index.js';
 import { Container } from './functions/container/container.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
@@ -8,11 +8,13 @@ import { CommitHook } from './functions/hook/commit.hook.js';
 import { ModelActionHook } from './functions/hook/model-action.hook.js';
 import { ResourceActionHook } from './functions/hook/resource-action.hook.js';
 import { App } from './models/app/app.model.js';
+import type { AModel } from './models/model.abstract.js';
 import { ModuleContainer } from './modules/module.container.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
-import { ResourceDataRepository } from './resources/resource-data.repository.js';
 import { AResource } from './resources/resource.abstract.js';
 import { CaptureService } from './services/capture/capture.service.js';
+import { EventService } from './services/event/event.service.js';
+import { InputService } from './services/input/input.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
 import {
@@ -29,9 +31,10 @@ export class Octo {
   private readonly oldResourceStateFileName: string = 'resources-old.json';
 
   private captureService: CaptureService;
+  private eventService: EventService;
+  private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
   private moduleContainer: ModuleContainer;
-  private resourceDataRepository: ResourceDataRepository;
   private resourceSerializationService: ResourceSerializationService;
   private stateManagementService: StateManagementService;
   private transactionService: TransactionService;
@@ -114,6 +117,10 @@ export class Octo {
     }
   }
 
+  getModuleOutput<T extends UnknownModel>(moduleId: string, model: Constructable<T>): T {
+    return this.inputService.resolve(`${moduleId}.model.${(model as unknown as typeof AModel).NODE_NAME}`) as T;
+  }
+
   async initialize(
     stateProvider: IStateProvider,
     initializeInContainer: {
@@ -128,21 +135,23 @@ export class Octo {
 
     [
       this.captureService,
+      this.eventService,
+      this.inputService,
       this.modelSerializationService,
       this.moduleContainer,
-      this.resourceDataRepository,
       this.resourceSerializationService,
       this.stateManagementService,
       this.transactionService,
       this.validationService,
     ] = await Promise.all([
       container.get(CaptureService),
+      container.get(EventService),
+      container.get(InputService),
       container.get(ModelSerializationService),
       container.get(ModuleContainer),
-      container.get(ResourceDataRepository),
       container.get(ResourceSerializationService),
       container.get<StateManagementService, typeof StateManagementServiceFactory>(StateManagementService, {
-        args: [true, stateProvider],
+        args: [stateProvider],
       }),
       container.get(TransactionService),
       container.get(ValidationService),
@@ -185,9 +194,12 @@ export class Octo {
     preModelActionHooks?: Parameters<ModelActionHook['collectHooks']>[0]['preHooks'];
     preResourceActionHooks?: Parameters<ResourceActionHook['collectHooks']>[0]['preHooks'];
   } = {}): void {
-    CommitHook.getInstance().collectHooks({ postHooks: postCommitHooks, preHooks: preCommitHooks });
-    ModelActionHook.getInstance().collectHooks({ postHooks: postModelActionHooks, preHooks: preModelActionHooks });
-    ResourceActionHook.getInstance().collectHooks({
+    CommitHook.getInstance(this.eventService).collectHooks({ postHooks: postCommitHooks, preHooks: preCommitHooks });
+    ModelActionHook.getInstance(this.eventService).collectHooks({
+      postHooks: postModelActionHooks,
+      preHooks: preModelActionHooks,
+    });
+    ResourceActionHook.getInstance(this.eventService).collectHooks({
       postHooks: postResourceActionHooks,
       preHooks: preResourceActionHooks,
     });

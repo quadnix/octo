@@ -13,8 +13,6 @@ export class EventService {
     [key: string]: { eventClass: Constructable<Event<unknown>>; events: Event<unknown>[] };
   } = {};
 
-  private static instance: EventService;
-
   private readonly listeners: {
     [key: string]: {
       eventClass: Constructable<Event<unknown>>;
@@ -62,13 +60,6 @@ export class EventService {
     }
   }
 
-  static getInstance(): EventService {
-    if (!this.instance) {
-      this.instance = new EventService();
-    }
-    return this.instance;
-  }
-
   registerListeners(eventClass: Constructable<Event<unknown>>, target: any, descriptor: PropertyDescriptor): void {
     if (!this.listeners[eventClass.name]) {
       this.listeners[eventClass.name] = { eventClass, eventListeners: [] };
@@ -99,7 +90,13 @@ export class EventService {
 
 @Factory<EventService>(EventService)
 export class EventServiceFactory {
+  private static instance: EventService;
+
   static async create(): Promise<EventService> {
-    return EventService.getInstance();
+    if (!this.instance) {
+      this.instance = new EventService();
+    }
+
+    return this.instance;
   }
 }

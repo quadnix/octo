@@ -12,10 +12,14 @@ describe('ResourceDataRepository UT', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const resourceSerializationService = await container.get(ResourceSerializationService);
+    const resourceDataRepository = await container.get(ResourceDataRepository);
+
+    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
     resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
     resourceSerializationService.registerClass('@octo/TestResource', TestResource);
     resourceSerializationService.registerClass('@octo/TestResourceWithDiffOverride', TestResourceWithDiffOverride);
+    container.unRegisterFactory(ResourceSerializationService);
+    container.registerValue(ResourceSerializationService, resourceSerializationService);
   });
 
   afterEach(async () => {

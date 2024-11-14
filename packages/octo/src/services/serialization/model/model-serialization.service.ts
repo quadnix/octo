@@ -207,14 +207,11 @@ export class ModelSerializationService {
 export class ModelSerializationServiceFactory {
   private static instance: ModelSerializationService;
 
-  static async create(forceNew = false): Promise<ModelSerializationService> {
+  static async create(): Promise<ModelSerializationService> {
     if (!this.instance) {
       this.instance = new ModelSerializationService();
     }
-    if (forceNew) {
-      const newInstance = new ModelSerializationService();
-      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
-    }
+
     return this.instance;
   }
 }

@@ -3,11 +3,9 @@ import { AResource } from '../../resources/resource.abstract.js';
 import { IResource } from '../../resources/resource.interface.js';
 
 export class CaptureService {
-  private readonly captures: {
+  private captures: {
     [key: string]: { response: Partial<IResource['response']> };
   } = {};
-
-  constructor() {}
 
   getCapture<T extends AResource<T>>(context: string): { response: Partial<T['response']> } | undefined {
     return this.captures[context];
@@ -22,10 +20,15 @@ export class CaptureService {
 export class CaptureServiceFactory {
   private static instance: CaptureService;
 
-  static async create(): Promise<CaptureService> {
+  static async create(forceNew: boolean = false): Promise<CaptureService> {
     if (!this.instance) {
       this.instance = new CaptureService();
     }
+
+    if (forceNew) {
+      this.instance['captures'] = {};
+    }
+
     return this.instance;
   }
 }

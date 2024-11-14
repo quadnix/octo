@@ -245,10 +245,16 @@ export class ResourceDataRepositoryFactory {
     if (!this.instance) {
       this.instance = new ResourceDataRepository(actualResources, oldResources, newResources);
     }
+
     if (forceNew) {
-      const newInstance = new ResourceDataRepository(actualResources, oldResources, newResources);
-      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
+      const newResourceDataRepository = new ResourceDataRepository(actualResources, oldResources, newResources);
+
+      this.instance['actualResources'] = actualResources;
+      this.instance['dirtyResources'] = newResourceDataRepository['dirtyResources'];
+      this.instance['newResources'] = newResources;
+      this.instance['oldResources'] = oldResources;
     }
+
     return this.instance;
   }
 }

@@ -6,13 +6,13 @@ import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 
 export class InputService {
-  private readonly inputs: { [key: string]: unknown } = {};
+  private inputs: { [key: string]: unknown } = {};
 
-  private readonly models: { [key: string]: UnknownModel } = {};
+  private models: { [key: string]: UnknownModel } = {};
 
-  private readonly overlays: { [key: string]: string } = {};
+  private overlays: { [key: string]: string } = {};
 
-  private readonly resources: { [key: string]: string } = {};
+  private resources: { [key: string]: string } = {};
 
   constructor(
     private readonly overlayDataRepository: OverlayDataRepository,
@@ -163,11 +163,20 @@ export class InputServiceFactory {
   private static instance: InputService;
 
   static async create(forceNew: boolean = false): Promise<InputService> {
-    if (!this.instance || forceNew) {
-      const overlayDataRepository = await Container.getInstance().get(OverlayDataRepository);
-      const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
+    const overlayDataRepository = await Container.getInstance().get(OverlayDataRepository);
+    const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
+
+    if (!this.instance) {
       this.instance = new InputService(overlayDataRepository, resourceDataRepository);
     }
+
+    if (forceNew) {
+      this.instance['inputs'] = {};
+      this.instance['models'] = {};
+      this.instance['overlays'] = {};
+      this.instance['resources'] = {};
+    }
+
     return this.instance;
   }
 }

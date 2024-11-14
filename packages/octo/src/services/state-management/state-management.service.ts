@@ -90,15 +90,23 @@ export class StateManagementService {
 export class StateManagementServiceFactory {
   private static instance: StateManagementService;
 
-  static async create(forceNew = false, stateProvider: IStateProvider): Promise<StateManagementService> {
-    if (!this.instance || forceNew) {
+  static async create(stateProvider?: IStateProvider): Promise<StateManagementService> {
+    if (!this.instance) {
       if (!stateProvider) {
         throw new TransactionError(
           `Failed to create instance of "${StateManagementService.name}" due to insufficient arguments!`,
         );
+      } else {
+        this.instance = new StateManagementService(stateProvider);
+        return this.instance;
       }
-      this.instance = new StateManagementService(stateProvider);
+    } else {
+      if (!stateProvider) {
+        return this.instance;
+      } else {
+        this.instance = new StateManagementService(stateProvider);
+        return this.instance;
+      }
     }
-    return this.instance;
   }
 }

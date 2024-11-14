@@ -200,15 +200,13 @@ export class ResourceSerializationService {
 export class ResourceSerializationServiceFactory {
   private static instance: ResourceSerializationService;
 
-  static async create(forceNew = false): Promise<ResourceSerializationService> {
+  static async create(): Promise<ResourceSerializationService> {
     const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
+
     if (!this.instance) {
       this.instance = new ResourceSerializationService(resourceDataRepository);
     }
-    if (forceNew) {
-      const newInstance = new ResourceSerializationService(resourceDataRepository);
-      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
-    }
+
     return this.instance;
   }
 }

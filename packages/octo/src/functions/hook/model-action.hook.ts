@@ -5,7 +5,7 @@ import {
   PreModelActionHookCallbackDoneEvent,
 } from '../../events/index.js';
 import type { IModelAction } from '../../models/model-action.interface.js';
-import { EventService } from '../../services/event/event.service.js';
+import type { EventService } from '../../services/event/event.service.js';
 import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = {
@@ -27,7 +27,7 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     [key: string]: Omit<PreHookSignature, 'action'>[];
   } = {};
 
-  private constructor() {}
+  private constructor(private readonly eventService: EventService) {}
 
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { action, handle } of hooks.postHooks || []) {
@@ -45,9 +45,9 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     }
   }
 
-  static getInstance(): ModelActionHook {
+  static getInstance(eventService: EventService): ModelActionHook {
     if (!this.instance) {
-      this.instance = new ModelActionHook();
+      this.instance = new ModelActionHook(eventService);
     }
     return this.instance;
   }
@@ -64,15 +64,15 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
 
       for (const { handle } of self.preModelActionHooks[modelAction.constructor.name] || []) {
         output = await handle.apply(this, [args[0], args[1], output]);
-        EventService.getInstance().emit(new PreModelActionHookCallbackDoneEvent());
+        self.eventService.emit(new PreModelActionHookCallbackDoneEvent());
       }
 
       output = await originalHandleMethod.apply(this, [args[0], args[1], output]);
-      EventService.getInstance().emit(new ModelActionHookCallbackDoneEvent());
+      self.eventService.emit(new ModelActionHookCallbackDoneEvent());
 
       for (const { handle } of self.postModelActionHooks[modelAction.constructor.name] || []) {
         output = await handle.apply(this, [args[0], args[1], output]);
-        EventService.getInstance().emit(new PostModelActionHookCallbackDoneEvent());
+        self.eventService.emit(new PostModelActionHookCallbackDoneEvent());
       }
 
       return output;

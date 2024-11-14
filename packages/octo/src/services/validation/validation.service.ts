@@ -3,8 +3,6 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { ValidationUtility } from '../../utilities/validation/validation.utility.js';
 
 export class ValidationService {
-  private static instance: ValidationService;
-
   private readonly subjects: {
     constraint: any;
     destruct?: (value: any) => any[];
@@ -23,13 +21,6 @@ export class ValidationService {
     destruct?: (value: any) => any[],
   ): void {
     this.subjects.push({ constraint, destruct, propertyKey, target, type, value });
-  }
-
-  static getInstance(): ValidationService {
-    if (!this.instance) {
-      this.instance = new ValidationService();
-    }
-    return this.instance;
   }
 
   removeSubject<T>(target: Constructable<T>, propertyKey: string): void {
@@ -77,7 +68,13 @@ export class ValidationService {
 
 @Factory<ValidationService>(ValidationService)
 export class ValidationServiceFactory {
+  private static instance: ValidationService;
+
   static async create(): Promise<ValidationService> {
-    return ValidationService.getInstance();
+    if (!this.instance) {
+      this.instance = new ValidationService();
+    }
+
+    return this.instance;
   }
 }

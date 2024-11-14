@@ -18,7 +18,7 @@ describe('Model Serialization Service UT', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const modelSerializationService = await container.get(ModelSerializationService);
+    const modelSerializationService = new ModelSerializationService();
     modelSerializationService.registerClass('@octo/App', App);
     modelSerializationService.registerClass('@octo/Image', Image);
     modelSerializationService.registerClass('@octo/Region', Region);
@@ -26,6 +26,8 @@ describe('Model Serialization Service UT', () => {
     modelSerializationService.registerClass('@octo/Subnet', Subnet);
     modelSerializationService.registerClass('@octo/TestAnchor', TestAnchor);
     modelSerializationService.registerClass('@octo/TestOverlay', TestOverlay);
+    container.unRegisterFactory(ModelSerializationService);
+    container.registerValue(ModelSerializationService, modelSerializationService);
   });
 
   afterEach(async () => {

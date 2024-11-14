@@ -37,13 +37,13 @@ import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 
 export class TransactionService {
-  private readonly modelActions: { modelClass: Constructable<UnknownModel>; actions: IModelAction[] }[] = [];
-  private readonly overlayActions: { overlayClass: Constructable<UnknownOverlay>; actions: IModelAction[] }[] = [];
-  private readonly resourceActions: { resourceClass: Constructable<UnknownResource>; actions: IResourceAction[] }[] =
-    [];
+  private modelActions: { modelClass: Constructable<UnknownModel>; actions: IModelAction[] }[] = [];
+  private overlayActions: { overlayClass: Constructable<UnknownOverlay>; actions: IModelAction[] }[] = [];
+  private resourceActions: { resourceClass: Constructable<UnknownResource>; actions: IResourceAction[] }[] = [];
 
   constructor(
     private readonly captureService: CaptureService,
+    private readonly eventService: EventService,
     private readonly inputService: InputService,
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
@@ -122,7 +122,7 @@ export class TransactionService {
             d.updateOutputs(outputs);
           });
 
-          EventService.getInstance().emit(new ModelActionTransactionEvent(a.constructor.name));
+          this.eventService.emit(new ModelActionTransactionEvent(a.constructor.name));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -189,7 +189,7 @@ export class TransactionService {
             await actualResource.diffInverse(diffToProcess, deReferenceResource);
           }
 
-          EventService.getInstance().emit(new ResourceActionTransactionEvent(a.constructor.name));
+          this.eventService.emit(new ResourceActionTransactionEvent(a.constructor.name));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
@@ -316,7 +316,7 @@ export class TransactionService {
       this.setApplyOrder(diff, modelDiffs);
     }
 
-    EventService.getInstance().emit(new ModelDiffsTransactionEvent([modelDiffs]));
+    this.eventService.emit(new ModelDiffsTransactionEvent([modelDiffs]));
     if (yieldModelDiffs) {
       yield [modelDiffs];
     }
@@ -324,7 +324,7 @@ export class TransactionService {
     // Apply model diffs.
     const modelTransaction = await this.applyModels(modelDiffs);
 
-    EventService.getInstance().emit(new ModelTransactionTransactionEvent(modelTransaction));
+    this.eventService.emit(new ModelTransactionTransactionEvent(modelTransaction));
     if (yieldModelTransaction) {
       yield modelTransaction;
     }
@@ -402,7 +402,7 @@ export class TransactionService {
       this.setApplyOrder(diff, dirtyResourceDiffs);
     }
 
-    EventService.getInstance().emit(new ResourceDiffsTransactionEvent([[resourceDiffs], [dirtyResourceDiffs]]));
+    this.eventService.emit(new ResourceDiffsTransactionEvent([[resourceDiffs], [dirtyResourceDiffs]]));
     if (yieldResourceDiffs) {
       yield [resourceDiffs, dirtyResourceDiffs];
     }
@@ -416,9 +416,7 @@ export class TransactionService {
       enableResourceCapture,
     });
 
-    EventService.getInstance().emit(
-      new ResourceTransactionTransactionEvent([resourceTransaction, dirtyResourceTransaction]),
-    );
+    this.eventService.emit(new ResourceTransactionTransactionEvent([resourceTransaction, dirtyResourceTransaction]));
     if (yieldResourceTransaction) {
       yield [...resourceTransaction, ...dirtyResourceTransaction];
     }
@@ -476,32 +474,27 @@ export class TransactionService {
 export class TransactionServiceFactory {
   private static instance: TransactionService;
 
-  static async create(forceNew = false): Promise<TransactionService> {
+  static async create(): Promise<TransactionService> {
     const container = Container.getInstance();
+    const [captureService, eventService, inputService, overlayDataRepository, resourceDataRepository] =
+      await Promise.all([
+        container.get(CaptureService),
+        container.get(EventService),
+        container.get(InputService),
+        container.get(OverlayDataRepository),
+        container.get(ResourceDataRepository),
+      ]);
 
-    const [captureService, inputService, overlayDataRepository, resourceDataRepository] = await Promise.all([
-      container.get(CaptureService),
-      container.get(InputService),
-      container.get(OverlayDataRepository),
-      container.get(ResourceDataRepository),
-    ]);
     if (!this.instance) {
       this.instance = new TransactionService(
         captureService,
+        eventService,
         inputService,
         overlayDataRepository,
         resourceDataRepository,
       );
     }
-    if (forceNew) {
-      const newInstance = new TransactionService(
-        captureService,
-        inputService,
-        overlayDataRepository,
-        resourceDataRepository,
-      );
-      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
-    }
+
     return this.instance;
   }
 }

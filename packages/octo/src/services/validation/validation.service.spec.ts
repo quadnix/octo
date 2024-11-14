@@ -1,5 +1,7 @@
 import { ValidationType } from '../../app.type.js';
 import { Validate } from '../../decorators/validate.decorator.js';
+import { Container } from '../../functions/container/container.js';
+import { TestContainer } from '../../functions/container/test-container.js';
 import { ValidationService } from './validation.service.js';
 
 class ValidationTest {
@@ -20,8 +22,14 @@ class ValidationTest {
 }
 
 describe('ValidationService UT', () => {
-  it('should validate instance properties', () => {
-    const validationService = ValidationService.getInstance();
+  let container: Container;
+
+  beforeEach(async () => {
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+  });
+
+  it('should validate instance properties', async () => {
+    const validationService = await container.get(ValidationService);
     const validationTest = new ValidationTest();
 
     validationTest.property1 = 'a';
@@ -80,8 +88,8 @@ describe('ValidationService UT', () => {
     expect(result2.errors).toMatchInlineSnapshot(`[]`);
   });
 
-  it('should validate instance custom properties', () => {
-    const validationService = ValidationService.getInstance();
+  it('should validate instance custom properties', async () => {
+    const validationService = await container.get(ValidationService);
 
     validationService.addSubject(ValidationType.MIN_LENGTH, 2, ValidationTest, 'unknown', 'a');
     const result1 = validationService.validate();

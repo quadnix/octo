@@ -48,10 +48,11 @@ export class OverlayDataRepositoryFactory {
     if (!this.instance) {
       this.instance = new OverlayDataRepository(newOverlays);
     }
+
     if (forceNew) {
-      const newInstance = new OverlayDataRepository(newOverlays);
-      Object.keys(this.instance).forEach((key) => (this.instance[key] = newInstance[key]));
+      this.instance['newOverlays'] = newOverlays;
     }
+
     return this.instance;
   }
 }

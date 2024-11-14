@@ -1,14 +1,12 @@
 import type { Constructable } from '../../app.type.js';
-import { ModuleContainer } from '../../modules/module.container.js';
-import { OverlayDataRepository, OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
-import { ResourceDataRepository, ResourceDataRepositoryFactory } from '../../resources/resource-data.repository.js';
-import { CaptureService } from '../../services/capture/capture.service.js';
-import { EventService } from '../../services/event/event.service.js';
-import { InputService } from '../../services/input/input.service.js';
-import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
-import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
-import { TransactionService } from '../../services/transaction/transaction.service.js';
-import { ValidationService } from '../../services/validation/validation.service.js';
+import { ModuleContainer, type ModuleContainerFactory } from '../../modules/module.container.js';
+import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../../overlays/overlay-data.repository.js';
+import {
+  ResourceDataRepository,
+  type ResourceDataRepositoryFactory,
+} from '../../resources/resource-data.repository.js';
+import { CaptureService, type CaptureServiceFactory } from '../../services/capture/capture.service.js';
+import { InputService, type InputServiceFactory } from '../../services/input/input.service.js';
 import { Container } from './container.js';
 
 type FactoryMock<T> = {
@@ -37,49 +35,22 @@ type TestContainerOptions = { factoryTimeoutInMs?: number };
  * Once tests are done executing, the `afterAll()` block cleans up the Container.
  */
 export class TestContainer {
+  private static originalFactories: Container['factories'] = Container.getInstance()['factories'];
+
   private static async bootstrap(container: Container): Promise<void> {
-    container.registerFactory(OverlayDataRepository, OverlayDataRepositoryFactory);
-    const overlayDataRepository = await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
-      OverlayDataRepository,
-      {
-        args: [true],
-      },
-    );
+    await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
+      args: [true, []],
+    });
 
-    container.registerFactory(ResourceDataRepository, ResourceDataRepositoryFactory);
-    const resourceDataRepository = await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
-      ResourceDataRepository,
-      { args: [true, [], [], []] },
-    );
+    await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(ResourceDataRepository, {
+      args: [true, [], [], []],
+    });
 
-    const eventService = EventService.getInstance();
-    container.registerValue(EventService, eventService);
+    await container.get<CaptureService, typeof CaptureServiceFactory>(CaptureService, { args: [true] });
 
-    const captureService = new CaptureService();
-    container.registerValue(CaptureService, captureService);
+    await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
 
-    const inputService = new InputService(overlayDataRepository, resourceDataRepository);
-    container.registerValue(InputService, inputService);
-
-    const modelSerializationService = new ModelSerializationService();
-    container.registerValue(ModelSerializationService, modelSerializationService);
-
-    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    container.registerValue(ResourceSerializationService, resourceSerializationService);
-
-    const transactionService = new TransactionService(
-      captureService,
-      inputService,
-      overlayDataRepository,
-      resourceDataRepository,
-    );
-    container.registerValue(TransactionService, transactionService);
-
-    const validationService = ValidationService.getInstance();
-    container.registerValue(ValidationService, validationService);
-
-    const moduleContainer = new ModuleContainer(inputService);
-    container.registerValue(ModuleContainer, moduleContainer);
+    await container.get<ModuleContainer, typeof ModuleContainerFactory>(ModuleContainer, { args: [true] });
   }
 
   /**
@@ -107,6 +78,15 @@ export class TestContainer {
    */
   static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<Container> {
     const container = Container.getInstance(true);
+    for (const [type, factoryContainers] of Object.entries(this.originalFactories)) {
+      container['factories'][type] = [];
+      for (const factoryContainer of factoryContainers) {
+        container['factories'][type].push({
+          factory: factoryContainer.factory,
+          metadata: { ...factoryContainer.metadata },
+        });
+      }
+    }
     await this.bootstrap(container);
 
     if (options?.factoryTimeoutInMs) {
