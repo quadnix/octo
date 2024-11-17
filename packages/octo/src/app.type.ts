@@ -40,6 +40,7 @@ export type ModelSerializedOutput = {
 export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
 
 export type ModuleInputs<M> = M extends AModule<infer I, any> ? I : never;
+export type ModuleOutput<M> = M extends AModule<any, infer T> ? T : never;
 
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];

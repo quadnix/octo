@@ -46,7 +46,7 @@ export { type IModelAction } from './models/model-action.interface.js';
 
 export { AModule } from './modules/module.abstract.js';
 export { type IModule } from './modules/module.interface.js';
-export { TestModuleContainer } from './modules/test-module.container.js';
+export { TestModule, TestModuleContainer } from './modules/test-module.container.js';
 
 export { AAnchor } from './overlays/anchor.abstract.js';
 export { type IAnchor } from './overlays/anchor.interface.js';

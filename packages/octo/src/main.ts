@@ -1,5 +1,5 @@
 import { strict as assert } from 'assert';
-import type { Constructable, ModuleInputs, TransactionOptions, UnknownModel, UnknownModule } from './app.type.js';
+import type { Constructable, ModuleInputs, TransactionOptions, UnknownModule } from './app.type.js';
 import { ValidationTransactionError } from './errors/index.js';
 import { Container } from './functions/container/container.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
@@ -8,13 +8,11 @@ import { CommitHook } from './functions/hook/commit.hook.js';
 import { ModelActionHook } from './functions/hook/model-action.hook.js';
 import { ResourceActionHook } from './functions/hook/resource-action.hook.js';
 import { App } from './models/app/app.model.js';
-import type { AModel } from './models/model.abstract.js';
 import { ModuleContainer } from './modules/module.container.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
 import { AResource } from './resources/resource.abstract.js';
 import { CaptureService } from './services/capture/capture.service.js';
 import { EventService } from './services/event/event.service.js';
-import { InputService } from './services/input/input.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
 import {
@@ -32,7 +30,6 @@ export class Octo {
 
   private captureService: CaptureService;
   private eventService: EventService;
-  private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
   private moduleContainer: ModuleContainer;
   private resourceSerializationService: ResourceSerializationService;
@@ -108,17 +105,15 @@ export class Octo {
     await this.retrieveResourceState();
   }
 
-  async compose(): Promise<void> {
-    await this.moduleContainer.apply();
+  async compose(): Promise<{ [key: string]: unknown }> {
+    const moduleOutputs = await this.moduleContainer.apply();
 
     const result = this.validationService.validate();
     if (!result.pass) {
       throw new ValidationTransactionError('Validation error!', result);
     }
-  }
 
-  getModuleOutput<T extends UnknownModel>(moduleId: string, model: Constructable<T>): T {
-    return this.inputService.resolve(`${moduleId}.model.${(model as unknown as typeof AModel).NODE_NAME}`) as T;
+    return moduleOutputs;
   }
 
   async initialize(
@@ -136,7 +131,6 @@ export class Octo {
     [
       this.captureService,
       this.eventService,
-      this.inputService,
       this.modelSerializationService,
       this.moduleContainer,
       this.resourceSerializationService,
@@ -146,7 +140,6 @@ export class Octo {
     ] = await Promise.all([
       container.get(CaptureService),
       container.get(EventService),
-      container.get(InputService),
       container.get(ModelSerializationService),
       container.get(ModuleContainer),
       container.get(ResourceSerializationService),

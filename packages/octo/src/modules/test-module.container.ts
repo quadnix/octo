@@ -1,21 +1,27 @@
-import type { Constructable, ModuleInputs, UnknownModule } from '../app.type.js';
+import type { Constructable, ModuleInputs, ModuleOutput, UnknownModule } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
 import type { CaptureService } from '../services/capture/capture.service.js';
+import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { ModuleContainer } from './module.container.js';
 
+export type TestModule<M extends UnknownModule> = {
+  captures?: CaptureService['captures'];
+  hidden?: boolean;
+  inputs: ModuleInputs<M>;
+  moduleId: string;
+  properties?: { [key: string]: unknown };
+  type: Constructable<M>;
+};
+
 export class TestModuleContainer {
-  private readonly captures: CaptureService['captures'] = {};
+  private readonly octo: Octo;
 
-  readonly octo: Octo;
-
-  constructor({ captures = {} }: { captures?: TestModuleContainer['captures'] } = {}) {
-    this.captures = captures;
-
+  constructor() {
     this.octo = new Octo();
   }
 
@@ -43,6 +49,8 @@ export class TestModuleContainer {
     response.resourceTransaction = (await generator.next()).value;
     await generator.next();
 
+    await this.reset();
+
     return response;
   }
 
@@ -56,10 +64,6 @@ export class TestModuleContainer {
     } else {
       await this.octo.initialize(new TestStateProvider(), initializeInContainer, excludeInContainer);
     }
-
-    for (const [key, value] of Object.entries(this.captures)) {
-      this.octo.registerCapture(key, value.response);
-    }
   }
 
   async orderModules(modules: (Constructable<UnknownModule> | string)[]): Promise<void> {
@@ -67,34 +71,40 @@ export class TestModuleContainer {
     moduleContainer.order(modules);
   }
 
-  async loadModule<M extends UnknownModule>(
-    modules: {
-      hidden?: boolean;
-      inputs: ModuleInputs<M>;
-      moduleId: string;
-      properties?: { [key: string]: unknown };
-      type: Constructable<M>;
-    }[],
-  ): Promise<void> {
+  async runModule<M extends UnknownModule>(module: TestModule<M>): Promise<{ [key: string]: ModuleOutput<M> }> {
     const moduleContainer = await Container.getInstance().get(ModuleContainer);
 
-    for (const moduleOverrides of modules) {
-      const moduleMetadataIndex = moduleContainer.getMetadataIndex(moduleOverrides.type);
-      if (moduleMetadataIndex === -1) {
-        moduleContainer.register(moduleOverrides.type, moduleOverrides.properties || ({} as any));
-      }
-
-      const moduleMetadata = moduleContainer.getMetadata(moduleOverrides.type)!;
-      // Override module hidden metadata.
-      if (moduleOverrides.hidden === true) {
-        moduleContainer.unload(moduleMetadata.module);
-      } else {
-        moduleContainer.load(moduleMetadata.module, moduleOverrides.moduleId, moduleOverrides.inputs);
-      }
-      // Override module properties.
-      for (const [key, value] of Object.entries(moduleOverrides.properties || {})) {
-        moduleMetadata.properties[key] = value;
-      }
+    for (const [key, value] of Object.entries(module.captures || {})) {
+      this.octo.registerCapture(key, value.response);
     }
+
+    const moduleMetadataIndex = moduleContainer.getMetadataIndex(module.type);
+    if (moduleMetadataIndex === -1) {
+      moduleContainer.register(module.type, module.properties || ({} as any));
+    }
+
+    const moduleMetadata = moduleContainer.getMetadata(module.type)!;
+    // Override module hidden metadata.
+    if (module.hidden === true) {
+      moduleContainer.unload(moduleMetadata.module);
+    } else {
+      moduleContainer.load(moduleMetadata.module, module.moduleId, module.inputs);
+    }
+    // Override module properties.
+    for (const [key, value] of Object.entries(module.properties || {})) {
+      moduleMetadata.properties[key] = value;
+    }
+
+    // @ts-expect-error cannot cast without awaiting on statement.
+    return this.octo.compose();
+  }
+
+  private async reset(): Promise<void> {
+    const container = Container.getInstance();
+
+    await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
+
+    const moduleContainer = await container.get(ModuleContainer);
+    moduleContainer.reset();
   }
 }

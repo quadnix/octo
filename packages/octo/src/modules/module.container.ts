@@ -15,7 +15,7 @@ type ModuleOptions = {
 export class ModuleContainer {
   private modules: {
     hidden: boolean;
-    instances: string[];
+    instances: { applied: boolean; moduleId: string }[];
     module: Constructable<UnknownModule>;
     properties: ModuleOptions;
   }[] = [];
@@ -25,19 +25,25 @@ export class ModuleContainer {
     private readonly inputService: InputService,
   ) {}
 
-  async apply(): Promise<void> {
+  async apply(): Promise<{ [key: string]: unknown }> {
+    const result = {};
+
     for (const moduleMetadata of this.modules) {
       if (moduleMetadata.hidden) {
         continue;
       }
 
       const { instances, module, properties } = moduleMetadata;
-      for (const moduleId of instances) {
+      for (const i of instances) {
+        if (i.applied) {
+          continue;
+        }
+
         const instance = new module();
         const moduleInputs = instance.collectInputs();
 
         const resolvedModuleInputs = moduleInputs.reduce((accumulator, current) => {
-          const resolvedInput = this.inputService.resolve(`${moduleId}.input.${current}`);
+          const resolvedInput = this.inputService.resolve(`${i.moduleId}.input.${current}`);
           if (!resolvedInput) {
             const moduleName = `${properties.packageName}/${module.name}`;
             throw new ModuleError(`Module "${moduleName}" inputs are not resolved!`, moduleName);
@@ -48,14 +54,19 @@ export class ModuleContainer {
 
         const model = (await instance.onInit(resolvedModuleInputs)) as UnknownModel;
         if (model instanceof AOverlay) {
-          this.inputService.registerOverlay(moduleId, model);
+          this.inputService.registerOverlay(i.moduleId, model);
         } else {
-          this.inputService.registerModel(moduleId, model);
+          this.inputService.registerModel(i.moduleId, model);
         }
+
+        i.applied = true;
+        result[i.moduleId] = model;
       }
 
       this.eventService.emit(new ModuleEvent(module.name));
     }
+
+    return result;
   }
 
   getMetadata(module: Constructable<UnknownModule> | string): ModuleContainer['modules'][0] | undefined {
@@ -79,10 +90,10 @@ export class ModuleContainer {
 
     m.hidden = false;
 
-    if (m.instances.includes(moduleId)) {
+    if (m.instances.findIndex((i) => i.moduleId === moduleId) !== -1) {
       throw new ModuleError('Module already loaded!', moduleName);
     }
-    m.instances.push(moduleId);
+    m.instances.push({ applied: false, moduleId });
 
     for (const [key, value] of Object.entries(inputs)) {
       this.inputService.registerInput(moduleId, key, JSON.parse(JSON.stringify(value)));
