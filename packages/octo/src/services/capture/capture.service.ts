@@ -1,17 +1,16 @@
 import { Factory } from '../../decorators/factory.decorator.js';
-import { AResource } from '../../resources/resource.abstract.js';
-import { IResource } from '../../resources/resource.interface.js';
+import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 
 export class CaptureService {
   private captures: {
-    [key: string]: { response: Partial<IResource['response']> };
+    [key: string]: { response: Partial<BaseResourceSchema['response']> };
   } = {};
 
-  getCapture<T extends AResource<T>>(context: string): { response: Partial<T['response']> } | undefined {
+  getCapture<S extends BaseResourceSchema>(context: string): { response: Partial<S['response']> } | undefined {
     return this.captures[context];
   }
 
-  registerCapture<T extends AResource<T>>(resourceContext: string, response: Partial<T['response']>): void {
+  registerCapture<S extends BaseResourceSchema>(resourceContext: string, response: Partial<S['response']>): void {
     this.captures[resourceContext] = { response };
   }
 }

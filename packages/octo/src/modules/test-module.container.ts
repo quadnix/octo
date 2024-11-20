@@ -1,20 +1,19 @@
-import type { Constructable, ModuleInputs, ModuleOutput, UnknownModule } from '../app.type.js';
+import type { Constructable, ModuleOutput, ModuleSchema, UnknownModule } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
-import type { CaptureService } from '../services/capture/capture.service.js';
+import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
+import type { AModule } from './module.abstract.js';
 import { ModuleContainer } from './module.container.js';
 
 export type TestModule<M extends UnknownModule> = {
-  captures?: CaptureService['captures'];
   hidden?: boolean;
-  inputs: ModuleInputs<M>;
+  inputs: Record<keyof ModuleSchema<M>, string>;
   moduleId: string;
-  properties?: { [key: string]: unknown };
   type: Constructable<M>;
 };
 
@@ -71,39 +70,35 @@ export class TestModuleContainer {
     moduleContainer.order(modules);
   }
 
+  registerCapture<S extends BaseResourceSchema>(resourceContext: string, response: Partial<S['response']>): void {
+    this.octo.registerCapture(resourceContext, response);
+  }
+
   async runModule<M extends UnknownModule>(module: TestModule<M>): Promise<{ [key: string]: ModuleOutput<M> }> {
     const moduleContainer = await Container.getInstance().get(ModuleContainer);
 
-    for (const [key, value] of Object.entries(module.captures || {})) {
-      this.octo.registerCapture(key, value.response);
-    }
-
     const moduleMetadataIndex = moduleContainer.getMetadataIndex(module.type);
     if (moduleMetadataIndex === -1) {
-      moduleContainer.register(module.type, module.properties || ({} as any));
+      moduleContainer.register(module.type, { packageName: (module.type as unknown as typeof AModule).MODULE_PACKAGE });
     }
 
     const moduleMetadata = moduleContainer.getMetadata(module.type)!;
-    // Override module hidden metadata.
     if (module.hidden === true) {
       moduleContainer.unload(moduleMetadata.module);
     } else {
       moduleContainer.load(moduleMetadata.module, module.moduleId, module.inputs);
     }
-    // Override module properties.
-    for (const [key, value] of Object.entries(module.properties || {})) {
-      moduleMetadata.properties[key] = value;
-    }
 
-    // @ts-expect-error cannot cast without awaiting on statement.
-    return this.octo.compose();
+    return (await this.octo.compose()) as { [key: string]: ModuleOutput<M> };
   }
 
   private async reset(): Promise<void> {
     const container = Container.getInstance();
 
+    // Reset input service.
     await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
 
+    // Reset module container.
     const moduleContainer = await container.get(ModuleContainer);
     moduleContainer.reset();
   }

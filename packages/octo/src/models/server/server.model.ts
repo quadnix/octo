@@ -1,11 +1,10 @@
 import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
-import { Validate } from '../../decorators/validate.decorator.js';
 import { ModelError } from '../../errors/index.js';
 import { Deployment } from '../deployment/deployment.model.js';
 import { AModel } from '../model.abstract.js';
-import type { IServer } from './server.interface.js';
+import { ServerSchema } from './server.schema.js';
 
 /**
  * A Server model is a representation of the logical microservice.
@@ -18,12 +17,8 @@ import type { IServer } from './server.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model('@octo', 'server')
-export class Server extends AModel<IServer, Server> {
-  /**
-   * The name of the server.
-   */
-  @Validate({ options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
+@Model<Server>('@octo', 'server', ServerSchema)
+export class Server extends AModel<ServerSchema, Server> {
   readonly serverKey: string;
 
   constructor(serverKey: string) {
@@ -52,14 +47,14 @@ export class Server extends AModel<IServer, Server> {
     return [`${(this.constructor as typeof Server).NODE_NAME}=${this.serverKey}`, app.getContext()].join(',');
   }
 
-  override synth(): IServer {
+  override synth(): ServerSchema {
     return {
       serverKey: this.serverKey,
     };
   }
 
   static override async unSynth(
-    server: IServer,
+    server: ServerSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Server> {
     assert(!!deReferenceContext);

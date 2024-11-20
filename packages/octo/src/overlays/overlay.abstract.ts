@@ -1,15 +1,18 @@
-import type { UnknownModel, UnknownOverlay } from '../app.type.js';
+import type { AnchorSchema, OverlaySchema, UnknownAnchor, UnknownModel, UnknownOverlay } from '../app.type.js';
 import { ModelError, NodeUnsynthError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { AModel } from '../models/model.abstract.js';
-import { type AAnchor } from './anchor.abstract.js';
 import type { IOverlay } from './overlay.interface.js';
+import type { BaseOverlaySchema } from './overlay.schema.js';
 
-export abstract class AOverlay<T> extends AModel<IOverlay, T> {
+export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOverlay>
+  extends AModel<S, T>
+  implements IOverlay<S, T>
+{
   protected constructor(
-    readonly overlayId: IOverlay['overlayId'],
-    readonly properties: IOverlay['properties'],
-    anchors: AAnchor[],
+    readonly overlayId: S['overlayId'],
+    readonly properties: S['properties'],
+    anchors: UnknownAnchor[],
   ) {
     super();
 
@@ -18,7 +21,7 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     }
   }
 
-  override addAnchor(anchor: AAnchor): void {
+  override addAnchor(anchor: UnknownAnchor): void {
     super.addAnchor(anchor);
 
     const anchorParent = anchor.getParent();
@@ -60,7 +63,7 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     return [];
   }
 
-  override getAnchor(anchorId: string, parent: UnknownModel): AAnchor | undefined {
+  override getAnchor(anchorId: string, parent: UnknownModel): UnknownAnchor | undefined {
     return super.getAnchor(anchorId, parent);
   }
 
@@ -68,7 +71,7 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     return super.getAnchorIndex(anchorId, parent);
   }
 
-  override removeAnchor(anchor: AAnchor): void {
+  override removeAnchor(anchor: UnknownAnchor): void {
     const overlayParentDependencyIndex = this.getDependencies().findIndex(
       (d) => d.to.getContext() === anchor.getParent().getContext(),
     );
@@ -92,21 +95,21 @@ export abstract class AOverlay<T> extends AModel<IOverlay, T> {
     return `${nodePackage}/${nodeName}=${this.overlayId}`;
   }
 
-  override synth(): IOverlay {
+  override synth(): S {
     return {
       anchors: this.getAnchors().map((a) => a.synth()),
       overlayId: this.overlayId,
       properties: JSON.parse(JSON.stringify(this.properties)),
-    };
+    } as S;
   }
 
   static override async unSynth(
     deserializationClass: any,
-    overlay: IOverlay,
+    overlay: OverlaySchema<UnknownOverlay>,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<UnknownOverlay> {
     const anchors = await Promise.all(
-      overlay.anchors.map(async (a): Promise<AAnchor> => {
+      overlay.anchors.map(async (a: AnchorSchema<UnknownAnchor>): Promise<UnknownAnchor> => {
         const parent = await deReferenceContext(a.parent.context);
         const anchor = parent.getAnchor(a.anchorId);
         if (!anchor) {

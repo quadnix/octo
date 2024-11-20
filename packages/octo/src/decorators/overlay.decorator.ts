@@ -1,4 +1,4 @@
-import { NodeType } from '../app.type.js';
+import { type Constructable, NodeType, type OverlaySchema } from '../app.type.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
 import { Container } from '../functions/container/container.js';
@@ -17,7 +17,11 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @returns The decorated class.
  * @see Definition of [Overlays](/docs/fundamentals/overlay-and-anchor).
  */
-export function Overlay(packageName: string, overlayName: string): (constructor: any) => void {
+export function Overlay<T>(
+  packageName: string,
+  overlayName: string,
+  schema: Constructable<OverlaySchema<T>>,
+): (constructor: any) => void {
   const container = Container.getInstance();
 
   return function (constructor: any) {
@@ -33,6 +37,7 @@ export function Overlay(packageName: string, overlayName: string): (constructor:
 
     constructor.NODE_NAME = overlayName;
     constructor.NODE_PACKAGE = packageName;
+    constructor.NODE_SCHEMA = schema;
     constructor.NODE_TYPE = NodeType.OVERLAY;
 
     const promise = container.get(ModelSerializationService).then((modelSerializationService) => {

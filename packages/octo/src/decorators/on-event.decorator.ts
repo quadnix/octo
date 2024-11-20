@@ -25,7 +25,7 @@ export function OnEvent(
 ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
   const container = Container.getInstance();
 
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
     const promise = container.get(EventService).then((eventService) => {
       eventService.registerListeners(ofType, target, descriptor);
     });

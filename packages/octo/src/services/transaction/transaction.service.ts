@@ -1,6 +1,8 @@
 import {
   type ActionInputs,
   type Constructable,
+  type IUnknownModelAction,
+  type IUnknownResourceAction,
   NodeType,
   type TransactionOptions,
   type UnknownModel,
@@ -25,11 +27,10 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
 import type { ANode } from '../../functions/node/node.abstract.js';
-import type { IModelAction } from '../../models/model-action.interface.js';
 import type { AModel } from '../../models/model.abstract.js';
+import { ModuleContainer } from '../../modules/module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { AOverlay } from '../../overlays/overlay.abstract.js';
-import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import { CaptureService } from '../capture/capture.service.js';
@@ -37,14 +38,15 @@ import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 
 export class TransactionService {
-  private modelActions: { modelClass: Constructable<UnknownModel>; actions: IModelAction[] }[] = [];
-  private overlayActions: { overlayClass: Constructable<UnknownOverlay>; actions: IModelAction[] }[] = [];
-  private resourceActions: { resourceClass: Constructable<UnknownResource>; actions: IResourceAction[] }[] = [];
+  private modelActions: { modelClass: Constructable<UnknownModel>; actions: IUnknownModelAction[] }[] = [];
+  private overlayActions: { overlayClass: Constructable<UnknownOverlay>; actions: IUnknownModelAction[] }[] = [];
+  private resourceActions: { resourceClass: Constructable<UnknownResource>; actions: IUnknownResourceAction[] }[] = [];
 
   constructor(
     private readonly captureService: CaptureService,
     private readonly eventService: EventService,
     private readonly inputService: InputService,
+    private readonly moduleContainer: ModuleContainer,
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
   ) {}
@@ -70,17 +72,18 @@ export class TransactionService {
         // Only process the first diff, given all duplicate diffs are the same.
         const diffToProcess = duplicateDiffs[0].diff;
 
-        for (const a of diff.actions as IModelAction[]) {
+        for (const a of diff.actions as IUnknownModelAction[]) {
+          // Find moduleId.
+          let moduleId: string;
+          if (diff.node instanceof AOverlay) {
+            moduleId = this.inputService.getModuleIdFromOverlay(diff.node);
+          } else {
+            moduleId = this.inputService.getModuleIdFromModel(diff.node as UnknownModel);
+          }
+
           // Resolve input requests.
           const inputs: ActionInputs = {};
-          const inputKeys = a.collectInputs(diffToProcess).map((i) => {
-            let moduleId: string;
-            if (diff.node instanceof AOverlay) {
-              moduleId = this.inputService.getModuleIdFromOverlay(diff.node);
-            } else {
-              moduleId = this.inputService.getModuleIdFromModel(diff.node as UnknownModel);
-            }
-
+          const inputKeys = this.moduleContainer.getModuleInstanceInputKeys(moduleId).map((i) => {
             return `${moduleId}.input.${i}`;
           });
           for (const k of inputKeys) {
@@ -166,10 +169,10 @@ export class TransactionService {
         // Only process the first diff, given all duplicate diffs are the same.
         const diffToProcess = duplicateDiffs[0].diff;
 
-        for (const a of diff.actions as IResourceAction[]) {
+        for (const a of diff.actions as IUnknownResourceAction[]) {
           if (enableResourceCapture) {
             const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
-            await a.mock(capture?.response, diff);
+            await a.mock(diff, capture!.response);
             await a.handle(diffToProcess);
           } else {
             await a.handle(diffToProcess);
@@ -425,7 +428,7 @@ export class TransactionService {
   }
 
   @EventSource(ModelActionRegistrationEvent)
-  registerModelActions(forModel: Constructable<UnknownModel>, actions: IModelAction[]): void {
+  registerModelActions(forModel: Constructable<UnknownModel>, actions: IUnknownModelAction[]): void {
     const modelActions = this.modelActions.find((a) => a.modelClass === forModel);
     if (!modelActions) {
       this.modelActions.push({ actions: actions, modelClass: forModel });
@@ -440,7 +443,7 @@ export class TransactionService {
   }
 
   @EventSource(ModelActionRegistrationEvent)
-  registerOverlayActions(forOverlay: Constructable<UnknownOverlay>, actions: IModelAction[]): void {
+  registerOverlayActions(forOverlay: Constructable<UnknownOverlay>, actions: IUnknownModelAction[]): void {
     const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
     if (!overlayActions) {
       this.overlayActions.push({ actions: actions, overlayClass: forOverlay });
@@ -455,7 +458,7 @@ export class TransactionService {
   }
 
   @EventSource(ResourceActionRegistrationEvent)
-  registerResourceActions(forResource: Constructable<UnknownResource>, actions: IResourceAction[]): void {
+  registerResourceActions(forResource: Constructable<UnknownResource>, actions: IUnknownResourceAction[]): void {
     const resourceActions = this.resourceActions.find((a) => a.resourceClass === forResource);
     if (!resourceActions) {
       this.resourceActions.push({ actions: actions, resourceClass: forResource });
@@ -476,11 +479,12 @@ export class TransactionServiceFactory {
 
   static async create(): Promise<TransactionService> {
     const container = Container.getInstance();
-    const [captureService, eventService, inputService, overlayDataRepository, resourceDataRepository] =
+    const [captureService, eventService, inputService, moduleContainer, overlayDataRepository, resourceDataRepository] =
       await Promise.all([
         container.get(CaptureService),
         container.get(EventService),
         container.get(InputService),
+        container.get(ModuleContainer),
         container.get(OverlayDataRepository),
         container.get(ResourceDataRepository),
       ]);
@@ -490,6 +494,7 @@ export class TransactionServiceFactory {
         captureService,
         eventService,
         inputService,
+        moduleContainer,
         overlayDataRepository,
         resourceDataRepository,
       );

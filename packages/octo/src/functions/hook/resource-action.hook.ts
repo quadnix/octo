@@ -1,19 +1,19 @@
+import type { IUnknownResourceAction } from '../../app.type.js';
 import {
   PostResourceActionHookCallbackDoneEvent,
   PreResourceActionHookCallbackDoneEvent,
   ResourceActionHookCallbackDoneEvent,
 } from '../../events/index.js';
-import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import type { EventService } from '../../services/event/event.service.js';
 import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = {
-  action: IResourceAction;
-  handle: IResourceAction['handle'];
+  action: IUnknownResourceAction;
+  handle: IUnknownResourceAction['handle'];
 };
 type PreHookSignature = {
-  action: IResourceAction;
-  handle: IResourceAction['handle'];
+  action: IUnknownResourceAction;
+  handle: IUnknownResourceAction['handle'];
 };
 
 export class ResourceActionHook implements IHook<PreHookSignature, PostHookSignature> {
@@ -51,14 +51,14 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
     return this.instance;
   }
 
-  registrar(resourceAction: IResourceAction): void {
+  registrar(resourceAction: IUnknownResourceAction): void {
     // `self` here references this class, vs `this` references the original method.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
     const originalHandleMethod = resourceAction.handle;
 
-    resourceAction.handle = async function (...args: Parameters<IResourceAction['handle']>): Promise<void> {
+    resourceAction.handle = async function (...args: Parameters<IUnknownResourceAction['handle']>): Promise<void> {
       for (const { handle } of self.preResourceActionHooks[resourceAction.constructor.name] || []) {
         await handle.apply(this, args);
         self.eventService.emit(new PreResourceActionHookCallbackDoneEvent());

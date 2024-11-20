@@ -1,20 +1,19 @@
-import type { ActionOutputs } from '../../app.type.js';
+import type { ActionOutputs, IUnknownModelAction } from '../../app.type.js';
 import {
   ModelActionHookCallbackDoneEvent,
   PostModelActionHookCallbackDoneEvent,
   PreModelActionHookCallbackDoneEvent,
 } from '../../events/index.js';
-import type { IModelAction } from '../../models/model-action.interface.js';
 import type { EventService } from '../../services/event/event.service.js';
 import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = {
-  action: IModelAction;
-  handle: IModelAction['handle'];
+  action: IUnknownModelAction;
+  handle: IUnknownModelAction['handle'];
 };
 type PreHookSignature = {
-  action: IModelAction;
-  handle: IModelAction['handle'];
+  action: IUnknownModelAction;
+  handle: IUnknownModelAction['handle'];
 };
 
 export class ModelActionHook implements IHook<PreHookSignature, PostHookSignature> {
@@ -52,14 +51,14 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     return this.instance;
   }
 
-  registrar(modelAction: IModelAction): void {
+  registrar(modelAction: IUnknownModelAction): void {
     // `self` here references this class, vs `this` references the original method.
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
     const originalHandleMethod = modelAction.handle;
 
-    modelAction.handle = async function (...args: Parameters<IModelAction['handle']>): Promise<ActionOutputs> {
+    modelAction.handle = async function (...args: Parameters<IUnknownModelAction['handle']>): Promise<ActionOutputs> {
       let output = args[2] || {};
 
       for (const { handle } of self.preModelActionHooks[modelAction.constructor.name] || []) {

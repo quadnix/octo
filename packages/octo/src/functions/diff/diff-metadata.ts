@@ -1,11 +1,15 @@
-import type { ActionInputs, ActionOutputs, UnknownNode } from '../../app.type.js';
+import type {
+  ActionInputs,
+  ActionOutputs,
+  IUnknownModelAction,
+  IUnknownResourceAction,
+  UnknownNode,
+} from '../../app.type.js';
 import { NoMatchingActionFoundTransactionError } from '../../errors/index.js';
-import type { IModelAction } from '../../models/model-action.interface.js';
-import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import type { Diff, DiffAction } from './diff.js';
 
 export class DiffMetadata {
-  readonly actions: IModelAction[] | IResourceAction[];
+  readonly actions: IUnknownModelAction[] | IUnknownResourceAction[];
   applied: boolean;
   applyOrder: number;
 
@@ -18,7 +22,7 @@ export class DiffMetadata {
   readonly inputs: ActionInputs = {};
   readonly outputs: ActionOutputs = {};
 
-  constructor(diff: Diff, actions: IModelAction[] | IResourceAction[]) {
+  constructor(diff: Diff, actions: IUnknownModelAction[] | IUnknownResourceAction[]) {
     if (!actions?.length) {
       throw new NoMatchingActionFoundTransactionError('No matching action given for diff!', diff);
     }

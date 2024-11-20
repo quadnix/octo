@@ -1,13 +1,12 @@
 import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
-import { Validate } from '../../decorators/validate.decorator.js';
 import { ModelError } from '../../errors/index.js';
 import { Environment } from '../environment/environment.model.js';
 import type { Filesystem } from '../filesystem/filesystem.model.js';
 import { AModel } from '../model.abstract.js';
 import { Subnet } from '../subnet/subnet.model.js';
-import type { IRegion } from './region.interface.js';
+import { RegionSchema } from './region.schema.js';
 
 /**
  * A Region model is a physical geographical area where the app can be deployed.
@@ -21,9 +20,8 @@ import type { IRegion } from './region.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model('@octo', 'region')
-export class Region extends AModel<IRegion, Region> {
-  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
+@Model<Region>('@octo', 'region', RegionSchema)
+export class Region extends AModel<RegionSchema, Region> {
   readonly regionId: string;
 
   constructor(regionId: string) {
@@ -79,14 +77,14 @@ export class Region extends AModel<IRegion, Region> {
     return [`${(this.constructor as typeof Region).NODE_NAME}=${this.regionId}`, app.getContext()].join(',');
   }
 
-  override synth(): IRegion {
+  override synth(): RegionSchema {
     return {
       regionId: this.regionId,
     };
   }
 
   static override async unSynth(
-    region: IRegion,
+    region: RegionSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Region> {
     assert(!!deReferenceContext);

@@ -1,9 +1,8 @@
 import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
-import { Validate } from '../../decorators/validate.decorator.js';
 import { AModel } from '../model.abstract.js';
-import type { IEnvironment } from './environment.interface.js';
+import { EnvironmentSchema } from './environment.schema.js';
 
 /**
  * An Environment model is the logical sub-section of a Region which isolates one runtime environment from another.
@@ -16,24 +15,10 @@ import type { IEnvironment } from './environment.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model('@octo', 'environment')
-export class Environment extends AModel<IEnvironment, Environment> {
-  /**
-   * The name of the environment.
-   * An environment must be unique within a Region. But multiple Regions can share the same environment name.
-   */
-  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
+@Model<Environment>('@octo', 'environment', EnvironmentSchema)
+export class Environment extends AModel<EnvironmentSchema, Environment> {
   readonly environmentName: string;
 
-  /**
-   * A set of environment variables to be passed to any {@link Execution} running in this environment.
-   */
-  @Validate({
-    destruct: (value: Map<string, string>): string[] => {
-      return Array.from(value.keys());
-    },
-    options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ },
-  })
   readonly environmentVariables: Map<string, string> = new Map();
 
   constructor(environmentName: string) {
@@ -49,7 +34,7 @@ export class Environment extends AModel<IEnvironment, Environment> {
     );
   }
 
-  override synth(): IEnvironment {
+  override synth(): EnvironmentSchema {
     return {
       environmentName: this.environmentName,
       environmentVariables: Object.fromEntries(this.environmentVariables || new Map()),
@@ -57,7 +42,7 @@ export class Environment extends AModel<IEnvironment, Environment> {
   }
 
   static override async unSynth(
-    environment: IEnvironment,
+    environment: EnvironmentSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Environment> {
     assert(!!deReferenceContext);

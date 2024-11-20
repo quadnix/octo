@@ -1,15 +1,14 @@
-import { type Constructable, NodeType, type UnknownModel } from '../app.type.js';
+import { type Constructable, NodeType, type UnknownAnchor, type UnknownModel } from '../app.type.js';
 import { NodeError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
-import type { AAnchor } from '../overlays/anchor.abstract.js';
 import type { IModel } from './model.interface.js';
 
-export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
-  private readonly anchors: AAnchor[] = [];
+export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> implements IModel<S, T> {
+  private readonly anchors: UnknownAnchor[] = [];
 
-  addAnchor(anchor: AAnchor): void {
+  addAnchor(anchor: UnknownAnchor): void {
     const existingAnchor = this.getAnchor(anchor.anchorId, anchor.getParent());
     if (existingAnchor) {
       throw new NodeError('Anchor already exists!', this);
@@ -73,7 +72,7 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
     return [];
   }
 
-  getAnchor(anchorId: string, parent?: UnknownModel): AAnchor | undefined {
+  getAnchor(anchorId: string, parent?: UnknownModel): UnknownAnchor | undefined {
     const index = this.getAnchorIndex(anchorId, parent);
     return index > -1 ? this.anchors[index] : undefined;
   }
@@ -84,7 +83,7 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
     );
   }
 
-  getAnchors(filters: { key: string; value: any }[] = [], types: Constructable<AAnchor>[] = []): AAnchor[] {
+  getAnchors(filters: { key: string; value: any }[] = [], types: Constructable<UnknownAnchor>[] = []): UnknownAnchor[] {
     return this.anchors
       .filter((a) => !types.length || types.some((t) => a instanceof t))
       .filter((a) => filters.every((c) => a.properties[c.key] === c.value));
@@ -97,7 +96,7 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
     }
   }
 
-  removeAnchor(anchor: AAnchor): void {
+  removeAnchor(anchor: UnknownAnchor): void {
     const existingAnchorIndex = this.getAnchorIndex(anchor.anchorId, anchor.getParent());
     if (existingAnchorIndex !== -1) {
       this.anchors.splice(existingAnchorIndex, 1);
@@ -106,7 +105,7 @@ export abstract class AModel<I, T> extends ANode<I, T> implements IModel<I, T> {
 
   abstract override setContext(): string;
 
-  abstract override synth(): I;
+  abstract override synth(): S;
 
   static override async unSynth(...args: unknown[]): Promise<UnknownModel> {
     if (args.length > 4) {

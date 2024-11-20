@@ -1,9 +1,10 @@
+import type { ResourceSchema, UnknownResource } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
 
-export interface IResourceAction {
+export interface IResourceAction<T extends UnknownResource> {
   filter(diff: Diff): boolean;
 
   handle(diff: Diff): Promise<void>;
 
-  mock(capture?: object, diff?: Diff): Promise<void>;
+  mock(diff: Diff, capture: Partial<ResourceSchema<T>['response']>): Promise<void>;
 }

@@ -1,7 +1,5 @@
-import type { UnknownResource } from '../app.type.js';
+import type { IUnknownModelAction, UnknownResource } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
-import type { IModelAction } from '../models/model-action.interface.js';
-import type { IResource } from '../resources/resource.interface.js';
 import type { ValidationService } from '../services/validation/validation.service.js';
 
 export class TransactionError extends Error {
@@ -14,7 +12,7 @@ export class TransactionError extends Error {
 
 export class DiffsOnDirtyResourcesTransactionError extends TransactionError {
   readonly diffs: ReturnType<Diff['toJSON']>[];
-  readonly dirtyResources: IResource[];
+  readonly dirtyResources: UnknownResource[];
 
   constructor(message: string, diffs: Diff[], dirtyResources: UnknownResource[]) {
     super(message);
@@ -31,7 +29,7 @@ export class InputNotFoundTransactionError extends TransactionError {
   readonly diff: ReturnType<Diff['toJSON']>;
   readonly key: string;
 
-  constructor(message: string, action: IModelAction, diff: Diff, key: string) {
+  constructor(message: string, action: IUnknownModelAction, diff: Diff, key: string) {
     super(message);
 
     this.action = action.constructor.name;

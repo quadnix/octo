@@ -1,8 +1,7 @@
 import { strict as assert } from 'assert';
-import type { Constructable, ModuleInputs, TransactionOptions, UnknownModule } from './app.type.js';
-import { ValidationTransactionError } from './errors/index.js';
-import { Container } from './functions/container/container.js';
+import type { Constructable, ModuleSchema, TransactionOptions, UnknownModule } from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
+import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
 import { CommitHook } from './functions/hook/commit.hook.js';
 import { ModelActionHook } from './functions/hook/model-action.hook.js';
@@ -10,7 +9,7 @@ import { ResourceActionHook } from './functions/hook/resource-action.hook.js';
 import { App } from './models/app/app.model.js';
 import { ModuleContainer } from './modules/module.container.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
-import { AResource } from './resources/resource.abstract.js';
+import { BaseResourceSchema } from './resources/resource.schema.js';
 import { CaptureService } from './services/capture/capture.service.js';
 import { EventService } from './services/event/event.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
@@ -21,7 +20,6 @@ import {
 } from './services/state-management/state-management.service.js';
 import { IStateProvider } from './services/state-management/state-provider.interface.js';
 import { TransactionService } from './services/transaction/transaction.service.js';
-import { ValidationService } from './services/validation/validation.service.js';
 
 export class Octo {
   private readonly modelStateFileName: string = 'models.json';
@@ -35,7 +33,6 @@ export class Octo {
   private resourceSerializationService: ResourceSerializationService;
   private stateManagementService: StateManagementService;
   private transactionService: TransactionService;
-  private validationService: ValidationService;
 
   async *beginTransaction(
     app: App,
@@ -106,14 +103,7 @@ export class Octo {
   }
 
   async compose(): Promise<{ [key: string]: unknown }> {
-    const moduleOutputs = await this.moduleContainer.apply();
-
-    const result = this.validationService.validate();
-    if (!result.pass) {
-      throw new ValidationTransactionError('Validation error!', result);
-    }
-
-    return moduleOutputs;
+    return await this.moduleContainer.apply();
   }
 
   async initialize(
@@ -136,7 +126,6 @@ export class Octo {
       this.resourceSerializationService,
       this.stateManagementService,
       this.transactionService,
-      this.validationService,
     ] = await Promise.all([
       container.get(CaptureService),
       container.get(EventService),
@@ -147,7 +136,6 @@ export class Octo {
         args: [stateProvider],
       }),
       container.get(TransactionService),
-      container.get(ValidationService),
     ]);
 
     for (const exclude of excludeInContainer) {
@@ -164,11 +152,15 @@ export class Octo {
     await this.retrieveResourceState();
   }
 
-  loadModule<M extends UnknownModule>(module: Constructable<M>, moduleId: string, inputs: ModuleInputs<M>): void {
+  loadModule<M extends UnknownModule>(
+    module: Constructable<M> | string,
+    moduleId: string,
+    inputs: Record<keyof ModuleSchema<M>, string>,
+  ): void {
     this.moduleContainer.load(module, moduleId, inputs);
   }
 
-  registerCapture<T extends AResource<T>>(resourceContext: string, response: Partial<T['response']>): void {
+  registerCapture<S extends BaseResourceSchema>(resourceContext: string, response: Partial<S['response']>): void {
     this.captureService.registerCapture(resourceContext, response);
   }
 

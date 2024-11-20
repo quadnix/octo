@@ -1,28 +1,9 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
-import { Validate } from '../../decorators/validate.decorator.js';
 import { DiffAction } from '../../functions/diff/diff.js';
 import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
-import type { ISubnet } from './subnet.interface.js';
-
-/**
- * The type of subnet.
- */
-export enum SubnetType {
-  /**
-   * A public subnet is open to the internet,
-   * i.e. an {@link Execution} within this subnet can be accessed from the internet.
-   * Other than access from the internet, any other access needs to be explicitly allowed.
-   */
-  PUBLIC = 'public',
-
-  /**
-   * A private subnet has limited access to anything outside of this subnet, including access from the internet.
-   * Access to this subnet needs to be explicitly allowed.
-   */
-  PRIVATE = 'private',
-}
+import { SubnetSchema, SubnetType } from './subnet.schema.js';
 
 /**
  * A Subnet model is the logical sub-division of the region, e.g. a public and a private subnet.
@@ -37,23 +18,15 @@ export enum SubnetType {
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model('@octo', 'subnet')
-export class Subnet extends AModel<ISubnet, Subnet> {
-  private options: { disableSubnetIntraNetwork: boolean; subnetType: SubnetType } = {
+@Model<Subnet>('@octo', 'subnet', SubnetSchema)
+export class Subnet extends AModel<SubnetSchema, Subnet> {
+  private options: SubnetSchema['options'] = {
     disableSubnetIntraNetwork: false,
     subnetType: SubnetType.PRIVATE,
   };
 
-  /**
-   * The ID of the subnet.
-   * - Format is `{regionId}-{subnetName}`
-   */
   readonly subnetId: string;
 
-  /**
-   * The name of the subnet.
-   */
-  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
   readonly subnetName: string;
 
   constructor(region: Region, name: string) {
@@ -92,7 +65,7 @@ export class Subnet extends AModel<ISubnet, Subnet> {
     return [`${(this.constructor as typeof Subnet).NODE_NAME}=${this.subnetId}`, region.getContext()].join(',');
   }
 
-  override synth(): ISubnet {
+  override synth(): SubnetSchema {
     const parents = this.getParents();
     const region = parents['region'][0].to as Region;
 
@@ -105,7 +78,7 @@ export class Subnet extends AModel<ISubnet, Subnet> {
   }
 
   static override async unSynth(
-    subnet: ISubnet,
+    subnet: SubnetSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Subnet> {
     const region = (await deReferenceContext(subnet.region.context)) as Region;

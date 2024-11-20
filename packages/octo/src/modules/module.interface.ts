@@ -1,5 +1,5 @@
-export interface IModule<I extends { [key: string]: unknown }, T> {
-  collectInputs(): string[];
+import type { UnknownModel } from '../app.type.js';
 
-  onInit(inputs: Partial<I>): Promise<T>;
+export interface IModule<S, T extends UnknownModel> {
+  onInit(inputs: S): Promise<T>;
 }

@@ -1,35 +1,36 @@
-import type { UnknownModel } from '../app.type.js';
+import type { AnchorSchema, UnknownAnchor, UnknownModel } from '../app.type.js';
 import type { IAnchor } from './anchor.interface.js';
+import type { BaseAnchorSchema } from './anchor.schema.js';
 
-export abstract class AAnchor {
+export abstract class AAnchor<S extends BaseAnchorSchema, T extends UnknownModel> implements IAnchor<S, T> {
   /**
    * The package of the anchor.
    */
   static readonly NODE_PACKAGE: string;
 
   protected constructor(
-    readonly anchorId: string,
-    readonly properties: IAnchor['properties'],
-    private readonly parent: UnknownModel,
+    readonly anchorId: S['anchorId'],
+    readonly properties: S['properties'],
+    private readonly parent: T,
   ) {}
 
-  getParent(): UnknownModel {
+  getParent(): T {
     return this.parent;
   }
 
-  synth(): IAnchor {
+  synth(): S {
     return {
       anchorId: this.anchorId,
       parent: { context: this.parent.getContext() },
       properties: JSON.parse(JSON.stringify(this.properties)),
-    };
+    } as S;
   }
 
   static async unSynth(
     deserializationClass: any,
-    anchor: IAnchor,
+    anchor: AnchorSchema<UnknownAnchor>,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
-  ): Promise<AAnchor> {
+  ): Promise<UnknownAnchor> {
     const parent = await deReferenceContext(anchor.parent.context);
     const newAnchor = parent.getAnchor(anchor.anchorId);
     if (!newAnchor) {

@@ -1,4 +1,4 @@
-import { NodeType } from '../app.type.js';
+import { type Constructable, NodeType, type ResourceSchema } from '../app.type.js';
 import { AResource } from '../resources/resource.abstract.js';
 import { ASharedResource } from '../resources/shared-resource.abstract.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
@@ -18,7 +18,11 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @returns The decorated class.
  * @see Definition of [Resources](http://localhost:3000/docs/fundamentals/resources).
  */
-export function Resource(packageName: string, resourceName: string): (constructor: any) => void {
+export function Resource<T>(
+  packageName: string,
+  resourceName: string,
+  schema: Constructable<ResourceSchema<T>>,
+): (constructor: any) => void {
   const container = Container.getInstance();
 
   return function (constructor: any) {
@@ -34,6 +38,7 @@ export function Resource(packageName: string, resourceName: string): (constructo
 
     constructor.NODE_NAME = resourceName;
     constructor.NODE_PACKAGE = packageName;
+    constructor.NODE_SCHEMA = schema;
     constructor.NODE_TYPE =
       constructor.prototype instanceof ASharedResource ? NodeType.SHARED_RESOURCE : NodeType.RESOURCE;
 

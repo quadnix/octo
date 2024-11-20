@@ -1,7 +1,6 @@
 import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
-import { Validate } from '../../decorators/validate.decorator.js';
 import { ModelError } from '../../errors/index.js';
 import { Image } from '../image/image.model.js';
 import { AModel } from '../model.abstract.js';
@@ -9,7 +8,7 @@ import { Pipeline } from '../pipeline/pipeline.model.js';
 import { Region } from '../region/region.model.js';
 import { Server } from '../server/server.model.js';
 import { Service } from '../service/service.model.js';
-import type { IApp } from './app.interface.js';
+import { AppSchema } from './app.schema.js';
 
 /**
  * An App model is the parent of all other models.
@@ -22,12 +21,8 @@ import type { IApp } from './app.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model('@octo', 'app')
-export class App extends AModel<IApp, App> {
-  /**
-   * The name of the app.
-   */
-  @Validate({ options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
+@Model<App>('@octo', 'app', AppSchema)
+export class App extends AModel<AppSchema, App> {
   readonly name: string;
 
   constructor(name: string) {
@@ -114,14 +109,14 @@ export class App extends AModel<IApp, App> {
     return `${(this.constructor as typeof App).NODE_NAME}=${this.name}`;
   }
 
-  override synth(): IApp {
+  override synth(): AppSchema {
     return {
       name: this.name,
     };
   }
 
   static override async unSynth(
-    app: IApp,
+    app: AppSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<App> {
     assert(!!deReferenceContext);

@@ -1,5 +1,4 @@
-import type { UnknownNode } from '../../app.type.js';
-import type { AAnchor } from '../../overlays/anchor.abstract.js';
+import type { UnknownAnchor, UnknownNode } from '../../app.type.js';
 
 export enum DiffAction {
   ADD = 'add',
@@ -31,8 +30,8 @@ export class Diff {
     let value = this.value;
     if ((value as UnknownNode).hasOwnProperty('getContext')) {
       value = (value as UnknownNode).getContext();
-    } else if ((value as AAnchor).hasOwnProperty('anchorId')) {
-      value = `anchorId=${(value as AAnchor).anchorId}`;
+    } else if ((value as UnknownAnchor).hasOwnProperty('anchorId')) {
+      value = `anchorId=${(value as UnknownAnchor).anchorId}`;
     } else {
       value = JSON.parse(JSON.stringify(value));
     }

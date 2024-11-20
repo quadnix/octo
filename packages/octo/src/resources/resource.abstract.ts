@@ -1,20 +1,24 @@
-import { NodeType, type UnknownNode, type UnknownResource } from '../app.type.js';
+import { NodeType, type ResourceSchema, type UnknownNode, type UnknownResource } from '../app.type.js';
 import { DiffInverseResourceError, RemoveResourceError, ResourceError } from '../errors/index.js';
 import { type Dependency, DependencyRelationship } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
 import type { IResource } from './resource.interface.js';
+import type { BaseResourceSchema } from './resource.schema.js';
 import type { ASharedResource } from './shared-resource.abstract.js';
 
-export abstract class AResource<T> extends ANode<IResource, T> {
+export abstract class AResource<S extends BaseResourceSchema, T extends UnknownResource>
+  extends ANode<S, T>
+  implements IResource<S, T>
+{
   private _deleteMarker = false;
 
-  readonly response: IResource['response'] = {};
+  readonly response: S['response'] = {};
 
   protected constructor(
-    readonly resourceId: IResource['resourceId'],
-    readonly properties: IResource['properties'],
+    readonly resourceId: S['resourceId'],
+    readonly properties: S['properties'],
     parents: UnknownResource[],
   ) {
     super();
@@ -38,20 +42,20 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     throw new ResourceError('Relationships are not supported in resources!', this);
   }
 
-  clonePropertiesInPlace(sourceResource: UnknownResource): void {
+  clonePropertiesInPlace(sourceResource: T): void {
     for (const key of Object.keys(this.properties)) {
       delete this.properties[key];
     }
-    for (const key of Object.keys(sourceResource.properties)) {
+    for (const key of Object.keys(sourceResource.properties) as (keyof S['properties'])[]) {
       this.properties[key] = JSON.parse(JSON.stringify(sourceResource.properties[key]));
     }
   }
 
-  static async cloneResource<T extends AResource<T>>(
+  static async cloneResource<T extends UnknownResource>(
     sourceResource: T,
     deReferenceResource: (context: string) => Promise<UnknownResource>,
   ): Promise<T> {
-    const resource: IResource = {
+    const resource: BaseResourceSchema = {
       properties: JSON.parse(JSON.stringify(sourceResource.properties)),
       resourceId: sourceResource.resourceId,
       response: JSON.parse(JSON.stringify(sourceResource.response)),
@@ -68,7 +72,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
   }
 
   async cloneResourceInPlace(
-    sourceResource: UnknownResource,
+    sourceResource: T,
     deReferenceResource: (context: string) => Promise<UnknownResource>,
   ): Promise<void> {
     // Remove all dependencies from self.
@@ -112,13 +116,13 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     for (const key of Object.keys(this.response)) {
       delete this.response[key];
     }
-    for (const key of Object.keys(sourceResource.response)) {
+    for (const key of Object.keys(sourceResource.response) as (keyof S['response'])[]) {
       this.response[key] = JSON.parse(JSON.stringify(sourceResource.response[key]));
     }
   }
 
   // @ts-expect-error since this overridden diff() is always called with previous.
-  override async diff(previous: T | ASharedResource<T>): Promise<Diff[]> {
+  override async diff(previous: T | ASharedResource<S, T>): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     const propertyDiffs = await this.diffProperties(previous);
@@ -159,7 +163,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
       }
       case 'parent': {
         if (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE) {
-          await this.cloneResourceInPlace(diff.node as UnknownResource, deReferenceResource);
+          await this.cloneResourceInPlace(diff.node as T, deReferenceResource);
         } else {
           throw new DiffInverseResourceError('Unknown action on "parent" field during diff inverse!', this, diff);
         }
@@ -167,7 +171,7 @@ export abstract class AResource<T> extends ANode<IResource, T> {
       }
       case 'properties': {
         if (diff.action === DiffAction.ADD || diff.action === DiffAction.UPDATE) {
-          const change = diff.value as { key: string; value: any };
+          const change = diff.value as { key: keyof S['properties']; value: any };
           this.properties[change.key] = JSON.parse(JSON.stringify(change.value));
         } else if (diff.action === DiffAction.DELETE) {
           const change = diff.value as { key: string; value: any };
@@ -187,15 +191,15 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     }
   }
 
-  override async diffProperties(previous: T | ASharedResource<T>): Promise<Diff[]> {
+  override async diffProperties(previous: T | ASharedResource<S, T>): Promise<Diff[]> {
     return DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
   }
 
-  findParentsByProperty(filters: { key: keyof AResource<T>['properties']; value: unknown }[]): AResource<T>[] {
-    const parents: AResource<T>[] = [];
+  findParentsByProperty(filters: { key: string; value: unknown }[]): UnknownResource[] {
+    const parents: UnknownResource[] = [];
     const dependencies = Object.values(this.getParents()).flat();
     for (const d of dependencies) {
-      const resource = d.to as AResource<T>;
+      const resource = d.to as UnknownResource;
       if (filters.every((c) => resource.properties[c.key] === c.value)) {
         parents.push(resource);
       }
@@ -210,12 +214,12 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     throw new ResourceError('Boundary is not supported in resources!', this);
   }
 
-  getSharedResource(): ASharedResource<T> | undefined {
+  getSharedResource(): ASharedResource<S, T> | undefined {
     const sameNodeDependencies = this.getChildren()[(this.constructor as typeof AResource).NODE_NAME];
     const sharedResourceDependency = sameNodeDependencies?.find(
       (d) => (d.to.constructor as typeof AResource).NODE_TYPE === NodeType.SHARED_RESOURCE,
     );
-    return sharedResourceDependency?.to as ASharedResource<T>;
+    return sharedResourceDependency?.to as ASharedResource<S, T>;
   }
 
   /**
@@ -252,21 +256,10 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     });
   }
 
-  /**
-   * To check if self is marked as deleted.
-   * A deleted node will be removed from the graph after the transaction.
-   */
   isMarkedDeleted(): boolean {
     return this._deleteMarker;
   }
 
-  /**
-   * To mark self as deleted.
-   * A deleted node will be removed from the graph after the transaction.
-   * - A node cannot be deleted if it has dependencies.
-   *
-   * @throws {@link RemoveResourceError} If node contains dependencies to other nodes.
-   */
   remove(): void {
     const dependencies = this.getDependencies();
 
@@ -295,17 +288,17 @@ export abstract class AResource<T> extends ANode<IResource, T> {
     return `${nodePackage}/${nodeName}=${this.resourceId}`;
   }
 
-  override synth(): IResource {
+  override synth(): S {
     return {
       properties: JSON.parse(JSON.stringify(this.properties)),
       resourceId: this.resourceId,
       response: JSON.parse(JSON.stringify(this.response)),
-    };
+    } as S;
   }
 
   static override async unSynth(
     deserializationClass: any,
-    resource: IResource,
+    resource: ResourceSchema<UnknownResource>,
     parentContexts: string[],
     deReferenceResource: (context: string) => Promise<UnknownResource>,
   ): Promise<UnknownResource> {

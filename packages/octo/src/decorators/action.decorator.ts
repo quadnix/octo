@@ -1,10 +1,16 @@
-import type { Constructable, UnknownModel, UnknownNode, UnknownOverlay, UnknownResource } from '../app.type.js';
+import type {
+  Constructable,
+  IUnknownModelAction,
+  IUnknownResourceAction,
+  UnknownModel,
+  UnknownNode,
+  UnknownOverlay,
+  UnknownResource,
+} from '../app.type.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
-import { type IModelAction } from '../models/model-action.interface.js';
 import { AModel } from '../models/model.abstract.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
-import { type IResourceAction } from '../resources/resource-action.interface.js';
 import { AResource } from '../resources/resource.abstract.js';
 import { EventService } from '../services/event/event.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
@@ -47,21 +53,21 @@ export function Action(forNode: Constructable<UnknownNode>): (constructor: any) 
       async ([eventService, transactionService]) => {
         if (isModel(forNode) && !isOverlay(forNode)) {
           // Register model action.
-          const modelAction = await container.get<IModelAction>(constructor.name);
+          const modelAction = await container.get<IUnknownModelAction>(constructor.name);
           transactionService.registerModelActions(forNode, [modelAction]);
 
           // Wrap model action with hooks.
           ModelActionHook.getInstance(eventService).registrar(modelAction);
         } else if (isOverlay(forNode)) {
           // Register overlay action.
-          const modelAction = await container.get<IModelAction>(constructor.name);
+          const modelAction = await container.get<IUnknownModelAction>(constructor.name);
           transactionService.registerOverlayActions(forNode, [modelAction]);
 
           // Wrap overlay action with hooks.
           ModelActionHook.getInstance(eventService).registrar(modelAction);
         } else if (isResource(forNode)) {
           // Register resource action.
-          const resourceAction = await container.get<IResourceAction>(constructor.name);
+          const resourceAction = await container.get<IUnknownResourceAction>(constructor.name);
           transactionService.registerResourceActions(forNode, [resourceAction]);
 
           // Wrap resource action with hooks.

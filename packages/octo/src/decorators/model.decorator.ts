@@ -1,4 +1,4 @@
-import { NodeType } from '../app.type.js';
+import { type Constructable, type ModelSchema, NodeType } from '../app.type.js';
 import { AModel } from '../models/model.abstract.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
@@ -18,7 +18,11 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @returns The decorated class.
  * @see Definition of [Models](/docs/fundamentals/models).
  */
-export function Model(packageName: string, modelName: string): (constructor: any) => void {
+export function Model<T>(
+  packageName: string,
+  modelName: string,
+  schema: Constructable<ModelSchema<T>>,
+): (constructor: any) => void {
   const container = Container.getInstance();
 
   return function (constructor: any) {
@@ -34,6 +38,7 @@ export function Model(packageName: string, modelName: string): (constructor: any
 
     constructor.NODE_NAME = modelName;
     constructor.NODE_PACKAGE = packageName;
+    constructor.NODE_SCHEMA = schema;
     constructor.NODE_TYPE = NodeType.MODEL;
 
     const promise = container.get(ModelSerializationService).then((modelSerializationService) => {

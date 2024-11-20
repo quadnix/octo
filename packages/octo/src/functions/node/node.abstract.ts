@@ -1,4 +1,4 @@
-import type { NodeType, UnknownNode } from '../../app.type.js';
+import type { NodeSchema, NodeType, UnknownNode } from '../../app.type.js';
 import { NodeError } from '../../errors/index.js';
 import { Dependency, type DependencyRelationship } from '../dependency/dependency.js';
 import { type Diff, DiffAction } from '../diff/diff.js';
@@ -19,7 +19,7 @@ import type { INode } from './node.interface.js';
  * Each of these derived base classes, using the base methods of this class,
  * define their own specific rules on how their graphs should be constructed.
  */
-export abstract class ANode<I, T> implements INode<I, T> {
+export abstract class ANode<S, T> implements INode<S, T> {
   /**
    * The name of the node.
    * All nodes with same name are of the same category.
@@ -30,6 +30,11 @@ export abstract class ANode<I, T> implements INode<I, T> {
    * The package of the node.
    */
   static readonly NODE_PACKAGE: string;
+
+  /**
+   * The schema of the node.
+   */
+  static readonly NODE_SCHEMA: NodeSchema<ANode<unknown, unknown>>;
 
   /**
    * The type of the node.
@@ -352,7 +357,7 @@ export abstract class ANode<I, T> implements INode<I, T> {
 
   abstract setContext(): string;
 
-  abstract synth(): I;
+  abstract synth(): S;
 
   /**
    * To create self given its serialized representation.

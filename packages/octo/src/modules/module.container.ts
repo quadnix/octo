@@ -1,8 +1,9 @@
-import type { Constructable, ModuleInputs, UnknownModel, UnknownModule } from '../app.type.js';
+import type { Constructable, ModuleSchema, UnknownModel, UnknownModule } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
+import { getSchemaInstance } from '../functions/schema/schema.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { EventService } from '../services/event/event.service.js';
 import { InputService } from '../services/input/input.service.js';
@@ -15,7 +16,7 @@ type ModuleOptions = {
 export class ModuleContainer {
   private modules: {
     hidden: boolean;
-    instances: { applied: boolean; moduleId: string }[];
+    instances: { applied: boolean; inputKeys: string[]; moduleId: string }[];
     module: Constructable<UnknownModule>;
     properties: ModuleOptions;
   }[] = [];
@@ -33,26 +34,28 @@ export class ModuleContainer {
         continue;
       }
 
-      const { instances, module, properties } = moduleMetadata;
+      const { instances, module } = moduleMetadata;
       for (const i of instances) {
         if (i.applied) {
           continue;
         }
 
-        const instance = new module();
-        const moduleInputs = instance.collectInputs();
-
-        const resolvedModuleInputs = moduleInputs.reduce((accumulator, current) => {
-          const resolvedInput = this.inputService.resolve(`${i.moduleId}.input.${current}`);
-          if (!resolvedInput) {
-            const moduleName = `${properties.packageName}/${module.name}`;
-            throw new ModuleError(`Module "${moduleName}" inputs are not resolved!`, moduleName);
-          }
-          accumulator[current] = resolvedInput;
+        // Given a list of keys to the module, resolve the inputs with actual values.
+        const resolvedModuleInputs = i.inputKeys.reduce((accumulator, current) => {
+          accumulator[current] = this.inputService.resolve(`${i.moduleId}.input.${current}`);
           return accumulator;
         }, {});
 
-        const model = (await instance.onInit(resolvedModuleInputs)) as UnknownModel;
+        // Create an instance of module schema based on the resolved input values.
+        // An error will be thrown if the resolved input does not match the module schema.
+        const resolvedModuleSchema = getSchemaInstance(
+          (module as unknown as typeof AModule).MODULE_SCHEMA,
+          resolvedModuleInputs,
+        );
+
+        // Run module. Register module output, and return the module output.
+        const instance = new module();
+        const model = (await instance.onInit(resolvedModuleSchema)) as UnknownModel;
         if (model instanceof AOverlay) {
           this.inputService.registerOverlay(i.moduleId, model);
         } else {
@@ -80,7 +83,19 @@ export class ModuleContainer {
     return this.modules.findIndex((m) => `${m.properties.packageName}/${m.module.name}` === moduleName);
   }
 
-  load<M extends UnknownModule>(module: Constructable<M> | string, moduleId: string, inputs: ModuleInputs<M>): void {
+  getModuleInstanceInputKeys(moduleId: string): string[] {
+    const moduleIndex = this.modules.findIndex((m) => m.instances.findIndex((i) => i.moduleId === moduleId) !== -1);
+    if (moduleIndex === -1) {
+      throw new ModuleError(`Module "${moduleId}" not yet loaded!`, moduleId);
+    }
+    return this.modules[moduleIndex].instances.find((i) => i.moduleId === moduleId)!.inputKeys;
+  }
+
+  load<M extends UnknownModule>(
+    module: Constructable<M> | string,
+    moduleId: string,
+    inputs: Record<keyof ModuleSchema<M>, string>,
+  ): void {
     const moduleName =
       typeof module === 'string' ? module : `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;
     const m = this.getMetadata(module);
@@ -93,7 +108,7 @@ export class ModuleContainer {
     if (m.instances.findIndex((i) => i.moduleId === moduleId) !== -1) {
       throw new ModuleError('Module already loaded!', moduleName);
     }
-    m.instances.push({ applied: false, moduleId });
+    m.instances.push({ applied: false, inputKeys: Object.keys(inputs), moduleId });
 
     for (const [key, value] of Object.entries(inputs)) {
       this.inputService.registerInput(moduleId, key, JSON.parse(JSON.stringify(value)));

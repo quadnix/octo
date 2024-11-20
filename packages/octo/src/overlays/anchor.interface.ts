@@ -1,10 +1,8 @@
-import type { IModelReference } from '../models/model.interface.js';
-import type { AAnchor } from './anchor.abstract.js';
+import type { UnknownModel } from '../app.type.js';
+import type { BaseAnchorSchema } from './anchor.schema.js';
 
-export interface IAnchor {
-  anchorId: AAnchor['anchorId'];
+export interface IAnchor<S extends BaseAnchorSchema, T extends UnknownModel> {
+  getParent(): T;
 
-  parent: IModelReference;
-
-  properties: { [key: string]: unknown };
+  synth(): S;
 }

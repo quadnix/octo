@@ -1,3 +1,4 @@
+import type { Constructable, ModuleSchema } from '../app.type.js';
 import { AModule } from '../modules/module.abstract.js';
 import { ModuleContainer } from '../modules/module.container.js';
 import { Container } from '../functions/container/container.js';
@@ -22,7 +23,7 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @returns The decorated class.
  * @see Definition of [Modules](/docs/fundamentals/modules).
  */
-export function Module(packageName: string): (constructor: any) => void {
+export function Module<T>(packageName: string, schema: Constructable<ModuleSchema<T>>): (constructor: any) => void {
   const container = Container.getInstance();
 
   return function (constructor: any) {
@@ -34,6 +35,7 @@ export function Module(packageName: string): (constructor: any) => void {
     }
 
     constructor.MODULE_PACKAGE = packageName;
+    constructor.MODULE_SCHEMA = schema;
 
     const promise = container.get(ModuleContainer).then((moduleContainer) => {
       moduleContainer.register(constructor, { packageName });

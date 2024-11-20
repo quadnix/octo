@@ -1,6 +1,5 @@
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
-import { Validate } from '../../decorators/validate.decorator.js';
 import { ModelError } from '../../errors/index.js';
 import { ArrayUtility } from '../../utilities/array/array.utility.js';
 import { Deployment } from '../deployment/deployment.model.js';
@@ -9,7 +8,7 @@ import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
 import { Server } from '../server/server.model.js';
 import { Subnet } from '../subnet/subnet.model.js';
-import type { IExecution } from './execution.interface.js';
+import { ExecutionSchema } from './execution.schema.js';
 
 /**
  * An Execution model is the combination of a {@link Deployment}, an {@link Environment}, and a {@link Subnet}.
@@ -25,19 +24,8 @@ import type { IExecution } from './execution.interface.js';
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
-@Model('@octo', 'execution')
-export class Execution extends AModel<IExecution, Execution> {
-  /**
-   * A set of environment variables to be passed to the Docker container.
-   * It represents setting the [--env](https://docs.docker.com/compose/environment-variables/set-environment-variables/)
-   * option while running a Docker container.
-   */
-  @Validate({
-    destruct: (value: Map<string, string>): string[] => {
-      return Array.from(value.keys());
-    },
-    options: { maxLength: 64, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ },
-  })
+@Model<Execution>('@octo', 'execution', ExecutionSchema)
+export class Execution extends AModel<ExecutionSchema, Execution> {
   readonly environmentVariables: Map<string, string> = new Map();
 
   constructor(deployment: Deployment, environment: Environment, subnet: Subnet) {
@@ -118,7 +106,7 @@ export class Execution extends AModel<IExecution, Execution> {
     ].join(',');
   }
 
-  override synth(): IExecution {
+  override synth(): ExecutionSchema {
     const parents = this.getParents();
     const deployment = parents['deployment'][0]['to'] as Deployment;
     const environment = parents['environment'][0]['to'] as Environment;
@@ -133,7 +121,7 @@ export class Execution extends AModel<IExecution, Execution> {
   }
 
   static override async unSynth(
-    execution: IExecution,
+    execution: ExecutionSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Execution> {
     const [deployment, environment, subnet] = (await Promise.all([

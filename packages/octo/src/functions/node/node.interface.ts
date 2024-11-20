@@ -5,7 +5,7 @@ import type { Diff, DiffAction } from '../diff/diff.js';
 /**
  * {@link ANode} interface.
  */
-export interface INode<I, T> {
+export interface INode<S, T> {
   /**
    * To add another node as a child of self.
    *
@@ -174,7 +174,7 @@ export interface INode<I, T> {
   /**
    * Generates a serializable representation of self.
    */
-  synth(): I;
+  synth(): S;
 }
 
 /**

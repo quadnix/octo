@@ -1,13 +1,11 @@
 import { strict as assert } from 'assert';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
-import { Validate } from '../../decorators/validate.decorator.js';
 import { AModel } from '../model.abstract.js';
-import { IFilesystem } from './filesystem.interface.js';
+import { FilesystemSchema } from './filesystem.schema.js';
 
-@Model('@octo', 'filesystem')
-export class Filesystem extends AModel<IFilesystem, Filesystem> {
-  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
+@Model<Filesystem>('@octo', 'filesystem', FilesystemSchema)
+export class Filesystem extends AModel<FilesystemSchema, Filesystem> {
   readonly filesystemName: string;
 
   constructor(filesystemName: string) {
@@ -23,14 +21,14 @@ export class Filesystem extends AModel<IFilesystem, Filesystem> {
     );
   }
 
-  override synth(): IFilesystem {
+  override synth(): FilesystemSchema {
     return {
       filesystemName: this.filesystemName,
     };
   }
 
   static override async unSynth(
-    filesystem: IFilesystem,
+    filesystem: FilesystemSchema,
     deReferenceContext: (context: string) => Promise<UnknownModel>,
   ): Promise<Filesystem> {
     assert(!!deReferenceContext);

@@ -65,15 +65,15 @@ export class Container {
     } as FactoryContainer<T>;
     this.factories[name].push(newFactoryContainer);
 
-    let promiseResolver;
-    let promiseTimeout;
+    let promiseResolver: Awaited<(factory: Factory<T>) => void>;
+    let promiseTimeout: NodeJS.Timeout | undefined;
     const promise = new Promise<Factory<T>>((resolve, reject) => {
       promiseTimeout = setTimeout(() => {
         reject(new Error(`Timed out waiting for factory "${name}" to resolve!`));
       }, this.FACTORY_TIMEOUT_IN_MS);
       promiseResolver = resolve;
     });
-    newFactoryContainer.factory = [promise, promiseResolver];
+    newFactoryContainer.factory = [promise, promiseResolver!];
 
     const factory = await promise;
     if (promiseTimeout) {

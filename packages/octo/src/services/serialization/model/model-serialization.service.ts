@@ -1,7 +1,10 @@
 import {
+  type AnchorSchema,
   type IUnknownModel,
   type ModelSerializedOutput,
   NodeType,
+  type OverlaySchema,
+  type UnknownAnchor,
   type UnknownModel,
   type UnknownOverlay,
 } from '../../../app.type.js';
@@ -18,9 +21,7 @@ import {
 import { Dependency, type IDependency } from '../../../functions/dependency/dependency.js';
 import type { ANode } from '../../../functions/node/node.abstract.js';
 import type { AAnchor } from '../../../overlays/anchor.abstract.js';
-import type { IAnchor } from '../../../overlays/anchor.interface.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
-import type { IOverlay } from '../../../overlays/overlay.interface.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
 export class ModelSerializationService {
@@ -154,10 +155,10 @@ export class ModelSerializationService {
   @EventSource(ModelSerializedEvent)
   async serialize(root: UnknownModel): Promise<ModelSerializedOutput> {
     const boundary = root.getBoundaryMembers();
-    const anchors: (IAnchor & { className: string })[] = [];
+    const anchors: (AnchorSchema<UnknownAnchor> & { className: string })[] = [];
     const dependencies: IDependency[] = [];
     const models: { [key: string]: { className: string; model: IUnknownModel } } = {};
-    const overlays: { className: string; overlay: IOverlay }[] = [];
+    const overlays: { className: string; overlay: OverlaySchema<UnknownOverlay> }[] = [];
 
     for (const model of boundary) {
       for (const d of model.getDependencies()) {

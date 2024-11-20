@@ -26,7 +26,7 @@ export class StateManagementService {
 
     try {
       const modelState = await this.getState(stateFileName);
-      return JSON.parse(modelState.toString(), (k, v) => (v && freeze ? Object.freeze(v) : v));
+      return JSON.parse(modelState.toString(), (_k, v) => (v && freeze ? Object.freeze(v) : v));
     } catch (error) {
       if (error.message === 'No state found!') {
         return defaultValue;
@@ -51,7 +51,7 @@ export class StateManagementService {
 
     try {
       const resourceState = await this.getState(stateFileName);
-      return JSON.parse(resourceState.toString(), (k, v) => (v && freeze ? Object.freeze(v) : v));
+      return JSON.parse(resourceState.toString(), (_k, v) => (v && freeze ? Object.freeze(v) : v));
     } catch (error) {
       if (error.message === 'No state found!') {
         return defaultValue;

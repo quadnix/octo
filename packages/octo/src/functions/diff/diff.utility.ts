@@ -70,14 +70,14 @@ export class DiffUtility {
     a: UnknownNode,
     b: UnknownNode,
     field: string,
-    compare: (object1, object2) => boolean,
+    compare: (object1: unknown, object2: unknown) => boolean,
   ): Diff[] {
     const diff: Diff[] = [];
 
     // Iterate elements of previous (a). If found in latest (b), consider it an UPDATE.
     // If not found in latest (b), consider it a DELETE.
     for (const aObject of a[field]) {
-      if (b[field].some((bObject) => compare(aObject, bObject))) {
+      if (b[field].some((bObject: unknown) => compare(aObject, bObject))) {
         diff.push(new Diff(b, DiffAction.UPDATE, field, aObject));
       } else {
         diff.push(new Diff(a, DiffAction.DELETE, field, aObject));
@@ -86,7 +86,7 @@ export class DiffUtility {
 
     // Iterate elements of latest (b). If not found in previous (a), consider it an ADD.
     for (const bObject of b[field]) {
-      if (!a[field].some((aObject) => compare(aObject, bObject))) {
+      if (!a[field].some((aObject: unknown) => compare(aObject, bObject))) {
         diff.push(new Diff(b, DiffAction.ADD, field, bObject));
       }
     }
