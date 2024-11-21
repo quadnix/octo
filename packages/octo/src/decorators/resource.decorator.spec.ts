@@ -3,8 +3,11 @@ import { SharedTestResource, TestOverlay, TestResource } from '../../test/helper
 import { NodeType } from '../app.type.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
+import { BaseResourceSchema } from '../resources/resource.schema.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
 import { Resource } from './resource.decorator.js';
+
+class TestResourceSchema extends BaseResourceSchema {}
 
 describe('Resource UT', () => {
   let container: Container;
@@ -41,11 +44,15 @@ describe('Resource UT', () => {
     // @ts-expect-error static members are readonly.
     SharedTestResource['NODE_PACKAGE'] = undefined;
     // @ts-expect-error static members are readonly.
+    SharedTestResource['NODE_SCHEMA'] = undefined;
+    // @ts-expect-error static members are readonly.
     SharedTestResource['NODE_TYPE'] = undefined;
     // @ts-expect-error static members are readonly.
     TestResource['NODE_NAME'] = undefined;
     // @ts-expect-error static members are readonly.
     TestResource['NODE_PACKAGE'] = undefined;
+    // @ts-expect-error static members are readonly.
+    TestResource['NODE_SCHEMA'] = undefined;
     // @ts-expect-error static members are readonly.
     TestResource['NODE_TYPE'] = undefined;
 
@@ -54,19 +61,19 @@ describe('Resource UT', () => {
 
   it('should throw error when packageName is invalid', () => {
     expect(() => {
-      Resource('$$', '$$')(TestResource);
+      Resource<TestResource>('$$', '$$', TestResourceSchema)(TestResource);
     }).toThrowErrorMatchingInlineSnapshot(`"Invalid package name: $$"`);
   });
 
   it('should throw error when resourceName is invalid', () => {
     expect(() => {
-      Resource('@octo', '$$')(TestResource);
+      Resource<TestResource>('@octo', '$$', TestResourceSchema)(TestResource);
     }).toThrowErrorMatchingInlineSnapshot(`"Invalid resource name: $$"`);
   });
 
   it('should throw error when resource class does not extend AResource or ASharedResource', () => {
     expect(() => {
-      Resource('@octo', 'test')(TestOverlay);
+      Resource<TestResource>('@octo', 'test', TestResourceSchema)(TestOverlay);
     }).toThrowErrorMatchingInlineSnapshot(`"Class "TestOverlay" must extend the AResource or ASharedResource class!"`);
   });
 
@@ -76,7 +83,7 @@ describe('Resource UT', () => {
       throw new Error('error');
     });
 
-    Resource('@octo', 'test')(TestResource);
+    Resource<TestResource>('@octo', 'test', TestResourceSchema)(TestResource);
 
     await expect(async () => {
       await container.waitToResolveAllFactories();
@@ -87,17 +94,19 @@ describe('Resource UT', () => {
     it('should set static members', async () => {
       expect(TestResource.NODE_NAME).toBeUndefined();
       expect(TestResource.NODE_PACKAGE).toBeUndefined();
+      expect(TestResource.NODE_SCHEMA).toBeUndefined();
       expect(TestResource.NODE_TYPE).toBeUndefined();
 
-      Resource('@octo', 'test')(TestResource);
+      Resource<TestResource>('@octo', 'test', TestResourceSchema)(TestResource);
 
       expect(TestResource.NODE_NAME).toEqual('test');
       expect(TestResource.NODE_PACKAGE).toEqual('@octo');
+      expect(TestResource.NODE_SCHEMA).toEqual(TestResourceSchema);
       expect(TestResource.NODE_TYPE).toEqual(NodeType.RESOURCE);
     });
 
     it('should register a resource', async () => {
-      Resource('@octo', 'test')(TestResource);
+      Resource<TestResource>('@octo', 'test', TestResourceSchema)(TestResource);
 
       await container.waitToResolveAllFactories();
 
@@ -110,17 +119,19 @@ describe('Resource UT', () => {
     it('should set static members', async () => {
       expect(SharedTestResource.NODE_NAME).toBeUndefined();
       expect(SharedTestResource.NODE_PACKAGE).toBeUndefined();
+      expect(SharedTestResource.NODE_SCHEMA).toBeUndefined();
       expect(SharedTestResource.NODE_TYPE).toBeUndefined();
 
-      Resource('@octo', 'test')(SharedTestResource);
+      Resource<TestResource>('@octo', 'test', TestResourceSchema)(SharedTestResource);
 
       expect(SharedTestResource.NODE_NAME).toEqual('test');
       expect(SharedTestResource.NODE_PACKAGE).toEqual('@octo');
+      expect(SharedTestResource.NODE_SCHEMA).toEqual(TestResourceSchema);
       expect(SharedTestResource.NODE_TYPE).toEqual(NodeType.SHARED_RESOURCE);
     });
 
     it('should register a shared-resource', async () => {
-      Resource('@octo', 'test')(SharedTestResource);
+      Resource<TestResource>('@octo', 'test', TestResourceSchema)(SharedTestResource);
 
       await container.waitToResolveAllFactories();
 

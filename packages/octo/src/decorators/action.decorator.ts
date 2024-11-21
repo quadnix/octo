@@ -45,7 +45,7 @@ function isResource(nodeClass: Constructable<UnknownNode>): nodeClass is Constru
  * @returns The decorated class.
  * @see Definition of [Actions](/docs/fundamentals/actions).
  */
-export function Action(forNode: Constructable<UnknownNode>): (constructor: any) => void {
+export function Action<T extends UnknownNode>(forNode: Constructable<T>): (constructor: any) => void {
   const container = Container.getInstance();
 
   return function (constructor: any) {

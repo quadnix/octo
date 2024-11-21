@@ -6,11 +6,9 @@ import { AModule } from '../modules/module.abstract.js';
 import { ModuleContainer } from '../modules/module.container.js';
 import { Module } from './module.decorator.js';
 
-class TestModule extends AModule<{ key: 'value' }, App> {
-  override collectInputs(): string[] {
-    return [];
-  }
+class TestModuleSchema {}
 
+class TestModule extends AModule<TestModuleSchema, App> {
   async onInit(): Promise<App> {
     return new App('test');
   }
@@ -42,32 +40,36 @@ describe('Module UT', () => {
   afterEach(async () => {
     // @ts-expect-error static members are readonly.
     TestModule['MODULE_PACKAGE'] = undefined;
+    // @ts-expect-error static members are readonly.
+    TestModule['MODULE_SCHEMA'] = undefined;
 
     await TestContainer.reset();
   });
 
   it('should throw error when packageName is invalid', () => {
     expect(() => {
-      Module('$$')(TestModule);
+      Module<TestModule>('$$', TestModuleSchema)(TestModule);
     }).toThrowErrorMatchingInlineSnapshot(`"Invalid package name: $$"`);
   });
 
   it('should throw error when class does not extend AModule', async () => {
     await expect(async () => {
-      Module('@octo')(TestModuleWithoutOnInit as any);
+      Module<TestModule>('@octo', TestModuleSchema)(TestModuleWithoutOnInit as any);
     }).rejects.toThrowErrorMatchingInlineSnapshot(`"Class "TestModuleWithoutOnInit" must extend the AModule class!"`);
   });
 
   it('should set static members', async () => {
     expect(TestModule.MODULE_PACKAGE).toBeUndefined();
+    expect(TestModule.MODULE_SCHEMA).toBeUndefined();
 
-    Module('@octo')(TestModule);
+    Module<TestModule>('@octo', TestModuleSchema)(TestModule);
 
     expect(TestModule.MODULE_PACKAGE).toBe('@octo');
+    expect(TestModule.MODULE_SCHEMA).toBe(TestModuleSchema);
   });
 
   it('should register a module', async () => {
-    Module('@octo')(TestModule);
+    Module<TestModule>('@octo', TestModuleSchema)(TestModule);
 
     await container.waitToResolveAllFactories();
 

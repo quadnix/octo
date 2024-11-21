@@ -1,4 +1,4 @@
-import { type Constructable, NodeType, type OverlaySchema } from '../app.type.js';
+import { type Constructable, NodeType, type OverlaySchema, type UnknownOverlay } from '../app.type.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
 import { Container } from '../functions/container/container.js';
@@ -17,7 +17,7 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @returns The decorated class.
  * @see Definition of [Overlays](/docs/fundamentals/overlay-and-anchor).
  */
-export function Overlay<T>(
+export function Overlay<T extends UnknownOverlay>(
   packageName: string,
   overlayName: string,
   schema: Constructable<OverlaySchema<T>>,

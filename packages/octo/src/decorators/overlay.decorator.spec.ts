@@ -3,8 +3,11 @@ import { TestModelWithoutUnsynth, TestOverlay } from '../../test/helpers/test-cl
 import { NodeType } from '../app.type.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
+import { BaseOverlaySchema } from '../overlays/overlay.schema.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
 import { Overlay } from './overlay.decorator.js';
+
+class TestOverlaySchema extends BaseOverlaySchema {}
 
 describe('Overlay UT', () => {
   let container: Container;
@@ -37,6 +40,8 @@ describe('Overlay UT', () => {
     // @ts-expect-error static members are readonly.
     TestOverlay['NODE_PACKAGE'] = undefined;
     // @ts-expect-error static members are readonly.
+    TestOverlay['NODE_SCHEMA'] = undefined;
+    // @ts-expect-error static members are readonly.
     TestOverlay['NODE_TYPE'] = undefined;
 
     await TestContainer.reset();
@@ -44,36 +49,38 @@ describe('Overlay UT', () => {
 
   it('should throw error when packageName is invalid', () => {
     expect(() => {
-      Overlay('$$', '$$')(TestOverlay);
+      Overlay<TestOverlay>('$$', '$$', TestOverlaySchema)(TestOverlay);
     }).toThrowErrorMatchingInlineSnapshot(`"Invalid package name: $$"`);
   });
 
   it('should throw error when overlayName is invalid', () => {
     expect(() => {
-      Overlay('@octo', '$$')(TestOverlay);
+      Overlay<TestOverlay>('@octo', '$$', TestOverlaySchema)(TestOverlay);
     }).toThrowErrorMatchingInlineSnapshot(`"Invalid overlay name: $$"`);
   });
 
   it('should throw error when overlay class does not extend AOverlay', () => {
     expect(() => {
-      Overlay('@octo', 'test')(TestModelWithoutUnsynth);
+      Overlay<TestOverlay>('@octo', 'test', TestOverlaySchema)(TestModelWithoutUnsynth);
     }).toThrowErrorMatchingInlineSnapshot(`"Class "TestModelWithoutUnsynth" must extend the AOverlay class!"`);
   });
 
   it('should set static members', async () => {
     expect(TestOverlay.NODE_NAME).toBeUndefined();
     expect(TestOverlay.NODE_PACKAGE).toBeUndefined();
+    expect(TestOverlay.NODE_SCHEMA).toBeUndefined();
     expect(TestOverlay.NODE_TYPE).toBeUndefined();
 
-    Overlay('@octo', 'test')(TestOverlay);
+    Overlay<TestOverlay>('@octo', 'test', TestOverlaySchema)(TestOverlay);
 
     expect(TestOverlay.NODE_NAME).toEqual('test');
     expect(TestOverlay.NODE_PACKAGE).toEqual('@octo');
+    expect(TestOverlay.NODE_SCHEMA).toEqual(TestOverlaySchema);
     expect(TestOverlay.NODE_TYPE).toEqual(NodeType.OVERLAY);
   });
 
   it('should register an overlay', async () => {
-    Overlay('@octo', 'test')(TestOverlay);
+    Overlay<TestOverlay>('@octo', 'test', TestOverlaySchema)(TestOverlay);
 
     await container.waitToResolveAllFactories();
 
@@ -87,7 +94,7 @@ describe('Overlay UT', () => {
       throw new Error('error');
     });
 
-    Overlay('@octo', 'test')(TestOverlay);
+    Overlay<TestOverlay>('@octo', 'test', TestOverlaySchema)(TestOverlay);
 
     await expect(async () => {
       await container.waitToResolveAllFactories();

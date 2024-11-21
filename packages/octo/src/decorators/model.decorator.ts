@@ -1,4 +1,4 @@
-import { type Constructable, type ModelSchema, NodeType } from '../app.type.js';
+import { type Constructable, type ModelSchema, NodeType, type UnknownModel } from '../app.type.js';
 import { AModel } from '../models/model.abstract.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
@@ -18,7 +18,7 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * @returns The decorated class.
  * @see Definition of [Models](/docs/fundamentals/models).
  */
-export function Model<T>(
+export function Model<T extends UnknownModel>(
   packageName: string,
   modelName: string,
   schema: Constructable<ModelSchema<T>>,
