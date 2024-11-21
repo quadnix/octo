@@ -1,5 +1,5 @@
+import type { UnknownAnchor, UnknownModel, UnknownOverlay, UnknownResource } from '../../src/app.type.js';
 import {
-  type AAnchor,
   App,
   Container,
   Deployment,
@@ -12,9 +12,6 @@ import {
   Server,
   Service,
   Subnet,
-  type UnknownModel,
-  type UnknownOverlay,
-  type UnknownResource,
 } from '../../src/index.js';
 import { OverlayDataRepository } from '../../src/overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../src/resources/resource-data.repository.js';
@@ -226,7 +223,7 @@ export function create({
   return result;
 }
 
-export async function createTestOverlays(overlays: { [key: string]: AAnchor[] }): Promise<UnknownOverlay[]> {
+export async function createTestOverlays(overlays: { [key: string]: UnknownAnchor[] }): Promise<UnknownOverlay[]> {
   const overlayDataRepository = await Container.getInstance().get(OverlayDataRepository);
   const result: UnknownOverlay[] = [];
 

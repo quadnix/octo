@@ -145,7 +145,7 @@ describe('Diff Utility UT', () => {
           { a: [{ a: 1 }], b: 2, getContext: () => ({ a: [{ a: 1 }], b: 2 }) } as unknown as UnknownNode,
           { a: [{ a: 1 }], b: 2, getContext: () => ({ a: [{ a: 1 }], b: 2 }) } as unknown as UnknownNode,
           'a',
-          (object1, object2) => object1.a === object2.a,
+          (object1: { a: number }, object2: { a: number }) => object1.a === object2.a,
         ),
       ).toMatchInlineSnapshot(`
        [
@@ -174,7 +174,7 @@ describe('Diff Utility UT', () => {
           { a: [{ a: 1 }], b: 2, getContext: () => ({ a: [{ a: 1 }], b: 2 }) } as unknown as UnknownNode,
           { a: [], b: 2, getContext: () => ({ a: [], b: 2 }) } as unknown as UnknownNode,
           'a',
-          (object1, object2) => object1.a === object2.a,
+          (object1: { a: number }, object2: { a: number }) => object1.a === object2.a,
         ),
       ).toMatchInlineSnapshot(`
        [
@@ -203,7 +203,7 @@ describe('Diff Utility UT', () => {
           { a: [], b: 2, getContext: () => ({ a: [], b: 2 }) } as unknown as UnknownNode,
           { a: [{ a: 1 }], b: 2, getContext: () => ({ a: [{ a: 1 }], b: 2 }) } as unknown as UnknownNode,
           'a',
-          (object1, object2) => object1.a === object2.a,
+          (object1: { a: number }, object2: { a: number }) => object1.a === object2.a,
         ),
       ).toMatchInlineSnapshot(`
        [
