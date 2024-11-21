@@ -78,6 +78,8 @@ export class TestContainer {
    */
   static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<Container> {
     const container = Container.getInstance(true);
+
+    // Load new container with previous factories.
     for (const [type, factoryContainers] of Object.entries(this.originalFactories)) {
       container['factories'][type] = [];
       for (const factoryContainer of factoryContainers) {
@@ -87,12 +89,15 @@ export class TestContainer {
         });
       }
     }
+    // Reset state of eligible factories.
+    // A factory is eligible if it has an internal structure and should be reset on every test.
     await this.bootstrap(container);
 
     if (options?.factoryTimeoutInMs) {
       container.setFactoryTimeout(options.factoryTimeoutInMs);
     }
 
+    // Override new container with mock factories as instructed.
     for (const mock of subjects.mocks || []) {
       container.unRegisterFactory(mock.type, { metadata: mock.metadata });
       container.registerValue(mock.type, mock.value, { metadata: mock.metadata });
