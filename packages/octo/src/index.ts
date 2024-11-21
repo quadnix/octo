@@ -13,10 +13,10 @@ export * from './events/index.js';
 
 export { Container } from './functions/container/container.js';
 export { TestContainer } from './functions/container/test-container.js';
-export { Dependency, DependencyRelationship, IDependency } from './functions/dependency/dependency.js';
+export { Dependency, DependencyRelationship, type IDependency } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
-export { Schema } from './functions/schema/schema.js';
+export { getSchemaKeys, Schema } from './functions/schema/schema.js';
 
 export { App } from './models/app/app.model.js';
 export { AppSchema } from './models/app/app.schema.js';
@@ -41,21 +41,18 @@ export { ServiceSchema } from './models/service/service.schema.js';
 export { Subnet } from './models/subnet/subnet.model.js';
 export { SubnetSchema, SubnetType } from './models/subnet/subnet.schema.js';
 
-export { AModel } from './models/model.abstract.js';
-export { type IModel, type IModelReference } from './models/model.interface.js';
+export { type IModelReference } from './models/model.interface.js';
 export { type IModelAction } from './models/model-action.interface.js';
 
 export { AModule } from './modules/module.abstract.js';
-export { type IModule } from './modules/module.interface.js';
 export { TestModule, TestModuleContainer } from './modules/test-module.container.js';
 
 export { AAnchor } from './overlays/anchor.abstract.js';
-export { type IAnchor } from './overlays/anchor.interface.js';
+export { BaseAnchorSchema } from './overlays/anchor.schema.js';
 export { AOverlay } from './overlays/overlay.abstract.js';
-export { type IOverlay } from './overlays/overlay.interface.js';
+export { BaseOverlaySchema } from './overlays/overlay.schema.js';
 
 export { AResource } from './resources/resource.abstract.js';
-export { type IResource } from './resources/resource.interface.js';
 export { BaseResourceSchema } from './resources/resource.schema.js';
 export { type IResourceAction } from './resources/resource-action.interface.js';
 export { ASharedResource } from './resources/shared-resource.abstract.js';
@@ -65,6 +62,15 @@ export { StateManagementService } from './services/state-management/state-manage
 export { type IStateProvider } from './services/state-management/state-provider.interface.js';
 export { TestStateProvider } from './services/state-management/test.state-provider.js';
 
-export * from './app.type.js';
+export type {
+  ActionInputs,
+  ActionOutputs,
+  Constructable,
+  AnchorSchema,
+  ModelSchema,
+  ModuleSchema,
+  OverlaySchema,
+  ResourceSchema,
+} from './app.type.js';
 
 export { Octo } from './main.js';
