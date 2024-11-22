@@ -20,8 +20,8 @@ describe('Resource UT', () => {
   it('should add parent', async () => {
     const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
 
-    expect((resource1.getChildren()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe('resource-2');
-    expect((resource2.getParents()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe('resource-1');
+    expect((resource1.getChildren()['test-resource'][0].to as UnknownResource).resourceId).toBe('resource-2');
+    expect((resource2.getParents()['test-resource'][0].to as UnknownResource).resourceId).toBe('resource-1');
   });
 
   it('should not add same parent twice', async () => {
