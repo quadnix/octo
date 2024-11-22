@@ -1,10 +1,9 @@
 import { SharedTestResource, TestResource } from '../../../../test/helpers/test-classes.js';
 import { commitResources, createTestResources } from '../../../../test/helpers/test-models.js';
-import { type ResourceSerializedOutput } from '../../../app.type.js';
+import type { ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
 import type { Container } from '../../../functions/container/container.js';
 import { TestContainer } from '../../../functions/container/test-container.js';
 import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
-import { type AResource } from '../../../resources/resource.abstract.js';
 import { ResourceSerializationService } from './resource-serialization.service.js';
 
 describe('Resource Serialization Service UT', () => {
@@ -108,10 +107,9 @@ describe('Resource Serialization Service UT', () => {
 
       const deserializedResources = resourceDataRepository['oldResources'];
       const resource1Deserialized = deserializedResources.find((r) => r.resourceId === 'resource-1');
-      const resource2Deserialized = resource1Deserialized!.getChildren()['test-resource'][0]
-        .to as AResource<TestResource>;
+      const resource2Deserialized = resource1Deserialized!.getChildren()['test-resource'][0].to as UnknownResource;
       expect(resource2Deserialized.resourceId).toBe('resource-2');
-      expect((resource2Deserialized.getParents()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe(
+      expect((resource2Deserialized.getParents()['test-resource'][0].to as UnknownResource).resourceId).toBe(
         'resource-1',
       );
     });
@@ -134,10 +132,9 @@ describe('Resource Serialization Service UT', () => {
 
       const deserializedResources = resourceDataRepository['oldResources'];
       const resource1Deserialized = deserializedResources.find((r) => r.resourceId === 'resource-1');
-      const resource2Deserialized = resource1Deserialized!.getChildren()['test-resource'][0]
-        .to as AResource<TestResource>;
+      const resource2Deserialized = resource1Deserialized!.getChildren()['test-resource'][0].to as UnknownResource;
       expect(resource2Deserialized.resourceId).toBe('resource-2');
-      expect((resource2Deserialized.getParents()['test-resource'][0].to as AResource<TestResource>).resourceId).toBe(
+      expect((resource2Deserialized.getParents()['test-resource'][0].to as UnknownResource).resourceId).toBe(
         'resource-1',
       );
     });
