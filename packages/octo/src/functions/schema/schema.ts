@@ -6,12 +6,14 @@ export function getSchemaInstance<S>(
   value: Record<string, unknown>,
 ): Record<string, unknown> {
   const instance: Record<string, unknown> = {};
+  const t = new schemaClass();
 
   for (const key of getSchemaKeys<S>(schemaClass)) {
     if (!value.hasOwnProperty(key)) {
       throw new SchemaError(`Property "${key}" from schema is missing from inputs!`, schemaClass.name);
     }
 
+    t[key] = value[key];
     instance[key] = value[key];
   }
 
@@ -29,6 +31,6 @@ export function getSchemaKeys<S>(schemaClass: Constructable<S>): string[] {
   return keys;
 }
 
-export function Schema<T>(): T {
-  return undefined as T;
+export function Schema<T>(defaultValue?: T): T {
+  return (defaultValue === undefined ? undefined : (defaultValue as T)) as T;
 }

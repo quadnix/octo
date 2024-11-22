@@ -15,10 +15,16 @@ export function Validate<T>(
     const validationService = new ValidationService();
 
     Object.defineProperty(target, propertyKey, {
+      enumerable: true,
       get: function () {
         return this[symbol];
       },
       set: function (newValue: any) {
+        if (newValue === undefined) {
+          this[symbol] = undefined;
+          return;
+        }
+
         if (!Array.isArray(validators)) {
           validators = [validators];
         }
