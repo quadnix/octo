@@ -1,13 +1,6 @@
-import {
-  type AModel,
-  App,
-  DependencyRelationship,
-  DiffAction,
-  Environment,
-  Region,
-  TestContainer,
-  type UnknownModel,
-} from '../../src/index.js';
+import type { UnknownModel } from '../../src/app.type.js';
+import { App, DependencyRelationship, DiffAction, Environment, Region, TestContainer } from '../../src/index.js';
+import type { AModel } from '../../src/models/model.abstract.js';
 import { TestAnchor, TestModelWithoutUnsynth } from '../helpers/test-classes.js';
 import { create, createTestOverlays } from '../helpers/test-models.js';
 
