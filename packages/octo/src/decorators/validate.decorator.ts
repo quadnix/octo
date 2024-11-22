@@ -12,7 +12,6 @@ export function Validate<T>(
 ): (target: any, propertyKey: string) => void {
   return function (target: any, propertyKey: string) {
     const symbol = Symbol();
-    const validationService = new ValidationService();
 
     Object.defineProperty(target, propertyKey, {
       enumerable: true,
@@ -29,6 +28,7 @@ export function Validate<T>(
           validators = [validators];
         }
 
+        const validationService = new ValidationService();
         for (const validator of validators) {
           for (const [type, constraint] of Object.entries(validator.options)) {
             validationService.addSubject(
