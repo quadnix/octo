@@ -1,39 +1,31 @@
 import { create } from '../../../test/helpers/test-models.js';
 import { NodeType } from '../../app.type.js';
-import type { Container } from '../../functions/container/container.js';
-import { TestContainer } from '../../functions/container/test-container.js';
 import { DependencyRelationship } from '../../functions/dependency/dependency.js';
-import { ValidationService } from '../../services/validation/validation.service.js';
+import { getSchemaInstance } from '../../functions/schema/schema.js';
 import type { AModel } from '../model.abstract.js';
-import { Region } from './region.model.js';
+import { RegionSchema } from './region.schema.js';
 
 describe('Region UT', () => {
-  let container: Container;
-
-  beforeEach(async () => {
-    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
-  });
-
-  afterEach(async () => {
-    await TestContainer.reset();
-  });
-
   it('should set static members', () => {
-    const region = new Region('region');
+    const {
+      region: [region],
+    } = create({ app: ['test'], region: ['region-1'] });
 
     expect((region.constructor as typeof AModel).NODE_NAME).toBe('region');
     expect((region.constructor as typeof AModel).NODE_PACKAGE).toBe('@octo');
+    expect((region.constructor as typeof AModel).NODE_SCHEMA).toBe(RegionSchema);
     expect((region.constructor as typeof AModel).NODE_TYPE).toBe(NodeType.MODEL);
   });
 
-  describe('validation', () => {
+  describe('schema validation', () => {
     it('should validate regionId', async () => {
-      new Region('$$');
+      const {
+        region: [region],
+      } = create({ app: ['test'], region: ['$$'] });
 
-      const validationService = await container.get(ValidationService);
-      const result = validationService.validate();
-
-      expect(result.pass).toBeFalsy();
+      expect(() => {
+        getSchemaInstance<RegionSchema>(RegionSchema, region.synth() as unknown as Record<string, unknown>);
+      }).toThrow('Validation error!');
     });
   });
 

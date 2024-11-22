@@ -1,39 +1,31 @@
 import { create } from '../../../test/helpers/test-models.js';
 import { NodeType } from '../../app.type.js';
-import type { Container } from '../../functions/container/container.js';
-import { TestContainer } from '../../functions/container/test-container.js';
 import { DependencyRelationship } from '../../functions/dependency/dependency.js';
-import { ValidationService } from '../../services/validation/validation.service.js';
+import { getSchemaInstance } from '../../functions/schema/schema.js';
 import type { AModel } from '../model.abstract.js';
-import { Server } from './server.model.js';
+import { ServerSchema } from './server.schema.js';
 
 describe('Server UT', () => {
-  let container: Container;
-
-  beforeEach(async () => {
-    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
-  });
-
-  afterEach(async () => {
-    await TestContainer.reset();
-  });
-
   it('should set static members', () => {
-    const server = new Server('backend');
+    const {
+      server: [server],
+    } = create({ app: ['test'], server: ['backend'] });
 
     expect((server.constructor as typeof AModel).NODE_NAME).toBe('server');
     expect((server.constructor as typeof AModel).NODE_PACKAGE).toBe('@octo');
+    expect((server.constructor as typeof AModel).NODE_SCHEMA).toBe(ServerSchema);
     expect((server.constructor as typeof AModel).NODE_TYPE).toBe(NodeType.MODEL);
   });
 
-  describe('validation', () => {
+  describe('schema validation', () => {
     it('should validate serverKey', async () => {
-      new Server('$$');
+      const {
+        server: [server],
+      } = create({ app: ['test'], server: ['$$'] });
 
-      const validationService = await container.get(ValidationService);
-      const result = validationService.validate();
-
-      expect(result.pass).toBeFalsy();
+      expect(() => {
+        getSchemaInstance<ServerSchema>(ServerSchema, server.synth() as unknown as Record<string, unknown>);
+      }).toThrow('Validation error!');
     });
   });
 

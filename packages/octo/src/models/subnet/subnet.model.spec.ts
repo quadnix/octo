@@ -1,22 +1,10 @@
 import { create } from '../../../test/helpers/test-models.js';
 import { NodeType } from '../../app.type.js';
-import type { Container } from '../../functions/container/container.js';
-import { TestContainer } from '../../functions/container/test-container.js';
-import { ValidationService } from '../../services/validation/validation.service.js';
+import { getSchemaInstance } from '../../functions/schema/schema.js';
 import type { AModel } from '../model.abstract.js';
-import { SubnetType } from './subnet.model.js';
+import { SubnetSchema, SubnetType } from './subnet.schema.js';
 
 describe('Subnet UT', () => {
-  let container: Container;
-
-  beforeEach(async () => {
-    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
-  });
-
-  afterEach(async () => {
-    await TestContainer.reset();
-  });
-
   it('should set static members', () => {
     const {
       subnet: [subnet],
@@ -24,6 +12,7 @@ describe('Subnet UT', () => {
 
     expect((subnet.constructor as typeof AModel).NODE_NAME).toBe('subnet');
     expect((subnet.constructor as typeof AModel).NODE_PACKAGE).toBe('@octo');
+    expect((subnet.constructor as typeof AModel).NODE_SCHEMA).toBe(SubnetSchema);
     expect((subnet.constructor as typeof AModel).NODE_TYPE).toBe(NodeType.MODEL);
   });
 
@@ -38,14 +27,15 @@ describe('Subnet UT', () => {
     expect(subnet.subnetType).toBe(SubnetType.PUBLIC);
   });
 
-  describe('validation', () => {
+  describe('schema validation', () => {
     it('should validate subnetName', async () => {
-      create({ app: ['test'], region: ['region'], subnet: ['$$'] });
+      const {
+        subnet: [subnet],
+      } = create({ app: ['test'], region: ['region'], subnet: ['$$'] });
 
-      const validationService = await container.get(ValidationService);
-      const result = validationService.validate();
-
-      expect(result.pass).toBeFalsy();
+      expect(() => {
+        getSchemaInstance<SubnetSchema>(SubnetSchema, subnet.synth() as unknown as Record<string, unknown>);
+      }).toThrow('Validation error!');
     });
   });
 
