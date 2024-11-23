@@ -8,7 +8,7 @@ describe('Dependency UT', () => {
       const {
         app: [app],
         region: [region],
-      } = create({ app: ['app'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['app'], region: ['region-1'] });
 
       const dependency = new Dependency(app, region);
 
@@ -22,7 +22,7 @@ describe('Dependency UT', () => {
       const {
         app: [app],
         region: [region],
-      } = create({ app: ['app'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['app'], region: ['region-1'] });
 
       const dependency = new Dependency(app, region);
 
@@ -36,7 +36,7 @@ describe('Dependency UT', () => {
       const {
         app: [app],
         region: [region],
-      } = create({ app: ['app'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['app'], region: ['region-1'] });
 
       const dependency = new Dependency(app, region);
 
@@ -49,7 +49,7 @@ describe('Dependency UT', () => {
       const {
         app: [app],
         region: [region],
-      } = create({ app: ['app'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['app'], region: ['region-1'] });
 
       const dependency = new Dependency(app, region);
 
@@ -66,16 +66,16 @@ describe('Dependency UT', () => {
       const {
         environment: [environment],
         region: [region],
-      } = create({ app: ['app'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['app'], environment: ['qa'], region: ['region-1'] });
 
       const dependency = new Dependency(region, environment);
 
       expect(dependency.synth()).toMatchInlineSnapshot(`
         {
           "behaviors": [],
-          "from": "region=region-1,app=app",
+          "from": "region=region-1,account=account,app=app",
           "relationship": undefined,
-          "to": "environment=qa,region=region-1,app=app",
+          "to": "environment=qa,region=region-1,account=account,app=app",
         }
       `);
     });
@@ -86,7 +86,7 @@ describe('Dependency UT', () => {
       const {
         environment: [environment],
         region: [region],
-      } = create({ app: ['app'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['app'], environment: ['qa'], region: ['region-1'] });
 
       const dependency = new Dependency(region, environment);
       const dependencySynth = dependency.synth();

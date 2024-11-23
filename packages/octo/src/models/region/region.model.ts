@@ -73,8 +73,8 @@ export class Region extends AModel<RegionSchema, Region> {
 
   override setContext(): string {
     const parents = this.getParents();
-    const app = parents['app'][0].to;
-    return [`${(this.constructor as typeof Region).NODE_NAME}=${this.regionId}`, app.getContext()].join(',');
+    const account = parents['account'][0].to;
+    return [`${(this.constructor as typeof Region).NODE_NAME}=${this.regionId}`, account.getContext()].join(',');
   }
 
   override synth(): RegionSchema {

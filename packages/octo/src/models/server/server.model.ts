@@ -43,8 +43,8 @@ export class Server extends AModel<ServerSchema, Server> {
 
   override setContext(): string {
     const parents = this.getParents();
-    const app = parents['app'][0].to;
-    return [`${(this.constructor as typeof Server).NODE_NAME}=${this.serverKey}`, app.getContext()].join(',');
+    const account = parents['account'][0].to;
+    return [`${(this.constructor as typeof Server).NODE_NAME}=${this.serverKey}`, account.getContext()].join(',');
   }
 
   override synth(): ServerSchema {

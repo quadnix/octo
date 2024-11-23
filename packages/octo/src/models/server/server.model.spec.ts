@@ -9,7 +9,7 @@ describe('Server UT', () => {
   it('should set static members', () => {
     const {
       server: [server],
-    } = create({ app: ['test'], server: ['backend'] });
+    } = create({ account: ['account'], app: ['test'], server: ['backend'] });
 
     expect((server.constructor as typeof AModel).NODE_NAME).toBe('server');
     expect((server.constructor as typeof AModel).NODE_PACKAGE).toBe('@octo');
@@ -21,7 +21,7 @@ describe('Server UT', () => {
     it('should validate serverKey', async () => {
       const {
         server: [server],
-      } = create({ app: ['test'], server: ['$$'] });
+      } = create({ account: ['account'], app: ['test'], server: ['$$'] });
 
       expect(() => {
         getSchemaInstance<ServerSchema>(ServerSchema, server.synth() as unknown as Record<string, unknown>);
@@ -32,7 +32,7 @@ describe('Server UT', () => {
   describe('addDeployment()', () => {
     it('should throw error if duplicate deployment exist', () => {
       expect(() => {
-        create({ app: ['test'], deployment: ['0.0.1', '0.0.1:-1'], server: ['backend'] });
+        create({ account: ['account'], app: ['test'], deployment: ['0.0.1', '0.0.1:-1'], server: ['backend'] });
       }).toThrow('Deployment already exists!');
     });
 
@@ -40,7 +40,7 @@ describe('Server UT', () => {
       const {
         deployment: [deployment],
         server: [server],
-      } = create({ app: ['test'], deployment: ['0.0.1'], server: ['backend'] });
+      } = create({ account: ['account'], app: ['test'], deployment: ['0.0.1'], server: ['backend'] });
 
       expect(server.getDependencyIndex(deployment, DependencyRelationship.PARENT)).toBeGreaterThan(-1);
       expect(deployment.getDependencyIndex(server, DependencyRelationship.CHILD)).toBeGreaterThan(-1);

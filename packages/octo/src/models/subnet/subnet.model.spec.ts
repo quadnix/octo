@@ -8,7 +8,7 @@ describe('Subnet UT', () => {
   it('should set static members', () => {
     const {
       subnet: [subnet],
-    } = create({ app: ['test'], region: ['region'], subnet: ['public'] });
+    } = create({ account: ['account'], app: ['test'], region: ['region'], subnet: ['public'] });
 
     expect((subnet.constructor as typeof AModel).NODE_NAME).toBe('subnet');
     expect((subnet.constructor as typeof AModel).NODE_PACKAGE).toBe('@octo');
@@ -19,7 +19,7 @@ describe('Subnet UT', () => {
   it('should set subnetId and options', () => {
     const {
       subnet: [subnet],
-    } = create({ app: ['test'], region: ['region'], subnet: ['public'] });
+    } = create({ account: ['account'], app: ['test'], region: ['region'], subnet: ['public'] });
     subnet.subnetType = SubnetType.PUBLIC;
 
     expect(subnet.subnetId).toBe('region-public');
@@ -31,7 +31,7 @@ describe('Subnet UT', () => {
     it('should validate subnetName', async () => {
       const {
         subnet: [subnet],
-      } = create({ app: ['test'], region: ['region'], subnet: ['$$'] });
+      } = create({ account: ['account'], app: ['test'], region: ['region'], subnet: ['$$'] });
 
       expect(() => {
         getSchemaInstance<SubnetSchema>(SubnetSchema, subnet.synth() as unknown as Record<string, unknown>);
@@ -43,7 +43,7 @@ describe('Subnet UT', () => {
     it('should add and remove another subnet as sibling', () => {
       const {
         subnet: [privateSubnet, publicSubnet],
-      } = create({ app: ['test'], region: ['region'], subnet: ['private', 'public:-1'] });
+      } = create({ account: ['account'], app: ['test'], region: ['region'], subnet: ['private', 'public:-1'] });
 
       privateSubnet.updateNetworkingRules(publicSubnet, true);
 
@@ -59,7 +59,7 @@ describe('Subnet UT', () => {
     it('should not add same sibling twice', () => {
       const {
         subnet: [privateSubnet, publicSubnet],
-      } = create({ app: ['test'], region: ['region'], subnet: ['private', 'public:-1'] });
+      } = create({ account: ['account'], app: ['test'], region: ['region'], subnet: ['private', 'public:-1'] });
 
       privateSubnet.updateNetworkingRules(publicSubnet, true);
       privateSubnet.updateNetworkingRules(publicSubnet, true);

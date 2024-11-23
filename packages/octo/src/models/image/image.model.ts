@@ -39,8 +39,8 @@ export class Image extends AModel<ImageSchema, Image> {
 
   override setContext(): string {
     const parents = this.getParents();
-    const app = parents['app'][0].to;
-    return [`${(this.constructor as typeof Image).NODE_NAME}=${this.imageId}`, app.getContext()].join(',');
+    const account = parents['account'][0].to;
+    return [`${(this.constructor as typeof Image).NODE_NAME}=${this.imageId}`, account.getContext()].join(',');
   }
 
   override synth(): ImageSchema {

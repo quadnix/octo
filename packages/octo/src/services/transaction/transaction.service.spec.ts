@@ -13,6 +13,7 @@ import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
+import { Account } from '../../models/account/account.model.js';
 import { type IModelAction } from '../../models/model-action.interface.js';
 import { App } from '../../models/app/app.model.js';
 import { Region } from '../../models/region/region.model.js';
@@ -410,7 +411,7 @@ describe('TransactionService UT', () => {
     it('should not set order for diff that already has an order defined', () => {
       const {
         environment: [environment],
-      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, modelActions);
@@ -424,7 +425,7 @@ describe('TransactionService UT', () => {
     it('should set order 0 for diff with no dependencies', () => {
       const {
         environment: [environment],
-      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, modelActions);
@@ -437,7 +438,7 @@ describe('TransactionService UT', () => {
     it('should set order 0 for diff with dependencies not in current array of diffs', () => {
       const {
         environment: [environment],
-      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, modelActions);
@@ -451,7 +452,7 @@ describe('TransactionService UT', () => {
       const {
         environment: [environment],
         region: [region1, region2],
-      } = create({ app: ['test'], environment: ['qa'], region: ['region-1', 'region-2:-1'] });
+      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1', 'region-2:-1'] });
 
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region1, DiffAction.ADD, 'regionId', 'region-1');
@@ -469,7 +470,7 @@ describe('TransactionService UT', () => {
       const {
         environment: [environment],
         region: [region],
-      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
@@ -484,73 +485,86 @@ describe('TransactionService UT', () => {
 
     it('should set order 2 for diff with 2 level of dependencies', () => {
       const {
+        account: [account],
         app: [app],
         environment: [environment],
         region: [region],
-      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
-      const diff3 = new Diff(app, DiffAction.ADD, 'name', 'test');
-      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
+      const diff3 = new Diff(account, DiffAction.ADD, 'accountId', 'account');
+      const diff4 = new Diff(app, DiffAction.ADD, 'name', 'test');
+      const diffsMetadata = [diff1, diff2, diff3, diff4].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
       expect(diffsMetadata[2].applyOrder).toBe(-1);
+      expect(diffsMetadata[3].applyOrder).toBe(-1);
       setApplyOrder(diffsMetadata[0], diffsMetadata);
-      expect(diffsMetadata[0].applyOrder).toBe(2);
-      expect(diffsMetadata[1].applyOrder).toBe(1);
-      expect(diffsMetadata[2].applyOrder).toBe(0);
+      expect(diffsMetadata[0].applyOrder).toBe(3);
+      expect(diffsMetadata[1].applyOrder).toBe(2);
+      expect(diffsMetadata[2].applyOrder).toBe(1);
+      expect(diffsMetadata[3].applyOrder).toBe(0);
     });
 
     it('should throw errors with 1 level of circular dependencies', () => {
       const app = new App('test');
+      const account = new Account('account');
       const region = new Region('region-1');
 
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
-      const diff2 = new Diff(app, DiffAction.ADD, 'name', 'test');
-      const diffsMetadata = [diff1, diff2].map((d) => new DiffMetadata(d, modelActions));
-
-      expect(diffsMetadata[0].applyOrder).toBe(-1);
-      expect(diffsMetadata[1].applyOrder).toBe(-1);
-      expect(() => {
-        app.addRegion(region);
-        region.addChild('regionId', app, 'name');
-        setApplyOrder(diffsMetadata[0], diffsMetadata);
-      }).toThrow('Dependency relationship already exists!');
-      expect(diffsMetadata[0].applyOrder).toBe(-1);
-      expect(diffsMetadata[1].applyOrder).toBe(-1);
-    });
-
-    it('should throw errors with 2 level of circular dependencies', () => {
-      const {
-        app: [app],
-        environment: [environment],
-        region: [region],
-      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
-      environment.addChild('environmentName', app, 'name');
-
-      const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
-      const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
+      const diff2 = new Diff(account, DiffAction.ADD, 'accountId', 'account');
       const diff3 = new Diff(app, DiffAction.ADD, 'name', 'test');
       const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
 
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
       expect(diffsMetadata[2].applyOrder).toBe(-1);
+      expect(() => {
+        app.addAccount(account);
+        account.addRegion(region);
+        region.addChild('regionId', account, 'accountId');
+        setApplyOrder(diffsMetadata[0], diffsMetadata);
+      }).toThrow('Dependency relationship already exists!');
+      expect(diffsMetadata[0].applyOrder).toBe(-1);
+      expect(diffsMetadata[1].applyOrder).toBe(-1);
+      expect(diffsMetadata[2].applyOrder).toBe(-1);
+    });
+
+    it('should throw errors with 2 level of circular dependencies', () => {
+      const {
+        account: [account],
+        app: [app],
+        environment: [environment],
+        region: [region],
+      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
+      environment.addChild('environmentName', app, 'name');
+
+      const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
+      const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
+      const diff3 = new Diff(account, DiffAction.ADD, 'accountId', 'account');
+      const diff4 = new Diff(app, DiffAction.ADD, 'name', 'test');
+      const diffsMetadata = [diff1, diff2, diff3, diff4].map((d) => new DiffMetadata(d, modelActions));
+
+      expect(diffsMetadata[0].applyOrder).toBe(-1);
+      expect(diffsMetadata[1].applyOrder).toBe(-1);
+      expect(diffsMetadata[2].applyOrder).toBe(-1);
+      expect(diffsMetadata[3].applyOrder).toBe(-1);
       expect(() => {
         setApplyOrder(diffsMetadata[0], diffsMetadata);
       }).toThrow('Found circular dependencies!');
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
       expect(diffsMetadata[2].applyOrder).toBe(-1);
+      expect(diffsMetadata[3].applyOrder).toBe(-1);
     });
 
     it('should throw errors if add and update of model are in same transaction', () => {
       const {
         environment: [environment],
         region: [region],
-      } = create({ app: ['test'], environment: ['env'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['test'], environment: ['env'], region: ['region-1'] });
 
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
       const diff2 = new Diff(environment, DiffAction.ADD, 'environmentName', 'env');
@@ -596,7 +610,7 @@ describe('TransactionService UT', () => {
 
         const {
           app: [app],
-        } = create({ app: ['app'], image: ['image'] });
+        } = create({ account: ['account'], app: ['app'] });
         const anchor1 = new TestAnchor('anchor-1', {}, app);
         app.addAnchor(anchor1);
 

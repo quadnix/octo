@@ -17,7 +17,7 @@ describe('Overlay UT', () => {
   it('should set context', async () => {
     const {
       app: [app],
-    } = create({ app: ['test'], region: ['region'] });
+    } = create({ app: ['test'] });
     const anchor1 = new TestAnchor('anchor-1', {}, app);
     app.addAnchor(anchor1);
 
@@ -50,7 +50,7 @@ describe('Overlay UT', () => {
     it('should throw error creating duplicate anchors', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -65,7 +65,7 @@ describe('Overlay UT', () => {
     it('should create dependency between overlay and anchor parents', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -121,7 +121,7 @@ describe('Overlay UT', () => {
     it('should produce an add diff for an anchor', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -153,7 +153,7 @@ describe('Overlay UT', () => {
     it('should return an anchor', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -166,7 +166,7 @@ describe('Overlay UT', () => {
     it('should return the anchor index', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -179,7 +179,7 @@ describe('Overlay UT', () => {
     it('should not remove an anchor that is not in the overlay', async () => {
       const {
         app: [app],
-      } = create({ app: ['test1'], region: ['region'] });
+      } = create({ app: ['test1'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -197,7 +197,7 @@ describe('Overlay UT', () => {
     it('should remove dependency between overlay and anchor parents', async () => {
       const {
         app: [app],
-      } = create({ app: ['test1'], region: ['region'] });
+      } = create({ app: ['test1'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -215,7 +215,7 @@ describe('Overlay UT', () => {
     it('should only remove one dependency with parent when multiple anchors have same parent', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ account: ['account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -237,7 +237,7 @@ describe('Overlay UT', () => {
     it('should remove all anchors with parent dependencies', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ account: ['account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -271,7 +271,7 @@ describe('Overlay UT', () => {
     it('should be able to synth with anchors', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ account: ['account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -311,7 +311,7 @@ describe('Overlay UT', () => {
     it('should throw error while unSynth if anchor not found', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ account: ['account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -337,7 +337,7 @@ describe('Overlay UT', () => {
     it('should be able to unSynth with anchors', async () => {
       const {
         app: [app],
-      } = create({ app: ['test'], region: ['region'] });
+      } = create({ account: ['account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);

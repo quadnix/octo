@@ -9,7 +9,7 @@ describe('Region UT', () => {
   it('should set static members', () => {
     const {
       region: [region],
-    } = create({ app: ['test'], region: ['region-1'] });
+    } = create({ account: ['account'], app: ['test'], region: ['region-1'] });
 
     expect((region.constructor as typeof AModel).NODE_NAME).toBe('region');
     expect((region.constructor as typeof AModel).NODE_PACKAGE).toBe('@octo');
@@ -21,7 +21,7 @@ describe('Region UT', () => {
     it('should validate regionId', async () => {
       const {
         region: [region],
-      } = create({ app: ['test'], region: ['$$'] });
+      } = create({ account: ['account'], app: ['test'], region: ['$$'] });
 
       expect(() => {
         getSchemaInstance<RegionSchema>(RegionSchema, region.synth() as unknown as Record<string, unknown>);
@@ -32,7 +32,7 @@ describe('Region UT', () => {
   describe('addEnvironment()', () => {
     it('should throw error if duplicate environments exist', () => {
       expect(() => {
-        create({ app: ['test'], environment: ['qa', 'qa:-1'], region: ['region-1'] });
+        create({ account: ['account'], app: ['test'], environment: ['qa', 'qa:-1'], region: ['region-1'] });
       }).toThrow('Environment already exists!');
     });
 
@@ -40,7 +40,7 @@ describe('Region UT', () => {
       const {
         environment: [environment],
         region: [region],
-      } = create({ app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       expect(region.getDependencyIndex(environment, DependencyRelationship.PARENT)).toBeGreaterThan(-1);
       expect(environment.getDependencyIndex(region, DependencyRelationship.CHILD)).toBeGreaterThan(-1);
@@ -50,7 +50,7 @@ describe('Region UT', () => {
   describe('addFilesystem()', () => {
     it('should throw error if duplicate filesystems exist', () => {
       expect(() => {
-        create({ app: ['test'], filesystem: ['fs', 'fs:-1'], region: ['region-1'] });
+        create({ account: ['account'], app: ['test'], filesystem: ['fs', 'fs:-1'], region: ['region-1'] });
       }).toThrow('Filesystem already exists!');
     });
 
@@ -58,7 +58,7 @@ describe('Region UT', () => {
       const {
         filesystem: [filesystem],
         region: [region],
-      } = create({ app: ['test'], filesystem: ['fs'], region: ['region-1'] });
+      } = create({ account: ['account'], app: ['test'], filesystem: ['fs'], region: ['region-1'] });
 
       expect(region.getDependencyIndex(filesystem, DependencyRelationship.PARENT)).toBeGreaterThan(-1);
       expect(filesystem.getDependencyIndex(region, DependencyRelationship.CHILD)).toBeGreaterThan(-1);
@@ -68,7 +68,7 @@ describe('Region UT', () => {
   describe('addSubnet()', () => {
     it('should throw error if duplicate subnets exist', () => {
       expect(() => {
-        create({ app: ['test'], region: ['region-1'], subnet: ['public', 'public:-1'] });
+        create({ account: ['account'], app: ['test'], region: ['region-1'], subnet: ['public', 'public:-1'] });
       }).toThrow('Subnet already exists!');
     });
 
@@ -76,7 +76,7 @@ describe('Region UT', () => {
       const {
         region: [region],
         subnet: [subnet],
-      } = create({ app: ['test'], region: ['region-1'], subnet: ['public'] });
+      } = create({ account: ['account'], app: ['test'], region: ['region-1'], subnet: ['public'] });
 
       expect(region.getDependencyIndex(subnet, DependencyRelationship.PARENT)).toBeGreaterThan(-1);
       expect(subnet.getDependencyIndex(region, DependencyRelationship.CHILD)).toBeGreaterThan(-1);

@@ -4,6 +4,7 @@ import { type ModelSerializedOutput } from '../../../app.type.js';
 import type { Container } from '../../../functions/container/container.js';
 import { TestContainer } from '../../../functions/container/test-container.js';
 import { type IDependency } from '../../../functions/dependency/dependency.js';
+import { Account } from '../../../models/account/account.model.js';
 import { App } from '../../../models/app/app.model.js';
 import { Image } from '../../../models/image/image.model.js';
 import { Region } from '../../../models/region/region.model.js';
@@ -19,6 +20,7 @@ describe('Model Serialization Service UT', () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
     const modelSerializationService = new ModelSerializationService();
+    modelSerializationService.registerClass('@octo/Account', Account);
     modelSerializationService.registerClass('@octo/App', App);
     modelSerializationService.registerClass('@octo/Image', Image);
     modelSerializationService.registerClass('@octo/Region', Region);
@@ -80,7 +82,7 @@ describe('Model Serialization Service UT', () => {
     it('should be able to register classes and deserialize', async () => {
       const {
         app: [app],
-      } = create({ app: ['test-app'], region: ['region'] });
+      } = create({ account: ['account'], app: ['test-app'] });
 
       const app_1 = await commit(app);
 
@@ -100,7 +102,7 @@ describe('Model Serialization Service UT', () => {
     it('should return the serialized root on deserialization', async () => {
       const {
         region: [region],
-      } = create({ app: ['test-app'], region: ['region'] });
+      } = create({ account: ['account'], app: ['test-app'], region: ['region'] });
 
       const region_1 = await commit(region);
 
@@ -112,7 +114,13 @@ describe('Model Serialization Service UT', () => {
 
       const {
         app: [app],
-      } = create({ app: ['test'], image: ['image'], region: ['region'], subnet: ['private', 'public:-1'] });
+      } = create({
+        account: ['account'],
+        app: ['test'],
+        image: ['image'],
+        region: ['region'],
+        subnet: ['private', 'public:-1'],
+      });
 
       const app_1 = await commit(app);
 
@@ -130,7 +138,7 @@ describe('Model Serialization Service UT', () => {
 
       const {
         app: [app],
-      } = create({ app: ['test-app'], region: ['region'] });
+      } = create({ account: ['account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -159,8 +167,9 @@ describe('Model Serialization Service UT', () => {
       const overlayDataRepository = await container.get(OverlayDataRepository);
 
       const {
+        account: [account],
         app: [app],
-      } = create({ app: ['test-app'], image: ['image'] });
+      } = create({ account: ['account'], app: ['test-app'], image: ['image'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -173,7 +182,7 @@ describe('Model Serialization Service UT', () => {
       await commit(app);
 
       // Modify the new app.
-      app.addRegion(new Region('region-1'));
+      account.addRegion(new Region('region-1'));
 
       // After commit the overlay is deserialized and the newOverlays still reference the old models.
       // Updates to new models should not be reflected in the old models.
@@ -198,6 +207,7 @@ describe('Model Serialization Service UT', () => {
       const {
         app: [app],
       } = create({
+        account: ['account'],
         app: ['test-app'],
         environment: ['qa'],
         image: ['image'],
@@ -225,7 +235,12 @@ describe('Model Serialization Service UT', () => {
     it('should serialize only boundary members', async () => {
       const {
         region: [region1],
-      } = create({ app: ['test-app'], environment: ['qa', 'qa'], region: ['region-1', 'region-2:-1'] });
+      } = create({
+        account: ['account'],
+        app: ['test-app'],
+        environment: ['qa', 'qa'],
+        region: ['region-1', 'region-2:-1'],
+      });
 
       const service = await container.get(ModelSerializationService);
 
@@ -235,7 +250,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize overlay with multiple anchors of same parent', async () => {
       const {
         app: [app],
-      } = create({ app: ['test-app'], image: ['image'] });
+      } = create({ account: ['account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -251,7 +266,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize two overlay dependencies with each other', async () => {
       const {
         app: [app],
-      } = create({ app: ['test-app'], image: ['image'] });
+      } = create({ account: ['account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);

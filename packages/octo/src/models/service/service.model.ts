@@ -26,8 +26,8 @@ export class Service extends AModel<ServiceSchema, Service> {
 
   override setContext(): string {
     const parents = this.getParents();
-    const app = parents['app'][0].to;
-    return [`${(this.constructor as typeof Service).NODE_NAME}=${this.serviceId}`, app.getContext()].join(',');
+    const account = parents['account'][0].to;
+    return [`${(this.constructor as typeof Service).NODE_NAME}=${this.serviceId}`, account.getContext()].join(',');
   }
 
   override synth(): ServiceSchema {

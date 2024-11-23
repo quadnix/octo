@@ -7,6 +7,7 @@ describe('App E2E Test', () => {
       app: [app],
       environment: [environment],
     } = create({
+      account: ['account'],
       app: ['test-app'],
       deployment: ['v0.0.1'],
       environment: ['qa'],

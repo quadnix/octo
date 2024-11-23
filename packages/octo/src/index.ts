@@ -18,6 +18,8 @@ export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { getSchemaKeys, Schema } from './functions/schema/schema.js';
 
+export { Account } from './models/account/account.model.js';
+export { AccountSchema } from './models/account/account.schema.js';
 export { App } from './models/app/app.model.js';
 export { AppSchema } from './models/app/app.schema.js';
 export { Deployment } from './models/deployment/deployment.model.js';

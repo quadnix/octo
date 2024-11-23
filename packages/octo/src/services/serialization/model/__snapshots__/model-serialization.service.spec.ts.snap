@@ -10,50 +10,90 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "forAction": "delete",
           "onAction": "delete",
           "onField": "name",
+          "toField": "accountId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "accountId",
+        "type": "parent",
+      },
+      "to": "account=account,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "accountId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "accountId",
+          "toField": "name",
+        },
+      ],
+      "from": "account=account,app=test-app",
+      "relationship": {
+        "onField": "accountId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "accountId",
           "toField": "imageId",
         },
       ],
-      "from": "app=test-app",
+      "from": "account=account,app=test-app",
       "relationship": {
-        "onField": "name",
+        "onField": "accountId",
         "toField": "imageId",
         "type": "parent",
       },
-      "to": "image=image:v1,app=test-app",
+      "to": "image=image:v1,account=account,app=test-app",
     },
     {
       "behaviors": [
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "name",
+          "onField": "accountId",
           "toField": "regionId",
         },
       ],
-      "from": "app=test-app",
+      "from": "account=account,app=test-app",
       "relationship": {
-        "onField": "name",
+        "onField": "accountId",
         "toField": "regionId",
         "type": "parent",
       },
-      "to": "region=region-1,app=test-app",
+      "to": "region=region-1,account=account,app=test-app",
     },
     {
       "behaviors": [
         {
           "forAction": "delete",
           "onAction": "delete",
-          "onField": "name",
+          "onField": "accountId",
           "toField": "serverKey",
         },
       ],
-      "from": "app=test-app",
+      "from": "account=account,app=test-app",
       "relationship": {
-        "onField": "name",
+        "onField": "accountId",
         "toField": "serverKey",
         "type": "parent",
       },
-      "to": "server=backend,app=test-app",
+      "to": "server=backend,account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -61,22 +101,22 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "forAction": "add",
           "onAction": "add",
           "onField": "serverKey",
-          "toField": "name",
+          "toField": "accountId",
         },
         {
           "forAction": "update",
           "onAction": "add",
           "onField": "serverKey",
-          "toField": "name",
+          "toField": "accountId",
         },
       ],
-      "from": "server=backend,app=test-app",
+      "from": "server=backend,account=account,app=test-app",
       "relationship": {
         "onField": "serverKey",
-        "toField": "name",
+        "toField": "accountId",
         "type": "child",
       },
-      "to": "app=test-app",
+      "to": "account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -84,22 +124,22 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "forAction": "add",
           "onAction": "add",
           "onField": "regionId",
-          "toField": "name",
+          "toField": "accountId",
         },
         {
           "forAction": "update",
           "onAction": "add",
           "onField": "regionId",
-          "toField": "name",
+          "toField": "accountId",
         },
       ],
-      "from": "region=region-1,app=test-app",
+      "from": "region=region-1,account=account,app=test-app",
       "relationship": {
         "onField": "regionId",
-        "toField": "name",
+        "toField": "accountId",
         "type": "child",
       },
-      "to": "app=test-app",
+      "to": "account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -110,13 +150,13 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "toField": "environmentName",
         },
       ],
-      "from": "region=region-1,app=test-app",
+      "from": "region=region-1,account=account,app=test-app",
       "relationship": {
         "onField": "regionId",
         "toField": "environmentName",
         "type": "parent",
       },
-      "to": "environment=qa,region=region-1,app=test-app",
+      "to": "environment=qa,region=region-1,account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -133,13 +173,13 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "toField": "regionId",
         },
       ],
-      "from": "environment=qa,region=region-1,app=test-app",
+      "from": "environment=qa,region=region-1,account=account,app=test-app",
       "relationship": {
         "onField": "environmentName",
         "toField": "regionId",
         "type": "child",
       },
-      "to": "region=region-1,app=test-app",
+      "to": "region=region-1,account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -147,39 +187,45 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
           "forAction": "add",
           "onAction": "add",
           "onField": "imageId",
-          "toField": "name",
+          "toField": "accountId",
         },
         {
           "forAction": "update",
           "onAction": "add",
           "onField": "imageId",
-          "toField": "name",
+          "toField": "accountId",
         },
       ],
-      "from": "image=image:v1,app=test-app",
+      "from": "image=image:v1,account=account,app=test-app",
       "relationship": {
         "onField": "imageId",
-        "toField": "name",
+        "toField": "accountId",
         "type": "child",
       },
-      "to": "app=test-app",
+      "to": "account=account,app=test-app",
     },
   ],
   "models": {
+    "account=account,app=test-app": {
+      "className": "@octo/Account",
+      "model": {
+        "accountId": "account",
+      },
+    },
     "app=test-app": {
       "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
     },
-    "environment=qa,region=region-1,app=test-app": {
+    "environment=qa,region=region-1,account=account,app=test-app": {
       "className": "@octo/Environment",
       "model": {
         "environmentName": "qa",
         "environmentVariables": {},
       },
     },
-    "image=image:v1,app=test-app": {
+    "image=image:v1,account=account,app=test-app": {
       "className": "@octo/Image",
       "model": {
         "dockerOptions": {
@@ -190,13 +236,13 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
         "imageTag": "v1",
       },
     },
-    "region=region-1,app=test-app": {
+    "region=region-1,account=account,app=test-app": {
       "className": "@octo/Region",
       "model": {
         "regionId": "region-1",
       },
     },
-    "server=backend,app=test-app": {
+    "server=backend,account=account,app=test-app": {
       "className": "@octo/Server",
       "model": {
         "serverKey": "backend",
@@ -258,22 +304,22 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
           "forAction": "add",
           "onAction": "add",
           "onField": "regionId",
-          "toField": "name",
+          "toField": "accountId",
         },
         {
           "forAction": "update",
           "onAction": "add",
           "onField": "regionId",
-          "toField": "name",
+          "toField": "accountId",
         },
       ],
-      "from": "region=region-1,app=test-app",
+      "from": "region=region-1,account=account,app=test-app",
       "relationship": {
         "onField": "regionId",
-        "toField": "name",
+        "toField": "accountId",
         "type": "child",
       },
-      "to": "app=test-app",
+      "to": "account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -284,13 +330,53 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
           "toField": "environmentName",
         },
       ],
-      "from": "region=region-1,app=test-app",
+      "from": "region=region-1,account=account,app=test-app",
       "relationship": {
         "onField": "regionId",
         "toField": "environmentName",
         "type": "parent",
       },
-      "to": "environment=qa,region=region-1,app=test-app",
+      "to": "environment=qa,region=region-1,account=account,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "accountId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "accountId",
+          "toField": "name",
+        },
+      ],
+      "from": "account=account,app=test-app",
+      "relationship": {
+        "onField": "accountId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "accountId",
+          "toField": "regionId",
+        },
+      ],
+      "from": "account=account,app=test-app",
+      "relationship": {
+        "onField": "accountId",
+        "toField": "regionId",
+        "type": "parent",
+      },
+      "to": "region=region-1,account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -298,16 +384,16 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
           "forAction": "delete",
           "onAction": "delete",
           "onField": "name",
-          "toField": "regionId",
+          "toField": "accountId",
         },
       ],
       "from": "app=test-app",
       "relationship": {
         "onField": "name",
-        "toField": "regionId",
+        "toField": "accountId",
         "type": "parent",
       },
-      "to": "region=region-1,app=test-app",
+      "to": "account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -324,30 +410,36 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
           "toField": "regionId",
         },
       ],
-      "from": "environment=qa,region=region-1,app=test-app",
+      "from": "environment=qa,region=region-1,account=account,app=test-app",
       "relationship": {
         "onField": "environmentName",
         "toField": "regionId",
         "type": "child",
       },
-      "to": "region=region-1,app=test-app",
+      "to": "region=region-1,account=account,app=test-app",
     },
   ],
   "models": {
+    "account=account,app=test-app": {
+      "className": "@octo/Account",
+      "model": {
+        "accountId": "account",
+      },
+    },
     "app=test-app": {
       "className": "@octo/App",
       "model": {
         "name": "test-app",
       },
     },
-    "environment=qa,region=region-1,app=test-app": {
+    "environment=qa,region=region-1,account=account,app=test-app": {
       "className": "@octo/Environment",
       "model": {
         "environmentName": "qa",
         "environmentVariables": {},
       },
     },
-    "region=region-1,app=test-app": {
+    "region=region-1,account=account,app=test-app": {
       "className": "@octo/Region",
       "model": {
         "regionId": "region-1",
@@ -385,16 +477,16 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
           "forAction": "delete",
           "onAction": "delete",
           "onField": "name",
-          "toField": "imageId",
+          "toField": "accountId",
         },
       ],
       "from": "app=test-app",
       "relationship": {
         "onField": "name",
-        "toField": "imageId",
+        "toField": "accountId",
         "type": "parent",
       },
-      "to": "image=image:v1,app=test-app",
+      "to": "account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -465,19 +557,19 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
         {
           "forAction": "add",
           "onAction": "add",
-          "onField": "imageId",
+          "onField": "accountId",
           "toField": "name",
         },
         {
           "forAction": "update",
           "onAction": "add",
-          "onField": "imageId",
+          "onField": "accountId",
           "toField": "name",
         },
       ],
-      "from": "image=image:v1,app=test-app",
+      "from": "account=account,app=test-app",
       "relationship": {
-        "onField": "imageId",
+        "onField": "accountId",
         "toField": "name",
         "type": "child",
       },
@@ -485,21 +577,16 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
     },
   ],
   "models": {
+    "account=account,app=test-app": {
+      "className": "@octo/Account",
+      "model": {
+        "accountId": "account",
+      },
+    },
     "app=test-app": {
       "className": "@octo/App",
       "model": {
         "name": "test-app",
-      },
-    },
-    "image=image:v1,app=test-app": {
-      "className": "@octo/Image",
-      "model": {
-        "dockerOptions": {
-          "dockerfilePath": "/Dockerfile",
-        },
-        "imageId": "v1",
-        "imageName": "image",
-        "imageTag": "v1",
       },
     },
   },
@@ -558,16 +645,16 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
           "forAction": "delete",
           "onAction": "delete",
           "onField": "name",
-          "toField": "imageId",
+          "toField": "accountId",
         },
       ],
       "from": "app=test-app",
       "relationship": {
         "onField": "name",
-        "toField": "imageId",
+        "toField": "accountId",
         "type": "parent",
       },
-      "to": "image=image:v1,app=test-app",
+      "to": "account=account,app=test-app",
     },
     {
       "behaviors": [
@@ -650,19 +737,19 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
         {
           "forAction": "add",
           "onAction": "add",
-          "onField": "imageId",
+          "onField": "accountId",
           "toField": "name",
         },
         {
           "forAction": "update",
           "onAction": "add",
-          "onField": "imageId",
+          "onField": "accountId",
           "toField": "name",
         },
       ],
-      "from": "image=image:v1,app=test-app",
+      "from": "account=account,app=test-app",
       "relationship": {
-        "onField": "imageId",
+        "onField": "accountId",
         "toField": "name",
         "type": "child",
       },
@@ -670,21 +757,16 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
     },
   ],
   "models": {
+    "account=account,app=test-app": {
+      "className": "@octo/Account",
+      "model": {
+        "accountId": "account",
+      },
+    },
     "app=test-app": {
       "className": "@octo/App",
       "model": {
         "name": "test-app",
-      },
-    },
-    "image=image:v1,app=test-app": {
-      "className": "@octo/Image",
-      "model": {
-        "dockerOptions": {
-          "dockerfilePath": "/Dockerfile",
-        },
-        "imageId": "v1",
-        "imageName": "image",
-        "imageTag": "v1",
       },
     },
   },

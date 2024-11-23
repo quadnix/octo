@@ -1,5 +1,6 @@
 import type { UnknownAnchor, UnknownModel, UnknownOverlay, UnknownResource } from '../../src/app.type.js';
 import {
+  Account,
   App,
   Container,
   Deployment,
@@ -43,6 +44,7 @@ export async function commitResources({
 }
 
 export function create({
+  account = [],
   app = [],
   deployment = [],
   environment = [],
@@ -55,6 +57,7 @@ export function create({
   service = [],
   subnet = [],
 }: {
+  account?: (string | undefined)[];
   app?: (string | undefined)[];
   deployment?: (string | undefined)[];
   environment?: (string | undefined)[];
@@ -67,6 +70,7 @@ export function create({
   service?: (string | undefined)[];
   subnet?: (string | undefined)[];
 }): {
+  account: Account[];
   app: App[];
   deployment: Deployment[];
   environment: Environment[];
@@ -80,6 +84,7 @@ export function create({
   subnet: Subnet[];
 } {
   const result: ReturnType<typeof create> = {
+    account: [],
     app: [],
     deployment: [],
     environment: [],
@@ -102,6 +107,18 @@ export function create({
     result.app.push(app);
   }
 
+  for (const [index, entry] of account.entries()) {
+    if (entry === undefined) {
+      continue;
+    }
+    const [id, i] = splitEntry(entry, index);
+
+    const account = new Account(id);
+    const app = result.app[i];
+    app.addAccount(account);
+    result.account.push(account);
+  }
+
   for (const [index, entry] of image.entries()) {
     if (entry === undefined) {
       continue;
@@ -109,8 +126,8 @@ export function create({
     const [id, i] = splitEntry(entry, index);
 
     const image = new Image(id, 'v1', { dockerfilePath: '/Dockerfile' });
-    const app = result.app[i];
-    app.addImage(image);
+    const account = result.account[i];
+    account.addImage(image);
     result.image.push(image);
   }
 
@@ -121,8 +138,8 @@ export function create({
     const [id, i] = splitEntry(entry, index);
 
     const pipeline = new Pipeline(id);
-    const app = result.app[i];
-    app.addPipeline(pipeline);
+    const account = result.account[i];
+    account.addPipeline(pipeline);
     result.pipeline.push(pipeline);
   }
 
@@ -133,8 +150,8 @@ export function create({
     const [id, i] = splitEntry(entry, index);
 
     const region = new Region(id);
-    const app = result.app[i];
-    app.addRegion(region);
+    const account = result.account[i];
+    account.addRegion(region);
     result.region.push(region);
   }
 
@@ -181,8 +198,8 @@ export function create({
     const [id, i] = splitEntry(entry, index);
 
     const server = new Server(id);
-    const app = result.app[i];
-    app.addServer(server);
+    const account = result.account[i];
+    account.addServer(server);
     result.server.push(server);
   }
 
@@ -205,8 +222,8 @@ export function create({
     const [id, i] = splitEntry(entry, index);
 
     const service = new Service(id);
-    const app = result.app[i];
-    app.addService(service);
+    const account = result.account[i];
+    account.addService(service);
     result.service.push(service);
   }
 
