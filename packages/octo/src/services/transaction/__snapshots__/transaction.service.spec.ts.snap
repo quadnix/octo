@@ -10,7 +10,7 @@ exports[`TransactionService UT applyModels() should call action and collect all 
       "value": "app",
     },
     {
-      "moduleId.input.key1": "value1",
+      "moduleId.input.name": "app",
     },
     {},
   ],
@@ -27,15 +27,10 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
       "value": "app",
     },
     {
-      "moduleId.input.key1": "value1",
+      "moduleId.input.name": "app",
     },
     {},
   ],
-]
-`;
-
-exports[`TransactionService UT applyModels() should call multiple actions and collect all input and output 2`] = `
-[
   [
     {
       "action": "add",
@@ -44,7 +39,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
       "value": "app",
     },
     {
-      "moduleId.input.key2": "value2",
+      "moduleId.input.name": "app",
     },
     {},
   ],
@@ -77,9 +72,9 @@ exports[`TransactionService UT applyModels() should process diffs in different l
   [
     {
       "action": "add",
-      "field": "regionId",
-      "node": "region=region,app=app",
-      "value": "region",
+      "field": "name",
+      "node": "app=app",
+      "value": "app",
     },
   ],
 ]

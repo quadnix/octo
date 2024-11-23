@@ -1,6 +1,14 @@
 import { jest } from '@jest/globals';
-import { SharedTestResource, TestAnchor, TestOverlay, TestResource } from '../../../test/helpers/test-classes.js';
+import {
+  SharedTestResource,
+  TestAnchor,
+  TestAppModule,
+  TestOverlay,
+  TestOverlayModule,
+  TestResource,
+} from '../../../test/helpers/test-classes.js';
 import { commitResources, create, createTestOverlays, createTestResources } from '../../../test/helpers/test-models.js';
+import type { UnknownModule, UnknownResource } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
@@ -8,6 +16,8 @@ import { Diff, DiffAction } from '../../functions/diff/diff.js';
 import { type IModelAction } from '../../models/model-action.interface.js';
 import { App } from '../../models/app/app.model.js';
 import { Region } from '../../models/region/region.model.js';
+import { ModuleContainer } from '../../modules/module.container.js';
+import { TestModuleContainer } from '../../modules/test-module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { type IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
@@ -15,19 +25,25 @@ import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
+import { TestStateProvider } from '../state-management/test.state-provider.js';
 import { TransactionService } from './transaction.service.js';
 
 describe('TransactionService UT', () => {
   let container: Container;
+  let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const captureService = await container.get(CaptureService);
-    const eventService = await container.get(EventService);
-    const inputService = await container.get(InputService);
-    const overlayDataRepository = await container.get(OverlayDataRepository);
-    const resourceDataRepository = await container.get(ResourceDataRepository);
+    const [captureService, eventService, inputService, moduleContainer, overlayDataRepository, resourceDataRepository] =
+      await Promise.all([
+        container.get(CaptureService),
+        container.get(EventService),
+        container.get(InputService),
+        container.get(ModuleContainer),
+        container.get(OverlayDataRepository),
+        container.get(ResourceDataRepository),
+      ]);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
     resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
@@ -39,31 +55,40 @@ describe('TransactionService UT', () => {
       captureService,
       eventService,
       inputService,
+      moduleContainer,
       overlayDataRepository,
       resourceDataRepository,
     );
     container.unRegisterFactory(TransactionService);
     container.registerValue(TransactionService, transactionService);
+
+    testModuleContainer = new TestModuleContainer();
+    await testModuleContainer.initialize(new TestStateProvider());
   });
 
   afterEach(async () => {
+    await testModuleContainer.reset();
     await TestContainer.reset();
 
     jest.restoreAllMocks();
   });
 
   describe('applyModels()', () => {
-    const universalModelAction: IModelAction = {
-      collectInputs: () => [],
+    const universalModelAction: IModelAction<UnknownModule> = {
       filter: () => true,
       handle: jest.fn() as jest.Mocked<any>,
     };
 
     let applyModels: TransactionService['applyModels'];
+
     beforeEach(async () => {
       const service = await container.get(TransactionService);
       applyModels = service['applyModels'];
       applyModels = applyModels.bind(service);
+    });
+
+    afterEach(() => {
+      (universalModelAction.handle as jest.Mock).mockReset();
     });
 
     it('should return empty transaction if diffs is empty', async () => {
@@ -73,19 +98,14 @@ describe('TransactionService UT', () => {
     });
 
     it('should throw error when action inputs are not found', async () => {
-      const modelAction: IModelAction = {
-        collectInputs: () => ['key1'],
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
-
-      const app = new App('app');
-
-      const inputService = await container.get(InputService);
-      inputService.registerModel('moduleId', app);
+      const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: '${moduleId.input.unknown}' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
-      const diffMetadata = new DiffMetadata(diff, [modelAction]);
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
       diffMetadata.applyOrder = 0;
 
       await expect(async () => {
@@ -94,19 +114,14 @@ describe('TransactionService UT', () => {
     });
 
     it('should throw error when action resource inputs are not found', async () => {
-      const modelAction: IModelAction = {
-        collectInputs: () => ['key1'],
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
-
-      const app = new App('app');
-
-      const inputService = await container.get(InputService);
-      inputService.registerModel('moduleId', app);
+      const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: '${moduleId.resource.unknown}' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
-      const diffMetadata = new DiffMetadata(diff, [modelAction]);
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
       diffMetadata.applyOrder = 0;
 
       await expect(async () => {
@@ -130,7 +145,11 @@ describe('TransactionService UT', () => {
     it('should only process 1 matching diff when duplicates found', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-      const app = new App('app');
+      const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
 
       const diff1 = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata1 = new DiffMetadata(diff1, [universalModelAction]);
@@ -145,102 +164,84 @@ describe('TransactionService UT', () => {
     });
 
     it('should call action and collect all input and output', async () => {
-      const modelAction: IModelAction = {
-        collectInputs: () => ['key1'],
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
-      (modelAction.handle as jest.Mocked<any>).mockResolvedValue({
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({
         resource1: new TestResource('resource1'),
       });
 
-      const inputService = await container.get(InputService);
-      inputService.registerInput('moduleId', 'key1', 'value1');
-
-      const app = new App('app');
-      inputService.registerModel('moduleId', app);
+      const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
-      const diffMetadata = new DiffMetadata(diff, [modelAction]);
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
       diffMetadata.applyOrder = 0;
 
       await applyModels([diffMetadata]);
 
-      expect(modelAction.handle).toHaveBeenCalledTimes(1);
-      expect((modelAction.handle as jest.Mock).mock.calls).toMatchSnapshot();
+      expect(universalModelAction.handle).toHaveBeenCalledTimes(1);
+      expect((universalModelAction.handle as jest.Mock).mock.calls).toMatchSnapshot();
     });
 
     it('should update diff metadata with inputs and outputs', async () => {
-      const modelAction: IModelAction = {
-        collectInputs: () => ['key1'],
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
-      (modelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
 
-      const inputService = await container.get(InputService);
-      inputService.registerInput('moduleId', 'key1', 'value1');
-
-      const app = new App('app');
-      inputService.registerModel('moduleId', app);
+      const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
-      const diffMetadata = new DiffMetadata(diff, [modelAction]);
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
       diffMetadata.applyOrder = 0;
 
       await applyModels([diffMetadata]);
 
       expect(diffMetadata.inputs).toEqual({
-        'moduleId.input.key1': 'value1',
+        'moduleId.input.name': 'app',
       });
       expect(diffMetadata.outputs['resource1'].resourceId).toBe('resource1');
     });
 
     it('should call multiple actions and collect all input and output', async () => {
-      const modelAction1: IModelAction = {
-        collectInputs: () => ['key1'],
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
-      (modelAction1.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
-      const modelAction2: IModelAction = {
-        collectInputs: () => ['key2'],
-        filter: () => true,
-        handle: jest.fn() as jest.Mocked<any>,
-      };
-      (modelAction2.handle as jest.Mocked<any>).mockResolvedValue({ resource2: new TestResource('resource2') });
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({
+        resource1: new TestResource('resource1'),
+      });
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({
+        resource2: new TestResource('resource2'),
+      });
 
-      const inputService = await container.get(InputService);
-      inputService.registerInput('moduleId', 'key1', 'value1');
-      inputService.registerInput('moduleId', 'key2', 'value2');
-
-      const app = new App('app');
-      inputService.registerModel('moduleId', app);
+      const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
-      const diffMetadata = new DiffMetadata(diff, [modelAction1, modelAction2]);
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction, universalModelAction]);
       diffMetadata.applyOrder = 0;
 
       await applyModels([diffMetadata]);
 
-      expect(modelAction1.handle).toHaveBeenCalledTimes(1);
-      expect((modelAction1.handle as jest.Mock).mock.calls).toMatchSnapshot();
-      expect(modelAction2.handle).toHaveBeenCalledTimes(1);
-      expect((modelAction2.handle as jest.Mock).mock.calls).toMatchSnapshot();
+      expect(universalModelAction.handle).toHaveBeenCalledTimes(2);
+      expect((universalModelAction.handle as jest.Mock).mock.calls).toMatchSnapshot();
     });
 
     it('should process diffs in different levels', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-      const {
-        app: [app],
-        region: [region],
-      } = create({ app: ['app'], region: ['region'] });
+      const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
 
       const diff1 = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata1 = new DiffMetadata(diff1, [universalModelAction]);
       diffMetadata1.applyOrder = 0;
-      const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
+      const diff2 = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata2 = new DiffMetadata(diff2, [universalModelAction]);
       diffMetadata2.applyOrder = 1;
 
@@ -254,10 +255,11 @@ describe('TransactionService UT', () => {
         resource1: new SharedTestResource('shared-resource', { key1: 'value-1' }, []),
       });
 
-      const app = new App('app');
-
-      const inputService = await container.get(InputService);
-      inputService.registerModel('moduleId', app);
+      const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
@@ -276,10 +278,11 @@ describe('TransactionService UT', () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ 'shared-resource': sharedResource2 });
       const mergeFunction = jest.spyOn(sharedResource2 as SharedTestResource, 'merge');
 
-      const app = new App('app');
-
-      const inputService = await container.get(InputService);
-      inputService.registerModel('moduleId', app);
+      const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
@@ -293,17 +296,23 @@ describe('TransactionService UT', () => {
   });
 
   describe('applyResources()', () => {
-    const universalResourceAction: IResourceAction = {
+    const universalResourceAction: IResourceAction<UnknownResource> = {
       filter: () => true,
       handle: jest.fn() as jest.Mocked<any>,
       mock: jest.fn() as jest.Mocked<any>,
     };
 
     let applyResources: TransactionService['applyResources'];
+
     beforeEach(async () => {
       const service = await container.get(TransactionService);
       applyResources = service['applyResources'];
       applyResources = applyResources.bind(service);
+    });
+
+    afterEach(() => {
+      (universalResourceAction.handle as jest.Mock).mockReset();
+      (universalResourceAction.mock as jest.Mock).mockReset();
     });
 
     it('should return empty transaction if diffs is empty', async () => {
@@ -374,24 +383,28 @@ describe('TransactionService UT', () => {
       await applyResources([diffMetadata], { enableResourceCapture: true });
 
       expect(universalResourceAction.mock).toHaveBeenCalledTimes(1);
-      expect((universalResourceAction.mock as jest.Mock).mock.calls[0][0]).toEqual({ 'key-1': 'value-1' });
+      expect((universalResourceAction.mock as jest.Mock).mock.calls[0][1]).toEqual({ 'key-1': 'value-1' });
     });
   });
 
   describe('setApplyOrder()', () => {
-    const modelActions: IModelAction[] = [
+    const modelActions: IModelAction<UnknownModule>[] = [
       {
-        collectInputs: () => [],
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       },
     ];
+
     let setApplyOrder: TransactionService['setApplyOrder'];
 
     beforeEach(async () => {
       const service = await container.get(TransactionService);
       setApplyOrder = service['setApplyOrder'];
       setApplyOrder = setApplyOrder.bind(service);
+    });
+
+    afterEach(() => {
+      (modelActions[0].handle as jest.Mock).mockReset();
     });
 
     it('should not set order for diff that already has an order defined', () => {
@@ -554,11 +567,14 @@ describe('TransactionService UT', () => {
 
   describe('beginTransaction()', () => {
     describe('yieldModelDiffs', () => {
-      const universalModelAction: IModelAction = {
-        collectInputs: () => [],
+      const universalModelAction: IModelAction<UnknownModule> = {
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };
+
+      afterEach(() => {
+        (universalModelAction.handle as jest.Mock).mockReset();
+      });
 
       it('should yield model diffs', async () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
@@ -597,16 +613,23 @@ describe('TransactionService UT', () => {
     });
 
     describe('yieldModelTransaction', () => {
-      const universalModelAction: IModelAction = {
-        collectInputs: () => [],
+      const universalModelAction: IModelAction<UnknownModule> = {
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
       };
 
+      afterEach(() => {
+        (universalModelAction.handle as jest.Mock).mockReset();
+      });
+
       it('should yield model transaction', async () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-        const app = new App('app');
+        const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+          inputs: { name: 'app' },
+          moduleId: 'moduleId',
+          type: TestAppModule,
+        });
         const diffs = [new Diff(app, DiffAction.ADD, 'name', 'app')];
 
         const service = await container.get(TransactionService);
@@ -621,13 +644,19 @@ describe('TransactionService UT', () => {
       it('should yield model transaction with overlays', async () => {
         (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
-        const {
-          app: [app],
-        } = create({ app: ['app'], image: ['image'] });
+        const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+          inputs: { name: 'app' },
+          moduleId: 'moduleId',
+          type: TestAppModule,
+        });
         const anchor1 = new TestAnchor('anchor-1', {}, app);
         app.addAnchor(anchor1);
 
-        await createTestOverlays({ 'test-overlay': [anchor1] });
+        await testModuleContainer.runModule<TestOverlayModule>({
+          inputs: { anchorName: 'anchor-1', app: '${moduleId.model.app}' },
+          moduleId: 'overlayModuleId',
+          type: TestOverlayModule,
+        });
 
         const service = await container.get(TransactionService);
         service.registerOverlayActions(TestOverlay, [universalModelAction]);
@@ -640,11 +669,16 @@ describe('TransactionService UT', () => {
     });
 
     describe('yieldResourceDiffs', () => {
-      const universalResourceAction: IResourceAction = {
+      const universalResourceAction: IResourceAction<UnknownResource> = {
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         mock: jest.fn() as jest.Mocked<any>,
       };
+
+      afterEach(() => {
+        (universalResourceAction.handle as jest.Mock).mockReset();
+        (universalResourceAction.mock as jest.Mock).mockReset();
+      });
 
       it('should yield resource diffs', async () => {
         await createTestResources({ 'resource-1': [] });
@@ -666,11 +700,16 @@ describe('TransactionService UT', () => {
     });
 
     describe('yieldResourceTransaction', () => {
-      const universalResourceAction: IResourceAction = {
+      const universalResourceAction: IResourceAction<UnknownResource> = {
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
         mock: jest.fn() as jest.Mocked<any>,
       };
+
+      afterEach(() => {
+        (universalResourceAction.handle as jest.Mock).mockReset();
+        (universalResourceAction.mock as jest.Mock).mockReset();
+      });
 
       it('should yield resource transaction', async () => {
         (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();

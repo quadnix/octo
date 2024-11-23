@@ -1,8 +1,10 @@
 import { jest } from '@jest/globals';
 import { SharedTestResource, TestResource } from '../../../test/helpers/test-classes.js';
 import { commitResources, createTestResources } from '../../../test/helpers/test-models.js';
+import type { UnknownResource } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
+import { ModuleContainer } from '../../modules/module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { type IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
@@ -13,7 +15,7 @@ import { ResourceSerializationService } from '../serialization/resource/resource
 import { TransactionService } from './transaction.service.js';
 
 describe('Transaction Scenarios UT', () => {
-  const universalResourceAction: IResourceAction = {
+  const universalResourceAction: IResourceAction<UnknownResource> = {
     filter: () => true,
     handle: jest.fn() as jest.Mocked<any>,
     mock: jest.fn() as jest.Mocked<any>,
@@ -24,11 +26,15 @@ describe('Transaction Scenarios UT', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const captureService = await container.get(CaptureService);
-    const eventService = await container.get(EventService);
-    const inputService = await container.get(InputService);
-    const overlayDataRepository = await container.get(OverlayDataRepository);
-    const resourceDataRepository = await container.get(ResourceDataRepository);
+    const [captureService, eventService, inputService, moduleContainer, overlayDataRepository, resourceDataRepository] =
+      await Promise.all([
+        container.get(CaptureService),
+        container.get(EventService),
+        container.get(InputService),
+        container.get(ModuleContainer),
+        container.get(OverlayDataRepository),
+        container.get(ResourceDataRepository),
+      ]);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
     resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
@@ -40,6 +46,7 @@ describe('Transaction Scenarios UT', () => {
       captureService,
       eventService,
       inputService,
+      moduleContainer,
       overlayDataRepository,
       resourceDataRepository,
     );

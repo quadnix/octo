@@ -1,13 +1,16 @@
 import { NodeType, type UnknownAnchor, type UnknownModel, type UnknownResource } from '../../src/app.type.js';
 import {
   AAnchor,
+  AModule,
   AOverlay,
   AResource,
   ASharedResource,
+  App,
   type BaseAnchorSchema,
   type BaseOverlaySchema,
   type BaseResourceSchema,
   type Diff,
+  Schema,
 } from '../../src/index.js';
 import { AModel } from '../../src/models/model.abstract.js';
 
@@ -29,6 +32,19 @@ export class TestAnchor extends AAnchor<BaseAnchorSchema, UnknownModel> {
 
   constructor(anchorId: string, properties: BaseAnchorSchema['properties'], parent: UnknownModel) {
     super(anchorId, properties, parent);
+  }
+}
+
+export class TestAppModuleSchema {
+  name = Schema<string>();
+}
+export class TestAppModule extends AModule<TestAppModuleSchema, App> {
+  static override readonly MODULE_PACKAGE = '@octo';
+
+  static override readonly MODULE_SCHEMA = TestAppModuleSchema;
+
+  async onInit(inputs: TestAppModuleSchema): Promise<App> {
+    return new App(inputs.name);
   }
 }
 
@@ -63,6 +79,21 @@ export class TestOverlay extends AOverlay<BaseOverlaySchema, TestOverlay> {
     anchors: UnknownAnchor[],
   ) {
     super(overlayId, properties, anchors);
+  }
+}
+
+export class TestOverlayModuleSchema {
+  anchorName = Schema<string>();
+  app = Schema<App>();
+}
+export class TestOverlayModule extends AModule<TestOverlayModuleSchema, TestOverlay> {
+  static override readonly MODULE_PACKAGE = '@octo';
+
+  static override readonly MODULE_SCHEMA = TestOverlayModuleSchema;
+
+  async onInit(inputs: TestOverlayModuleSchema): Promise<TestOverlay> {
+    const anchor = inputs.app.getAnchor(inputs.anchorName)!;
+    return new TestOverlay('test-overlay', {}, [anchor]);
   }
 }
 
