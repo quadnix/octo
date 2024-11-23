@@ -3,6 +3,7 @@ import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
+import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../overlays/overlay-data.repository.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
@@ -92,11 +93,14 @@ export class TestModuleContainer {
     return (await this.octo.compose()) as { [key: string]: ModuleOutput<M> };
   }
 
-  private async reset(): Promise<void> {
+  async reset(): Promise<void> {
     const container = Container.getInstance();
 
-    // Reset input service.
+    // Reset ModuleContainer constructor injections.
     await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
+    await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
+      args: [true, []],
+    });
 
     // Reset module container.
     const moduleContainer = await container.get(ModuleContainer);

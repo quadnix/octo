@@ -4,6 +4,7 @@ import { ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
 import { getSchemaInstance } from '../functions/schema/schema.js';
+import { OverlayDataRepository } from '../overlays/overlay-data.repository.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { EventService } from '../services/event/event.service.js';
 import { InputService } from '../services/input/input.service.js';
@@ -24,6 +25,7 @@ export class ModuleContainer {
   constructor(
     private readonly eventService: EventService,
     private readonly inputService: InputService,
+    private readonly overlayDataRepository: OverlayDataRepository,
   ) {}
 
   async apply(): Promise<{ [key: string]: unknown }> {
@@ -57,6 +59,7 @@ export class ModuleContainer {
         const instance = new module();
         const model = (await instance.onInit(resolvedModuleSchema)) as UnknownModel;
         if (model instanceof AOverlay) {
+          this.overlayDataRepository.add(model);
           this.inputService.registerOverlay(i.moduleId, model);
         } else {
           this.inputService.registerModel(i.moduleId, model);
@@ -156,13 +159,14 @@ export class ModuleContainerFactory {
   private static instance: ModuleContainer;
 
   static async create(forceNew: boolean = false): Promise<ModuleContainer> {
-    const [eventService, inputService] = await Promise.all([
+    const [eventService, inputService, overlayDataRepository] = await Promise.all([
       Container.getInstance().get(EventService),
       Container.getInstance().get(InputService),
+      Container.getInstance().get(OverlayDataRepository),
     ]);
 
     if (!this.instance) {
-      this.instance = new ModuleContainer(eventService, inputService);
+      this.instance = new ModuleContainer(eventService, inputService, overlayDataRepository);
     }
 
     if (forceNew) {
