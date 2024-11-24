@@ -1,4 +1,4 @@
-import { create } from '../../../test/helpers/test-models.js';
+import { create } from '../../utilities/test-helpers/test-models.js';
 import { DiffAction } from '../diff/diff.js';
 import { Dependency } from './dependency.js';
 

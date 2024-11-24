@@ -1,4 +1,4 @@
-import type { UnknownAnchor, UnknownModel, UnknownOverlay, UnknownResource } from '../../src/app.type.js';
+import type { UnknownAnchor, UnknownModel, UnknownOverlay, UnknownResource } from '../../app.type.js';
 import {
   Account,
   App,
@@ -13,11 +13,11 @@ import {
   Server,
   Service,
   Subnet,
-} from '../../src/index.js';
-import { OverlayDataRepository } from '../../src/overlays/overlay-data.repository.js';
-import { ResourceDataRepository } from '../../src/resources/resource-data.repository.js';
-import { ModelSerializationService } from '../../src/services/serialization/model/model-serialization.service.js';
-import { ResourceSerializationService } from '../../src/services/serialization/resource/resource-serialization.service.js';
+} from '../../index.js';
+import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
+import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
+import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
 import { SharedTestResource, TestOverlay, TestResource } from './test-classes.js';
 
 export async function commit<T extends UnknownModel>(model: T): Promise<T> {

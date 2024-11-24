@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { TestAnchor, TestModelWithoutUnsynth } from '../../test/helpers/test-classes.js';
+import { TestAnchor, TestModelWithoutUnsynth } from '../utilities/test-helpers/test-classes.js';
 import type { UnknownModel } from '../app.type.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
 import { Anchor } from './anchor.decorator.js';

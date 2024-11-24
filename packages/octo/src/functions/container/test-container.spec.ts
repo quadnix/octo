@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { TestOverlay } from '../../../test/helpers/test-classes.js';
+import { TestOverlay } from '../../utilities/test-helpers/test-classes.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';

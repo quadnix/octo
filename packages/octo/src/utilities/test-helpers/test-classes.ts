@@ -1,4 +1,4 @@
-import { NodeType, type UnknownAnchor, type UnknownModel, type UnknownResource } from '../../src/app.type.js';
+import { NodeType, type UnknownAnchor, type UnknownModel, type UnknownResource } from '../../app.type.js';
 import {
   AAnchor,
   AModule,
@@ -11,8 +11,8 @@ import {
   type BaseResourceSchema,
   type Diff,
   Schema,
-} from '../../src/index.js';
-import { AModel } from '../../src/models/model.abstract.js';
+} from '../../index.js';
+import { AModel } from '../../models/model.abstract.js';
 
 export class SharedTestResource extends ASharedResource<BaseResourceSchema, TestResource> {
   static override readonly NODE_NAME: string = 'test-resource';

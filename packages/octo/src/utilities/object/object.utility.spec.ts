@@ -1,4 +1,4 @@
-import { TestResource } from '../../../test/helpers/test-classes.js';
+import { TestResource } from '../test-helpers/test-classes.js';
 import { ObjectUtility } from './object.utility.js';
 
 describe('Object Utility Test', () => {

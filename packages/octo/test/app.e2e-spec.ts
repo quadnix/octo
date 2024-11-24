@@ -1,4 +1,4 @@
-import { commit, create } from './helpers/test-models.js';
+import { commit, create } from '../src/utilities/test-helpers/test-models.js';
 
 describe('App E2E Test', () => {
   it('should generate app diff', async () => {

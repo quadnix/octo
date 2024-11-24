@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import { TestResource } from '../../test/helpers/test-classes.js';
-import { createTestResources } from '../../test/helpers/test-models.js';
+import { TestResource } from '../utilities/test-helpers/test-classes.js';
+import { createTestResources } from '../utilities/test-helpers/test-models.js';
 import type { UnknownResource } from '../app.type.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';

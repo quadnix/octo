@@ -1,5 +1,5 @@
-import { TestAnchor } from '../../test/helpers/test-classes.js';
-import { create } from '../../test/helpers/test-models.js';
+import { TestAnchor } from '../utilities/test-helpers/test-classes.js';
+import { create } from '../utilities/test-helpers/test-models.js';
 
 describe('Anchor UT', () => {
   it('should throw error adding an anchor twice to the same parent', () => {

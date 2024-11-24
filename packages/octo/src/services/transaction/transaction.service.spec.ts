@@ -6,8 +6,13 @@ import {
   TestOverlay,
   TestOverlayModule,
   TestResource,
-} from '../../../test/helpers/test-classes.js';
-import { commitResources, create, createTestOverlays, createTestResources } from '../../../test/helpers/test-models.js';
+} from '../../utilities/test-helpers/test-classes.js';
+import {
+  commitResources,
+  create,
+  createTestOverlays,
+  createTestResources,
+} from '../../utilities/test-helpers/test-models.js';
 import type { UnknownModule, UnknownResource } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';

@@ -1,5 +1,5 @@
-import type { SharedTestResource } from '../../test/helpers/test-classes.js';
-import { createTestResources } from '../../test/helpers/test-models.js';
+import type { SharedTestResource } from '../utilities/test-helpers/test-classes.js';
+import { createTestResources } from '../utilities/test-helpers/test-models.js';
 import { TestContainer } from '../functions/container/test-container.js';
 
 describe('SharedResource UT', () => {

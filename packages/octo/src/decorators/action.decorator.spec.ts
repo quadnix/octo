@@ -1,5 +1,10 @@
 import { jest } from '@jest/globals';
-import { TestAction, TestModelWithoutUnsynth, TestOverlay, TestResource } from '../../test/helpers/test-classes.js';
+import {
+  TestAction,
+  TestModelWithoutUnsynth,
+  TestOverlay,
+  TestResource,
+} from '../utilities/test-helpers/test-classes.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { Action } from './action.decorator.js';
 import type { Container } from '../functions/container/container.js';

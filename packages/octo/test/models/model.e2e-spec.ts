@@ -9,8 +9,8 @@ import {
   TestContainer,
 } from '../../src/index.js';
 import type { AModel } from '../../src/models/model.abstract.js';
-import { TestAnchor, TestModelWithoutUnsynth } from '../helpers/test-classes.js';
-import { create, createTestOverlays } from '../helpers/test-models.js';
+import { TestAnchor, TestModelWithoutUnsynth } from '../../src/utilities/test-helpers/test-classes.js';
+import { create, createTestOverlays } from '../../src/utilities/test-helpers/test-models.js';
 
 describe('Model E2E Test', () => {
   beforeEach(async () => {

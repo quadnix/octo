@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import { SharedTestResource, TestResource } from '../../../test/helpers/test-classes.js';
-import { commitResources, createTestResources } from '../../../test/helpers/test-models.js';
+import { SharedTestResource, TestResource } from '../../utilities/test-helpers/test-classes.js';
+import { commitResources, createTestResources } from '../../utilities/test-helpers/test-models.js';
 import type { UnknownResource } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';

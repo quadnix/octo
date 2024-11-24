@@ -1,4 +1,4 @@
-import { create } from '../../../test/helpers/test-models.js';
+import { create } from '../../utilities/test-helpers/test-models.js';
 import { NodeType } from '../../app.type.js';
 import { DependencyRelationship } from '../../functions/dependency/dependency.js';
 import { getSchemaInstance } from '../../functions/schema/schema.js';
