@@ -1,16 +1,44 @@
-import type { Constructable, ModuleOutput, ModuleSchema, UnknownModule } from '../app.type.js';
+import type {
+  ActionOutputs,
+  Constructable,
+  ModuleOutput,
+  ModuleSchema,
+  UnknownModel,
+  UnknownModule,
+} from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
+import type { IModelAction } from '../models/model-action.interface.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../overlays/overlay-data.repository.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
+import { TransactionService } from '../services/transaction/transaction.service.js';
 import { create } from '../utilities/test-helpers/test-models.js';
-import type { AModule } from './module.abstract.js';
+import { AModule } from './module.abstract.js';
 import { ModuleContainer } from './module.container.js';
+
+// Universal Test Module and Actions.
+class UniversalTestModuleSchema {}
+class UniversalTestModule extends AModule<UniversalTestModuleSchema, any> {
+  static override readonly MODULE_PACKAGE = '@octo';
+  static override readonly MODULE_SCHEMA = UniversalTestModuleSchema;
+
+  async onInit(): Promise<void> {
+    return;
+  }
+}
+class UniversalModelAction implements IModelAction<UniversalTestModule> {
+  filter(): boolean {
+    return true;
+  }
+  async handle(): Promise<ActionOutputs> {
+    return {};
+  }
+}
 
 export type TestModule<M extends UnknownModule> = {
   hidden?: boolean;
@@ -57,12 +85,34 @@ export class TestModuleContainer {
 
   async createTestModels(moduleId: string, args: Parameters<typeof create>[0]): Promise<ReturnType<typeof create>> {
     const container = Container.getInstance();
-    const inputService = await container.get(InputService);
+    const [inputService, moduleContainer, transactionService] = await Promise.all([
+      container.get(InputService),
+      container.get(ModuleContainer),
+      container.get(TransactionService),
+    ]);
+
+    // Register new moduleId as instance of the universal module.
+    moduleContainer.load(UniversalTestModule, moduleId, {});
+    // Immediately unload the universal module to ensure it does not run in apply().
+    moduleContainer.unload(UniversalTestModule);
 
     const result = create(args);
     for (const models of Object.values(result)) {
       for (const model of models) {
         inputService.registerModel(moduleId, model);
+
+        try {
+          transactionService.registerModelActions(model.constructor as Constructable<UnknownModel>, [
+            new UniversalModelAction(),
+          ]);
+        } catch (error) {
+          if (
+            error.message !==
+            `Action "${UniversalModelAction.name}" already registered for model "${model.constructor.name}"!`
+          ) {
+            throw error;
+          }
+        }
       }
     }
 
@@ -79,6 +129,10 @@ export class TestModuleContainer {
     } else {
       await this.octo.initialize(new TestStateProvider(), initializeInContainer, excludeInContainer);
     }
+
+    // Always register the UniversalTestModule to allow users to create test prerequisites.
+    const moduleContainer = await Container.getInstance().get(ModuleContainer);
+    moduleContainer.register(UniversalTestModule, { packageName: '@octo' });
   }
 
   async orderModules(modules: (Constructable<UnknownModule> | string)[]): Promise<void> {
