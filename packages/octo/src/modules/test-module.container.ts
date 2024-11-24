@@ -8,6 +8,7 @@ import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
+import { create } from '../utilities/test-helpers/test-models.js';
 import type { AModule } from './module.abstract.js';
 import { ModuleContainer } from './module.container.js';
 
@@ -52,6 +53,20 @@ export class TestModuleContainer {
     await this.reset();
 
     return response;
+  }
+
+  async createTestModels(moduleId: string, args: Parameters<typeof create>[0]): Promise<ReturnType<typeof create>> {
+    const container = Container.getInstance();
+    const inputService = await container.get(InputService);
+
+    const result = create(args);
+    for (const models of Object.values(result)) {
+      for (const model of models) {
+        inputService.registerModel(moduleId, model);
+      }
+    }
+
+    return result;
   }
 
   async initialize(
