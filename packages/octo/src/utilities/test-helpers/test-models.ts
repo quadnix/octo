@@ -1,20 +1,18 @@
 import type { UnknownAnchor, UnknownModel, UnknownOverlay, UnknownResource } from '../../app.type.js';
-import {
-  Account,
-  App,
-  Container,
-  Deployment,
-  Environment,
-  Execution,
-  Filesystem,
-  Image,
-  Pipeline,
-  Region,
-  Server,
-  Service,
-  Subnet,
-} from '../../index.js';
+import { Container } from '../../functions/container/container.js';
+import { Account } from '../../models/account/account.model.js';
 import { AccountType } from '../../models/account/account.schema.js';
+import { App } from '../../models/app/app.model.js';
+import { Deployment } from '../../models/deployment/deployment.model.js';
+import { Environment } from '../../models/environment/environment.model.js';
+import { Execution } from '../../models/execution/execution.model.js';
+import { Filesystem } from '../../models/filesystem/filesystem.model.js';
+import { Image } from '../../models/image/image.model.js';
+import { Pipeline } from '../../models/pipeline/pipeline.model.js';
+import { Region } from '../../models/region/region.model.js';
+import { Server } from '../../models/server/server.model.js';
+import { Service } from '../../models/service/service.model.js';
+import { Subnet } from '../../models/subnet/subnet.model.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';

@@ -1,18 +1,16 @@
 import { NodeType, type UnknownAnchor, type UnknownModel, type UnknownResource } from '../../app.type.js';
-import {
-  AAnchor,
-  AModule,
-  AOverlay,
-  AResource,
-  ASharedResource,
-  App,
-  type BaseAnchorSchema,
-  type BaseOverlaySchema,
-  type BaseResourceSchema,
-  type Diff,
-  Schema,
-} from '../../index.js';
+import type { Diff } from '../../functions/diff/diff.js';
+import { Schema } from '../../functions/schema/schema.js';
+import { App } from '../../models/app/app.model.js';
 import { AModel } from '../../models/model.abstract.js';
+import { AModule } from '../../modules/module.abstract.js';
+import { AAnchor } from '../../overlays/anchor.abstract.js';
+import type { BaseAnchorSchema } from '../../overlays/anchor.schema.js';
+import { AOverlay } from '../../overlays/overlay.abstract.js';
+import type { BaseOverlaySchema } from '../../overlays/overlay.schema.js';
+import { AResource } from '../../resources/resource.abstract.js';
+import type { BaseResourceSchema } from '../../resources/resource.schema.js';
+import { ASharedResource } from '../../resources/shared-resource.abstract.js';
 
 export class SharedTestResource extends ASharedResource<BaseResourceSchema, TestResource> {
   static override readonly NODE_NAME: string = 'test-resource';
