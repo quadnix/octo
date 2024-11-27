@@ -14,6 +14,7 @@ import {
   Service,
   Subnet,
 } from '../../index.js';
+import { AccountType } from '../../models/account/account.schema.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
@@ -111,9 +112,14 @@ export function create({
     if (entry === undefined) {
       continue;
     }
-    const [id, i] = splitEntry(entry, index);
+    const [args, i] = splitEntry(entry, index);
 
-    const account = new Account(id);
+    const [type, id] = args.split(',') as [AccountType, string];
+    if (!Object.values(AccountType).includes(type) || !id) {
+      throw new Error(`Invalid account arguments: ${args}`);
+    }
+
+    const account = new Account(type, id);
     const app = result.app[i];
     app.addAccount(account);
     result.account.push(account);

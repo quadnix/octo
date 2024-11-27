@@ -8,15 +8,25 @@ import { Pipeline } from '../pipeline/pipeline.model.js';
 import { Region } from '../region/region.model.js';
 import { Server } from '../server/server.model.js';
 import { Service } from '../service/service.model.js';
-import { AccountSchema } from './account.schema.js';
+import { AccountSchema, AccountType } from './account.schema.js';
+
+type AwsCredentials = {
+  readonly accessKeyId: string;
+
+  readonly secretAccessKey: string;
+};
 
 @Model<Account>('@octo', 'account', AccountSchema)
 export class Account extends AModel<AccountSchema, Account> {
   readonly accountId: string;
 
-  constructor(accountId: string) {
+  readonly accountType: AccountType;
+
+  constructor(accountType: AccountType, accountId: string) {
     super();
+
     this.accountId = accountId;
+    this.accountType = accountType;
   }
 
   /**
@@ -94,6 +104,14 @@ export class Account extends AModel<AccountSchema, Account> {
     this.addChild('accountId', service, 'serviceId');
   }
 
+  isAwsCredentials(credentials: ReturnType<Account['getCredentials']>): credentials is AwsCredentials {
+    return credentials.hasOwnProperty('accessKeyId') && credentials.hasOwnProperty('secretAccessKey');
+  }
+
+  getCredentials(): object {
+    throw new ModelError('Method not implemented! Use subclass', this);
+  }
+
   override setContext(): string {
     const parents = this.getParents();
     const app = parents['app'][0].to;
@@ -103,6 +121,7 @@ export class Account extends AModel<AccountSchema, Account> {
   override synth(): AccountSchema {
     return {
       accountId: this.accountId,
+      accountType: this.accountType,
     };
   }
 
@@ -112,6 +131,6 @@ export class Account extends AModel<AccountSchema, Account> {
   ): Promise<Account> {
     assert(!!deReferenceContext);
 
-    return new Account(account.accountId);
+    return new Account(account.accountType, account.accountId);
   }
 }
