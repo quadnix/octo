@@ -31,6 +31,13 @@ export enum ValidationType {
 export type ActionInputs = { [key: string]: unknown };
 export type ActionOutputs = { [key: string]: UnknownResource };
 
+export type ClassRequiredProperties<T> = {
+  [K in keyof T]: undefined extends T[K] ? never : K;
+}[keyof T];
+export type ClassOptionalProperties<T> = {
+  [K in keyof T]: undefined extends T[K] ? K : never;
+}[keyof T];
+
 export type Constructable<T> = new (...args: any[]) => T;
 
 export type ModelSerializedOutput = {
@@ -59,6 +66,9 @@ export type AnchorSchema<T> = T extends AAnchor<infer S, any> ? S : never;
 export type ModelSchema<T> = T extends AModel<infer S, any> ? S : never;
 export type ModuleOutput<M> = M extends AModule<any, infer T> ? T : never;
 export type ModuleSchema<T> = T extends AModule<infer S, any> ? S : never;
+export type ModuleSchemaInputs<T> = { [K in ClassRequiredProperties<ModuleSchema<T>>]: string } & {
+  [K in ClassOptionalProperties<ModuleSchema<T>>]?: string;
+};
 export type NodeSchema<T> = T extends ANode<infer S, any> ? S : never;
 export type OverlaySchema<T> = T extends AOverlay<infer S, any> ? S : never;
 export type ResourceSchema<T> = T extends AResource<infer S, any> ? S : never;

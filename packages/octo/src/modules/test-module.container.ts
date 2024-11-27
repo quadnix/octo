@@ -2,7 +2,7 @@ import type {
   ActionOutputs,
   Constructable,
   ModuleOutput,
-  ModuleSchema,
+  ModuleSchemaInputs,
   UnknownModel,
   UnknownModule,
 } from '../app.type.js';
@@ -42,7 +42,7 @@ class UniversalModelAction implements IModelAction<UniversalTestModule> {
 
 export type TestModule<M extends UnknownModule> = {
   hidden?: boolean;
-  inputs: Record<keyof ModuleSchema<M>, string>;
+  inputs: ModuleSchemaInputs<M>;
   moduleId: string;
   type: Constructable<M>;
 };

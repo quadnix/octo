@@ -1,4 +1,4 @@
-import type { Constructable, ModuleSchema, UnknownModel, UnknownModule } from '../app.type.js';
+import type { Constructable, ModuleSchemaInputs, UnknownModel, UnknownModule } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
 import { ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
@@ -97,7 +97,7 @@ export class ModuleContainer {
   load<M extends UnknownModule>(
     module: Constructable<M> | string,
     moduleId: string,
-    inputs: Record<keyof ModuleSchema<M>, string>,
+    inputs: ModuleSchemaInputs<M>,
   ): void {
     const moduleName =
       typeof module === 'string' ? module : `${(module as unknown as typeof AModule).MODULE_PACKAGE}/${module.name}`;

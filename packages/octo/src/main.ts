@@ -1,5 +1,5 @@
 import { strict as assert } from 'assert';
-import type { Constructable, ModuleSchema, TransactionOptions, UnknownModule } from './app.type.js';
+import type { Constructable, ModuleSchemaInputs, TransactionOptions, UnknownModule } from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
 import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
@@ -155,7 +155,7 @@ export class Octo {
   loadModule<M extends UnknownModule>(
     module: Constructable<M> | string,
     moduleId: string,
-    inputs: Record<keyof ModuleSchema<M>, string>,
+    inputs: ModuleSchemaInputs<M>,
   ): void {
     this.moduleContainer.load(module, moduleId, inputs);
   }
