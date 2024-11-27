@@ -8,7 +8,7 @@ describe('Dependency UT', () => {
       const {
         app: [app],
         region: [region],
-      } = create({ account: ['account'], app: ['app'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region-1'] });
 
       const dependency = new Dependency(app, region);
 
@@ -22,7 +22,7 @@ describe('Dependency UT', () => {
       const {
         app: [app],
         region: [region],
-      } = create({ account: ['account'], app: ['app'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region-1'] });
 
       const dependency = new Dependency(app, region);
 
@@ -36,7 +36,7 @@ describe('Dependency UT', () => {
       const {
         app: [app],
         region: [region],
-      } = create({ account: ['account'], app: ['app'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region-1'] });
 
       const dependency = new Dependency(app, region);
 
@@ -49,7 +49,7 @@ describe('Dependency UT', () => {
       const {
         app: [app],
         region: [region],
-      } = create({ account: ['account'], app: ['app'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region-1'] });
 
       const dependency = new Dependency(app, region);
 
@@ -66,7 +66,7 @@ describe('Dependency UT', () => {
       const {
         environment: [environment],
         region: [region],
-      } = create({ account: ['account'], app: ['app'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['app'], environment: ['qa'], region: ['region-1'] });
 
       const dependency = new Dependency(region, environment);
 
@@ -86,7 +86,7 @@ describe('Dependency UT', () => {
       const {
         environment: [environment],
         region: [region],
-      } = create({ account: ['account'], app: ['app'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['app'], environment: ['qa'], region: ['region-1'] });
 
       const dependency = new Dependency(region, environment);
       const dependencySynth = dependency.synth();

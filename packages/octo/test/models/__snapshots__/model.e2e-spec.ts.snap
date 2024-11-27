@@ -16,14 +16,14 @@ exports[`Model E2E Test addRelationship() should create a bi-directional relatio
 ]
 `;
 
-exports[`Model E2E Test common functions Test {"accountId": "account", "anchors": [Array], "dependencies": [Array]} getAncestors() 1`] = `
+exports[`Model E2E Test common functions Test {"accountId": "account", "accountType": "aws", "anchors": [Array], "dependencies": [Array]} getAncestors() 1`] = `
 [
   "account=account,app=test",
   "app=test",
 ]
 `;
 
-exports[`Model E2E Test common functions Test {"accountId": "account", "anchors": [Array], "dependencies": [Array]} getBoundaryMembers() 1`] = `
+exports[`Model E2E Test common functions Test {"accountId": "account", "accountType": "aws", "anchors": [Array], "dependencies": [Array]} getBoundaryMembers() 1`] = `
 [
   "account=account,app=test",
   "app=test",
@@ -41,7 +41,7 @@ exports[`Model E2E Test common functions Test {"accountId": "account", "anchors"
 ]
 `;
 
-exports[`Model E2E Test common functions Test {"accountId": "account", "anchors": [Array], "dependencies": [Array]} getChildren() 1`] = `
+exports[`Model E2E Test common functions Test {"accountId": "account", "accountType": "aws", "anchors": [Array], "dependencies": [Array]} getChildren() 1`] = `
 [
   "image",
   "pipeline",
@@ -51,19 +51,20 @@ exports[`Model E2E Test common functions Test {"accountId": "account", "anchors"
 ]
 `;
 
-exports[`Model E2E Test common functions Test {"accountId": "account", "anchors": [Array], "dependencies": [Array]} getContext() 1`] = `"account=account,app=test"`;
+exports[`Model E2E Test common functions Test {"accountId": "account", "accountType": "aws", "anchors": [Array], "dependencies": [Array]} getContext() 1`] = `"account=account,app=test"`;
 
-exports[`Model E2E Test common functions Test {"accountId": "account", "anchors": [Array], "dependencies": [Array]} getParents() 1`] = `
+exports[`Model E2E Test common functions Test {"accountId": "account", "accountType": "aws", "anchors": [Array], "dependencies": [Array]} getParents() 1`] = `
 [
   "app",
 ]
 `;
 
-exports[`Model E2E Test common functions Test {"accountId": "account", "anchors": [Array], "dependencies": [Array]} getSiblings() 1`] = `[]`;
+exports[`Model E2E Test common functions Test {"accountId": "account", "accountType": "aws", "anchors": [Array], "dependencies": [Array]} getSiblings() 1`] = `[]`;
 
-exports[`Model E2E Test common functions Test {"accountId": "account", "anchors": [Array], "dependencies": [Array]} synth() 1`] = `
+exports[`Model E2E Test common functions Test {"accountId": "account", "accountType": "aws", "anchors": [Array], "dependencies": [Array]} synth() 1`] = `
 {
   "accountId": "account",
+  "accountType": "aws",
 }
 `;
 

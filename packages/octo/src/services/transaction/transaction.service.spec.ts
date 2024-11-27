@@ -1,4 +1,19 @@
 import { jest } from '@jest/globals';
+import type { UnknownModule, UnknownResource } from '../../app.type.js';
+import type { Container } from '../../functions/container/container.js';
+import { TestContainer } from '../../functions/container/test-container.js';
+import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
+import { Diff, DiffAction } from '../../functions/diff/diff.js';
+import { Account } from '../../models/account/account.model.js';
+import { AccountType } from '../../models/account/account.schema.js';
+import { App } from '../../models/app/app.model.js';
+import { type IModelAction } from '../../models/model-action.interface.js';
+import { Region } from '../../models/region/region.model.js';
+import { ModuleContainer } from '../../modules/module.container.js';
+import { TestModuleContainer } from '../../modules/test-module.container.js';
+import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
+import { type IResourceAction } from '../../resources/resource-action.interface.js';
+import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import {
   SharedTestResource,
   TestAnchor,
@@ -13,20 +28,6 @@ import {
   createTestOverlays,
   createTestResources,
 } from '../../utilities/test-helpers/test-models.js';
-import type { UnknownModule, UnknownResource } from '../../app.type.js';
-import type { Container } from '../../functions/container/container.js';
-import { TestContainer } from '../../functions/container/test-container.js';
-import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
-import { Diff, DiffAction } from '../../functions/diff/diff.js';
-import { Account } from '../../models/account/account.model.js';
-import { type IModelAction } from '../../models/model-action.interface.js';
-import { App } from '../../models/app/app.model.js';
-import { Region } from '../../models/region/region.model.js';
-import { ModuleContainer } from '../../modules/module.container.js';
-import { TestModuleContainer } from '../../modules/test-module.container.js';
-import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
-import { type IResourceAction } from '../../resources/resource-action.interface.js';
-import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
@@ -416,7 +417,7 @@ describe('TransactionService UT', () => {
     it('should not set order for diff that already has an order defined', () => {
       const {
         environment: [environment],
-      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, modelActions);
@@ -430,7 +431,7 @@ describe('TransactionService UT', () => {
     it('should set order 0 for diff with no dependencies', () => {
       const {
         environment: [environment],
-      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, modelActions);
@@ -443,7 +444,7 @@ describe('TransactionService UT', () => {
     it('should set order 0 for diff with dependencies not in current array of diffs', () => {
       const {
         environment: [environment],
-      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diffMetadata = new DiffMetadata(diff, modelActions);
@@ -457,7 +458,7 @@ describe('TransactionService UT', () => {
       const {
         environment: [environment],
         region: [region1, region2],
-      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1', 'region-2:-1'] });
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['qa'], region: ['region-1', 'region-2:-1'] });
 
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region1, DiffAction.ADD, 'regionId', 'region-1');
@@ -475,7 +476,7 @@ describe('TransactionService UT', () => {
       const {
         environment: [environment],
         region: [region],
-      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
@@ -494,7 +495,7 @@ describe('TransactionService UT', () => {
         app: [app],
         environment: [environment],
         region: [region],
-      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
 
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
       const diff2 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
@@ -515,7 +516,7 @@ describe('TransactionService UT', () => {
 
     it('should throw errors with 1 level of circular dependencies', () => {
       const app = new App('test');
-      const account = new Account('account');
+      const account = new Account(AccountType.AWS, 'account');
       const region = new Region('region-1');
 
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region-1');
@@ -543,7 +544,7 @@ describe('TransactionService UT', () => {
         app: [app],
         environment: [environment],
         region: [region],
-      } = create({ account: ['account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['qa'], region: ['region-1'] });
       environment.addChild('environmentName', app, 'name');
 
       const diff1 = new Diff(environment, DiffAction.ADD, 'environmentName', 'qa');
@@ -569,7 +570,7 @@ describe('TransactionService UT', () => {
       const {
         environment: [environment],
         region: [region],
-      } = create({ account: ['account'], app: ['test'], environment: ['env'], region: ['region-1'] });
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['env'], region: ['region-1'] });
 
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
       const diff2 = new Diff(environment, DiffAction.ADD, 'environmentName', 'env');
@@ -615,7 +616,7 @@ describe('TransactionService UT', () => {
 
         const {
           app: [app],
-        } = create({ account: ['account'], app: ['app'] });
+        } = create({ account: ['aws,account'], app: ['app'] });
         const anchor1 = new TestAnchor('anchor-1', {}, app);
         app.addAnchor(anchor1);
 

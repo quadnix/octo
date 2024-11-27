@@ -215,7 +215,7 @@ describe('Overlay UT', () => {
     it('should only remove one dependency with parent when multiple anchors have same parent', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test'] });
+      } = create({ account: ['aws,account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -237,7 +237,7 @@ describe('Overlay UT', () => {
     it('should remove all anchors with parent dependencies', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test'] });
+      } = create({ account: ['aws,account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -271,7 +271,7 @@ describe('Overlay UT', () => {
     it('should be able to synth with anchors', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test'] });
+      } = create({ account: ['aws,account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -311,7 +311,7 @@ describe('Overlay UT', () => {
     it('should throw error while unSynth if anchor not found', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test'] });
+      } = create({ account: ['aws,account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -337,7 +337,7 @@ describe('Overlay UT', () => {
     it('should be able to unSynth with anchors', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test'] });
+      } = create({ account: ['aws,account'], app: ['test'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);

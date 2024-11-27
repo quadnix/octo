@@ -82,7 +82,7 @@ describe('Model Serialization Service UT', () => {
     it('should be able to register classes and deserialize', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test-app'] });
+      } = create({ account: ['aws,account'], app: ['test-app'] });
 
       const app_1 = await commit(app);
 
@@ -102,7 +102,7 @@ describe('Model Serialization Service UT', () => {
     it('should return the serialized root on deserialization', async () => {
       const {
         region: [region],
-      } = create({ account: ['account'], app: ['test-app'], region: ['region'] });
+      } = create({ account: ['aws,account'], app: ['test-app'], region: ['region'] });
 
       const region_1 = await commit(region);
 
@@ -115,7 +115,7 @@ describe('Model Serialization Service UT', () => {
       const {
         app: [app],
       } = create({
-        account: ['account'],
+        account: ['aws,account'],
         app: ['test'],
         image: ['image'],
         region: ['region'],
@@ -138,7 +138,7 @@ describe('Model Serialization Service UT', () => {
 
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test-app'] });
+      } = create({ account: ['aws,account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -169,7 +169,7 @@ describe('Model Serialization Service UT', () => {
       const {
         account: [account],
         app: [app],
-      } = create({ account: ['account'], app: ['test-app'], image: ['image'] });
+      } = create({ account: ['aws,account'], app: ['test-app'], image: ['image'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -207,7 +207,7 @@ describe('Model Serialization Service UT', () => {
       const {
         app: [app],
       } = create({
-        account: ['account'],
+        account: ['aws,account'],
         app: ['test-app'],
         environment: ['qa'],
         image: ['image'],
@@ -236,7 +236,7 @@ describe('Model Serialization Service UT', () => {
       const {
         region: [region1],
       } = create({
-        account: ['account'],
+        account: ['aws,account'],
         app: ['test-app'],
         environment: ['qa', 'qa'],
         region: ['region-1', 'region-2:-1'],
@@ -250,7 +250,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize overlay with multiple anchors of same parent', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test-app'] });
+      } = create({ account: ['aws,account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);
@@ -266,7 +266,7 @@ describe('Model Serialization Service UT', () => {
     it('should serialize two overlay dependencies with each other', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test-app'] });
+      } = create({ account: ['aws,account'], app: ['test-app'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
       const anchor2 = new TestAnchor('anchor-2', {}, app);

@@ -1,6 +1,7 @@
 import type { UnknownModel } from '../../src/app.type.js';
 import {
   Account,
+  AccountType,
   App,
   DependencyRelationship,
   DiffAction,
@@ -32,7 +33,7 @@ describe('Model E2E Test', () => {
       service: [service],
       subnet: [subnet1, subnet2],
     } = create({
-      account: ['account'],
+      account: ['aws,account'],
       app: ['test'],
       deployment: ['v1'],
       environment: ['qa'],
@@ -131,7 +132,7 @@ describe('Model E2E Test', () => {
       const {
         account: [account],
         app: [app],
-      } = create({ account: ['account'], app: ['test'] });
+      } = create({ account: ['aws,account'], app: ['test'] });
 
       expect(() => {
         app.addChild('name', account, 'accountId');
@@ -158,7 +159,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['account'], app: ['app'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: ['service'] });
 
       service.addRelationship(region);
 
@@ -175,7 +176,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['account'], app: ['test'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['test'], region: ['region'], service: ['service'] });
 
       const { thisToThatDependency } = service.addRelationship(region);
       thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
@@ -192,7 +193,7 @@ describe('Model E2E Test', () => {
       it('should not produce overlay diffs', async () => {
         const {
           app: [app],
-        } = create({ account: ['account'], app: ['app'], image: ['image'] });
+        } = create({ account: ['aws,account'], app: ['app'], image: ['image'] });
         const anchor1 = new TestAnchor('anchor-1', {}, app);
         app.addAnchor(anchor1);
 
@@ -210,7 +211,7 @@ describe('Model E2E Test', () => {
     it('should not include children as ancestor', () => {
       const {
         region: [region],
-      } = create({ account: ['account'], app: ['app'], environment: ['env-0'], region: ['region-0'] });
+      } = create({ account: ['aws,account'], app: ['app'], environment: ['env-0'], region: ['region-0'] });
 
       expect(region.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
     });
@@ -219,7 +220,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['account'], app: ['app'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: ['service'] });
 
       service.addRelationship(region);
 
@@ -231,7 +232,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['account'], app: ['app'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: ['service'] });
 
       const { thisToThatDependency } = service.addRelationship(region);
       thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
@@ -242,7 +243,7 @@ describe('Model E2E Test', () => {
     it('should include parent of parent as ancestors', () => {
       const {
         environment: [environment],
-      } = create({ account: ['account'], app: ['app'], environment: ['env-0'], region: ['region-0'] });
+      } = create({ account: ['aws,account'], app: ['app'], environment: ['env-0'], region: ['region-0'] });
 
       expect(environment.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
     });
@@ -252,7 +253,7 @@ describe('Model E2E Test', () => {
     it('should demonstrate how boundaries can explode because of a common model', () => {
       const {
         region: [region1, region2],
-      } = create({ account: ['account'], app: ['test-app'], region: ['region-1', 'region-2:-1'] });
+      } = create({ account: ['aws,account'], app: ['test-app'], region: ['region-1', 'region-2:-1'] });
 
       // 2 regions, ideally on different boundaries, are merged together because of one common model.
       const environment = new Environment('qa');
@@ -265,7 +266,13 @@ describe('Model E2E Test', () => {
     it('should not include non-dependents in boundary', () => {
       const {
         region: [region],
-      } = create({ account: ['account'], app: ['test-app'], image: ['image'], region: ['region'], server: ['server'] });
+      } = create({
+        account: ['aws,account'],
+        app: ['test-app'],
+        image: ['image'],
+        region: ['region'],
+        server: ['server'],
+      });
 
       // Just adding a server won't correlate to region. Create an execution in order to correlate.
       expect(region.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
@@ -276,7 +283,7 @@ describe('Model E2E Test', () => {
         region: [region],
         server: [server],
       } = create({
-        account: ['account'],
+        account: ['aws,account'],
         app: ['test-app'],
         deployment: ['deployment'],
         environment: ['qa'],
@@ -295,7 +302,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['account'], app: ['app'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: ['service'] });
 
       service.addRelationship(region);
 
@@ -306,7 +313,7 @@ describe('Model E2E Test', () => {
       const {
         image: [image],
         region: [region1, region2],
-      } = create({ account: ['account'], app: ['app'], image: ['imageName'], region: ['region-1', 'region-2:-1'] });
+      } = create({ account: ['aws,account'], app: ['app'], image: ['imageName'], region: ['region-1', 'region-2:-1'] });
 
       region1.addRelationship(image);
       region2.addRelationship(image);
@@ -317,7 +324,7 @@ describe('Model E2E Test', () => {
     it('should include overlays in boundary', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['app'], image: ['image'] });
+      } = create({ account: ['aws,account'], app: ['app'], image: ['image'] });
       const anchor = new TestAnchor('test-anchor', {}, app);
       app.addAnchor(anchor);
 
@@ -341,7 +348,7 @@ describe('Model E2E Test', () => {
 
     describe('Circular Dependencies', () => {
       it('should throw error on one level of circular dependency', () => {
-        const account = new Account('account');
+        const account = new Account(AccountType.AWS, 'account');
         const region = new Region('region');
 
         expect(() => {
@@ -353,7 +360,7 @@ describe('Model E2E Test', () => {
 
       it('should throw error on two levels of circular dependency', () => {
         const app = new App('test-app');
-        const account = new Account('account');
+        const account = new Account(AccountType.AWS, 'account');
         const region = new Region('region');
         const environment = new Environment('qa');
 
@@ -372,7 +379,7 @@ describe('Model E2E Test', () => {
     it('should get anchor using specified parent', async () => {
       const {
         app: [app],
-      } = create({ account: ['account'], app: ['test'], image: ['image'] });
+      } = create({ account: ['aws,account'], app: ['test'], image: ['image'] });
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
@@ -387,7 +394,7 @@ describe('Model E2E Test', () => {
       const {
         account: [account],
         region: [region],
-      } = create({ account: ['account'], app: ['test'], region: ['region'] });
+      } = create({ account: ['aws,account'], app: ['test'], region: ['region'] });
 
       const accountDependencyWithRegion = account.getDependency(region, DependencyRelationship.PARENT);
       expect(accountDependencyWithRegion).not.toBeUndefined();
@@ -400,7 +407,7 @@ describe('Model E2E Test', () => {
       const {
         image: [image],
         region: [region],
-      } = create({ account: ['account'], app: ['test'], image: ['test'], region: ['region'] });
+      } = create({ account: ['aws,account'], app: ['test'], image: ['test'], region: ['region'] });
 
       image.addRelationship(region);
 

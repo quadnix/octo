@@ -210,6 +210,7 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
       "className": "@octo/Account",
       "model": {
         "accountId": "account",
+        "accountType": "aws",
       },
     },
     "app=test-app": {
@@ -424,6 +425,7 @@ exports[`Model Serialization Service UT serialize() should serialize only bounda
       "className": "@octo/Account",
       "model": {
         "accountId": "account",
+        "accountType": "aws",
       },
     },
     "app=test-app": {
@@ -581,6 +583,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
       "className": "@octo/Account",
       "model": {
         "accountId": "account",
+        "accountType": "aws",
       },
     },
     "app=test-app": {
@@ -761,6 +764,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
       "className": "@octo/Account",
       "model": {
         "accountId": "account",
+        "accountType": "aws",
       },
     },
     "app=test-app": {

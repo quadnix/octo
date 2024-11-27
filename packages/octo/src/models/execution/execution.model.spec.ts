@@ -9,7 +9,7 @@ describe('Execution UT', () => {
     const {
       execution: [execution],
     } = create({
-      account: ['account'],
+      account: ['aws,account'],
       app: ['test'],
       deployment: ['0.0.1'],
       environment: ['qa'],
@@ -29,7 +29,7 @@ describe('Execution UT', () => {
     const {
       execution: [execution],
     } = create({
-      account: ['account'],
+      account: ['aws,account'],
       app: ['test'],
       deployment: ['0.0.1'],
       environment: ['qa'],
@@ -47,7 +47,7 @@ describe('Execution UT', () => {
       const {
         execution: [execution],
       } = create({
-        account: ['account'],
+        account: ['aws,account'],
         app: ['test'],
         deployment: ['0.0.1'],
         environment: ['qa'],
