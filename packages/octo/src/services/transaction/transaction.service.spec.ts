@@ -106,7 +106,7 @@ describe('TransactionService UT', () => {
 
     it('should throw error when action inputs are not found', async () => {
       const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
-        inputs: { name: '${moduleId.input.unknown}' },
+        inputs: { name: '${{moduleId.model.app.name}}' },
         moduleId: 'moduleId',
         type: TestAppModule,
       });
@@ -122,7 +122,7 @@ describe('TransactionService UT', () => {
 
     it('should throw error when action resource inputs are not found', async () => {
       const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
-        inputs: { name: '${moduleId.resource.unknown}' },
+        inputs: { name: '${{moduleId.resource.unknown}}' },
         moduleId: 'moduleId',
         type: TestAppModule,
       });
@@ -685,7 +685,7 @@ describe('TransactionService UT', () => {
         app.addAnchor(anchor1);
 
         await testModuleContainer.runModule<TestOverlayModule>({
-          inputs: { anchorName: 'anchor-1', app: '${moduleId.model.app}' },
+          inputs: { anchorName: 'anchor-1', app: '${{moduleId.model.app}}' },
           moduleId: 'overlayModuleId',
           type: TestOverlayModule,
         });

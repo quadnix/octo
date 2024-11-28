@@ -64,7 +64,7 @@ export class InputService {
   /**
    * Registers the inputs passed to an instance of module.
    * It maps the input key provided to the module with the input value.
-   * The value can be a direct value, or can be a reference "${}" to
+   * The value can be a direct value, or can be a reference "${{var}}" to
    * another input, module, overlay, or resource.
    */
   registerInput(moduleId: string, key: string, value: unknown): void {
@@ -147,7 +147,7 @@ export class InputService {
    * Given an input key, returns the resolved input key.
    * An input key is resolved when the value is not a pointer to another input.
    * Otherwise, an input key could be referencing another input, module, overlay, or resource.
-   * E.g. module.input.key = ${another_module.input.key}
+   * E.g. module.input.key = ${{another_module.input.key}}
    * This method traverses the value of the input key recursively until it is resolved.
    */
   private resolveInputKey(inputKey: string, maxRecursion = 15, originalInputKey?: string): string {
@@ -163,13 +163,13 @@ export class InputService {
       return inputKey;
     }
 
-    // An input key without the ${} pattern is already resolved.
-    const pattern = value.match(/^\$\{(.+)}$/);
+    // An input key without the ${{var}} pattern is already resolved.
+    const pattern = value.match(/^\$\{\{(.+)}}$/);
     if (!pattern) {
       return inputKey;
     }
 
-    return this.resolveInputKey(pattern[1], maxRecursion - 1, originalInputKey || inputKey);
+    return this.resolveInputKey(pattern[1].trim(), maxRecursion - 1, originalInputKey || inputKey);
   }
 
   // https://stackoverflow.com/a/69459511/1834562
