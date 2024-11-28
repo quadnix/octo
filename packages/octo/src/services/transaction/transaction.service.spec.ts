@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { UnknownModule, UnknownResource } from '../../app.type.js';
+import type { UnknownModel, UnknownModule, UnknownResource } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
@@ -106,10 +106,15 @@ describe('TransactionService UT', () => {
 
     it('should throw error when action inputs are not found', async () => {
       const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
-        inputs: { name: '${{moduleId.model.app.name}}' },
+        inputs: { name: 'test-app' },
         moduleId: 'moduleId',
         type: TestAppModule,
       });
+
+      // After module has ran, fabricate a scenario where module created a model which does not exist.
+      // This scenario is not possible in real life, but is useful for testing.
+      const inputService = await container.get(InputService);
+      inputService['models']['moduleId.model.unknown'] = undefined as unknown as UnknownModel;
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
@@ -122,10 +127,15 @@ describe('TransactionService UT', () => {
 
     it('should throw error when action resource inputs are not found', async () => {
       const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
-        inputs: { name: '${{moduleId.resource.unknown}}' },
+        inputs: { name: 'test-app' },
         moduleId: 'moduleId',
         type: TestAppModule,
       });
+
+      // After module has ran, fabricate a scenario where module created a resource which does not exist.
+      // This scenario is not possible in real life, but is useful for testing.
+      const inputService = await container.get(InputService);
+      inputService['resources']['moduleId.resource.unknown'] = undefined as unknown as string;
 
       const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
       const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
