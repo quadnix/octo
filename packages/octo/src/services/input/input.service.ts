@@ -19,6 +19,30 @@ export class InputService {
     private readonly resourceDataRepository: ResourceDataRepository,
   ) {}
 
+  getAllNodeKeys(moduleId: string): string[] {
+    const keys: string[] = [];
+
+    for (const key of Object.keys(this.models)) {
+      if (key.startsWith(`${moduleId}.model`)) {
+        keys.push(key);
+      }
+    }
+
+    for (const key of Object.keys(this.overlays)) {
+      if (key.startsWith(`${moduleId}.overlay`)) {
+        keys.push(key);
+      }
+    }
+
+    for (const key of Object.keys(this.resources)) {
+      if (key.startsWith(`${moduleId}.resource`)) {
+        keys.push(key);
+      }
+    }
+
+    return keys;
+  }
+
   getModuleIdFromModel(model: UnknownModel): string {
     const modelContext = model.getContext();
     const [key] = Object.entries(this.models).find(([, m]) => m.getContext() === modelContext)!;

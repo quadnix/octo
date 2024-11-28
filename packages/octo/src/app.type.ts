@@ -28,7 +28,7 @@ export enum ValidationType {
 }
 
 /* Types */
-export type ActionInputs = { [key: string]: unknown };
+export type ActionInputs = EnhancedModuleSchema<UnknownModule>;
 export type ActionOutputs = { [key: string]: UnknownResource };
 
 export type ClassRequiredProperties<T> = {
@@ -63,6 +63,12 @@ export type TransactionOptions = {
 export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
 
 export type AnchorSchema<T> = T extends AAnchor<infer S, any> ? S : never;
+export type EnhancedModuleSchema<T> = {
+  inputs: Record<keyof ModuleSchemaInputs<T>, unknown>;
+  models: Record<string, UnknownModel>;
+  overlays: Record<string, UnknownOverlay>;
+  resources: Record<string, UnknownResource>;
+};
 export type ModelSchema<T> = T extends AModel<infer S, any> ? S : never;
 export type ModuleOutput<M> = M extends AModule<any, infer T> ? T : never;
 export type ModuleSchema<T> = T extends AModule<infer S, any> ? S : never;

@@ -1,4 +1,4 @@
-import type { ActionOutputs, ModuleSchema, UnknownModule } from '../app.type.js';
+import type { ActionOutputs, EnhancedModuleSchema, UnknownModule } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
 
 /**
@@ -14,5 +14,5 @@ export interface IModelAction<T extends UnknownModule> {
   /**
    * This function contains the logic to apply the diff(s) to the underlying infrastructure.
    */
-  handle(diff: Diff, actionInputs: ModuleSchema<T>, actionOutputs: ActionOutputs): Promise<ActionOutputs>;
+  handle(diff: Diff, actionInputs: EnhancedModuleSchema<T>, actionOutputs: ActionOutputs): Promise<ActionOutputs>;
 }

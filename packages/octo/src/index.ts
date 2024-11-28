@@ -65,11 +65,10 @@ export { type IStateProvider } from './services/state-management/state-provider.
 export { TestStateProvider } from './services/state-management/test.state-provider.js';
 
 export type {
-  ActionInputs,
   ActionOutputs,
   Constructable,
   AnchorSchema,
-  ModelSchema,
+  EnhancedModuleSchema,
   ModuleSchema,
   OverlaySchema,
   ResourceSchema,
