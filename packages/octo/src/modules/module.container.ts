@@ -3,7 +3,7 @@ import { Factory } from '../decorators/factory.decorator.js';
 import { ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
-import { getSchemaInstance } from '../functions/schema/schema.js';
+import { getSchemaInstance, getSchemaKeys } from '../functions/schema/schema.js';
 import { OverlayDataRepository } from '../overlays/overlay-data.repository.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { EventService } from '../services/event/event.service.js';
@@ -54,6 +54,17 @@ export class ModuleContainer {
           (module as unknown as typeof AModule).MODULE_SCHEMA,
           resolvedModuleInputs,
         );
+
+        // Re-register module inputs. This now includes all the optional properties that were not provided in inputs.
+        for (const [key, value] of Object.entries(resolvedModuleSchema)) {
+          try {
+            this.inputService.registerInput(i.moduleId, key, value);
+          } catch (error) {
+            if (error.message !== `Input "${i.moduleId}.input.${key}" has already been registered!`) {
+              throw error;
+            }
+          }
+        }
 
         // Run module. Register module output, and return the module output.
         const instance = new module();
@@ -111,7 +122,11 @@ export class ModuleContainer {
     if (m.instances.findIndex((i) => i.moduleId === moduleId) !== -1) {
       throw new ModuleError('Module already loaded!', moduleName);
     }
-    m.instances.push({ applied: false, inputKeys: Object.keys(inputs), moduleId });
+    m.instances.push({
+      applied: false,
+      inputKeys: getSchemaKeys((module as unknown as typeof AModule).MODULE_SCHEMA),
+      moduleId,
+    });
 
     for (const [key, value] of Object.entries(inputs)) {
       this.inputService.registerInput(moduleId, key, JSON.parse(JSON.stringify(value)));

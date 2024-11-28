@@ -9,12 +9,16 @@ export function getSchemaInstance<S>(
   const t = new schemaClass();
 
   for (const key of getSchemaKeys<S>(schemaClass)) {
-    if (!value.hasOwnProperty(key)) {
-      throw new SchemaError(`Property "${key}" from schema is missing from inputs!`, schemaClass.name);
+    if (value.hasOwnProperty(key) && value[key]) {
+      t[key] = value[key];
+      instance[key] = value[key];
+    } else {
+      instance[key] = t[key];
     }
 
-    t[key] = value[key];
-    instance[key] = value[key];
+    if (!instance[key]) {
+      throw new SchemaError(`Property "${key}" in schema could not be resolved!`, schemaClass.name);
+    }
   }
 
   return instance;
