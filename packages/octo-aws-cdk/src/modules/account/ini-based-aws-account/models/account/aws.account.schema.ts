@@ -1,3 +1,5 @@
-import { AccountSchema } from '@quadnix/octo';
+import { AccountSchema, Schema } from '@quadnix/octo';
 
-export class AwsAccountSchema extends AccountSchema {}
+export class AwsAccountSchema extends AccountSchema {
+  iniProfile = Schema<string>();
+}

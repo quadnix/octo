@@ -1,5 +1,13 @@
-import { Action, ActionOutputs, Diff, DiffAction, Factory, IModelAction } from '@quadnix/octo';
-import { AwsAccountModule, AwsAccountModuleSchema } from '../../../index.js';
+import {
+  Action,
+  type ActionOutputs,
+  type Diff,
+  DiffAction,
+  type EnhancedModuleSchema,
+  Factory,
+  type IModelAction,
+} from '@quadnix/octo';
+import { AwsAccountModule } from '../../../aws-account.module.js';
 import { AwsAccount } from '../aws.account.model.js';
 
 @Action(AwsAccount)
@@ -15,7 +23,7 @@ export class AddAccountModelAction implements IModelAction<AwsAccountModule> {
 
   async handle(
     _diff: Diff,
-    _actionInputs: AwsAccountModuleSchema,
+    _actionInputs: EnhancedModuleSchema<AwsAccountModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     return actionOutputs;

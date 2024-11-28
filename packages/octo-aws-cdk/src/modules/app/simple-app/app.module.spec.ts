@@ -32,7 +32,21 @@ describe('AppModule UT', () => {
     await testModuleContainer.commit(app);
 
     expect(addAppModelActionSpy).toHaveBeenCalledTimes(1);
-    expect(addAppModelActionSpy.mock.calls[0][1]).toEqual({ 'app.input.name': 'test-app' });
+    expect(addAppModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
+     {
+       "inputs": {
+         "name": "test-app",
+       },
+       "models": {
+         "app": {
+           "context": "app=test-app",
+           "name": "test-app",
+         },
+       },
+       "overlays": {},
+       "resources": {},
+     }
+    `);
   });
 
   it('should be able to add a new app', async () => {

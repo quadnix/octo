@@ -5,6 +5,8 @@ export class AwsAccountModuleSchema {
   accountId = Schema<string>();
 
   app = Schema<App>();
+
+  iniProfile? = Schema<string>('default');
 }
 
 @Module<AwsAccountModule>('@octo', AwsAccountModuleSchema)
@@ -13,7 +15,7 @@ export class AwsAccountModule extends AModule<AwsAccountModuleSchema, AwsAccount
     const app = inputs.app;
 
     // Create a new account.
-    const account = new AwsAccount(inputs.accountId);
+    const account = new AwsAccount(inputs.accountId, inputs.iniProfile!);
     app.addAccount(account);
 
     return account;

@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { App, type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { AwsAccountModule } from './aws-account.module.js';
 import { AddAccountModelAction } from './models/account/actions/add-account.model.action.js';
 
@@ -32,7 +32,7 @@ describe('AwsAccountModule UT', () => {
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
         accountId: '1234',
-        app: '${testModule.model.app}',
+        app: '${{testModule.model.app}}',
       },
       moduleId: 'account',
       type: AwsAccountModule,
@@ -41,10 +41,28 @@ describe('AwsAccountModule UT', () => {
     await testModuleContainer.commit(app, { enableResourceCapture: true });
 
     expect(addAccountModelActionSpy).toHaveBeenCalledTimes(1);
-
-    const actionInputs = addAccountModelActionSpy.mock.calls[0][1];
-    expect(actionInputs['account.input.accountId']).toBe('1234');
-    expect(actionInputs['account.input.app'] instanceof App).toBeTruthy();
+    expect(addAccountModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
+     {
+       "inputs": {
+         "accountId": "1234",
+         "app": {
+           "context": "app=test-app",
+           "name": "test-app",
+         },
+         "iniProfile": "default",
+       },
+       "models": {
+         "account": {
+           "accountId": "1234",
+           "accountType": "aws",
+           "context": "account=1234,app=test-app",
+           "iniProfile": "default",
+         },
+       },
+       "overlays": {},
+       "resources": {},
+     }
+    `);
   });
 
   it('should create a new account', async () => {
@@ -57,7 +75,7 @@ describe('AwsAccountModule UT', () => {
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
         accountId: '1234',
-        app: '${testModule.model.app}',
+        app: '${{testModule.model.app}}',
       },
       moduleId: 'account',
       type: AwsAccountModule,

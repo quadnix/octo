@@ -1,5 +1,14 @@
-import { Action, type ActionOutputs, App, type Diff, DiffAction, Factory, type IModelAction } from '@quadnix/octo';
-import type { AppModule, AppModuleSchema } from '../../../app.module.js';
+import {
+  Action,
+  type ActionOutputs,
+  App,
+  type Diff,
+  DiffAction,
+  type EnhancedModuleSchema,
+  Factory,
+  type IModelAction,
+} from '@quadnix/octo';
+import type { AppModule } from '../../../app.module.js';
 
 @Action(App)
 export class AddAppModelAction implements IModelAction<AppModule> {
@@ -7,7 +16,11 @@ export class AddAppModelAction implements IModelAction<AppModule> {
     return diff.action === DiffAction.ADD && (diff.node.constructor as typeof App).NODE_NAME === 'app';
   }
 
-  async handle(_diff: Diff, _actionInputs: AppModuleSchema, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
+  async handle(
+    _diff: Diff,
+    _actionInputs: EnhancedModuleSchema<AppModule>,
+    actionOutputs: ActionOutputs,
+  ): Promise<ActionOutputs> {
     return actionOutputs;
   }
 }
