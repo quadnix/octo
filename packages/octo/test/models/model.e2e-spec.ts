@@ -50,7 +50,6 @@ describe('Model E2E Test', () => {
 
     const testCases: {
       model: UnknownModel;
-      synth?: any;
     }[] = [
       {
         model: account,
@@ -90,39 +89,41 @@ describe('Model E2E Test', () => {
       },
     ];
 
-    describe.each(testCases)('Test $model.MODEL_NAME', (data) => {
-      it('getAncestors()', () => {
-        expect(data.model.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
-      });
+    describe.each(testCases)('Test common functions', (data) => {
+      describe(`Test ${data.model.constructor.name}`, () => {
+        it('getAncestors()', () => {
+          expect(data.model.getAncestors().map((m) => m.getContext())).toMatchSnapshot();
+        });
 
-      it('getBoundaryMembers()', () => {
-        expect(data.model.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
-      });
+        it('getBoundaryMembers()', () => {
+          expect(data.model.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
+        });
 
-      it('getChildren()', () => {
-        expect(Object.keys(data.model.getChildren())).toMatchSnapshot();
-      });
+        it('getChildren()', () => {
+          expect(Object.keys(data.model.getChildren())).toMatchSnapshot();
+        });
 
-      it('getContext()', () => {
-        expect(data.model.getContext()).toMatchSnapshot();
-      });
+        it('getContext()', () => {
+          expect(data.model.getContext()).toMatchSnapshot();
+        });
 
-      it('getParents()', () => {
-        expect(Object.keys(data.model.getParents())).toMatchSnapshot();
-      });
+        it('getParents()', () => {
+          expect(Object.keys(data.model.getParents())).toMatchSnapshot();
+        });
 
-      it('getSiblings()', () => {
-        expect(Object.keys(data.model.getSiblings())).toMatchSnapshot();
-      });
+        it('getSiblings()', () => {
+          expect(Object.keys(data.model.getSiblings())).toMatchSnapshot();
+        });
 
-      it('synth()', () => {
-        if ((data.model.constructor as typeof AModel).NODE_NAME === 'service') {
-          expect(() => {
-            data.model.synth();
-          }).toThrowErrorMatchingSnapshot();
-        } else {
-          expect(data.model.synth()).toMatchSnapshot();
-        }
+        it('synth()', () => {
+          if ((data.model.constructor as typeof AModel).NODE_NAME === 'service') {
+            expect(() => {
+              data.model.synth();
+            }).toThrowErrorMatchingSnapshot();
+          } else {
+            expect(data.model.synth()).toMatchSnapshot();
+          }
+        });
       });
     });
   });

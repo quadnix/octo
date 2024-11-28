@@ -2,10 +2,8 @@
 
 exports[`Resource Serialization Service UT deserialize() should deserialize a resource with complex properties 1`] = `
 [
-  TestResource {
-    "_deleteMarker": false,
+  {
     "context": "@octo/test-resource=resource-1",
-    "dependencies": [],
     "properties": {
       "key1": {
         "key2": {
@@ -24,10 +22,8 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a re
 
 exports[`Resource Serialization Service UT deserialize() should deserialize a single resource 1`] = `
 [
-  TestResource {
-    "_deleteMarker": false,
+  {
     "context": "@octo/test-resource=resource-1",
-    "dependencies": [],
     "properties": {
       "key1": "value1",
     },

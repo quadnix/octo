@@ -359,6 +359,13 @@ export abstract class ANode<S, T> implements INode<S, T> {
 
   abstract synth(): S;
 
+  toJSON(): S {
+    return {
+      context: this.getContext(),
+      ...this.synth(),
+    };
+  }
+
   /**
    * To create self given its serialized representation.
    * - First argument is the serialized representation.

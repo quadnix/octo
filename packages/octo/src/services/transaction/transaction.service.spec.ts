@@ -207,7 +207,19 @@ describe('TransactionService UT', () => {
       await applyModels([diffMetadata]);
 
       expect(diffMetadata.inputs).toEqual({
-        'moduleId.input.name': 'app',
+        inputs: {
+          name: 'app',
+        },
+        models: {
+          app: {
+            anchors: [],
+            context: 'app=app',
+            dependencies: [],
+            name: 'app',
+          },
+        },
+        overlays: {},
+        resources: {},
       });
       expect(diffMetadata.outputs['resource1'].resourceId).toBe('resource1');
     });

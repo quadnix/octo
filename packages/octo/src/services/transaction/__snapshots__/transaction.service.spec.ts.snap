@@ -10,7 +10,17 @@ exports[`TransactionService UT applyModels() should call action and collect all 
       "value": "app",
     },
     {
-      "moduleId.input.name": "app",
+      "inputs": {
+        "name": "app",
+      },
+      "models": {
+        "app": {
+          "context": "app=app",
+          "name": "app",
+        },
+      },
+      "overlays": {},
+      "resources": {},
     },
     {},
   ],
@@ -27,7 +37,17 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
       "value": "app",
     },
     {
-      "moduleId.input.name": "app",
+      "inputs": {
+        "name": "app",
+      },
+      "models": {
+        "app": {
+          "context": "app=app",
+          "name": "app",
+        },
+      },
+      "overlays": {},
+      "resources": {},
     },
     {},
   ],
@@ -39,7 +59,24 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
       "value": "app",
     },
     {
-      "moduleId.input.name": "app",
+      "inputs": {
+        "name": "app",
+      },
+      "models": {
+        "app": {
+          "context": "app=app",
+          "name": "app",
+        },
+      },
+      "overlays": {},
+      "resources": {
+        "resource1": {
+          "context": "@octo/test-resource=resource1",
+          "properties": {},
+          "resourceId": "resource1",
+          "response": {},
+        },
+      },
     },
     {},
   ],
