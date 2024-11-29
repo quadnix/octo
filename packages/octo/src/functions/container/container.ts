@@ -25,6 +25,22 @@ export class Container {
 
   private constructor() {}
 
+  copyFactories(): { [key: string]: FactoryContainer<unknown>[] } {
+    const newFactoriesCopy: { [key: string]: FactoryContainer<unknown>[] } = {};
+
+    for (const [type, factoryContainers] of Object.entries(this.factories)) {
+      newFactoriesCopy[type] = [];
+      for (const factoryContainer of factoryContainers) {
+        newFactoriesCopy[type].push({
+          factory: factoryContainer.factory,
+          metadata: { ...factoryContainer.metadata },
+        });
+      }
+    }
+
+    return newFactoriesCopy;
+  }
+
   /**
    * `container.get()` allows to get an instance of a class using its factory.
    * If the factory is not yet registered, it places a blocking promise in the queue to wait for the registration.
@@ -162,6 +178,18 @@ export class Container {
     }
 
     this.startupUnhandledPromises.splice(0, this.startupUnhandledPromises.length);
+  }
+
+  setFactories(factories: { [key: string]: FactoryContainer<unknown>[] }): void {
+    for (const [type, factoryContainers] of Object.entries(factories)) {
+      this.factories[type] = [];
+      for (const factoryContainer of factoryContainers) {
+        this.factories[type].push({
+          factory: factoryContainer.factory,
+          metadata: { ...factoryContainer.metadata },
+        });
+      }
+    }
   }
 
   /**

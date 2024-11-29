@@ -35,7 +35,7 @@ type TestContainerOptions = { factoryTimeoutInMs?: number };
  * Once tests are done executing, the `afterAll()` block cleans up the Container.
  */
 export class TestContainer {
-  private static originalFactories: Container['factories'] = Container.getInstance()['factories'];
+  private static originalFactories: Container['factories'];
 
   private static async bootstrap(container: Container): Promise<void> {
     await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
@@ -77,18 +77,13 @@ export class TestContainer {
    * - `factoryTimeoutInMs?: number` is to override the default container timeout.
    */
   static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<Container> {
-    const container = Container.getInstance(true);
-
-    // Load new container with previous factories.
-    for (const [type, factoryContainers] of Object.entries(this.originalFactories)) {
-      container['factories'][type] = [];
-      for (const factoryContainer of factoryContainers) {
-        container['factories'][type].push({
-          factory: factoryContainer.factory,
-          metadata: { ...factoryContainer.metadata },
-        });
-      }
+    if (!TestContainer.originalFactories) {
+      TestContainer.originalFactories = Container.getInstance().copyFactories();
     }
+    const container = Container.getInstance();
+
+    // Load container with previous factories.
+    container.setFactories(this.originalFactories);
     // Reset state of eligible factories.
     // A factory is eligible if it has an internal structure and should be reset on every test.
     await this.bootstrap(container);
