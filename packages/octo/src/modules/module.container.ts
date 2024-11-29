@@ -155,10 +155,10 @@ export class ModuleContainer {
   }
 
   reset(): void {
-    this.modules.map((m) => {
+    for (const m of this.modules) {
       m.hidden = true;
       m.instances = [];
-    });
+    }
   }
 
   unload(module: Constructable<UnknownModule>): void {
