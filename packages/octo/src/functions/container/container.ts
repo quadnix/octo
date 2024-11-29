@@ -98,8 +98,8 @@ export class Container {
     return factory.create(...args);
   }
 
-  static getInstance(forceNew = false): Container {
-    if (!this.instance || forceNew) {
+  static getInstance(): Container {
+    if (!this.instance) {
       this.instance = new Container();
     }
     return this.instance;
