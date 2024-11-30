@@ -1,11 +1,21 @@
 import { CreateFileSystemCommand, DescribeFileSystemsCommand, EFSClient } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, TransactionError } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  TransactionError,
+} from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { IEfsResponse } from '../efs.interface.js';
 import { Efs } from '../efs.resource.js';
+import type { EfsSchema } from '../efs.schema.js';
 
 @Action(Efs)
-export class AddEfsResourceAction implements IResourceAction {
+export class AddEfsResourceAction implements IResourceAction<Efs> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -21,7 +31,9 @@ export class AddEfsResourceAction implements IResourceAction {
     const response = efs.response;
 
     // Get instances.
-    const efsClient = await Container.get(EFSClient, { args: [properties.awsRegionId] });
+    const efsClient = await this.container.get(EFSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create a new EFS.
     const data = await efsClient.send(
@@ -63,9 +75,15 @@ export class AddEfsResourceAction implements IResourceAction {
     response.FileSystemId = data.FileSystemId!;
   }
 
-  async mock(capture: Partial<IEfsResponse>): Promise<void> {
-    const efsClient = await Container.get(EFSClient, { args: ['mock'] });
-    efsClient.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<EfsSchema['response']>): Promise<void> {
+    // Get properties.
+    const efs = diff.node as Efs;
+    const properties = efs.properties;
+
+    const efsClient = await this.container.get(EFSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateFileSystemCommand) {
         return { FileSystemArn: capture.FileSystemArn, FileSystemId: capture.FileSystemId };
       } else if (instance instanceof DescribeFileSystemsCommand) {
@@ -78,6 +96,7 @@ export class AddEfsResourceAction implements IResourceAction {
 @Factory<AddEfsResourceAction>(AddEfsResourceAction)
 export class AddEfsResourceActionFactory {
   static async create(): Promise<AddEfsResourceAction> {
-    return new AddEfsResourceAction();
+    const container = Container.getInstance();
+    return new AddEfsResourceAction(container);
   }
 }

@@ -4,13 +4,23 @@ import {
   type DescribeFileSystemsCommandOutput,
   EFSClient,
 } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, TransactionError } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  TransactionError,
+} from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { IEfsResponse } from '../efs.interface.js';
 import { Efs } from '../efs.resource.js';
+import type { EfsSchema } from '../efs.schema.js';
 
 @Action(Efs)
-export class DeleteEfsResourceAction implements IResourceAction {
+export class DeleteEfsResourceAction implements IResourceAction<Efs> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
@@ -26,7 +36,9 @@ export class DeleteEfsResourceAction implements IResourceAction {
     const response = efs.response;
 
     // Get instances.
-    const efsClient = await Container.get(EFSClient, { args: [properties.awsRegionId] });
+    const efsClient = await this.container.get(EFSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Delete EFS.
     await efsClient.send(new DeleteFileSystemCommand({ FileSystemId: response.FileSystemId }));
@@ -67,9 +79,15 @@ export class DeleteEfsResourceAction implements IResourceAction {
     );
   }
 
-  async mock(capture: Partial<IEfsResponse>): Promise<void> {
-    const efsClient = await Container.get(EFSClient, { args: ['mock'] });
-    efsClient.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<EfsSchema['response']>): Promise<void> {
+    // Get properties.
+    const efs = diff.node as Efs;
+    const properties = efs.properties;
+
+    const efsClient = await this.container.get(EFSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteFileSystemCommand) {
         return;
       } else if (instance instanceof DescribeFileSystemsCommand) {
@@ -82,6 +100,7 @@ export class DeleteEfsResourceAction implements IResourceAction {
 @Factory<DeleteEfsResourceAction>(DeleteEfsResourceAction)
 export class DeleteEfsResourceActionFactory {
   static async create(): Promise<DeleteEfsResourceAction> {
-    return new DeleteEfsResourceAction();
+    const container = Container.getInstance();
+    return new DeleteEfsResourceAction(container);
   }
 }
