@@ -1,18 +1,18 @@
-import { AResource, DependencyRelationship, Diff, DiffAction, Resource, UnknownResource } from '@quadnix/octo';
+import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@quadnix/octo';
 import { EcsTaskDefinition } from '../ecs-task-definition/index.js';
 import { SecurityGroup } from '../security-group/index.js';
 import type { Subnet } from '../subnet/index.js';
 import type { EcsCluster } from '../ecs-cluster/index.js';
-import type { IEcsServiceProperties, IEcsServiceResponse } from './ecs-service.interface.js';
+import { EcsServiceSchema } from './ecs-service.schema.js';
 
-@Resource('@octo', 'ecs-service')
-export class EcsService extends AResource<EcsService> {
-  declare properties: IEcsServiceProperties;
-  declare response: IEcsServiceResponse;
+@Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema)
+export class EcsService extends AResource<EcsServiceSchema, EcsService> {
+  declare properties: EcsServiceSchema['properties'];
+  declare response: EcsServiceSchema['response'];
 
   constructor(
     resourceId: string,
-    properties: IEcsServiceProperties,
+    properties: EcsServiceSchema['properties'],
     parents: [EcsCluster, EcsTaskDefinition, Subnet, ...SecurityGroup[]],
   ) {
     super(resourceId, properties, parents);
@@ -53,7 +53,7 @@ export class EcsService extends AResource<EcsService> {
     deReferenceResource: (resourceId: string) => Promise<EcsTaskDefinition | SecurityGroup>,
   ): Promise<void> {
     if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
-      await this.cloneResourceInPlace(diff.node as UnknownResource, deReferenceResource);
+      await this.cloneResourceInPlace(diff.node as EcsService, deReferenceResource);
     } else {
       await super.diffInverse(diff, deReferenceResource);
     }

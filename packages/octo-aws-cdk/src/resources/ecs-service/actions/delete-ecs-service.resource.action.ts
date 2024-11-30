@@ -1,11 +1,13 @@
 import { DeleteServiceCommand, DescribeServicesCommand, ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { EcsCluster } from '../../ecs-cluster/index.js';
 import { EcsService } from '../ecs-service.resource.js';
 
 @Action(EcsService)
-export class DeleteEcsServiceResourceAction implements IResourceAction {
+export class DeleteEcsServiceResourceAction implements IResourceAction<EcsService> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
@@ -23,7 +25,9 @@ export class DeleteEcsServiceResourceAction implements IResourceAction {
     const ecsClusterProperties = ecsCluster.properties;
 
     // Get instances.
-    const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Check if service is ACTIVE.
     const describeResult = await ecsClient.send(
@@ -72,9 +76,15 @@ export class DeleteEcsServiceResourceAction implements IResourceAction {
     );
   }
 
-  async mock(): Promise<void> {
-    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
-    ecsClient.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const ecsService = diff.node as EcsService;
+    const properties = ecsService.properties;
+
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof UpdateServiceCommand) {
         return;
       } else if (instance instanceof DescribeServicesCommand) {
@@ -89,6 +99,7 @@ export class DeleteEcsServiceResourceAction implements IResourceAction {
 @Factory<DeleteEcsServiceResourceAction>(DeleteEcsServiceResourceAction)
 export class DeleteEcsServiceResourceActionFactory {
   static async create(): Promise<DeleteEcsServiceResourceAction> {
-    return new DeleteEcsServiceResourceAction();
+    const container = Container.getInstance();
+    return new DeleteEcsServiceResourceAction(container);
   }
 }

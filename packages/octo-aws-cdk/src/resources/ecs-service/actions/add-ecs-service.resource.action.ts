@@ -1,14 +1,16 @@
 import { CreateServiceCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import { EcsTaskDefinition } from '../../ecs-task-definition/index.js';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { EcsTaskDefinition } from '../../ecs-task-definition/index.js';
 import type { SecurityGroup } from '../../security-group/index.js';
 import type { Subnet } from '../../subnet/index.js';
 import type { EcsCluster } from '../../ecs-cluster/index.js';
-import type { IEcsServiceResponse } from '../ecs-service.interface.js';
 import { EcsService } from '../ecs-service.resource.js';
+import type { EcsServiceSchema } from '../ecs-service.schema.js';
 
 @Action(EcsService)
-export class AddEcsServiceResourceAction implements IResourceAction {
+export class AddEcsServiceResourceAction implements IResourceAction<EcsService> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -37,7 +39,9 @@ export class AddEcsServiceResourceAction implements IResourceAction {
       'security-group' in parents ? parents['security-group'].map((d) => d.to as SecurityGroup) : [];
 
     // Get instances.
-    const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create a new service.
     const data = await ecsClient.send(
@@ -60,9 +64,15 @@ export class AddEcsServiceResourceAction implements IResourceAction {
     response.serviceArn = data.service!.serviceArn!;
   }
 
-  async mock(capture: Partial<IEcsServiceResponse>): Promise<void> {
-    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
-    ecsClient.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<EcsServiceSchema['response']>): Promise<void> {
+    // Get properties.
+    const ecsService = diff.node as EcsService;
+    const properties = ecsService.properties;
+
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateServiceCommand) {
         return { service: { serviceArn: capture.serviceArn } };
       }
@@ -73,6 +83,7 @@ export class AddEcsServiceResourceAction implements IResourceAction {
 @Factory<AddEcsServiceResourceAction>(AddEcsServiceResourceAction)
 export class AddEcsServiceResourceActionFactory {
   static async create(): Promise<AddEcsServiceResourceAction> {
-    return new AddEcsServiceResourceAction();
+    const container = Container.getInstance();
+    return new AddEcsServiceResourceAction(container);
   }
 }
