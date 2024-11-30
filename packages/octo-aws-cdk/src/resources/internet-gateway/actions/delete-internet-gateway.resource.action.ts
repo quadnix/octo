@@ -1,10 +1,12 @@
 import { DeleteInternetGatewayCommand, DetachInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { Vpc } from '../../vpc/index.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
 @Action(InternetGateway)
-export class DeleteInternetGatewayResourceAction implements IResourceAction {
+export class DeleteInternetGatewayResourceAction implements IResourceAction<InternetGateway> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
@@ -20,7 +22,9 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction {
     const response = internetGateway.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     const vpc = internetGateway.getParents('vpc')['vpc'][0].to as Vpc;
     const vpcResponse = vpc.response;
@@ -41,9 +45,15 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction {
     );
   }
 
-  async mock(): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const internetGateway = diff.node as InternetGateway;
+    const properties = internetGateway.properties;
+
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DetachInternetGatewayCommand) {
         return;
       } else if (instance instanceof DeleteInternetGatewayCommand) {
@@ -56,6 +66,7 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction {
 @Factory<DeleteInternetGatewayResourceAction>(DeleteInternetGatewayResourceAction)
 export class DeleteInternetGatewayResourceActionFactory {
   static async create(): Promise<DeleteInternetGatewayResourceAction> {
-    return new DeleteInternetGatewayResourceAction();
+    const container = Container.getInstance();
+    return new DeleteInternetGatewayResourceAction(container);
   }
 }

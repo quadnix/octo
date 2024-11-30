@@ -1,11 +1,13 @@
 import { AttachInternetGatewayCommand, CreateInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { Vpc } from '../../vpc/index.js';
-import type { IInternetGatewayResponse } from '../internet-gateway.interface.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
+import type { InternetGatewaySchema } from '../internet-gateway.schema.js';
 
 @Action(InternetGateway)
-export class AddInternetGatewayResourceAction implements IResourceAction {
+export class AddInternetGatewayResourceAction implements IResourceAction<InternetGateway> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -21,7 +23,9 @@ export class AddInternetGatewayResourceAction implements IResourceAction {
     const response = internetGateway.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     const vpc = internetGateway.getParents('vpc')['vpc'][0].to as Vpc;
     const vpcResponse = vpc.response;
@@ -41,9 +45,16 @@ export class AddInternetGatewayResourceAction implements IResourceAction {
     response.InternetGatewayId = internetGWOutput!.InternetGateway!.InternetGatewayId!;
   }
 
-  async mock(capture: Partial<IInternetGatewayResponse>): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<InternetGatewaySchema['response']>): Promise<void> {
+    // Get properties.
+    const internetGateway = diff.node as InternetGateway;
+    const properties = internetGateway.properties;
+
+    // Get instances.
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateInternetGatewayCommand) {
         return { InternetGateway: { InternetGatewayId: capture.InternetGatewayId } };
       } else if (instance instanceof AttachInternetGatewayCommand) {
@@ -56,6 +67,7 @@ export class AddInternetGatewayResourceAction implements IResourceAction {
 @Factory<AddInternetGatewayResourceAction>(AddInternetGatewayResourceAction)
 export class AddInternetGatewayResourceActionFactory {
   static async create(): Promise<AddInternetGatewayResourceAction> {
-    return new AddInternetGatewayResourceAction();
+    const container = Container.getInstance();
+    return new AddInternetGatewayResourceAction(container);
   }
 }
