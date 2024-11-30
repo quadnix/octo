@@ -1,10 +1,12 @@
 import { CreateVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { IVpcResponse } from '../vpc.interface.js';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { Vpc } from '../vpc.resource.js';
+import type { VpcSchema } from '../vpc.schema.js';
 
 @Action(Vpc)
-export class AddVpcResourceAction implements IResourceAction {
+export class AddVpcResourceAction implements IResourceAction<Vpc> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -20,7 +22,9 @@ export class AddVpcResourceAction implements IResourceAction {
     const response = vpc.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create VPC.
     const vpcOutput = await ec2Client.send(
@@ -34,9 +38,15 @@ export class AddVpcResourceAction implements IResourceAction {
     response.VpcId = vpcOutput.Vpc!.VpcId!;
   }
 
-  async mock(capture: Partial<IVpcResponse>): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<VpcSchema['response']>): Promise<void> {
+    // Get properties.
+    const vpc = diff.node as Vpc;
+    const properties = vpc.properties;
+
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateVpcCommand) {
         return { Vpc: { VpcId: capture.VpcId } };
       }
@@ -47,6 +57,7 @@ export class AddVpcResourceAction implements IResourceAction {
 @Factory<AddVpcResourceAction>(AddVpcResourceAction)
 export class AddVpcResourceActionFactory {
   static async create(): Promise<AddVpcResourceAction> {
-    return new AddVpcResourceAction();
+    const container = Container.getInstance();
+    return new AddVpcResourceAction(container);
   }
 }

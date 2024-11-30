@@ -1,9 +1,11 @@
 import { DeleteVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { Vpc } from '../vpc.resource.js';
 
 @Action(Vpc)
-export class DeleteVpcResourceAction implements IResourceAction {
+export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
@@ -19,7 +21,9 @@ export class DeleteVpcResourceAction implements IResourceAction {
     const response = vpc.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Delete VPC.
     await ec2Client.send(
@@ -29,9 +33,15 @@ export class DeleteVpcResourceAction implements IResourceAction {
     );
   }
 
-  async mock(): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const vpc = diff.node as Vpc;
+    const properties = vpc.properties;
+
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteVpcCommand) {
         return;
       }
@@ -42,6 +52,7 @@ export class DeleteVpcResourceAction implements IResourceAction {
 @Factory<DeleteVpcResourceAction>(DeleteVpcResourceAction)
 export class DeleteVpcResourceActionFactory {
   static async create(): Promise<DeleteVpcResourceAction> {
-    return new DeleteVpcResourceAction();
+    const container = Container.getInstance();
+    return new DeleteVpcResourceAction(container);
   }
 }

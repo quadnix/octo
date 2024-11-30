@@ -1,12 +1,12 @@
 import { AResource, Resource } from '@quadnix/octo';
-import type { IVpcProperties, IVpcResponse } from './vpc.interface.js';
+import { VpcSchema } from './vpc.schema.js';
 
-@Resource('@octo', 'vpc')
-export class Vpc extends AResource<Vpc> {
-  declare properties: IVpcProperties;
-  declare response: IVpcResponse;
+@Resource<Vpc>('@octo', 'vpc', VpcSchema)
+export class Vpc extends AResource<VpcSchema, Vpc> {
+  declare properties: VpcSchema['properties'];
+  declare response: VpcSchema['response'];
 
-  constructor(resourceId: string, properties: IVpcProperties) {
+  constructor(resourceId: string, properties: VpcSchema['properties']) {
     super(resourceId, properties, []);
   }
 }
