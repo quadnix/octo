@@ -1,9 +1,11 @@
 import { DeleteSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { Subnet } from '../subnet.resource.js';
 
 @Action(Subnet)
-export class DeleteSubnetResourceAction implements IResourceAction {
+export class DeleteSubnetResourceAction implements IResourceAction<Subnet> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
@@ -19,7 +21,9 @@ export class DeleteSubnetResourceAction implements IResourceAction {
     const response = subnet.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Delete Subnet.
     await ec2Client.send(
@@ -29,9 +33,15 @@ export class DeleteSubnetResourceAction implements IResourceAction {
     );
   }
 
-  async mock(): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const subnet = diff.node as Subnet;
+    const properties = subnet.properties;
+
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteSubnetCommand) {
         return;
       }
@@ -42,6 +52,7 @@ export class DeleteSubnetResourceAction implements IResourceAction {
 @Factory<DeleteSubnetResourceAction>(DeleteSubnetResourceAction)
 export class DeleteSubnetResourceActionFactory {
   static async create(): Promise<DeleteSubnetResourceAction> {
-    return new DeleteSubnetResourceAction();
+    const container = Container.getInstance();
+    return new DeleteSubnetResourceAction(container);
   }
 }

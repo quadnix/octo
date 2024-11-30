@@ -1,11 +1,13 @@
 import { CreateSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { ISubnetResponse } from '../subnet.interface.js';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { Subnet } from '../subnet.resource.js';
 import type { Vpc } from '../../vpc/index.js';
+import type { SubnetSchema } from '../subnet.schema.js';
 
 @Action(Subnet)
-export class AddSubnetResourceAction implements IResourceAction {
+export class AddSubnetResourceAction implements IResourceAction<Subnet> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -23,7 +25,9 @@ export class AddSubnetResourceAction implements IResourceAction {
     const vpcResponse = vpc.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create Subnet.
     const subnetOutput = await ec2Client.send(
@@ -38,9 +42,15 @@ export class AddSubnetResourceAction implements IResourceAction {
     response.SubnetId = subnetOutput.Subnet!.SubnetId!;
   }
 
-  async mock(capture: Partial<ISubnetResponse>): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<SubnetSchema['response']>): Promise<void> {
+    // Get properties.
+    const subnet = diff.node as Subnet;
+    const properties = subnet.properties;
+
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateSubnetCommand) {
         return { Subnet: { SubnetId: capture.SubnetId } };
       }
@@ -51,6 +61,7 @@ export class AddSubnetResourceAction implements IResourceAction {
 @Factory<AddSubnetResourceAction>(AddSubnetResourceAction)
 export class AddSubnetResourceActionFactory {
   static async create(): Promise<AddSubnetResourceAction> {
-    return new AddSubnetResourceAction();
+    const container = Container.getInstance();
+    return new AddSubnetResourceAction(container);
   }
 }
