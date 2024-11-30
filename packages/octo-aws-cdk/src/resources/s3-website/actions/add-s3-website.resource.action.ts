@@ -5,11 +5,13 @@ import {
   PutPublicAccessBlockCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { S3Website } from '../s3-website.resource.js';
 
 @Action(S3Website)
-export class AddS3WebsiteResourceAction implements IResourceAction {
+export class AddS3WebsiteResourceAction implements IResourceAction<S3Website> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -25,7 +27,9 @@ export class AddS3WebsiteResourceAction implements IResourceAction {
     const response = s3Website.response;
 
     // Get instances.
-    const s3Client = await Container.get(S3Client, { args: [properties.awsRegionId] });
+    const s3Client = await this.container.get(S3Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create a new bucket.
     await s3Client.send(
@@ -85,9 +89,15 @@ export class AddS3WebsiteResourceAction implements IResourceAction {
     response.awsRegionId = properties.awsRegionId;
   }
 
-  async mock(): Promise<void> {
-    const s3Client = await Container.get(S3Client, { args: ['mock'] });
-    s3Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const s3Website = diff.node as S3Website;
+    const properties = s3Website.properties;
+
+    const s3Client = await this.container.get(S3Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateBucketCommand) {
         return;
       } else if (instance instanceof PutBucketWebsiteCommand) {
@@ -104,6 +114,7 @@ export class AddS3WebsiteResourceAction implements IResourceAction {
 @Factory<AddS3WebsiteResourceAction>(AddS3WebsiteResourceAction)
 export class AddS3WebsiteResourceActionFactory {
   static async create(): Promise<AddS3WebsiteResourceAction> {
-    return new AddS3WebsiteResourceAction();
+    const container = Container.getInstance();
+    return new AddS3WebsiteResourceAction(container);
   }
 }

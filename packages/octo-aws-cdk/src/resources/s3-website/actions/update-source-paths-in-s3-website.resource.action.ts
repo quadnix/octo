@@ -1,12 +1,14 @@
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { type Options, Upload } from '@aws-sdk/lib-storage';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Upload } from '@aws-sdk/lib-storage';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import mime from 'mime';
 import { S3Website } from '../s3-website.resource.js';
 
 @Action(S3Website)
-export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceAction {
+export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceAction<S3Website> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
@@ -23,27 +25,25 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     const properties = s3Website.properties;
 
     // Get instances.
-    const s3Client = await Container.get(S3Client, { args: [properties.awsRegionId] });
+    const s3Client = await this.container.get(S3Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Synchronize files with S3.
     for (const remotePath in manifestDiff) {
       const [operation, filePath] = manifestDiff[remotePath];
       if (operation === 'add' || operation === 'update') {
         const stream = createReadStream(filePath);
-        const upload = await Container.get(Upload, {
-          args: [
-            {
-              client: s3Client,
-              leavePartsOnError: false,
-              params: {
-                Body: stream,
-                Bucket: properties.Bucket,
-                ContentType: mime.getType(filePath) || undefined,
-                Key: remotePath,
-              },
-              queueSize: 4,
-            } as Options,
-          ],
+        const upload = new Upload({
+          client: s3Client,
+          leavePartsOnError: false,
+          params: {
+            Body: stream,
+            Bucket: properties.Bucket,
+            ContentType: mime.getType(filePath) || undefined,
+            Key: remotePath,
+          },
+          queueSize: 4,
         });
         await upload.done();
       } else {
@@ -57,9 +57,15 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     }
   }
 
-  async mock(): Promise<void> {
-    const s3Client = await Container.get(S3Client, { args: ['mock'] });
-    s3Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const s3Website = diff.node as S3Website;
+    const properties = s3Website.properties;
+
+    const s3Client = await this.container.get(S3Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteObjectCommand) {
         return;
       }
@@ -70,6 +76,7 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
 @Factory<UpdateSourcePathsInS3WebsiteResourceAction>(UpdateSourcePathsInS3WebsiteResourceAction)
 export class UpdateSourcePathsInS3WebsiteResourceActionFactory {
   static async create(): Promise<UpdateSourcePathsInS3WebsiteResourceAction> {
-    return new UpdateSourcePathsInS3WebsiteResourceAction();
+    const container = Container.getInstance();
+    return new UpdateSourcePathsInS3WebsiteResourceAction(container);
   }
 }

@@ -1,14 +1,14 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import type { IS3WebsiteProperties, IS3WebsiteResponse } from './s3-website.interface.js';
+import { S3WebsiteSchema } from './s3-website.schema.js';
 
-@Resource('@octo', 's3-website')
-export class S3Website extends AResource<S3Website> {
-  declare properties: IS3WebsiteProperties;
-  declare response: IS3WebsiteResponse;
+@Resource<S3Website>('@octo', 's3-website', S3WebsiteSchema)
+export class S3Website extends AResource<S3WebsiteSchema, S3Website> {
+  declare properties: S3WebsiteSchema['properties'];
+  declare response: S3WebsiteSchema['response'];
 
   private readonly manifestDiff: { [key: string]: ['add' | 'delete' | 'update', string] } = {};
 
-  constructor(resourceId: string, properties: IS3WebsiteProperties) {
+  constructor(resourceId: string, properties: S3WebsiteSchema['properties']) {
     super(resourceId, properties, []);
   }
 
