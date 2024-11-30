@@ -6,15 +6,17 @@ import {
   type NetworkAclEntry,
   ReplaceNetworkAclEntryCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import pLimit from 'p-limit';
 import { NetworkAclUtility } from '../../../utilities/network-acl/network-acl.utility.js';
 import type { Subnet } from '../../subnet/index.js';
-import type { INetworkAclProperties } from '../network-acl.interface.js';
 import { NetworkAcl } from '../network-acl.resource.js';
+import type { NetworkAclSchema } from '../network-acl.schema.js';
 
 @Action(NetworkAcl)
-export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
+export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<NetworkAcl> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
@@ -32,7 +34,9 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
     const response = networkAcl.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
     const limit = pLimit(100);
 
     const parents = networkAcl.getParents();
@@ -58,9 +62,9 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
     const propertiesIngressEntries = properties.entries.filter((e) => !e.Egress);
 
     // Collect entries to add, delete, and replace.
-    const entriesToAdd: INetworkAclProperties['entries'] = [];
+    const entriesToAdd: NetworkAclSchema['properties']['entries'] = [];
     const entriesToDelete: NetworkAclEntry[] = [];
-    const entriesToReplace: INetworkAclProperties['entries'] = [];
+    const entriesToReplace: NetworkAclSchema['properties']['entries'] = [];
     nAclEgressEntries.forEach((e) => {
       const index = propertiesEgressEntries.findIndex((pe) => pe.RuleNumber === e.RuleNumber);
 
@@ -136,9 +140,14 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
     ]);
   }
 
-  async mock(): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    const networkAcl = diff.node as NetworkAcl;
+    const properties = networkAcl.properties;
+
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DescribeNetworkAclsCommand) {
         return {
           NetworkAcls: [{ Entries: [] }],
@@ -157,6 +166,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction {
 @Factory<UpdateNetworkAclEntriesResourceAction>(UpdateNetworkAclEntriesResourceAction)
 export class UpdateNetworkAclEntriesResourceActionFactory {
   static async create(): Promise<UpdateNetworkAclEntriesResourceAction> {
-    return new UpdateNetworkAclEntriesResourceAction();
+    const container = Container.getInstance();
+    return new UpdateNetworkAclEntriesResourceAction(container);
   }
 }

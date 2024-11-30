@@ -1,9 +1,11 @@
 import { DeleteNetworkAclCommand, EC2Client, ReplaceNetworkAclAssociationCommand } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { NetworkAcl } from '../network-acl.resource.js';
 
 @Action(NetworkAcl)
-export class DeleteNetworkAclResourceAction implements IResourceAction {
+export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAcl> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
@@ -19,7 +21,9 @@ export class DeleteNetworkAclResourceAction implements IResourceAction {
     const response = networkAcl.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Associate Subnet with the default Network ACL.
     await ec2Client.send(
@@ -37,9 +41,14 @@ export class DeleteNetworkAclResourceAction implements IResourceAction {
     );
   }
 
-  async mock(): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    const networkAcl = diff.node as NetworkAcl;
+    const properties = networkAcl.properties;
+
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof ReplaceNetworkAclAssociationCommand) {
         return;
       } else if (instance instanceof DeleteNetworkAclCommand) {
@@ -52,6 +61,7 @@ export class DeleteNetworkAclResourceAction implements IResourceAction {
 @Factory<DeleteNetworkAclResourceAction>(DeleteNetworkAclResourceAction)
 export class DeleteNetworkAclResourceActionFactory {
   static async create(): Promise<DeleteNetworkAclResourceAction> {
-    return new DeleteNetworkAclResourceAction();
+    const container = Container.getInstance();
+    return new DeleteNetworkAclResourceAction(container);
   }
 }

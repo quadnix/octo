@@ -5,14 +5,16 @@ import {
   EC2Client,
   ReplaceNetworkAclAssociationCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { Subnet } from '../../subnet/index.js';
 import type { Vpc } from '../../vpc/index.js';
-import type { INetworkAclResponse } from '../network-acl.interface.js';
 import { NetworkAcl } from '../network-acl.resource.js';
+import type { NetworkAclSchema } from '../network-acl.schema.js';
 
 @Action(NetworkAcl)
-export class AddNetworkAclResourceAction implements IResourceAction {
+export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -28,7 +30,9 @@ export class AddNetworkAclResourceAction implements IResourceAction {
     const response = networkAcl.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     const parents = networkAcl.getParents();
     const vpc = parents['vpc'][0].to as Vpc;
@@ -87,14 +91,17 @@ export class AddNetworkAclResourceAction implements IResourceAction {
     response.NetworkAclId = naclOutput!.NetworkAcl!.NetworkAclId!;
   }
 
-  async mock(capture: Partial<INetworkAclResponse>, diff: Diff): Promise<void> {
+  async mock(diff: Diff, capture: Partial<NetworkAclSchema['response']>): Promise<void> {
     const networkAcl = diff.node as NetworkAcl;
+    const properties = networkAcl.properties;
     const parents = networkAcl.getParents();
     const subnet = parents['subnet'][0].to as Subnet;
     const subnetResponse = subnet.response;
 
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DescribeNetworkAclsCommand) {
         return {
           NetworkAcls: [
@@ -118,6 +125,7 @@ export class AddNetworkAclResourceAction implements IResourceAction {
 @Factory<AddNetworkAclResourceAction>(AddNetworkAclResourceAction)
 export class AddNetworkAclResourceActionFactory {
   static async create(): Promise<AddNetworkAclResourceAction> {
-    return new AddNetworkAclResourceAction();
+    const container = Container.getInstance();
+    return new AddNetworkAclResourceAction(container);
   }
 }
