@@ -1,13 +1,23 @@
 import { CreateMountTargetCommand, DescribeMountTargetsCommand, EFSClient } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, TransactionError } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  TransactionError,
+} from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { Subnet } from '../../subnet/index.js';
-import type { IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
 import type { Efs } from '../../efs/index.js';
+import type { EfsMountTargetSchema } from '../efs-mount-target.schema.js';
 
 @Action(EfsMountTarget)
-export class AddEfsMountTargetResourceAction implements IResourceAction {
+export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -29,7 +39,9 @@ export class AddEfsMountTargetResourceAction implements IResourceAction {
     const subnetResponse = subnet.response;
 
     // Get instances.
-    const efsClient = await Container.get(EFSClient, { args: [properties.awsRegionId] });
+    const efsClient = await this.container.get(EFSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create a new EFS MountTarget.
     const data = await efsClient.send(
@@ -70,14 +82,17 @@ export class AddEfsMountTargetResourceAction implements IResourceAction {
     response.NetworkInterfaceId = data.NetworkInterfaceId!;
   }
 
-  async mock(capture: Partial<IEfsMountTargetResponse>, diff: Diff): Promise<void> {
+  async mock(diff: Diff, capture: Partial<EfsMountTargetSchema['response']>): Promise<void> {
     const efsMountTarget = diff.node as EfsMountTarget;
     const parents = efsMountTarget.getParents();
+    const properties = efsMountTarget.properties;
     const efs = parents['efs'][0].to as Efs;
     const efsResponse = efs.response;
 
-    const efsClient = await Container.get(EFSClient, { args: ['mock'] });
-    efsClient.send = async (instance): Promise<unknown> => {
+    const efsClient = await this.container.get(EFSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateMountTargetCommand) {
         return { MountTargetId: capture.MountTargetId, NetworkInterfaceId: capture.NetworkInterfaceId };
       } else if (instance instanceof DescribeMountTargetsCommand) {
@@ -90,6 +105,7 @@ export class AddEfsMountTargetResourceAction implements IResourceAction {
 @Factory<AddEfsMountTargetResourceAction>(AddEfsMountTargetResourceAction)
 export class AddEfsMountTargetResourceActionFactory {
   static async create(): Promise<AddEfsMountTargetResourceAction> {
-    return new AddEfsMountTargetResourceAction();
+    const container = Container.getInstance();
+    return new AddEfsMountTargetResourceAction(container);
   }
 }

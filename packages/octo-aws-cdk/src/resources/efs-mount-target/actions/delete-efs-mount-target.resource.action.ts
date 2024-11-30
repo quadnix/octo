@@ -4,14 +4,23 @@ import {
   type DescribeMountTargetsCommandOutput,
   EFSClient,
 } from '@aws-sdk/client-efs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction, TransactionError } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  TransactionError,
+} from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { IEfsMountTargetResponse } from '../efs-mount-target.interface.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
 import type { Efs } from '../../efs/index.js';
 
 @Action(EfsMountTarget)
-export class DeleteEfsMountTargetResourceAction implements IResourceAction {
+export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
@@ -31,7 +40,9 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction {
     const efsResponse = efs.response;
 
     // Get instances.
-    const efsClient = await Container.get(EFSClient, { args: [properties.awsRegionId] });
+    const efsClient = await this.container.get(EFSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Delete EFS MountTarget.
     await efsClient.send(new DeleteMountTargetCommand({ MountTargetId: response.MountTargetId }));
@@ -73,14 +84,17 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction {
     );
   }
 
-  async mock(capture: Partial<IEfsMountTargetResponse>, diff: Diff): Promise<void> {
+  async mock(diff: Diff): Promise<void> {
     const efsMountTarget = diff.node as EfsMountTarget;
     const parents = efsMountTarget.getParents();
+    const properties = efsMountTarget.properties;
     const efs = parents['efs'][0].to as Efs;
     const efsResponse = efs.response;
 
-    const efsClient = await Container.get(EFSClient, { args: ['mock'] });
-    efsClient.send = async (instance): Promise<unknown> => {
+    const efsClient = await this.container.get(EFSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteMountTargetCommand) {
         return;
       } else if (instance instanceof DescribeMountTargetsCommand) {
@@ -93,6 +107,7 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction {
 @Factory<DeleteEfsMountTargetResourceAction>(DeleteEfsMountTargetResourceAction)
 export class DeleteEfsMountTargetResourceActionFactory {
   static async create(): Promise<DeleteEfsMountTargetResourceAction> {
-    return new DeleteEfsMountTargetResourceAction();
+    const container = Container.getInstance();
+    return new DeleteEfsMountTargetResourceAction(container);
   }
 }
