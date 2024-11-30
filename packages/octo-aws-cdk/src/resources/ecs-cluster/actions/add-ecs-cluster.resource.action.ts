@@ -1,10 +1,12 @@
 import { CreateClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { IEcsClusterResponse } from '../ecs-cluster.interface.js';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EcsCluster } from '../ecs-cluster.resource.js';
+import type { EcsClusterSchema } from '../ecs-cluster.schema.js';
 
 @Action(EcsCluster)
-export class AddEcsClusterResourceAction implements IResourceAction {
+export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -20,7 +22,9 @@ export class AddEcsClusterResourceAction implements IResourceAction {
     const response = ecsCluster.response;
 
     // Get instances.
-    const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create a new cluster.
     const data = await ecsClient.send(
@@ -33,9 +37,15 @@ export class AddEcsClusterResourceAction implements IResourceAction {
     response.clusterArn = data.cluster!.clusterArn!;
   }
 
-  async mock(capture: Partial<IEcsClusterResponse>): Promise<void> {
-    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
-    ecsClient.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<EcsClusterSchema['response']>): Promise<void> {
+    // Get properties.
+    const ecsCluster = diff.node as EcsCluster;
+    const properties = ecsCluster.properties;
+
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateClusterCommand) {
         return { cluster: { clusterArn: capture.clusterArn } };
       }
@@ -46,6 +56,7 @@ export class AddEcsClusterResourceAction implements IResourceAction {
 @Factory<AddEcsClusterResourceAction>(AddEcsClusterResourceAction)
 export class AddEcsClusterResourceActionFactory {
   static async create(): Promise<AddEcsClusterResourceAction> {
-    return new AddEcsClusterResourceAction();
+    const container = Container.getInstance();
+    return new AddEcsClusterResourceAction(container);
   }
 }
