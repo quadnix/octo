@@ -1,10 +1,5 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import type {
-  IIamUserPolicy,
-  IIamUserProperties,
-  IIamUserResponse,
-  IIamUserS3BucketPolicy,
-} from './iam-user.interface.js';
+import { IIamUserPolicy, IIamUserS3BucketPolicy, IamUserSchema } from './iam-user.schema.js';
 
 export type IIamUserAddPolicyDiff = { action: 'add'; policy: IIamUserPolicy; policyId: string };
 export type IIamUserDeletePolicyDiff = { action: 'delete'; policyId: string };
@@ -18,12 +13,12 @@ export function isDeletePolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUs
   return policy.action === 'delete';
 }
 
-@Resource('@octo', 'iam-user')
-export class IamUser extends AResource<IamUser> {
-  declare properties: IIamUserProperties;
-  declare response: IIamUserResponse;
+@Resource<IamUser>('@octo', 'iam-user', IamUserSchema)
+export class IamUser extends AResource<IamUserSchema, IamUser> {
+  declare properties: IamUserSchema['properties'];
+  declare response: IamUserSchema['response'];
 
-  constructor(resourceId: string, properties: IIamUserProperties) {
+  constructor(resourceId: string, properties: IamUserSchema['properties']) {
     super(resourceId, properties, []);
   }
 

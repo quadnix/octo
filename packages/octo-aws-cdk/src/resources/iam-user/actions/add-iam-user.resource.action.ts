@@ -1,10 +1,12 @@
 import { CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { IIamUserResponse } from '../iam-user.interface.js';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { IamUser } from '../iam-user.resource.js';
+import type { IamUserSchema } from '../iam-user.schema.js';
 
 @Action(IamUser)
-export class AddIamUserResourceAction implements IResourceAction {
+export class AddIamUserResourceAction implements IResourceAction<IamUser> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -20,7 +22,9 @@ export class AddIamUserResourceAction implements IResourceAction {
     const response = iamUser.response;
 
     // Get instances.
-    const iamClient = await Container.get(IAMClient);
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
 
     // Create IAM user.
     const data = await iamClient.send(
@@ -36,9 +40,11 @@ export class AddIamUserResourceAction implements IResourceAction {
     response.UserName = data.User!.UserName!;
   }
 
-  async mock(capture: Partial<IIamUserResponse>): Promise<void> {
-    const iamClient = await Container.get(IAMClient);
-    iamClient.send = async (instance): Promise<unknown> => {
+  async mock(_diff: Diff, capture: Partial<IamUserSchema['response']>): Promise<void> {
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
+    iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateUserCommand) {
         return { User: { Arn: capture.Arn, UserId: capture.UserId, UserName: capture.UserName } };
       }
@@ -49,6 +55,7 @@ export class AddIamUserResourceAction implements IResourceAction {
 @Factory<AddIamUserResourceAction>(AddIamUserResourceAction)
 export class AddIamUserResourceActionFactory {
   static async create(): Promise<AddIamUserResourceAction> {
-    return new AddIamUserResourceAction();
+    const container = Container.getInstance();
+    return new AddIamUserResourceAction(container);
   }
 }

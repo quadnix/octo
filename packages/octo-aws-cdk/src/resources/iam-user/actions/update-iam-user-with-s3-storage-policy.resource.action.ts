@@ -5,12 +5,14 @@ import {
   DetachUserPolicyCommand,
   IAMClient,
 } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { IIamUserResponse, IIamUserS3BucketPolicy } from '../iam-user.interface.js';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { type IIamUserPolicyDiff, IamUser, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-user.resource.js';
+import type { IIamUserS3BucketPolicy, IamUserSchema } from '../iam-user.schema.js';
 
 @Action(IamUser)
-export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResourceAction {
+export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResourceAction<IamUser> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
@@ -27,7 +29,9 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     const response = iamUser.response;
 
     // Get instances.
-    const iamClient = await Container.get(IAMClient);
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
 
     // Attach policies to IAM User to read/write from bucket.
     if (isAddPolicyDiff(iamUserPolicyDiff)) {
@@ -108,11 +112,13 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     }
   }
 
-  async mock(capture: Partial<IIamUserResponse>, diff: Diff): Promise<void> {
+  async mock(diff: Diff, capture: Partial<IamUserSchema['response']>): Promise<void> {
     const iamUserPolicyDiff = diff.value as IIamUserPolicyDiff;
 
-    const iamClient = await Container.get(IAMClient);
-    iamClient.send = async (instance): Promise<unknown> => {
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
+    iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreatePolicyCommand) {
         return { Policy: { Arn: capture.policies![iamUserPolicyDiff.policyId][0] } };
       } else if (instance instanceof AttachUserPolicyCommand) {
@@ -129,6 +135,7 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
 @Factory<UpdateIamUserWithS3StoragePolicyResourceAction>(UpdateIamUserWithS3StoragePolicyResourceAction)
 export class UpdateIamUserWithS3StoragePolicyResourceActionFactory {
   static async create(): Promise<UpdateIamUserWithS3StoragePolicyResourceAction> {
-    return new UpdateIamUserWithS3StoragePolicyResourceAction();
+    const container = Container.getInstance();
+    return new UpdateIamUserWithS3StoragePolicyResourceAction(container);
   }
 }
