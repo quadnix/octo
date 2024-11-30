@@ -4,13 +4,15 @@ import {
   CreateSecurityGroupCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { Vpc } from '../../vpc/index.js';
-import type { ISecurityGroupResponse } from '../security-group.interface.js';
 import { SecurityGroup } from '../security-group.resource.js';
+import type { SecurityGroupSchema } from '../security-group.schema.js';
 
 @Action(SecurityGroup)
-export class AddSecurityGroupResourceAction implements IResourceAction {
+export class AddSecurityGroupResourceAction implements IResourceAction<SecurityGroup> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -28,7 +30,9 @@ export class AddSecurityGroupResourceAction implements IResourceAction {
     const vpcResponse = vpc.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create Security Group.
     const securityGroupOutput = await ec2Client.send(
@@ -88,18 +92,25 @@ export class AddSecurityGroupResourceAction implements IResourceAction {
     // Set response.
     response.GroupId = securityGroupOutput.GroupId!;
     response.Rules = {
-      egress: egressOutput.SecurityGroupRules!.map((r) => ({
+      egress: egressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
         SecurityGroupRuleId: r.SecurityGroupRuleId,
       })),
-      ingress: ingressOutput.SecurityGroupRules!.map((r) => ({
+      ingress: ingressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
         SecurityGroupRuleId: r.SecurityGroupRuleId,
       })),
     };
   }
 
-  async mock(capture: Partial<ISecurityGroupResponse>): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<SecurityGroupSchema['response']>): Promise<void> {
+    // Get properties.
+    const securityGroup = diff.node as SecurityGroup;
+    const properties = securityGroup.properties;
+
+    // Get instances.
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateSecurityGroupCommand) {
         return { GroupId: capture.GroupId };
       } else if (instance instanceof AuthorizeSecurityGroupEgressCommand) {
@@ -114,6 +125,7 @@ export class AddSecurityGroupResourceAction implements IResourceAction {
 @Factory<AddSecurityGroupResourceAction>(AddSecurityGroupResourceAction)
 export class AddSecurityGroupResourceActionFactory {
   static async create(): Promise<AddSecurityGroupResourceAction> {
-    return new AddSecurityGroupResourceAction();
+    const container = Container.getInstance();
+    return new AddSecurityGroupResourceAction(container);
   }
 }
