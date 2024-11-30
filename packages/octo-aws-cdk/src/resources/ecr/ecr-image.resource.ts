@@ -1,12 +1,12 @@
 import { AResource, Resource } from '@quadnix/octo';
-import type { IEcrImageProperties, IEcrImageResponse } from './ecr-image.interface.js';
+import { EcrImageSchema } from './ecr-image.schema.js';
 
-@Resource('@octo', 'ecr-image')
-export class EcrImage extends AResource<EcrImage> {
-  declare properties: IEcrImageProperties;
-  declare response: IEcrImageResponse;
+@Resource<EcrImage>('@octo', 'ecr-image', EcrImageSchema)
+export class EcrImage extends AResource<EcrImageSchema, EcrImage> {
+  declare properties: EcrImageSchema['properties'];
+  declare response: EcrImageSchema['response'];
 
-  constructor(resourceId: string, properties: IEcrImageProperties) {
+  constructor(resourceId: string, properties: EcrImageSchema['properties']) {
     super(resourceId, properties, []);
   }
 }

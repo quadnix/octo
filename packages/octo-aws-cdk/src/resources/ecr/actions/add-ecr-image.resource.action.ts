@@ -5,14 +5,16 @@ import {
   ECRClient,
   GetAuthorizationTokenCommand,
 } from '@aws-sdk/client-ecr';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { ProcessUtility } from '../../../utilities/process/process.utility.js';
-import type { IEcrImageResponse } from '../ecr-image.interface.js';
 import { EcrImage } from '../ecr-image.resource.js';
+import type { EcrImageSchema } from '../ecr-image.schema.js';
 
 @Action(EcrImage)
-export class AddEcrImageResourceAction implements IResourceAction {
+export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -28,7 +30,9 @@ export class AddEcrImageResourceAction implements IResourceAction {
     const response = ecrImage.response;
 
     // Get instances.
-    const ecrClient = await Container.get(ECRClient, { args: [properties.awsRegionId] });
+    const ecrClient = await this.container.get(ECRClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     const image = `${properties.imageName}:${properties.imageTag}`;
     const dockerExec = properties.dockerExec;
@@ -132,9 +136,15 @@ export class AddEcrImageResourceAction implements IResourceAction {
     }
   }
 
-  async mock(capture: Partial<IEcrImageResponse>): Promise<void> {
-    const ecrClient = await Container.get(ECRClient, { args: ['mock'] });
-    ecrClient.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<EcrImageSchema['response']>): Promise<void> {
+    // Get properties.
+    const ecrImage = diff.node as EcrImage;
+    const properties = ecrImage.properties;
+
+    const ecrClient = await this.container.get(ECRClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ecrClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DescribeImagesCommand) {
         return { imageDetails: [{ registryId: capture.registryId, repositoryName: capture.repositoryName }] };
       } else if (instance instanceof DescribeRepositoriesCommand) {
@@ -147,6 +157,7 @@ export class AddEcrImageResourceAction implements IResourceAction {
 @Factory<AddEcrImageResourceAction>(AddEcrImageResourceAction)
 export class AddEcrImageResourceActionFactory {
   static async create(): Promise<AddEcrImageResourceAction> {
-    return new AddEcrImageResourceAction();
+    const container = Container.getInstance();
+    return new AddEcrImageResourceAction(container);
   }
 }

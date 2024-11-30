@@ -1,9 +1,11 @@
 import { BatchDeleteImageCommand, ECRClient } from '@aws-sdk/client-ecr';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EcrImage } from '../ecr-image.resource.js';
 
 @Action(EcrImage)
-export class DeleteEcrImageResourceAction implements IResourceAction {
+export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
@@ -18,7 +20,9 @@ export class DeleteEcrImageResourceAction implements IResourceAction {
     const properties = ecrImage.properties;
 
     // Get instances.
-    const ecrClient = await Container.get(ECRClient, { args: [properties.awsRegionId] });
+    const ecrClient = await this.container.get(ECRClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     await ecrClient.send(
       new BatchDeleteImageCommand({
@@ -32,9 +36,15 @@ export class DeleteEcrImageResourceAction implements IResourceAction {
     );
   }
 
-  async mock(): Promise<void> {
-    const ecrClient = await Container.get(ECRClient, { args: ['mock'] });
-    ecrClient.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const ecrImage = diff.node as EcrImage;
+    const properties = ecrImage.properties;
+
+    const ecrClient = await this.container.get(ECRClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ecrClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof BatchDeleteImageCommand) {
         return;
       }
@@ -45,6 +55,7 @@ export class DeleteEcrImageResourceAction implements IResourceAction {
 @Factory<DeleteEcrImageResourceAction>(DeleteEcrImageResourceAction)
 export class DeleteEcrImageResourceActionFactory {
   static async create(): Promise<DeleteEcrImageResourceAction> {
-    return new DeleteEcrImageResourceAction();
+    const container = Container.getInstance();
+    return new DeleteEcrImageResourceAction(container);
   }
 }
