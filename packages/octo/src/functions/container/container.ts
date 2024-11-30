@@ -1,4 +1,5 @@
 import type { Constructable } from '../../app.type.js';
+import { ContainerRegistrationError, ContainerResolutionError } from '../../errors/index.js';
 import { DiffUtility } from '../diff/diff.utility.js';
 
 type Factory<T> = { create: (...args: unknown[]) => Promise<T> };
@@ -85,7 +86,7 @@ export class Container {
     let promiseTimeout: NodeJS.Timeout | undefined;
     const promise = new Promise<Factory<T>>((resolve, reject) => {
       promiseTimeout = setTimeout(() => {
-        reject(new Error(`Timed out waiting for factory "${name}" to resolve!`));
+        reject(new ContainerResolutionError('Timed out waiting for factory to resolve!', type));
       }, this.FACTORY_TIMEOUT_IN_MS);
       promiseResolver = resolve;
     });
@@ -131,7 +132,7 @@ export class Container {
     if (factoryContainer?.factory) {
       // If factory is not a promise set by get() above, it has already been registered.
       if (!Array.isArray(factoryContainer.factory)) {
-        throw new Error(`Factory "${name}" has already been registered!`);
+        throw new ContainerRegistrationError('Factory has already been registered!', type);
       }
 
       factoryContainer.metadata = metadata;
