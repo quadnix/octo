@@ -4,15 +4,17 @@ import {
   CreateRouteTableCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { InternetGateway } from '../../internet-gateway/index.js';
 import type { Subnet } from '../../subnet/index.js';
 import type { Vpc } from '../../vpc/index.js';
-import type { IRouteTableResponse } from '../route-table.interface.js';
 import { RouteTable } from '../route-table.resource.js';
+import type { RouteTableSchema } from '../route-table.schema.js';
 
 @Action(RouteTable)
-export class AddRouteTableResourceAction implements IResourceAction {
+export class AddRouteTableResourceAction implements IResourceAction<RouteTable> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -28,7 +30,9 @@ export class AddRouteTableResourceAction implements IResourceAction {
     const response = routeTable.response;
 
     // Get instances.
-    const ec2Client = await Container.get(EC2Client, { args: [properties.awsRegionId] });
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     const parents = routeTable.getParents();
     const vpc = parents['vpc'][0].to as Vpc;
@@ -69,9 +73,15 @@ export class AddRouteTableResourceAction implements IResourceAction {
     response.subnetAssociationId = data[0].AssociationId!;
   }
 
-  async mock(capture: Partial<IRouteTableResponse>): Promise<void> {
-    const ec2Client = await Container.get(EC2Client, { args: ['mock'] });
-    ec2Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<RouteTableSchema['response']>): Promise<void> {
+    // Get properties.
+    const routeTable = diff.node as RouteTable;
+    const properties = routeTable.properties;
+
+    const ec2Client = await this.container.get(EC2Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateRouteTableCommand) {
         return { RouteTable: { RouteTableId: capture.RouteTableId } };
       } else if (instance instanceof AssociateRouteTableCommand) {
@@ -86,6 +96,7 @@ export class AddRouteTableResourceAction implements IResourceAction {
 @Factory<AddRouteTableResourceAction>(AddRouteTableResourceAction)
 export class AddRouteTableResourceActionFactory {
   static async create(): Promise<AddRouteTableResourceAction> {
-    return new AddRouteTableResourceAction();
+    const container = Container.getInstance();
+    return new AddRouteTableResourceAction(container);
   }
 }
