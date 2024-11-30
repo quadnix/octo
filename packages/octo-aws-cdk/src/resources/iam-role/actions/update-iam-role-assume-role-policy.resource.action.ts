@@ -1,10 +1,12 @@
 import { IAMClient, UpdateAssumeRolePolicyCommand } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { IIamRoleAssumeRolePolicy } from '../iam-role.interface.js';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { IamRole } from '../iam-role.resource.js';
+import type { IIamRoleAssumeRolePolicy } from '../iam-role.schema.js';
 
 @Action(IamRole)
-export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAction {
+export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAction<IamRole> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
@@ -20,7 +22,9 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
     const properties = iamRole.properties;
 
     // Get instances.
-    const iamClient = await Container.get(IAMClient);
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
 
     const policyDocument: { Action: string; Effect: 'Allow'; Principal: { Service: string } }[] = [];
 
@@ -50,8 +54,10 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
   }
 
   async mock(): Promise<void> {
-    const iamClient = await Container.get(IAMClient);
-    iamClient.send = async (instance): Promise<unknown> => {
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
+    iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof UpdateAssumeRolePolicyCommand) {
         return;
       }
@@ -62,6 +68,7 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
 @Factory<UpdateIamRoleAssumeRolePolicyResourceAction>(UpdateIamRoleAssumeRolePolicyResourceAction)
 export class UpdateIamRoleAssumeRolePolicyResourceActionFactory {
   static async create(): Promise<UpdateIamRoleAssumeRolePolicyResourceAction> {
-    return new UpdateIamRoleAssumeRolePolicyResourceAction();
+    const container = Container.getInstance();
+    return new UpdateIamRoleAssumeRolePolicyResourceAction(container);
   }
 }

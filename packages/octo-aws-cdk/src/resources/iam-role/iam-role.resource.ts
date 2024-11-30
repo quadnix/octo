@@ -1,11 +1,5 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import type {
-  IIamRoleAssumeRolePolicy,
-  IIamRolePolicy,
-  IIamRoleProperties,
-  IIamRoleResponse,
-  IIamRoleS3BucketPolicy,
-} from './iam-role.interface.js';
+import { IIamRoleAssumeRolePolicy, IIamRolePolicy, IIamRoleS3BucketPolicy, IamRoleSchema } from './iam-role.schema.js';
 
 export type IIamRoleAddPolicyDiff = { action: 'add'; policy: IIamRolePolicy; policyId: string };
 export type IIamRoleDeletePolicyDiff = { action: 'delete'; policyId: string };
@@ -19,12 +13,12 @@ export function isDeletePolicyDiff(policy: IIamRolePolicyDiff): policy is IIamRo
   return policy.action === 'delete';
 }
 
-@Resource('@octo', 'iam-role')
-export class IamRole extends AResource<IamRole> {
-  declare properties: IIamRoleProperties;
-  declare response: IIamRoleResponse;
+@Resource<IamRole>('@octo', 'iam-role', IamRoleSchema)
+export class IamRole extends AResource<IamRoleSchema, IamRole> {
+  declare properties: IamRoleSchema['properties'];
+  declare response: IamRoleSchema['response'];
 
-  constructor(resourceId: string, properties: IIamRoleProperties) {
+  constructor(resourceId: string, properties: IamRoleSchema['properties']) {
     super(resourceId, properties, []);
   }
 

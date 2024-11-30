@@ -5,12 +5,14 @@ import {
   DetachRolePolicyCommand,
   IAMClient,
 } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { IIamRoleResponse, IIamRoleS3BucketPolicy } from '../iam-role.interface.js';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { type IIamRolePolicyDiff, IamRole, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-role.resource.js';
+import type { IIamRoleS3BucketPolicy, IamRoleSchema } from '../iam-role.schema.js';
 
 @Action(IamRole)
-export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResourceAction {
+export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResourceAction<IamRole> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
@@ -27,7 +29,9 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
     const response = iamRole.response;
 
     // Get instances.
-    const iamClient = await Container.get(IAMClient);
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
 
     // Attach policies to IAM Role to read/write from bucket.
     if (isAddPolicyDiff(iamRolePolicyDiff)) {
@@ -108,11 +112,13 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
     }
   }
 
-  async mock(capture: Partial<IIamRoleResponse>, diff: Diff): Promise<void> {
+  async mock(diff: Diff, capture: Partial<IamRoleSchema['response']>): Promise<void> {
     const iamRolePolicyDiff = diff.value as IIamRolePolicyDiff;
 
-    const iamClient = await Container.get(IAMClient);
-    iamClient.send = async (instance): Promise<unknown> => {
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
+    iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreatePolicyCommand) {
         return { Policy: { Arn: capture.policies![iamRolePolicyDiff.policyId][0] } };
       } else if (instance instanceof AttachRolePolicyCommand) {
@@ -129,6 +135,7 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
 @Factory<UpdateIamRoleWithS3StoragePolicyResourceAction>(UpdateIamRoleWithS3StoragePolicyResourceAction)
 export class UpdateIamRoleWithS3StoragePolicyResourceActionFactory {
   static async create(): Promise<UpdateIamRoleWithS3StoragePolicyResourceAction> {
-    return new UpdateIamRoleWithS3StoragePolicyResourceAction();
+    const container = Container.getInstance();
+    return new UpdateIamRoleWithS3StoragePolicyResourceAction(container);
   }
 }

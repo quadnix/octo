@@ -1,10 +1,12 @@
 import { CreateRoleCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { IIamRoleResponse } from '../iam-role.interface.js';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { IamRole } from '../iam-role.resource.js';
+import type { IamRoleSchema } from '../iam-role.schema.js';
 
 @Action(IamRole)
-export class AddIamRoleResourceAction implements IResourceAction {
+export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -20,7 +22,9 @@ export class AddIamRoleResourceAction implements IResourceAction {
     const response = iamRole.response;
 
     // Get instances.
-    const iamClient = await Container.get(IAMClient);
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
 
     // Create IAM role.
     const data = await iamClient.send(
@@ -40,9 +44,11 @@ export class AddIamRoleResourceAction implements IResourceAction {
     response.RoleName = data.Role!.RoleName!;
   }
 
-  async mock(capture: Partial<IIamRoleResponse>): Promise<void> {
-    const iamClient = await Container.get(IAMClient);
-    iamClient.send = async (instance): Promise<unknown> => {
+  async mock(_diff: Diff, capture: Partial<IamRoleSchema['response']>): Promise<void> {
+    const iamClient = await this.container.get(IAMClient, {
+      metadata: { package: '@octo' },
+    });
+    iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateRoleCommand) {
         return { Role: { Arn: capture.Arn, RoleId: capture.RoleId, RoleName: capture.RoleName } };
       }
@@ -53,6 +59,7 @@ export class AddIamRoleResourceAction implements IResourceAction {
 @Factory<AddIamRoleResourceAction>(AddIamRoleResourceAction)
 export class AddIamRoleResourceActionFactory {
   static async create(): Promise<AddIamRoleResourceAction> {
-    return new AddIamRoleResourceAction();
+    const container = Container.getInstance();
+    return new AddIamRoleResourceAction(container);
   }
 }
