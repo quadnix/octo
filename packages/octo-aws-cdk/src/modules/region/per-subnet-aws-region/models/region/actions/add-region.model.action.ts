@@ -1,43 +1,38 @@
 import {
   Action,
-  type ActionInputs,
   type ActionOutputs,
-  Diff,
+  type Diff,
   DiffAction,
+  type EnhancedModuleSchema,
   Factory,
   type IModelAction,
-  NodeType,
 } from '@quadnix/octo';
-import { InternetGateway } from '../../../resources/internet-gateway/internet-gateway.resource.js';
-import { SecurityGroup } from '../../../resources/security-group/security-group.resource.js';
-import { Vpc } from '../../../resources/vpc/vpc.resource.js';
+import { InternetGateway } from '../../../../../../resources/internet-gateway/index.js';
+import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
+import { Vpc } from '../../../../../../resources/vpc/index.js';
+import { AwsRegionModule } from '../../../aws-region.module.js';
 import { AwsRegion } from '../aws.region.model.js';
 
-@Action(NodeType.MODEL)
-export class AddRegionModelAction implements IModelAction {
-  readonly ACTION_NAME: string = 'AddRegionModelAction';
-
-  collectInput(diff: Diff): string[] {
-    const awsRegion = diff.node as AwsRegion;
-    const regionId = awsRegion.regionId;
-
-    return [`input.region.${regionId}.vpc.CidrBlock`];
-  }
-
+@Action(AwsRegion)
+export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsRegion &&
-      diff.node.NODE_NAME === 'region' &&
+      (diff.node.constructor as typeof AwsRegion).NODE_NAME === 'region' &&
       diff.field === 'regionId'
     );
   }
 
-  async handle(diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> {
+  async handle(
+    diff: Diff,
+    actionInputs: EnhancedModuleSchema<AwsRegionModule>,
+    actionOutputs: ActionOutputs,
+  ): Promise<ActionOutputs> {
     const awsRegion = diff.node as AwsRegion;
     const regionId = awsRegion.regionId;
 
-    const vpcCidrBlock = actionInputs[`input.region.${regionId}.vpc.CidrBlock`] as string;
+    const vpcCidrBlock = actionInputs.inputs.vpcCidrBlock as string;
 
     // Create VPC.
     const vpc = new Vpc(`vpc-${regionId}`, {
@@ -45,11 +40,9 @@ export class AddRegionModelAction implements IModelAction {
       CidrBlock: vpcCidrBlock,
       InstanceTenancy: 'default',
     });
-    actionOutputs[vpc.resourceId] = vpc;
 
     // Create Internet Gateway.
     const internetGateway = new InternetGateway(`igw-${regionId}`, { awsRegionId: awsRegion.awsRegionId }, [vpc]);
-    actionOutputs[internetGateway.resourceId] = internetGateway;
 
     // Create Security Groups.
     const accessSG = new SecurityGroup(
@@ -77,15 +70,22 @@ export class AddRegionModelAction implements IModelAction {
       },
       [vpc],
     );
-    actionOutputs[accessSG.resourceId] = accessSG;
 
+    actionOutputs[vpc.resourceId] = vpc;
+    actionOutputs[internetGateway.resourceId] = internetGateway;
+    actionOutputs[accessSG.resourceId] = accessSG;
     return actionOutputs;
   }
 }
 
 @Factory<AddRegionModelAction>(AddRegionModelAction)
 export class AddRegionModelActionFactory {
+  private static instance: AddRegionModelAction;
+
   static async create(): Promise<AddRegionModelAction> {
-    return new AddRegionModelAction();
+    if (!this.instance) {
+      this.instance = new AddRegionModelAction();
+    }
+    return this.instance;
   }
 }
