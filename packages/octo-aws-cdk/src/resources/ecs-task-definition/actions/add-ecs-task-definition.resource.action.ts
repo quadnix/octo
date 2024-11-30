@@ -1,12 +1,14 @@
 import { ECSClient, type PortMapping, RegisterTaskDefinitionCommand } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { Efs } from '../../efs/index.js';
 import type { IamRole } from '../../iam-role/index.js';
-import type { IEcsTaskDefinitionResponse } from '../ecs-task-definition.interface.js';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
+import type { EcsTaskDefinitionSchema } from '../ecs-task-definition.schema.js';
 
 @Action(EcsTaskDefinition)
-export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
+export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTaskDefinition> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -28,7 +30,9 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
     const iamRoleResponse = iamRole.response;
 
     // Get instances.
-    const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create a new task definition.
     const data = await ecsClient.send(
@@ -74,9 +78,15 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
     response.taskDefinitionArn = data.taskDefinition!.taskDefinitionArn!;
   }
 
-  async mock(capture: Partial<IEcsTaskDefinitionResponse>): Promise<void> {
-    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
-    ecsClient.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff, capture: Partial<EcsTaskDefinitionSchema['response']>): Promise<void> {
+    // Get properties.
+    const ecsTaskDefinition = diff.node as EcsTaskDefinition;
+    const properties = ecsTaskDefinition.properties;
+
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof RegisterTaskDefinitionCommand) {
         return { taskDefinition: { revision: capture.revision, taskDefinitionArn: capture.taskDefinitionArn } };
       }
@@ -87,6 +97,7 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction {
 @Factory<AddEcsTaskDefinitionResourceAction>(AddEcsTaskDefinitionResourceAction)
 export class AddEcsTaskDefinitionResourceActionFactory {
   static async create(): Promise<AddEcsTaskDefinitionResourceAction> {
-    return new AddEcsTaskDefinitionResourceAction();
+    const container = Container.getInstance();
+    return new AddEcsTaskDefinitionResourceAction(container);
   }
 }

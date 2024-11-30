@@ -2,14 +2,14 @@ import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@
 import { Efs } from '../efs/index.js';
 import type { IamRole } from '../iam-role/index.js';
 import { EcsService } from '../ecs-service/index.js';
-import type { IEcsTaskDefinitionProperties, IEcsTaskDefinitionResponse } from './ecs-task-definition.interface.js';
+import { EcsTaskDefinitionSchema } from './ecs-task-definition.schema.js';
 
-@Resource('@octo', 'ecs-task-definition')
-export class EcsTaskDefinition extends AResource<EcsTaskDefinition> {
-  declare properties: IEcsTaskDefinitionProperties;
-  declare response: IEcsTaskDefinitionResponse;
+@Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema)
+export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
+  declare properties: EcsTaskDefinitionSchema['properties'];
+  declare response: EcsTaskDefinitionSchema['response'];
 
-  constructor(resourceId: string, properties: IEcsTaskDefinitionProperties, parents: [IamRole, ...Efs[]]) {
+  constructor(resourceId: string, properties: EcsTaskDefinitionSchema['properties'], parents: [IamRole, ...Efs[]]) {
     super(resourceId, properties, parents);
 
     this.updateTaskDefinitionEfs(parents.filter((p) => p instanceof Efs) as Efs[]);

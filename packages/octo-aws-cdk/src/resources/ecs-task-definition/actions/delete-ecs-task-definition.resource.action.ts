@@ -1,9 +1,11 @@
 import { DeleteTaskDefinitionsCommand, DeregisterTaskDefinitionCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
 @Action(EcsTaskDefinition)
-export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction {
+export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction<EcsTaskDefinition> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.DELETE &&
@@ -19,7 +21,9 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction {
     const response = ecsTaskDefinition.response;
 
     // Get instances.
-    const ecsClient = await Container.get(ECSClient, { args: [properties.awsRegionId] });
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Deregister the task definition.
     await ecsClient.send(
@@ -42,9 +46,15 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction {
     }
   }
 
-  async mock(): Promise<void> {
-    const ecsClient = await Container.get(ECSClient, { args: ['mock'] });
-    ecsClient.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const ecsTaskDefinition = diff.node as EcsTaskDefinition;
+    const properties = ecsTaskDefinition.properties;
+
+    const ecsClient = await this.container.get(ECSClient, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeregisterTaskDefinitionCommand) {
         return;
       } else if (instance instanceof DeleteTaskDefinitionsCommand) {
@@ -57,6 +67,7 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction {
 @Factory<DeleteEcsTaskDefinitionResourceAction>(DeleteEcsTaskDefinitionResourceAction)
 export class DeleteEcsTaskDefinitionResourceActionFactory {
   static async create(): Promise<DeleteEcsTaskDefinitionResourceAction> {
-    return new DeleteEcsTaskDefinitionResourceAction();
+    const container = Container.getInstance();
+    return new DeleteEcsTaskDefinitionResourceAction(container);
   }
 }
