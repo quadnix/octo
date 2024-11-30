@@ -1,12 +1,20 @@
-import { DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
-import { Options, Upload } from '@aws-sdk/lib-storage';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
+  ListObjectsV2CommandOutput,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import mime from 'mime';
 import { S3Storage } from '../s3-storage.resource.js';
 
 @Action(S3Storage)
-export class UpdateSourcePathsInS3StorageResourceAction implements IResourceAction {
+export class UpdateSourcePathsInS3StorageResourceAction implements IResourceAction<S3Storage> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
@@ -23,33 +31,31 @@ export class UpdateSourcePathsInS3StorageResourceAction implements IResourceActi
     const properties = s3Storage.properties;
 
     // Get instances.
-    const s3Client = await Container.get(S3Client, { args: [properties.awsRegionId] });
+    const s3Client = await this.container.get(S3Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Synchronize files with S3.
     for (const remotePath in manifestDiff) {
       const [operation, filePath] = manifestDiff[remotePath];
       if (operation === 'add') {
         const stream = createReadStream(filePath);
-        const upload = await Container.get(Upload, {
-          args: [
-            {
-              client: s3Client,
-              leavePartsOnError: false,
-              params: {
-                Body: stream,
-                Bucket: properties.Bucket,
-                ContentType: mime.getType(filePath) || undefined,
-                Key: remotePath,
-              },
-              queueSize: 4,
-            } as Options,
-          ],
+        const upload = new Upload({
+          client: s3Client,
+          leavePartsOnError: false,
+          params: {
+            Body: stream,
+            Bucket: properties.Bucket,
+            ContentType: mime.getType(filePath) || undefined,
+            Key: remotePath,
+          },
+          queueSize: 4,
         });
         await upload.done();
       } else if (operation === 'deleteDirectory') {
         let ContinuationToken: string | undefined = undefined;
         do {
-          const data = await s3Client.send(
+          const data: ListObjectsV2CommandOutput = await s3Client.send(
             new ListObjectsV2Command({
               Bucket: properties.Bucket,
               ContinuationToken,
@@ -81,9 +87,15 @@ export class UpdateSourcePathsInS3StorageResourceAction implements IResourceActi
     }
   }
 
-  async mock(): Promise<void> {
-    const s3Client = await Container.get(S3Client, { args: ['mock'] });
-    s3Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const s3Storage = diff.node as S3Storage;
+    const properties = s3Storage.properties;
+
+    const s3Client = await this.container.get(S3Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof ListObjectsV2Command) {
         return { Contents: [], NextContinuationToken: undefined };
       } else if (instance instanceof DeleteObjectsCommand) {
@@ -98,6 +110,7 @@ export class UpdateSourcePathsInS3StorageResourceAction implements IResourceActi
 @Factory<UpdateSourcePathsInS3StorageResourceAction>(UpdateSourcePathsInS3StorageResourceAction)
 export class UpdateSourcePathsInS3StorageResourceActionFactory {
   static async create(): Promise<UpdateSourcePathsInS3StorageResourceAction> {
-    return new UpdateSourcePathsInS3StorageResourceAction();
+    const container = Container.getInstance();
+    return new UpdateSourcePathsInS3StorageResourceAction(container);
   }
 }

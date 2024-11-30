@@ -1,13 +1,14 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import type { IS3StorageProperties } from './s3-storage.interface.js';
+import { S3StorageSchema } from './s3-storage.schema.js';
 
-@Resource('@octo', 's3-storage')
-export class S3Storage extends AResource<S3Storage> {
-  declare properties: IS3StorageProperties;
+@Resource<S3Storage>('@octo', 's3-storage', S3StorageSchema)
+export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
+  declare properties: S3StorageSchema['properties'];
+  declare response: S3StorageSchema['response'];
 
   private readonly manifestDiff: { [key: string]: ['add' | 'delete' | 'deleteDirectory', string] } = {};
 
-  constructor(resourceId: string, properties: IS3StorageProperties) {
+  constructor(resourceId: string, properties: S3StorageSchema['properties']) {
     super(resourceId, properties, []);
   }
 

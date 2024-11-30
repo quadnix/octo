@@ -1,9 +1,11 @@
 import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
-import { Action, Container, Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { S3Storage } from '../s3-storage.resource.js';
 
 @Action(S3Storage)
-export class AddS3StorageResourceAction implements IResourceAction {
+export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
+  constructor(private readonly container: Container) {}
+
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -18,7 +20,9 @@ export class AddS3StorageResourceAction implements IResourceAction {
     const properties = s3Storage.properties;
 
     // Get instances.
-    const s3Client = await Container.get(S3Client, { args: [properties.awsRegionId] });
+    const s3Client = await this.container.get(S3Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
 
     // Create a new bucket.
     await s3Client.send(
@@ -28,9 +32,15 @@ export class AddS3StorageResourceAction implements IResourceAction {
     );
   }
 
-  async mock(): Promise<void> {
-    const s3Client = await Container.get(S3Client, { args: ['mock'] });
-    s3Client.send = async (instance): Promise<unknown> => {
+  async mock(diff: Diff): Promise<void> {
+    // Get properties.
+    const s3Storage = diff.node as S3Storage;
+    const properties = s3Storage.properties;
+
+    const s3Client = await this.container.get(S3Client, {
+      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+    s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateBucketCommand) {
         return;
       }
@@ -41,6 +51,7 @@ export class AddS3StorageResourceAction implements IResourceAction {
 @Factory<AddS3StorageResourceAction>(AddS3StorageResourceAction)
 export class AddS3StorageResourceActionFactory {
   static async create(): Promise<AddS3StorageResourceAction> {
-    return new AddS3StorageResourceAction();
+    const container = Container.getInstance();
+    return new AddS3StorageResourceAction(container);
   }
 }
