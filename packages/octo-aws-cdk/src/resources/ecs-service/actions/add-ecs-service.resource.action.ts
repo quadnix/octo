@@ -82,8 +82,13 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
 
 @Factory<AddEcsServiceResourceAction>(AddEcsServiceResourceAction)
 export class AddEcsServiceResourceActionFactory {
+  private static instance: AddEcsServiceResourceAction;
+
   static async create(): Promise<AddEcsServiceResourceAction> {
-    const container = Container.getInstance();
-    return new AddEcsServiceResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddEcsServiceResourceAction(container);
+    }
+    return this.instance;
   }
 }

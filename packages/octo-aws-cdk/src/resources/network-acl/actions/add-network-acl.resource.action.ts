@@ -124,8 +124,13 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
 
 @Factory<AddNetworkAclResourceAction>(AddNetworkAclResourceAction)
 export class AddNetworkAclResourceActionFactory {
+  private static instance: AddNetworkAclResourceAction;
+
   static async create(): Promise<AddNetworkAclResourceAction> {
-    const container = Container.getInstance();
-    return new AddNetworkAclResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddNetworkAclResourceAction(container);
+    }
+    return this.instance;
   }
 }

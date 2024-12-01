@@ -165,8 +165,13 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
 
 @Factory<UpdateNetworkAclEntriesResourceAction>(UpdateNetworkAclEntriesResourceAction)
 export class UpdateNetworkAclEntriesResourceActionFactory {
+  private static instance: UpdateNetworkAclEntriesResourceAction;
+
   static async create(): Promise<UpdateNetworkAclEntriesResourceAction> {
-    const container = Container.getInstance();
-    return new UpdateNetworkAclEntriesResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new UpdateNetworkAclEntriesResourceAction(container);
+    }
+    return this.instance;
   }
 }

@@ -81,8 +81,13 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
 
 @Factory<UpdateEcsServiceResourceAction>(UpdateEcsServiceResourceAction)
 export class UpdateEcsServiceResourceActionFactory {
+  private static instance: UpdateEcsServiceResourceAction;
+
   static async create(): Promise<UpdateEcsServiceResourceAction> {
-    const container = Container.getInstance();
-    return new UpdateEcsServiceResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new UpdateEcsServiceResourceAction(container);
+    }
+    return this.instance;
   }
 }

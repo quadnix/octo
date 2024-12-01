@@ -51,8 +51,13 @@ export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
 
 @Factory<DeleteVpcResourceAction>(DeleteVpcResourceAction)
 export class DeleteVpcResourceActionFactory {
+  private static instance: DeleteVpcResourceAction;
+
   static async create(): Promise<DeleteVpcResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteVpcResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteVpcResourceAction(container);
+    }
+    return this.instance;
   }
 }

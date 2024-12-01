@@ -104,8 +104,13 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
 
 @Factory<AddEfsMountTargetResourceAction>(AddEfsMountTargetResourceAction)
 export class AddEfsMountTargetResourceActionFactory {
+  private static instance: AddEfsMountTargetResourceAction;
+
   static async create(): Promise<AddEfsMountTargetResourceAction> {
-    const container = Container.getInstance();
-    return new AddEfsMountTargetResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddEfsMountTargetResourceAction(container);
+    }
+    return this.instance;
   }
 }

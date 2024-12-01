@@ -135,8 +135,13 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
 
 @Factory<UpdateSecurityGroupRulesResourceAction>(UpdateSecurityGroupRulesResourceAction)
 export class UpdateSecurityGroupRulesResourceActionFactory {
+  private static instance: UpdateSecurityGroupRulesResourceAction;
+
   static async create(): Promise<UpdateSecurityGroupRulesResourceAction> {
-    const container = Container.getInstance();
-    return new UpdateSecurityGroupRulesResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new UpdateSecurityGroupRulesResourceAction(container);
+    }
+    return this.instance;
   }
 }

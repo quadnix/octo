@@ -156,8 +156,13 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
 
 @Factory<AddEcrImageResourceAction>(AddEcrImageResourceAction)
 export class AddEcrImageResourceActionFactory {
+  private static instance: AddEcrImageResourceAction;
+
   static async create(): Promise<AddEcrImageResourceAction> {
-    const container = Container.getInstance();
-    return new AddEcrImageResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddEcrImageResourceAction(container);
+    }
+    return this.instance;
   }
 }

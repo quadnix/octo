@@ -95,8 +95,13 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
 
 @Factory<AddRouteTableResourceAction>(AddRouteTableResourceAction)
 export class AddRouteTableResourceActionFactory {
+  private static instance: AddRouteTableResourceAction;
+
   static async create(): Promise<AddRouteTableResourceAction> {
-    const container = Container.getInstance();
-    return new AddRouteTableResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddRouteTableResourceAction(container);
+    }
+    return this.instance;
   }
 }

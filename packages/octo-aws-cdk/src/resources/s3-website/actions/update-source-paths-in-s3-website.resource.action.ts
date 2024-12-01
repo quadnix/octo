@@ -75,8 +75,13 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
 
 @Factory<UpdateSourcePathsInS3WebsiteResourceAction>(UpdateSourcePathsInS3WebsiteResourceAction)
 export class UpdateSourcePathsInS3WebsiteResourceActionFactory {
+  private static instance: UpdateSourcePathsInS3WebsiteResourceAction;
+
   static async create(): Promise<UpdateSourcePathsInS3WebsiteResourceAction> {
-    const container = Container.getInstance();
-    return new UpdateSourcePathsInS3WebsiteResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new UpdateSourcePathsInS3WebsiteResourceAction(container);
+    }
+    return this.instance;
   }
 }

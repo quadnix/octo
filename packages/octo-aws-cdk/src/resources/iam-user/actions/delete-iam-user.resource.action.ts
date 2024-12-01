@@ -46,8 +46,13 @@ export class DeleteIamUserResourceAction implements IResourceAction<IamUser> {
 
 @Factory<DeleteIamUserResourceAction>(DeleteIamUserResourceAction)
 export class DeleteIamUserResourceActionFactory {
+  private static instance: DeleteIamUserResourceAction;
+
   static async create(): Promise<DeleteIamUserResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteIamUserResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteIamUserResourceAction(container);
+    }
+    return this.instance;
   }
 }

@@ -66,8 +66,13 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
 
 @Factory<AddInternetGatewayResourceAction>(AddInternetGatewayResourceAction)
 export class AddInternetGatewayResourceActionFactory {
+  private static instance: AddInternetGatewayResourceAction;
+
   static async create(): Promise<AddInternetGatewayResourceAction> {
-    const container = Container.getInstance();
-    return new AddInternetGatewayResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddInternetGatewayResourceAction(container);
+    }
+    return this.instance;
   }
 }

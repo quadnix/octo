@@ -54,8 +54,13 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
 
 @Factory<AddIamUserResourceAction>(AddIamUserResourceAction)
 export class AddIamUserResourceActionFactory {
+  private static instance: AddIamUserResourceAction;
+
   static async create(): Promise<AddIamUserResourceAction> {
-    const container = Container.getInstance();
-    return new AddIamUserResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddIamUserResourceAction(container);
+    }
+    return this.instance;
   }
 }

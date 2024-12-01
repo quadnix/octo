@@ -50,8 +50,13 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
 
 @Factory<AddS3StorageResourceAction>(AddS3StorageResourceAction)
 export class AddS3StorageResourceActionFactory {
+  private static instance: AddS3StorageResourceAction;
+
   static async create(): Promise<AddS3StorageResourceAction> {
-    const container = Container.getInstance();
-    return new AddS3StorageResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddS3StorageResourceAction(container);
+    }
+    return this.instance;
   }
 }

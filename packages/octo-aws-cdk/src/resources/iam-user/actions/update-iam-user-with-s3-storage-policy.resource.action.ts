@@ -134,8 +134,13 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
 
 @Factory<UpdateIamUserWithS3StoragePolicyResourceAction>(UpdateIamUserWithS3StoragePolicyResourceAction)
 export class UpdateIamUserWithS3StoragePolicyResourceActionFactory {
+  private static instance: UpdateIamUserWithS3StoragePolicyResourceAction;
+
   static async create(): Promise<UpdateIamUserWithS3StoragePolicyResourceAction> {
-    const container = Container.getInstance();
-    return new UpdateIamUserWithS3StoragePolicyResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new UpdateIamUserWithS3StoragePolicyResourceAction(container);
+    }
+    return this.instance;
   }
 }

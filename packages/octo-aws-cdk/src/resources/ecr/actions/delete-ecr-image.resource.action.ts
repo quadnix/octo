@@ -54,8 +54,13 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
 
 @Factory<DeleteEcrImageResourceAction>(DeleteEcrImageResourceAction)
 export class DeleteEcrImageResourceActionFactory {
+  private static instance: DeleteEcrImageResourceAction;
+
   static async create(): Promise<DeleteEcrImageResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteEcrImageResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteEcrImageResourceAction(container);
+    }
+    return this.instance;
   }
 }

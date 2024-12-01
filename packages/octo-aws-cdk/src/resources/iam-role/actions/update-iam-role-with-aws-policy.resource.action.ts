@@ -60,8 +60,13 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
 
 @Factory<UpdateIamRoleWithAwsPolicyResourceAction>(UpdateIamRoleWithAwsPolicyResourceAction)
 export class UpdateIamRoleWithAwsPolicyResourceActionFactory {
+  private static instance: UpdateIamRoleWithAwsPolicyResourceAction;
+
   static async create(): Promise<UpdateIamRoleWithAwsPolicyResourceAction> {
-    const container = Container.getInstance();
-    return new UpdateIamRoleWithAwsPolicyResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new UpdateIamRoleWithAwsPolicyResourceAction(container);
+    }
+    return this.instance;
   }
 }

@@ -60,8 +60,13 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
 
 @Factory<AddSubnetResourceAction>(AddSubnetResourceAction)
 export class AddSubnetResourceActionFactory {
+  private static instance: AddSubnetResourceAction;
+
   static async create(): Promise<AddSubnetResourceAction> {
-    const container = Container.getInstance();
-    return new AddSubnetResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddSubnetResourceAction(container);
+    }
+    return this.instance;
   }
 }

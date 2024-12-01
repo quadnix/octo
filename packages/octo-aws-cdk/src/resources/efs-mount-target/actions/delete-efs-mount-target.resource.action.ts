@@ -106,8 +106,13 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
 
 @Factory<DeleteEfsMountTargetResourceAction>(DeleteEfsMountTargetResourceAction)
 export class DeleteEfsMountTargetResourceActionFactory {
+  private static instance: DeleteEfsMountTargetResourceAction;
+
   static async create(): Promise<DeleteEfsMountTargetResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteEfsMountTargetResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteEfsMountTargetResourceAction(container);
+    }
+    return this.instance;
   }
 }

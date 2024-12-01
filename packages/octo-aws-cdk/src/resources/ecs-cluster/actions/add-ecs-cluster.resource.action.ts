@@ -55,8 +55,13 @@ export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> 
 
 @Factory<AddEcsClusterResourceAction>(AddEcsClusterResourceAction)
 export class AddEcsClusterResourceActionFactory {
+  private static instance: AddEcsClusterResourceAction;
+
   static async create(): Promise<AddEcsClusterResourceAction> {
-    const container = Container.getInstance();
-    return new AddEcsClusterResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddEcsClusterResourceAction(container);
+    }
+    return this.instance;
   }
 }

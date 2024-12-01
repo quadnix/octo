@@ -95,8 +95,13 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
 
 @Factory<AddEfsResourceAction>(AddEfsResourceAction)
 export class AddEfsResourceActionFactory {
+  private static instance: AddEfsResourceAction;
+
   static async create(): Promise<AddEfsResourceAction> {
-    const container = Container.getInstance();
-    return new AddEfsResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddEfsResourceAction(container);
+    }
+    return this.instance;
   }
 }

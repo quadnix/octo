@@ -109,8 +109,13 @@ export class UpdateSourcePathsInS3StorageResourceAction implements IResourceActi
 
 @Factory<UpdateSourcePathsInS3StorageResourceAction>(UpdateSourcePathsInS3StorageResourceAction)
 export class UpdateSourcePathsInS3StorageResourceActionFactory {
+  private static instance: UpdateSourcePathsInS3StorageResourceAction;
+
   static async create(): Promise<UpdateSourcePathsInS3StorageResourceAction> {
-    const container = Container.getInstance();
-    return new UpdateSourcePathsInS3StorageResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new UpdateSourcePathsInS3StorageResourceAction(container);
+    }
+    return this.instance;
   }
 }

@@ -99,8 +99,13 @@ export class DeleteEfsResourceAction implements IResourceAction<Efs> {
 
 @Factory<DeleteEfsResourceAction>(DeleteEfsResourceAction)
 export class DeleteEfsResourceActionFactory {
+  private static instance: DeleteEfsResourceAction;
+
   static async create(): Promise<DeleteEfsResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteEfsResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteEfsResourceAction(container);
+    }
+    return this.instance;
   }
 }

@@ -84,8 +84,13 @@ export class DeleteS3WebsiteResourceAction implements IResourceAction<S3Website>
 
 @Factory<DeleteS3WebsiteResourceAction>(DeleteS3WebsiteResourceAction)
 export class DeleteS3WebsiteResourceActionFactory {
+  private static instance: DeleteS3WebsiteResourceAction;
+
   static async create(): Promise<DeleteS3WebsiteResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteS3WebsiteResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteS3WebsiteResourceAction(container);
+    }
+    return this.instance;
   }
 }

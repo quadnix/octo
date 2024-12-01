@@ -98,8 +98,13 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
 
 @Factory<DeleteEcsServiceResourceAction>(DeleteEcsServiceResourceAction)
 export class DeleteEcsServiceResourceActionFactory {
+  private static instance: DeleteEcsServiceResourceAction;
+
   static async create(): Promise<DeleteEcsServiceResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteEcsServiceResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteEcsServiceResourceAction(container);
+    }
+    return this.instance;
   }
 }

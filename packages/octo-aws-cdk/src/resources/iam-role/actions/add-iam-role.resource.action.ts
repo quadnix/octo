@@ -58,8 +58,13 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
 
 @Factory<AddIamRoleResourceAction>(AddIamRoleResourceAction)
 export class AddIamRoleResourceActionFactory {
+  private static instance: AddIamRoleResourceAction;
+
   static async create(): Promise<AddIamRoleResourceAction> {
-    const container = Container.getInstance();
-    return new AddIamRoleResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddIamRoleResourceAction(container);
+    }
+    return this.instance;
   }
 }

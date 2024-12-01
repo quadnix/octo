@@ -96,8 +96,13 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
 
 @Factory<AddEcsTaskDefinitionResourceAction>(AddEcsTaskDefinitionResourceAction)
 export class AddEcsTaskDefinitionResourceActionFactory {
+  private static instance: AddEcsTaskDefinitionResourceAction;
+
   static async create(): Promise<AddEcsTaskDefinitionResourceAction> {
-    const container = Container.getInstance();
-    return new AddEcsTaskDefinitionResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddEcsTaskDefinitionResourceAction(container);
+    }
+    return this.instance;
   }
 }

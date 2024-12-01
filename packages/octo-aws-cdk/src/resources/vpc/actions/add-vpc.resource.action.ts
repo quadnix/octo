@@ -56,8 +56,13 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
 
 @Factory<AddVpcResourceAction>(AddVpcResourceAction)
 export class AddVpcResourceActionFactory {
+  private static instance: AddVpcResourceAction;
+
   static async create(): Promise<AddVpcResourceAction> {
-    const container = Container.getInstance();
-    return new AddVpcResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddVpcResourceAction(container);
+    }
+    return this.instance;
   }
 }

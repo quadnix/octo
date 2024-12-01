@@ -51,8 +51,13 @@ export class DeleteSubnetResourceAction implements IResourceAction<Subnet> {
 
 @Factory<DeleteSubnetResourceAction>(DeleteSubnetResourceAction)
 export class DeleteSubnetResourceActionFactory {
+  private static instance: DeleteSubnetResourceAction;
+
   static async create(): Promise<DeleteSubnetResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteSubnetResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteSubnetResourceAction(container);
+    }
+    return this.instance;
   }
 }

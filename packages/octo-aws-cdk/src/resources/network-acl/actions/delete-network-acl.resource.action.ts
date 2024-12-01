@@ -60,8 +60,13 @@ export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAc
 
 @Factory<DeleteNetworkAclResourceAction>(DeleteNetworkAclResourceAction)
 export class DeleteNetworkAclResourceActionFactory {
+  private static instance: DeleteNetworkAclResourceAction;
+
   static async create(): Promise<DeleteNetworkAclResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteNetworkAclResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteNetworkAclResourceAction(container);
+    }
+    return this.instance;
   }
 }

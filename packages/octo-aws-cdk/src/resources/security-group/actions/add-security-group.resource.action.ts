@@ -124,8 +124,13 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
 
 @Factory<AddSecurityGroupResourceAction>(AddSecurityGroupResourceAction)
 export class AddSecurityGroupResourceActionFactory {
+  private static instance: AddSecurityGroupResourceAction;
+
   static async create(): Promise<AddSecurityGroupResourceAction> {
-    const container = Container.getInstance();
-    return new AddSecurityGroupResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddSecurityGroupResourceAction(container);
+    }
+    return this.instance;
   }
 }

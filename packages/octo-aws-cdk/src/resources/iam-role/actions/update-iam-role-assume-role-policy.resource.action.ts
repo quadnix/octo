@@ -67,8 +67,13 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
 
 @Factory<UpdateIamRoleAssumeRolePolicyResourceAction>(UpdateIamRoleAssumeRolePolicyResourceAction)
 export class UpdateIamRoleAssumeRolePolicyResourceActionFactory {
+  private static instance: UpdateIamRoleAssumeRolePolicyResourceAction;
+
   static async create(): Promise<UpdateIamRoleAssumeRolePolicyResourceAction> {
-    const container = Container.getInstance();
-    return new UpdateIamRoleAssumeRolePolicyResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new UpdateIamRoleAssumeRolePolicyResourceAction(container);
+    }
+    return this.instance;
   }
 }

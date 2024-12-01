@@ -49,8 +49,13 @@ export class DeleteEcsClusterResourceAction implements IResourceAction<EcsCluste
 
 @Factory<DeleteEcsClusterResourceAction>(DeleteEcsClusterResourceAction)
 export class DeleteEcsClusterResourceActionFactory {
+  private static instance: DeleteEcsClusterResourceAction;
+
   static async create(): Promise<DeleteEcsClusterResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteEcsClusterResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteEcsClusterResourceAction(container);
+    }
+    return this.instance;
   }
 }

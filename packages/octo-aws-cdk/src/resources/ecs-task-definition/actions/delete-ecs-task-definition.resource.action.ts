@@ -66,8 +66,13 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction<Ec
 
 @Factory<DeleteEcsTaskDefinitionResourceAction>(DeleteEcsTaskDefinitionResourceAction)
 export class DeleteEcsTaskDefinitionResourceActionFactory {
+  private static instance: DeleteEcsTaskDefinitionResourceAction;
+
   static async create(): Promise<DeleteEcsTaskDefinitionResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteEcsTaskDefinitionResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteEcsTaskDefinitionResourceAction(container);
+    }
+    return this.instance;
   }
 }

@@ -52,8 +52,13 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction<Securi
 
 @Factory<DeleteSecurityGroupResourceAction>(DeleteSecurityGroupResourceAction)
 export class DeleteSecurityGroupResourceActionFactory {
+  private static instance: DeleteSecurityGroupResourceAction;
+
   static async create(): Promise<DeleteSecurityGroupResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteSecurityGroupResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteSecurityGroupResourceAction(container);
+    }
+    return this.instance;
   }
 }

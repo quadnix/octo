@@ -84,8 +84,13 @@ export class DeleteS3StorageResourceAction implements IResourceAction<S3Storage>
 
 @Factory<DeleteS3StorageResourceAction>(DeleteS3StorageResourceAction)
 export class DeleteS3StorageResourceActionFactory {
+  private static instance: DeleteS3StorageResourceAction;
+
   static async create(): Promise<DeleteS3StorageResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteS3StorageResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteS3StorageResourceAction(container);
+    }
+    return this.instance;
   }
 }

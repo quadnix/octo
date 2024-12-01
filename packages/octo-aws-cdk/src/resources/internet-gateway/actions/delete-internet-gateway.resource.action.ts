@@ -65,8 +65,13 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction<Inte
 
 @Factory<DeleteInternetGatewayResourceAction>(DeleteInternetGatewayResourceAction)
 export class DeleteInternetGatewayResourceActionFactory {
+  private static instance: DeleteInternetGatewayResourceAction;
+
   static async create(): Promise<DeleteInternetGatewayResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteInternetGatewayResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteInternetGatewayResourceAction(container);
+    }
+    return this.instance;
   }
 }

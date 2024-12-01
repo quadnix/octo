@@ -126,8 +126,13 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
 
 @Factory<UpdateEcsTaskDefinitionResourceAction>(UpdateEcsTaskDefinitionResourceAction)
 export class UpdateEcsTaskDefinitionResourceActionFactory {
+  private static instance: UpdateEcsTaskDefinitionResourceAction;
+
   static async create(): Promise<UpdateEcsTaskDefinitionResourceAction> {
-    const container = Container.getInstance();
-    return new UpdateEcsTaskDefinitionResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new UpdateEcsTaskDefinitionResourceAction(container);
+    }
+    return this.instance;
   }
 }

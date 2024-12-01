@@ -113,8 +113,13 @@ export class AddS3WebsiteResourceAction implements IResourceAction<S3Website> {
 
 @Factory<AddS3WebsiteResourceAction>(AddS3WebsiteResourceAction)
 export class AddS3WebsiteResourceActionFactory {
+  private static instance: AddS3WebsiteResourceAction;
+
   static async create(): Promise<AddS3WebsiteResourceAction> {
-    const container = Container.getInstance();
-    return new AddS3WebsiteResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new AddS3WebsiteResourceAction(container);
+    }
+    return this.instance;
   }
 }

@@ -60,8 +60,13 @@ export class DeleteRouteTableResourceAction implements IResourceAction<RouteTabl
 
 @Factory<DeleteRouteTableResourceAction>(DeleteRouteTableResourceAction)
 export class DeleteRouteTableResourceActionFactory {
+  private static instance: DeleteRouteTableResourceAction;
+
   static async create(): Promise<DeleteRouteTableResourceAction> {
-    const container = Container.getInstance();
-    return new DeleteRouteTableResourceAction(container);
+    if (!this.instance) {
+      const container = Container.getInstance();
+      this.instance = new DeleteRouteTableResourceAction(container);
+    }
+    return this.instance;
   }
 }
