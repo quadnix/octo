@@ -1,8 +1,11 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { jest } from '@jest/globals';
 import { type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { AddInternetGatewayResourceAction } from '../../../resources/internet-gateway/actions/add-internet-gateway.resource.action.js';
 import type { InternetGateway } from '../../../resources/internet-gateway/index.js';
+import { AddSecurityGroupResourceAction } from '../../../resources/security-group/actions/add-security-group.resource.action.js';
 import type { SecurityGroup } from '../../../resources/security-group/index.js';
+import { AddVpcResourceAction } from '../../../resources/vpc/actions/add-vpc.resource.action.js';
 import type { Vpc } from '../../../resources/vpc/index.js';
 import { AwsRegionModule } from './aws-region.module.js';
 import { AddRegionModelAction } from './models/region/actions/add-region.model.action.js';
@@ -38,9 +41,15 @@ describe('AwsRegionModule UT', () => {
     await TestContainer.reset();
   });
 
-  it('should call AddRegionModelAction with correct inputs', async () => {
+  it('should call all actions correctly', async () => {
     const addRegionModelAction = await container.get(AddRegionModelAction);
     const addRegionModelActionSpy = jest.spyOn(addRegionModelAction, 'handle');
+    const addInternetGatewayResourceAction = await container.get(AddInternetGatewayResourceAction);
+    const addInternetGatewayResourceActionSpy = jest.spyOn(addInternetGatewayResourceAction, 'handle');
+    const addSecurityGroupResourceAction = await container.get(AddSecurityGroupResourceAction);
+    const addSecurityGroupResourceActionSpy = jest.spyOn(addSecurityGroupResourceAction, 'handle');
+    const addVpcResourceAction = await container.get(AddVpcResourceAction);
+    const addVpcResourceActionSpy = jest.spyOn(addVpcResourceAction, 'handle');
 
     testModuleContainer.registerCapture<Vpc>('@octo/vpc=vpc-aws-us-east-1a', { VpcId: 'VpcId' });
     testModuleContainer.registerCapture<InternetGateway>('@octo/internet-gateway=igw-aws-us-east-1a', {
@@ -96,6 +105,36 @@ describe('AwsRegionModule UT', () => {
        },
        "overlays": {},
        "resources": {},
+     }
+    `);
+
+    expect(addVpcResourceActionSpy).toHaveBeenCalledTimes(1);
+    expect(addVpcResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+     {
+       "action": "add",
+       "field": "resourceId",
+       "node": "@octo/vpc=vpc-aws-us-east-1a",
+       "value": "@octo/vpc=vpc-aws-us-east-1a",
+     }
+    `);
+
+    expect(addInternetGatewayResourceActionSpy).toHaveBeenCalledTimes(1);
+    expect(addInternetGatewayResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+     {
+       "action": "add",
+       "field": "resourceId",
+       "node": "@octo/internet-gateway=igw-aws-us-east-1a",
+       "value": "@octo/internet-gateway=igw-aws-us-east-1a",
+     }
+    `);
+
+    expect(addSecurityGroupResourceActionSpy).toHaveBeenCalledTimes(1);
+    expect(addSecurityGroupResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+     {
+       "action": "add",
+       "field": "resourceId",
+       "node": "@octo/security-group=sec-grp-aws-us-east-1a-access",
+       "value": "@octo/security-group=sec-grp-aws-us-east-1a-access",
      }
     `);
   });
