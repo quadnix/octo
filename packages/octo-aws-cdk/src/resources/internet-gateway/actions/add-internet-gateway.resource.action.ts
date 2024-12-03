@@ -1,8 +1,7 @@
 import { AttachInternetGatewayCommand, CreateInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { Vpc } from '../../vpc/index.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
-import type { InternetGatewaySchema } from '../internet-gateway.schema.js';
+import type { InternetGatewaySchema, InternetGatewayVpc } from '../internet-gateway.schema.js';
 
 @Action(InternetGateway)
 export class AddInternetGatewayResourceAction implements IResourceAction<InternetGateway> {
@@ -27,7 +26,7 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
       metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
-    const vpc = internetGateway.getParents('vpc')['vpc'][0].to as Vpc;
+    const vpc = internetGateway.getParents('vpc')['vpc'][0].to as InternetGatewayVpc;
     const vpcResponse = vpc.response;
 
     // Create Internet Gateway.

@@ -1,4 +1,4 @@
-import { BaseResourceSchema, Schema } from '@quadnix/octo';
+import { type AResource, BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class SubnetSchema extends BaseResourceSchema {
   override properties = Schema<{
@@ -11,3 +11,10 @@ export class SubnetSchema extends BaseResourceSchema {
     SubnetId: string;
   }>();
 }
+
+class SubnetVpcSchema extends BaseResourceSchema {
+  override response = Schema<{
+    VpcId: string;
+  }>();
+}
+export type SubnetVpc = AResource<SubnetVpcSchema, any>;

@@ -9,9 +9,8 @@ import {
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import pLimit from 'p-limit';
 import { NetworkAclUtility } from '../../../utilities/network-acl/network-acl.utility.js';
-import type { Subnet } from '../../subnet/index.js';
 import { NetworkAcl } from '../network-acl.resource.js';
-import type { NetworkAclSchema } from '../network-acl.schema.js';
+import type { NetworkAclSchema, NetworkAclSubnet } from '../network-acl.schema.js';
 
 @Action(NetworkAcl)
 export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<NetworkAcl> {
@@ -40,7 +39,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
     const limit = pLimit(100);
 
     const parents = networkAcl.getParents();
-    const subnet = parents['subnet'][0].to as Subnet;
+    const subnet = parents['subnet'][0].to as NetworkAclSubnet;
     const subnetResponse = subnet.response;
 
     // Get NACL entries.

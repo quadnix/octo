@@ -1,9 +1,11 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@quadnix/octo';
-import { EcsTaskDefinition } from '../ecs-task-definition/index.js';
-import { SecurityGroup } from '../security-group/index.js';
-import type { Subnet } from '../subnet/index.js';
-import type { EcsCluster } from '../ecs-cluster/index.js';
-import { EcsServiceSchema } from './ecs-service.schema.js';
+import {
+  EcsServiceSchema,
+  EcsServiceSecurityGroup,
+  EcsServiceSubnet,
+  EcsServiceTaskDefinition,
+  EcsTaskDefinitionEcsCluster,
+} from './ecs-service.schema.js';
 
 @Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema)
 export class EcsService extends AResource<EcsServiceSchema, EcsService> {
@@ -13,12 +15,16 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
   constructor(
     resourceId: string,
     properties: EcsServiceSchema['properties'],
-    parents: [EcsCluster, EcsTaskDefinition, Subnet, ...SecurityGroup[]],
+    parents: [EcsTaskDefinitionEcsCluster, EcsServiceTaskDefinition, EcsServiceSubnet, ...EcsServiceSecurityGroup[]],
   ) {
     super(resourceId, properties, parents);
 
-    this.updateServiceSecurityGroups(parents.filter((p) => p instanceof SecurityGroup) as SecurityGroup[]);
-    this.updateServiceTaskDefinition(parents.find((p) => p instanceof EcsTaskDefinition) as EcsTaskDefinition);
+    this.updateServiceSecurityGroups(
+      parents.filter((p) => this.isEcsServiceSecurityGroup(p)) as EcsServiceSecurityGroup[],
+    );
+    this.updateServiceTaskDefinition(
+      parents.find((p) => this.isEcsServiceTaskDefinition(p)) as EcsServiceTaskDefinition,
+    );
   }
 
   override async diff(previous: EcsService): Promise<Diff[]> {
@@ -26,11 +32,14 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
 
     let shouldConsolidateDiffs = false;
     for (let i = diffs.length - 1; i >= 0; i--) {
-      if (diffs[i].field === 'parent' && diffs[i].value instanceof SecurityGroup) {
+      if (diffs[i].field === 'parent' && this.isEcsServiceSecurityGroup(diffs[i].value as AResource<any, any>)) {
         // Consolidate all SecurityGroup parent updates into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
-      } else if (diffs[i].field === 'parent' && diffs[i].value instanceof EcsTaskDefinition) {
+      } else if (
+        diffs[i].field === 'parent' &&
+        this.isEcsServiceTaskDefinition(diffs[i].value as AResource<any, any>)
+      ) {
         // Translate TaskDefinition parent update into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
@@ -50,7 +59,7 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
 
   override async diffInverse(
     diff: Diff,
-    deReferenceResource: (resourceId: string) => Promise<EcsTaskDefinition | SecurityGroup>,
+    deReferenceResource: (resourceId: string) => Promise<EcsServiceTaskDefinition | EcsServiceSecurityGroup>,
   ): Promise<void> {
     if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
       await this.cloneResourceInPlace(diff.node as EcsService, deReferenceResource);
@@ -59,7 +68,15 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     }
   }
 
-  private updateServiceSecurityGroups(securityGroupParents: SecurityGroup[]): void {
+  private isEcsServiceSecurityGroup(node: AResource<any, any>): boolean {
+    return node.response.hasOwnProperty('GroupId');
+  }
+
+  private isEcsServiceTaskDefinition(node: AResource<any, any>): boolean {
+    return node.response.hasOwnProperty('taskDefinitionArn');
+  }
+
+  private updateServiceSecurityGroups(securityGroupParents: EcsServiceSecurityGroup[]): void {
     for (const sgParent of securityGroupParents) {
       const ecsToSgDep = this.getDependency(sgParent, DependencyRelationship.CHILD)!;
       const sgToEcsDep = sgParent.getDependency(this, DependencyRelationship.PARENT)!;
@@ -71,7 +88,7 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     }
   }
 
-  private updateServiceTaskDefinition(taskDefinitionParent: EcsTaskDefinition): void {
+  private updateServiceTaskDefinition(taskDefinitionParent: EcsServiceTaskDefinition): void {
     const ecsToTdDep = this.getDependency(taskDefinitionParent, DependencyRelationship.CHILD)!;
 
     // Before updating ecs-service must add ecs-task-definition.

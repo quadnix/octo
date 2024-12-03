@@ -1,4 +1,4 @@
-import { BaseResourceSchema, Schema } from '@quadnix/octo';
+import { type AResource, BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class InternetGatewaySchema extends BaseResourceSchema {
   override properties = Schema<{
@@ -9,3 +9,10 @@ export class InternetGatewaySchema extends BaseResourceSchema {
     InternetGatewayId: string;
   }>();
 }
+
+class InternetGatewayVpcSchema extends BaseResourceSchema {
+  override response = Schema<{
+    VpcId: string;
+  }>();
+}
+export type InternetGatewayVpc = AResource<InternetGatewayVpcSchema, any>;

@@ -3,4 +3,4 @@ import './actions/delete-network-acl.resource.action.js';
 import './actions/update-network-acl-entries.resource.action.js';
 
 export { NetworkAcl } from './network-acl.resource.js';
-export { NetworkAclSchema } from './network-acl.schema.js';
+export { NetworkAclSchema, type NetworkAclSubnet, type NetworkAclVpc } from './network-acl.schema.js';

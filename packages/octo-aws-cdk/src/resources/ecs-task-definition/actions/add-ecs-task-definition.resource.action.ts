@@ -1,9 +1,11 @@
 import { ECSClient, type PortMapping, RegisterTaskDefinitionCommand } from '@aws-sdk/client-ecs';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { Efs } from '../../efs/index.js';
-import type { IamRole } from '../../iam-role/index.js';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
-import type { EcsTaskDefinitionSchema } from '../ecs-task-definition.schema.js';
+import type {
+  EcsTaskDefinitionEfs,
+  EcsTaskDefinitionIamRole,
+  EcsTaskDefinitionSchema,
+} from '../ecs-task-definition.schema.js';
 
 @Action(EcsTaskDefinition)
 export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTaskDefinition> {
@@ -24,9 +26,9 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
     const properties = ecsTaskDefinition.properties;
     const response = ecsTaskDefinition.response;
 
-    const efsList = 'efs' in parents ? parents['efs'].map((d) => d.to as Efs) : [];
+    const efsList = 'efs' in parents ? parents['efs'].map((d) => d.to as EcsTaskDefinitionEfs) : [];
 
-    const iamRole = parents['iam-role'][0].to as IamRole;
+    const iamRole = parents['iam-role'][0].to as EcsTaskDefinitionIamRole;
     const iamRoleResponse = iamRole.response;
 
     // Get instances.
@@ -43,7 +45,7 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
             environment: properties.environmentVariables,
             essential: true,
             image: properties.image.uri,
-            mountPoints: efsList.map((efs: Efs) => ({
+            mountPoints: efsList.map((efs: EcsTaskDefinitionEfs) => ({
               containerPath: `/mnt/${efs.properties.filesystemName}`,
               readOnly: false,
               sourceVolume: efs.properties.filesystemName,
@@ -64,7 +66,7 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
         networkMode: 'awsvpc',
         requiresCompatibilities: ['FARGATE'],
         taskRoleArn: iamRoleResponse.Arn,
-        volumes: efsList.map((efs: Efs) => ({
+        volumes: efsList.map((efs: EcsTaskDefinitionEfs) => ({
           efsVolumeConfiguration: {
             fileSystemId: efs.response.FileSystemId,
           },

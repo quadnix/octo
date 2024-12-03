@@ -15,7 +15,7 @@ import {
 } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
-import type { Efs } from '../../efs/index.js';
+import type { EfsMountTargetEfs } from '../efs-mount-target.schema.js';
 
 @Action(EfsMountTarget)
 export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
@@ -36,7 +36,7 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
     const properties = efsMountTarget.properties;
     const response = efsMountTarget.response;
 
-    const efs = parents['efs'][0].to as Efs;
+    const efs = parents['efs'][0].to as EfsMountTargetEfs;
     const efsResponse = efs.response;
 
     // Get instances.
@@ -88,7 +88,7 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
     const efsMountTarget = diff.node as EfsMountTarget;
     const parents = efsMountTarget.getParents();
     const properties = efsMountTarget.properties;
-    const efs = parents['efs'][0].to as Efs;
+    const efs = parents['efs'][0].to as EfsMountTargetEfs;
     const efsResponse = efs.response;
 
     const efsClient = await this.container.get(EFSClient, {

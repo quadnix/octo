@@ -1,11 +1,13 @@
 import { CreateServiceCommand, ECSClient } from '@aws-sdk/client-ecs';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { EcsTaskDefinition } from '../../ecs-task-definition/index.js';
-import type { SecurityGroup } from '../../security-group/index.js';
-import type { Subnet } from '../../subnet/index.js';
-import type { EcsCluster } from '../../ecs-cluster/index.js';
 import { EcsService } from '../ecs-service.resource.js';
-import type { EcsServiceSchema } from '../ecs-service.schema.js';
+import type {
+  EcsServiceSchema,
+  EcsServiceSecurityGroup,
+  EcsServiceSubnet,
+  EcsServiceTaskDefinition,
+  EcsTaskDefinitionEcsCluster,
+} from '../ecs-service.schema.js';
 
 @Action(EcsService)
 export class AddEcsServiceResourceAction implements IResourceAction<EcsService> {
@@ -26,17 +28,17 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
     const properties = ecsService.properties;
     const response = ecsService.response;
 
-    const ecsCluster = parents['ecs-cluster'][0].to as EcsCluster;
+    const ecsCluster = parents['ecs-cluster'][0].to as EcsTaskDefinitionEcsCluster;
     const ecsClusterProperties = ecsCluster.properties;
 
-    const ecsTaskDefinition = parents['ecs-task-definition'][0].to as EcsTaskDefinition;
+    const ecsTaskDefinition = parents['ecs-task-definition'][0].to as EcsServiceTaskDefinition;
     const ecsTaskDefinitionResponse = ecsTaskDefinition.response;
 
-    const subnet = parents['subnet'][0].to as Subnet;
+    const subnet = parents['subnet'][0].to as EcsServiceSubnet;
     const subnetResponse = subnet.response;
 
     const securityGroupList =
-      'security-group' in parents ? parents['security-group'].map((d) => d.to as SecurityGroup) : [];
+      'security-group' in parents ? parents['security-group'].map((d) => d.to as EcsServiceSecurityGroup) : [];
 
     // Get instances.
     const ecsClient = await this.container.get(ECSClient, {

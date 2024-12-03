@@ -9,10 +9,8 @@ import {
   TransactionError,
 } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { Subnet } from '../../subnet/index.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
-import type { Efs } from '../../efs/index.js';
-import type { EfsMountTargetSchema } from '../efs-mount-target.schema.js';
+import type { EfsMountTargetEfs, EfsMountTargetSchema, EfsMountTargetSubnet } from '../efs-mount-target.schema.js';
 
 @Action(EfsMountTarget)
 export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
@@ -33,9 +31,9 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     const properties = efsMountTarget.properties;
     const response = efsMountTarget.response;
 
-    const efs = parents['efs'][0].to as Efs;
+    const efs = parents['efs'][0].to as EfsMountTargetEfs;
     const efsResponse = efs.response;
-    const subnet = parents['subnet'][0].to as Subnet;
+    const subnet = parents['subnet'][0].to as EfsMountTargetSubnet;
     const subnetResponse = subnet.response;
 
     // Get instances.
@@ -86,7 +84,7 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     const efsMountTarget = diff.node as EfsMountTarget;
     const parents = efsMountTarget.getParents();
     const properties = efsMountTarget.properties;
-    const efs = parents['efs'][0].to as Efs;
+    const efs = parents['efs'][0].to as EfsMountTargetEfs;
     const efsResponse = efs.response;
 
     const efsClient = await this.container.get(EFSClient, {

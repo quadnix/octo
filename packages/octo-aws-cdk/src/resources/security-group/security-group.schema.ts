@@ -1,5 +1,5 @@
 import type { AuthorizeSecurityGroupEgressCommandOutput } from '@aws-sdk/client-ec2';
-import { BaseResourceSchema, Schema } from '@quadnix/octo';
+import { type AResource, BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class SecurityGroupSchema extends BaseResourceSchema {
   override properties = Schema<{
@@ -21,3 +21,10 @@ export class SecurityGroupSchema extends BaseResourceSchema {
     };
   }>();
 }
+
+class SecurityGroupVpcSchema extends BaseResourceSchema {
+  override response = Schema<{
+    VpcId: string;
+  }>();
+}
+export type SecurityGroupVpc = AResource<SecurityGroupVpcSchema, any>;

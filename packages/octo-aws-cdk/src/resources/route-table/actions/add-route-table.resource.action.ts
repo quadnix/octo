@@ -5,11 +5,13 @@ import {
   EC2Client,
 } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { InternetGateway } from '../../internet-gateway/index.js';
-import type { Subnet } from '../../subnet/index.js';
-import type { Vpc } from '../../vpc/index.js';
 import { RouteTable } from '../route-table.resource.js';
-import type { RouteTableSchema } from '../route-table.schema.js';
+import type {
+  RouteTableInternetGateway,
+  RouteTableSchema,
+  RouteTableSubnet,
+  RouteTableVpc,
+} from '../route-table.schema.js';
 
 @Action(RouteTable)
 export class AddRouteTableResourceAction implements IResourceAction<RouteTable> {
@@ -35,11 +37,11 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     });
 
     const parents = routeTable.getParents();
-    const vpc = parents['vpc'][0].to as Vpc;
+    const vpc = parents['vpc'][0].to as RouteTableVpc;
     const vpcResponse = vpc.response;
-    const internetGateway = parents['internet-gateway'][0].to as InternetGateway;
+    const internetGateway = parents['internet-gateway'][0].to as RouteTableInternetGateway;
     const internetGatewayResponse = internetGateway.response;
-    const subnet = parents['subnet'][0].to as Subnet;
+    const subnet = parents['subnet'][0].to as RouteTableSubnet;
     const subnetResponse = subnet.response;
 
     // Create Route Table.

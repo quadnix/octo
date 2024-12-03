@@ -6,10 +6,8 @@ import {
   ReplaceNetworkAclAssociationCommand,
 } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { Subnet } from '../../subnet/index.js';
-import type { Vpc } from '../../vpc/index.js';
 import { NetworkAcl } from '../network-acl.resource.js';
-import type { NetworkAclSchema } from '../network-acl.schema.js';
+import type { NetworkAclSchema, NetworkAclSubnet, NetworkAclVpc } from '../network-acl.schema.js';
 
 @Action(NetworkAcl)
 export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> {
@@ -35,9 +33,9 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     });
 
     const parents = networkAcl.getParents();
-    const vpc = parents['vpc'][0].to as Vpc;
+    const vpc = parents['vpc'][0].to as NetworkAclVpc;
     const vpcResponse = vpc.response;
-    const subnet = parents['subnet'][0].to as Subnet;
+    const subnet = parents['subnet'][0].to as NetworkAclSubnet;
     const subnetResponse = subnet.response;
 
     // Get default NACL.
@@ -95,7 +93,7 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     const networkAcl = diff.node as NetworkAcl;
     const properties = networkAcl.properties;
     const parents = networkAcl.getParents();
-    const subnet = parents['subnet'][0].to as Subnet;
+    const subnet = parents['subnet'][0].to as NetworkAclSubnet;
     const subnetResponse = subnet.response;
 
     const ec2Client = await this.container.get(EC2Client, {
