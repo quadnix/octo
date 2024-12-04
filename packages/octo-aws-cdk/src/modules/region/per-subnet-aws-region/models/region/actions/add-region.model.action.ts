@@ -32,7 +32,7 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
     const awsRegion = diff.node as AwsRegion;
     const regionId = awsRegion.regionId;
 
-    const vpcCidrBlock = actionInputs.inputs.vpcCidrBlock as string;
+    const vpcCidrBlock = actionInputs.inputs.vpcCidrBlock;
 
     // Create VPC.
     const vpc = new Vpc(`vpc-${regionId}`, {

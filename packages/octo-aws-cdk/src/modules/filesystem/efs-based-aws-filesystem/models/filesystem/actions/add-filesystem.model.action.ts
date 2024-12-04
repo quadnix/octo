@@ -6,7 +6,6 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
-  type Region,
 } from '@quadnix/octo';
 import { Efs } from '../../../../../../resources/efs/index.js';
 import { AwsFilesystemModule } from '../../../aws-filesystem.module.js';
@@ -29,12 +28,12 @@ export class AddFilesystemModelAction implements IModelAction<AwsFilesystemModul
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const filesystem = diff.node as AwsFilesystem;
-    const region = actionInputs.inputs.region as Region;
+    const region = actionInputs.inputs.region;
 
     // Create EFS.
     const efs = new Efs(
       `efs-${region.regionId}-${filesystem.filesystemName}`,
-      { awsRegionId: actionInputs.inputs.awsRegionId as string, filesystemName: filesystem.filesystemName },
+      { awsRegionId: actionInputs.inputs.awsRegionId, filesystemName: filesystem.filesystemName },
       [],
     );
 
