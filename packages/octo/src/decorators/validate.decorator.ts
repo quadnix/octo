@@ -1,10 +1,10 @@
-import type { ValidationType } from '../app.type.js';
+import type { ValidationType, ValidationTypeOptions } from '../app.type.js';
 import { ValidationTransactionError } from '../errors/index.js';
 import { ValidationService } from '../services/validation/validation.service.js';
 
 type ValidationOptions<T> = {
   destruct?: (value: any) => T[];
-  options: { [key in ValidationType]?: any };
+  options: { [key in ValidationType]?: ValidationTypeOptions[key] };
 };
 
 export function Validate<T>(

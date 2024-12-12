@@ -12,6 +12,7 @@ import type { IResourceAction } from './resources/resource-action.interface.js';
 import type { AResource } from './resources/resource.abstract.js';
 import type { BaseResourceSchema } from './resources/resource.schema.js';
 import type { ASharedResource } from './resources/shared-resource.abstract.js';
+import type { ValidationUtility } from './utilities/validation/validation.utility.js';
 
 /* Enumerations */
 export enum NodeType {
@@ -22,10 +23,18 @@ export enum NodeType {
 }
 
 export enum ValidationType {
+  IS_RESOURCE = 'isResource',
   MAX_LENGTH = 'maxLength',
   MIN_LENGTH = 'minLength',
   REGEX = 'regex',
 }
+
+export type ValidationTypeOptions = {
+  [ValidationType.IS_RESOURCE]: Parameters<typeof ValidationUtility.validateIsResource>[1];
+  [ValidationType.MAX_LENGTH]: Parameters<typeof ValidationUtility.validateMaxLength>[1];
+  [ValidationType.MIN_LENGTH]: Parameters<typeof ValidationUtility.validateMinLength>[1];
+  [ValidationType.REGEX]: Parameters<typeof ValidationUtility.validateRegex>[1];
+};
 
 /* Types */
 export type ActionInputs = EnhancedModuleSchema<UnknownModule>;

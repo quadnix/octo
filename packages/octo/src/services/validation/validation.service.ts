@@ -44,14 +44,17 @@ export class ValidationService {
         let pass: boolean = true;
 
         switch (subject.type) {
-          case ValidationType.REGEX:
-            pass = ValidationUtility.validateRegex(value, subject.constraint);
+          case ValidationType.IS_RESOURCE:
+            pass = ValidationUtility.validateIsResource(value, subject.constraint);
+            break;
+          case ValidationType.MAX_LENGTH:
+            pass = ValidationUtility.validateMaxLength(value, subject.constraint);
             break;
           case ValidationType.MIN_LENGTH:
             pass = ValidationUtility.validateMinLength(value, subject.constraint);
             break;
-          case ValidationType.MAX_LENGTH:
-            pass = ValidationUtility.validateMaxLength(value, subject.constraint);
+          case ValidationType.REGEX:
+            pass = ValidationUtility.validateRegex(value, subject.constraint);
             break;
         }
 
