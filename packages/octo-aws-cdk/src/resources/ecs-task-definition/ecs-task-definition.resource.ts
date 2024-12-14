@@ -1,4 +1,5 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@quadnix/octo';
+import assert from 'node:assert';
 import { EcsService } from '../ecs-service/index.js';
 import {
   type EcsTaskDefinitionEfs,
@@ -16,6 +17,9 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
     properties: EcsTaskDefinitionSchema['properties'],
     parents: [EcsTaskDefinitionIamRole, ...EcsTaskDefinitionEfs[]],
   ) {
+    assert.strictEqual((parents[0].constructor as typeof AResource).NODE_NAME, 'iam-role');
+    parents.slice(1).every((p) => assert.strictEqual((p.constructor as typeof AResource).NODE_NAME, 'efs'));
+
     super(resourceId, properties, parents);
 
     this.updateTaskDefinitionEfs(parents.filter((p) => this.isEcsTaskDefinitionEfs(p)) as EcsTaskDefinitionEfs[]);

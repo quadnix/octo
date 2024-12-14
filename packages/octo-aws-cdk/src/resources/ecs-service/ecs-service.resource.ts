@@ -1,4 +1,5 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@quadnix/octo';
+import assert from 'node:assert';
 import {
   EcsServiceSchema,
   EcsServiceSecurityGroup,
@@ -17,6 +18,11 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     properties: EcsServiceSchema['properties'],
     parents: [EcsTaskDefinitionEcsCluster, EcsServiceTaskDefinition, EcsServiceSubnet, ...EcsServiceSecurityGroup[]],
   ) {
+    assert.strictEqual((parents[0].constructor as typeof AResource).NODE_NAME, 'ecs-cluster');
+    assert.strictEqual((parents[0].constructor as typeof AResource).NODE_NAME, 'ecs-task-definition');
+    assert.strictEqual((parents[0].constructor as typeof AResource).NODE_NAME, 'subnet');
+    parents.slice(3).every((p) => assert.strictEqual((p.constructor as typeof AResource).NODE_NAME, 'security-group'));
+
     super(resourceId, properties, parents);
 
     this.updateServiceSecurityGroups(
