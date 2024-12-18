@@ -16,7 +16,7 @@ type FactoryContainer<T> = { factory: FactoryValue<T>; metadata: { [key: string]
  * It is an incredibly powerful tool to customize implementation.
  */
 export class Container {
-  private FACTORY_TIMEOUT_IN_MS = 5000;
+  private FACTORY_TIMEOUT_IN_MS = 3000;
 
   private readonly factories: { [key: string]: FactoryContainer<unknown>[] } = {};
 
@@ -172,7 +172,7 @@ export class Container {
    * `Container.reset()` clears all registered factories and empties the container. This is mostly used in testing.
    */
   reset(): void {
-    this.FACTORY_TIMEOUT_IN_MS = 5000;
+    this.FACTORY_TIMEOUT_IN_MS = 3000;
 
     for (const name in this.factories) {
       delete this.factories[name];

@@ -25,7 +25,7 @@ import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../../
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
 export class ModelSerializationService {
-  private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
+  private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
   private readonly classMapping: { [key: string]: any } = {};
 

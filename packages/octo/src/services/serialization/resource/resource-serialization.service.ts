@@ -17,7 +17,7 @@ import type { AResource } from '../../../resources/resource.abstract.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
 export class ResourceSerializationService {
-  private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 5000;
+  private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
   private readonly classMapping: { [key: string]: any } = {};
 
