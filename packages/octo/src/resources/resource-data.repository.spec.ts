@@ -1,10 +1,7 @@
 import { jest } from '@jest/globals';
-import {
-  SharedTestResource,
-  TestResource,
-  TestResourceWithDiffOverride,
-} from '../utilities/test-helpers/test-classes.js';
-import { commitResources, createTestResources } from '../utilities/test-helpers/test-models.js';
+import { NodeType } from '../app.type.js';
+import { commitResources } from '../utilities/test-helpers/test-models.js';
+import { createTestResources } from '../utilities/test-helpers/test-resources.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
@@ -19,9 +16,6 @@ describe('ResourceDataRepository UT', () => {
     const resourceDataRepository = await container.get(ResourceDataRepository);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
-    resourceSerializationService.registerClass('@octo/TestResource', TestResource);
-    resourceSerializationService.registerClass('@octo/TestResourceWithDiffOverride', TestResourceWithDiffOverride);
     container.unRegisterFactory(ResourceSerializationService);
     container.registerValue(ResourceSerializationService, resourceSerializationService);
   });
@@ -36,7 +30,7 @@ describe('ResourceDataRepository UT', () => {
     it('should produce an add diff', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      await createTestResources({ 'resource-1': [] });
+      await createTestResources([{ resourceContext: '@octo/test-resource=resource-1' }]);
 
       const diffs = await resourceDataRepository.diff();
       expect(diffs).toMatchInlineSnapshot(`
@@ -51,12 +45,19 @@ describe('ResourceDataRepository UT', () => {
       `);
     });
 
-    it('should produce diff of a resource associated with a shared resource using the overridden diff()', async () => {
+    it('should produce diff of a resource associated with a shared resource using the diff()', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const resource1 = new TestResourceWithDiffOverride('resource-1');
-      resourceDataRepository.addNewResource(resource1);
-      await createTestResources({}, { 'shared-resource-1': [resource1] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        {
+          resourceContext: '@octo/test-resource=resource-1',
+        },
+        {
+          NODE_TYPE: NodeType.SHARED_RESOURCE,
+          parents: ['@octo/test-resource=resource-1'],
+          resourceContext: '@octo/test-resource=shared-resource-1',
+        },
+      ]);
 
       const diffOverrideSpy = jest.spyOn(resource1, 'diff');
       await resourceDataRepository.diff();
@@ -69,7 +70,9 @@ describe('ResourceDataRepository UT', () => {
     it('should produce a delete diff', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
 
       await commitResources();
 
@@ -88,21 +91,15 @@ describe('ResourceDataRepository UT', () => {
       `);
     });
 
-    it('should produce an update diff using overridden resource diff()', async () => {
+    it('should produce an update diff using resource diff()', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      let resource1 = new TestResourceWithDiffOverride('resource-1');
-      resourceDataRepository.addNewResource(resource1);
-
+      await createTestResources([{ resourceContext: '@octo/test-resource=resource-1' }]);
       await commitResources();
+      await createTestResources([{ resourceContext: '@octo/test-resource=resource-1' }]);
 
-      resource1 = new TestResourceWithDiffOverride('resource-1');
-      resourceDataRepository.addNewResource(resource1);
-
-      resource1 = resourceDataRepository.getNewResourceByContext(
-        '@octo/test-resource=resource-1',
-      ) as TestResourceWithDiffOverride;
-      const diffOverrideSpy = jest.spyOn(resource1, 'diff');
+      const resource1 = resourceDataRepository.getNewResourceByContext('@octo/test-resource=resource-1');
+      const diffOverrideSpy = jest.spyOn(resource1!, 'diff');
       await resourceDataRepository.diff();
 
       expect(diffOverrideSpy).toHaveBeenCalledTimes(1);

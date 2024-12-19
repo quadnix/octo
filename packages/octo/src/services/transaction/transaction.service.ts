@@ -185,7 +185,7 @@ export class TransactionService {
         for (const a of diff.actions as IUnknownResourceAction[]) {
           if (enableResourceCapture) {
             const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
-            await a.mock(diff, capture!.response);
+            await a.mock(diff, capture?.response || {});
             await a.handle(diffToProcess);
           } else {
             await a.handle(diffToProcess);

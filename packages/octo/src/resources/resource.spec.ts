@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 import { TestResource } from '../utilities/test-helpers/test-classes.js';
-import { createTestResources } from '../utilities/test-helpers/test-models.js';
-import type { UnknownResource } from '../app.type.js';
+import { createTestResources } from '../utilities/test-helpers/test-resources.js';
+import { NodeType, type UnknownResource } from '../app.type.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { AResource } from './resource.abstract.js';
@@ -18,7 +18,11 @@ describe('Resource UT', () => {
   });
 
   it('should add parent', async () => {
-    const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+    const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+      await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+      ]);
 
     expect((resource1.getChildren()['test-resource'][0].to as UnknownResource).resourceId).toBe('resource-2');
     expect((resource2.getParents()['test-resource'][0].to as UnknownResource).resourceId).toBe('resource-1');
@@ -26,15 +30,28 @@ describe('Resource UT', () => {
 
   it('should not add same parent twice', async () => {
     await expect(async () => {
-      await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1', 'resource-1'] });
+      await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        {
+          parents: ['@octo/test-resource=resource-1', '@octo/test-resource=resource-1'],
+          resourceContext: '@octo/test-resource=resource-2',
+        },
+      ]);
     }).rejects.toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
   });
 
   describe('cloneResource()', () => {
     it('should clone a resource', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
-      resource2.properties.key1 = 'value1';
-      resource2.response.key1 = 'value1';
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            properties: { key1: 'value1' },
+            resourceContext: '@octo/test-resource=resource-2',
+            response: { key1: 'value1' },
+          },
+        ]);
 
       const resource2Copy = await AResource.cloneResource(resource2, async (context: string) => {
         if (context === '@octo/test-resource=resource-1') {
@@ -62,13 +79,20 @@ describe('Resource UT', () => {
 
   describe('cloneResourceInPlace()', () => {
     it('should clone an empty resource in place', async () => {
-      const [resource1, resource2, resource3] = await createTestResources({
-        'resource-1': [],
-        'resource-2': ['resource-1'],
-        'resource-3': [],
-      });
-      resource2.properties.key1 = 'value1';
-      resource2.response.key1 = 'value1';
+      const {
+        '@octo/test-resource=resource-1': resource1,
+        '@octo/test-resource=resource-2': resource2,
+        '@octo/test-resource=resource-3': resource3,
+      } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        {
+          parents: ['@octo/test-resource=resource-1'],
+          properties: { key1: 'value1' },
+          resourceContext: '@octo/test-resource=resource-2',
+          response: { key1: 'value1' },
+        },
+        { resourceContext: '@octo/test-resource=resource-3' },
+      ]);
 
       await resource3.cloneResourceInPlace(resource2, async (context: string) => {
         if (context === '@octo/test-resource=resource-1') {
@@ -94,16 +118,26 @@ describe('Resource UT', () => {
     });
 
     it('should clone an existing resource in place', async () => {
-      const [resource1, resource2, , resource4] = await createTestResources({
-        'resource-1': [],
-        'resource-2': ['resource-1'],
-        'resource-3': [],
-        'resource-4': ['resource-3'],
-      });
-      resource2.properties.key1 = 'value1';
-      resource2.response.key1 = 'value1';
-      resource4.properties.key1 = 'value1';
-      resource4.response.key1 = 'value1';
+      const {
+        '@octo/test-resource=resource-1': resource1,
+        '@octo/test-resource=resource-2': resource2,
+        '@octo/test-resource=resource-4': resource4,
+      } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        {
+          parents: ['@octo/test-resource=resource-1'],
+          properties: { key1: 'value1' },
+          resourceContext: '@octo/test-resource=resource-2',
+          response: { key1: 'value1' },
+        },
+        { resourceContext: '@octo/test-resource=resource-3' },
+        {
+          parents: ['@octo/test-resource=resource-3'],
+          properties: { key1: 'value1' },
+          resourceContext: '@octo/test-resource=resource-4',
+          response: { key1: 'value1' },
+        },
+      ]);
 
       await resource4.cloneResourceInPlace(resource2, async (context: string) => {
         if (context === '@octo/test-resource=resource-1') {
@@ -130,16 +164,26 @@ describe('Resource UT', () => {
     });
 
     it('should clone an existing resource in place and replace properties and response', async () => {
-      const [resource1, resource2, , resource4] = await createTestResources({
-        'resource-1': [],
-        'resource-2': ['resource-1'],
-        'resource-3': [],
-        'resource-4': ['resource-3'],
-      });
-      resource2.properties.key1 = 'value1';
-      resource2.response.key1 = 'value1';
-      resource4.properties.key2 = 'value1';
-      resource4.response.key2 = 'value1';
+      const {
+        '@octo/test-resource=resource-1': resource1,
+        '@octo/test-resource=resource-2': resource2,
+        '@octo/test-resource=resource-4': resource4,
+      } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        {
+          parents: ['@octo/test-resource=resource-1'],
+          properties: { key1: 'value1' },
+          resourceContext: '@octo/test-resource=resource-2',
+          response: { key1: 'value1' },
+        },
+        { resourceContext: '@octo/test-resource=resource-3' },
+        {
+          parents: ['@octo/test-resource=resource-3'],
+          properties: { key2: 'value1' },
+          resourceContext: '@octo/test-resource=resource-4',
+          response: { key2: 'value1' },
+        },
+      ]);
 
       await resource4.cloneResourceInPlace(resource2, async (context: string) => {
         if (context === '@octo/test-resource=resource-1') {
@@ -437,8 +481,13 @@ describe('Resource UT', () => {
 
   describe('findParentsByProperty()', () => {
     it('should return empty array when filters do not match', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
-      resource1.properties.key1 = 'value1';
+      const { '@octo/test-resource=resource-2': resource2 } = await createTestResources([
+        { properties: { key1: 'value1' }, resourceContext: '@octo/test-resource=resource-1' },
+        {
+          parents: ['@octo/test-resource=resource-1'],
+          resourceContext: '@octo/test-resource=resource-2',
+        },
+      ]);
 
       const parents = resource2.findParentsByProperty([{ key: 'key1', value: 'value2' }]);
 
@@ -446,8 +495,14 @@ describe('Resource UT', () => {
     });
 
     it('should return matching parents in array when filters match', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
-      resource1.properties.key1 = 'value1';
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { properties: { key1: 'value1' }, resourceContext: '@octo/test-resource=resource-1' },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            resourceContext: '@octo/test-resource=resource-2',
+          },
+        ]);
 
       const parents = resource2.findParentsByProperty([{ key: 'key1', value: 'value1' }]);
 
@@ -458,7 +513,9 @@ describe('Resource UT', () => {
 
   describe('getAncestors()', () => {
     it('should return self where there are no ancestors', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
 
       const ancestors = resource1.getAncestors();
 
@@ -470,7 +527,13 @@ describe('Resource UT', () => {
     });
 
     it('should return self and ancestors where there are ancestors', async () => {
-      const [, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      const { '@octo/test-resource=resource-2': resource2 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        {
+          parents: ['@octo/test-resource=resource-1'],
+          resourceContext: '@octo/test-resource=resource-2',
+        },
+      ]);
 
       const ancestors = resource2.getAncestors();
 
@@ -485,16 +548,25 @@ describe('Resource UT', () => {
 
   describe('getSharedResource()', () => {
     it('should return undefined when this resource is not shared', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
 
       expect(resource1.getSharedResource()).toBeUndefined();
     });
 
     it('should return shared resource when this resource is shared', async () => {
-      const [resource1, sharedResource1] = await createTestResources(
-        { 'resource-1': [] },
-        { 'shared-resource-1': ['resource-1'] },
-      );
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=shared-resource-1': sharedResource1 } =
+        await createTestResources([
+          {
+            resourceContext: '@octo/test-resource=resource-1',
+          },
+          {
+            NODE_TYPE: NodeType.SHARED_RESOURCE,
+            parents: ['@octo/test-resource=resource-1'],
+            resourceContext: '@octo/test-resource=shared-resource-1',
+          },
+        ]);
 
       expect(resource1.getSharedResource()).toBe(sharedResource1);
     });
@@ -502,7 +574,13 @@ describe('Resource UT', () => {
 
   describe('hasAncestor()', () => {
     it('should return false when resource is not an ancestor', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          {
+            resourceContext: '@octo/test-resource=resource-2',
+          },
+        ]);
 
       const isAncestor = resource2.hasAncestor(resource1);
 
@@ -510,7 +588,14 @@ describe('Resource UT', () => {
     });
 
     it('should return true when resource is an ancestor', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            resourceContext: '@octo/test-resource=resource-2',
+          },
+        ]);
 
       const isAncestor = resource2.hasAncestor(resource1);
 
@@ -518,7 +603,9 @@ describe('Resource UT', () => {
     });
 
     it('should return true when resource is checked against itself', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
 
       const isAncestor = resource1.hasAncestor(resource1);
 
@@ -578,11 +665,19 @@ describe('Resource UT', () => {
 
   describe('remove()', () => {
     it('should not be able to remove a resource with dependencies', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
-      resource1.properties['key1'] = 'value1';
-      resource1.response['response1'] = 'value1';
-      resource2.properties['key2'] = 'value2';
-      resource2.response['response2'] = 'value2';
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        {
+          properties: { key1: 'value1' },
+          resourceContext: '@octo/test-resource=resource-1',
+          response: { response1: 'value1' },
+        },
+        {
+          parents: ['@octo/test-resource=resource-1'],
+          properties: { key2: 'value2' },
+          resourceContext: '@octo/test-resource=resource-2',
+          response: { response2: 'value2' },
+        },
+      ]);
 
       expect(() => {
         resource1.remove();
@@ -590,11 +685,20 @@ describe('Resource UT', () => {
     });
 
     it('should be able to remove leaf resources', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
-      resource1.properties['key1'] = 'value1';
-      resource1.response['response1'] = 'value1';
-      resource2.properties['key2'] = 'value2';
-      resource2.response['response2'] = 'value2';
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          {
+            properties: { key1: 'value1' },
+            resourceContext: '@octo/test-resource=resource-1',
+            response: { response1: 'value1' },
+          },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            properties: { key2: 'value2' },
+            resourceContext: '@octo/test-resource=resource-2',
+            response: { response2: 'value2' },
+          },
+        ]);
 
       resource2.remove();
 
@@ -605,7 +709,9 @@ describe('Resource UT', () => {
 
   describe('setContext()', () => {
     it('should be able to get context', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
 
       expect(resource1.getContext()).toMatchInlineSnapshot(`"@octo/test-resource=resource-1"`);
     });
@@ -613,9 +719,13 @@ describe('Resource UT', () => {
 
   describe('synth()', () => {
     it('should be able to synth a resource', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
-      resource1.properties.key1 = 'value1';
-      resource1.response.key1 = 'value1';
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        {
+          properties: { key1: 'value1' },
+          resourceContext: '@octo/test-resource=resource-1',
+          response: { key1: 'value1' },
+        },
+      ]);
 
       expect(resource1.synth()).toMatchInlineSnapshot(`
        {
@@ -633,9 +743,18 @@ describe('Resource UT', () => {
 
   describe('unSynth()', () => {
     it('should be able to unSynth a resource with parents', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
-      resource1.properties['key1'] = 'value1';
-      resource2.properties['key2'] = 'value2';
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          {
+            properties: { key1: 'value1' },
+            resourceContext: '@octo/test-resource=resource-1',
+          },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            properties: { key2: 'value2' },
+            resourceContext: '@octo/test-resource=resource-2',
+          },
+        ]);
 
       const resource2_1 = await AResource.unSynth(
         TestResource,

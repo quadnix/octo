@@ -120,14 +120,14 @@ export class ModuleContainer {
     m.hidden = false;
 
     if (m.instances.findIndex((i) => i.moduleId === moduleId) !== -1) {
-      throw new ModuleError('Module already loaded!', moduleName);
+      return;
     }
+
     m.instances.push({
       applied: false,
       inputKeys: getSchemaKeys((module as unknown as typeof AModule).MODULE_SCHEMA),
       moduleId,
     });
-
     for (const [key, value] of Object.entries(inputs)) {
       this.inputService.registerInput(moduleId, key, JSON.parse(JSON.stringify(value)));
     }

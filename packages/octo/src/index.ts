@@ -16,7 +16,7 @@ export { TestContainer } from './functions/container/test-container.js';
 export { Dependency, DependencyRelationship, type IDependency } from './functions/dependency/dependency.js';
 export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
-export { getSchemaKeys, Schema } from './functions/schema/schema.js';
+export { getSchemaInstance, getSchemaKeys, Schema } from './functions/schema/schema.js';
 
 export { Account } from './models/account/account.model.js';
 export { AccountSchema, AccountType } from './models/account/account.schema.js';

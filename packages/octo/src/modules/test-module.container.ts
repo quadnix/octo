@@ -5,6 +5,7 @@ import type {
   ModuleSchemaInputs,
   UnknownModel,
   UnknownModule,
+  UnknownResource,
 } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
@@ -12,12 +13,14 @@ import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../overlays/overlay-data.repository.js';
+import type { IResourceAction } from '../resources/resource-action.interface.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { create } from '../utilities/test-helpers/test-models.js';
+import { createTestResources } from '../utilities/test-helpers/test-resources.js';
 import { AModule } from './module.abstract.js';
 import { ModuleContainer } from './module.container.js';
 
@@ -38,6 +41,14 @@ class UniversalModelAction implements IModelAction<UniversalTestModule> {
   async handle(): Promise<ActionOutputs> {
     return {};
   }
+}
+
+class UniversalResourceAction implements IResourceAction<any> {
+  filter(): boolean {
+    return true;
+  }
+  async handle(): Promise<void> {}
+  async mock(): Promise<void> {}
 }
 
 export type TestModule<M extends UnknownModule> = {
@@ -112,6 +123,43 @@ export class TestModuleContainer {
           ) {
             throw error;
           }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  async createTestResources(
+    moduleId: string,
+    args: Parameters<typeof createTestResources>[0],
+  ): Promise<ReturnType<typeof createTestResources>> {
+    const container = Container.getInstance();
+    const [inputService, moduleContainer, transactionService] = await Promise.all([
+      container.get(InputService),
+      container.get(ModuleContainer),
+      container.get(TransactionService),
+    ]);
+
+    // Register new moduleId as instance of the universal module.
+    moduleContainer.load(UniversalTestModule, moduleId, {});
+    // Immediately unload the universal module to ensure it does not run in apply().
+    moduleContainer.unload(UniversalTestModule);
+
+    const result = await createTestResources(args);
+    for (const resource of Object.values(result)) {
+      inputService.registerResource(moduleId, resource);
+
+      try {
+        transactionService.registerResourceActions(resource.constructor as Constructable<UnknownResource>, [
+          new UniversalResourceAction(),
+        ]);
+      } catch (error) {
+        if (
+          error.message !==
+          `Action "${UniversalResourceAction.name}" already registered for resource "${resource.constructor.name}"!`
+        ) {
+          throw error;
         }
       }
     }

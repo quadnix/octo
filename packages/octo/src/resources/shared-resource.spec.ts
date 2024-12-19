@@ -1,6 +1,6 @@
-import type { SharedTestResource } from '../utilities/test-helpers/test-classes.js';
-import { createTestResources } from '../utilities/test-helpers/test-models.js';
+import { NodeType, type UnknownSharedResource } from '../app.type.js';
 import { TestContainer } from '../functions/container/test-container.js';
+import { createTestResources } from '../utilities/test-helpers/test-resources.js';
 
 describe('SharedResource UT', () => {
   beforeEach(async () => {
@@ -13,12 +13,16 @@ describe('SharedResource UT', () => {
 
   describe('diff()', () => {
     it('should not diff shared resource', async () => {
-      const [, sharedResource1] = await createTestResources(
-        { 'resource-1': [] },
-        { 'shared-resource-1': ['resource-1'] },
-      );
+      const { '@octo/test-resource=shared-resource-1': sharedResource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        {
+          NODE_TYPE: NodeType.SHARED_RESOURCE,
+          parents: ['@octo/test-resource=resource-1'],
+          resourceContext: '@octo/test-resource=shared-resource-1',
+        },
+      ]);
 
-      const diffs = await (sharedResource1 as SharedTestResource).diff();
+      const diffs = await (sharedResource1 as UnknownSharedResource).diff();
 
       expect(diffs).toMatchInlineSnapshot(`[]`);
     });
@@ -26,10 +30,14 @@ describe('SharedResource UT', () => {
 
   describe('getSharedResource()', () => {
     it('should not return shared resource', async () => {
-      const [, sharedResource1] = await createTestResources(
-        { 'resource-1': [] },
-        { 'shared-resource-1': ['resource-1'] },
-      );
+      const { '@octo/test-resource=shared-resource-1': sharedResource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        {
+          NODE_TYPE: NodeType.SHARED_RESOURCE,
+          parents: ['@octo/test-resource=resource-1'],
+          resourceContext: '@octo/test-resource=shared-resource-1',
+        },
+      ]);
 
       expect(sharedResource1.getSharedResource()).toBeUndefined();
     });
@@ -37,22 +45,33 @@ describe('SharedResource UT', () => {
 
   describe('merge()', () => {
     it('should merge previous shared resource with self and return new shared resource', async () => {
-      const [, resource2, sharedResource1] = await createTestResources(
-        { 'resource-1': [], 'resource-2': [] },
-        { 'shared-resource-1': ['resource-1'] },
-      );
-      sharedResource1.properties['property-1'] = 'property-value-1';
-      sharedResource1.properties['property-2'] = 'property-value-3';
-      sharedResource1.response['response-1'] = 'response-value-1';
+      const { '@octo/test-resource=resource-2': resource2, '@octo/test-resource=shared-resource-1': sharedResource1 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { resourceContext: '@octo/test-resource=resource-2' },
+          {
+            NODE_TYPE: NodeType.SHARED_RESOURCE,
+            parents: ['@octo/test-resource=resource-1'],
+            properties: { 'property-1': 'property-value-1', 'property-2': 'property-value-3' },
+            resourceContext: '@octo/test-resource=shared-resource-1',
+            response: { 'response-1': 'response-value-1' },
+          },
+        ]);
 
       // Create another shared shared.
-      const [sharedResource2] = await createTestResources({}, { 'shared-resource-1': [resource2] });
-      sharedResource2.properties['property-2'] = 'property-value-2';
-      sharedResource2.response['response-2'] = 'response-value-2';
+      const { '@octo/test-resource=shared-resource-1': sharedResource2 } = await createTestResources([
+        {
+          NODE_TYPE: NodeType.SHARED_RESOURCE,
+          parents: [resource2],
+          properties: { 'property-2': 'property-value-2' },
+          resourceContext: '@octo/test-resource=shared-resource-1',
+          response: { 'response-2': 'response-value-2' },
+        },
+      ]);
 
       // Merge sharedResource1 and sharedResource2.
       expect(sharedResource1.getDependencies()).toHaveLength(1);
-      (sharedResource1 as SharedTestResource).merge(sharedResource2 as SharedTestResource);
+      (sharedResource1 as UnknownSharedResource).merge(sharedResource2 as UnknownSharedResource);
       expect(sharedResource1.getDependencies()).toHaveLength(2);
       expect(sharedResource1.properties).toMatchInlineSnapshot(`
         {
