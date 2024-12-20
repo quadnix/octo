@@ -12,7 +12,7 @@ export class SubnetSchema extends BaseResourceSchema {
   }>();
 }
 
-class SubnetVpcSchema extends BaseResourceSchema {
+export class SubnetVpcSchema extends BaseResourceSchema {
   override response = Schema<{
     VpcId: string;
   }>();

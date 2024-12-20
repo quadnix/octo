@@ -12,21 +12,21 @@ export class RouteTableSchema extends BaseResourceSchema {
   }>();
 }
 
-class RouteTableInternetGatewaySchema extends BaseResourceSchema {
+export class RouteTableInternetGatewaySchema extends BaseResourceSchema {
   override response = Schema<{
     InternetGatewayId: string;
   }>();
 }
 export type RouteTableInternetGateway = AResource<RouteTableInternetGatewaySchema, any>;
 
-class RouteTableSubnetSchema extends BaseResourceSchema {
+export class RouteTableSubnetSchema extends BaseResourceSchema {
   override response = Schema<{
     SubnetId: string;
   }>();
 }
 export type RouteTableSubnet = AResource<RouteTableSubnetSchema, any>;
 
-class RouteTableVpcSchema extends BaseResourceSchema {
+export class RouteTableVpcSchema extends BaseResourceSchema {
   override response = Schema<{
     VpcId: string;
   }>();

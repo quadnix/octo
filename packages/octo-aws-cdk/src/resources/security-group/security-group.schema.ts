@@ -22,7 +22,7 @@ export class SecurityGroupSchema extends BaseResourceSchema {
   }>();
 }
 
-class SecurityGroupVpcSchema extends BaseResourceSchema {
+export class SecurityGroupVpcSchema extends BaseResourceSchema {
   override response = Schema<{
     VpcId: string;
   }>();

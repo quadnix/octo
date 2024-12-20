@@ -10,7 +10,7 @@ export class InternetGatewaySchema extends BaseResourceSchema {
   }>();
 }
 
-class InternetGatewayVpcSchema extends BaseResourceSchema {
+export class InternetGatewayVpcSchema extends BaseResourceSchema {
   override response = Schema<{
     VpcId: string;
   }>();

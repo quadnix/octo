@@ -21,7 +21,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
   }>();
 }
 
-class EcsTaskDefinitionEfsSchema extends BaseResourceSchema {
+export class EcsTaskDefinitionEfsSchema extends BaseResourceSchema {
   override properties = Schema<{
     filesystemName: string;
   }>();
@@ -32,7 +32,7 @@ class EcsTaskDefinitionEfsSchema extends BaseResourceSchema {
 }
 export type EcsTaskDefinitionEfs = AResource<EcsTaskDefinitionEfsSchema, any>;
 
-class EcsTaskDefinitionIamRoleSchema extends BaseResourceSchema {
+export class EcsTaskDefinitionIamRoleSchema extends BaseResourceSchema {
   override response = Schema<{
     Arn: string;
   }>();

@@ -12,7 +12,7 @@ export class EcsServiceSchema extends BaseResourceSchema {
   }>();
 }
 
-class EcsTaskDefinitionEcsClusterSchema extends BaseResourceSchema {
+export class EcsTaskDefinitionEcsClusterSchema extends BaseResourceSchema {
   override properties = Schema<{
     clusterName: string;
   }>();
@@ -23,21 +23,21 @@ class EcsTaskDefinitionEcsClusterSchema extends BaseResourceSchema {
 }
 export type EcsTaskDefinitionEcsCluster = AResource<EcsTaskDefinitionEcsClusterSchema, any>;
 
-class EcsServiceTaskDefinitionSchema extends BaseResourceSchema {
+export class EcsServiceTaskDefinitionSchema extends BaseResourceSchema {
   override response = Schema<{
     taskDefinitionArn: string;
   }>();
 }
 export type EcsServiceTaskDefinition = AResource<EcsServiceTaskDefinitionSchema, any>;
 
-class EcsServiceSecurityGroupSchema extends BaseResourceSchema {
+export class EcsServiceSecurityGroupSchema extends BaseResourceSchema {
   override response = Schema<{
     GroupId: string;
   }>();
 }
 export type EcsServiceSecurityGroup = AResource<EcsServiceSecurityGroupSchema, any>;
 
-class EcsServiceSubnetSchema extends BaseResourceSchema {
+export class EcsServiceSubnetSchema extends BaseResourceSchema {
   override response = Schema<{
     SubnetId: string;
   }>();

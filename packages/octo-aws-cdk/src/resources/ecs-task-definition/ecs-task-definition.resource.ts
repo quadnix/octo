@@ -1,9 +1,10 @@
-import { AResource, DependencyRelationship, Diff, DiffAction, Resource } from '@quadnix/octo';
+import { AResource, DependencyRelationship, Diff, DiffAction, Resource, getSchemaInstance } from '@quadnix/octo';
 import assert from 'node:assert';
-import { EcsService } from '../ecs-service/index.js';
 import {
   type EcsTaskDefinitionEfs,
+  EcsTaskDefinitionEfsSchema,
   type EcsTaskDefinitionIamRole,
+  EcsTaskDefinitionIamRoleSchema,
   EcsTaskDefinitionSchema,
 } from './ecs-task-definition.schema.js';
 
@@ -18,7 +19,12 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
     parents: [EcsTaskDefinitionIamRole, ...EcsTaskDefinitionEfs[]],
   ) {
     assert.strictEqual((parents[0].constructor as typeof AResource).NODE_NAME, 'iam-role');
-    parents.slice(1).every((p) => assert.strictEqual((p.constructor as typeof AResource).NODE_NAME, 'efs'));
+    getSchemaInstance(EcsTaskDefinitionIamRoleSchema, parents[0].synth() as unknown as Record<string, unknown>);
+    parents.slice(1).every((p) => {
+      assert.strictEqual((p.constructor as typeof AResource).NODE_NAME, 'efs');
+      getSchemaInstance(EcsTaskDefinitionEfsSchema, p.synth() as unknown as Record<string, unknown>);
+      return true;
+    });
 
     super(resourceId, properties, parents);
 
@@ -65,8 +71,8 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
     }
   }
 
-  private isEcsTaskDefinitionEfs(node: AResource<any, any>): boolean {
-    return node.response.hasOwnProperty('FileSystemId');
+  private isEcsTaskDefinitionEfs(resource: AResource<any, any>): boolean {
+    return resource.response.hasOwnProperty('FileSystemId');
   }
 
   private updateTaskDefinitionEfs(efsParents: EcsTaskDefinitionEfs[]): void {
@@ -79,5 +85,22 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
       // Before deleting efs must update ecs-task-definition.
       efsToTdDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
     }
+  }
+
+  static override async unSynth(
+    _deserializationClass: any,
+    resource: EcsTaskDefinitionSchema,
+    parentContexts: string[],
+    deReferenceResource: (context: string) => Promise<any>,
+  ): Promise<EcsTaskDefinition> {
+    const parents = await Promise.all(parentContexts.map((p) => deReferenceResource(p)));
+    const iamRole = parents.find((p) => p.constructor.NODE_NAME === 'iam-role');
+    const efsList = parents.filter((p) => p.constructor.NODE_NAME === 'efs');
+
+    const newResource = new EcsTaskDefinition(resource.resourceId, resource.properties, [iamRole, ...efsList]);
+    for (const key of Object.keys(resource.response)) {
+      newResource.response[key] = resource.response[key];
+    }
+    return newResource;
   }
 }
