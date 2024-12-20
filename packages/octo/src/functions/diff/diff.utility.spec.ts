@@ -4,15 +4,15 @@ import { DiffUtility } from './diff.utility.js';
 describe('Diff Utility UT', () => {
   describe('isObjectDeepEquals()', () => {
     it('should return false when one object is undefined', () => {
-      expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, undefined as any)).toEqual(false);
-      expect(DiffUtility.isObjectDeepEquals(undefined as any, { a: 1, b: 2 })).toEqual(false);
-      expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, null as any)).toEqual(false);
-      expect(DiffUtility.isObjectDeepEquals(null as any, { a: 1, b: 2 })).toEqual(false);
+      expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, undefined)).toEqual(false);
+      expect(DiffUtility.isObjectDeepEquals(undefined, { a: 1, b: 2 })).toEqual(false);
+      expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, null)).toEqual(false);
+      expect(DiffUtility.isObjectDeepEquals(null, { a: 1, b: 2 })).toEqual(false);
     });
 
     it('should return true when both objects are undefined', () => {
-      expect(DiffUtility.isObjectDeepEquals(undefined as any, undefined as any)).toEqual(true);
-      expect(DiffUtility.isObjectDeepEquals(null as any, null as any)).toEqual(true);
+      expect(DiffUtility.isObjectDeepEquals(undefined, undefined)).toEqual(true);
+      expect(DiffUtility.isObjectDeepEquals(null, null)).toEqual(true);
     });
 
     it('should return true when objects are equal', () => {
@@ -61,6 +61,10 @@ describe('Diff Utility UT', () => {
 
     it('should return false when array of boolean and undefined are not equal', () => {
       expect(DiffUtility.isObjectDeepEquals([undefined, false], [null, true])).toEqual(false);
+    });
+
+    it('should return true when primitives are equal', () => {
+      expect(DiffUtility.isObjectDeepEquals('key', 'key')).toEqual(true);
     });
   });
 

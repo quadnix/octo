@@ -19,7 +19,7 @@ export class DiffUtility {
   }
 
   // Source: https://stackoverflow.com/a/32922084/1834562
-  static isObjectDeepEquals(x: object, y: object): boolean {
+  static isObjectDeepEquals(x: unknown, y: unknown): boolean {
     const ok = Object.keys,
       tx = typeof x,
       ty = typeof y;
@@ -173,7 +173,7 @@ export class DiffUtility {
     for (const [key, value] of Object.entries(a[field])) {
       if (b[field].hasOwnProperty(key)) {
         if (typeof b[field][key] === 'object') {
-          if (!DiffUtility.isObjectDeepEquals(b[field][key], value as object)) {
+          if (!DiffUtility.isObjectDeepEquals(b[field][key], value)) {
             diff.push(new Diff(b, DiffAction.UPDATE, field, { key, value: b[field][key] }));
           }
         } else {

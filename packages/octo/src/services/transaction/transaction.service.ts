@@ -26,6 +26,7 @@ import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
+import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import type { ANode } from '../../functions/node/node.abstract.js';
 import type { AModel } from '../../models/model.abstract.js';
 import { ModuleContainer } from '../../modules/module.container.js';
@@ -231,13 +232,16 @@ export class TransactionService {
         d.node.getContext() === diff.node.getContext() &&
         d.field === diff.field &&
         d.action === diff.action &&
-        d.value === diff.value,
+        DiffUtility.isObjectDeepEquals(d.value, diff.value),
     );
   }
 
   private getMatchingDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
     return diffs.filter(
-      (d) => d.node.getContext() === diff.node.getContext() && d.field === diff.field && d.value === diff.value,
+      (d) =>
+        d.node.getContext() === diff.node.getContext() &&
+        d.field === diff.field &&
+        DiffUtility.isObjectDeepEquals(d.value, diff.value),
     );
   }
 
@@ -359,7 +363,7 @@ export class TransactionService {
             d.node.getContext() === newDiff.node.getContext() &&
             d.action === newDiff.action &&
             d.field === newDiff.field &&
-            d.value === newDiff.value,
+            DiffUtility.isObjectDeepEquals(d.value, newDiff.value),
         )
       ) {
         newDiffs.splice(i, 1);
@@ -378,7 +382,7 @@ export class TransactionService {
             d.node.getContext() === dirtyDiff.node.getContext() &&
             d.action === dirtyDiff.action &&
             d.field === dirtyDiff.field &&
-            d.value === dirtyDiff.value,
+            DiffUtility.isObjectDeepEquals(d.value, dirtyDiff.value),
         )
       ) {
         dirtyDiffs.splice(i, 1);
