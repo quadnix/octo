@@ -1,6 +1,13 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { jest } from '@jest/globals';
-import { type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import {
+  type Account,
+  type App,
+  type Container,
+  TestContainer,
+  TestModuleContainer,
+  TestStateProvider,
+} from '@quadnix/octo';
 import { AddInternetGatewayResourceAction } from '../../../resources/internet-gateway/actions/add-internet-gateway.resource.action.js';
 import type { InternetGateway } from '../../../resources/internet-gateway/index.js';
 import { AddSecurityGroupResourceAction } from '../../../resources/security-group/actions/add-security-group.resource.action.js';
@@ -11,6 +18,15 @@ import { AwsRegionModule } from './aws-region.module.js';
 import { AddRegionModelAction } from './models/region/actions/add-region.model.action.js';
 import { RegionId } from './models/region/index.js';
 
+async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
+  const {
+    account: [account],
+    app: [app],
+  } = await testModuleContainer.createTestModels('testModule', { account: ['aws,account'], app: ['test-app'] });
+  jest.spyOn(account, 'getCredentials').mockReturnValue({});
+  return { account, app };
+}
+
 describe('AwsRegionModule UT', () => {
   let container: Container;
   let testModuleContainer: TestModuleContainer;
@@ -20,6 +36,7 @@ describe('AwsRegionModule UT', () => {
       {
         mocks: [
           {
+            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
             type: EC2Client,
             value: {
               send: (): void => {
@@ -34,23 +51,8 @@ describe('AwsRegionModule UT', () => {
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
-  });
 
-  afterEach(async () => {
-    await testModuleContainer.reset();
-    await TestContainer.reset();
-  });
-
-  it('should call all actions correctly', async () => {
-    const addRegionModelAction = await container.get(AddRegionModelAction);
-    const addRegionModelActionSpy = jest.spyOn(addRegionModelAction, 'handle');
-    const addInternetGatewayResourceAction = await container.get(AddInternetGatewayResourceAction);
-    const addInternetGatewayResourceActionSpy = jest.spyOn(addInternetGatewayResourceAction, 'handle');
-    const addSecurityGroupResourceAction = await container.get(AddSecurityGroupResourceAction);
-    const addSecurityGroupResourceActionSpy = jest.spyOn(addSecurityGroupResourceAction, 'handle');
-    const addVpcResourceAction = await container.get(AddVpcResourceAction);
-    const addVpcResourceActionSpy = jest.spyOn(addVpcResourceAction, 'handle');
-
+    // Register resource captures.
     testModuleContainer.registerCapture<Vpc>('@octo/vpc=vpc-aws-us-east-1a', { VpcId: 'VpcId' });
     testModuleContainer.registerCapture<InternetGateway>('@octo/internet-gateway=igw-aws-us-east-1a', {
       InternetGatewayId: 'InternetGatewayId',
@@ -62,15 +64,25 @@ describe('AwsRegionModule UT', () => {
         ingress: [{ SecurityGroupRuleId: 'SecurityGroupRuleId' }],
       },
     });
+  });
 
-    // Create an app and account.
-    const {
-      account: [account],
-      app: [app],
-    } = await testModuleContainer.createTestModels('testModule', { account: ['aws,account'], app: ['test-app'] });
-    jest.spyOn(account, 'getCredentials').mockReturnValue({});
+  afterEach(async () => {
+    await testModuleContainer.reset();
+    await TestContainer.reset();
+  });
 
-    // Create a region.
+  it('should call actions with correct inputs', async () => {
+    const addRegionModelAction = await container.get(AddRegionModelAction);
+    const addRegionModelActionSpy = jest.spyOn(addRegionModelAction, 'handle');
+    const addInternetGatewayResourceAction = await container.get(AddInternetGatewayResourceAction);
+    const addInternetGatewayResourceActionSpy = jest.spyOn(addInternetGatewayResourceAction, 'handle');
+    const addSecurityGroupResourceAction = await container.get(AddSecurityGroupResourceAction);
+    const addSecurityGroupResourceActionSpy = jest.spyOn(addSecurityGroupResourceAction, 'handle');
+    const addVpcResourceAction = await container.get(AddVpcResourceAction);
+    const addVpcResourceActionSpy = jest.spyOn(addVpcResourceAction, 'handle');
+
+    const { app } = await setup(testModuleContainer);
+
     await testModuleContainer.runModule<AwsRegionModule>({
       inputs: {
         account: '${{testModule.model.account}}',
@@ -139,27 +151,9 @@ describe('AwsRegionModule UT', () => {
     `);
   });
 
-  it('should create and delete a new region', async () => {
-    testModuleContainer.registerCapture<Vpc>('@octo/vpc=vpc-aws-us-east-1a', { VpcId: 'VpcId' });
-    testModuleContainer.registerCapture<InternetGateway>('@octo/internet-gateway=igw-aws-us-east-1a', {
-      InternetGatewayId: 'InternetGatewayId',
-    });
-    testModuleContainer.registerCapture<SecurityGroup>('@octo/security-group=sec-grp-aws-us-east-1a-access', {
-      GroupId: 'GroupId',
-      Rules: {
-        egress: [{ SecurityGroupRuleId: 'SecurityGroupRuleId' }],
-        ingress: [{ SecurityGroupRuleId: 'SecurityGroupRuleId' }],
-      },
-    });
+  it('should CUD', async () => {
+    const { app: app1 } = await setup(testModuleContainer);
 
-    // Create an app and account.
-    const {
-      account: [account1],
-      app: [app1],
-    } = await testModuleContainer.createTestModels('testModule', { account: ['aws,account'], app: ['test-app'] });
-    jest.spyOn(account1, 'getCredentials').mockReturnValue({});
-
-    // Create a region.
     await testModuleContainer.runModule<AwsRegionModule>({
       inputs: {
         account: '${{testModule.model.account}}',
@@ -197,14 +191,8 @@ describe('AwsRegionModule UT', () => {
      ]
     `);
 
-    // Create an app and account.
-    const {
-      account: [account2],
-      app: [app2],
-    } = await testModuleContainer.createTestModels('testModule', { account: ['aws,account'], app: ['test-app'] });
-    jest.spyOn(account2, 'getCredentials').mockReturnValue({});
+    const { app: app2 } = await setup(testModuleContainer);
 
-    // Commit without creation the region. This should yield the previous region being deleted.
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
      [

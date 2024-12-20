@@ -19,7 +19,7 @@ describe('AppModule UT', () => {
     await TestContainer.reset();
   });
 
-  it('should call AddAppModelAction with correct inputs', async () => {
+  it('should call actions with correct inputs', async () => {
     const addAppModelAction = await container.get(AddAppModelAction);
     const addAppModelActionSpy = jest.spyOn(addAppModelAction, 'handle');
 
@@ -49,14 +49,14 @@ describe('AppModule UT', () => {
     `);
   });
 
-  it('should be able to add a new app', async () => {
+  it('should CUD', async () => {
     const { app: app } = await testModuleContainer.runModule<AppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: AppModule,
     });
 
-    const result = await testModuleContainer.commit(app);
+    const result = await testModuleContainer.commit(app, { enableResourceCapture: true });
     expect(result.resourceDiffs).toMatchInlineSnapshot(`
      [
        [],

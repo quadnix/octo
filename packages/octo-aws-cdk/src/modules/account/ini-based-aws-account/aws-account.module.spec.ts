@@ -1,7 +1,14 @@
 import { jest } from '@jest/globals';
-import { type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { type App, type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { AwsAccountModule } from './aws-account.module.js';
 import { AddAccountModelAction } from './models/account/actions/add-account.model.action.js';
+
+async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
+  const {
+    app: [app],
+  } = await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
+  return { app };
+}
 
 describe('AwsAccountModule UT', () => {
   let container: Container;
@@ -19,16 +26,12 @@ describe('AwsAccountModule UT', () => {
     await TestContainer.reset();
   });
 
-  it('should call AddAccountModelAction with correct inputs', async () => {
+  it('should call actions with correct inputs', async () => {
     const addAccountModelAction = await container.get(AddAccountModelAction);
     const addAccountModelActionSpy = jest.spyOn(addAccountModelAction, 'handle');
 
-    // Create an app.
-    const {
-      app: [app],
-    } = await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
+    const { app } = await setup(testModuleContainer);
 
-    // Create an account.
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
         accountId: '1234',
@@ -65,13 +68,9 @@ describe('AwsAccountModule UT', () => {
     `);
   });
 
-  it('should create a new account', async () => {
-    // Create an app.
-    const {
-      app: [app],
-    } = await testModuleContainer.createTestModels('testModule', { app: ['test-app'] });
+  it('should CUD', async () => {
+    const { app } = await setup(testModuleContainer);
 
-    // Create an account.
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
         accountId: '1234',

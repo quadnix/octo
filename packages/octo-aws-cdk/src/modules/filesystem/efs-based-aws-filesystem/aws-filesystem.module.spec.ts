@@ -1,11 +1,35 @@
 import { EFSClient } from '@aws-sdk/client-efs';
 import { jest } from '@jest/globals';
-import { type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import {
+  type Account,
+  type App,
+  type Container,
+  type Region,
+  TestContainer,
+  TestModuleContainer,
+  TestStateProvider,
+} from '@quadnix/octo';
 import { AddEfsResourceAction } from '../../../resources/efs/actions/add-efs.resource.action.js';
 import type { Efs } from '../../../resources/efs/index.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsFilesystemModule } from './aws-filesystem.module.js';
 import { AddFilesystemModelAction } from './models/filesystem/actions/add-filesystem.model.action.js';
+
+async function setup(
+  testModuleContainer: TestModuleContainer,
+): Promise<{ account: Account; app: App; region: Region }> {
+  const {
+    account: [account],
+    app: [app],
+    region: [region],
+  } = await testModuleContainer.createTestModels('testModule', {
+    account: ['aws,account'],
+    app: ['test-app'],
+    region: ['region'],
+  });
+  jest.spyOn(account, 'getCredentials').mockReturnValue({});
+  return { account, app, region };
+}
 
 describe('AwsFilesystemModule UT', () => {
   const originalRetryPromise = RetryUtility.retryPromise;
@@ -19,6 +43,7 @@ describe('AwsFilesystemModule UT', () => {
       {
         mocks: [
           {
+            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
             type: EFSClient,
             value: {
               send: (): void => {
@@ -37,6 +62,12 @@ describe('AwsFilesystemModule UT', () => {
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
       await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
     });
+
+    // Register resource captures.
+    testModuleContainer.registerCapture<Efs>('@octo/efs=efs-region-test-filesystem', {
+      FileSystemArn: 'FileSystemArn',
+      FileSystemId: 'FileSystemId',
+    });
   });
 
   afterEach(async () => {
@@ -46,29 +77,14 @@ describe('AwsFilesystemModule UT', () => {
     retryPromiseSpy.mockReset();
   });
 
-  it('should call all actions correctly', async () => {
+  it('should call actions with correct inputs', async () => {
     const addFilesystemModelAction = await container.get(AddFilesystemModelAction);
     const addFilesystemModelActionSpy = jest.spyOn(addFilesystemModelAction, 'handle');
     const addEfsResourceAction = await container.get(AddEfsResourceAction);
     const addEfsResourceActionSpy = jest.spyOn(addEfsResourceAction, 'handle');
 
-    testModuleContainer.registerCapture<Efs>('@octo/efs=efs-region-test-filesystem', {
-      FileSystemArn: 'FileSystemArn',
-      FileSystemId: 'FileSystemId',
-    });
+    const { app } = await setup(testModuleContainer);
 
-    // Create an app, account, and region.
-    const {
-      account: [account],
-      app: [app],
-    } = await testModuleContainer.createTestModels('testModule', {
-      account: ['aws,account'],
-      app: ['test-app'],
-      region: ['region'],
-    });
-    jest.spyOn(account, 'getCredentials').mockReturnValue({});
-
-    // Create a filesystem.
     await testModuleContainer.runModule<AwsFilesystemModule>({
       inputs: {
         awsRegionId: 'us-east-1',
@@ -114,24 +130,9 @@ describe('AwsFilesystemModule UT', () => {
     `);
   });
 
-  it('should create and delete a new filesystem', async () => {
-    testModuleContainer.registerCapture<Efs>('@octo/efs=efs-region-test-filesystem', {
-      FileSystemArn: 'FileSystemArn',
-      FileSystemId: 'FileSystemId',
-    });
+  it('should CUD', async () => {
+    const { app: app1 } = await setup(testModuleContainer);
 
-    // Create an app, account, and region.
-    const {
-      account: [account1],
-      app: [app1],
-    } = await testModuleContainer.createTestModels('testModule', {
-      account: ['aws,account'],
-      app: ['test-app'],
-      region: ['region'],
-    });
-    jest.spyOn(account1, 'getCredentials').mockReturnValue({});
-
-    // Create a filesystem.
     await testModuleContainer.runModule<AwsFilesystemModule>({
       inputs: {
         awsRegionId: 'us-east-1',
@@ -157,18 +158,8 @@ describe('AwsFilesystemModule UT', () => {
      ]
     `);
 
-    // Create an app, account, and region.
-    const {
-      account: [account2],
-      app: [app2],
-    } = await testModuleContainer.createTestModels('testModule', {
-      account: ['aws,account'],
-      app: ['test-app'],
-      region: ['region'],
-    });
-    jest.spyOn(account2, 'getCredentials').mockReturnValue({});
+    const { app: app2 } = await setup(testModuleContainer);
 
-    // Commit without creation the filesystem. This should yield the previous model being deleted.
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
      [
