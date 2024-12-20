@@ -133,6 +133,7 @@ export class TestModuleContainer {
   async createTestResources(
     moduleId: string,
     args: Parameters<typeof createTestResources>[0],
+    options?: Parameters<typeof createTestResources>[1],
   ): Promise<ReturnType<typeof createTestResources>> {
     const container = Container.getInstance();
     const [inputService, moduleContainer, transactionService] = await Promise.all([
@@ -146,7 +147,7 @@ export class TestModuleContainer {
     // Immediately unload the universal module to ensure it does not run in apply().
     moduleContainer.unload(UniversalTestModule);
 
-    const result = await createTestResources(args);
+    const result = await createTestResources(args, options);
     for (const resource of Object.values(result)) {
       inputService.registerResource(moduleId, resource);
 

@@ -48,6 +48,7 @@ export async function createTestResources(
     resourceContext: string;
     response?: { [key: string]: unknown };
   }[],
+  options?: { save?: boolean },
 ): Promise<{ [key: string]: UnknownResource | UnknownSharedResource }> {
   const container = Container.getInstance();
   const [resourceDataRepository, resourceSerializationService] = await Promise.all([
@@ -103,6 +104,7 @@ export async function createTestResources(
       }
     }
     resourceDataRepository.addNewResource(resource);
+    if (options?.save) resourceDataRepository.addActualResource(resource);
 
     const resourceClassName = `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`;
     try {
