@@ -83,7 +83,6 @@ describe('AwsSubnetModule UT', () => {
     const addSubnetResourceActionSpy = jest.spyOn(addSubnetResourceAction, 'handle');
 
     const { app } = await setup(testModuleContainer);
-
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
         awsRegionAZ: 'us-east-1a',
@@ -184,7 +183,6 @@ describe('AwsSubnetModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
         awsRegionAZ: 'us-east-1a',
@@ -227,8 +225,66 @@ describe('AwsSubnetModule UT', () => {
     `);
 
     const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        awsRegionAZ: 'us-east-1a',
+        awsRegionId: 'us-east-1',
+        internetGatewayResource: '${{testModule.resource.igw-aws-us-east-1a}}',
+        region: '${{testModule.model.region}}',
+        subnetCidrBlock: '10.0.0.0/24',
+        subnetName: 'test-private-subnet',
+        subnetOptions: JSON.stringify({
+          disableSubnetIntraNetwork: true,
+        }),
+        vpcResource: '${{testModule.resource.vpc-aws-us-east-1a}}',
+      },
+      moduleId: 'subnet',
+      type: AwsSubnetModule,
+    });
 
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    const result3 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "properties",
+           "node": "@octo/network-acl=nacl-region-test-private-subnet",
+           "value": {
+             "key": "entries",
+             "value": [
+               {
+                 "CidrBlock": "10.0.0.0/24",
+                 "Egress": false,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "deny",
+                 "RuleNumber": 1,
+               },
+               {
+                 "CidrBlock": "10.0.0.0/24",
+                 "Egress": true,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "deny",
+                 "RuleNumber": 1,
+               },
+             ],
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app3 } = await setup(testModuleContainer);
+    const result2 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
      [
        [

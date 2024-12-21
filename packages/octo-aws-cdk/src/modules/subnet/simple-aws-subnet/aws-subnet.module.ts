@@ -42,6 +42,13 @@ export class AwsSubnetModuleSchema {
 
   subnetName = Schema<string>();
 
+  @Validate({ options: {} }, (value: any): object => {
+    if (typeof value === 'string') {
+      return JSON.parse(value);
+    } else {
+      return value;
+    }
+  })
   subnetOptions? = Schema<{ disableSubnetIntraNetwork: boolean; subnetType: SubnetType }>({
     disableSubnetIntraNetwork: false,
     subnetType: SubnetType.PRIVATE,
