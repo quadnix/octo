@@ -84,7 +84,6 @@ describe('AwsFilesystemModule UT', () => {
     const addEfsResourceActionSpy = jest.spyOn(addEfsResourceAction, 'handle');
 
     const { app } = await setup(testModuleContainer);
-
     await testModuleContainer.runModule<AwsFilesystemModule>({
       inputs: {
         awsRegionId: 'us-east-1',
@@ -132,7 +131,6 @@ describe('AwsFilesystemModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-
     await testModuleContainer.runModule<AwsFilesystemModule>({
       inputs: {
         awsRegionId: 'us-east-1',

@@ -30,7 +30,6 @@ describe('AppModule UT', () => {
     });
 
     await testModuleContainer.commit(app);
-
     expect(addAppModelActionSpy).toHaveBeenCalledTimes(1);
     expect(addAppModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
      {

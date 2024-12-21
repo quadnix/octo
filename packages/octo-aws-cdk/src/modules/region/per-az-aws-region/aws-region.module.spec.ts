@@ -82,7 +82,6 @@ describe('AwsRegionModule UT', () => {
     const addVpcResourceActionSpy = jest.spyOn(addVpcResourceAction, 'handle');
 
     const { app } = await setup(testModuleContainer);
-
     await testModuleContainer.runModule<AwsRegionModule>({
       inputs: {
         account: '${{testModule.model.account}}',
@@ -153,7 +152,6 @@ describe('AwsRegionModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-
     await testModuleContainer.runModule<AwsRegionModule>({
       inputs: {
         account: '${{testModule.model.account}}',

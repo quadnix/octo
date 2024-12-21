@@ -31,7 +31,6 @@ describe('AwsAccountModule UT', () => {
     const addAccountModelActionSpy = jest.spyOn(addAccountModelAction, 'handle');
 
     const { app } = await setup(testModuleContainer);
-
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
         accountId: '1234',
@@ -42,7 +41,6 @@ describe('AwsAccountModule UT', () => {
     });
 
     await testModuleContainer.commit(app, { enableResourceCapture: true });
-
     expect(addAccountModelActionSpy).toHaveBeenCalledTimes(1);
     expect(addAccountModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
      {
@@ -70,7 +68,6 @@ describe('AwsAccountModule UT', () => {
 
   it('should CUD', async () => {
     const { app } = await setup(testModuleContainer);
-
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
         accountId: '1234',
