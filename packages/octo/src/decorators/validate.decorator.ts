@@ -9,6 +9,7 @@ type ValidationOptions<T> = {
 
 export function Validate<T>(
   validators: ValidationOptions<T> | ValidationOptions<T>[],
+  transform?: (value: any) => any,
 ): (target: any, propertyKey: string) => void {
   return function (target: any, propertyKey: string) {
     const symbol = Symbol();
@@ -22,6 +23,10 @@ export function Validate<T>(
         if (newValue === undefined) {
           this[symbol] = undefined;
           return;
+        }
+
+        if (transform) {
+          newValue = transform(newValue);
         }
 
         if (!Array.isArray(validators)) {

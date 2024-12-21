@@ -11,7 +11,7 @@ export function getSchemaInstance<S>(
   for (const key of getSchemaKeys<S>(schemaClass)) {
     if (value.hasOwnProperty(key) && value[key]) {
       t[key] = value[key];
-      instance[key] = value[key];
+      instance[key] = t[key];
     } else {
       instance[key] = t[key];
     }
