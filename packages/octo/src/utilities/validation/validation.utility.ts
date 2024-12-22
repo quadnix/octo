@@ -1,4 +1,6 @@
-import { NodeType } from '../../app.type.js';
+import { type Constructable, NodeType } from '../../app.type.js';
+import { SchemaError } from '../../errors/index.js';
+import { getSchemaInstance } from '../../functions/schema/schema.js';
 import { AResource } from '../../resources/resource.abstract.js';
 
 export class ValidationUtility {
@@ -11,6 +13,18 @@ export class ValidationUtility {
         ? (subject.constructor as typeof AResource).NODE_PACKAGE === staticProperties.NODE_PACKAGE
         : true)
     );
+  }
+
+  static validateIsSchema(subject: any, staticProperties: { schema: Constructable<any> }): boolean {
+    try {
+      getSchemaInstance(staticProperties.schema, subject);
+      return true;
+    } catch (error) {
+      if (error instanceof SchemaError) {
+        return false;
+      }
+      throw error;
+    }
   }
 
   static validateMaxLength(subject: string, maxLength: number): boolean {

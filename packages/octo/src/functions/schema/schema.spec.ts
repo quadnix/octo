@@ -42,6 +42,24 @@ describe('Schema UT', () => {
       const value = { properties: 'a string' };
       expect(() => getSchemaInstance(TestSchema, value)).toThrow();
     });
+
+    it('should validate nested schema', () => {
+      class NestedSchema {
+        @Validate({ options: { minLength: 4 } })
+        name = Schema<string>();
+      }
+      class TestSchema {
+        @Validate({ options: { isSchema: { schema: NestedSchema } } })
+        student = Schema<NestedSchema>();
+      }
+
+      const value1 = { student: { name: 'bad' } };
+      expect(() => getSchemaInstance(TestSchema, value1)).toThrow('Validation error!');
+
+      const value2 = { student: { name: 'good' } };
+      const instance2 = getSchemaInstance(TestSchema, value2);
+      expect(instance2).toEqual(value2);
+    });
   });
 
   describe('getSchemaKeys()', () => {

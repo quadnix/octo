@@ -47,6 +47,9 @@ export class ValidationService {
           case ValidationType.IS_RESOURCE:
             pass = ValidationUtility.validateIsResource(value, subject.constraint);
             break;
+          case ValidationType.IS_SCHEMA:
+            pass = ValidationUtility.validateIsSchema(value, subject.constraint);
+            break;
           case ValidationType.MAX_LENGTH:
             pass = ValidationUtility.validateMaxLength(value, subject.constraint);
             break;

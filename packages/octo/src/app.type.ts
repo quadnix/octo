@@ -24,6 +24,7 @@ export enum NodeType {
 
 export enum ValidationType {
   IS_RESOURCE = 'isResource',
+  IS_SCHEMA = 'isSchema',
   MAX_LENGTH = 'maxLength',
   MIN_LENGTH = 'minLength',
   REGEX = 'regex',
@@ -31,6 +32,7 @@ export enum ValidationType {
 
 export type ValidationTypeOptions = {
   [ValidationType.IS_RESOURCE]: Parameters<typeof ValidationUtility.validateIsResource>[1];
+  [ValidationType.IS_SCHEMA]: Parameters<typeof ValidationUtility.validateIsSchema>[1];
   [ValidationType.MAX_LENGTH]: Parameters<typeof ValidationUtility.validateMaxLength>[1];
   [ValidationType.MIN_LENGTH]: Parameters<typeof ValidationUtility.validateMinLength>[1];
   [ValidationType.REGEX]: Parameters<typeof ValidationUtility.validateRegex>[1];
