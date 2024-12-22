@@ -1,4 +1,5 @@
 import type { UnknownNode } from '../../app.type.js';
+import { Dependency } from '../dependency/dependency.js';
 import { Diff, DiffAction } from './diff.js';
 
 export class DiffUtility {
@@ -23,6 +24,11 @@ export class DiffUtility {
     const ok = Object.keys,
       tx = typeof x,
       ty = typeof y;
+
+    if (x instanceof Dependency && y instanceof Dependency) {
+      return this.isObjectDeepEquals(x.synth(), y.synth());
+    }
+
     return x && y && tx === 'object' && tx === ty
       ? ok(x).length === ok(y).length && ok(x).every((key) => this.isObjectDeepEquals(x[key], y[key]))
       : x === y;
