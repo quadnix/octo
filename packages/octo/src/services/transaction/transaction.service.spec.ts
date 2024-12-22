@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import type { UnknownModel, UnknownModule, UnknownResource } from '../../app.type.js';
+import { type UnknownModel, type UnknownModule, type UnknownResource, stub } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
@@ -695,7 +695,7 @@ describe('TransactionService UT', () => {
         app.addAnchor(anchor1);
 
         await testModuleContainer.runModule<TestOverlayModule>({
-          inputs: { anchorName: 'anchor-1', app: '${{moduleId.model.app}}' },
+          inputs: { anchorName: 'anchor-1', app: stub('${{moduleId.model.app}}') },
           moduleId: 'overlayModuleId',
           type: TestOverlayModule,
         });

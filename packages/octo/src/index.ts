@@ -64,14 +64,15 @@ export { StateManagementService } from './services/state-management/state-manage
 export { type IStateProvider } from './services/state-management/state-provider.interface.js';
 export { TestStateProvider } from './services/state-management/test.state-provider.js';
 
-export type {
-  ActionOutputs,
-  Constructable,
-  AnchorSchema,
-  EnhancedModuleSchema,
-  ModuleSchema,
-  OverlaySchema,
-  ResourceSchema,
+export {
+  stub,
+  type ActionOutputs,
+  type Constructable,
+  type AnchorSchema,
+  type EnhancedModuleSchema,
+  type ModuleSchema,
+  type OverlaySchema,
+  type ResourceSchema,
 } from './app.type.js';
 
 export { Octo } from './main.js';

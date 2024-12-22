@@ -30,6 +30,10 @@ export enum ValidationType {
   REGEX = 'regex',
 }
 
+export function stub<T>(value: string): T {
+  return value as T;
+}
+
 export type ValidationTypeOptions = {
   [ValidationType.IS_RESOURCE]: Parameters<typeof ValidationUtility.validateIsResource>[1];
   [ValidationType.IS_SCHEMA]: Parameters<typeof ValidationUtility.validateIsSchema>[1];
@@ -83,8 +87,8 @@ export type EnhancedModuleSchema<T> = {
 export type ModelSchema<T> = T extends AModel<infer S, any> ? S : never;
 export type ModuleOutput<M> = M extends AModule<any, infer T> ? T : never;
 export type ModuleSchema<T> = T extends AModule<infer S, any> ? S : never;
-export type ModuleSchemaInputs<T> = { [K in ClassRequiredProperties<ModuleSchema<T>>]: string } & {
-  [K in ClassOptionalProperties<ModuleSchema<T>>]?: string;
+export type ModuleSchemaInputs<T> = { [K in ClassRequiredProperties<ModuleSchema<T>>]: ModuleSchema<T>[K] } & {
+  [K in ClassOptionalProperties<ModuleSchema<T>>]?: ModuleSchema<T>[K];
 };
 export type NodeSchema<T> = T extends ANode<infer S, any> ? S : never;
 export type OverlaySchema<T> = T extends AOverlay<infer S, any> ? S : never;
