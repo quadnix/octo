@@ -4,6 +4,7 @@ import { Container } from '../../functions/container/container.js';
 import type { ANode } from '../../functions/node/node.abstract.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { ObjectUtility } from '../../utilities/object/object.utility.js';
 
 export class InputService {
   private inputs: { [key: string]: unknown } = {};
@@ -117,7 +118,13 @@ export class InputService {
 
     switch (keyParts[1]) {
       case 'input':
-        return this.inputs[key];
+        const input = this.inputs[key];
+        if (typeof input === 'object' && input !== null) {
+          ObjectUtility.onEveryNestedKey(input, (parent, currentKey, currentValue) => {
+            parent[currentKey] = this.resolveInputValue(currentValue);
+          });
+        }
+        return input;
       case 'model':
         const model = this.models[keyParts.slice(0, 3).join('.')];
         if (!model) {
@@ -152,7 +159,7 @@ export class InputService {
    */
   private resolveInputKey(inputKey: string, maxRecursion = 15, originalInputKey?: string): string {
     if (maxRecursion === 0) {
-      throw new Error(`Input "${originalInputKey}" could not be resolved!`);
+      throw new Error(`Input "${originalInputKey || inputKey}" could not be resolved!`);
     }
 
     const value = this.inputs[inputKey];
@@ -170,6 +177,26 @@ export class InputService {
     }
 
     return this.resolveInputKey(pattern[1].trim(), maxRecursion - 1, originalInputKey || inputKey);
+  }
+
+  private resolveInputValue(inputValue: unknown, maxRecursion = 15, originalInputValue?: unknown): unknown {
+    if (maxRecursion === 0) {
+      throw new Error(`Input "${originalInputValue || inputValue}" could not be resolved!`);
+    }
+
+    // If an input value is not found, or is not a string, it is either undefined, or is a non-input value.
+    // In this case, the value is resolved and that current input value is returned.
+    if (!inputValue || typeof inputValue !== 'string') {
+      return inputValue;
+    }
+
+    // An input value without the ${{var}} pattern is already resolved.
+    const pattern = inputValue.match(/^\$\{\{(.+)}}$/);
+    if (!pattern) {
+      return inputValue;
+    }
+
+    return this.resolveInputValue(this.resolve(pattern[1].trim()), maxRecursion - 1, originalInputValue || inputValue);
   }
 
   // https://stackoverflow.com/a/69459511/1834562

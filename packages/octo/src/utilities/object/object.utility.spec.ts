@@ -76,4 +76,34 @@ describe('Object Utility Test', () => {
       expect(Object.isFrozen(subject1c)).toBe(true);
     });
   });
+
+  describe('onEveryNestedKey()', () => {
+    it('should call the callback for every nested key', () => {
+      const subject = {
+        a: 1,
+        b: [2, 3],
+        c: {
+          d: 4,
+          e: {
+            f: 5,
+          },
+        },
+      };
+
+      ObjectUtility.onEveryNestedKey(subject, (parent, key, value) => {
+        parent[key] = value + ' test';
+      });
+
+      expect(subject).toEqual({
+        a: '1 test',
+        b: ['2 test', '3 test'],
+        c: {
+          d: '4 test',
+          e: {
+            f: '5 test',
+          },
+        },
+      });
+    });
+  });
 });
