@@ -10,7 +10,7 @@ import {
   type UnknownResource,
   type UnknownSharedResource,
 } from '../../app.type.js';
-import { InputNotFoundTransactionError, TransactionError } from '../../errors/index.js';
+import { InputNotFoundTransactionError, InputRegistrationError, TransactionError } from '../../errors/index.js';
 import {
   ModelActionRegistrationEvent,
   ModelActionTransactionEvent,
@@ -131,7 +131,13 @@ export class TransactionService {
             } else {
               moduleId = this.inputService.getModuleIdFromModel(diffToProcess.node as UnknownModel);
             }
-            this.inputService.registerResource(moduleId, resource);
+            try {
+              this.inputService.registerResource(moduleId, resource);
+            } catch (error) {
+              if (!(error instanceof InputRegistrationError)) {
+                throw error;
+              }
+            }
           }
 
           duplicateDiffs.forEach((d) => {
