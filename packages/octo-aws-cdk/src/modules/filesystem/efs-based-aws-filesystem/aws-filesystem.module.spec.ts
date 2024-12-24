@@ -8,6 +8,7 @@ import {
   TestContainer,
   TestModuleContainer,
   TestStateProvider,
+  stub,
 } from '@quadnix/octo';
 import { AddEfsResourceAction } from '../../../resources/efs/actions/add-efs.resource.action.js';
 import type { Efs } from '../../../resources/efs/index.js';
@@ -88,7 +89,7 @@ describe('AwsFilesystemModule UT', () => {
       inputs: {
         awsRegionId: 'us-east-1',
         filesystemName: 'test-filesystem',
-        region: '${{testModule.model.region}}',
+        region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'filesystem',
       type: AwsFilesystemModule,
@@ -135,7 +136,7 @@ describe('AwsFilesystemModule UT', () => {
       inputs: {
         awsRegionId: 'us-east-1',
         filesystemName: 'test-filesystem',
-        region: '${{testModule.model.region}}',
+        region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'filesystem',
       type: AwsFilesystemModule,

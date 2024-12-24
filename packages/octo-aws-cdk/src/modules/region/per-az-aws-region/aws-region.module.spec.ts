@@ -7,6 +7,7 @@ import {
   TestContainer,
   TestModuleContainer,
   TestStateProvider,
+  stub,
 } from '@quadnix/octo';
 import { AddInternetGatewayResourceAction } from '../../../resources/internet-gateway/actions/add-internet-gateway.resource.action.js';
 import type { InternetGateway } from '../../../resources/internet-gateway/index.js';
@@ -84,7 +85,7 @@ describe('AwsRegionModule UT', () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsRegionModule>({
       inputs: {
-        account: '${{testModule.model.account}}',
+        account: stub('${{testModule.model.account}}'),
         regionId: RegionId.AWS_US_EAST_1A,
         vpcCidrBlock: '10.0.0.0/8',
       },
@@ -154,7 +155,7 @@ describe('AwsRegionModule UT', () => {
     const { app: app1 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsRegionModule>({
       inputs: {
-        account: '${{testModule.model.account}}',
+        account: stub('${{testModule.model.account}}'),
         regionId: RegionId.AWS_US_EAST_1A,
         vpcCidrBlock: '10.0.0.0/8',
       },

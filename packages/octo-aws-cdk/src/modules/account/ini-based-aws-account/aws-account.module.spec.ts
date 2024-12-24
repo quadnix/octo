@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { type App, type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { type App, type Container, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
 import { AwsAccountModule } from './aws-account.module.js';
 import { AddAccountModelAction } from './models/account/actions/add-account.model.action.js';
 
@@ -34,7 +34,7 @@ describe('AwsAccountModule UT', () => {
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
         accountId: '1234',
-        app: '${{testModule.model.app}}',
+        app: stub('${{testModule.model.app}}'),
       },
       moduleId: 'account',
       type: AwsAccountModule,
@@ -71,7 +71,7 @@ describe('AwsAccountModule UT', () => {
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
         accountId: '1234',
-        app: '${{testModule.model.app}}',
+        app: stub('${{testModule.model.app}}'),
       },
       moduleId: 'account',
       type: AwsAccountModule,
