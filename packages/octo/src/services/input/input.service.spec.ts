@@ -94,7 +94,7 @@ describe('InputService UT', () => {
 
       expect(() => {
         inputService.resolve('testModule.input.key1');
-      }).toThrow('Input "testModule.input.key1" could not be resolved!');
+      }).toThrow('Input could not be resolved!');
     });
   });
 });

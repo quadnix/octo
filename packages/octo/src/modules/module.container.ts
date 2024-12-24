@@ -1,6 +1,6 @@
 import type { Constructable, ModuleSchemaInputs, UnknownModel, UnknownModule } from '../app.type.js';
 import { Factory } from '../decorators/factory.decorator.js';
-import { ModuleError } from '../errors/index.js';
+import { InputRegistrationError, ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
 import { getSchemaInstance, getSchemaKeys } from '../functions/schema/schema.js';
@@ -60,7 +60,7 @@ export class ModuleContainer {
           try {
             this.inputService.registerInput(i.moduleId, key, value);
           } catch (error) {
-            if (error.message !== `Input "${i.moduleId}.input.${key}" has already been registered!`) {
+            if (!(error instanceof InputRegistrationError)) {
               throw error;
             }
           }

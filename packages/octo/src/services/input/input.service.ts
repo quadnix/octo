@@ -1,5 +1,6 @@
 import type { UnknownModel, UnknownOverlay, UnknownResource } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
+import { InputRegistrationError, InputResolutionError } from '../../errors/index.js';
 import { Container } from '../../functions/container/container.js';
 import type { ANode } from '../../functions/node/node.abstract.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
@@ -71,7 +72,7 @@ export class InputService {
   registerInput(moduleId: string, key: string, value: unknown): void {
     const inputKey = `${moduleId}.input.${key}`;
     if (this.inputs.hasOwnProperty(inputKey)) {
-      throw new Error(`Input "${inputKey}" has already been registered!`);
+      throw new InputRegistrationError('Input has already been registered!', inputKey);
     }
     this.inputs[inputKey] = value;
   }
@@ -83,7 +84,7 @@ export class InputService {
   registerModel(moduleId: string, model: UnknownModel): void {
     const modelKey = `${moduleId}.model.${(model.constructor as typeof ANode).NODE_NAME}`;
     if (this.models.hasOwnProperty(modelKey)) {
-      throw new Error(`Model "${modelKey}" has already been registered!`);
+      throw new InputRegistrationError('Model has already been registered!', modelKey);
     }
     this.models[modelKey] = model;
   }
@@ -95,7 +96,7 @@ export class InputService {
   registerOverlay(moduleId: string, overlay: UnknownOverlay): void {
     const overlayKey = `${moduleId}.overlay.${overlay.overlayId}`;
     if (this.overlays.hasOwnProperty(overlayKey)) {
-      throw new Error(`Overlay "${overlayKey}" has already been registered!`);
+      throw new InputRegistrationError('Overlay has already been registered!', overlayKey);
     }
     this.overlays[overlayKey] = overlay.getContext();
   }
@@ -107,7 +108,7 @@ export class InputService {
   registerResource(moduleId: string, resource: UnknownResource): void {
     const resourceKey = `${moduleId}.resource.${resource.resourceId}`;
     if (this.resources.hasOwnProperty(resourceKey)) {
-      throw new Error(`Resource "${resourceKey}" has already been registered!`);
+      throw new InputRegistrationError('Resource has already been registered!', resourceKey);
     }
     this.resources[resourceKey] = resource.getContext();
   }
@@ -159,7 +160,7 @@ export class InputService {
    */
   private resolveInputKey(inputKey: string, maxRecursion = 15, originalInputKey?: string): string {
     if (maxRecursion === 0) {
-      throw new Error(`Input "${originalInputKey || inputKey}" could not be resolved!`);
+      throw new InputResolutionError('Input could not be resolved!', originalInputKey || inputKey);
     }
 
     const value = this.inputs[inputKey];
@@ -181,7 +182,7 @@ export class InputService {
 
   private resolveInputValue(inputValue: unknown, maxRecursion = 15, originalInputValue?: unknown): unknown {
     if (maxRecursion === 0) {
-      throw new Error(`Input "${originalInputValue || inputValue}" could not be resolved!`);
+      throw new InputResolutionError('Input could not be resolved!', (originalInputValue || inputValue) as string);
     }
 
     // If an input value is not found, or is not a string, it is either undefined, or is a non-input value.
