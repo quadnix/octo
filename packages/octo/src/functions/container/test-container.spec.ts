@@ -68,9 +68,7 @@ describe('TestContainer UT', () => {
 
       await expect(async () => {
         await container.get(ResourceSerializationService);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Timed out waiting for factory "ResourceSerializationService" to resolve!"`,
-      );
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Timed out waiting for factory to resolve!"`);
     });
   });
 });

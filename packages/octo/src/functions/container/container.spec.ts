@@ -44,7 +44,7 @@ describe('Container UT', () => {
 
       await expect(async () => {
         await container.get(Test, { metadata: { type: 'metadata' } });
-      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
+      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory to resolve!]`);
     });
   });
 
@@ -78,7 +78,7 @@ describe('Container UT', () => {
       expect(() => {
         container.registerFactory(Test, TestFactory);
         container.registerFactory(Test, TestFactory);
-      }).toThrowErrorMatchingInlineSnapshot(`"Factory "Test" has already been registered!"`);
+      }).toThrowErrorMatchingInlineSnapshot(`"Factory has already been registered!"`);
     });
 
     it('should timeout waiting for factory to be created when factory does not exist', async () => {
@@ -86,7 +86,7 @@ describe('Container UT', () => {
 
       await expect(async () => {
         await container.get(Test);
-      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
+      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory to resolve!]`);
     });
 
     it('should wait for factory to be created when factory does not exist', async () => {
@@ -149,7 +149,7 @@ describe('Container UT', () => {
 
       await expect(async () => {
         await container.get(Test);
-      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
+      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory to resolve!]`);
     });
 
     it('should be able to unregister a factory of type string', async () => {
@@ -163,7 +163,7 @@ describe('Container UT', () => {
 
       await expect(async () => {
         await container.get(Test);
-      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
+      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory to resolve!]`);
     });
 
     it('should be able to unregister all factories if options not provided', async () => {
@@ -180,10 +180,10 @@ describe('Container UT', () => {
 
       await expect(async () => {
         await container.get(Test);
-      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
+      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory to resolve!]`);
       await expect(async () => {
         await container.get(Test, { metadata: { type: 'metadata' } });
-      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
+      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory to resolve!]`);
     });
 
     it('should only unregister default factory if metadata does not match', async () => {
@@ -200,7 +200,7 @@ describe('Container UT', () => {
 
       await expect(async () => {
         await container.get(Test);
-      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
+      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory to resolve!]`);
       const test3 = await container.get(Test, { metadata: { type: 'metadata' } });
       expect(test3.property).toBe('valueWithMetadata');
     });
@@ -221,7 +221,7 @@ describe('Container UT', () => {
       expect(test3.property).toBe('value');
       await expect(async () => {
         await container.get(Test, { metadata: { type: 'metadata' } });
-      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory "Test" to resolve!]`);
+      }).rejects.toMatchInlineSnapshot(`[Error: Timed out waiting for factory to resolve!]`);
     });
 
     it('should not unregister any factory if metadata does not match', async () => {
