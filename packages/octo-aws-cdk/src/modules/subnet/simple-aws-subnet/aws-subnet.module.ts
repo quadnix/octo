@@ -42,19 +42,12 @@ export class AwsSubnetModuleSchema {
 
   subnetName = Schema<string>();
 
-  @Validate({ options: {} }, (value: any): object => {
-    if (typeof value === 'string') {
-      return JSON.parse(value);
-    } else {
-      return value;
-    }
-  })
   subnetOptions? = Schema<{ disableSubnetIntraNetwork: boolean; subnetType: SubnetType }>({
     disableSubnetIntraNetwork: false,
     subnetType: SubnetType.PRIVATE,
   });
 
-  subnetSiblings? = Schema<string[]>([]);
+  subnetSiblings? = Schema<{ subnetCidrBlock: string; subnetName: string }[]>([]);
 
   @Validate({ options: { isResource: { NODE_NAME: 'vpc' } } })
   vpcResource = Schema<AResource<VpcResourceSchema, any>>();
@@ -73,11 +66,11 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
     region.addSubnet(subnet);
 
     // Associate subnet with siblings.
-    const siblingSubnets = (region.getChildren('subnet')['subnet'] || []).map((d) => d.to as Subnet);
-    for (const siblingSubnetName of inputs.subnetSiblings || []) {
-      const siblingSubnet = siblingSubnets.find((s) => s.subnetName === siblingSubnetName);
+    const regionSubnets = (region.getChildren('subnet')['subnet'] || []).map((d) => d.to as Subnet);
+    for (const { subnetName } of inputs.subnetSiblings || []) {
+      const siblingSubnet = regionSubnets.find((s) => s.subnetName === subnetName);
       if (!siblingSubnet) {
-        throw new Error(`Sibling subnet "${siblingSubnetName}" not found!`);
+        throw new Error(`Sibling subnet "${subnetName}" not found!`);
       }
       subnet.updateNetworkingRules(siblingSubnet, true);
     }

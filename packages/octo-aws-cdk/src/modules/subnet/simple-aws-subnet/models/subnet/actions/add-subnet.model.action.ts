@@ -34,7 +34,6 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     const subnet = diff.node as AwsSubnet;
 
     const subnetCidrBlock = actionInputs.inputs.subnetCidrBlock;
-    const subnetSiblings = (subnet.getSiblings('subnet')['subnet'] || []).map((d) => d.to as Subnet);
     const vpc = actionInputs.inputs.vpcResource;
     const internetGateway = actionInputs.inputs.internetGatewayResource;
 
@@ -120,26 +119,6 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
           subnetNAclEntries.splice(i, 1);
         }
       }
-    }
-    // Create Network ACL entries - inter network.
-    for (const subnetSibling of subnetSiblings) {
-      const subnetNAclLastEntryRuleNumber = Math.max(...subnetNAclEntries.map((e) => e.RuleNumber), 0);
-      subnetNAclEntries.push({
-        CidrBlock: subnetSibling.properties.CidrBlock,
-        Egress: false,
-        PortRange: { From: -1, To: -1 },
-        Protocol: '-1', // All.
-        RuleAction: 'allow',
-        RuleNumber: Math.ceil(subnetNAclLastEntryRuleNumber / 10) * 10 + 1,
-      });
-      subnetNAclEntries.push({
-        CidrBlock: subnetSibling.properties.CidrBlock,
-        Egress: true,
-        PortRange: { From: -1, To: -1 },
-        Protocol: '-1', // All.
-        RuleAction: 'allow',
-        RuleNumber: Math.ceil(subnetNAclLastEntryRuleNumber / 10) * 10 + 1,
-      });
     }
 
     // Create Network ACL.

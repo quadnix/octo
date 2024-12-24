@@ -5,11 +5,14 @@ import {
   type App,
   type Container,
   type Region,
+  SubnetType,
   TestContainer,
   TestModuleContainer,
   TestStateProvider,
+  stub,
 } from '@quadnix/octo';
 import { AddNetworkAclResourceAction } from '../../../resources/network-acl/actions/add-network-acl.resource.action.js';
+import type { NetworkAcl } from '../../../resources/network-acl/index.js';
 import { AddRouteTableResourceAction } from '../../../resources/route-table/actions/add-route-table.resource.action.js';
 import { AddSubnetResourceAction } from '../../../resources/subnet/actions/add-subnet.resource.action.js';
 import { AwsSubnetModule } from './aws-subnet.module.js';
@@ -87,11 +90,11 @@ describe('AwsSubnetModule UT', () => {
       inputs: {
         awsRegionAZ: 'us-east-1a',
         awsRegionId: 'us-east-1',
-        internetGatewayResource: '${{testModule.resource.igw-aws-us-east-1a}}',
-        region: '${{testModule.model.region}}',
+        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
+        region: stub('${{testModule.model.region}}'),
         subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'test-private-subnet',
-        vpcResource: '${{testModule.resource.vpc-aws-us-east-1a}}',
+        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
       },
       moduleId: 'subnet',
       type: AwsSubnetModule,
@@ -187,11 +190,11 @@ describe('AwsSubnetModule UT', () => {
       inputs: {
         awsRegionAZ: 'us-east-1a',
         awsRegionId: 'us-east-1',
-        internetGatewayResource: '${{testModule.resource.igw-aws-us-east-1a}}',
-        region: '${{testModule.model.region}}',
+        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
+        region: stub('${{testModule.model.region}}'),
         subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'test-private-subnet',
-        vpcResource: '${{testModule.resource.vpc-aws-us-east-1a}}',
+        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
       },
       moduleId: 'subnet',
       type: AwsSubnetModule,
@@ -223,27 +226,34 @@ describe('AwsSubnetModule UT', () => {
        [],
      ]
     `);
+    expect((result1.resourceDiffs[0][2].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+     {
+       "awsRegionId": "us-east-1",
+       "entries": [],
+     }
+    `);
 
     const { app: app2 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
         awsRegionAZ: 'us-east-1a',
         awsRegionId: 'us-east-1',
-        internetGatewayResource: '${{testModule.resource.igw-aws-us-east-1a}}',
-        region: '${{testModule.model.region}}',
+        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
+        region: stub('${{testModule.model.region}}'),
         subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'test-private-subnet',
-        subnetOptions: JSON.stringify({
+        subnetOptions: {
           disableSubnetIntraNetwork: true,
-        }),
-        vpcResource: '${{testModule.resource.vpc-aws-us-east-1a}}',
+          subnetType: SubnetType.PRIVATE,
+        },
+        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
       },
       moduleId: 'subnet',
       type: AwsSubnetModule,
     });
 
-    const result3 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -284,8 +294,8 @@ describe('AwsSubnetModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    const result2 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -309,6 +319,142 @@ describe('AwsSubnetModule UT', () => {
        ],
        [],
      ]
+    `);
+  });
+
+  it('should associate subnet with siblings', async () => {
+    const { app: app1 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        awsRegionAZ: 'us-east-1a',
+        awsRegionId: 'us-east-1',
+        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
+        region: stub('${{testModule.model.region}}'),
+        subnetCidrBlock: '10.0.0.0/24',
+        subnetName: 'test-private-subnet',
+        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
+      },
+      moduleId: 'subnet1',
+      type: AwsSubnetModule,
+    });
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        awsRegionAZ: 'us-east-1a',
+        awsRegionId: 'us-east-1',
+        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
+        region: stub('${{testModule.model.region}}'),
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'test-public-subnet',
+        subnetOptions: {
+          disableSubnetIntraNetwork: false,
+          subnetType: SubnetType.PUBLIC,
+        },
+        subnetSiblings: [
+          {
+            subnetCidrBlock: stub('${{subnet1.input.subnetCidrBlock}}'),
+            subnetName: stub('${{subnet1.input.subnetName}}'),
+          },
+        ],
+        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
+      },
+      moduleId: 'subnet2',
+      type: AwsSubnetModule,
+    });
+
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/subnet=subnet-region-test-private-subnet",
+           "value": "@octo/subnet=subnet-region-test-private-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/route-table=rt-region-test-private-subnet",
+           "value": "@octo/route-table=rt-region-test-private-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/network-acl=nacl-region-test-private-subnet",
+           "value": "@octo/network-acl=nacl-region-test-private-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/subnet=subnet-region-test-public-subnet",
+           "value": "@octo/subnet=subnet-region-test-public-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/route-table=rt-region-test-public-subnet",
+           "value": "@octo/route-table=rt-region-test-public-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/network-acl=nacl-region-test-public-subnet",
+           "value": "@octo/network-acl=nacl-region-test-public-subnet",
+         },
+       ],
+       [],
+     ]
+    `);
+    expect((result1.resourceDiffs[0][5].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+     {
+       "awsRegionId": "us-east-1",
+       "entries": [
+         {
+           "CidrBlock": "0.0.0.0/0",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 1,
+         },
+         {
+           "CidrBlock": "10.0.1.0/24",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 1,
+         },
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 11,
+         },
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 11,
+         },
+       ],
+     }
     `);
   });
 });
