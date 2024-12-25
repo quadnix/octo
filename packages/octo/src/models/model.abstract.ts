@@ -1,8 +1,18 @@
-import { type Constructable, NodeType, type UnknownAnchor, type UnknownModel } from '../app.type.js';
-import { NodeError } from '../errors/index.js';
+import {
+  type Constructable,
+  NodeType,
+  type UnknownAnchor,
+  type UnknownModel,
+  type UnknownResource,
+} from '../app.type.js';
+import { NodeError, SchemaError, ValidationTransactionError } from '../errors/index.js';
+import { Container } from '../functions/container/container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
+import { getSchemaInstance } from '../functions/schema/schema.js';
+import type { BaseResourceSchema } from '../resources/resource.schema.js';
+import { InputService } from '../services/input/input.service.js';
 import type { IModel } from './model.interface.js';
 
 export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> implements IModel<S, T> {
@@ -87,6 +97,41 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     return this.anchors
       .filter((a) => !types.length || types.some((t) => a instanceof t))
       .filter((a) => filters.every((c) => a.properties[c.key] === c.value));
+  }
+
+  async getResourceMatchingSchema(schema: Constructable<BaseResourceSchema>): Promise<UnknownResource | undefined> {
+    const inputService = await Container.getInstance().get(InputService);
+
+    const models: UnknownModel[] = [this];
+    while (models.length > 0) {
+      const model = models.shift()!;
+
+      const moduleId = inputService.getModuleIdFromModel(model);
+      const moduleResources = inputService.getModuleResources(moduleId);
+      const matchingResource = moduleResources.find((r) => {
+        try {
+          getSchemaInstance(schema, r.synth());
+          return true;
+        } catch (error) {
+          if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
+            throw error;
+          }
+        }
+        return false;
+      });
+
+      if (matchingResource) {
+        return matchingResource;
+      } else {
+        models.push(
+          ...Object.values(model.getParents())
+            .flat()
+            .map((d) => d.to as UnknownModel),
+        );
+      }
+    }
+
+    return undefined;
   }
 
   removeAllAnchors(): void {

@@ -63,6 +63,18 @@ export class InputService {
     return key.split('.')[0];
   }
 
+  getModuleResources(moduleId: string): UnknownResource[] {
+    const resourceKeys: string[] = [];
+
+    for (const key of Object.keys(this.resources)) {
+      if (key.startsWith(`${moduleId}.resource`)) {
+        resourceKeys.push(this.resources[key]);
+      }
+    }
+
+    return resourceKeys.map((r) => this.resourceDataRepository.getNewResourceByContext(r)!);
+  }
+
   /**
    * Registers the inputs passed to an instance of module.
    * It maps the input key provided to the module with the input value.

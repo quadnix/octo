@@ -1,5 +1,5 @@
 import { type Constructable, NodeType } from '../../app.type.js';
-import { SchemaError } from '../../errors/index.js';
+import { SchemaError, ValidationTransactionError } from '../../errors/index.js';
 import { getSchemaInstance } from '../../functions/schema/schema.js';
 import { AResource } from '../../resources/resource.abstract.js';
 
@@ -20,22 +20,31 @@ export class ValidationUtility {
       getSchemaInstance(staticProperties.schema, subject);
       return true;
     } catch (error) {
-      if (error instanceof SchemaError) {
+      if (error instanceof SchemaError || error instanceof ValidationTransactionError) {
         return false;
       }
       throw error;
     }
   }
 
-  static validateMaxLength(subject: string, maxLength: number): boolean {
+  static validateMaxLength(subject: any, maxLength: number): boolean {
+    if (typeof subject !== 'string') {
+      return false;
+    }
     return subject.length <= maxLength;
   }
 
-  static validateMinLength(subject: string, minLength: number): boolean {
+  static validateMinLength(subject: any, minLength: number): boolean {
+    if (typeof subject !== 'string') {
+      return false;
+    }
     return subject.length >= minLength;
   }
 
-  static validateRegex(subject: string, pattern: RegExp): boolean {
+  static validateRegex(subject: any, pattern: RegExp): boolean {
+    if (typeof subject !== 'string') {
+      return false;
+    }
     return pattern.test(subject);
   }
 }

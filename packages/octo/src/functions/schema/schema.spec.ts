@@ -53,12 +53,15 @@ describe('Schema UT', () => {
         student = Schema<NestedSchema>();
       }
 
-      const value1 = { student: { name: 'bad' } };
-      expect(() => getSchemaInstance(TestSchema, value1)).toThrow('Validation error!');
+      const value1 = {};
+      expect(() => getSchemaInstance(TestSchema, value1)).toThrow();
 
-      const value2 = { student: { name: 'good' } };
-      const instance2 = getSchemaInstance(TestSchema, value2);
-      expect(instance2).toEqual(value2);
+      const value2 = { student: { name: 'bad' } };
+      expect(() => getSchemaInstance(TestSchema, value2)).toThrow('Validation error!');
+
+      const value3 = { student: { name: 'good' } };
+      const instance3 = getSchemaInstance(TestSchema, value3);
+      expect(instance3).toEqual(value3);
     });
   });
 
