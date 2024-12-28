@@ -36,7 +36,11 @@ async function setup(
     'testModule',
     [
       { resourceContext: '@octo/internet-gateway=igw-aws-us-east-1a' },
-      { resourceContext: '@octo/vpc=vpc-aws-us-east-1a', response: { VpcId: 'VpcId' } },
+      {
+        properties: { awsRegionId: 'us-east-1' },
+        resourceContext: '@octo/vpc=vpc-aws-us-east-1a',
+        response: { VpcId: 'VpcId' },
+      },
     ],
     { save: true },
   );
@@ -88,13 +92,10 @@ describe('AwsSubnetModule UT', () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
-        awsRegionAZ: 'us-east-1a',
-        awsRegionId: 'us-east-1',
-        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
         region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'test-private-subnet',
-        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
       },
       moduleId: 'subnet',
       type: AwsSubnetModule,
@@ -106,18 +107,11 @@ describe('AwsSubnetModule UT', () => {
     expect(addSubnetModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
      {
        "inputs": {
-         "awsRegionAZ": "us-east-1a",
-         "awsRegionId": "us-east-1",
-         "internetGatewayResource": {
-           "context": "@octo/internet-gateway=igw-aws-us-east-1a",
-           "properties": {},
-           "resourceId": "igw-aws-us-east-1a",
-           "response": {},
-         },
          "region": {
            "context": "region=region,account=account,app=test-app",
            "regionId": "region",
          },
+         "subnetAvailabilityZone": "us-east-1a",
          "subnetCidrBlock": "10.0.0.0/24",
          "subnetName": "test-private-subnet",
          "subnetOptions": {
@@ -125,14 +119,6 @@ describe('AwsSubnetModule UT', () => {
            "subnetType": "private",
          },
          "subnetSiblings": [],
-         "vpcResource": {
-           "context": "@octo/vpc=vpc-aws-us-east-1a",
-           "properties": {},
-           "resourceId": "vpc-aws-us-east-1a",
-           "response": {
-             "VpcId": "VpcId",
-           },
-         },
        },
        "models": {
          "subnet": {
@@ -188,13 +174,10 @@ describe('AwsSubnetModule UT', () => {
     const { app: app1 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
-        awsRegionAZ: 'us-east-1a',
-        awsRegionId: 'us-east-1',
-        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
         region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'test-private-subnet',
-        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
       },
       moduleId: 'subnet',
       type: AwsSubnetModule,
@@ -236,17 +219,14 @@ describe('AwsSubnetModule UT', () => {
     const { app: app2 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
-        awsRegionAZ: 'us-east-1a',
-        awsRegionId: 'us-east-1',
-        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
         region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'test-private-subnet',
         subnetOptions: {
           disableSubnetIntraNetwork: true,
           subnetType: SubnetType.PRIVATE,
         },
-        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
       },
       moduleId: 'subnet',
       type: AwsSubnetModule,
@@ -326,23 +306,18 @@ describe('AwsSubnetModule UT', () => {
     const { app: app1 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
-        awsRegionAZ: 'us-east-1a',
-        awsRegionId: 'us-east-1',
-        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
         region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'test-private-subnet',
-        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
       },
       moduleId: 'subnet1',
       type: AwsSubnetModule,
     });
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
-        awsRegionAZ: 'us-east-1a',
-        awsRegionId: 'us-east-1',
-        internetGatewayResource: stub('${{testModule.resource.igw-aws-us-east-1a}}'),
         region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.1.0/24',
         subnetName: 'test-public-subnet',
         subnetOptions: {
@@ -355,7 +330,6 @@ describe('AwsSubnetModule UT', () => {
             subnetName: stub('${{subnet1.input.subnetName}}'),
           },
         ],
-        vpcResource: stub('${{testModule.resource.vpc-aws-us-east-1a}}'),
       },
       moduleId: 'subnet2',
       type: AwsSubnetModule,

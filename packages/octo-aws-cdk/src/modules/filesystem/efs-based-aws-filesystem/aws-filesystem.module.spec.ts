@@ -29,6 +29,13 @@ async function setup(
     region: ['region'],
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
+
+  await testModuleContainer.createTestResources(
+    'testModule',
+    [{ properties: { awsRegionId: 'us-east-1' }, resourceContext: '@octo/vpc=vpc-aws-us-east-1a' }],
+    { save: true },
+  );
+
   return { account, app, region };
 }
 
@@ -87,7 +94,6 @@ describe('AwsFilesystemModule UT', () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsFilesystemModule>({
       inputs: {
-        awsRegionId: 'us-east-1',
         filesystemName: 'test-filesystem',
         region: stub('${{testModule.model.region}}'),
       },
@@ -101,7 +107,6 @@ describe('AwsFilesystemModule UT', () => {
     expect(addFilesystemModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
      {
        "inputs": {
-         "awsRegionId": "us-east-1",
          "filesystemName": "test-filesystem",
          "region": {
            "context": "region=region,account=account,app=test-app",
@@ -134,7 +139,6 @@ describe('AwsFilesystemModule UT', () => {
     const { app: app1 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsFilesystemModule>({
       inputs: {
-        awsRegionId: 'us-east-1',
         filesystemName: 'test-filesystem',
         region: stub('${{testModule.model.region}}'),
       },

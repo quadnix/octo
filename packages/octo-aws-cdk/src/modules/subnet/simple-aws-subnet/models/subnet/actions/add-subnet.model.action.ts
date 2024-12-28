@@ -12,7 +12,7 @@ import { NetworkAcl, type NetworkAclSchema } from '../../../../../../resources/n
 import { RouteTable } from '../../../../../../resources/route-table/index.js';
 import { Subnet } from '../../../../../../resources/subnet/index.js';
 import { NetworkAclUtility } from '../../../../../../utilities/network-acl/network-acl.utility.js';
-import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
+import { AwsSubnetModule, InternetGatewayResourceSchema, VpcResourceSchema } from '../../../aws-subnet.module.js';
 import { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(AwsSubnet)
@@ -34,15 +34,15 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     const subnet = diff.node as AwsSubnet;
 
     const subnetCidrBlock = actionInputs.inputs.subnetCidrBlock;
-    const vpc = actionInputs.inputs.vpcResource;
-    const internetGateway = actionInputs.inputs.internetGatewayResource;
+    const [, vpc] = (await subnet.getResourceMatchingSchema(VpcResourceSchema))!;
+    const [, internetGateway] = (await subnet.getResourceMatchingSchema(InternetGatewayResourceSchema))!;
 
     // Create Subnet.
     const subnetSubnet = new Subnet(
       `subnet-${subnet.subnetId}`,
       {
-        AvailabilityZone: actionInputs.inputs.awsRegionAZ,
-        awsRegionId: actionInputs.inputs.awsRegionId,
+        AvailabilityZone: actionInputs.inputs.subnetAvailabilityZone,
+        awsRegionId: vpc.properties.awsRegionId,
         CidrBlock: subnetCidrBlock,
       },
       [vpc],
@@ -53,7 +53,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
       `rt-${subnet.subnetId}`,
       {
         associateWithInternetGateway: subnet.subnetType === SubnetType.PUBLIC,
-        awsRegionId: actionInputs.inputs.awsRegionId,
+        awsRegionId: vpc.properties.awsRegionId,
       },
       [vpc, internetGateway, subnetSubnet],
     );
@@ -125,7 +125,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     const subnetNAcl = new NetworkAcl(
       `nacl-${subnet.subnetId}`,
       {
-        awsRegionId: actionInputs.inputs.awsRegionId,
+        awsRegionId: vpc.properties.awsRegionId,
         entries: subnetNAclEntries,
       },
       [vpc, subnetSubnet],
