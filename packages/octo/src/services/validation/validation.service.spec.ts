@@ -16,6 +16,10 @@ describe('ValidationService UT', () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
+  afterEach(async () => {
+    await TestContainer.reset();
+  });
+
   it('should validate instance properties', async () => {
     const validationService = await container.get(ValidationService);
 

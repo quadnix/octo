@@ -18,6 +18,10 @@ describe('Model E2E Test', () => {
     await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
+  afterEach(async () => {
+    await TestContainer.reset();
+  });
+
   describe('common functions', () => {
     const {
       account: [account],

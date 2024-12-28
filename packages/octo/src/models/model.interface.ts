@@ -2,6 +2,8 @@ import type { Constructable, UnknownModel } from '../app.type.js';
 import type { INode, INodeReference } from '../functions/node/node.interface.js';
 import type { AAnchor } from '../overlays/anchor.abstract.js';
 import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
+import type { AResource } from '../resources/resource.abstract.js';
+import type { BaseResourceSchema } from '../resources/resource.schema.js';
 
 /**
  * {@link AModel} interface.
@@ -44,6 +46,10 @@ export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
     filters: { key: string; value: any }[],
     types: Constructable<AAnchor<BaseAnchorSchema, UnknownModel>>[],
   ): AAnchor<BaseAnchorSchema, UnknownModel>[];
+
+  getResourceMatchingSchema<S extends BaseResourceSchema>(
+    from: Constructable<S>,
+  ): Promise<[S, AResource<S, any>] | undefined>;
 
   /**
    * To remove all anchors from self.

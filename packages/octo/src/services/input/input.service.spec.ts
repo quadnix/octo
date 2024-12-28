@@ -11,6 +11,10 @@ describe('InputService UT', () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
+  afterEach(async () => {
+    await TestContainer.reset();
+  });
+
   describe('resolve()', () => {
     it('should resolve simple key', async () => {
       const [overlayDataRepository, resourceDataRepository] = await Promise.all([

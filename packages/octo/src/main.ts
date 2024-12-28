@@ -12,6 +12,7 @@ import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/
 import { BaseResourceSchema } from './resources/resource.schema.js';
 import { CaptureService } from './services/capture/capture.service.js';
 import { EventService } from './services/event/event.service.js';
+import { SchemaTranslationService } from './services/schema-translation/schema-translation.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
 import {
@@ -31,6 +32,7 @@ export class Octo {
   private modelSerializationService: ModelSerializationService;
   private moduleContainer: ModuleContainer;
   private resourceSerializationService: ResourceSerializationService;
+  private schemaTranslationService: SchemaTranslationService;
   private stateManagementService: StateManagementService;
   private transactionService: TransactionService;
 
@@ -124,6 +126,7 @@ export class Octo {
       this.modelSerializationService,
       this.moduleContainer,
       this.resourceSerializationService,
+      this.schemaTranslationService,
       this.stateManagementService,
       this.transactionService,
     ] = await Promise.all([
@@ -132,6 +135,7 @@ export class Octo {
       container.get(ModelSerializationService),
       container.get(ModuleContainer),
       container.get(ResourceSerializationService),
+      container.get(SchemaTranslationService),
       container.get<StateManagementService, typeof StateManagementServiceFactory>(StateManagementService, {
         args: [stateProvider],
       }),
@@ -188,6 +192,12 @@ export class Octo {
       postHooks: postResourceActionHooks,
       preHooks: preResourceActionHooks,
     });
+  }
+
+  registerResourceSchemaTranslation(
+    ...args: Parameters<SchemaTranslationService['registerResourceSchemaTranslation']>
+  ): ReturnType<SchemaTranslationService['registerResourceSchemaTranslation']> {
+    return this.schemaTranslationService.registerResourceSchemaTranslation(...args);
   }
 
   private async retrieveResourceState(): Promise<void> {

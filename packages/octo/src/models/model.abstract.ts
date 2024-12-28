@@ -1,18 +1,14 @@
-import {
-  type Constructable,
-  NodeType,
-  type UnknownAnchor,
-  type UnknownModel,
-  type UnknownResource,
-} from '../app.type.js';
+import { type Constructable, NodeType, type UnknownAnchor, type UnknownModel } from '../app.type.js';
 import { NodeError, SchemaError, ValidationTransactionError } from '../errors/index.js';
 import { Container } from '../functions/container/container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
 import { getSchemaInstance } from '../functions/schema/schema.js';
+import type { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService } from '../services/input/input.service.js';
+import { SchemaTranslationService } from '../services/schema-translation/schema-translation.service.js';
 import type { IModel } from './model.interface.js';
 
 export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> implements IModel<S, T> {
@@ -99,8 +95,19 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       .filter((a) => filters.every((c) => a.properties[c.key] === c.value));
   }
 
-  async getResourceMatchingSchema(schema: Constructable<BaseResourceSchema>): Promise<UnknownResource | undefined> {
-    const inputService = await Container.getInstance().get(InputService);
+  async getResourceMatchingSchema<S extends BaseResourceSchema>(
+    from: Constructable<S>,
+  ): Promise<[S, AResource<S, any>] | undefined> {
+    const container = Container.getInstance();
+    const [inputService, schemaTranslationService] = await Promise.all([
+      container.get(InputService),
+      container.get(SchemaTranslationService),
+    ]);
+
+    const translatedSchema = schemaTranslationService.getResourceTranslatedSchema<S, any>(from);
+    if (translatedSchema) {
+      from = translatedSchema.schema;
+    }
 
     const models: UnknownModel[] = [this];
     while (models.length > 0) {
@@ -110,7 +117,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       const moduleResources = inputService.getModuleResources(moduleId);
       const matchingResource = moduleResources.find((r) => {
         try {
-          getSchemaInstance(schema, r.synth());
+          getSchemaInstance(from, r.synth());
           return true;
         } catch (error) {
           if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
@@ -121,7 +128,11 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       });
 
       if (matchingResource) {
-        return matchingResource;
+        if (translatedSchema) {
+          return [translatedSchema.translator(getSchemaInstance(from, matchingResource.synth())), matchingResource];
+        } else {
+          return [matchingResource.synth(), matchingResource];
+        }
       } else {
         models.push(
           ...Object.values(model.getParents())
