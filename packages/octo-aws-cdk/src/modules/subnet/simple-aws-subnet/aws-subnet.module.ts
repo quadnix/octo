@@ -22,8 +22,12 @@ export class InternetGatewayResourceSchema extends BaseResourceSchema {
 }
 
 export class VpcResourceSchema extends BaseResourceSchema {
-  @Validate({ destruct: (value): string[] => [value.awsRegionId], options: { minLength: 1 } })
+  @Validate({
+    destruct: (value): string[] => [value.awsAvailabilityZones, value.awsRegionId],
+    options: { minLength: 1 },
+  })
   override properties = Schema<{
+    awsAvailabilityZones: string[];
     awsRegionId: string;
   }>();
 
@@ -56,9 +60,15 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
 
-    // Get AWS Region ID.
+    // Get AWS AZs and Region ID.
     const [resourceSynth] = (await region.getResourceMatchingSchema(VpcResourceSchema))!;
+    const awsAvailabilityZones = resourceSynth.properties.awsAvailabilityZones;
     const awsRegionId = resourceSynth.properties.awsRegionId;
+
+    // Validate subnet availability zone.
+    if (!awsAvailabilityZones.includes(inputs.subnetAvailabilityZone)) {
+      throw new Error('Invalid subnet availability zone!');
+    }
 
     // Create a new subnet.
     const subnet = new AwsSubnet(region, inputs.subnetName);

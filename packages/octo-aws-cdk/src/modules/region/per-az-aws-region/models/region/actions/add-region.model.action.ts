@@ -36,6 +36,7 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
 
     // Create VPC.
     const vpc = new Vpc(`vpc-${regionId}`, {
+      awsAvailabilityZones: [...awsRegion.awsRegionAZs],
       awsRegionId: awsRegion.awsRegionId,
       CidrBlock: vpcCidrBlock,
       InstanceTenancy: 'default',

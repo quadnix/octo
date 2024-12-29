@@ -109,7 +109,9 @@ describe('AwsRegionModule UT', () => {
        },
        "models": {
          "region": {
-           "awsRegionAZ": "us-east-1a",
+           "awsRegionAZs": [
+             "us-east-1a",
+           ],
            "awsRegionId": "us-east-1",
            "context": "region=aws-us-east-1a,account=account,app=test-app",
            "regionId": "aws-us-east-1a",

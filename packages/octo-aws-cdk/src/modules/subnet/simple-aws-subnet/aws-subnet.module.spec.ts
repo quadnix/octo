@@ -37,7 +37,7 @@ async function setup(
     [
       { resourceContext: '@octo/internet-gateway=igw-aws-us-east-1a' },
       {
-        properties: { awsRegionId: 'us-east-1' },
+        properties: { awsAvailabilityZones: ['us-east-1a'], awsRegionId: 'us-east-1' },
         resourceContext: '@octo/vpc=vpc-aws-us-east-1a',
         response: { VpcId: 'VpcId' },
       },

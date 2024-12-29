@@ -21,7 +21,7 @@ export enum RegionId {
 
 @Model<AwsRegion>('@octo', 'region', AwsRegionSchema)
 export class AwsRegion extends Region {
-  readonly awsRegionAZ: string;
+  readonly awsRegionAZs: string[];
 
   readonly awsRegionId: string;
 
@@ -32,7 +32,7 @@ export class AwsRegion extends Region {
 
     // Derive AWS regionId and AZ.
     const regionIdParts = AwsRegion.getRegionIdParts(regionId);
-    this.awsRegionAZ = regionIdParts.awsRegionAZ;
+    this.awsRegionAZs = [regionIdParts.awsRegionAZ];
     this.awsRegionId = regionIdParts.awsRegionId;
 
     this.regionId = regionId;
@@ -52,7 +52,7 @@ export class AwsRegion extends Region {
 
   override synth(): AwsRegionSchema {
     return {
-      awsRegionAZ: this.awsRegionAZ,
+      awsRegionAZs: this.awsRegionAZs,
       awsRegionId: this.awsRegionId,
       regionId: this.regionId,
     };
