@@ -35,7 +35,10 @@ async function setup(
   await testModuleContainer.createTestResources(
     'testModule',
     [
-      { resourceContext: '@octo/internet-gateway=igw-aws-us-east-1a' },
+      {
+        resourceContext: '@octo/internet-gateway=igw-aws-us-east-1a',
+        response: { InternetGatewayId: 'InternetGatewayId' },
+      },
       {
         properties: { awsAvailabilityZones: ['us-east-1a'], awsRegionId: 'us-east-1' },
         resourceContext: '@octo/vpc=vpc-aws-us-east-1a',

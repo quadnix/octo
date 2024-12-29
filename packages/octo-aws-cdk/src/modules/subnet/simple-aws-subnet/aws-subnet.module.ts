@@ -16,6 +16,7 @@ import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsSubnet } from './models/subnet/index.js';
 
 export class InternetGatewayResourceSchema extends BaseResourceSchema {
+  @Validate({ destruct: (value): string[] => [value.InternetGatewayId], options: { minLength: 1 } })
   override response = Schema<{
     InternetGatewayId: string;
   }>();
