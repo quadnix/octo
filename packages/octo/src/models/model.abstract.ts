@@ -109,7 +109,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       from = translatedSchema.schema;
     }
 
-    const models: UnknownModel[] = [this];
+    const models: UnknownModel[] = this.getBoundaryMembers() as UnknownModel[];
     while (models.length > 0) {
       const model = models.shift()!;
 
@@ -133,12 +133,6 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
         } else {
           return [matchingResource.synth(), matchingResource];
         }
-      } else {
-        models.push(
-          ...Object.values(model.getParents())
-            .flat()
-            .map((d) => d.to as UnknownModel),
-        );
       }
     }
 
