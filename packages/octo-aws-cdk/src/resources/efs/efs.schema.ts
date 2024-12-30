@@ -7,7 +7,7 @@ export class EfsSchema extends BaseResourceSchema {
   }>();
 
   override response = Schema<{
-    FileSystemId: string;
     FileSystemArn: string;
+    FileSystemId: string;
   }>();
 }

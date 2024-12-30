@@ -14,7 +14,9 @@ import {
 import { AddNetworkAclResourceAction } from '../../../resources/network-acl/actions/add-network-acl.resource.action.js';
 import type { NetworkAcl } from '../../../resources/network-acl/index.js';
 import { AddRouteTableResourceAction } from '../../../resources/route-table/actions/add-route-table.resource.action.js';
+import type { RouteTable } from '../../../resources/route-table/index.js';
 import { AddSubnetResourceAction } from '../../../resources/subnet/actions/add-subnet.resource.action.js';
+import type { Subnet } from '../../../resources/subnet/index.js';
 import { AwsSubnetModule } from './aws-subnet.module.js';
 import { AddSubnetModelAction } from './models/subnet/actions/add-subnet.model.action.js';
 
@@ -75,6 +77,20 @@ describe('AwsSubnetModule UT', () => {
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
+
+    // Register resource captures.
+    testModuleContainer.registerCapture<Subnet>('@octo/efs=efs-region-test-filesystem', {
+      SubnetId: 'SubnetId',
+    });
+    testModuleContainer.registerCapture<RouteTable>('@octo/efs=efs-region-test-filesystem', {
+      RouteTableId: 'RouteTableId',
+      subnetAssociationId: 'subnetAssociationId',
+    });
+    testModuleContainer.registerCapture<NetworkAcl>('@octo/efs=efs-region-test-filesystem', {
+      associationId: 'associationId',
+      defaultNetworkAclId: 'defaultNetworkAclId',
+      NetworkAclId: 'NetworkAclId',
+    });
   });
 
   afterEach(async () => {
