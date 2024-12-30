@@ -1,4 +1,10 @@
-import { type Constructable, NodeType, type UnknownAnchor, type UnknownModel } from '../app.type.js';
+import {
+  type Constructable,
+  NodeType,
+  type UnknownAnchor,
+  type UnknownModel,
+  type UnknownOverlay,
+} from '../app.type.js';
 import { NodeError, SchemaError, ValidationTransactionError } from '../errors/index.js';
 import { Container } from '../functions/container/container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
@@ -113,7 +119,10 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     while (models.length > 0) {
       const model = models.shift()!;
 
-      const moduleId = inputService.getModuleIdFromModel(model);
+      const moduleId =
+        (model.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY
+          ? inputService.getModuleIdFromOverlay(model as UnknownOverlay)
+          : inputService.getModuleIdFromModel(model);
       const moduleResources = inputService.getModuleResources(moduleId);
       const matchingResource = moduleResources.find((r) => {
         try {
