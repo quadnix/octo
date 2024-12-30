@@ -1,12 +1,12 @@
 import { EFSClient } from '@aws-sdk/client-efs';
 import {
   AModule,
-  Account,
+  type Account,
   BaseResourceSchema,
   Container,
   ContainerRegistrationError,
   Module,
-  Region,
+  type Region,
   Schema,
   Validate,
 } from '@quadnix/octo';

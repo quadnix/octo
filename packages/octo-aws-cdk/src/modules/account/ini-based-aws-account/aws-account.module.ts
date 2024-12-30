@@ -1,4 +1,4 @@
-import { AModule, App, Module, Schema } from '@quadnix/octo';
+import { AModule, type App, Module, Schema } from '@quadnix/octo';
 import { AwsAccount } from './models/account/index.js';
 
 export class AwsAccountModuleSchema {

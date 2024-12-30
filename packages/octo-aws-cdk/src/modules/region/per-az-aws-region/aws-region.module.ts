@@ -1,5 +1,13 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
-import { AModule, Account, AccountType, Container, ContainerRegistrationError, Module, Schema } from '@quadnix/octo';
+import {
+  AModule,
+  type Account,
+  AccountType,
+  Container,
+  ContainerRegistrationError,
+  Module,
+  Schema,
+} from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsRegion, RegionId } from './models/region/index.js';
 
