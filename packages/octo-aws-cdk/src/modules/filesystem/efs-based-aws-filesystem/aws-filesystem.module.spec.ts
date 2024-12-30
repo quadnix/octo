@@ -32,7 +32,7 @@ async function setup(
 
   await testModuleContainer.createTestResources(
     'testModule',
-    [{ properties: { awsRegionId: 'us-east-1' }, resourceContext: '@octo/vpc=vpc-aws-us-east-1a' }],
+    [{ properties: { awsRegionId: 'us-east-1' }, resourceContext: '@octo/vpc=vpc-region' }],
     { save: true },
   );
 
