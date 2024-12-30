@@ -84,6 +84,7 @@ describe('AwsEnvironmentModule UT', () => {
     await testModuleContainer.runModule<AwsEnvironmentModule>({
       inputs: {
         environmentName: 'qa',
+        environmentVariables: { ENV_NAME: 'qa' },
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'environment',
@@ -97,7 +98,9 @@ describe('AwsEnvironmentModule UT', () => {
      {
        "inputs": {
          "environmentName": "qa",
-         "environmentVariables": {},
+         "environmentVariables": {
+           "ENV_NAME": "qa",
+         },
          "region": {
            "context": "region=region,account=account,app=test-app",
            "regionId": "region",
@@ -107,7 +110,9 @@ describe('AwsEnvironmentModule UT', () => {
          "environment": {
            "context": "environment=qa,region=region,account=account,app=test-app",
            "environmentName": "qa",
-           "environmentVariables": {},
+           "environmentVariables": {
+             "ENV_NAME": "qa",
+           },
          },
        },
        "overlays": {},
@@ -131,7 +136,6 @@ describe('AwsEnvironmentModule UT', () => {
     await testModuleContainer.runModule<AwsEnvironmentModule>({
       inputs: {
         environmentName: 'qa',
-        environmentVariables: { ENV_NAME: 'qa' },
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'environment',

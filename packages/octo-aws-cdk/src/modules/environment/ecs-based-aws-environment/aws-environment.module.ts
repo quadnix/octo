@@ -40,6 +40,9 @@ export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Aw
 
     // Create a new environment.
     const environment = new AwsEnvironment(inputs.environmentName);
+    for (const [key, value] of Object.entries(inputs.environmentVariables || {})) {
+      environment.environmentVariables.set(key, value);
+    }
     region.addEnvironment(environment);
 
     // Create and register a new ECSClient.
