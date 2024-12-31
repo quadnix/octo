@@ -15,14 +15,12 @@ export type IIamRolePolicyTypes = {
   's3-storage-access-policy': IIamRoleS3BucketPolicy;
 };
 
-export type IIamRolePolicy =
-  | IIamRolePolicyTypes['assume-role-policy']
-  | IIamRolePolicyTypes['aws-policy']
-  | IIamRolePolicyTypes['s3-storage-access-policy'];
-
 export class IamRoleSchema extends BaseResourceSchema {
+  // Source: https://stackoverflow.com/a/56837244/1834562
   override properties = Schema<{
-    policies: { policy: IIamRolePolicy; policyId: string; policyType: keyof IIamRolePolicyTypes }[];
+    policies: {
+      [K in keyof IIamRolePolicyTypes]-?: { policy: IIamRolePolicyTypes[K]; policyId: string; policyType: K };
+    }[keyof IIamRolePolicyTypes][];
     rolename: string;
   }>();
 

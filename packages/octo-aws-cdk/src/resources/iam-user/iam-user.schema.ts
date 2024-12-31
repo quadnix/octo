@@ -11,11 +11,12 @@ export type IIamUserPolicyTypes = {
   's3-storage-access-policy': IIamUserS3BucketPolicy;
 };
 
-export type IIamUserPolicy = IIamUserPolicyTypes['s3-storage-access-policy'];
-
 export class IamUserSchema extends BaseResourceSchema {
+  // Source: https://stackoverflow.com/a/56837244/1834562
   override properties = Schema<{
-    policies: { policy: IIamUserPolicy; policyId: string; policyType: keyof IIamUserPolicyTypes }[];
+    policies: {
+      [K in keyof IIamUserPolicyTypes]-?: { policy: IIamUserPolicyTypes[K]; policyId: string; policyType: K };
+    }[keyof IIamUserPolicyTypes][];
     username: string;
   }>();
 
