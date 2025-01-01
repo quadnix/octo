@@ -68,16 +68,24 @@ export class ModuleContainer {
 
         // Run module. Register module output, and return the module output.
         const instance = new module();
-        const model = (await instance.onInit(resolvedModuleSchema)) as UnknownModel;
-        if (model instanceof AOverlay) {
-          this.overlayDataRepository.add(model);
-          this.inputService.registerOverlay(i.moduleId, model);
-        } else {
-          this.inputService.registerModel(i.moduleId, model);
+        let models = (await instance.onInit(resolvedModuleSchema)) as UnknownModel | UnknownModel[];
+
+        if (!Array.isArray(models)) {
+          models = [models];
+        }
+
+        for (const model of models) {
+          if (model instanceof AOverlay) {
+            this.overlayDataRepository.add(model);
+            this.inputService.registerOverlay(i.moduleId, model);
+          } else {
+            this.inputService.registerModel(i.moduleId, model);
+          }
+
+          result[i.moduleId] = model;
         }
 
         i.applied = true;
-        result[i.moduleId] = model;
       }
 
       this.eventService.emit(new ModuleEvent(module.name));
