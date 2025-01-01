@@ -16,7 +16,7 @@ export function getSchemaInstance<S>(
       instance[key] = t[key];
     }
 
-    if (!instance[key]) {
+    if (instance[key] === undefined) {
       throw new SchemaError(`Property "${key}" in schema could not be resolved!`, schemaClass.name);
     }
   }

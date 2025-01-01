@@ -14,6 +14,16 @@ describe('Schema UT', () => {
       );
     });
 
+    it('should not throw error if optional schema property could not be resolved', () => {
+      class TestSchema {
+        regionId = Schema<string>();
+        regionName? = Schema<string | null>(null);
+      }
+      const value = { regionId: 'regionId' };
+      const instance = getSchemaInstance(TestSchema, value);
+      expect(instance).toEqual({ regionId: 'regionId', regionName: null });
+    });
+
     it('should take default property value from schema when not provided', () => {
       class TestSchema {
         regionId = Schema<string>();

@@ -92,7 +92,7 @@ export class TransactionService {
 
           for (const k of allKeys) {
             const inputValue = this.inputService.resolve(k);
-            if (!inputValue) {
+            if (inputValue === undefined) {
               throw new InputNotFoundTransactionError(
                 'No matching input found to process action!',
                 a,
