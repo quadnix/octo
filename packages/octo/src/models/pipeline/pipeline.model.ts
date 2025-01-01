@@ -32,8 +32,8 @@ export class Pipeline extends AModel<PipelineSchema, Pipeline> {
 
   override setContext(): string {
     const parents = this.getParents();
-    const account = parents['account'][0].to;
-    return [`${(this.constructor as typeof Pipeline).NODE_NAME}=${this.pipelineName}`, account.getContext()].join(',');
+    const app = parents['app'][0].to;
+    return [`${(this.constructor as typeof Pipeline).NODE_NAME}=${this.pipelineName}`, app.getContext()].join(',');
   }
 
   override synth(): PipelineSchema {

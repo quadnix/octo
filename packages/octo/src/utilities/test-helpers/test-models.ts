@@ -130,8 +130,8 @@ export function create({
     const [id, i] = splitEntry(entry, index);
 
     const image = new Image(id, 'v1', { dockerfilePath: '/Dockerfile' });
-    const account = result.account[i];
-    account.addImage(image);
+    const app = result.app[i];
+    app.addImage(image);
     result.image.push(image);
   }
 
@@ -142,8 +142,8 @@ export function create({
     const [id, i] = splitEntry(entry, index);
 
     const pipeline = new Pipeline(id);
-    const account = result.account[i];
-    account.addPipeline(pipeline);
+    const app = result.app[i];
+    app.addPipeline(pipeline);
     result.pipeline.push(pipeline);
   }
 
@@ -202,8 +202,8 @@ export function create({
     const [id, i] = splitEntry(entry, index);
 
     const server = new Server(id);
-    const account = result.account[i];
-    account.addServer(server);
+    const app = result.app[i];
+    app.addServer(server);
     result.server.push(server);
   }
 
@@ -226,8 +226,8 @@ export function create({
     const [id, i] = splitEntry(entry, index);
 
     const service = new Service(id);
-    const account = result.account[i];
-    account.addService(service);
+    const app = result.app[i];
+    app.addService(service);
     result.service.push(service);
   }
 

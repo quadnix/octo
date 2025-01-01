@@ -4,20 +4,8 @@ exports[`App E2E Test should generate app diff 1`] = `
 [
   {
     "action": "add",
-    "field": "imageId",
-    "node": "image=image:v1,account=account,app=test-app",
-    "value": "image:v1",
-  },
-  {
-    "action": "add",
-    "field": "pipelineName",
-    "node": "pipeline=pipeline,account=account,app=test-app",
-    "value": "pipeline",
-  },
-  {
-    "action": "add",
     "field": "executionId",
-    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,account=account,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
+    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
     "value": "backend-v0.0.1-region-qa-public",
   },
   {
@@ -35,7 +23,7 @@ exports[`App E2E Test should generate app diff 1`] = `
   {
     "action": "add",
     "field": "executionId",
-    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,account=account,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
+    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
     "value": "backend-v0.0.1-region-qa-public",
   },
   {
@@ -52,27 +40,39 @@ exports[`App E2E Test should generate app diff 1`] = `
   },
   {
     "action": "add",
+    "field": "accountId",
+    "node": "account=account,app=test-app",
+    "value": "account",
+  },
+  {
+    "action": "add",
+    "field": "imageId",
+    "node": "image=image:v1,app=test-app",
+    "value": "image:v1",
+  },
+  {
+    "action": "add",
+    "field": "pipelineName",
+    "node": "pipeline=pipeline,app=test-app",
+    "value": "pipeline",
+  },
+  {
+    "action": "add",
     "field": "executionId",
-    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,account=account,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
+    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
     "value": "backend-v0.0.1-region-qa-public",
   },
   {
     "action": "add",
     "field": "deploymentTag",
-    "node": "deployment=v0.0.1,server=backend,account=account,app=test-app",
+    "node": "deployment=v0.0.1,server=backend,app=test-app",
     "value": "v0.0.1",
   },
   {
     "action": "add",
     "field": "serverKey",
-    "node": "server=backend,account=account,app=test-app",
+    "node": "server=backend,app=test-app",
     "value": "backend",
-  },
-  {
-    "action": "add",
-    "field": "accountId",
-    "node": "account=account,app=test-app",
-    "value": "account",
   },
   {
     "action": "add",
