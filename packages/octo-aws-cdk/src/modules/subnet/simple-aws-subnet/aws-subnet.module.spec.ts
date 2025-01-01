@@ -1,9 +1,11 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
+import { EFSClient } from '@aws-sdk/client-efs';
 import { jest } from '@jest/globals';
 import {
   type Account,
   type App,
   type Container,
+  type Filesystem,
   type Region,
   SubnetType,
   TestContainer,
@@ -11,25 +13,31 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { AddEfsMountTargetResourceAction } from '../../../resources/efs-mount-target/actions/add-efs-mount-target.resource.action.js';
+import type { EfsMountTarget } from '../../../resources/efs-mount-target/index.js';
 import { AddNetworkAclResourceAction } from '../../../resources/network-acl/actions/add-network-acl.resource.action.js';
 import type { NetworkAcl } from '../../../resources/network-acl/index.js';
 import { AddRouteTableResourceAction } from '../../../resources/route-table/actions/add-route-table.resource.action.js';
 import type { RouteTable } from '../../../resources/route-table/index.js';
 import { AddSubnetResourceAction } from '../../../resources/subnet/actions/add-subnet.resource.action.js';
 import type { Subnet } from '../../../resources/subnet/index.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsSubnetModule } from './aws-subnet.module.js';
 import { AddSubnetModelAction } from './models/subnet/actions/add-subnet.model.action.js';
+import { AddSubnetFilesystemMountOverlayAction } from './overlays/subnet-filesystem-mount/actions/add-subnet-filesystem-mount.overlay.action.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; region: Region }> {
+): Promise<{ account: Account; app: App; filesystem: Filesystem; region: Region }> {
   const {
     account: [account],
     app: [app],
+    filesystem: [filesystem],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,account'],
     app: ['test-app'],
+    filesystem: ['test-filesystem'],
     region: ['region'],
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
@@ -37,6 +45,10 @@ async function setup(
   await testModuleContainer.createTestResources(
     'testModule',
     [
+      {
+        resourceContext: '@octo/efs=efs-region-test-filesystem',
+        response: { FileSystemArn: 'FileSystemArn', FileSystemId: 'FileSystemId' },
+      },
       {
         resourceContext: '@octo/internet-gateway=igw-region',
         response: { InternetGatewayId: 'InternetGatewayId' },
@@ -50,11 +62,14 @@ async function setup(
     { save: true },
   );
 
-  return { account, app, region };
+  return { account, app, filesystem, region };
 }
 
 describe('AwsSubnetModule UT', () => {
+  const originalRetryPromise = RetryUtility.retryPromise;
+
   let container: Container;
+  let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -70,6 +85,15 @@ describe('AwsSubnetModule UT', () => {
               },
             },
           },
+          {
+            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            type: EFSClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
         ],
       },
       { factoryTimeoutInMs: 500 },
@@ -78,29 +102,55 @@ describe('AwsSubnetModule UT', () => {
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
 
+    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
+      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
+    });
+
     // Register resource captures.
-    testModuleContainer.registerCapture<Subnet>('@octo/efs=efs-region-test-filesystem', {
-      SubnetId: 'SubnetId',
+    testModuleContainer.registerCapture<EfsMountTarget>('@octo/efs=efs-region-test-filesystem', {
+      MountTargetId: 'MountTargetId',
+      NetworkInterfaceId: 'NetworkInterfaceId',
     });
-    testModuleContainer.registerCapture<RouteTable>('@octo/efs=efs-region-test-filesystem', {
-      RouteTableId: 'RouteTableId',
-      subnetAssociationId: 'subnetAssociationId',
+    testModuleContainer.registerCapture<Subnet>('@octo/subnet=subnet-region-private-subnet', {
+      SubnetId: 'SubnetId-Private',
     });
-    testModuleContainer.registerCapture<NetworkAcl>('@octo/efs=efs-region-test-filesystem', {
-      associationId: 'associationId',
-      defaultNetworkAclId: 'defaultNetworkAclId',
-      NetworkAclId: 'NetworkAclId',
+    testModuleContainer.registerCapture<Subnet>('@octo/subnet=subnet-region-public-subnet', {
+      SubnetId: 'SubnetId-Public',
+    });
+    testModuleContainer.registerCapture<RouteTable>('@octo/route-table=rt-region-private-subnet', {
+      RouteTableId: 'RouteTableId-Private',
+      subnetAssociationId: 'subnetAssociationId-Private',
+    });
+    testModuleContainer.registerCapture<RouteTable>('@octo/route-table=rt-region-public-subnet', {
+      RouteTableId: 'RouteTableId-Public',
+      subnetAssociationId: 'subnetAssociationId-Public',
+    });
+    testModuleContainer.registerCapture<NetworkAcl>('@octo/network-acl=nacl-region-private-subnet', {
+      associationId: 'associationId-Private',
+      defaultNetworkAclId: 'defaultNetworkAclId-Private',
+      NetworkAclId: 'NetworkAclId-Private',
+    });
+    testModuleContainer.registerCapture<NetworkAcl>('@octo/network-acl=nacl-region-public-subnet', {
+      associationId: 'associationId-Public',
+      defaultNetworkAclId: 'defaultNetworkAclId-Public',
+      NetworkAclId: 'NetworkAclId-Public',
     });
   });
 
   afterEach(async () => {
     await testModuleContainer.reset();
     await TestContainer.reset();
+
+    retryPromiseSpy.mockReset();
   });
 
   it('should call actions with correct inputs', async () => {
     const addSubnetModelAction = await container.get(AddSubnetModelAction);
     const addSubnetModelActionSpy = jest.spyOn(addSubnetModelAction, 'handle');
+    const addSubnetFilesystemMountOverlayAction = await container.get(AddSubnetFilesystemMountOverlayAction);
+    const addSubnetFilesystemMountOverlayActionSpy = jest.spyOn(addSubnetFilesystemMountOverlayAction, 'handle');
+    const addEfsMountTargetResourceAction = await container.get(AddEfsMountTargetResourceAction);
+    const addEfsMountTargetResourceActionSpy = jest.spyOn(addEfsMountTargetResourceAction, 'handle');
     const addNetworkAclResourceAction = await container.get(AddNetworkAclResourceAction);
     const addNetworkAclResourceActionSpy = jest.spyOn(addNetworkAclResourceAction, 'handle');
     const addRouteTableResourceAction = await container.get(AddRouteTableResourceAction);
@@ -111,10 +161,11 @@ describe('AwsSubnetModule UT', () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
+        filesystem: stub('${{testModule.model.filesystem}}'),
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',
-        subnetName: 'test-private-subnet',
+        subnetName: 'private-subnet',
       },
       moduleId: 'subnet',
       type: AwsSubnetModule,
@@ -122,17 +173,22 @@ describe('AwsSubnetModule UT', () => {
 
     await testModuleContainer.commit(app, { enableResourceCapture: true });
 
+    /* eslint-disable max-len */
     expect(addSubnetModelActionSpy).toHaveBeenCalledTimes(1);
     expect(addSubnetModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
      {
        "inputs": {
+         "filesystem": {
+           "context": "filesystem=test-filesystem,region=region,account=account,app=test-app",
+           "filesystemName": "test-filesystem",
+         },
          "region": {
            "context": "region=region,account=account,app=test-app",
            "regionId": "region",
          },
          "subnetAvailabilityZone": "us-east-1a",
          "subnetCidrBlock": "10.0.0.0/24",
-         "subnetName": "test-private-subnet",
+         "subnetName": "private-subnet",
          "subnetOptions": {
            "disableSubnetIntraNetwork": false,
            "subnetType": "private",
@@ -141,7 +197,7 @@ describe('AwsSubnetModule UT', () => {
        },
        "models": {
          "subnet": {
-           "context": "subnet=region-test-private-subnet,region=region,account=account,app=test-app",
+           "context": "subnet=region-private-subnet,region=region,account=account,app=test-app",
            "options": {
              "disableSubnetIntraNetwork": false,
              "subnetType": "private",
@@ -149,22 +205,52 @@ describe('AwsSubnetModule UT', () => {
            "region": {
              "context": "region=region,account=account,app=test-app",
            },
-           "subnetId": "region-test-private-subnet",
-           "subnetName": "test-private-subnet",
+           "subnetId": "region-private-subnet",
+           "subnetName": "private-subnet",
          },
        },
-       "overlays": {},
+       "overlays": {
+         "subnet-filesystem-mount-overlay-private-subnet-test-filesystem": {
+           "anchors": [
+             {
+               "anchorId": "AwsFilesystemAnchor",
+               "parent": {
+                 "context": "filesystem=test-filesystem,region=region,account=account,app=test-app",
+               },
+               "properties": {},
+             },
+             {
+               "anchorId": "AwsSubnetFilesystemMountAnchor",
+               "parent": {
+                 "context": "subnet=region-private-subnet,region=region,account=account,app=test-app",
+               },
+               "properties": {},
+             },
+           ],
+           "context": "@octo/subnet-filesystem-mount-overlay=subnet-filesystem-mount-overlay-private-subnet-test-filesystem",
+           "overlayId": "subnet-filesystem-mount-overlay-private-subnet-test-filesystem",
+           "properties": {
+             "filesystemName": "test-filesystem",
+             "regionId": "region",
+             "subnetId": "region-private-subnet",
+             "subnetName": "private-subnet",
+           },
+         },
+       },
        "resources": {},
      }
     `);
+    /* eslint-enable */
+
+    expect(addSubnetFilesystemMountOverlayActionSpy).toHaveBeenCalledTimes(1);
 
     expect(addSubnetResourceActionSpy).toHaveBeenCalledTimes(1);
     expect(addSubnetResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
      {
        "action": "add",
        "field": "resourceId",
-       "node": "@octo/subnet=subnet-region-test-private-subnet",
-       "value": "@octo/subnet=subnet-region-test-private-subnet",
+       "node": "@octo/subnet=subnet-region-private-subnet",
+       "value": "@octo/subnet=subnet-region-private-subnet",
      }
     `);
 
@@ -173,8 +259,8 @@ describe('AwsSubnetModule UT', () => {
      {
        "action": "add",
        "field": "resourceId",
-       "node": "@octo/route-table=rt-region-test-private-subnet",
-       "value": "@octo/route-table=rt-region-test-private-subnet",
+       "node": "@octo/route-table=rt-region-private-subnet",
+       "value": "@octo/route-table=rt-region-private-subnet",
      }
     `);
 
@@ -183,8 +269,18 @@ describe('AwsSubnetModule UT', () => {
      {
        "action": "add",
        "field": "resourceId",
-       "node": "@octo/network-acl=nacl-region-test-private-subnet",
-       "value": "@octo/network-acl=nacl-region-test-private-subnet",
+       "node": "@octo/network-acl=nacl-region-private-subnet",
+       "value": "@octo/network-acl=nacl-region-private-subnet",
+     }
+    `);
+
+    expect(addEfsMountTargetResourceActionSpy).toHaveBeenCalledTimes(1);
+    expect(addEfsMountTargetResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+     {
+       "action": "add",
+       "field": "resourceId",
+       "node": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+       "value": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
      }
     `);
   });
@@ -196,7 +292,7 @@ describe('AwsSubnetModule UT', () => {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',
-        subnetName: 'test-private-subnet',
+        subnetName: 'private-subnet',
       },
       moduleId: 'subnet',
       type: AwsSubnetModule,
@@ -209,20 +305,20 @@ describe('AwsSubnetModule UT', () => {
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-test-private-subnet",
-           "value": "@octo/subnet=subnet-region-test-private-subnet",
+           "node": "@octo/subnet=subnet-region-private-subnet",
+           "value": "@octo/subnet=subnet-region-private-subnet",
          },
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/route-table=rt-region-test-private-subnet",
-           "value": "@octo/route-table=rt-region-test-private-subnet",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": "@octo/route-table=rt-region-private-subnet",
          },
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-test-private-subnet",
-           "value": "@octo/network-acl=nacl-region-test-private-subnet",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
+           "value": "@octo/network-acl=nacl-region-private-subnet",
          },
        ],
        [],
@@ -241,7 +337,7 @@ describe('AwsSubnetModule UT', () => {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',
-        subnetName: 'test-private-subnet',
+        subnetName: 'private-subnet',
         subnetOptions: {
           disableSubnetIntraNetwork: true,
           subnetType: SubnetType.PRIVATE,
@@ -258,7 +354,7 @@ describe('AwsSubnetModule UT', () => {
          {
            "action": "update",
            "field": "properties",
-           "node": "@octo/network-acl=nacl-region-test-private-subnet",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
            "value": {
              "key": "entries",
              "value": [
@@ -293,27 +389,64 @@ describe('AwsSubnetModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        filesystem: stub('${{testModule.model.filesystem}}'),
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.0.0/24',
+        subnetName: 'private-subnet',
+        subnetOptions: {
+          disableSubnetIntraNetwork: true,
+          subnetType: SubnetType.PRIVATE,
+        },
+      },
+      moduleId: 'subnet',
+      type: AwsSubnetModule,
+    });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+           "value": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app4 } = await setup(testModuleContainer);
+    const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
+    expect(result4.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-test-private-subnet",
-           "value": "@octo/subnet=subnet-region-test-private-subnet",
+           "node": "@octo/subnet=subnet-region-private-subnet",
+           "value": "@octo/subnet=subnet-region-private-subnet",
          },
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/route-table=rt-region-test-private-subnet",
-           "value": "@octo/route-table=rt-region-test-private-subnet",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": "@octo/route-table=rt-region-private-subnet",
          },
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-test-private-subnet",
-           "value": "@octo/network-acl=nacl-region-test-private-subnet",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
+           "value": "@octo/network-acl=nacl-region-private-subnet",
+         },
+         {
+           "action": "delete",
+           "field": "resourceId",
+           "node": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+           "value": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
          },
        ],
        [],
@@ -328,7 +461,7 @@ describe('AwsSubnetModule UT', () => {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',
-        subnetName: 'test-private-subnet',
+        subnetName: 'private-subnet',
       },
       moduleId: 'subnet1',
       type: AwsSubnetModule,
@@ -338,7 +471,7 @@ describe('AwsSubnetModule UT', () => {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.1.0/24',
-        subnetName: 'test-public-subnet',
+        subnetName: 'public-subnet',
         subnetOptions: {
           disableSubnetIntraNetwork: false,
           subnetType: SubnetType.PUBLIC,
@@ -361,38 +494,38 @@ describe('AwsSubnetModule UT', () => {
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-test-private-subnet",
-           "value": "@octo/subnet=subnet-region-test-private-subnet",
+           "node": "@octo/subnet=subnet-region-private-subnet",
+           "value": "@octo/subnet=subnet-region-private-subnet",
          },
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/route-table=rt-region-test-private-subnet",
-           "value": "@octo/route-table=rt-region-test-private-subnet",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": "@octo/route-table=rt-region-private-subnet",
          },
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-test-private-subnet",
-           "value": "@octo/network-acl=nacl-region-test-private-subnet",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
+           "value": "@octo/network-acl=nacl-region-private-subnet",
          },
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-test-public-subnet",
-           "value": "@octo/subnet=subnet-region-test-public-subnet",
+           "node": "@octo/subnet=subnet-region-public-subnet",
+           "value": "@octo/subnet=subnet-region-public-subnet",
          },
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/route-table=rt-region-test-public-subnet",
-           "value": "@octo/route-table=rt-region-test-public-subnet",
+           "node": "@octo/route-table=rt-region-public-subnet",
+           "value": "@octo/route-table=rt-region-public-subnet",
          },
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-test-public-subnet",
-           "value": "@octo/network-acl=nacl-region-test-public-subnet",
+           "node": "@octo/network-acl=nacl-region-public-subnet",
+           "value": "@octo/network-acl=nacl-region-public-subnet",
          },
        ],
        [],

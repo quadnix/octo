@@ -8,16 +8,12 @@ import {
   type IModelAction,
 } from '@quadnix/octo';
 import { EfsMountTarget } from '../../../../../../resources/efs-mount-target/index.js';
-import {
-  AwsResourceSchema,
-  type AwsSubnetFilesystemMountModule,
-  EfsResourceSchema,
-  SubnetResourceSchema,
-} from '../../../aws-subnet-filesystem-mount.module.js';
+import { Subnet } from '../../../../../../resources/subnet/index.js';
+import { type AwsSubnetModule, EfsResourceSchema, VpcResourceSchema } from '../../../aws-subnet.module.js';
 import { AwsSubnetFilesystemMountOverlay } from '../aws-subnet-filesystem-mount.overlay.js';
 
 @Action(AwsSubnetFilesystemMountOverlay)
-export class AddSubnetFilesystemMountOverlayAction implements IModelAction<AwsSubnetFilesystemMountModule> {
+export class AddSubnetFilesystemMountOverlayAction implements IModelAction<AwsSubnetModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -30,20 +26,20 @@ export class AddSubnetFilesystemMountOverlayAction implements IModelAction<AwsSu
 
   async handle(
     diff: Diff,
-    _actionInputs: EnhancedModuleSchema<AwsSubnetFilesystemMountModule>,
+    actionInputs: EnhancedModuleSchema<AwsSubnetModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const subnetFilesystemMountOverlay = diff.node as AwsSubnetFilesystemMountOverlay;
     const properties = subnetFilesystemMountOverlay.properties;
 
-    const [resourceSynth] = (await subnetFilesystemMountOverlay.getResourceMatchingSchema(AwsResourceSchema))!;
+    const [vpcSynth] = (await subnetFilesystemMountOverlay.getResourceMatchingSchema(VpcResourceSchema))!;
     const [, efs] = (await subnetFilesystemMountOverlay.getResourceMatchingSchema(EfsResourceSchema))!;
-    const [, subnet] = (await subnetFilesystemMountOverlay.getResourceMatchingSchema(SubnetResourceSchema))!;
+    const subnet = actionInputs.resources[`subnet-${subnetFilesystemMountOverlay.properties.subnetId}`] as Subnet;
 
     // Create EFS Mount Target.
     const efsMountTarget = new EfsMountTarget(
       `efs-mount-${properties.regionId}-${properties.subnetName}-${properties.filesystemName}`,
-      { awsRegionId: resourceSynth.properties.awsRegionId },
+      { awsRegionId: vpcSynth.properties.awsRegionId },
       [efs, subnet],
     );
 
