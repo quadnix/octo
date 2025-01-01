@@ -4,6 +4,7 @@ import {
   type UnknownAnchor,
   type UnknownModel,
   type UnknownOverlay,
+  type UnknownResource,
 } from '../app.type.js';
 import { NodeError, SchemaError, ValidationTransactionError } from '../errors/index.js';
 import { Container } from '../functions/container/container.js';
@@ -11,7 +12,6 @@ import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
 import { getSchemaInstance } from '../functions/schema/schema.js';
-import type { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService } from '../services/input/input.service.js';
 import { SchemaTranslationService } from '../services/schema-translation/schema-translation.service.js';
@@ -101,9 +101,43 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       .filter((a) => filters.every((c) => a.properties[c.key] === c.value));
   }
 
+  async getModelMatchingSchema<S>(from: Constructable<S>): Promise<[S, UnknownModel] | undefined> {
+    const container = Container.getInstance();
+    const [schemaTranslationService] = await Promise.all([container.get(SchemaTranslationService)]);
+
+    const translatedSchema = schemaTranslationService.getModelTranslatedSchema<S, any>(from);
+    if (translatedSchema) {
+      from = translatedSchema.schema;
+    }
+
+    const models = this.getBoundaryMembers() as UnknownModel[];
+    while (models.length > 0) {
+      const model = models.shift()!;
+
+      try {
+        getSchemaInstance(from, model.synth() as Record<string, unknown>);
+
+        if (translatedSchema) {
+          return [
+            translatedSchema.translator(getSchemaInstance(from, model.synth() as Record<string, unknown>)),
+            model,
+          ];
+        } else {
+          return [model.synth() as S, model];
+        }
+      } catch (error) {
+        if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
+          throw error;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
   async getResourceMatchingSchema<S extends BaseResourceSchema>(
     from: Constructable<S>,
-  ): Promise<[S, AResource<S, any>] | undefined> {
+  ): Promise<[S, UnknownResource] | undefined> {
     const container = Container.getInstance();
     const [inputService, schemaTranslationService] = await Promise.all([
       container.get(InputService),
@@ -115,7 +149,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       from = translatedSchema.schema;
     }
 
-    const models: UnknownModel[] = this.getBoundaryMembers() as UnknownModel[];
+    const models = this.getBoundaryMembers() as UnknownModel[];
     while (models.length > 0) {
       const model = models.shift()!;
 

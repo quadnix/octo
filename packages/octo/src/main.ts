@@ -194,10 +194,10 @@ export class Octo {
     });
   }
 
-  registerResourceSchemaTranslation(
-    ...args: Parameters<SchemaTranslationService['registerResourceSchemaTranslation']>
-  ): ReturnType<SchemaTranslationService['registerResourceSchemaTranslation']> {
-    return this.schemaTranslationService.registerResourceSchemaTranslation(...args);
+  registerSchemaTranslation(
+    ...args: Parameters<SchemaTranslationService['registerSchemaTranslation']>
+  ): ReturnType<SchemaTranslationService['registerSchemaTranslation']> {
+    return this.schemaTranslationService.registerSchemaTranslation(...args);
   }
 
   private async retrieveResourceState(): Promise<void> {
