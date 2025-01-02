@@ -7,7 +7,6 @@ import './actions/update-iam-role-with-s3-storage-policy.resource.action.js';
 export { IamRole } from './iam-role.resource.js';
 export {
   IIamRoleAssumeRolePolicy,
-  IIamRolePolicy,
   IIamRolePolicyTypes,
   IIamRoleS3BucketPolicy,
   IamRoleSchema,

@@ -1,7 +1,16 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import { IIamRoleAssumeRolePolicy, IIamRolePolicy, IIamRoleS3BucketPolicy, IamRoleSchema } from './iam-role.schema.js';
+import {
+  IIamRoleAssumeRolePolicy,
+  IIamRolePolicyTypes,
+  IIamRoleS3BucketPolicy,
+  IamRoleSchema,
+} from './iam-role.schema.js';
 
-export type IIamRoleAddPolicyDiff = { action: 'add'; policy: IIamRolePolicy; policyId: string };
+export type IIamRoleAddPolicyDiff = {
+  action: 'add';
+  policy: IIamRolePolicyTypes[keyof IIamRolePolicyTypes];
+  policyId: string;
+};
 export type IIamRoleDeletePolicyDiff = { action: 'delete'; policyId: string };
 export type IIamRolePolicyDiff = IIamRoleAddPolicyDiff | IIamRoleDeletePolicyDiff;
 

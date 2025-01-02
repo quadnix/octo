@@ -1,4 +1,4 @@
-import { AAnchor, Anchor, BaseAnchorSchema, Filesystem, Schema } from '@quadnix/octo';
+import { AAnchor, Anchor, BaseAnchorSchema, type Filesystem, Schema } from '@quadnix/octo';
 
 class AwsFilesystemAnchorSchema extends BaseAnchorSchema {
   override properties = Schema<Record<never, never>>();

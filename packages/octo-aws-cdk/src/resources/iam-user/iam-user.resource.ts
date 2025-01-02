@@ -1,7 +1,11 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import { IIamUserPolicy, IIamUserS3BucketPolicy, IamUserSchema } from './iam-user.schema.js';
+import { IIamUserPolicyTypes, IIamUserS3BucketPolicy, IamUserSchema } from './iam-user.schema.js';
 
-export type IIamUserAddPolicyDiff = { action: 'add'; policy: IIamUserPolicy; policyId: string };
+export type IIamUserAddPolicyDiff = {
+  action: 'add';
+  policy: IIamUserPolicyTypes[keyof IIamUserPolicyTypes];
+  policyId: string;
+};
 export type IIamUserDeletePolicyDiff = { action: 'delete'; policyId: string };
 export type IIamUserPolicyDiff = IIamUserAddPolicyDiff | IIamUserDeletePolicyDiff;
 

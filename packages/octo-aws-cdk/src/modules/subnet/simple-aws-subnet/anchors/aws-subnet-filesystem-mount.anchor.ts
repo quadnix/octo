@@ -1,4 +1,4 @@
-import { AAnchor, Anchor, BaseAnchorSchema, Schema, Subnet } from '@quadnix/octo';
+import { AAnchor, Anchor, BaseAnchorSchema, Schema, type Subnet } from '@quadnix/octo';
 
 class AwsSubnetFilesystemMountAnchorSchema extends BaseAnchorSchema {
   override properties = Schema<Record<never, never>>();
