@@ -44,6 +44,9 @@ export class ValidationService {
         let pass: boolean = true;
 
         switch (subject.type) {
+          case ValidationType.IS_MODEL:
+            pass = ValidationUtility.validateIsModel(value, subject.constraint);
+            break;
           case ValidationType.IS_RESOURCE:
             pass = ValidationUtility.validateIsResource(value, subject.constraint);
             break;
