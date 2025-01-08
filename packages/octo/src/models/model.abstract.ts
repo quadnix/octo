@@ -4,7 +4,6 @@ import {
   type UnknownAnchor,
   type UnknownModel,
   type UnknownOverlay,
-  type UnknownResource,
 } from '../app.type.js';
 import { NodeError, SchemaError, ValidationTransactionError } from '../errors/index.js';
 import { Container } from '../functions/container/container.js';
@@ -12,6 +11,9 @@ import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
 import { getSchemaInstance } from '../functions/schema/schema.js';
+import type { AAnchor } from '../overlays/anchor.abstract.js';
+import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
+import type { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService } from '../services/input/input.service.js';
 import { SchemaTranslationService } from '../services/schema-translation/schema-translation.service.js';
@@ -95,35 +97,40 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     );
   }
 
-  getAnchors(filters: { key: string; value: any }[] = [], types: Constructable<UnknownAnchor>[] = []): UnknownAnchor[] {
+  getAnchors(
+    filters: { key: string; value: unknown }[] = [],
+    types: Constructable<UnknownAnchor>[] = [],
+  ): UnknownAnchor[] {
     return this.anchors
       .filter((a) => !types.length || types.some((t) => a instanceof t))
       .filter((a) => filters.every((c) => a.properties[c.key] === c.value));
   }
 
-  async getModelMatchingSchema<S>(from: Constructable<S>): Promise<[S, UnknownModel] | undefined> {
+  async getAnchorsMatchingSchema<S extends BaseAnchorSchema>(
+    from: Constructable<S>,
+    propertyFilters: { key: string; value: unknown }[] = [],
+  ): Promise<[S, AAnchor<S, any>][]> {
+    const matches: [S, AAnchor<S, any>][] = [];
     const container = Container.getInstance();
-    const [schemaTranslationService] = await Promise.all([container.get(SchemaTranslationService)]);
+    const schemaTranslationService = await container.get(SchemaTranslationService);
 
-    const translatedSchema = schemaTranslationService.getModelTranslatedSchema<S, any>(from);
+    const translatedSchema = schemaTranslationService.getTranslatedSchema<S, any>(from);
     if (translatedSchema) {
       from = translatedSchema.schema;
     }
 
-    const models = this.getBoundaryMembers() as UnknownModel[];
-    while (models.length > 0) {
-      const model = models.shift()!;
+    const anchors = this.getAnchors();
+    while (anchors.length > 0) {
+      const anchor = anchors.shift()!;
 
       try {
-        getSchemaInstance(from, model.synth() as Record<string, unknown>);
+        const schemaInstance = getSchemaInstance(from, anchor.synth() as unknown as Record<string, unknown>);
+        const matchingSchemaInstance = (
+          translatedSchema ? translatedSchema.translator(schemaInstance) : anchor.synth()
+        ) as S;
 
-        if (translatedSchema) {
-          return [
-            translatedSchema.translator(getSchemaInstance(from, model.synth() as Record<string, unknown>)),
-            model,
-          ];
-        } else {
-          return [model.synth() as S, model];
+        if (propertyFilters.every((f) => matchingSchemaInstance.properties[f.key] === f.value)) {
+          matches.push([matchingSchemaInstance, anchor as AAnchor<S, any>]);
         }
       } catch (error) {
         if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
@@ -132,21 +139,60 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       }
     }
 
-    return undefined;
+    return matches;
   }
 
-  async getResourceMatchingSchema<S extends BaseResourceSchema>(
-    from: Constructable<S>,
-  ): Promise<[S, UnknownResource] | undefined> {
+  async getModelsMatchingSchema<S>(
+    schema: Constructable<S>,
+    filters: { key: string; value: unknown }[] = [],
+  ): Promise<[S, AModel<S, any>][]> {
+    const matches: [S, AModel<S, any>][] = [];
+    const container = Container.getInstance();
+    const schemaTranslationService = await container.get(SchemaTranslationService);
+
+    const translatedSchema = schemaTranslationService.getTranslatedSchema<S, any>(schema);
+    if (translatedSchema) {
+      schema = translatedSchema.schema;
+    }
+
+    const models = this.getBoundaryMembers() as UnknownModel[];
+    while (models.length > 0) {
+      const model = models.shift()!;
+
+      try {
+        const schemaInstance = getSchemaInstance(schema, model.synth() as Record<string, unknown>);
+        const matchingSchemaInstance = (
+          translatedSchema ? translatedSchema.translator(schemaInstance) : model.synth()
+        ) as S;
+
+        if (filters.every((f) => matchingSchemaInstance[f.key] === f.value)) {
+          matches.push([matchingSchemaInstance, model as AModel<S, any>]);
+        }
+      } catch (error) {
+        if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
+          throw error;
+        }
+      }
+    }
+
+    return matches;
+  }
+
+  async getResourcesMatchingSchema<S extends BaseResourceSchema>(
+    schema: Constructable<S>,
+    propertyFilters: { key: string; value: unknown }[] = [],
+    responseFilters: { key: string; value: unknown }[] = [],
+  ): Promise<[S, AResource<S, any>][]> {
+    const matches: [S, AResource<S, any>][] = [];
     const container = Container.getInstance();
     const [inputService, schemaTranslationService] = await Promise.all([
       container.get(InputService),
       container.get(SchemaTranslationService),
     ]);
 
-    const translatedSchema = schemaTranslationService.getResourceTranslatedSchema<S, any>(from);
+    const translatedSchema = schemaTranslationService.getTranslatedSchema<S, any>(schema);
     if (translatedSchema) {
-      from = translatedSchema.schema;
+      schema = translatedSchema.schema;
     }
 
     const models = this.getBoundaryMembers() as UnknownModel[];
@@ -158,28 +204,28 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
           ? inputService.getModuleIdFromOverlay(model as UnknownOverlay)
           : inputService.getModuleIdFromModel(model);
       const moduleResources = inputService.getModuleResources(moduleId);
-      const matchingResource = moduleResources.find((r) => {
+      moduleResources.forEach((r) => {
         try {
-          getSchemaInstance(from, r.synth());
-          return true;
+          const schemaInstance = getSchemaInstance(schema, r.synth());
+          const matchingSchemaInstance = (
+            translatedSchema ? translatedSchema.translator(schemaInstance) : r.synth()
+          ) as S;
+
+          if (
+            propertyFilters.every((f) => matchingSchemaInstance.properties[f.key] === f.value) &&
+            responseFilters.every((f) => matchingSchemaInstance.response[f.key] === f.value)
+          ) {
+            matches.push([matchingSchemaInstance, r]);
+          }
         } catch (error) {
           if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
             throw error;
           }
         }
-        return false;
       });
-
-      if (matchingResource) {
-        if (translatedSchema) {
-          return [translatedSchema.translator(getSchemaInstance(from, matchingResource.synth())), matchingResource];
-        } else {
-          return [matchingResource.synth(), matchingResource];
-        }
-      }
     }
 
-    return undefined;
+    return matches;
   }
 
   removeAllAnchors(): void {

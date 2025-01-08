@@ -28,7 +28,7 @@ describe('Model UT', () => {
     await TestContainer.reset();
   });
 
-  describe('getModelMatchingSchema()', () => {
+  describe('getModelsMatchingSchema()', () => {
     class FromSchema {
       @Validate({ options: { minLength: 1 } })
       appName = Schema<string>();
@@ -38,38 +38,39 @@ describe('Model UT', () => {
       name = Schema<string>();
     }
 
-    it('should return undefined if no matching model found', async () => {
+    it('should return empty array if no matching models found', async () => {
       const {
         app: [app],
       } = create({ app: ['app'] });
-      const model = await app.getModelMatchingSchema(FromSchema);
+      const models = await app.getModelsMatchingSchema(FromSchema);
 
-      expect(model).toBeUndefined();
+      expect(models.length).toBe(0);
     });
 
-    it('should return matching model without translation', async () => {
+    it('should return matching models without translation', async () => {
       const {
         app: [app],
       } = create({ app: ['app'] });
-      const model = await app.getModelMatchingSchema(ToSchema);
+      const models = await app.getModelsMatchingSchema(ToSchema);
 
-      expect(model).not.toBeUndefined();
-      expect(model![0].name).toEqual('app');
+      expect(models.length).toBe(1);
+      expect(models![0][0].name).toEqual('app');
     });
 
-    it('should return first matching model without translation', async () => {
+    it('should return all matching models without translation', async () => {
       const {
         account: [account],
         app: [, app2],
       } = create({ account: ['aws,account'], app: ['app1', 'app2'] });
       account.addRelationship(app2);
-      const model = await account.getModelMatchingSchema(ToSchema);
+      const models = await account.getModelsMatchingSchema(ToSchema);
 
-      expect(model).not.toBeUndefined();
-      expect(model![0].name).toEqual('app1');
+      expect(models.length).toBe(2);
+      expect(models![0][0].name).toEqual('app1');
+      expect(models![1][0].name).toEqual('app2');
     });
 
-    it('should return matching model with translation', async () => {
+    it('should return matching models with translation', async () => {
       // Register translation.
       const schemaTranslationService = await container.get(SchemaTranslationService);
       schemaTranslationService.registerSchemaTranslation(FromSchema, ToSchema, (model) => {
@@ -80,14 +81,47 @@ describe('Model UT', () => {
       const {
         app: [app],
       } = create({ app: ['app'] });
-      const model = await app.getModelMatchingSchema(FromSchema);
+      const models = await app.getModelsMatchingSchema(FromSchema);
 
-      expect(model).not.toBeUndefined();
-      expect(model![0].appName).toEqual('app');
+      expect(models.length).toBe(1);
+      expect(models![0][0].appName).toEqual('app');
+    });
+
+    it('should return empty array with translation and non-matching filters', async () => {
+      // Register translation.
+      const schemaTranslationService = await container.get(SchemaTranslationService);
+      schemaTranslationService.registerSchemaTranslation(FromSchema, ToSchema, (model) => {
+        model['appName'] = model.name;
+        return model as unknown as FromSchema;
+      });
+
+      const {
+        app: [app],
+      } = create({ app: ['app'] });
+      const models = await app.getModelsMatchingSchema(FromSchema, [{ key: 'appName', value: 'non-existent' }]);
+
+      expect(models.length).toBe(0);
+    });
+
+    it('should return matching models with translation and filters', async () => {
+      // Register translation.
+      const schemaTranslationService = await container.get(SchemaTranslationService);
+      schemaTranslationService.registerSchemaTranslation(FromSchema, ToSchema, (model) => {
+        model['appName'] = model.name;
+        return model as unknown as FromSchema;
+      });
+
+      const {
+        app: [app],
+      } = create({ app: ['app'] });
+      const models = await app.getModelsMatchingSchema(FromSchema, [{ key: 'appName', value: 'app' }]);
+
+      expect(models.length).toBe(1);
+      expect(models![0][0].appName).toEqual('app');
     });
   });
 
-  describe('getResourceMatchingSchema()', () => {
+  describe('getResourcesMatchingSchema()', () => {
     class FromSchema extends BaseResourceSchema {
       @Validate({ destruct: (value): string[] => [value.fromKey], options: { minLength: 1 } })
       override properties = Schema<{ fromKey: string }>();
@@ -97,7 +131,7 @@ describe('Model UT', () => {
       override properties = Schema<{ toKey: string }>();
     }
 
-    it('should return undefined if no resource found', async () => {
+    it('should return empty array if no resources found', async () => {
       const inputService = await container.get(InputService);
       jest.spyOn(inputService, 'getModuleIdFromModel').mockReturnValue('testModule');
       jest.spyOn(inputService, 'getModuleResources').mockReturnValue([]);
@@ -105,12 +139,12 @@ describe('Model UT', () => {
       const {
         app: [app],
       } = create({ app: ['app'] });
-      const resource = await app.getResourceMatchingSchema(FromSchema);
+      const resources = await app.getResourcesMatchingSchema(FromSchema);
 
-      expect(resource).toBeUndefined();
+      expect(resources.length).toBe(0);
     });
 
-    it('should return undefined if no matching resource found', async () => {
+    it('should return empty array if no matching resources found', async () => {
       const [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['toKey'] = 'value1';
 
@@ -121,12 +155,12 @@ describe('Model UT', () => {
       const {
         app: [app],
       } = create({ app: ['app'] });
-      const resource = await app.getResourceMatchingSchema(FromSchema);
+      const resources = await app.getResourcesMatchingSchema(FromSchema);
 
-      expect(resource).toBeUndefined();
+      expect(resources.length).toBe(0);
     });
 
-    it('should return matching resource without translation', async () => {
+    it('should return matching resources without translation', async () => {
       const [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['fromKey'] = 'value1';
 
@@ -137,13 +171,13 @@ describe('Model UT', () => {
       const {
         app: [app],
       } = create({ app: ['app'] });
-      const resource = await app.getResourceMatchingSchema(FromSchema);
+      const resources = await app.getResourcesMatchingSchema(FromSchema);
 
-      expect(resource).not.toBeUndefined();
-      expect(resource![0].properties).toEqual({ fromKey: 'value1' });
+      expect(resources.length).toBe(1);
+      expect(resources![0][0].properties).toEqual({ fromKey: 'value1' });
     });
 
-    it('should return first matching resource without translation', async () => {
+    it('should return all matching resources without translation', async () => {
       const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
       resource1.properties['toKey'] = 'value0';
       resource2.properties['fromKey'] = 'value1';
@@ -155,13 +189,13 @@ describe('Model UT', () => {
       const {
         app: [app],
       } = create({ app: ['app'] });
-      const resource = await app.getResourceMatchingSchema(FromSchema);
+      const resources = await app.getResourcesMatchingSchema(FromSchema);
 
-      expect(resource).not.toBeUndefined();
-      expect(resource![0].properties).toEqual({ fromKey: 'value1' });
+      expect(resources.length).toBe(1);
+      expect(resources![0][0].properties).toEqual({ fromKey: 'value1' });
     });
 
-    it('should return matching resource with translation', async () => {
+    it('should return matching resources with translation', async () => {
       const [resource1] = await createTestResources({ 'resource-1': [] });
       resource1.properties['toKey'] = 'value1';
 
@@ -179,10 +213,57 @@ describe('Model UT', () => {
       const {
         app: [app],
       } = create({ app: ['app'] });
-      const resource = await app.getResourceMatchingSchema(FromSchema);
+      const resources = await app.getResourcesMatchingSchema(FromSchema);
 
-      expect(resource).not.toBeUndefined();
-      expect(resource![0].properties).toEqual({ fromKey: 'value1', toKey: 'value1' });
+      expect(resources.length).toBe(1);
+      expect(resources![0][0].properties).toEqual({ fromKey: 'value1', toKey: 'value1' });
+    });
+
+    it('should return empty array with translation and non-matching filters', async () => {
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+      resource1.properties['toKey'] = 'value1';
+
+      const inputService = await container.get(InputService);
+      jest.spyOn(inputService, 'getModuleIdFromModel').mockReturnValue('testModule');
+      jest.spyOn(inputService, 'getModuleResources').mockReturnValue([resource1]);
+
+      // Register translation.
+      const schemaTranslationService = await container.get(SchemaTranslationService);
+      schemaTranslationService.registerSchemaTranslation(FromSchema, ToSchema, (resource) => {
+        resource.properties['fromKey'] = resource.properties.toKey;
+        return resource as unknown as AResource<FromSchema, any>;
+      });
+
+      const {
+        app: [app],
+      } = create({ app: ['app'] });
+      const resources = await app.getResourcesMatchingSchema(FromSchema, [{ key: 'fromKey', value: 'non-existent' }]);
+
+      expect(resources.length).toBe(0);
+    });
+
+    it('should return matching resources with translation and filters', async () => {
+      const [resource1] = await createTestResources({ 'resource-1': [] });
+      resource1.properties['toKey'] = 'value1';
+
+      const inputService = await container.get(InputService);
+      jest.spyOn(inputService, 'getModuleIdFromModel').mockReturnValue('testModule');
+      jest.spyOn(inputService, 'getModuleResources').mockReturnValue([resource1]);
+
+      // Register translation.
+      const schemaTranslationService = await container.get(SchemaTranslationService);
+      schemaTranslationService.registerSchemaTranslation(FromSchema, ToSchema, (resource) => {
+        resource.properties['fromKey'] = resource.properties.toKey;
+        return resource as unknown as AResource<FromSchema, any>;
+      });
+
+      const {
+        app: [app],
+      } = create({ app: ['app'] });
+      const resources = await app.getResourcesMatchingSchema(FromSchema, [{ key: 'fromKey', value: 'value1' }]);
+
+      expect(resources.length).toBe(1);
+      expect(resources![0][0].properties).toEqual({ fromKey: 'value1', toKey: 'value1' });
     });
   });
 });
