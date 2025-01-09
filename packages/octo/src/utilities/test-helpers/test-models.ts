@@ -11,7 +11,7 @@ import { Image } from '../../models/image/image.model.js';
 import { Pipeline } from '../../models/pipeline/pipeline.model.js';
 import { Region } from '../../models/region/region.model.js';
 import { Server } from '../../models/server/server.model.js';
-import { Service } from '../../models/service/service.model.js';
+import type { Service } from '../../models/service/service.model.js';
 import { Subnet } from '../../models/subnet/subnet.model.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
@@ -66,7 +66,7 @@ export function create({
   pipeline?: (string | undefined)[];
   region?: (string | undefined)[];
   server?: (string | undefined)[];
-  service?: (string | undefined)[];
+  service?: ([Service, number?] | undefined)[];
   subnet?: (string | undefined)[];
 }): {
   account: Account[];
@@ -223,9 +223,8 @@ export function create({
     if (entry === undefined) {
       continue;
     }
-    const [id, i] = splitEntry(entry, index);
+    const [service, i] = splitEntryOfArray(entry, index);
 
-    const service = new Service(id);
     const app = result.app[i];
     app.addService(service);
     result.service.push(service);
@@ -300,4 +299,11 @@ function splitEntry(entry: string, currentIndex: number): [string, ...number[]] 
     return [parts[0], currentIndex];
   }
   return [parts[0], ...parts.slice(1).map((p) => currentIndex + Number(p))];
+}
+
+function splitEntryOfArray<T>(entry: [T, number?], currentIndex: number): [T, ...number[]] {
+  if (entry.length === 1) {
+    return [entry[0], currentIndex];
+  }
+  return [entry[0], ...entry.slice(1).map((p) => currentIndex + Number(p))];
 }

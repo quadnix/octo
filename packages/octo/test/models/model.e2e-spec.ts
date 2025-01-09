@@ -7,6 +7,7 @@ import {
   DiffAction,
   Environment,
   Region,
+  Service,
   TestContainer,
 } from '../../src/index.js';
 import type { AModel } from '../../src/models/model.abstract.js';
@@ -47,7 +48,7 @@ describe('Model E2E Test', () => {
       pipeline: ['pipeline'],
       region: ['region'],
       server: ['backend'],
-      service: ['service'],
+      service: [[new Service('service')]],
       subnet: ['public', 'private:-1'],
     });
     subnet1.updateNetworkingRules(subnet2, true);
@@ -164,7 +165,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [[new Service('service')]] });
 
       service.addRelationship(region);
 
@@ -181,7 +182,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['test'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['test'], region: ['region'], service: [[new Service('service')]] });
 
       const { thisToThatDependency } = service.addRelationship(region);
       thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
@@ -225,7 +226,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [[new Service('service')]] });
 
       service.addRelationship(region);
 
@@ -237,7 +238,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [[new Service('service')]] });
 
       const { thisToThatDependency } = service.addRelationship(region);
       thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
@@ -307,7 +308,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: ['service'] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [[new Service('service')]] });
 
       service.addRelationship(region);
 
