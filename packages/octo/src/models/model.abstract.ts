@@ -1,6 +1,7 @@
 import {
   type Constructable,
   NodeType,
+  type ObjectKeyValue,
   type UnknownAnchor,
   type UnknownModel,
   type UnknownOverlay,
@@ -108,7 +109,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
 
   async getAnchorsMatchingSchema<S extends BaseAnchorSchema>(
     from: Constructable<S>,
-    propertyFilters: { key: string; value: unknown }[] = [],
+    propertyFilters: ObjectKeyValue<S['properties']>[] = [],
   ): Promise<[S, AAnchor<S, any>][]> {
     const matches: [S, AAnchor<S, any>][] = [];
     const container = Container.getInstance();
@@ -129,7 +130,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
           translatedSchema ? translatedSchema.translator(schemaInstance) : anchor.synth()
         ) as S;
 
-        if (propertyFilters.every((f) => matchingSchemaInstance.properties[f.key] === f.value)) {
+        if (propertyFilters.every((f) => matchingSchemaInstance.properties[f.key as string] === f.value)) {
           matches.push([matchingSchemaInstance, anchor as AAnchor<S, any>]);
         }
       } catch (error) {
@@ -144,7 +145,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
 
   async getModelsMatchingSchema<S>(
     schema: Constructable<S>,
-    filters: { key: string; value: unknown }[] = [],
+    filters: ObjectKeyValue<S>[] = [],
   ): Promise<[S, AModel<S, any>][]> {
     const matches: [S, AModel<S, any>][] = [];
     const container = Container.getInstance();
@@ -180,8 +181,8 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
 
   async getResourcesMatchingSchema<S extends BaseResourceSchema>(
     schema: Constructable<S>,
-    propertyFilters: { key: string; value: unknown }[] = [],
-    responseFilters: { key: string; value: unknown }[] = [],
+    propertyFilters: ObjectKeyValue<S['properties']>[] = [],
+    responseFilters: ObjectKeyValue<S['response']>[] = [],
   ): Promise<[S, AResource<S, any>][]> {
     const matches: [S, AResource<S, any>][] = [];
     const container = Container.getInstance();
@@ -212,8 +213,8 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
           ) as S;
 
           if (
-            propertyFilters.every((f) => matchingSchemaInstance.properties[f.key] === f.value) &&
-            responseFilters.every((f) => matchingSchemaInstance.response[f.key] === f.value)
+            propertyFilters.every((f) => matchingSchemaInstance.properties[f.key as string] === f.value) &&
+            responseFilters.every((f) => matchingSchemaInstance.response[f.key as string] === f.value)
           ) {
             matches.push([matchingSchemaInstance, r]);
           }

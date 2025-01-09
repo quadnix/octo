@@ -55,6 +55,8 @@ export type ClassOptionalProperties<T> = {
   [K in keyof T]: undefined extends T[K] ? K : never;
 }[keyof T];
 
+export type ObjectKeyValue<T> = { [K in keyof T]: { key: K; value: T[K] } }[keyof T];
+
 export type Constructable<T> = new (...args: any[]) => T;
 
 export type ModelSerializedOutput = {

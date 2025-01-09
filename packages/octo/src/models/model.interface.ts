@@ -1,4 +1,4 @@
-import type { Constructable, UnknownModel } from '../app.type.js';
+import type { Constructable, ObjectKeyValue, UnknownModel } from '../app.type.js';
 import type { INode, INodeReference } from '../functions/node/node.interface.js';
 import type { AAnchor } from '../overlays/anchor.abstract.js';
 import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
@@ -50,18 +50,15 @@ export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
 
   getAnchorsMatchingSchema<S extends BaseAnchorSchema>(
     schema: Constructable<S>,
-    propertyFilters: { key: string; value: unknown }[],
+    propertyFilters: ObjectKeyValue<S['properties']>[],
   ): Promise<[S, AAnchor<S, any>][]>;
 
-  getModelsMatchingSchema<S>(
-    schema: Constructable<S>,
-    filters: { key: string; value: unknown }[],
-  ): Promise<[S, AModel<S, any>][]>;
+  getModelsMatchingSchema<S>(schema: Constructable<S>, filters: ObjectKeyValue<S>[]): Promise<[S, AModel<S, any>][]>;
 
   getResourcesMatchingSchema<S extends BaseResourceSchema>(
     schema: Constructable<S>,
-    propertyFilters: { key: string; value: unknown }[],
-    responseFilters: { key: string; value: unknown }[],
+    propertyFilters: ObjectKeyValue<S['properties']>[],
+    responseFilters: ObjectKeyValue<S['response']>[],
   ): Promise<[S, AResource<S, any>][]>;
 
   /**
