@@ -1,3 +1,5 @@
+import { ANode } from '../../functions/node/node.abstract.js';
+
 export class ObjectUtility {
   // Source: https://stackoverflow.com/a/58496119/1834562
   static deepFreeze<T extends object>(object: T): void {
@@ -8,7 +10,8 @@ export class ObjectUtility {
   }
 
   static onEveryNestedKey(object: object, callback: (parent: object, key: string, value: unknown) => void): void {
-    for (const key in object) {
+    const keys = object instanceof ANode ? Object.keys(object.synth()) : Object.keys(object);
+    for (const key of keys) {
       if (object.hasOwnProperty(key)) {
         const value = object[key];
 

@@ -1,6 +1,7 @@
 import type { UnknownNode } from '../../app.type.js';
 import { AAnchor } from '../../overlays/anchor.abstract.js';
 import { Dependency } from '../dependency/dependency.js';
+import { ANode } from '../node/node.abstract.js';
 import { Diff, DiffAction } from './diff.js';
 
 export class DiffUtility {
@@ -27,6 +28,8 @@ export class DiffUtility {
       ty = typeof y;
 
     if (x instanceof AAnchor && y instanceof AAnchor) {
+      return this.isObjectDeepEquals(x.synth(), y.synth());
+    } else if (x instanceof ANode && y instanceof ANode) {
       return this.isObjectDeepEquals(x.synth(), y.synth());
     } else if (x instanceof Dependency && y instanceof Dependency) {
       return this.isObjectDeepEquals(x.synth(), y.synth());
