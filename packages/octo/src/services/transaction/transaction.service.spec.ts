@@ -588,7 +588,7 @@ describe('TransactionService UT', () => {
       expect(diffsMetadata[3].applyOrder).toBe(-1);
     });
 
-    it('should throw errors if add and update of model are in same transaction', () => {
+    it('should throw errors if add and delete of model are in same transaction', () => {
       const {
         environment: [environment],
         region: [region],
@@ -596,7 +596,7 @@ describe('TransactionService UT', () => {
 
       const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
       const diff2 = new Diff(environment, DiffAction.ADD, 'environmentName', 'env');
-      const diff3 = new Diff(environment, DiffAction.UPDATE, 'environmentName', 'env');
+      const diff3 = new Diff(environment, DiffAction.DELETE, 'environmentName', 'env');
       const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
 
       expect(() => {

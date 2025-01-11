@@ -90,10 +90,11 @@ export class ResourceDataRepository {
 
     for (const oldResourceContext of Object.keys(oldResources)) {
       if (!newResources[oldResourceContext] || newResources[oldResourceContext].isMarkedDeleted()) {
-        diffs.push(new Diff(oldResources[oldResourceContext], DiffAction.DELETE, 'resourceId', oldResourceContext));
+        const rDiff = new Diff(oldResources[oldResourceContext], DiffAction.DELETE, 'resourceId', oldResourceContext);
+        diffs.push(...oldResources[oldResourceContext].diffUnpack(rDiff));
       } else {
         const rDiff = await newResources[oldResourceContext].diff(oldResources[oldResourceContext]);
-        diffs.push(...rDiff);
+        diffs.push(...rDiff.map((d) => newResources[oldResourceContext].diffUnpack(d)).flat());
       }
     }
 
@@ -115,10 +116,11 @@ export class ResourceDataRepository {
         // we expect the resource to override diff() and diff against the shared resource.
         // The custom diff() would decide diff actions.
         const rDiff = await newResource.diff(sharedResource);
-        diffs.push(...rDiff);
+        diffs.push(...rDiff.map((d) => newResource.diffUnpack(d)).flat());
       } else {
         // The resource is a normal resource, and just needs to be added.
-        diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext));
+        const rDiff = new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext);
+        diffs.push(...newResource.diffUnpack(rDiff));
       }
     }
 
@@ -150,12 +152,16 @@ export class ResourceDataRepository {
 
     for (const actualResourceContext of Object.keys(actualResources)) {
       if (!newResources[actualResourceContext] || newResources[actualResourceContext].isMarkedDeleted()) {
-        diffs.push(
-          new Diff(actualResources[actualResourceContext], DiffAction.DELETE, 'resourceId', actualResourceContext),
+        const rDiff = new Diff(
+          actualResources[actualResourceContext],
+          DiffAction.DELETE,
+          'resourceId',
+          actualResourceContext,
         );
+        diffs.push(...actualResources[actualResourceContext].diffUnpack(rDiff));
       } else {
         const rDiff = await newResources[actualResourceContext].diff(actualResources[actualResourceContext]);
-        diffs.push(...rDiff);
+        diffs.push(...rDiff.map((d) => newResources[actualResourceContext].diffUnpack(d)).flat());
       }
     }
 
@@ -177,10 +183,11 @@ export class ResourceDataRepository {
         // we expect the resource to override diff() and diff against the shared resource.
         // The custom diff() would decide diff actions.
         const rDiff = await newResource.diff(sharedResource);
-        diffs.push(...rDiff);
+        diffs.push(...rDiff.map((d) => newResource.diffUnpack(d)).flat());
       } else {
         // The resource is a normal resource, and just needs to be added.
-        diffs.push(new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext));
+        const rDiff = new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext);
+        diffs.push(...newResource.diffUnpack(rDiff));
       }
     }
 

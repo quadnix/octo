@@ -195,6 +195,10 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
   }
 
+  diffUnpack(diff: Diff): Diff[] {
+    return [diff];
+  }
+
   findParentsByProperty(filters: { key: string; value: unknown }[]): UnknownResource[] {
     const parents: UnknownResource[] = [];
     const dependencies = Object.values(this.getParents()).flat();

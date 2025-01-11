@@ -267,11 +267,7 @@ export class TransactionService {
       accumulator[currentValue.action] = true;
       return accumulator;
     }, {});
-    if (
-      (diffActions[DiffAction.ADD] && diffActions[DiffAction.UPDATE]) ||
-      (diffActions[DiffAction.ADD] && diffActions[DiffAction.DELETE]) ||
-      (diffActions[DiffAction.DELETE] && diffActions[DiffAction.UPDATE])
-    ) {
+    if (diffActions[DiffAction.ADD] && diffActions[DiffAction.DELETE]) {
       throw new TransactionError('Found conflicting actions in same transaction!');
     }
 
