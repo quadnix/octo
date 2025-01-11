@@ -108,7 +108,9 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
       );
 
       // Set response.
-      delete response.policies[iamUserPolicyDiff.policyId];
+      if (!Object.isFrozen(response)) {
+        delete response.policies[iamUserPolicyDiff.policyId];
+      }
     }
   }
 

@@ -124,4 +124,38 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
 
     return diffs;
   }
+
+  override diffUnpack(diff: Diff): Diff[] {
+    if (diff.action === DiffAction.ADD) {
+      const diffs: Diff[] = [diff];
+
+      for (const policy of (diff.node as IamRole).properties.policies) {
+        diffs.push(
+          new Diff(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'add',
+            policy: policy.policy,
+            policyId: policy.policyId,
+          } as IIamRoleAddPolicyDiff),
+        );
+      }
+
+      return diffs;
+    } else if (diff.action === DiffAction.DELETE) {
+      const diffs: Diff[] = [];
+
+      for (const policy of (diff.node as IamRole).properties.policies) {
+        diffs.push(
+          new Diff(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'delete',
+            policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
+          } as IIamRoleDeletePolicyDiff),
+        );
+      }
+
+      diffs.push(diff);
+      return diffs;
+    } else {
+      return [diff];
+    }
+  }
 }

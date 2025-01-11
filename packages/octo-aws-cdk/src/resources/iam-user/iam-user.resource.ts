@@ -97,4 +97,38 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
 
     return diffs;
   }
+
+  override diffUnpack(diff: Diff): Diff[] {
+    if (diff.action === DiffAction.ADD) {
+      const diffs: Diff[] = [diff];
+
+      for (const policy of (diff.node as IamUser).properties.policies) {
+        diffs.push(
+          new Diff(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'add',
+            policy: policy.policy,
+            policyId: policy.policyId,
+          } as IIamUserAddPolicyDiff),
+        );
+      }
+
+      return diffs;
+    } else if (diff.action === DiffAction.DELETE) {
+      const diffs: Diff[] = [];
+
+      for (const policy of (diff.node as IamUser).properties.policies) {
+        diffs.push(
+          new Diff(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'delete',
+            policyId: policy.policyId,
+          } as IIamUserDeletePolicyDiff),
+        );
+      }
+
+      diffs.push(diff);
+      return diffs;
+    } else {
+      return [diff];
+    }
+  }
 }
