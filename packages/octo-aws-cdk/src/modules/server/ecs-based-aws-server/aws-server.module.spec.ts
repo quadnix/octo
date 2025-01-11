@@ -1,30 +1,92 @@
 import { IAMClient } from '@aws-sdk/client-iam';
 import { jest } from '@jest/globals';
 import {
+  AAnchor,
   type Account,
+  Anchor,
   type App,
   type Container,
+  Model,
+  Service,
   TestContainer,
   TestModuleContainer,
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
 import { AddIamRoleResourceAction } from '../../../resources/iam-role/actions/add-iam-role.resource.action.js';
+import { UpdateIamRoleWithS3StoragePolicyResourceAction } from '../../../resources/iam-role/actions/update-iam-role-with-s3-storage-policy.resource.action.js';
 import type { IamRole } from '../../../resources/iam-role/index.js';
-import { AwsServerModule } from './aws-server.module.js';
+import {
+  AwsS3DirectoryAnchorSchema,
+  AwsS3StorageServiceSchema,
+  AwsServerModule,
+  S3StorageAccess,
+} from './aws-server.module.js';
 import { AddServerModelAction } from './models/server/actions/add-server.model.action.js';
+import { AddAwsServerS3AccessOverlayAction } from './overlays/server-s3-access/actions/add-server-s3-access.overlay.action.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
+@Anchor('@octo')
+class TestS3StorageDirectoryAnchor extends AAnchor<AwsS3DirectoryAnchorSchema, Service> {
+  declare properties: AwsS3DirectoryAnchorSchema['properties'];
+
+  constructor(anchorId: string, properties: AwsS3DirectoryAnchorSchema['properties'], parent: Service) {
+    super(anchorId, properties, parent);
+  }
+}
+
+@Model<TestS3StorageService>('@octo', 'service', AwsS3StorageServiceSchema)
+class TestS3StorageService extends Service {
+  readonly bucketName = 'test-bucket';
+
+  readonly directories: { remoteDirectoryPath: string }[] = [];
+
+  constructor() {
+    super('test-bucket-s3-storage');
+  }
+
+  addDirectory(remoteDirectoryPath: string): void {
+    const directoryAnchor = new TestS3StorageDirectoryAnchor(
+      `TestS3StorageDirectoryAnchor-${remoteDirectoryPath}`,
+      { bucketName: this.bucketName, remoteDirectoryPath: remoteDirectoryPath },
+      this,
+    );
+    this.addAnchor(directoryAnchor);
+
+    this.directories.push({ remoteDirectoryPath });
+  }
+
+  override synth(): AwsS3StorageServiceSchema {
+    return {
+      bucketName: this.bucketName,
+      directories: JSON.parse(JSON.stringify(this.directories)),
+      serviceId: this.serviceId,
+    };
+  }
+
+  static override async unSynth(s3Storage: AwsS3StorageServiceSchema): Promise<TestS3StorageService> {
+    const service = new TestS3StorageService();
+    service.directories.push(...(s3Storage.directories || []));
+    return service;
+  }
+}
+
+async function setup(
+  testModuleContainer: TestModuleContainer,
+): Promise<{ account: Account; app: App; service: Service }> {
   const {
     account: [account],
     app: [app],
+    service: [service],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,account'],
     app: ['test-app'],
+    service: [[new TestS3StorageService()]],
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
-  return { account, app };
+  (service as TestS3StorageService).addDirectory('uploads');
+
+  return { account, app, service };
 }
 
 describe('AwsServerModule UT', () => {
@@ -56,8 +118,7 @@ describe('AwsServerModule UT', () => {
     testModuleContainer.registerCapture<IamRole>('@octo/iam-role=iam-role-ServerRole-backend', {
       Arn: 'Arn',
       policies: {
-        AmazonECSTaskExecutionRolePolicy: ['arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'],
-        AmazonECSTasksAssumeRolePolicy: ['ecs-tasks.amazonaws.com'],
+        'server-s3-access-overlay-e9dc96db328e': ['server-s3-access-arn'],
       },
       RoleId: 'RoleId',
       RoleName: 'RoleName',
@@ -72,13 +133,28 @@ describe('AwsServerModule UT', () => {
   it('should call actions with correct inputs', async () => {
     const addServerModelAction = await container.get(AddServerModelAction);
     const addServerModelActionSpy = jest.spyOn(addServerModelAction, 'handle');
+    const addAwsServerS3AccessOverlayAction = await container.get(AddAwsServerS3AccessOverlayAction);
+    const addAwsServerS3AccessOverlayActionSpy = jest.spyOn(addAwsServerS3AccessOverlayAction, 'handle');
     const addIamRoleResourceAction = await container.get(AddIamRoleResourceAction);
     const addIamRoleResourceActionSpy = jest.spyOn(addIamRoleResourceAction, 'handle');
+    const updateIamRoleWithS3StoragePolicyResourceAction = await container.get(
+      UpdateIamRoleWithS3StoragePolicyResourceAction,
+    );
+    const updateIamRoleWithS3StoragePolicyResourceActionSpy = jest.spyOn(
+      updateIamRoleWithS3StoragePolicyResourceAction,
+      'handle',
+    );
 
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
+        s3: [
+          {
+            directories: [{ access: S3StorageAccess.READ, remoteDirectoryPath: 'uploads' }],
+            service: stub('${{testModule.model.service}}'),
+          },
+        ],
         serverKey: 'backend',
       },
       moduleId: 'server',
@@ -96,6 +172,26 @@ describe('AwsServerModule UT', () => {
            "accountType": "aws",
            "context": "account=account,app=test-app",
          },
+         "s3": [
+           {
+             "directories": [
+               {
+                 "access": "READ",
+                 "remoteDirectoryPath": "uploads",
+               },
+             ],
+             "service": {
+               "bucketName": "test-bucket",
+               "context": "service=test-bucket-s3-storage,app=test-app",
+               "directories": [
+                 {
+                   "remoteDirectoryPath": "uploads",
+                 },
+               ],
+               "serviceId": "test-bucket-s3-storage",
+             },
+           },
+         ],
          "securityGroupRules": [],
          "serverKey": "backend",
        },
@@ -105,10 +201,46 @@ describe('AwsServerModule UT', () => {
            "serverKey": "backend",
          },
        },
-       "overlays": {},
+       "overlays": {
+         "server-s3-access-overlay-e9dc96db328e": {
+           "anchors": [
+             {
+               "anchorId": "AwsIamRoleAnchor",
+               "parent": {
+                 "context": "server=backend,app=test-app",
+               },
+               "properties": {
+                 "iamRoleName": "ServerRole-backend",
+               },
+             },
+             {
+               "anchorId": "TestS3StorageDirectoryAnchor-uploads",
+               "parent": {
+                 "context": "service=test-bucket-s3-storage,app=test-app",
+               },
+               "properties": {
+                 "bucketName": "test-bucket",
+                 "remoteDirectoryPath": "uploads",
+               },
+             },
+           ],
+           "context": "@octo/server-s3-access-overlay=server-s3-access-overlay-e9dc96db328e",
+           "overlayId": "server-s3-access-overlay-e9dc96db328e",
+           "properties": {
+             "allowRead": true,
+             "allowWrite": false,
+             "bucketName": "test-bucket",
+             "iamRoleName": "ServerRole-backend",
+             "iamRolePolicyId": "server-s3-access-overlay-e9dc96db328e",
+             "remoteDirectoryPath": "uploads",
+           },
+         },
+       },
        "resources": {},
      }
     `);
+
+    expect(addAwsServerS3AccessOverlayActionSpy).toHaveBeenCalledTimes(1);
 
     expect(addIamRoleResourceActionSpy).toHaveBeenCalledTimes(1);
     expect(addIamRoleResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
@@ -117,6 +249,25 @@ describe('AwsServerModule UT', () => {
        "field": "resourceId",
        "node": "@octo/iam-role=iam-role-ServerRole-backend",
        "value": "@octo/iam-role=iam-role-ServerRole-backend",
+     }
+    `);
+
+    expect(updateIamRoleWithS3StoragePolicyResourceActionSpy).toHaveBeenCalledTimes(1);
+    expect(updateIamRoleWithS3StoragePolicyResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+     {
+       "action": "update",
+       "field": "s3-storage-access-policy",
+       "node": "@octo/iam-role=iam-role-ServerRole-backend",
+       "value": {
+         "action": "add",
+         "policy": {
+           "allowRead": true,
+           "allowWrite": false,
+           "bucketName": "test-bucket",
+           "remoteDirectoryPath": "uploads",
+         },
+         "policyId": "server-s3-access-overlay-e9dc96db328e",
+       },
      }
     `);
   });
@@ -131,7 +282,6 @@ describe('AwsServerModule UT', () => {
       moduleId: 'server',
       type: AwsServerModule,
     });
-
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
      [
@@ -141,6 +291,26 @@ describe('AwsServerModule UT', () => {
            "field": "resourceId",
            "node": "@octo/iam-role=iam-role-ServerRole-backend",
            "value": "@octo/iam-role=iam-role-ServerRole-backend",
+         },
+         {
+           "action": "update",
+           "field": "assume-role-policy",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "action": "add",
+             "policy": "ecs-tasks.amazonaws.com",
+             "policyId": "AmazonECSTasksAssumeRolePolicy",
+           },
+         },
+         {
+           "action": "update",
+           "field": "aws-policy",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "action": "add",
+             "policy": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+             "policyId": "AmazonECSTaskExecutionRolePolicy",
+           },
          },
        ],
        [],
@@ -166,7 +336,6 @@ describe('AwsServerModule UT', () => {
       moduleId: 'server',
       type: AwsServerModule,
     });
-
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
      [
@@ -175,11 +344,87 @@ describe('AwsServerModule UT', () => {
      ]
     `);
 
+    // Add S3 Storage.
     const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsServerModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        s3: [
+          {
+            directories: [{ access: S3StorageAccess.READ, remoteDirectoryPath: 'uploads' }],
+            service: stub('${{testModule.model.service}}'),
+          },
+        ],
+        securityGroupRules: [
+          {
+            CidrBlock: '0.0.0.0/0',
+            Egress: true,
+            FromPort: 0,
+            IpProtocol: 'tcp',
+            ToPort: 65535,
+          },
+        ],
+        serverKey: 'backend',
+      },
+      moduleId: 'server',
+      type: AwsServerModule,
+    });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
+         {
+           "action": "update",
+           "field": "s3-storage-access-policy",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "action": "add",
+             "policy": {
+               "allowRead": true,
+               "allowWrite": false,
+               "bucketName": "test-bucket",
+               "remoteDirectoryPath": "uploads",
+             },
+             "policyId": "server-s3-access-overlay-e9dc96db328e",
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app4 } = await setup(testModuleContainer);
+    const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
+    expect(result4.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "assume-role-policy",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "action": "delete",
+             "policyId": "AmazonECSTasksAssumeRolePolicy",
+           },
+         },
+         {
+           "action": "update",
+           "field": "aws-policy",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "action": "delete",
+             "policyId": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+           },
+         },
+         {
+           "action": "update",
+           "field": "s3-storage-access-policy",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "action": "delete",
+             "policyId": "server-s3-access-overlay-e9dc96db328e",
+           },
+         },
          {
            "action": "delete",
            "field": "resourceId",
