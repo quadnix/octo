@@ -33,7 +33,7 @@ export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, AwsF
     const account = region.getParents()['account'][0].to as Account;
 
     // Get AWS Region ID.
-    const [resourceSynth] = (await region.getResourceMatchingSchema(AwsResourceSchema))!;
+    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
     const awsRegionId = resourceSynth.properties.awsRegionId;
 
     // Create a new filesystem.

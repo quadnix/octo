@@ -32,8 +32,8 @@ export class AddSubnetFilesystemMountOverlayAction implements IModelAction<AwsSu
     const subnetFilesystemMountOverlay = diff.node as AwsSubnetFilesystemMountOverlay;
     const properties = subnetFilesystemMountOverlay.properties;
 
-    const [vpcSynth] = (await subnetFilesystemMountOverlay.getResourceMatchingSchema(VpcResourceSchema))!;
-    const [, efs] = (await subnetFilesystemMountOverlay.getResourceMatchingSchema(EfsResourceSchema))!;
+    const [[vpcSynth]] = await subnetFilesystemMountOverlay.getResourcesMatchingSchema(VpcResourceSchema);
+    const [[, efs]] = await subnetFilesystemMountOverlay.getResourcesMatchingSchema(EfsResourceSchema);
     const subnet = actionInputs.resources[`subnet-${subnetFilesystemMountOverlay.properties.subnetId}`] as Subnet;
 
     // Create EFS Mount Target.

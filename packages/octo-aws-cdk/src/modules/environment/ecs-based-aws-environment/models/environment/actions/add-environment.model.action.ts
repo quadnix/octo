@@ -33,7 +33,7 @@ export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentMod
     const clusterName = [region.regionId, environment.environmentName].join('-');
 
     // Get AWS Region ID.
-    const [resourceSynth] = (await region.getResourceMatchingSchema(AwsResourceSchema))!;
+    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
     const awsRegionId = resourceSynth.properties.awsRegionId;
 
     const ecsCluster = new EcsCluster(`ecs-cluster-${clusterName}`, {

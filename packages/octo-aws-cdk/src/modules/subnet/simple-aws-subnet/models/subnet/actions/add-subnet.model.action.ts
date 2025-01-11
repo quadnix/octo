@@ -34,8 +34,8 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     const subnet = diff.node as AwsSubnet;
 
     const subnetCidrBlock = actionInputs.inputs.subnetCidrBlock;
-    const [, vpc] = (await subnet.getResourceMatchingSchema(VpcResourceSchema))!;
-    const [, internetGateway] = (await subnet.getResourceMatchingSchema(InternetGatewayResourceSchema))!;
+    const [[, vpc]] = await subnet.getResourcesMatchingSchema(VpcResourceSchema);
+    const [[, internetGateway]] = await subnet.getResourcesMatchingSchema(InternetGatewayResourceSchema);
 
     // Create Subnet.
     const subnetSubnet = new Subnet(

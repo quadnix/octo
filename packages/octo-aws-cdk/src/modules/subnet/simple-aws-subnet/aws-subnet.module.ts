@@ -77,9 +77,9 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
     const account = region.getParents()['account'][0].to as Account;
 
     // Get AWS AZs and Region ID.
-    const [resourceSynth] = (await region.getResourceMatchingSchema(VpcResourceSchema))!;
-    const awsAvailabilityZones = resourceSynth.properties.awsAvailabilityZones;
-    const awsRegionId = resourceSynth.properties.awsRegionId;
+    const [[vpcSynth]] = await region.getResourcesMatchingSchema(VpcResourceSchema);
+    const awsAvailabilityZones = vpcSynth.properties.awsAvailabilityZones;
+    const awsRegionId = vpcSynth.properties.awsRegionId;
 
     // Validate subnet availability zone.
     if (!awsAvailabilityZones.includes(inputs.subnetAvailabilityZone)) {

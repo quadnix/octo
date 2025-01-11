@@ -31,7 +31,7 @@ export class AddFilesystemModelAction implements IModelAction<AwsFilesystemModul
     const region = actionInputs.inputs.region;
 
     // Get AWS Region ID.
-    const [resourceSynth] = (await region.getResourceMatchingSchema(AwsResourceSchema))!;
+    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
     const awsRegionId = resourceSynth.properties.awsRegionId;
 
     // Create EFS.
