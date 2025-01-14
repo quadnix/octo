@@ -1,7 +1,6 @@
-import { unlink } from 'fs';
+import { unlink } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { promisify } from 'util';
 import { create, createTestResources } from '../../utilities/test-helpers/test-models.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
@@ -11,7 +10,6 @@ import { LocalStateProvider } from './local.state-provider.js';
 import { StateManagementService } from './state-management.service.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const unlinkAsync = promisify(unlink);
 
 describe('LocalStateProvider UT', () => {
   let container: Container;
@@ -25,7 +23,7 @@ describe('LocalStateProvider UT', () => {
     await TestContainer.reset();
 
     if (filePath) {
-      await unlinkAsync(filePath);
+      await unlink(filePath);
       filePath = '';
     }
   });

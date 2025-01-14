@@ -1,11 +1,7 @@
-import { readFile, writeFile } from 'fs';
+import { readFile, writeFile } from 'fs/promises';
 import { join, resolve } from 'path';
-import { promisify } from 'util';
 import { TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
-
-const readFileAsync = promisify(readFile);
-const writeFileAsync = promisify(writeFile);
 
 export class LocalStateProvider implements IStateProvider {
   private readonly localStateDirectoryPath: string;
@@ -16,7 +12,7 @@ export class LocalStateProvider implements IStateProvider {
 
   async getState(stateFileName: string): Promise<Buffer> {
     try {
-      return await readFileAsync(join(this.localStateDirectoryPath, stateFileName));
+      return await readFile(join(this.localStateDirectoryPath, stateFileName));
     } catch (error) {
       if (error.code === 'ENOENT') {
         throw new TransactionError('No state found!');
@@ -26,6 +22,6 @@ export class LocalStateProvider implements IStateProvider {
   }
 
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
-    await writeFileAsync(join(this.localStateDirectoryPath, stateFileName), data);
+    await writeFile(join(this.localStateDirectoryPath, stateFileName), data);
   }
 }
