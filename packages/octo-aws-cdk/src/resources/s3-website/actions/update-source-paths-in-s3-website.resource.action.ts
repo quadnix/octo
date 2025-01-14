@@ -1,5 +1,5 @@
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
+import type { Upload } from '@aws-sdk/lib-storage';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import mime from 'mime';
@@ -28,13 +28,16 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     const s3Client = await this.container.get(S3Client, {
       metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
     });
+    const UploadClient = await this.container.get<typeof Upload>('Upload', {
+      metadata: { package: '@octo' },
+    });
 
     // Synchronize files with S3.
     for (const remotePath in manifestDiff) {
       const [operation, filePath] = manifestDiff[remotePath];
       if (operation === 'add' || operation === 'update') {
         const stream = createReadStream(filePath);
-        const upload = new Upload({
+        const upload = new UploadClient({
           client: s3Client,
           leavePartsOnError: false,
           params: {

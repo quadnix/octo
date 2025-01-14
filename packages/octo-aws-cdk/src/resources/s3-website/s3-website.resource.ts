@@ -32,6 +32,33 @@ export class S3Website extends AResource<S3WebsiteSchema, S3Website> {
     return diffs;
   }
 
+  override diffUnpack(diff: Diff): Diff[] {
+    if (diff.action === DiffAction.ADD) {
+      const diffs: Diff[] = [diff];
+
+      if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {
+        diffs.push(
+          new Diff(this, DiffAction.UPDATE, 'update-source-paths', JSON.parse(JSON.stringify(this.manifestDiff))),
+        );
+      }
+
+      return diffs;
+    } else if (diff.action === DiffAction.DELETE) {
+      const diffs: Diff[] = [];
+
+      if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {
+        diffs.push(
+          new Diff(this, DiffAction.UPDATE, 'update-source-paths', JSON.parse(JSON.stringify(this.manifestDiff))),
+        );
+      }
+
+      diffs.push(diff);
+      return diffs;
+    } else {
+      return [diff];
+    }
+  }
+
   updateManifestDiff(manifestDiff: S3Website['manifestDiff']): void {
     for (const key of Object.keys(manifestDiff)) {
       this.manifestDiff[key] = [...manifestDiff[key]];
