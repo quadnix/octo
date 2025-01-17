@@ -59,7 +59,7 @@ export type TestModule<M extends UnknownModule> = {
 };
 
 export class TestModuleContainer {
-  private readonly octo: Octo;
+  readonly octo: Octo;
 
   constructor() {
     this.octo = new Octo();

@@ -3,6 +3,9 @@ import { Factory } from '../decorators/factory.decorator.js';
 import { InputRegistrationError, ModuleError } from '../errors/index.js';
 import { ModuleEvent } from '../events/index.js';
 import { Container } from '../functions/container/container.js';
+import { CommitHook } from '../functions/hook/commit.hook.js';
+import { ModelActionHook } from '../functions/hook/model-action.hook.js';
+import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 import { getSchemaInstance, getSchemaKeys } from '../functions/schema/schema.js';
 import { OverlayDataRepository } from '../overlays/overlay-data.repository.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
@@ -68,6 +71,7 @@ export class ModuleContainer {
 
         // Run module. Register module output, and return the module output.
         const instance = new module();
+        this.registerHooks(instance.registerHooks());
         let models = (await instance.onInit(resolvedModuleSchema)) as UnknownModel | UnknownModel[];
 
         if (!Array.isArray(models)) {
@@ -160,6 +164,32 @@ export class ModuleContainer {
     if (!this.modules.some((m) => `${m.properties.packageName}/${m.module.name}` === moduleName)) {
       this.modules.push({ hidden: true, instances: [], module, properties });
     }
+  }
+
+  registerHooks({
+    postCommitHooks,
+    postModelActionHooks,
+    postResourceActionHooks,
+    preCommitHooks,
+    preModelActionHooks,
+    preResourceActionHooks,
+  }: {
+    postCommitHooks?: Parameters<CommitHook['collectHooks']>[0]['postHooks'];
+    postModelActionHooks?: Parameters<ModelActionHook['collectHooks']>[0]['postHooks'];
+    postResourceActionHooks?: Parameters<ResourceActionHook['collectHooks']>[0]['postHooks'];
+    preCommitHooks?: Parameters<CommitHook['collectHooks']>[0]['preHooks'];
+    preModelActionHooks?: Parameters<ModelActionHook['collectHooks']>[0]['preHooks'];
+    preResourceActionHooks?: Parameters<ResourceActionHook['collectHooks']>[0]['preHooks'];
+  } = {}): void {
+    CommitHook.getInstance().collectHooks({ postHooks: postCommitHooks, preHooks: preCommitHooks });
+    ModelActionHook.getInstance().collectHooks({
+      postHooks: postModelActionHooks,
+      preHooks: preModelActionHooks,
+    });
+    ResourceActionHook.getInstance().collectHooks({
+      postHooks: postResourceActionHooks,
+      preHooks: preResourceActionHooks,
+    });
   }
 
   reset(): void {

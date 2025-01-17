@@ -3,15 +3,11 @@ import type { Constructable, ModuleSchemaInputs, TransactionOptions, UnknownModu
 import { EnableHook } from './decorators/enable-hook.decorator.js';
 import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
-import { CommitHook } from './functions/hook/commit.hook.js';
-import { ModelActionHook } from './functions/hook/model-action.hook.js';
-import { ResourceActionHook } from './functions/hook/resource-action.hook.js';
 import { App } from './models/app/app.model.js';
 import { ModuleContainer } from './modules/module.container.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
 import { BaseResourceSchema } from './resources/resource.schema.js';
 import { CaptureService } from './services/capture/capture.service.js';
-import { EventService } from './services/event/event.service.js';
 import { SchemaTranslationService } from './services/schema-translation/schema-translation.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
@@ -28,7 +24,6 @@ export class Octo {
   private readonly oldResourceStateFileName: string = 'resources-old.json';
 
   private captureService: CaptureService;
-  private eventService: EventService;
   private modelSerializationService: ModelSerializationService;
   private moduleContainer: ModuleContainer;
   private resourceSerializationService: ResourceSerializationService;
@@ -122,7 +117,6 @@ export class Octo {
 
     [
       this.captureService,
-      this.eventService,
       this.modelSerializationService,
       this.moduleContainer,
       this.resourceSerializationService,
@@ -131,7 +125,6 @@ export class Octo {
       this.transactionService,
     ] = await Promise.all([
       container.get(CaptureService),
-      container.get(EventService),
       container.get(ModelSerializationService),
       container.get(ModuleContainer),
       container.get(ResourceSerializationService),
@@ -168,30 +161,8 @@ export class Octo {
     this.captureService.registerCapture(resourceContext, response);
   }
 
-  registerHooks({
-    postCommitHooks,
-    postModelActionHooks,
-    postResourceActionHooks,
-    preCommitHooks,
-    preModelActionHooks,
-    preResourceActionHooks,
-  }: {
-    postCommitHooks?: Parameters<CommitHook['collectHooks']>[0]['postHooks'];
-    postModelActionHooks?: Parameters<ModelActionHook['collectHooks']>[0]['postHooks'];
-    postResourceActionHooks?: Parameters<ResourceActionHook['collectHooks']>[0]['postHooks'];
-    preCommitHooks?: Parameters<CommitHook['collectHooks']>[0]['preHooks'];
-    preModelActionHooks?: Parameters<ModelActionHook['collectHooks']>[0]['preHooks'];
-    preResourceActionHooks?: Parameters<ResourceActionHook['collectHooks']>[0]['preHooks'];
-  } = {}): void {
-    CommitHook.getInstance(this.eventService).collectHooks({ postHooks: postCommitHooks, preHooks: preCommitHooks });
-    ModelActionHook.getInstance(this.eventService).collectHooks({
-      postHooks: postModelActionHooks,
-      preHooks: preModelActionHooks,
-    });
-    ResourceActionHook.getInstance(this.eventService).collectHooks({
-      postHooks: postResourceActionHooks,
-      preHooks: preResourceActionHooks,
-    });
+  registerHooks(...args: Parameters<ModuleContainer['registerHooks']>): ReturnType<ModuleContainer['registerHooks']> {
+    this.moduleContainer.registerHooks(...args);
   }
 
   registerSchemaTranslation(

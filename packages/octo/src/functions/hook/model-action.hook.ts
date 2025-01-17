@@ -4,7 +4,8 @@ import {
   PostModelActionHookCallbackDoneEvent,
   PreModelActionHookCallbackDoneEvent,
 } from '../../events/index.js';
-import type { EventService } from '../../services/event/event.service.js';
+import { EventService } from '../../services/event/event.service.js';
+import { Container } from '../container/container.js';
 import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = {
@@ -26,7 +27,7 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     [key: string]: Omit<PreHookSignature, 'action'>[];
   } = {};
 
-  private constructor(private readonly eventService: EventService) {}
+  private constructor() {}
 
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { action, handle } of hooks.postHooks || []) {
@@ -44,9 +45,9 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     }
   }
 
-  static getInstance(eventService: EventService): ModelActionHook {
+  static getInstance(): ModelActionHook {
     if (!this.instance) {
-      this.instance = new ModelActionHook(eventService);
+      this.instance = new ModelActionHook();
     }
     return this.instance;
   }
@@ -59,19 +60,22 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
     const originalHandleMethod = modelAction.handle;
 
     modelAction.handle = async function (...args: Parameters<IUnknownModelAction['handle']>): Promise<ActionOutputs> {
+      const container = Container.getInstance();
+      const eventService = await container.get(EventService);
+
       let output = args[2] || {};
 
       for (const { handle } of self.preModelActionHooks[modelAction.constructor.name] || []) {
         output = await handle.apply(this, [args[0], args[1], output]);
-        self.eventService.emit(new PreModelActionHookCallbackDoneEvent());
+        eventService.emit(new PreModelActionHookCallbackDoneEvent());
       }
 
       output = await originalHandleMethod.apply(this, [args[0], args[1], output]);
-      self.eventService.emit(new ModelActionHookCallbackDoneEvent());
+      eventService.emit(new ModelActionHookCallbackDoneEvent());
 
       for (const { handle } of self.postModelActionHooks[modelAction.constructor.name] || []) {
         output = await handle.apply(this, [args[0], args[1], output]);
-        self.eventService.emit(new PostModelActionHookCallbackDoneEvent());
+        eventService.emit(new PostModelActionHookCallbackDoneEvent());
       }
 
       return output;

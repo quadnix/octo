@@ -4,7 +4,8 @@ import {
   PreResourceActionHookCallbackDoneEvent,
   ResourceActionHookCallbackDoneEvent,
 } from '../../events/index.js';
-import type { EventService } from '../../services/event/event.service.js';
+import { EventService } from '../../services/event/event.service.js';
+import { Container } from '../container/container.js';
 import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = {
@@ -26,7 +27,7 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
     [key: string]: Omit<PostHookSignature, 'action'>[];
   } = {};
 
-  private constructor(private readonly eventService: EventService) {}
+  private constructor() {}
 
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { action, handle } of hooks.postHooks || []) {
@@ -44,9 +45,9 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
     }
   }
 
-  static getInstance(eventService: EventService): ResourceActionHook {
+  static getInstance(): ResourceActionHook {
     if (!this.instance) {
-      this.instance = new ResourceActionHook(eventService);
+      this.instance = new ResourceActionHook();
     }
     return this.instance;
   }
@@ -59,17 +60,20 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
     const originalHandleMethod = resourceAction.handle;
 
     resourceAction.handle = async function (...args: Parameters<IUnknownResourceAction['handle']>): Promise<void> {
+      const container = Container.getInstance();
+      const eventService = await container.get(EventService);
+
       for (const { handle } of self.preResourceActionHooks[resourceAction.constructor.name] || []) {
         await handle.apply(this, args);
-        self.eventService.emit(new PreResourceActionHookCallbackDoneEvent());
+        eventService.emit(new PreResourceActionHookCallbackDoneEvent());
       }
 
       await originalHandleMethod.apply(this, args);
-      self.eventService.emit(new ResourceActionHookCallbackDoneEvent());
+      eventService.emit(new ResourceActionHookCallbackDoneEvent());
 
       for (const { handle } of self.postResourceActionHooks[resourceAction.constructor.name] || []) {
         await handle.apply(this, args);
-        self.eventService.emit(new PostResourceActionHookCallbackDoneEvent());
+        eventService.emit(new PostResourceActionHookCallbackDoneEvent());
       }
     };
   }

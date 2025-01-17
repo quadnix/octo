@@ -4,7 +4,8 @@ import {
   PreCommitHookCallbackDoneEvent,
 } from '../../events/index.js';
 import type { Octo } from '../../main.js';
-import type { EventService } from '../../services/event/event.service.js';
+import { EventService } from '../../services/event/event.service.js';
+import { Container } from '../container/container.js';
 import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = { handle: Octo['commitTransaction'] };
@@ -16,7 +17,7 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
   private readonly postCommitHooks: PostHookSignature[] = [];
   private readonly preCommitHooks: PreHookSignature[] = [];
 
-  private constructor(private readonly eventService: EventService) {}
+  private constructor() {}
 
   collectHooks(hooks: { postHooks?: PostHookSignature[]; preHooks?: PreHookSignature[] }): void {
     for (const { handle } of hooks.postHooks || []) {
@@ -28,9 +29,9 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
     }
   }
 
-  static getInstance(eventService: EventService): CommitHook {
+  static getInstance(): CommitHook {
     if (!this.instance) {
-      this.instance = new CommitHook(eventService);
+      this.instance = new CommitHook();
     }
     return this.instance;
   }
@@ -43,17 +44,20 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
     const originalMethod = descriptor.value;
 
     descriptor.value = async function (...args: Parameters<Octo['commitTransaction']>): Promise<void> {
+      const container = Container.getInstance();
+      const eventService = await container.get(EventService);
+
       for (const { handle } of self.preCommitHooks) {
         await handle.apply(this, args);
-        self.eventService.emit(new PreCommitHookCallbackDoneEvent());
+        eventService.emit(new PreCommitHookCallbackDoneEvent());
       }
 
       await originalMethod.apply(this, args);
-      self.eventService.emit(new CommitHookCallbackDoneEvent());
+      eventService.emit(new CommitHookCallbackDoneEvent());
 
       for (const { handle } of self.postCommitHooks) {
         await handle.apply(this, args);
-        self.eventService.emit(new PostCommitHookCallbackDoneEvent());
+        eventService.emit(new PostCommitHookCallbackDoneEvent());
       }
     };
   }

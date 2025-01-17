@@ -1,6 +1,4 @@
-import { Container } from '../functions/container/container.js';
 import { CommitHook } from '../functions/hook/commit.hook.js';
-import { EventService } from '../services/event/event.service.js';
 
 type Hook = 'CommitHook';
 
@@ -19,18 +17,13 @@ type Hook = 'CommitHook';
  * @see Definition of [Hooks](/docs/fundamentals/modules#hooks).
  */
 export function EnableHook(hook: Hook): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
-  const container = Container.getInstance();
-
   return function (_target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
-    const promise = container.get(EventService).then((eventService) => {
-      switch (hook) {
-        case 'CommitHook':
-          CommitHook.getInstance(eventService).registrar(descriptor);
-          break;
-        default:
-          throw new Error(`Invalid hook "${hook}"!`);
-      }
-    });
-    container.registerStartupUnhandledPromise(promise);
+    switch (hook) {
+      case 'CommitHook':
+        CommitHook.getInstance().registrar(descriptor);
+        break;
+      default:
+        throw new Error(`Invalid hook "${hook}"!`);
+    }
   };
 }
