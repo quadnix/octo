@@ -146,6 +146,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
   async getModelsMatchingSchema<S>(
     schema: Constructable<S>,
     filters: ObjectKeyValue<S>[] = [],
+    { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
   ): Promise<[S, AModel<S, any>][]> {
     const matches: [S, AModel<S, any>][] = [];
     const container = Container.getInstance();
@@ -156,7 +157,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       schema = translatedSchema.schema;
     }
 
-    const models = this.getBoundaryMembers() as UnknownModel[];
+    const models = searchBoundaryMembers ? (this.getBoundaryMembers() as UnknownModel[]) : [this];
     while (models.length > 0) {
       const model = models.shift()!;
 
@@ -183,6 +184,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     schema: Constructable<S>,
     propertyFilters: ObjectKeyValue<S['properties']>[] = [],
     responseFilters: ObjectKeyValue<S['response']>[] = [],
+    { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
   ): Promise<[S, AResource<S, any>][]> {
     const matches: [S, AResource<S, any>][] = [];
     const container = Container.getInstance();
@@ -196,7 +198,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       schema = translatedSchema.schema;
     }
 
-    const models = this.getBoundaryMembers() as UnknownModel[];
+    const models = searchBoundaryMembers ? (this.getBoundaryMembers() as UnknownModel[]) : [this];
     while (models.length > 0) {
       const model = models.shift()!;
 
