@@ -43,17 +43,6 @@ export class S3Website extends AResource<S3WebsiteSchema, S3Website> {
       }
 
       return diffs;
-    } else if (diff.action === DiffAction.DELETE) {
-      const diffs: Diff[] = [];
-
-      if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {
-        diffs.push(
-          new Diff(this, DiffAction.UPDATE, 'update-source-paths', JSON.parse(JSON.stringify(this.manifestDiff))),
-        );
-      }
-
-      diffs.push(diff);
-      return diffs;
     } else {
       return [diff];
     }
