@@ -24,7 +24,7 @@ import type { Subnet } from '../../../resources/subnet/index.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsSubnetModule } from './aws-subnet.module.js';
 import { AddSubnetModelAction } from './models/subnet/actions/add-subnet.model.action.js';
-import { AddSubnetFilesystemMountOverlayAction } from './overlays/subnet-filesystem-mount/actions/add-subnet-filesystem-mount.overlay.action.js';
+import { AddSubnetLocalFilesystemMountOverlayAction } from './overlays/subnet-local-filesystem-mount/actions/add-subnet-local-filesystem-mount.overlay.action.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -46,6 +46,7 @@ async function setup(
     'testModule',
     [
       {
+        properties: { awsRegionId: 'us-east-1', filesystemName: 'test-filesystem' },
         resourceContext: '@octo/efs=efs-region-test-filesystem',
         response: { FileSystemArn: 'FileSystemArn', FileSystemId: 'FileSystemId' },
       },
@@ -147,8 +148,11 @@ describe('AwsSubnetModule UT', () => {
   it('should call actions with correct inputs', async () => {
     const addSubnetModelAction = await container.get(AddSubnetModelAction);
     const addSubnetModelActionSpy = jest.spyOn(addSubnetModelAction, 'handle');
-    const addSubnetFilesystemMountOverlayAction = await container.get(AddSubnetFilesystemMountOverlayAction);
-    const addSubnetFilesystemMountOverlayActionSpy = jest.spyOn(addSubnetFilesystemMountOverlayAction, 'handle');
+    const addSubnetLocalFilesystemMountOverlayAction = await container.get(AddSubnetLocalFilesystemMountOverlayAction);
+    const addSubnetLocalFilesystemMountOverlayActionSpy = jest.spyOn(
+      addSubnetLocalFilesystemMountOverlayAction,
+      'handle',
+    );
     const addEfsMountTargetResourceAction = await container.get(AddEfsMountTargetResourceAction);
     const addEfsMountTargetResourceActionSpy = jest.spyOn(addEfsMountTargetResourceAction, 'handle');
     const addNetworkAclResourceAction = await container.get(AddNetworkAclResourceAction);
@@ -161,7 +165,7 @@ describe('AwsSubnetModule UT', () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
-        filesystem: stub('${{testModule.model.filesystem}}'),
+        localFilesystems: [stub('${{testModule.model.filesystem}}')],
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',
@@ -178,10 +182,12 @@ describe('AwsSubnetModule UT', () => {
     expect(addSubnetModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
      {
        "inputs": {
-         "filesystem": {
-           "context": "filesystem=test-filesystem,region=region,account=account,app=test-app",
-           "filesystemName": "test-filesystem",
-         },
+         "localFilesystems": [
+           {
+             "context": "filesystem=test-filesystem,region=region,account=account,app=test-app",
+             "filesystemName": "test-filesystem",
+           },
+         ],
          "region": {
            "context": "region=region,account=account,app=test-app",
            "regionId": "region",
@@ -210,7 +216,7 @@ describe('AwsSubnetModule UT', () => {
          },
        },
        "overlays": {
-         "subnet-filesystem-mount-overlay-private-subnet-test-filesystem": {
+         "subnet-local-filesystem-mount-overlay-private-subnet-test-filesystem": {
            "anchors": [
              {
                "anchorId": "AwsFilesystemAnchor",
@@ -220,15 +226,15 @@ describe('AwsSubnetModule UT', () => {
                "properties": {},
              },
              {
-               "anchorId": "AwsSubnetFilesystemMountAnchor",
+               "anchorId": "AwsSubnetLocalFilesystemMountAnchor-test-filesystem",
                "parent": {
                  "context": "subnet=region-private-subnet,region=region,account=account,app=test-app",
                },
                "properties": {},
              },
            ],
-           "context": "@octo/subnet-filesystem-mount-overlay=subnet-filesystem-mount-overlay-private-subnet-test-filesystem",
-           "overlayId": "subnet-filesystem-mount-overlay-private-subnet-test-filesystem",
+           "context": "@octo/subnet-local-filesystem-mount-overlay=subnet-local-filesystem-mount-overlay-private-subnet-test-filesystem",
+           "overlayId": "subnet-local-filesystem-mount-overlay-private-subnet-test-filesystem",
            "properties": {
              "filesystemName": "test-filesystem",
              "regionId": "region",
@@ -242,7 +248,7 @@ describe('AwsSubnetModule UT', () => {
     `);
     /* eslint-enable */
 
-    expect(addSubnetFilesystemMountOverlayActionSpy).toHaveBeenCalledTimes(1);
+    expect(addSubnetLocalFilesystemMountOverlayActionSpy).toHaveBeenCalledTimes(1);
 
     expect(addSubnetResourceActionSpy).toHaveBeenCalledTimes(1);
     expect(addSubnetResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
@@ -391,7 +397,7 @@ describe('AwsSubnetModule UT', () => {
     const { app: app3 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
-        filesystem: stub('${{testModule.model.filesystem}}'),
+        localFilesystems: [stub('${{testModule.model.filesystem}}')],
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
         subnetCidrBlock: '10.0.0.0/24',

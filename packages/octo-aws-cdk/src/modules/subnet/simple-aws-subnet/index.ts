@@ -1,5 +1,5 @@
 import './models/subnet/index.js';
-import './overlays/subnet-filesystem-mount/index.js';
+import './overlays/subnet-local-filesystem-mount/index.js';
 
 import '../../../resources/efs-mount-target/index.js';
 import '../../../resources/network-acl/index.js';

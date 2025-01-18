@@ -16,11 +16,17 @@ import {
 } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsFilesystemAnchor } from './anchors/aws-filesystem.anchor.js';
-import { AwsSubnetFilesystemMountAnchor } from './anchors/aws-subnet-filesystem-mount.anchor.js';
+import { AwsSubnetLocalFilesystemMountAnchor } from './anchors/aws-subnet-local-filesystem-mount.anchor.js';
 import { AwsSubnet } from './models/subnet/index.js';
-import { AwsSubnetFilesystemMountOverlay } from './overlays/subnet-filesystem-mount/index.js';
+import { AwsSubnetLocalFilesystemMountOverlay } from './overlays/subnet-local-filesystem-mount/index.js';
 
 export class EfsResourceSchema extends BaseResourceSchema {
+  @Validate({ destruct: (value): string[] => [value.awsRegionId, value.filesystemName], options: { minLength: 1 } })
+  override properties = Schema<{
+    awsRegionId: string;
+    filesystemName: string;
+  }>();
+
   @Validate({ destruct: (value): string[] => [value.FileSystemId, value.FileSystemArn], options: { minLength: 1 } })
   override response = Schema<{
     FileSystemArn: string;
@@ -52,7 +58,7 @@ export class VpcResourceSchema extends BaseResourceSchema {
 }
 
 export class AwsSubnetModuleSchema {
-  filesystem? = Schema<Filesystem | null>(null);
+  localFilesystems? = Schema<Filesystem[]>([]);
 
   region = Schema<Region>();
 
@@ -72,7 +78,7 @@ export class AwsSubnetModuleSchema {
 
 @Module<AwsSubnetModule>('@octo', AwsSubnetModuleSchema)
 export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
-  async onInit(inputs: AwsSubnetModuleSchema): Promise<(AwsSubnet | AwsSubnetFilesystemMountOverlay)[]> {
+  async onInit(inputs: AwsSubnetModuleSchema): Promise<(AwsSubnet | AwsSubnetLocalFilesystemMountOverlay)[]> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
 
@@ -92,7 +98,7 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
     subnet.subnetType = inputs.subnetOptions?.subnetType || SubnetType.PRIVATE;
     region.addSubnet(subnet);
 
-    const models: (AwsSubnet | AwsSubnetFilesystemMountOverlay)[] = [subnet];
+    const models: (AwsSubnet | AwsSubnetLocalFilesystemMountOverlay)[] = [subnet];
 
     // Associate subnet with siblings.
     const regionSubnets = (region.getChildren('subnet')['subnet'] || []).map((d) => d.to as Subnet);
@@ -104,25 +110,40 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
       subnet.updateNetworkingRules(siblingSubnet, true);
     }
 
-    if (inputs.filesystem) {
-      const filesystemAnchor = new AwsFilesystemAnchor(`AwsFilesystemAnchor`, {}, inputs.filesystem);
-      const subnetFilesystemMountAnchor = new AwsSubnetFilesystemMountAnchor(
-        `AwsSubnetFilesystemMountAnchor`,
+    for (const filesystem of inputs.localFilesystems || []) {
+      const matchingEfsResources = await filesystem.getResourcesMatchingSchema(
+        EfsResourceSchema,
+        [
+          { key: 'awsRegionId', value: awsRegionId },
+          { key: 'filesystemName', value: filesystem.filesystemName },
+        ],
+        [],
+        {
+          searchBoundaryMembers: false,
+        },
+      );
+      if (matchingEfsResources.length !== 1) {
+        throw new Error(`Filesystem "${filesystem.filesystemName}" not found in "${awsRegionId}"!`);
+      }
+
+      const filesystemAnchor = new AwsFilesystemAnchor(`AwsFilesystemAnchor`, {}, filesystem);
+      const subnetLocalFilesystemMountAnchor = new AwsSubnetLocalFilesystemMountAnchor(
+        `AwsSubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
         {},
         subnet,
       );
 
-      const subnetFilesystemMountOverlay = new AwsSubnetFilesystemMountOverlay(
-        `subnet-filesystem-mount-overlay-${subnet.subnetName}-${inputs.filesystem.filesystemName}`,
+      const subnetLocalFilesystemMountOverlay = new AwsSubnetLocalFilesystemMountOverlay(
+        `subnet-local-filesystem-mount-overlay-${subnet.subnetName}-${filesystem.filesystemName}`,
         {
-          filesystemName: inputs.filesystem.filesystemName,
+          filesystemName: filesystem.filesystemName,
           regionId: region.regionId,
           subnetId: subnet.subnetId,
           subnetName: subnet.subnetName,
         },
-        [filesystemAnchor, subnetFilesystemMountAnchor],
+        [filesystemAnchor, subnetLocalFilesystemMountAnchor],
       );
-      models.push(subnetFilesystemMountOverlay);
+      models.push(subnetLocalFilesystemMountOverlay);
     }
 
     // Create and register a new EC2Client & EFSClient.

@@ -1,6 +1,6 @@
 import { BaseOverlaySchema, Schema } from '@quadnix/octo';
 
-export class AwsSubnetFilesystemMountSchema extends BaseOverlaySchema {
+export class AwsSubnetLocalFilesystemMountSchema extends BaseOverlaySchema {
   override properties = Schema<{
     filesystemName: string;
     regionId: string;
