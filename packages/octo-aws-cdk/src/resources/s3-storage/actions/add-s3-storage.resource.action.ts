@@ -10,7 +10,8 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof S3Storage &&
-      (diff.node.constructor as typeof S3Storage).NODE_NAME === 's3-storage'
+      (diff.node.constructor as typeof S3Storage).NODE_NAME === 's3-storage' &&
+      diff.field === 'resourceId'
     );
   }
 
