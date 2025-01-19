@@ -59,6 +59,10 @@ export async function createTestResources(
     [key: string]: UnknownResource | [Promise<UnknownResource>, (value: UnknownResource) => UnknownResource];
   } = {};
 
+  const deReferenceResource = async (context: string): Promise<UnknownResource> => {
+    return resourceDataRepository.getActualResourceByContext(context)!;
+  };
+
   return args.reduce(async (accumulator: Promise<{ [key: string]: UnknownResource }>, arg) => {
     const { NODE_TYPE, parents, properties, resourceContext, response } = arg;
     const [resourceMeta, resourceId] = resourceContext.split('=');
@@ -104,7 +108,10 @@ export async function createTestResources(
       }
     }
     resourceDataRepository.addNewResource(resource);
-    if (options?.save) resourceDataRepository.addActualResource(resource);
+    if (options?.save) {
+      const resourceClone = await AResource.cloneResource(resource, deReferenceResource);
+      resourceDataRepository.addActualResource(resourceClone);
+    }
 
     const resourceClassName = `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`;
     try {

@@ -15,8 +15,10 @@ import type { Service } from '../../models/service/service.model.js';
 import { Subnet } from '../../models/subnet/subnet.model.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { AResource } from '../../resources/resource.abstract.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
+import { NodeUtility } from '../node/node.utility.js';
 import { SharedTestResource, TestOverlay, TestResource } from './test-classes.js';
 
 export async function commit<T extends UnknownModel>(model: T): Promise<T> {
@@ -29,14 +31,26 @@ export async function commitResources({
 }: {
   skipAddActualResource?: boolean;
 } = {}): Promise<void> {
+  const container = Container.getInstance();
+  const [resourceDataRepository, resourceSerializationService] = await Promise.all([
+    container.get(ResourceDataRepository),
+    container.get(ResourceSerializationService),
+  ]);
+
   if (!skipAddActualResource) {
-    const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
-    for (const resource of resourceDataRepository.getNewResourcesByProperties()) {
-      resourceDataRepository.addActualResource(resource);
+    const deReferenceResource = async (context: string): Promise<UnknownResource> => {
+      return resourceDataRepository.getActualResourceByContext(context)!;
+    };
+
+    const sortedNewResources = NodeUtility.sortResourcesByDependency(
+      resourceDataRepository.getNewResourcesByProperties(),
+    );
+    for (const resource of sortedNewResources) {
+      const resourceClone = await AResource.cloneResource(resource, deReferenceResource);
+      resourceDataRepository.addActualResource(resourceClone);
     }
   }
 
-  const resourceSerializationService = await Container.getInstance().get(ResourceSerializationService);
   const actualSerializedResources = await resourceSerializationService.serializeActualResources();
   const oldSerializedResources = await resourceSerializationService.serializeNewResources();
   await resourceSerializationService.deserialize(actualSerializedResources, oldSerializedResources);
