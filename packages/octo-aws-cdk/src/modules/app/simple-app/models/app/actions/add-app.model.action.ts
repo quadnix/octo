@@ -13,7 +13,12 @@ import type { AppModule } from '../../../app.module.js';
 @Action(App)
 export class AddAppModelAction implements IModelAction<AppModule> {
   filter(diff: Diff): boolean {
-    return diff.action === DiffAction.ADD && (diff.node.constructor as typeof App).NODE_NAME === 'app';
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof App &&
+      (diff.node.constructor as typeof App).NODE_NAME === 'app' &&
+      diff.field === 'name'
+    );
   }
 
   async handle(
