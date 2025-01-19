@@ -11,7 +11,8 @@ export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> 
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof EcsCluster &&
-      (diff.node.constructor as typeof EcsCluster).NODE_NAME === 'ecs-cluster'
+      (diff.node.constructor as typeof EcsCluster).NODE_NAME === 'ecs-cluster' &&
+      diff.field === 'resourceId'
     );
   }
 

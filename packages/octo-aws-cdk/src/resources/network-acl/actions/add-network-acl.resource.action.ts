@@ -17,7 +17,8 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof NetworkAcl &&
-      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl'
+      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl' &&
+      diff.field === 'resourceId'
     );
   }
 

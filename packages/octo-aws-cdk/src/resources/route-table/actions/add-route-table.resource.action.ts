@@ -21,7 +21,8 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof RouteTable &&
-      (diff.node.constructor as typeof RouteTable).NODE_NAME === 'route-table'
+      (diff.node.constructor as typeof RouteTable).NODE_NAME === 'route-table' &&
+      diff.field === 'resourceId'
     );
   }
 

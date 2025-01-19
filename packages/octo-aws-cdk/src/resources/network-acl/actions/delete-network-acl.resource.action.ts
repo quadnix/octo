@@ -10,7 +10,8 @@ export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAc
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof NetworkAcl &&
-      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl'
+      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl' &&
+      diff.field === 'resourceId'
     );
   }
 

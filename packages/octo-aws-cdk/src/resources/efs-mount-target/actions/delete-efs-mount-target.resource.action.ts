@@ -25,7 +25,8 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof EfsMountTarget &&
-      (diff.node.constructor as typeof EfsMountTarget).NODE_NAME === 'efs-mount-target'
+      (diff.node.constructor as typeof EfsMountTarget).NODE_NAME === 'efs-mount-target' &&
+      diff.field === 'resourceId'
     );
   }
 

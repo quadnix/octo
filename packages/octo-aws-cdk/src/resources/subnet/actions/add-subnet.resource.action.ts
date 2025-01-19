@@ -11,7 +11,8 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof Subnet &&
-      (diff.node.constructor as typeof Subnet).NODE_NAME === 'subnet'
+      (diff.node.constructor as typeof Subnet).NODE_NAME === 'subnet' &&
+      diff.field === 'resourceId'
     );
   }
 

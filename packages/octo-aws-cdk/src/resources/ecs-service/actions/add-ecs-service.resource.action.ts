@@ -17,7 +17,8 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof EcsService &&
-      (diff.node.constructor as typeof EcsService).NODE_NAME === 'ecs-service'
+      (diff.node.constructor as typeof EcsService).NODE_NAME === 'ecs-service' &&
+      diff.field === 'resourceId'
     );
   }
 

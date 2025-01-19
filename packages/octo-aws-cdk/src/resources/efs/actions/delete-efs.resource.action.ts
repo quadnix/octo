@@ -25,7 +25,8 @@ export class DeleteEfsResourceAction implements IResourceAction<Efs> {
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof Efs &&
-      (diff.node.constructor as typeof Efs).NODE_NAME === 'efs'
+      (diff.node.constructor as typeof Efs).NODE_NAME === 'efs' &&
+      diff.field === 'resourceId'
     );
   }
 

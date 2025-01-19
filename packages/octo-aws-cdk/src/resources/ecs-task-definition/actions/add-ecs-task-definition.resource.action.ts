@@ -15,7 +15,8 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof EcsTaskDefinition &&
-      (diff.node.constructor as typeof EcsTaskDefinition).NODE_NAME === 'ecs-task-definition'
+      (diff.node.constructor as typeof EcsTaskDefinition).NODE_NAME === 'ecs-task-definition' &&
+      diff.field === 'resourceId'
     );
   }
 

@@ -20,7 +20,8 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof EfsMountTarget &&
-      (diff.node.constructor as typeof EfsMountTarget).NODE_NAME === 'efs-mount-target'
+      (diff.node.constructor as typeof EfsMountTarget).NODE_NAME === 'efs-mount-target' &&
+      diff.field === 'resourceId'
     );
   }
 

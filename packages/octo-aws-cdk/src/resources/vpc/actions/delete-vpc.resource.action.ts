@@ -10,7 +10,8 @@ export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof Vpc &&
-      (diff.node.constructor as typeof Vpc).NODE_NAME === 'vpc'
+      (diff.node.constructor as typeof Vpc).NODE_NAME === 'vpc' &&
+      diff.field === 'resourceId'
     );
   }
 

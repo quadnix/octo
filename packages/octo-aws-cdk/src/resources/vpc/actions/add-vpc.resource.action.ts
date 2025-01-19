@@ -11,7 +11,8 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof Vpc &&
-      (diff.node.constructor as typeof Vpc).NODE_NAME === 'vpc'
+      (diff.node.constructor as typeof Vpc).NODE_NAME === 'vpc' &&
+      diff.field === 'resourceId'
     );
   }
 

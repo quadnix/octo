@@ -10,7 +10,8 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof EcrImage &&
-      (diff.node.constructor as typeof EcrImage).NODE_NAME === 'ecr-image'
+      (diff.node.constructor as typeof EcrImage).NODE_NAME === 'ecr-image' &&
+      diff.field === 'resourceId'
     );
   }
 

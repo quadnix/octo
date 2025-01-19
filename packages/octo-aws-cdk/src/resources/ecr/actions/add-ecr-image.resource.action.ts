@@ -19,7 +19,8 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof EcrImage &&
-      (diff.node.constructor as typeof EcrImage).NODE_NAME === 'ecr-image'
+      (diff.node.constructor as typeof EcrImage).NODE_NAME === 'ecr-image' &&
+      diff.field === 'resourceId'
     );
   }
 

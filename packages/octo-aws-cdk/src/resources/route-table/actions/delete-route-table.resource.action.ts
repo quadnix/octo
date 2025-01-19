@@ -10,7 +10,8 @@ export class DeleteRouteTableResourceAction implements IResourceAction<RouteTabl
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof RouteTable &&
-      (diff.node.constructor as typeof RouteTable).NODE_NAME === 'route-table'
+      (diff.node.constructor as typeof RouteTable).NODE_NAME === 'route-table' &&
+      diff.field === 'resourceId'
     );
   }
 

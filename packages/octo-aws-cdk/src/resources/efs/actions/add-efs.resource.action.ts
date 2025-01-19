@@ -20,7 +20,8 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof Efs &&
-      (diff.node.constructor as typeof Efs).NODE_NAME === 'efs'
+      (diff.node.constructor as typeof Efs).NODE_NAME === 'efs' &&
+      diff.field === 'resourceId'
     );
   }
 

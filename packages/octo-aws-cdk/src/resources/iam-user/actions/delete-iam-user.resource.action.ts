@@ -10,7 +10,8 @@ export class DeleteIamUserResourceAction implements IResourceAction<IamUser> {
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof IamUser &&
-      (diff.node.constructor as typeof IamUser).NODE_NAME === 'iam-user'
+      (diff.node.constructor as typeof IamUser).NODE_NAME === 'iam-user' &&
+      diff.field === 'resourceId'
     );
   }
 

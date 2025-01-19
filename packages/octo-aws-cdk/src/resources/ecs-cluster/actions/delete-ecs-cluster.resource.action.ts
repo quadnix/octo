@@ -10,7 +10,8 @@ export class DeleteEcsClusterResourceAction implements IResourceAction<EcsCluste
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof EcsCluster &&
-      (diff.node.constructor as typeof EcsCluster).NODE_NAME === 'ecs-cluster'
+      (diff.node.constructor as typeof EcsCluster).NODE_NAME === 'ecs-cluster' &&
+      diff.field === 'resourceId'
     );
   }
 

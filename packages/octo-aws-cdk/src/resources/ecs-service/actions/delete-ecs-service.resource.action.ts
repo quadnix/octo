@@ -12,7 +12,8 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof EcsService &&
-      (diff.node.constructor as typeof EcsService).NODE_NAME === 'ecs-service'
+      (diff.node.constructor as typeof EcsService).NODE_NAME === 'ecs-service' &&
+      diff.field === 'resourceId'
     );
   }
 

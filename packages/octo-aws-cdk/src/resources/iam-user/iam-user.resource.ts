@@ -99,7 +99,7 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
   }
 
   override diffUnpack(diff: Diff): Diff[] {
-    if (diff.action === DiffAction.ADD) {
+    if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
 
       for (const policy of (diff.node as IamUser).properties.policies) {
@@ -113,7 +113,7 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
       }
 
       return diffs;
-    } else if (diff.action === DiffAction.DELETE) {
+    } else if (diff.action === DiffAction.DELETE && diff.field === 'resourceId') {
       const diffs: Diff[] = [];
 
       for (const policy of (diff.node as IamUser).properties.policies) {

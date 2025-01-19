@@ -10,7 +10,8 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction<Ec
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof EcsTaskDefinition &&
-      (diff.node.constructor as typeof EcsTaskDefinition).NODE_NAME === 'ecs-task-definition'
+      (diff.node.constructor as typeof EcsTaskDefinition).NODE_NAME === 'ecs-task-definition' &&
+      diff.field === 'resourceId'
     );
   }
 

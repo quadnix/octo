@@ -11,7 +11,8 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof IamRole &&
-      (diff.node.constructor as typeof IamRole).NODE_NAME === 'iam-role'
+      (diff.node.constructor as typeof IamRole).NODE_NAME === 'iam-role' &&
+      diff.field === 'resourceId'
     );
   }
 

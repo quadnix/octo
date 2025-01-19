@@ -16,7 +16,8 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof SecurityGroup &&
-      (diff.node.constructor as typeof SecurityGroup).NODE_NAME === 'security-group'
+      (diff.node.constructor as typeof SecurityGroup).NODE_NAME === 'security-group' &&
+      diff.field === 'resourceId'
     );
   }
 

@@ -10,7 +10,8 @@ export class DeleteSubnetResourceAction implements IResourceAction<Subnet> {
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof Subnet &&
-      (diff.node.constructor as typeof Subnet).NODE_NAME === 'subnet'
+      (diff.node.constructor as typeof Subnet).NODE_NAME === 'subnet' &&
+      diff.field === 'resourceId'
     );
   }
 

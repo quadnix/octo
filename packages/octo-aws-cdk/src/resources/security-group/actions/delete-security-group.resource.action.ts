@@ -10,7 +10,8 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction<Securi
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof SecurityGroup &&
-      (diff.node.constructor as typeof SecurityGroup).NODE_NAME === 'security-group'
+      (diff.node.constructor as typeof SecurityGroup).NODE_NAME === 'security-group' &&
+      diff.field === 'resourceId'
     );
   }
 

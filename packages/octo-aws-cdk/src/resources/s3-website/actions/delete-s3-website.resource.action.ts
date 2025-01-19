@@ -16,7 +16,8 @@ export class DeleteS3WebsiteResourceAction implements IResourceAction<S3Website>
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof S3Website &&
-      (diff.node.constructor as typeof S3Website).NODE_NAME === 's3-website'
+      (diff.node.constructor as typeof S3Website).NODE_NAME === 's3-website' &&
+      diff.field === 'resourceId'
     );
   }
 

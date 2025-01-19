@@ -33,7 +33,7 @@ export class S3Website extends AResource<S3WebsiteSchema, S3Website> {
   }
 
   override diffUnpack(diff: Diff): Diff[] {
-    if (diff.action === DiffAction.ADD) {
+    if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
 
       if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {

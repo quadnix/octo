@@ -11,7 +11,8 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction<Inte
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof InternetGateway &&
-      (diff.node.constructor as typeof InternetGateway).NODE_NAME === 'internet-gateway'
+      (diff.node.constructor as typeof InternetGateway).NODE_NAME === 'internet-gateway' &&
+      diff.field === 'resourceId'
     );
   }
 
