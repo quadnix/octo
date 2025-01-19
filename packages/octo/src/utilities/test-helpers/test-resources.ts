@@ -40,6 +40,43 @@ function createSharedResource(nodeName: string): Constructable<ASharedResource<a
   };
 }
 
+export async function createResources(
+  args: (UnknownResource | UnknownSharedResource)[],
+  options?: { save?: boolean },
+): Promise<{ [key: string]: UnknownResource | UnknownSharedResource }> {
+  const container = Container.getInstance();
+  const [resourceDataRepository, resourceSerializationService] = await Promise.all([
+    container.get(ResourceDataRepository),
+    container.get(ResourceSerializationService),
+  ]);
+
+  const deReferenceResource = async (context: string): Promise<UnknownResource> => {
+    return this.resourceDataRepository.getActualResourceByContext(context)!;
+  };
+
+  const resources: { [key: string]: UnknownResource | UnknownSharedResource } = {};
+  for (const resource of args) {
+    resourceDataRepository.addNewResource(resource);
+    if (options?.save) {
+      const resourceClone = await AResource.cloneResource(resource, deReferenceResource);
+      resourceDataRepository.addActualResource(resourceClone);
+    }
+
+    const resourceClassName = `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`;
+    try {
+      resourceSerializationService.registerClass(resourceClassName, resource.constructor);
+    } catch (error) {
+      if (error.message !== `Class "${resourceClassName}" is already registered!`) {
+        throw error;
+      }
+    }
+
+    resources[`${resourceClassName}=${resource.resourceId}`] = resource;
+  }
+
+  return resources;
+}
+
 export async function createTestResources(
   args: {
     NODE_TYPE?: NodeType;

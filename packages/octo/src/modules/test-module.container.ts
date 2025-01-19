@@ -20,7 +20,7 @@ import type { IStateProvider } from '../services/state-management/state-provider
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { create } from '../utilities/test-helpers/test-models.js';
-import { createTestResources } from '../utilities/test-helpers/test-resources.js';
+import { createResources, createTestResources } from '../utilities/test-helpers/test-resources.js';
 import { AModule } from './module.abstract.js';
 import { ModuleContainer } from './module.container.js';
 
@@ -125,6 +125,30 @@ export class TestModuleContainer {
           }
         }
       }
+    }
+
+    return result;
+  }
+
+  async createResources(
+    moduleId: string,
+    args: Parameters<typeof createResources>[0],
+    options?: Parameters<typeof createResources>[1],
+  ): Promise<ReturnType<typeof createResources>> {
+    const container = Container.getInstance();
+    const [inputService, moduleContainer] = await Promise.all([
+      container.get(InputService),
+      container.get(ModuleContainer),
+    ]);
+
+    // Register new moduleId as instance of the universal module.
+    moduleContainer.load(UniversalTestModule, moduleId, {});
+    // Immediately unload the universal module to ensure it does not run in apply().
+    moduleContainer.unload(UniversalTestModule);
+
+    const result = await createResources(args, options);
+    for (const resource of Object.values(result)) {
+      inputService.registerResource(moduleId, resource);
     }
 
     return result;
