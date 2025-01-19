@@ -1,4 +1,5 @@
 import {
+  type AModel,
   Action,
   type ActionOutputs,
   type Diff,
@@ -8,7 +9,13 @@ import {
   type IModelAction,
 } from '@quadnix/octo';
 import type { IamRole } from '../../../../../../resources/iam-role/index.js';
-import type { AwsServerModule } from '../../../aws-server.module.js';
+import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
+import {
+  AwsS3DirectoryAnchorSchema,
+  type AwsS3StorageServiceSchema,
+  type AwsServerModule,
+  S3StorageResourceSchema,
+} from '../../../aws-server.module.js';
 import { AwsServerS3AccessOverlay } from '../aws-server-s3-access.overlay.js';
 
 @Action(AwsServerS3AccessOverlay)
@@ -36,7 +43,21 @@ export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServer
       allowWrite: properties.allowWrite,
     });
 
+    const [[, awsS3DirectoryAnchor]] = await serverS3AccessOverlay.getAnchorsMatchingSchema(
+      AwsS3DirectoryAnchorSchema,
+      [{ key: 'remoteDirectoryPath', value: properties.remoteDirectoryPath }],
+    );
+    const s3StorageService = awsS3DirectoryAnchor.getParent() as AModel<AwsS3StorageServiceSchema, any>;
+    const [[, s3Storage]] = await s3StorageService.getResourcesMatchingSchema(S3StorageResourceSchema, [], [], {
+      searchBoundaryMembers: false,
+    });
+    (s3Storage as S3Storage).addPermission(iamRole, properties.remoteDirectoryPath, {
+      allowRead: properties.allowRead,
+      allowWrite: properties.allowWrite,
+    });
+
     actionOutputs[iamRole.resourceId] = iamRole;
+    actionOutputs[s3Storage.resourceId] = s3Storage;
     return actionOutputs;
   }
 }

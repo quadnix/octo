@@ -1,4 +1,5 @@
 import { IAMClient } from '@aws-sdk/client-iam';
+import { S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import {
   AAnchor,
@@ -16,6 +17,8 @@ import {
 import { AddIamRoleResourceAction } from '../../../resources/iam-role/actions/add-iam-role.resource.action.js';
 import { UpdateIamRoleWithS3StoragePolicyResourceAction } from '../../../resources/iam-role/actions/update-iam-role-with-s3-storage-policy.resource.action.js';
 import type { IamRole } from '../../../resources/iam-role/index.js';
+import { UpdatePermissionsInS3StorageResourceAction } from '../../../resources/s3-storage/actions/update-permissions-in-s3-storage.resource.action.js';
+import { S3Storage } from '../../../resources/s3-storage/index.js';
 import {
   AwsS3DirectoryAnchorSchema,
   AwsS3StorageServiceSchema,
@@ -86,6 +89,12 @@ async function setup(
 
   (service as TestS3StorageService).addDirectory('uploads');
 
+  const s3Storage = new S3Storage('bucket-test-bucket', {
+    awsRegionId: 'us-east-1',
+    Bucket: 'test-bucket',
+  });
+  await testModuleContainer.createResources('testModule', [s3Storage], { save: true });
+
   return { account, app, service };
 }
 
@@ -100,6 +109,15 @@ describe('AwsServerModule UT', () => {
           {
             metadata: { awsRegionId: 'us-east-1', package: '@octo' },
             type: IAMClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
+          {
+            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            type: S3Client,
             value: {
               send: (): void => {
                 throw new Error('Trying to execute real AWS resources in mock mode!');
@@ -142,6 +160,11 @@ describe('AwsServerModule UT', () => {
     );
     const updateIamRoleWithS3StoragePolicyResourceActionSpy = jest.spyOn(
       updateIamRoleWithS3StoragePolicyResourceAction,
+      'handle',
+    );
+    const updatePermissionsInS3StorageResourceAction = await container.get(UpdatePermissionsInS3StorageResourceAction);
+    const updatePermissionsInS3StorageResourceActionSpy = jest.spyOn(
+      updatePermissionsInS3StorageResourceAction,
       'handle',
     );
 
@@ -270,6 +293,20 @@ describe('AwsServerModule UT', () => {
        },
      }
     `);
+
+    expect(updatePermissionsInS3StorageResourceActionSpy).toHaveBeenCalledTimes(1);
+    expect(updatePermissionsInS3StorageResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
+     {
+       "action": "update",
+       "field": "update-permissions",
+       "node": "@octo/s3-storage=bucket-test-bucket",
+       "value": {
+         "uploads": {
+           "iam-role-ServerRole-backend": "addDirectoryPermissions",
+         },
+       },
+     }
+    `);
   });
 
   it('should CUD', async () => {
@@ -373,6 +410,16 @@ describe('AwsServerModule UT', () => {
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
+         {
+           "action": "update",
+           "field": "update-permissions",
+           "node": "@octo/s3-storage=bucket-test-bucket",
+           "value": {
+             "uploads": {
+               "iam-role-ServerRole-backend": "addDirectoryPermissions",
+             },
+           },
+         },
          {
            "action": "update",
            "field": "s3-storage-access-policy",

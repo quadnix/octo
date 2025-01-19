@@ -1,9 +1,11 @@
 import { IAMClient } from '@aws-sdk/client-iam';
+import { S3Client } from '@aws-sdk/client-s3';
 import {
   AModule,
   type Account,
   type App,
   BaseAnchorSchema,
+  BaseResourceSchema,
   Container,
   ContainerRegistrationError,
   Module,
@@ -23,6 +25,17 @@ export enum S3StorageAccess {
   READ = 'READ',
   READ_WRITE = 'READ_WRITE',
   WRITE = 'WRITE',
+}
+
+export class S3StorageResourceSchema extends BaseResourceSchema {
+  @Validate({
+    destruct: (value): string[] => [value.awsRegionId, [value.Bucket]],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    awsRegionId: string;
+    Bucket: string;
+  }>();
 }
 
 export class AwsS3DirectoryAnchorSchema extends BaseAnchorSchema {
@@ -118,9 +131,16 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
       }
     }
 
+    const awsRegionIds: string[] = [];
     if (inputs.s3) {
       for (const s3 of inputs.s3 || []) {
         const service = s3.service;
+        const [[s3StorageSynth]] = await service.getResourcesMatchingSchema(S3StorageResourceSchema, [], [], {
+          searchBoundaryMembers: false,
+        });
+        if (awsRegionIds.indexOf(s3StorageSynth.properties.awsRegionId) === -1) {
+          awsRegionIds.push(s3StorageSynth.properties.awsRegionId);
+        }
 
         for (const directory of s3.directories) {
           const allowRead =
@@ -162,14 +182,20 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
       }
     }
 
-    // Create and register a new IAMClient.
+    // Create and register a new IAMClient and S3Client.
     const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
     const iamClient = new IAMClient({ ...credentials });
+    const s3Client = new S3Client({ ...credentials });
     const container = Container.getInstance();
     try {
       container.registerValue(IAMClient, iamClient, {
         metadata: { package: '@octo' },
       });
+      for (const awsRegionId of awsRegionIds) {
+        container.registerValue(S3Client, s3Client, {
+          metadata: { awsRegionId, package: '@octo' },
+        });
+      }
     } catch (error) {
       if (!(error instanceof ContainerRegistrationError)) {
         throw error;
