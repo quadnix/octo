@@ -28,9 +28,9 @@ export class Diff {
    */
   toJSON(): { action: string; field: string; node: string; value: unknown } {
     let value = this.value;
-    if ((value as UnknownNode).hasOwnProperty('getContext')) {
+    if ((value as UnknownNode).getContext) {
       value = (value as UnknownNode).getContext();
-    } else if ((value as UnknownAnchor).hasOwnProperty('anchorId')) {
+    } else if ((value as UnknownAnchor).anchorId) {
       value = `anchorId=${(value as UnknownAnchor).anchorId}`;
     } else {
       value = JSON.parse(JSON.stringify(value));
