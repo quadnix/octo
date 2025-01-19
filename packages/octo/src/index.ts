@@ -44,6 +44,7 @@ export { ServiceSchema } from './models/service/service.schema.js';
 export { Subnet } from './models/subnet/subnet.model.js';
 export { SubnetSchema, SubnetType } from './models/subnet/subnet.schema.js';
 
+export { AModel } from './models/model.abstract.js';
 export { type IModelReference } from './models/model.interface.js';
 export { type IModelAction } from './models/model-action.interface.js';
 
