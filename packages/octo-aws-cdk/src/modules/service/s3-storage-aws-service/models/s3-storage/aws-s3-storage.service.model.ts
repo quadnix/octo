@@ -25,8 +25,6 @@ export class AwsS3StorageService extends Service {
     const directoryAnchor = new AwsS3DirectoryAnchor(
       directoryAnchorName,
       {
-        allowRead: true,
-        allowWrite: true,
         bucketName: this.bucketName,
         remoteDirectoryPath,
       },

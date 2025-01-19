@@ -2,8 +2,6 @@ import { AAnchor, Anchor, BaseAnchorSchema, Schema, type Service } from '@quadni
 
 class AwsS3DirectoryAnchorSchema extends BaseAnchorSchema {
   override properties = Schema<{
-    allowRead: boolean;
-    allowWrite: boolean;
     bucketName: string;
     remoteDirectoryPath: string;
   }>();
