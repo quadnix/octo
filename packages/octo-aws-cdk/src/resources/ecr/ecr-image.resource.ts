@@ -1,4 +1,4 @@
-import { AResource, Resource } from '@quadnix/octo';
+import { AResource, type Diff, Resource } from '@quadnix/octo';
 import { EcrImageSchema } from './ecr-image.schema.js';
 
 @Resource<EcrImage>('@octo', 'ecr-image', EcrImageSchema)
@@ -8,5 +8,9 @@ export class EcrImage extends AResource<EcrImageSchema, EcrImage> {
 
   constructor(resourceId: string, properties: EcrImageSchema['properties']) {
     super(resourceId, properties, []);
+  }
+
+  override async diffProperties(): Promise<Diff[]> {
+    return [];
   }
 }

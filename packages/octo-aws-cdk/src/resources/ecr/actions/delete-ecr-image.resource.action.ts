@@ -1,4 +1,4 @@
-import { BatchDeleteImageCommand, ECRClient } from '@aws-sdk/client-ecr';
+import { DeleteRepositoryCommand, ECRClient } from '@aws-sdk/client-ecr';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EcrImage } from '../ecr-image.resource.js';
 
@@ -26,12 +26,8 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
     });
 
     await ecrClient.send(
-      new BatchDeleteImageCommand({
-        imageIds: [
-          {
-            imageTag: properties.imageTag,
-          },
-        ],
+      new DeleteRepositoryCommand({
+        force: true,
         repositoryName: properties.imageName,
       }),
     );
@@ -46,7 +42,7 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
       metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ecrClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof BatchDeleteImageCommand) {
+      if (instance instanceof DeleteRepositoryCommand) {
         return;
       }
     };
