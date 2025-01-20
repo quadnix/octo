@@ -30,7 +30,7 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     const parents = networkAcl.getParents();
@@ -98,7 +98,7 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     const subnetResponse = subnet.response;
 
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DescribeNetworkAclsCommand) {

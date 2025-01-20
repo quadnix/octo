@@ -9,7 +9,7 @@ import {
 } from '@quadnix/octo';
 import { EfsMountTarget } from '../../../../../../resources/efs-mount-target/index.js';
 import { Subnet } from '../../../../../../resources/subnet/index.js';
-import { type AwsSubnetModule, EfsResourceSchema, VpcResourceSchema } from '../../../aws-subnet.module.js';
+import { type AwsSubnetModule, EfsResourceSchema } from '../../../aws-subnet.module.js';
 import { AwsSubnetLocalFilesystemMountOverlay } from '../aws-subnet-local-filesystem-mount.overlay.js';
 
 @Action(AwsSubnetLocalFilesystemMountOverlay)
@@ -32,14 +32,17 @@ export class AddSubnetLocalFilesystemMountOverlayAction implements IModelAction<
     const subnetLocalFilesystemMountOverlay = diff.node as AwsSubnetLocalFilesystemMountOverlay;
     const properties = subnetLocalFilesystemMountOverlay.properties;
 
-    const [[vpcSynth]] = await subnetLocalFilesystemMountOverlay.getResourcesMatchingSchema(VpcResourceSchema);
+    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
+      ReturnType<AwsSubnetModule['registerMetadata']>
+    >;
+
     const [[, efs]] = await subnetLocalFilesystemMountOverlay.getResourcesMatchingSchema(EfsResourceSchema);
     const subnet = actionInputs.resources[`subnet-${subnetLocalFilesystemMountOverlay.properties.subnetId}`] as Subnet;
 
     // Create EFS Mount Target.
     const efsMountTarget = new EfsMountTarget(
       `efs-mount-${properties.regionId}-${properties.subnetName}-${properties.filesystemName}`,
-      { awsRegionId: vpcSynth.properties.awsRegionId },
+      { awsAccountId, awsRegionId },
       [efs, subnet],
     );
 

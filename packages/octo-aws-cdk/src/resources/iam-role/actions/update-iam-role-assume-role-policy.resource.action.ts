@@ -23,7 +23,7 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
 
     // Get instances.
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
 
     const policyDocument: { Action: string; Effect: 'Allow'; Principal: { Service: string } }[] = [];
@@ -53,9 +53,12 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
     );
   }
 
-  async mock(): Promise<void> {
+  async mock(diff: Diff): Promise<void> {
+    const iamRole = diff.node as IamRole;
+    const properties = iamRole.properties;
+
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof UpdateAssumeRolePolicyCommand) {

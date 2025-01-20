@@ -26,11 +26,12 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     // Get properties.
     const iamUser = diff.node as IamUser;
     const iamUserPolicyDiff = diff.value as IIamUserPolicyDiff;
+    const properties = iamUser.properties;
     const response = iamUser.response;
 
     // Get instances.
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
 
     // Attach policies to IAM User to read/write from bucket.
@@ -115,10 +116,12 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
   }
 
   async mock(diff: Diff, capture: Partial<IamUserSchema['response']>): Promise<void> {
+    const iamUser = diff.node as IamUser;
     const iamUserPolicyDiff = diff.value as IIamUserPolicyDiff;
+    const properties = iamUser.properties;
 
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreatePolicyCommand) {

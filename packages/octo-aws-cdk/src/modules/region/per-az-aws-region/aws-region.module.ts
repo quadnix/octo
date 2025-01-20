@@ -37,7 +37,7 @@ export class AwsRegionModule extends AModule<AwsRegionModuleSchema, AwsRegion> {
     const container = Container.getInstance();
     try {
       container.registerValue(EC2Client, ec2Client, {
-        metadata: { awsRegionId: region.awsRegionId, package: '@octo' },
+        metadata: { awsAccountId: account.accountId, awsRegionId: region.awsRegionId, package: '@octo' },
       });
     } catch (error) {
       if (!(error instanceof ContainerRegistrationError)) {

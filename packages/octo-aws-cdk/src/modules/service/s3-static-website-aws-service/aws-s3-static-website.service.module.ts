@@ -20,7 +20,7 @@ import { AddS3StaticWebsiteModelAction } from './models/s3-static-website/action
 import { UpdateSourcePathsS3StaticWebsiteModelAction } from './models/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
 import { AwsS3StaticWebsiteService } from './models/s3-static-website/index.js';
 
-export class AwsResourceSchema extends BaseResourceSchema {
+class AwsResourceSchema extends BaseResourceSchema {
   @Validate({ destruct: (value): string[] => [value.awsRegionId], options: { minLength: 1 } })
   override properties = Schema<{
     awsRegionId: string;
@@ -50,6 +50,7 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
     const app = account.getParents()['app'][0].to as App;
+    const { awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
     // Create a new s3-website service.
     const s3StaticWebsiteService = new AwsS3StaticWebsiteService(inputs.bucketName);
@@ -63,17 +64,13 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
       inputs.transform || undefined,
     );
 
-    // Get AWS Region ID.
-    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
-    const awsRegionId = resourceSynth.properties.awsRegionId;
-
     // Create and register a new S3Client.
     const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
     const s3Client = new S3Client({ ...credentials });
     const container = Container.getInstance();
     try {
       container.registerValue(S3Client, s3Client, {
-        metadata: { awsRegionId, package: '@octo' },
+        metadata: { awsAccountId, awsRegionId, package: '@octo' },
       });
       container.registerValue('Upload', Upload, {
         metadata: { package: '@octo' },
@@ -120,6 +117,22 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
           },
         },
       ],
+    };
+  }
+
+  override async registerMetadata(
+    inputs: AwsS3StaticWebsiteServiceModuleSchema,
+  ): Promise<{ awsAccountId: string; awsRegionId: string }> {
+    const region = inputs.region;
+    const account = region.getParents()['account'][0].to as Account;
+
+    // Get AWS Region ID.
+    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
+    const awsRegionId = resourceSynth.properties.awsRegionId;
+
+    return {
+      awsAccountId: account.accountId,
+      awsRegionId,
     };
   }
 }

@@ -46,7 +46,7 @@ describe('AwsS3StorageServiceModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
             type: S3Client,
             value: {
               send: (): void => {
@@ -100,6 +100,10 @@ describe('AwsS3StorageServiceModule UT', () => {
          "remoteDirectoryPaths": [
            "uploads",
          ],
+       },
+       "metadata": {
+         "awsAccountId": "account",
+         "awsRegionId": "us-east-1",
        },
        "models": {
          "service": {

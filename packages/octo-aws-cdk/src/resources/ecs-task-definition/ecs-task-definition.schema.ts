@@ -2,6 +2,7 @@ import { type AResource, BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class EcsTaskDefinitionSchema extends BaseResourceSchema {
   override properties = Schema<{
+    awsAccountId: string;
     awsRegionId: string;
     cpu: number;
     deploymentTag: string;

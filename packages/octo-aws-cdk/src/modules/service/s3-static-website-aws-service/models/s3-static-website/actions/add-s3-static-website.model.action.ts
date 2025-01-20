@@ -8,10 +8,7 @@ import {
   type IModelAction,
 } from '@quadnix/octo';
 import { S3Website } from '../../../../../../resources/s3-website/index.js';
-import {
-  AwsResourceSchema,
-  type AwsS3StaticWebsiteServiceModule,
-} from '../../../aws-s3-static-website.service.module.js';
+import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website.service.module.js';
 import { AwsS3StaticWebsiteService } from '../aws-s3-static-website.service.model.js';
 
 @Action(AwsS3StaticWebsiteService)
@@ -32,13 +29,13 @@ export class AddS3StaticWebsiteModelAction implements IModelAction<AwsS3StaticWe
   ): Promise<ActionOutputs> {
     const { bucketName } = diff.node as AwsS3StaticWebsiteService;
 
-    // Get AWS Region ID.
-    const region = actionInputs.inputs.region;
-    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
-    const awsRegionId = resourceSynth.properties.awsRegionId;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
+      ReturnType<AwsS3StaticWebsiteServiceModule['registerMetadata']>
+    >;
 
     // Create S3 Website.
     const s3Website = new S3Website(`bucket-${bucketName}`, {
+      awsAccountId,
       awsRegionId,
       Bucket: bucketName,
       ErrorDocument: 'error.html',

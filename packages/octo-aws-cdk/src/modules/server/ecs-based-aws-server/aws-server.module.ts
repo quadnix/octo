@@ -189,11 +189,11 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     const container = Container.getInstance();
     try {
       container.registerValue(IAMClient, iamClient, {
-        metadata: { package: '@octo' },
+        metadata: { awsAccountId: account.accountId, package: '@octo' },
       });
       for (const awsRegionId of awsRegionIds) {
         container.registerValue(S3Client, s3Client, {
-          metadata: { awsRegionId, package: '@octo' },
+          metadata: { awsAccountId: account.accountId, awsRegionId, package: '@octo' },
         });
       }
     } catch (error) {

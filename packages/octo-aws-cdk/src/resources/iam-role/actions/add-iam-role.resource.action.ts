@@ -24,7 +24,7 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
 
     // Get instances.
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
 
     // Create IAM role.
@@ -45,9 +45,12 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
     response.RoleName = data.Role!.RoleName!;
   }
 
-  async mock(_diff: Diff, capture: Partial<IamRoleSchema['response']>): Promise<void> {
+  async mock(diff: Diff, capture: Partial<IamRoleSchema['response']>): Promise<void> {
+    const iamRole = diff.node as IamRole;
+    const properties = iamRole.properties;
+
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateRoleCommand) {

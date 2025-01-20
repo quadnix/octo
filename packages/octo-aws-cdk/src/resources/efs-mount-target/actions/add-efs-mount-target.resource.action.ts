@@ -39,7 +39,7 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
 
     // Get instances.
     const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Create a new EFS MountTarget.
@@ -89,7 +89,7 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     const efsResponse = efs.response;
 
     const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateMountTargetCommand) {

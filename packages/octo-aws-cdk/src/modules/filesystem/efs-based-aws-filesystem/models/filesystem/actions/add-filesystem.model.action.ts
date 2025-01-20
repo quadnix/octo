@@ -8,7 +8,7 @@ import {
   type IModelAction,
 } from '@quadnix/octo';
 import { Efs } from '../../../../../../resources/efs/index.js';
-import { AwsFilesystemModule, AwsResourceSchema } from '../../../aws-filesystem.module.js';
+import type { AwsFilesystemModule } from '../../../aws-filesystem.module.js';
 import { AwsFilesystem } from '../aws.filesystem.model.js';
 
 @Action(AwsFilesystem)
@@ -30,14 +30,14 @@ export class AddFilesystemModelAction implements IModelAction<AwsFilesystemModul
     const filesystem = diff.node as AwsFilesystem;
     const region = actionInputs.inputs.region;
 
-    // Get AWS Region ID.
-    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
-    const awsRegionId = resourceSynth.properties.awsRegionId;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
+      ReturnType<AwsFilesystemModule['registerMetadata']>
+    >;
 
     // Create EFS.
     const efs = new Efs(
       `efs-${region.regionId}-${filesystem.filesystemName}`,
-      { awsRegionId, filesystemName: filesystem.filesystemName },
+      { awsAccountId, awsRegionId, filesystemName: filesystem.filesystemName },
       [],
     );
 

@@ -26,7 +26,7 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
 
     // Get instances.
     const s3Client = await this.container.get(S3Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     const UploadClient = await this.container.get<typeof Upload>('Upload', {
       metadata: { package: '@octo' },
@@ -66,7 +66,7 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     const properties = s3Website.properties;
 
     const s3Client = await this.container.get(S3Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteObjectCommand) {

@@ -13,7 +13,7 @@ import {
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsFilesystem } from './models/filesystem/index.js';
 
-export class AwsResourceSchema extends BaseResourceSchema {
+class AwsResourceSchema extends BaseResourceSchema {
   @Validate({ destruct: (value): string[] => [value.awsRegionId], options: { minLength: 1 } })
   override properties = Schema<{
     awsRegionId: string;
@@ -31,10 +31,7 @@ export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, AwsF
   async onInit(inputs: AwsFilesystemModuleSchema): Promise<AwsFilesystem> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
-
-    // Get AWS Region ID.
-    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
-    const awsRegionId = resourceSynth.properties.awsRegionId;
+    const { awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
     // Create a new filesystem.
     const filesystem = new AwsFilesystem(inputs.filesystemName);
@@ -46,7 +43,7 @@ export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, AwsF
     const container = Container.getInstance();
     try {
       container.registerValue(EFSClient, efsClient, {
-        metadata: { awsRegionId, package: '@octo' },
+        metadata: { awsAccountId, awsRegionId, package: '@octo' },
       });
     } catch (error) {
       if (!(error instanceof ContainerRegistrationError)) {
@@ -55,5 +52,21 @@ export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, AwsF
     }
 
     return filesystem;
+  }
+
+  override async registerMetadata(
+    inputs: AwsFilesystemModuleSchema,
+  ): Promise<{ awsAccountId: string; awsRegionId: string }> {
+    const region = inputs.region;
+    const account = region.getParents()['account'][0].to as Account;
+
+    // Get AWS Region ID.
+    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
+    const awsRegionId = resourceSynth.properties.awsRegionId;
+
+    return {
+      awsAccountId: account.accountId,
+      awsRegionId,
+    };
   }
 }

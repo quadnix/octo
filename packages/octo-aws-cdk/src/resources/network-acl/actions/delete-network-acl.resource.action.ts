@@ -23,7 +23,7 @@ export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAc
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Associate Subnet with the default Network ACL.
@@ -47,7 +47,7 @@ export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAc
     const properties = networkAcl.properties;
 
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof ReplaceNetworkAclAssociationCommand) {

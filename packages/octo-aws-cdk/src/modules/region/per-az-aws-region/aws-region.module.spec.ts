@@ -37,7 +37,7 @@ describe('AwsRegionModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
             type: EC2Client,
             value: {
               send: (): void => {
@@ -107,6 +107,7 @@ describe('AwsRegionModule UT', () => {
          "regionId": "aws-us-east-1a",
          "vpcCidrBlock": "10.0.0.0/8",
        },
+       "metadata": {},
        "models": {
          "region": {
            "awsRegionAZs": [

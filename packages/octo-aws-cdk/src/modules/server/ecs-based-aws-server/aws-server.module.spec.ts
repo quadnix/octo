@@ -90,6 +90,7 @@ async function setup(
   (service as TestS3StorageService).addDirectory('uploads');
 
   const s3Storage = new S3Storage('bucket-test-bucket', {
+    awsAccountId: '123',
     awsRegionId: 'us-east-1',
     Bucket: 'test-bucket',
   });
@@ -107,7 +108,7 @@ describe('AwsServerModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
             type: IAMClient,
             value: {
               send: (): void => {
@@ -116,7 +117,7 @@ describe('AwsServerModule UT', () => {
             },
           },
           {
-            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
             type: S3Client,
             value: {
               send: (): void => {
@@ -218,6 +219,7 @@ describe('AwsServerModule UT', () => {
          "securityGroupRules": [],
          "serverKey": "backend",
        },
+       "metadata": {},
        "models": {
          "server": {
            "context": "server=backend,app=test-app",

@@ -22,7 +22,7 @@ export class DeleteEcsClusterResourceAction implements IResourceAction<EcsCluste
 
     // Get instances.
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     await ecsClient.send(
@@ -38,7 +38,7 @@ export class DeleteEcsClusterResourceAction implements IResourceAction<EcsCluste
     const properties = ecsCluster.properties;
 
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteClusterCommand) {

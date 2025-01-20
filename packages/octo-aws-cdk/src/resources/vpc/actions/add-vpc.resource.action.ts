@@ -24,7 +24,7 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Create VPC.
@@ -45,7 +45,7 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
     const properties = vpc.properties;
 
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateVpcCommand) {

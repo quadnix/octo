@@ -52,6 +52,7 @@ describe('AwsAccountModule UT', () => {
          },
          "iniProfile": "default",
        },
+       "metadata": {},
        "models": {
          "account": {
            "accountId": "1234",

@@ -54,7 +54,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
             type: S3Client,
             value: {
               send: (): void => {
@@ -63,7 +63,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             },
           },
           {
-            metadata: { package: '@octo' },
+            metadata: { awsAccountId: '123', package: '@octo' },
             type: 'Upload',
             value: class {
               done(): Promise<void> {
@@ -129,6 +129,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
          },
          "subDirectoryOrFilePath": null,
          "transform": null,
+       },
+       "metadata": {
+         "awsAccountId": "account",
+         "awsRegionId": "us-east-1",
        },
        "models": {
          "service": {

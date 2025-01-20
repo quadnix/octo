@@ -43,7 +43,7 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
 
     // Get instances.
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Create a new service.
@@ -73,7 +73,7 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
     const properties = ecsService.properties;
 
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateServiceCommand) {

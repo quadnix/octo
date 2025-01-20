@@ -18,11 +18,12 @@ export class DeleteIamUserResourceAction implements IResourceAction<IamUser> {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const iamUser = diff.node as IamUser;
+    const properties = iamUser.properties;
     const response = iamUser.response;
 
     // Get instances.
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
 
     // Delete IAM user.
@@ -33,9 +34,12 @@ export class DeleteIamUserResourceAction implements IResourceAction<IamUser> {
     );
   }
 
-  async mock(): Promise<void> {
+  async mock(diff: Diff): Promise<void> {
+    const iamUser = diff.node as IamUser;
+    const properties = iamUser.properties;
+
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteUserCommand) {

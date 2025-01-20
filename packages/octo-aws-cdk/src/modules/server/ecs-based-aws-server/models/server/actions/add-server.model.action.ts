@@ -25,7 +25,7 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
 
   async handle(
     diff: Diff,
-    _actionInputs: EnhancedModuleSchema<AwsServerModule>,
+    actionInputs: EnhancedModuleSchema<AwsServerModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const server = diff.node as AwsServer;
@@ -34,6 +34,7 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
 
     // Create IAM Role.
     const iamRole = new IamRole(`iam-role-${serverIamRoleName}`, {
+      awsAccountId: actionInputs.inputs.account.accountId,
       policies: [
         {
           policy: 'ecs-tasks.amazonaws.com',

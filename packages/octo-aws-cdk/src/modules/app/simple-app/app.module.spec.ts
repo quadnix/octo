@@ -36,6 +36,7 @@ describe('AppModule UT', () => {
        "inputs": {
          "name": "test-app",
        },
+       "metadata": {},
        "models": {
          "app": {
            "context": "app=test-app",

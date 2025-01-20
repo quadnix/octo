@@ -22,7 +22,7 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
 
     // Get instances.
     const ecrClient = await this.container.get(ECRClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     await ecrClient.send(
@@ -39,7 +39,7 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
     const properties = ecrImage.properties;
 
     const ecrClient = await this.container.get(ECRClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ecrClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteRepositoryCommand) {

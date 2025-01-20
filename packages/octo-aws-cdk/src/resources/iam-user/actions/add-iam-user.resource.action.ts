@@ -24,7 +24,7 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
 
     // Get instances.
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
 
     // Create IAM user.
@@ -41,9 +41,12 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     response.UserName = data.User!.UserName!;
   }
 
-  async mock(_diff: Diff, capture: Partial<IamUserSchema['response']>): Promise<void> {
+  async mock(diff: Diff, capture: Partial<IamUserSchema['response']>): Promise<void> {
+    const iamUser = diff.node as IamUser;
+    const properties = iamUser.properties;
+
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateUserCommand) {

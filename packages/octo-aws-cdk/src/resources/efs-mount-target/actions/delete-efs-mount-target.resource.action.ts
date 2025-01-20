@@ -42,7 +42,7 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
 
     // Get instances.
     const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Delete EFS MountTarget.
@@ -93,7 +93,7 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
     const efsResponse = efs.response;
 
     const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteMountTargetCommand) {

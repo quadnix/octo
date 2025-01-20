@@ -23,7 +23,7 @@ export class DeleteRouteTableResourceAction implements IResourceAction<RouteTabl
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Delete RouteTable to Subnet association.
@@ -47,7 +47,7 @@ export class DeleteRouteTableResourceAction implements IResourceAction<RouteTabl
     const properties = routeTable.properties;
 
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DisassociateRouteTableCommand) {

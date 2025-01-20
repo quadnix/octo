@@ -19,11 +19,12 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
     // Get properties.
     const iamRole = diff.node as IamRole;
     const iamRolePolicyDiff = diff.value as IIamRolePolicyDiff;
+    const properties = iamRole.properties;
     const response = iamRole.response;
 
     // Get instances.
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
 
     // Attach AWS policies to IAM Role.
@@ -52,9 +53,12 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
     }
   }
 
-  async mock(): Promise<void> {
+  async mock(diff: Diff): Promise<void> {
+    const iamRole = diff.node as IamRole;
+    const properties = iamRole.properties;
+
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof AttachRolePolicyCommand) {

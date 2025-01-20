@@ -81,11 +81,7 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
   async onInit(inputs: AwsSubnetModuleSchema): Promise<(AwsSubnet | AwsSubnetLocalFilesystemMountOverlay)[]> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
-
-    // Get AWS AZs and Region ID.
-    const [[vpcSynth]] = await region.getResourcesMatchingSchema(VpcResourceSchema);
-    const awsAvailabilityZones = vpcSynth.properties.awsAvailabilityZones;
-    const awsRegionId = vpcSynth.properties.awsRegionId;
+    const { awsAccountId, awsAvailabilityZones, awsRegionId } = await this.registerMetadata(inputs);
 
     // Validate subnet availability zone.
     if (!awsAvailabilityZones.includes(inputs.subnetAvailabilityZone)) {
@@ -153,10 +149,10 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
     const container = Container.getInstance();
     try {
       container.registerValue(EC2Client, ec2Client, {
-        metadata: { awsRegionId, package: '@octo' },
+        metadata: { awsAccountId, awsRegionId, package: '@octo' },
       });
       container.registerValue(EFSClient, efsClient, {
-        metadata: { awsRegionId, package: '@octo' },
+        metadata: { awsAccountId, awsRegionId, package: '@octo' },
       });
     } catch (error) {
       if (!(error instanceof ContainerRegistrationError)) {
@@ -165,5 +161,22 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
     }
 
     return models;
+  }
+
+  override async registerMetadata(
+    inputs: AwsSubnetModuleSchema,
+  ): Promise<{ awsAccountId: string; awsAvailabilityZones: string[]; awsRegionId: string }> {
+    const region = inputs.region;
+    const account = region.getParents()['account'][0].to as Account;
+
+    // Get AWS Region ID.
+    const [[vpcSynth]] = await region.getResourcesMatchingSchema(VpcResourceSchema);
+    const awsRegionId = vpcSynth.properties.awsRegionId;
+
+    return {
+      awsAccountId: account.accountId,
+      awsAvailabilityZones: vpcSynth.properties.awsAvailabilityZones,
+      awsRegionId,
+    };
   }
 }

@@ -13,7 +13,7 @@ import {
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsEnvironment } from './models/environment/index.js';
 
-export class AwsResourceSchema extends BaseResourceSchema {
+class AwsResourceSchema extends BaseResourceSchema {
   @Validate({ destruct: (value): string[] => [value.awsRegionId], options: { minLength: 1 } })
   override properties = Schema<{
     awsRegionId: string;
@@ -33,10 +33,7 @@ export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Aw
   async onInit(inputs: AwsEnvironmentModuleSchema): Promise<AwsEnvironment> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
-
-    // Get AWS Region ID.
-    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
-    const awsRegionId = resourceSynth.properties.awsRegionId;
+    const { awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
     // Create a new environment.
     const environment = new AwsEnvironment(inputs.environmentName);
@@ -51,7 +48,7 @@ export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Aw
     const container = Container.getInstance();
     try {
       container.registerValue(ECSClient, ecsClient, {
-        metadata: { awsRegionId, package: '@octo' },
+        metadata: { awsAccountId, awsRegionId, package: '@octo' },
       });
     } catch (error) {
       if (!(error instanceof ContainerRegistrationError)) {
@@ -60,5 +57,21 @@ export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Aw
     }
 
     return environment;
+  }
+
+  override async registerMetadata(
+    inputs: AwsEnvironmentModuleSchema,
+  ): Promise<{ awsAccountId: string; awsRegionId: string }> {
+    const region = inputs.region;
+    const account = region.getParents()['account'][0].to as Account;
+
+    // Get AWS Region ID.
+    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
+    const awsRegionId = resourceSynth.properties.awsRegionId;
+
+    return {
+      awsAccountId: account.accountId,
+      awsRegionId,
+    };
   }
 }

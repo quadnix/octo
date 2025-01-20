@@ -33,9 +33,11 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
     const regionId = awsRegion.regionId;
 
     const vpcCidrBlock = actionInputs.inputs.vpcCidrBlock;
+    const awsAccountId = actionInputs.inputs.account.accountId;
 
     // Create VPC.
     const vpc = new Vpc(`vpc-${regionId}`, {
+      awsAccountId,
       awsAvailabilityZones: [...awsRegion.awsRegionAZs],
       awsRegionId: awsRegion.awsRegionId,
       CidrBlock: vpcCidrBlock,
@@ -43,12 +45,17 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
     });
 
     // Create Internet Gateway.
-    const internetGateway = new InternetGateway(`igw-${regionId}`, { awsRegionId: awsRegion.awsRegionId }, [vpc]);
+    const internetGateway = new InternetGateway(
+      `igw-${regionId}`,
+      { awsAccountId, awsRegionId: awsRegion.awsRegionId },
+      [vpc],
+    );
 
     // Create Security Groups.
     const accessSG = new SecurityGroup(
       `sec-grp-${regionId}-access`,
       {
+        awsAccountId,
         awsRegionId: awsRegion.awsRegionId,
         rules: [
           // Access SSH from everywhere.

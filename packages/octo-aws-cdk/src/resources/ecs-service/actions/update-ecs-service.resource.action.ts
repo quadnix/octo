@@ -42,7 +42,7 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
 
     // Get instances.
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Update the service.
@@ -71,7 +71,7 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
     const properties = ecsService.properties;
 
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof UpdateServiceCommand) {

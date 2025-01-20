@@ -18,6 +18,7 @@ export type IIamRolePolicyTypes = {
 export class IamRoleSchema extends BaseResourceSchema {
   // Source: https://stackoverflow.com/a/56837244/1834562
   override properties = Schema<{
+    awsAccountId: string;
     policies: {
       [K in keyof IIamRolePolicyTypes]-?: { policy: IIamRolePolicyTypes[K]; policyId: string; policyType: K };
     }[keyof IIamRolePolicyTypes][];

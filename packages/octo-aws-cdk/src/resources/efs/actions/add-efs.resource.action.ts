@@ -33,7 +33,7 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
 
     // Get instances.
     const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Create a new EFS.
@@ -82,7 +82,7 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
     const properties = efs.properties;
 
     const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateFileSystemCommand) {

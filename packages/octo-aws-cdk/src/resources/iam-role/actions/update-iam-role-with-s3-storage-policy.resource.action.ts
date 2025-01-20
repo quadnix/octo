@@ -26,11 +26,12 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
     // Get properties.
     const iamRole = diff.node as IamRole;
     const iamRolePolicyDiff = diff.value as IIamRolePolicyDiff;
+    const properties = iamRole.properties;
     const response = iamRole.response;
 
     // Get instances.
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
 
     // Attach policies to IAM Role to read/write from bucket.
@@ -115,10 +116,12 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
   }
 
   async mock(diff: Diff, capture: Partial<IamRoleSchema['response']>): Promise<void> {
+    const iamRole = diff.node as IamRole;
     const iamRolePolicyDiff = diff.value as IIamRolePolicyDiff;
+    const properties = iamRole.properties;
 
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreatePolicyCommand) {

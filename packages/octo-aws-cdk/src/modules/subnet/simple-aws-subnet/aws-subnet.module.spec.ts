@@ -78,7 +78,7 @@ describe('AwsSubnetModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
             type: EC2Client,
             value: {
               send: (): void => {
@@ -87,7 +87,7 @@ describe('AwsSubnetModule UT', () => {
             },
           },
           {
-            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
             type: EFSClient,
             value: {
               send: (): void => {
@@ -200,6 +200,13 @@ describe('AwsSubnetModule UT', () => {
            "subnetType": "private",
          },
          "subnetSiblings": [],
+       },
+       "metadata": {
+         "awsAccountId": "account",
+         "awsAvailabilityZones": [
+           "us-east-1a",
+         ],
+         "awsRegionId": "us-east-1",
        },
        "models": {
          "subnet": {
@@ -332,6 +339,7 @@ describe('AwsSubnetModule UT', () => {
     `);
     expect((result1.resourceDiffs[0][2].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
      {
+       "awsAccountId": "account",
        "awsRegionId": "us-east-1",
        "entries": [],
      }
@@ -539,6 +547,7 @@ describe('AwsSubnetModule UT', () => {
     `);
     expect((result1.resourceDiffs[0][5].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
      {
+       "awsAccountId": "account",
        "awsRegionId": "us-east-1",
        "entries": [
          {

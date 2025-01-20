@@ -14,7 +14,10 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
   declare properties: S3StorageSchema['properties'];
   declare response: S3StorageSchema['response'];
 
-  constructor(resourceId: string, properties: Pick<S3StorageSchema['properties'], 'awsRegionId' | 'Bucket'>) {
+  constructor(
+    resourceId: string,
+    properties: Pick<S3StorageSchema['properties'], 'awsAccountId' | 'awsRegionId' | 'Bucket'>,
+  ) {
     super(resourceId, { ...properties, permissions: [] }, []);
   }
 

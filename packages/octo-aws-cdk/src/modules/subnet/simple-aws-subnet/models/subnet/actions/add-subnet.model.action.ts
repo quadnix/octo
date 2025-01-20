@@ -33,6 +33,10 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
   ): Promise<ActionOutputs> {
     const subnet = diff.node as AwsSubnet;
 
+    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
+      ReturnType<AwsSubnetModule['registerMetadata']>
+    >;
+
     const subnetCidrBlock = actionInputs.inputs.subnetCidrBlock;
     const [[, vpc]] = await subnet.getResourcesMatchingSchema(VpcResourceSchema);
     const [[, internetGateway]] = await subnet.getResourcesMatchingSchema(InternetGatewayResourceSchema);
@@ -42,7 +46,8 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
       `subnet-${subnet.subnetId}`,
       {
         AvailabilityZone: actionInputs.inputs.subnetAvailabilityZone,
-        awsRegionId: vpc.properties.awsRegionId,
+        awsAccountId,
+        awsRegionId,
         CidrBlock: subnetCidrBlock,
       },
       [vpc],
@@ -53,7 +58,8 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
       `rt-${subnet.subnetId}`,
       {
         associateWithInternetGateway: subnet.subnetType === SubnetType.PUBLIC,
-        awsRegionId: vpc.properties.awsRegionId,
+        awsAccountId,
+        awsRegionId,
       },
       [vpc, internetGateway, subnetSubnet],
     );
@@ -125,7 +131,8 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     const subnetNAcl = new NetworkAcl(
       `nacl-${subnet.subnetId}`,
       {
-        awsRegionId: vpc.properties.awsRegionId,
+        awsAccountId,
+        awsRegionId,
         entries: subnetNAclEntries,
       },
       [vpc, subnetSubnet],

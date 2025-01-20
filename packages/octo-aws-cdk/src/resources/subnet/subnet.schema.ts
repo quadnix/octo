@@ -3,6 +3,7 @@ import { type AResource, BaseResourceSchema, Schema, Validate } from '@quadnix/o
 export class SubnetSchema extends BaseResourceSchema {
   override properties = Schema<{
     AvailabilityZone: string;
+    awsAccountId: string;
     awsRegionId: string;
     CidrBlock: string;
   }>();

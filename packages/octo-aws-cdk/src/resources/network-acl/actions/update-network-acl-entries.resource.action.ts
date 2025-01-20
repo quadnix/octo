@@ -34,7 +34,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     const limit = pLimit(100);
 
@@ -144,7 +144,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
     const properties = networkAcl.properties;
 
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DescribeNetworkAclsCommand) {

@@ -23,7 +23,7 @@ export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Delete VPC.
@@ -40,7 +40,7 @@ export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
     const properties = vpc.properties;
 
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteVpcCommand) {

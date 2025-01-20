@@ -24,7 +24,7 @@ export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> 
 
     // Get instances.
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Create a new cluster.
@@ -44,7 +44,7 @@ export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> 
     const properties = ecsCluster.properties;
 
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateClusterCommand) {

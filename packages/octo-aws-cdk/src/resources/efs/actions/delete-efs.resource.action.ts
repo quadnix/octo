@@ -38,7 +38,7 @@ export class DeleteEfsResourceAction implements IResourceAction<Efs> {
 
     // Get instances.
     const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Delete EFS.
@@ -86,7 +86,7 @@ export class DeleteEfsResourceAction implements IResourceAction<Efs> {
     const properties = efs.properties;
 
     const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteFileSystemCommand) {

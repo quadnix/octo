@@ -8,7 +8,7 @@ import {
   type IModelAction,
 } from '@quadnix/octo';
 import { S3Storage } from '../../../../../../resources/s3-storage/index.js';
-import { AwsResourceSchema, AwsS3StorageServiceModule } from '../../../aws-s3-storage.service.module.js';
+import type { AwsS3StorageServiceModule } from '../../../aws-s3-storage.service.module.js';
 import { AwsS3StorageService } from '../aws-s3-storage.service.model.js';
 
 @Action(AwsS3StorageService)
@@ -29,13 +29,13 @@ export class AddS3StorageServiceModelAction implements IModelAction<AwsS3Storage
   ): Promise<ActionOutputs> {
     const { bucketName } = diff.node as AwsS3StorageService;
 
-    // Get AWS Region ID.
-    const region = actionInputs.inputs.region;
-    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
-    const awsRegionId = resourceSynth.properties.awsRegionId;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
+      ReturnType<AwsS3StorageServiceModule['registerMetadata']>
+    >;
 
     // Create S3 Bucket.
     const s3Storage = new S3Storage(`bucket-${bucketName}`, {
+      awsAccountId,
       awsRegionId,
       Bucket: bucketName,
     });

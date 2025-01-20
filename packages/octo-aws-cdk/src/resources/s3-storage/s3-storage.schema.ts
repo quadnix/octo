@@ -2,6 +2,7 @@ import { BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class S3StorageSchema extends BaseResourceSchema {
   override properties = Schema<{
+    awsAccountId: string;
     awsRegionId: string;
     Bucket: string;
     permissions: {

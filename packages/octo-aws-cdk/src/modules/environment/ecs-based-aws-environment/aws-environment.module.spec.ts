@@ -47,7 +47,7 @@ describe('AwsEnvironmentModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
             type: ECSClient,
             value: {
               send: (): void => {
@@ -105,6 +105,10 @@ describe('AwsEnvironmentModule UT', () => {
            "context": "region=region,account=account,app=test-app",
            "regionId": "region",
          },
+       },
+       "metadata": {
+         "awsAccountId": "account",
+         "awsRegionId": "us-east-1",
        },
        "models": {
          "environment": {

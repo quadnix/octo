@@ -30,7 +30,7 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Revoke existing rules from security group.
@@ -117,7 +117,7 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof RevokeSecurityGroupEgressCommand) {

@@ -22,7 +22,7 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
 
     // Get instances.
     const s3Client = await this.container.get(S3Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Create a new bucket.
@@ -39,7 +39,7 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
     const properties = s3Storage.properties;
 
     const s3Client = await this.container.get(S3Client, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateBucketCommand) {

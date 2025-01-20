@@ -18,11 +18,12 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const iamRole = diff.node as IamRole;
+    const properties = iamRole.properties;
     const response = iamRole.response;
 
     // Get instances.
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
 
     // Delete IAM role.
@@ -33,9 +34,12 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
     );
   }
 
-  async mock(): Promise<void> {
+  async mock(diff: Diff): Promise<void> {
+    const iamRole = diff.node as IamRole;
+    const properties = iamRole.properties;
+
     const iamClient = await this.container.get(IAMClient, {
-      metadata: { package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteRoleCommand) {

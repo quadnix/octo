@@ -23,7 +23,7 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction<Ec
 
     // Get instances.
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
     // Deregister the task definition.
@@ -53,7 +53,7 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction<Ec
     const properties = ecsTaskDefinition.properties;
 
     const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsRegionId: properties.awsRegionId, package: '@octo' },
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
     ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeregisterTaskDefinitionCommand) {

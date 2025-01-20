@@ -3,6 +3,7 @@ import { type AResource, BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class SecurityGroupSchema extends BaseResourceSchema {
   override properties = Schema<{
+    awsAccountId: string;
     awsRegionId: string;
     rules: {
       CidrBlock: string;
