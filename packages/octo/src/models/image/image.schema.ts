@@ -3,26 +3,6 @@ import { Schema } from '../../functions/schema/schema.js';
 
 export class ImageSchema {
   /**
-   * Options passed to the Docker engine while building the image.
-   */
-  dockerOptions = Schema<{
-    /**
-     * Absolute path of the Dockerfile.
-     */
-    dockerfilePath: string;
-
-    /**
-     * Build arguments, same as [--build-arg](https://docs.docker.com/build/guide/build-args/) option.
-     */
-    buildArgs?: { [key: string]: string };
-
-    /**
-     * To suppress Docker output, same as [--quiet](https://docs.docker.com/reference/cli/docker/container/run/) option.
-     */
-    quiet?: boolean;
-  }>();
-
-  /**
    * An imageId is the unique identifier for this image.
    * - Format of imageId is `{imageName}:{imageTag}`
    */

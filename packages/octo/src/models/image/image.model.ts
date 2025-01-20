@@ -1,5 +1,4 @@
 import { strict as assert } from 'assert';
-import { resolve } from 'path';
 import type { UnknownModel } from '../../app.type.js';
 import { Model } from '../../decorators/model.decorator.js';
 import { AModel } from '../model.abstract.js';
@@ -19,22 +18,17 @@ import { ImageSchema } from './image.schema.js';
  */
 @Model<Image>('@octo', 'image', ImageSchema)
 export class Image extends AModel<ImageSchema, Image> {
-  readonly dockerOptions: ImageSchema['dockerOptions'];
-
   readonly imageId: string;
 
   readonly imageName: string;
 
   readonly imageTag: string;
 
-  constructor(imageName: string, imageTag: string, options: ImageSchema['dockerOptions']) {
+  constructor(imageName: string, imageTag: string) {
     super();
     this.imageId = `${imageName}:${imageTag}`;
     this.imageName = imageName;
     this.imageTag = imageTag;
-
-    options.dockerfilePath = resolve(options.dockerfilePath);
-    this.dockerOptions = options;
   }
 
   override setContext(): string {
@@ -45,7 +39,6 @@ export class Image extends AModel<ImageSchema, Image> {
 
   override synth(): ImageSchema {
     return {
-      dockerOptions: JSON.parse(JSON.stringify(this.dockerOptions)),
       imageId: this.imageTag,
       imageName: this.imageName,
       imageTag: this.imageTag,
@@ -58,8 +51,6 @@ export class Image extends AModel<ImageSchema, Image> {
   ): Promise<Image> {
     assert(!!deReferenceContext);
 
-    return new Image(image.imageName, image.imageTag, {
-      ...image.dockerOptions,
-    });
+    return new Image(image.imageName, image.imageTag);
   }
 }

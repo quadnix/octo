@@ -143,7 +143,7 @@ export function create({
     }
     const [id, i] = splitEntry(entry, index);
 
-    const image = new Image(id, 'v1', { dockerfilePath: '/Dockerfile' });
+    const image = new Image(id, 'v1');
     const app = result.app[i];
     app.addImage(image);
     result.image.push(image);

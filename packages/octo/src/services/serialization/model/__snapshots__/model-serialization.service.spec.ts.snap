@@ -229,9 +229,6 @@ exports[`Model Serialization Service UT serialize() should serialize a non-empty
     "image=image:v1,app=test-app": {
       "className": "@octo/Image",
       "model": {
-        "dockerOptions": {
-          "dockerfilePath": "/Dockerfile",
-        },
         "imageId": "v1",
         "imageName": "image",
         "imageTag": "v1",

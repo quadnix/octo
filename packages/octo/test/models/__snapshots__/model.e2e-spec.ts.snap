@@ -317,9 +317,6 @@ exports[`Model E2E Test common functions Test common functions Test Image getSib
 
 exports[`Model E2E Test common functions Test common functions Test Image synth() 1`] = `
 {
-  "dockerOptions": {
-    "dockerfilePath": "/Dockerfile",
-  },
   "imageId": "v1",
   "imageName": "image",
   "imageTag": "v1",
