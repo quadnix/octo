@@ -34,7 +34,7 @@ describe('Subnet UT', () => {
       } = create({ account: ['aws,account'], app: ['test'], region: ['region'], subnet: ['$$'] });
 
       expect(() => {
-        getSchemaInstance<SubnetSchema>(SubnetSchema, subnet.synth() as unknown as Record<string, unknown>);
+        getSchemaInstance<SubnetSchema>(SubnetSchema, subnet.synth());
       }).toThrow('Validation error!');
     });
   });

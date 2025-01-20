@@ -49,7 +49,7 @@ describe('Schema UT', () => {
         @Validate({ destruct: (value: { key1: string }): string[] => [value.key1], options: { minLength: 1 } })
         properties = Schema<{ key1: string }>();
       }
-      const value = { properties: 'a string' };
+      const value = { properties: 'a string' as any };
       expect(() => getSchemaInstance(TestSchema, value)).toThrow();
     });
 

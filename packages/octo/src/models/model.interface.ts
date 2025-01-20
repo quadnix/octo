@@ -53,7 +53,10 @@ export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
     propertyFilters: ObjectKeyValue<S['properties']>[],
   ): Promise<[S, AAnchor<S, any>][]>;
 
-  getModelsMatchingSchema<S>(schema: Constructable<S>, filters: ObjectKeyValue<S>[]): Promise<[S, AModel<S, any>][]>;
+  getModelsMatchingSchema<S extends object>(
+    schema: Constructable<S>,
+    filters: ObjectKeyValue<S>[],
+  ): Promise<[S, AModel<S, any>][]>;
 
   getResourcesMatchingSchema<S extends BaseResourceSchema>(
     schema: Constructable<S>,

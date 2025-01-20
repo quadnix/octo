@@ -19,10 +19,7 @@ describe('Environment UT', () => {
       const environment = new Environment('$$');
 
       expect(() => {
-        getSchemaInstance<EnvironmentSchema>(
-          EnvironmentSchema,
-          environment.synth() as unknown as Record<string, unknown>,
-        );
+        getSchemaInstance<EnvironmentSchema>(EnvironmentSchema, environment.synth());
       }).toThrow('Validation error!');
     });
 
@@ -31,10 +28,7 @@ describe('Environment UT', () => {
       environment.environmentVariables.set('$$', '$$');
 
       expect(() => {
-        getSchemaInstance<EnvironmentSchema>(
-          EnvironmentSchema,
-          environment.synth() as unknown as Record<string, unknown>,
-        );
+        getSchemaInstance<EnvironmentSchema>(EnvironmentSchema, environment.synth());
       }).toThrow('Validation error!');
     });
   });

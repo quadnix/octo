@@ -125,7 +125,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       const anchor = anchors.shift()!;
 
       try {
-        const schemaInstance = getSchemaInstance(from, anchor.synth() as unknown as Record<string, unknown>);
+        const schemaInstance = getSchemaInstance(from, anchor.synth());
         const matchingSchemaInstance = (
           translatedSchema ? translatedSchema.translator(schemaInstance) : anchor.synth()
         ) as S;
@@ -143,7 +143,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     return matches;
   }
 
-  async getModelsMatchingSchema<S>(
+  async getModelsMatchingSchema<S extends object>(
     schema: Constructable<S>,
     filters: ObjectKeyValue<S>[] = [],
     { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
@@ -162,7 +162,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       const model = models.shift()!;
 
       try {
-        const schemaInstance = getSchemaInstance(schema, model.synth() as Record<string, unknown>);
+        const schemaInstance = getSchemaInstance(schema, model.synth() as object);
         const matchingSchemaInstance = (
           translatedSchema ? translatedSchema.translator(schemaInstance) : model.synth()
         ) as S;

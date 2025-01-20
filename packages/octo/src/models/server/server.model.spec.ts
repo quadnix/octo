@@ -24,7 +24,7 @@ describe('Server UT', () => {
       } = create({ account: ['aws,account'], app: ['test'], server: ['$$'] });
 
       expect(() => {
-        getSchemaInstance<ServerSchema>(ServerSchema, server.synth() as unknown as Record<string, unknown>);
+        getSchemaInstance<ServerSchema>(ServerSchema, server.synth());
       }).toThrow('Validation error!');
     });
   });

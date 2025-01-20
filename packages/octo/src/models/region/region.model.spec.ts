@@ -24,7 +24,7 @@ describe('Region UT', () => {
       } = create({ account: ['aws,account'], app: ['test'], region: ['$$'] });
 
       expect(() => {
-        getSchemaInstance<RegionSchema>(RegionSchema, region.synth() as unknown as Record<string, unknown>);
+        getSchemaInstance<RegionSchema>(RegionSchema, region.synth());
       }).toThrow('Validation error!');
     });
   });

@@ -59,7 +59,7 @@ describe('Execution UT', () => {
       execution.environmentVariables.set('$$', '$$');
 
       expect(() => {
-        getSchemaInstance<ExecutionSchema>(ExecutionSchema, execution.synth() as unknown as Record<string, unknown>);
+        getSchemaInstance<ExecutionSchema>(ExecutionSchema, execution.synth());
       }).toThrow('Validation error!');
     });
   });

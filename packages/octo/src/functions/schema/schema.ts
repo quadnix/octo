@@ -1,10 +1,7 @@
 import type { Constructable } from '../../app.type.js';
 import { SchemaError } from '../../errors/index.js';
 
-export function getSchemaInstance<S>(
-  schemaClass: Constructable<S>,
-  value: Record<string, unknown>,
-): Record<string, unknown> {
+export function getSchemaInstance<S extends object>(schemaClass: Constructable<S>, value: S): Record<string, unknown> {
   const instance: Record<string, unknown> = {};
   const t = new schemaClass();
 
