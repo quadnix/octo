@@ -19,7 +19,7 @@ export class DiffMetadata {
   readonly node: UnknownNode;
   readonly value: unknown;
 
-  readonly inputs: ActionInputs = { inputs: {}, models: {}, overlays: {}, resources: {} };
+  readonly inputs: ActionInputs = { inputs: {}, metadata: {}, models: {}, overlays: {}, resources: {} };
   readonly outputs: ActionOutputs = {};
 
   constructor(diff: Diff, actions: IUnknownModelAction[] | IUnknownResourceAction[]) {

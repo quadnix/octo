@@ -69,11 +69,18 @@ export class ModuleContainer {
           }
         }
 
-        // Run module. Register module output, and return the module output.
+        // Create new module instance.
         const instance = new module();
+        // Register module hooks.
         this.registerHooks(instance.registerHooks());
-        let models = (await instance.onInit(resolvedModuleSchema)) as UnknownModel | UnknownModel[];
+        // Register module metadata.
+        const metadata = await instance.registerMetadata(resolvedModuleSchema);
+        for (const [key, value] of Object.entries(metadata)) {
+          this.inputService.registerMetadata(i.moduleId, key, value);
+        }
 
+        // Run module. Register module output, and return the module output.
+        let models = (await instance.onInit(resolvedModuleSchema)) as UnknownModel | UnknownModel[];
         if (!Array.isArray(models)) {
           models = [models];
         }

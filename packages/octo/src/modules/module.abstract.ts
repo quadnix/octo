@@ -1,3 +1,4 @@
+import { strict as assert } from 'assert';
 import type { ModuleSchema, UnknownModel } from '../app.type.js';
 import type { CommitHook } from '../functions/hook/commit.hook.js';
 import type { ModelActionHook } from '../functions/hook/model-action.hook.js';
@@ -19,6 +20,11 @@ export abstract class AModule<S, T extends UnknownModel> implements IModule<S, T
     preModelActionHooks?: Parameters<ModelActionHook['collectHooks']>[0]['preHooks'];
     preResourceActionHooks?: Parameters<ResourceActionHook['collectHooks']>[0]['preHooks'];
   } {
+    return {};
+  }
+
+  async registerMetadata(inputs: S): Promise<Record<string, unknown>> {
+    assert(!!inputs);
     return {};
   }
 }

@@ -13,6 +13,7 @@ exports[`TransactionService UT applyModels() should call action and collect all 
       "inputs": {
         "name": "app",
       },
+      "metadata": {},
       "models": {
         "app": {
           "context": "app=app",
@@ -40,6 +41,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
       "inputs": {
         "name": "app",
       },
+      "metadata": {},
       "models": {
         "app": {
           "context": "app=app",
@@ -62,6 +64,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
       "inputs": {
         "name": "app",
       },
+      "metadata": {},
       "models": {
         "app": {
           "context": "app=app",

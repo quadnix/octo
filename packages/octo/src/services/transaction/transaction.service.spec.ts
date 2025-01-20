@@ -220,13 +220,9 @@ describe('TransactionService UT', () => {
         inputs: {
           name: 'app',
         },
+        metadata: {},
         models: {
-          app: {
-            anchors: [],
-            context: 'app=app',
-            dependencies: [],
-            name: 'app',
-          },
+          app,
         },
         overlays: {},
         resources: {},

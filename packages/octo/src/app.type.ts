@@ -84,6 +84,7 @@ export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
 export type AnchorSchema<T> = T extends AAnchor<infer S, any> ? S : never;
 export type EnhancedModuleSchema<T> = {
   inputs: { [K in keyof ModuleSchemaInputs<T>]: ModuleSchema<T>[K] };
+  metadata: Record<string, unknown>;
   models: Record<string, UnknownModel>;
   overlays: Record<string, UnknownOverlay>;
   resources: Record<string, UnknownResource>;
