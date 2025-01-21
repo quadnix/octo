@@ -7,7 +7,7 @@ export class SchemaTranslationService {
 
   getTranslatedSchema<S1, S2>(
     from: Constructable<S1>,
-  ): { schema: Constructable<S2>; translator: (modelSynth: S2) => S1 } | undefined {
+  ): { schema: Constructable<S2>; translator: (synth: S2) => S1 } | undefined {
     if (!this.translations.has(from)) {
       return undefined;
     }

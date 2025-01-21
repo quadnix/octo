@@ -54,7 +54,7 @@ describe('Model UT', () => {
       const models = await app.getModelsMatchingSchema(ToSchema);
 
       expect(models.length).toBe(1);
-      expect(models![0][0].name).toEqual('app');
+      expect(models![0].getSchemaInstance().name).toEqual('app');
     });
 
     it('should return all matching models without translation', async () => {
@@ -66,8 +66,8 @@ describe('Model UT', () => {
       const models = await account.getModelsMatchingSchema(ToSchema);
 
       expect(models.length).toBe(2);
-      expect(models![0][0].name).toEqual('app1');
-      expect(models![1][0].name).toEqual('app2');
+      expect(models![0].getSchemaInstance().name).toEqual('app1');
+      expect(models![1].getSchemaInstance().name).toEqual('app2');
     });
 
     it('should return matching models with translation', async () => {
@@ -84,7 +84,7 @@ describe('Model UT', () => {
       const models = await app.getModelsMatchingSchema(FromSchema);
 
       expect(models.length).toBe(1);
-      expect(models![0][0].appName).toEqual('app');
+      expect(models![0].getSchemaInstance().appName).toEqual('app');
     });
 
     it('should return empty array with translation and non-matching filters', async () => {
@@ -117,7 +117,7 @@ describe('Model UT', () => {
       const models = await app.getModelsMatchingSchema(FromSchema, [{ key: 'appName', value: 'app' }]);
 
       expect(models.length).toBe(1);
-      expect(models![0][0].appName).toEqual('app');
+      expect(models![0].getSchemaInstance().appName).toEqual('app');
     });
   });
 
@@ -174,7 +174,7 @@ describe('Model UT', () => {
       const resources = await app.getResourcesMatchingSchema(FromSchema);
 
       expect(resources.length).toBe(1);
-      expect(resources![0][0].properties).toEqual({ fromKey: 'value1' });
+      expect(resources![0].getSchemaInstance().properties).toEqual({ fromKey: 'value1' });
     });
 
     it('should return all matching resources without translation', async () => {
@@ -192,7 +192,7 @@ describe('Model UT', () => {
       const resources = await app.getResourcesMatchingSchema(FromSchema);
 
       expect(resources.length).toBe(1);
-      expect(resources![0][0].properties).toEqual({ fromKey: 'value1' });
+      expect(resources![0].getSchemaInstance().properties).toEqual({ fromKey: 'value1' });
     });
 
     it('should return matching resources with translation', async () => {
@@ -216,7 +216,7 @@ describe('Model UT', () => {
       const resources = await app.getResourcesMatchingSchema(FromSchema);
 
       expect(resources.length).toBe(1);
-      expect(resources![0][0].properties).toEqual({ fromKey: 'value1', toKey: 'value1' });
+      expect(resources![0].getSchemaInstance().properties).toEqual({ fromKey: 'value1', toKey: 'value1' });
     });
 
     it('should return empty array with translation and non-matching filters', async () => {
@@ -263,7 +263,7 @@ describe('Model UT', () => {
       const resources = await app.getResourcesMatchingSchema(FromSchema, [{ key: 'fromKey', value: 'value1' }]);
 
       expect(resources.length).toBe(1);
-      expect(resources![0][0].properties).toEqual({ fromKey: 'value1', toKey: 'value1' });
+      expect(resources![0].getSchemaInstance().properties).toEqual({ fromKey: 'value1', toKey: 'value1' });
     });
   });
 });

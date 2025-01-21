@@ -67,6 +67,9 @@ export { type IStateProvider } from './services/state-management/state-provider.
 export { TestStateProvider } from './services/state-management/test.state-provider.js';
 
 export {
+  MatchingAnchor,
+  MatchingModel,
+  MatchingResource,
   stub,
   type ActionOutputs,
   type Constructable,

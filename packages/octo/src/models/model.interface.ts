@@ -1,10 +1,15 @@
-import type { Constructable, ObjectKeyValue, UnknownModel } from '../app.type.js';
+import type {
+  Constructable,
+  MatchingAnchor,
+  MatchingModel,
+  MatchingResource,
+  ObjectKeyValue,
+  UnknownModel,
+} from '../app.type.js';
 import type { INode, INodeReference } from '../functions/node/node.interface.js';
 import type { AAnchor } from '../overlays/anchor.abstract.js';
 import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
-import type { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
-import type { AModel } from './model.abstract.js';
 
 /**
  * {@link AModel} interface.
@@ -51,18 +56,18 @@ export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
   getAnchorsMatchingSchema<S extends BaseAnchorSchema>(
     schema: Constructable<S>,
     propertyFilters: ObjectKeyValue<S['properties']>[],
-  ): Promise<[S, AAnchor<S, any>][]>;
+  ): Promise<MatchingAnchor<S>[]>;
 
   getModelsMatchingSchema<S extends object>(
     schema: Constructable<S>,
     filters: ObjectKeyValue<S>[],
-  ): Promise<[S, AModel<S, any>][]>;
+  ): Promise<MatchingModel<S>[]>;
 
   getResourcesMatchingSchema<S extends BaseResourceSchema>(
     schema: Constructable<S>,
     propertyFilters: ObjectKeyValue<S['properties']>[],
     responseFilters: ObjectKeyValue<S['response']>[],
-  ): Promise<[S, AResource<S, any>][]>;
+  ): Promise<MatchingResource<S>[]>;
 
   /**
    * To remove all anchors from self.

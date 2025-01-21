@@ -1,5 +1,8 @@
 import {
   type Constructable,
+  MatchingAnchor,
+  MatchingModel,
+  MatchingResource,
   NodeType,
   type ObjectKeyValue,
   type UnknownAnchor,
@@ -110,8 +113,8 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
   async getAnchorsMatchingSchema<S extends BaseAnchorSchema>(
     from: Constructable<S>,
     propertyFilters: ObjectKeyValue<S['properties']>[] = [],
-  ): Promise<[S, AAnchor<S, any>][]> {
-    const matches: [S, AAnchor<S, any>][] = [];
+  ): Promise<MatchingAnchor<S>[]> {
+    const matches: [S, AAnchor<S, any>, ((synth: any) => S) | undefined][] = [];
     const container = Container.getInstance();
     const schemaTranslationService = await container.get(SchemaTranslationService);
 
@@ -131,7 +134,11 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
         ) as S;
 
         if (propertyFilters.every((f) => matchingSchemaInstance.properties[f.key as string] === f.value)) {
-          matches.push([matchingSchemaInstance, anchor as AAnchor<S, any>]);
+          matches.push([
+            matchingSchemaInstance,
+            anchor as AAnchor<S, any>,
+            translatedSchema ? translatedSchema.translator : undefined,
+          ]);
         }
       } catch (error) {
         if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
@@ -140,15 +147,15 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       }
     }
 
-    return matches;
+    return matches.map((m) => new MatchingAnchor(m[1], m[0], m[2]));
   }
 
   async getModelsMatchingSchema<S extends object>(
     schema: Constructable<S>,
     filters: ObjectKeyValue<S>[] = [],
     { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
-  ): Promise<[S, AModel<S, any>][]> {
-    const matches: [S, AModel<S, any>][] = [];
+  ): Promise<MatchingModel<S>[]> {
+    const matches: [S, AModel<S, any>, ((synth: any) => S) | undefined][] = [];
     const container = Container.getInstance();
     const schemaTranslationService = await container.get(SchemaTranslationService);
 
@@ -168,7 +175,11 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
         ) as S;
 
         if (filters.every((f) => matchingSchemaInstance[f.key] === f.value)) {
-          matches.push([matchingSchemaInstance, model as AModel<S, any>]);
+          matches.push([
+            matchingSchemaInstance,
+            model as AModel<S, any>,
+            translatedSchema ? translatedSchema.translator : undefined,
+          ]);
         }
       } catch (error) {
         if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
@@ -177,7 +188,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       }
     }
 
-    return matches;
+    return matches.map((m) => new MatchingModel(m[1], m[0], m[2]));
   }
 
   async getResourcesMatchingSchema<S extends BaseResourceSchema>(
@@ -185,8 +196,8 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     propertyFilters: ObjectKeyValue<S['properties']>[] = [],
     responseFilters: ObjectKeyValue<S['response']>[] = [],
     { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
-  ): Promise<[S, AResource<S, any>][]> {
-    const matches: [S, AResource<S, any>][] = [];
+  ): Promise<MatchingResource<S>[]> {
+    const matches: [S, AResource<S, any>, ((synth: any) => S) | undefined][] = [];
     const container = Container.getInstance();
     const [inputService, schemaTranslationService] = await Promise.all([
       container.get(InputService),
@@ -218,7 +229,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
             propertyFilters.every((f) => matchingSchemaInstance.properties[f.key as string] === f.value) &&
             responseFilters.every((f) => matchingSchemaInstance.response[f.key as string] === f.value)
           ) {
-            matches.push([matchingSchemaInstance, r]);
+            matches.push([matchingSchemaInstance, r, translatedSchema ? translatedSchema.translator : undefined]);
           }
         } catch (error) {
           if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
@@ -228,7 +239,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       });
     }
 
-    return matches;
+    return matches.map((m) => new MatchingResource(m[1], m[0], m[2]));
   }
 
   removeAllAnchors(): void {

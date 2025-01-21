@@ -14,6 +14,72 @@ import type { BaseResourceSchema } from './resources/resource.schema.js';
 import type { ASharedResource } from './resources/shared-resource.abstract.js';
 import type { ValidationUtility } from './utilities/validation/validation.utility.js';
 
+/* Classes */
+export class MatchingAnchor<S extends BaseAnchorSchema> {
+  constructor(
+    private readonly actual: AAnchor<S, any>,
+    private readonly schemaInstance: S,
+    private readonly schemaTranslator?: (synth: any) => S,
+  ) {}
+
+  hasSchemaTranslator(): boolean {
+    return !!this.schemaTranslator;
+  }
+
+  getActual(): AAnchor<Omit<BaseAnchorSchema, 'properties'> & { properties: Record<never, never> }, any> {
+    return this.actual;
+  }
+
+  getSchemaInstance(): S {
+    return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : this.schemaInstance;
+  }
+}
+
+export class MatchingModel<S extends object> {
+  constructor(
+    private readonly actual: AModel<S, any>,
+    private readonly schemaInstance: S,
+    private readonly schemaTranslator?: (synth: any) => S,
+  ) {}
+
+  hasSchemaTranslator(): boolean {
+    return !!this.schemaTranslator;
+  }
+
+  getActual(): AModel<Record<never, never>, any> {
+    return this.actual;
+  }
+
+  getSchemaInstance(): S {
+    return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : this.schemaInstance;
+  }
+}
+
+export class MatchingResource<S extends BaseResourceSchema> {
+  constructor(
+    private readonly actual: AResource<BaseResourceSchema, any>,
+    private readonly schemaInstance: S,
+    private readonly schemaTranslator?: (synth: any) => S,
+  ) {}
+
+  hasSchemaTranslator(): boolean {
+    return !!this.schemaTranslator;
+  }
+
+  getActual(): AResource<
+    Omit<BaseResourceSchema, 'properties' | 'response'> & { properties: Record<never, never> } & {
+      response: Record<never, never>;
+    },
+    any
+  > {
+    return this.actual;
+  }
+
+  getSchemaInstance(): S {
+    return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : this.schemaInstance;
+  }
+}
+
 /* Enumerations */
 export enum NodeType {
   MODEL = 'model',
