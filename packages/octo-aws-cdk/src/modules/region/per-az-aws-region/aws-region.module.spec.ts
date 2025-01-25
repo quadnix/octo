@@ -1,22 +1,10 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { jest } from '@jest/globals';
-import {
-  type Account,
-  type App,
-  type Container,
-  TestContainer,
-  TestModuleContainer,
-  TestStateProvider,
-  stub,
-} from '@quadnix/octo';
-import { AddInternetGatewayResourceAction } from '../../../resources/internet-gateway/actions/add-internet-gateway.resource.action.js';
+import { type Account, type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
 import { type InternetGatewaySchema } from '../../../resources/internet-gateway/index.js';
-import { AddSecurityGroupResourceAction } from '../../../resources/security-group/actions/add-security-group.resource.action.js';
 import { type SecurityGroupSchema } from '../../../resources/security-group/index.js';
-import { AddVpcResourceAction } from '../../../resources/vpc/actions/add-vpc.resource.action.js';
 import { type VpcSchema } from '../../../resources/vpc/index.js';
 import { AwsRegionModule } from './aws-region.module.js';
-import { AddRegionModelAction } from './models/region/actions/add-region.model.action.js';
 import { RegionId } from './models/region/index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
@@ -29,11 +17,10 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 }
 
 describe('AwsRegionModule UT', () => {
-  let container: Container;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
+    await TestContainer.create(
       {
         mocks: [
           {
@@ -72,16 +59,7 @@ describe('AwsRegionModule UT', () => {
     await TestContainer.reset();
   });
 
-  it('should call actions with correct inputs', async () => {
-    const addRegionModelAction = await container.get(AddRegionModelAction);
-    const addRegionModelActionSpy = jest.spyOn(addRegionModelAction, 'handle');
-    const addInternetGatewayResourceAction = await container.get(AddInternetGatewayResourceAction);
-    const addInternetGatewayResourceActionSpy = jest.spyOn(addInternetGatewayResourceAction, 'handle');
-    const addSecurityGroupResourceAction = await container.get(AddSecurityGroupResourceAction);
-    const addSecurityGroupResourceActionSpy = jest.spyOn(addSecurityGroupResourceAction, 'handle');
-    const addVpcResourceAction = await container.get(AddVpcResourceAction);
-    const addVpcResourceActionSpy = jest.spyOn(addVpcResourceAction, 'handle');
-
+  it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsRegionModule>({
       inputs: {
@@ -93,64 +71,27 @@ describe('AwsRegionModule UT', () => {
       type: AwsRegionModule,
     });
 
-    await testModuleContainer.commit(app, { enableResourceCapture: true });
-
-    expect(addRegionModelActionSpy).toHaveBeenCalledTimes(1);
-    expect(addRegionModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
-     {
-       "inputs": {
-         "account": {
-           "accountId": "123",
-           "accountType": "aws",
-           "context": "account=123,app=test-app",
-         },
-         "regionId": "aws-us-east-1a",
-         "vpcCidrBlock": "10.0.0.0/8",
-       },
-       "metadata": {},
-       "models": {
-         "region": {
-           "awsRegionAZs": [
-             "us-east-1a",
-           ],
-           "awsRegionId": "us-east-1",
-           "context": "region=aws-us-east-1a,account=123,app=test-app",
-           "regionId": "aws-us-east-1a",
-         },
-       },
-       "overlays": {},
-       "resources": {},
-     }
+    const result = await testModuleContainer.commit(app, {
+      enableResourceCapture: true,
+      filterByModuleIds: ['region'],
+    });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddRegionModelAction",
+       ],
+     ]
     `);
-
-    expect(addVpcResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(addVpcResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "add",
-       "field": "resourceId",
-       "node": "@octo/vpc=vpc-aws-us-east-1a",
-       "value": "@octo/vpc=vpc-aws-us-east-1a",
-     }
-    `);
-
-    expect(addInternetGatewayResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(addInternetGatewayResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "add",
-       "field": "resourceId",
-       "node": "@octo/internet-gateway=igw-aws-us-east-1a",
-       "value": "@octo/internet-gateway=igw-aws-us-east-1a",
-     }
-    `);
-
-    expect(addSecurityGroupResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(addSecurityGroupResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "add",
-       "field": "resourceId",
-       "node": "@octo/security-group=sec-grp-aws-us-east-1a-access",
-       "value": "@octo/security-group=sec-grp-aws-us-east-1a-access",
-     }
+    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddVpcResourceAction",
+       ],
+       [
+         "AddInternetGatewayResourceAction",
+         "AddSecurityGroupResourceAction",
+       ],
+     ]
     `);
   });
 

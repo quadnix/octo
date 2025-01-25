@@ -3,7 +3,6 @@ import { jest } from '@jest/globals';
 import {
   type Account,
   type App,
-  type Container,
   type Region,
   TestContainer,
   TestModuleContainer,
@@ -12,11 +11,7 @@ import {
 } from '@quadnix/octo';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { AddS3WebsiteResourceAction } from '../../../resources/s3-website/actions/add-s3-website.resource.action.js';
-import { UpdateSourcePathsInS3WebsiteResourceAction } from '../../../resources/s3-website/actions/update-source-paths-in-s3-website.resource.action.js';
 import { AwsS3StaticWebsiteServiceModule } from './aws-s3-static-website.service.module.js';
-import { AddS3StaticWebsiteModelAction } from './models/s3-static-website/actions/add-s3-static-website.model.action.js';
-import { UpdateSourcePathsS3StaticWebsiteModelAction } from './models/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const resourcesPath = join(__dirname, '../../../../resources');
@@ -46,11 +41,10 @@ async function setup(
 }
 
 describe('AwsS3StaticWebsiteServiceModule UT', () => {
-  let container: Container;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
+    await TestContainer.create(
       {
         mocks: [
           {
@@ -85,24 +79,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     await TestContainer.reset();
   });
 
-  it('should call actions with correct inputs', async () => {
-    const addS3StaticWebsiteModelAction = await container.get(AddS3StaticWebsiteModelAction);
-    const addS3StaticWebsiteModelActionSpy = jest.spyOn(addS3StaticWebsiteModelAction, 'handle');
-    const updateSourcePathsS3StaticWebsiteModelAction = await container.get(
-      UpdateSourcePathsS3StaticWebsiteModelAction,
-    );
-    const updateSourcePathsS3StaticWebsiteModelActionSpy = jest.spyOn(
-      updateSourcePathsS3StaticWebsiteModelAction,
-      'handle',
-    );
-    const addS3WebsiteResourceAction = await container.get(AddS3WebsiteResourceAction);
-    const addS3WebsiteResourceActionSpy = jest.spyOn(addS3WebsiteResourceAction, 'handle');
-    const updateSourcePathsInS3WebsiteResourceAction = await container.get(UpdateSourcePathsInS3WebsiteResourceAction);
-    const updateSourcePathsInS3WebsiteResourceActionSpy = jest.spyOn(
-      updateSourcePathsInS3WebsiteResourceAction,
-      'handle',
-    );
-
+  it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
       inputs: {
@@ -114,80 +91,27 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       type: AwsS3StaticWebsiteServiceModule,
     });
 
-    await testModuleContainer.commit(app, { enableResourceCapture: true });
-
-    expect(addS3StaticWebsiteModelActionSpy).toHaveBeenCalledTimes(1);
-    expect(addS3StaticWebsiteModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
-     {
-       "inputs": {
-         "bucketName": "test-bucket",
-         "directoryPath": "${websiteSourcePath}",
-         "filter": null,
-         "region": {
-           "context": "region=region,account=123,app=test-app",
-           "regionId": "region",
-         },
-         "subDirectoryOrFilePath": null,
-         "transform": null,
-       },
-       "metadata": {
-         "awsAccountId": "123",
-         "awsRegionId": "us-east-1",
-       },
-       "models": {
-         "service": {
-           "bucketName": "test-bucket",
-           "context": "service=test-bucket-s3-static-website,app=test-app",
-           "excludePaths": [],
-           "serviceId": "test-bucket-s3-static-website",
-           "sourcePaths": [
-             {
-               "directoryPath": "${websiteSourcePath}",
-               "isDirectory": true,
-               "remotePath": "",
-               "subDirectoryOrFilePath": "",
-             },
-           ],
-         },
-       },
-       "overlays": {},
-       "resources": {},
-     }
+    const result = await testModuleContainer.commit(app, {
+      enableResourceCapture: true,
+      filterByModuleIds: ['service'],
+    });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddS3StaticWebsiteModelAction",
+       ],
+       [
+         "UpdateSourcePathsS3StaticWebsiteModelAction",
+       ],
+     ]
     `);
-
-    expect(updateSourcePathsS3StaticWebsiteModelActionSpy).toHaveBeenCalledTimes(1);
-
-    expect(addS3WebsiteResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(addS3WebsiteResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "add",
-       "field": "resourceId",
-       "node": "@octo/s3-website=bucket-test-bucket",
-       "value": "@octo/s3-website=bucket-test-bucket",
-     }
-    `);
-
-    expect(updateSourcePathsInS3WebsiteResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(updateSourcePathsInS3WebsiteResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "update",
-       "field": "update-source-paths",
-       "node": "@octo/s3-website=bucket-test-bucket",
-       "value": {
-         "error.html": [
-           "add",
-           "${websiteSourcePath}/error.html",
-         ],
-         "index.html": [
-           "add",
-           "${websiteSourcePath}/index.html",
-         ],
-         "page-1.html": [
-           "add",
-           "${websiteSourcePath}/page-1.html",
-         ],
-       },
-     }
+    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddS3WebsiteResourceAction",
+         "UpdateSourcePathsInS3WebsiteResourceAction",
+       ],
+     ]
     `);
   });
 

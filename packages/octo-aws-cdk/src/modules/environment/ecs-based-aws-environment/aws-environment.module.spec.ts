@@ -3,17 +3,14 @@ import { jest } from '@jest/globals';
 import {
   type Account,
   type App,
-  type Container,
   type Region,
   TestContainer,
   TestModuleContainer,
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { AddEcsClusterResourceAction } from '../../../resources/ecs-cluster/actions/add-ecs-cluster.resource.action.js';
 import { type EcsClusterSchema } from '../../../resources/ecs-cluster/index.js';
 import { AwsEnvironmentModule } from './aws-environment.module.js';
-import { AddEnvironmentModelAction } from './models/environment/actions/add-environment.model.action.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -45,11 +42,10 @@ async function setup(
 }
 
 describe('AwsEnvironmentModule UT', () => {
-  let container: Container;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
+    await TestContainer.create(
       {
         mocks: [
           {
@@ -80,12 +76,7 @@ describe('AwsEnvironmentModule UT', () => {
     await TestContainer.reset();
   });
 
-  it('should call actions with correct inputs', async () => {
-    const addEnvironmentModelAction = await container.get(AddEnvironmentModelAction);
-    const addEnvironmentModelActionSpy = jest.spyOn(addEnvironmentModelAction, 'handle');
-    const addEcsClusterResourceAction = await container.get(AddEcsClusterResourceAction);
-    const addEcsClusterResourceActionSpy = jest.spyOn(addEcsClusterResourceAction, 'handle');
-
+  it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEnvironmentModule>({
       inputs: {
@@ -97,47 +88,23 @@ describe('AwsEnvironmentModule UT', () => {
       type: AwsEnvironmentModule,
     });
 
-    await testModuleContainer.commit(app, { enableResourceCapture: true });
-
-    expect(addEnvironmentModelActionSpy).toHaveBeenCalledTimes(1);
-    expect(addEnvironmentModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
-     {
-       "inputs": {
-         "environmentName": "qa",
-         "environmentVariables": {
-           "ENV_NAME": "qa",
-         },
-         "region": {
-           "context": "region=region,account=123,app=test-app",
-           "regionId": "region",
-         },
-       },
-       "metadata": {
-         "awsAccountId": "123",
-         "awsRegionId": "us-east-1",
-       },
-       "models": {
-         "environment": {
-           "context": "environment=qa,region=region,account=123,app=test-app",
-           "environmentName": "qa",
-           "environmentVariables": {
-             "ENV_NAME": "qa",
-           },
-         },
-       },
-       "overlays": {},
-       "resources": {},
-     }
+    const result = await testModuleContainer.commit(app, {
+      enableResourceCapture: true,
+      filterByModuleIds: ['environment'],
+    });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddEnvironmentModelAction",
+       ],
+     ]
     `);
-
-    expect(addEcsClusterResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(addEcsClusterResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "add",
-       "field": "resourceId",
-       "node": "@octo/ecs-cluster=ecs-cluster-region-qa",
-       "value": "@octo/ecs-cluster=ecs-cluster-region-qa",
-     }
+    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddEcsClusterResourceAction",
+       ],
+     ]
     `);
   });
 

@@ -6,7 +6,6 @@ import {
   type Account,
   Anchor,
   type App,
-  type Container,
   Model,
   Service,
   TestContainer,
@@ -14,10 +13,7 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { AddIamRoleResourceAction } from '../../../resources/iam-role/actions/add-iam-role.resource.action.js';
-import { UpdateIamRoleWithS3StoragePolicyResourceAction } from '../../../resources/iam-role/actions/update-iam-role-with-s3-storage-policy.resource.action.js';
 import { type IamRoleSchema } from '../../../resources/iam-role/index.js';
-import { UpdatePermissionsInS3StorageResourceAction } from '../../../resources/s3-storage/actions/update-permissions-in-s3-storage.resource.action.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
 import {
   AwsS3DirectoryAnchorSchema,
@@ -25,8 +21,6 @@ import {
   AwsServerModule,
   S3StorageAccess,
 } from './aws-server.module.js';
-import { AddServerModelAction } from './models/server/actions/add-server.model.action.js';
-import { AddAwsServerS3AccessOverlayAction } from './overlays/server-s3-access/actions/add-server-s3-access.overlay.action.js';
 
 @Anchor('@octo')
 class TestS3StorageDirectoryAnchor extends AAnchor<AwsS3DirectoryAnchorSchema, Service> {
@@ -100,11 +94,10 @@ async function setup(
 }
 
 describe('AwsServerModule UT', () => {
-  let container: Container;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
+    await TestContainer.create(
       {
         mocks: [
           {
@@ -149,26 +142,7 @@ describe('AwsServerModule UT', () => {
     await TestContainer.reset();
   });
 
-  it('should call actions with correct inputs', async () => {
-    const addServerModelAction = await container.get(AddServerModelAction);
-    const addServerModelActionSpy = jest.spyOn(addServerModelAction, 'handle');
-    const addAwsServerS3AccessOverlayAction = await container.get(AddAwsServerS3AccessOverlayAction);
-    const addAwsServerS3AccessOverlayActionSpy = jest.spyOn(addAwsServerS3AccessOverlayAction, 'handle');
-    const addIamRoleResourceAction = await container.get(AddIamRoleResourceAction);
-    const addIamRoleResourceActionSpy = jest.spyOn(addIamRoleResourceAction, 'handle');
-    const updateIamRoleWithS3StoragePolicyResourceAction = await container.get(
-      UpdateIamRoleWithS3StoragePolicyResourceAction,
-    );
-    const updateIamRoleWithS3StoragePolicyResourceActionSpy = jest.spyOn(
-      updateIamRoleWithS3StoragePolicyResourceAction,
-      'handle',
-    );
-    const updatePermissionsInS3StorageResourceAction = await container.get(UpdatePermissionsInS3StorageResourceAction);
-    const updatePermissionsInS3StorageResourceActionSpy = jest.spyOn(
-      updatePermissionsInS3StorageResourceAction,
-      'handle',
-    );
-
+  it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsServerModule>({
       inputs: {
@@ -185,129 +159,29 @@ describe('AwsServerModule UT', () => {
       type: AwsServerModule,
     });
 
-    await testModuleContainer.commit(app, { enableResourceCapture: true });
-
-    expect(addServerModelActionSpy).toHaveBeenCalledTimes(1);
-    expect(addServerModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
-     {
-       "inputs": {
-         "account": {
-           "accountId": "123",
-           "accountType": "aws",
-           "context": "account=123,app=test-app",
-         },
-         "s3": [
-           {
-             "directories": [
-               {
-                 "access": "READ",
-                 "remoteDirectoryPath": "uploads",
-               },
-             ],
-             "service": {
-               "bucketName": "test-bucket",
-               "context": "service=test-bucket-s3-storage,app=test-app",
-               "directories": [
-                 {
-                   "remoteDirectoryPath": "uploads",
-                 },
-               ],
-               "serviceId": "test-bucket-s3-storage",
-             },
-           },
-         ],
-         "securityGroupRules": [],
-         "serverKey": "backend",
-       },
-       "metadata": {},
-       "models": {
-         "server": {
-           "context": "server=backend,app=test-app",
-           "serverKey": "backend",
-         },
-       },
-       "overlays": {
-         "server-s3-access-overlay-e9dc96db328e": {
-           "anchors": [
-             {
-               "anchorId": "AwsIamRoleAnchor",
-               "parent": {
-                 "context": "server=backend,app=test-app",
-               },
-               "properties": {
-                 "iamRoleName": "ServerRole-backend",
-               },
-             },
-             {
-               "anchorId": "TestS3StorageDirectoryAnchor-uploads",
-               "parent": {
-                 "context": "service=test-bucket-s3-storage,app=test-app",
-               },
-               "properties": {
-                 "bucketName": "test-bucket",
-                 "remoteDirectoryPath": "uploads",
-               },
-             },
-           ],
-           "context": "@octo/server-s3-access-overlay=server-s3-access-overlay-e9dc96db328e",
-           "overlayId": "server-s3-access-overlay-e9dc96db328e",
-           "properties": {
-             "allowRead": true,
-             "allowWrite": false,
-             "bucketName": "test-bucket",
-             "iamRoleName": "ServerRole-backend",
-             "iamRolePolicyId": "server-s3-access-overlay-e9dc96db328e",
-             "remoteDirectoryPath": "uploads",
-           },
-         },
-       },
-       "resources": {},
-     }
+    const result = await testModuleContainer.commit(app, {
+      enableResourceCapture: true,
+      filterByModuleIds: ['server'],
+    });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddServerModelAction",
+       ],
+       [
+         "AddAwsServerS3AccessOverlayAction",
+       ],
+     ]
     `);
-
-    expect(addAwsServerS3AccessOverlayActionSpy).toHaveBeenCalledTimes(1);
-
-    expect(addIamRoleResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(addIamRoleResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "add",
-       "field": "resourceId",
-       "node": "@octo/iam-role=iam-role-ServerRole-backend",
-       "value": "@octo/iam-role=iam-role-ServerRole-backend",
-     }
-    `);
-
-    expect(updateIamRoleWithS3StoragePolicyResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(updateIamRoleWithS3StoragePolicyResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "update",
-       "field": "s3-storage-access-policy",
-       "node": "@octo/iam-role=iam-role-ServerRole-backend",
-       "value": {
-         "action": "add",
-         "policy": {
-           "allowRead": true,
-           "allowWrite": false,
-           "bucketName": "test-bucket",
-           "remoteDirectoryPath": "uploads",
-         },
-         "policyId": "server-s3-access-overlay-e9dc96db328e",
-       },
-     }
-    `);
-
-    expect(updatePermissionsInS3StorageResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(updatePermissionsInS3StorageResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "update",
-       "field": "update-permissions",
-       "node": "@octo/s3-storage=bucket-test-bucket",
-       "value": {
-         "uploads": {
-           "iam-role-ServerRole-backend": "addDirectoryPermissions",
-         },
-       },
-     }
+    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddIamRoleResourceAction",
+         "UpdateIamRoleAssumeRolePolicyResourceAction",
+         "UpdateIamRoleWithAwsPolicyResourceAction",
+         "UpdateIamRoleWithS3StoragePolicyResourceAction",
+       ],
+     ]
     `);
   });
 

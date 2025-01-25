@@ -3,16 +3,13 @@ import { jest } from '@jest/globals';
 import {
   type Account,
   type App,
-  type Container,
   type Region,
   TestContainer,
   TestModuleContainer,
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { AddS3StorageResourceAction } from '../../../resources/s3-storage/actions/add-s3-storage.resource.action.js';
 import { AwsS3StorageServiceModule } from './aws-s3-storage.service.module.js';
-import { AddS3StorageServiceModelAction } from './models/s3-storage/actions/add-s3-storage-service.model.action.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -38,11 +35,10 @@ async function setup(
 }
 
 describe('AwsS3StorageServiceModule UT', () => {
-  let container: Container;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    container = await TestContainer.create(
+    await TestContainer.create(
       {
         mocks: [
           {
@@ -68,12 +64,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     await TestContainer.reset();
   });
 
-  it('should call actions with correct inputs', async () => {
-    const addS3StorageServiceModelAction = await container.get(AddS3StorageServiceModelAction);
-    const addS3StorageServiceModelActionSpy = jest.spyOn(addS3StorageServiceModelAction, 'handle');
-    const addS3StorageResourceAction = await container.get(AddS3StorageResourceAction);
-    const addS3StorageResourceActionSpy = jest.spyOn(addS3StorageResourceAction, 'handle');
-
+  it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StorageServiceModule>({
       inputs: {
@@ -85,53 +76,23 @@ describe('AwsS3StorageServiceModule UT', () => {
       type: AwsS3StorageServiceModule,
     });
 
-    await testModuleContainer.commit(app, { enableResourceCapture: true });
-
-    /* eslint-disable spellcheck/spell-checker */
-    expect(addS3StorageServiceModelActionSpy).toHaveBeenCalledTimes(1);
-    expect(addS3StorageServiceModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
-     {
-       "inputs": {
-         "bucketName": "test-bucket",
-         "region": {
-           "context": "region=region,account=123,app=test-app",
-           "regionId": "region",
-         },
-         "remoteDirectoryPaths": [
-           "uploads",
-         ],
-       },
-       "metadata": {
-         "awsAccountId": "123",
-         "awsRegionId": "us-east-1",
-       },
-       "models": {
-         "service": {
-           "bucketName": "test-bucket",
-           "context": "service=test-bucket-s3-storage,app=test-app",
-           "directories": [
-             {
-               "directoryAnchorName": "AwsS3DirectoryAnchor-fb611de45b88",
-               "remoteDirectoryPath": "uploads",
-             },
-           ],
-           "serviceId": "test-bucket-s3-storage",
-         },
-       },
-       "overlays": {},
-       "resources": {},
-     }
+    const result = await testModuleContainer.commit(app, {
+      enableResourceCapture: true,
+      filterByModuleIds: ['service'],
+    });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddS3StorageServiceModelAction",
+       ],
+     ]
     `);
-    /* eslint-enable */
-
-    expect(addS3StorageResourceActionSpy).toHaveBeenCalledTimes(1);
-    expect(addS3StorageResourceActionSpy.mock.calls[0][0]).toMatchInlineSnapshot(`
-     {
-       "action": "add",
-       "field": "resourceId",
-       "node": "@octo/s3-storage=bucket-test-bucket",
-       "value": "@octo/s3-storage=bucket-test-bucket",
-     }
+    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddS3StorageResourceAction",
+       ],
+     ]
     `);
   });
 

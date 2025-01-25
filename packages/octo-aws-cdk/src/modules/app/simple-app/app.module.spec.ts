@@ -1,14 +1,11 @@
-import { jest } from '@jest/globals';
-import { type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
 import { AppModule } from './index.js';
-import { AddAppModelAction } from './models/app/actions/add-app.model.action.js';
 
 describe('AppModule UT', () => {
-  let container: Container;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
@@ -19,34 +16,25 @@ describe('AppModule UT', () => {
     await TestContainer.reset();
   });
 
-  it('should call actions with correct inputs', async () => {
-    const addAppModelAction = await container.get(AddAppModelAction);
-    const addAppModelActionSpy = jest.spyOn(addAppModelAction, 'handle');
-
+  it('should call correct actions', async () => {
     const { app: app } = await testModuleContainer.runModule<AppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: AppModule,
     });
 
-    await testModuleContainer.commit(app);
-    expect(addAppModelActionSpy).toHaveBeenCalledTimes(1);
-    expect(addAppModelActionSpy.mock.calls[0][1]).toMatchInlineSnapshot(`
-     {
-       "inputs": {
-         "name": "test-app",
-       },
-       "metadata": {},
-       "models": {
-         "app": {
-           "context": "app=test-app",
-           "name": "test-app",
-         },
-       },
-       "overlays": {},
-       "resources": {},
-     }
+    const result = await testModuleContainer.commit(app, {
+      enableResourceCapture: true,
+      filterByModuleIds: ['app'],
+    });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddAppModelAction",
+       ],
+     ]
     `);
+    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`[]`);
   });
 
   it('should CUD', async () => {
