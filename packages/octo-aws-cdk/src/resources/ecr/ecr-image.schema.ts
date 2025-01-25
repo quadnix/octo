@@ -4,7 +4,7 @@ export class EcrImageSchema extends BaseResourceSchema {
   override properties = Schema<{
     awsAccountId: string;
     awsRegionId: string;
-    imageName: string;
+    imageId: string;
   }>();
 
   override response = Schema<{

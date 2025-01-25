@@ -28,7 +28,7 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
     await ecrClient.send(
       new DeleteRepositoryCommand({
         force: true,
-        repositoryName: properties.imageName,
+        repositoryName: properties.imageId,
       }),
     );
   }

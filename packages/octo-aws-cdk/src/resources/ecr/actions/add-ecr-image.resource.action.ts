@@ -34,7 +34,7 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
           scanOnPush: false,
         },
         imageTagMutability: 'IMMUTABLE',
-        repositoryName: properties.imageName,
+        repositoryName: properties.imageId,
       }),
     );
 
