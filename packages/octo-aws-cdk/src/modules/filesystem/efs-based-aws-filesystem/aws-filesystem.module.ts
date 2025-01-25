@@ -2,23 +2,15 @@ import { EFSClient } from '@aws-sdk/client-efs';
 import {
   AModule,
   type Account,
-  BaseResourceSchema,
   Container,
   ContainerRegistrationError,
   Module,
   type Region,
   Schema,
-  Validate,
 } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { VpcSchema } from '../../../resources/vpc/index.js';
 import { AwsFilesystem } from './models/filesystem/index.js';
-
-class AwsResourceSchema extends BaseResourceSchema {
-  @Validate({ destruct: (value): string[] => [value.awsRegionId], options: { minLength: 1 } })
-  override properties = Schema<{
-    awsRegionId: string;
-  }>();
-}
 
 export class AwsFilesystemModuleSchema {
   filesystemName = Schema<string>();
@@ -61,8 +53,8 @@ export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, AwsF
     const account = region.getParents()['account'][0].to as Account;
 
     // Get AWS Region ID.
-    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
-    const awsRegionId = resourceSynth.properties.awsRegionId;
+    const [matchingResource] = await region.getResourcesMatchingSchema(VpcSchema);
+    const awsRegionId = matchingResource.getSchemaInstance().properties.awsRegionId;
 
     return {
       awsAccountId: account.accountId,

@@ -16,7 +16,7 @@ import {
 } from '@quadnix/octo';
 import { AddIamRoleResourceAction } from '../../../resources/iam-role/actions/add-iam-role.resource.action.js';
 import { UpdateIamRoleWithS3StoragePolicyResourceAction } from '../../../resources/iam-role/actions/update-iam-role-with-s3-storage-policy.resource.action.js';
-import type { IamRole } from '../../../resources/iam-role/index.js';
+import { type IamRoleSchema } from '../../../resources/iam-role/index.js';
 import { UpdatePermissionsInS3StorageResourceAction } from '../../../resources/s3-storage/actions/update-permissions-in-s3-storage.resource.action.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
 import {
@@ -81,7 +81,7 @@ async function setup(
     app: [app],
     service: [service],
   } = await testModuleContainer.createTestModels('testModule', {
-    account: ['aws,account'],
+    account: ['aws,123'],
     app: ['test-app'],
     service: [[new TestS3StorageService()]],
   });
@@ -134,7 +134,7 @@ describe('AwsServerModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     // Register resource captures.
-    testModuleContainer.registerCapture<IamRole>('@octo/iam-role=iam-role-ServerRole-backend', {
+    testModuleContainer.registerCapture<IamRoleSchema>('@octo/iam-role=iam-role-ServerRole-backend', {
       Arn: 'Arn',
       policies: {
         'server-s3-access-overlay-e9dc96db328e': ['server-s3-access-arn'],
@@ -192,9 +192,9 @@ describe('AwsServerModule UT', () => {
      {
        "inputs": {
          "account": {
-           "accountId": "account",
+           "accountId": "123",
            "accountType": "aws",
-           "context": "account=account,app=test-app",
+           "context": "account=123,app=test-app",
          },
          "s3": [
            {

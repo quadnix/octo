@@ -14,13 +14,13 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AddEfsMountTargetResourceAction } from '../../../resources/efs-mount-target/actions/add-efs-mount-target.resource.action.js';
-import type { EfsMountTarget } from '../../../resources/efs-mount-target/index.js';
+import { type EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.js';
 import { AddNetworkAclResourceAction } from '../../../resources/network-acl/actions/add-network-acl.resource.action.js';
-import type { NetworkAcl } from '../../../resources/network-acl/index.js';
+import { type NetworkAcl, type NetworkAclSchema } from '../../../resources/network-acl/index.js';
 import { AddRouteTableResourceAction } from '../../../resources/route-table/actions/add-route-table.resource.action.js';
-import type { RouteTable } from '../../../resources/route-table/index.js';
+import { type RouteTableSchema } from '../../../resources/route-table/index.js';
 import { AddSubnetResourceAction } from '../../../resources/subnet/actions/add-subnet.resource.action.js';
-import type { Subnet } from '../../../resources/subnet/index.js';
+import { type SubnetSchema } from '../../../resources/subnet/index.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsSubnetModule } from './aws-subnet.module.js';
 import { AddSubnetModelAction } from './models/subnet/actions/add-subnet.model.action.js';
@@ -35,7 +35,7 @@ async function setup(
     filesystem: [filesystem],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
-    account: ['aws,account'],
+    account: ['aws,123'],
     app: ['test-app'],
     filesystem: ['test-filesystem'],
     region: ['region'],
@@ -108,30 +108,30 @@ describe('AwsSubnetModule UT', () => {
     });
 
     // Register resource captures.
-    testModuleContainer.registerCapture<EfsMountTarget>('@octo/efs=efs-region-test-filesystem', {
+    testModuleContainer.registerCapture<EfsMountTargetSchema>('@octo/efs=efs-region-test-filesystem', {
       MountTargetId: 'MountTargetId',
       NetworkInterfaceId: 'NetworkInterfaceId',
     });
-    testModuleContainer.registerCapture<Subnet>('@octo/subnet=subnet-region-private-subnet', {
+    testModuleContainer.registerCapture<SubnetSchema>('@octo/subnet=subnet-region-private-subnet', {
       SubnetId: 'SubnetId-Private',
     });
-    testModuleContainer.registerCapture<Subnet>('@octo/subnet=subnet-region-public-subnet', {
+    testModuleContainer.registerCapture<SubnetSchema>('@octo/subnet=subnet-region-public-subnet', {
       SubnetId: 'SubnetId-Public',
     });
-    testModuleContainer.registerCapture<RouteTable>('@octo/route-table=rt-region-private-subnet', {
+    testModuleContainer.registerCapture<RouteTableSchema>('@octo/route-table=rt-region-private-subnet', {
       RouteTableId: 'RouteTableId-Private',
       subnetAssociationId: 'subnetAssociationId-Private',
     });
-    testModuleContainer.registerCapture<RouteTable>('@octo/route-table=rt-region-public-subnet', {
+    testModuleContainer.registerCapture<RouteTableSchema>('@octo/route-table=rt-region-public-subnet', {
       RouteTableId: 'RouteTableId-Public',
       subnetAssociationId: 'subnetAssociationId-Public',
     });
-    testModuleContainer.registerCapture<NetworkAcl>('@octo/network-acl=nacl-region-private-subnet', {
+    testModuleContainer.registerCapture<NetworkAclSchema>('@octo/network-acl=nacl-region-private-subnet', {
       associationId: 'associationId-Private',
       defaultNetworkAclId: 'defaultNetworkAclId-Private',
       NetworkAclId: 'NetworkAclId-Private',
     });
-    testModuleContainer.registerCapture<NetworkAcl>('@octo/network-acl=nacl-region-public-subnet', {
+    testModuleContainer.registerCapture<NetworkAclSchema>('@octo/network-acl=nacl-region-public-subnet', {
       associationId: 'associationId-Public',
       defaultNetworkAclId: 'defaultNetworkAclId-Public',
       NetworkAclId: 'NetworkAclId-Public',
@@ -184,12 +184,12 @@ describe('AwsSubnetModule UT', () => {
        "inputs": {
          "localFilesystems": [
            {
-             "context": "filesystem=test-filesystem,region=region,account=account,app=test-app",
+             "context": "filesystem=test-filesystem,region=region,account=123,app=test-app",
              "filesystemName": "test-filesystem",
            },
          ],
          "region": {
-           "context": "region=region,account=account,app=test-app",
+           "context": "region=region,account=123,app=test-app",
            "regionId": "region",
          },
          "subnetAvailabilityZone": "us-east-1a",
@@ -202,7 +202,7 @@ describe('AwsSubnetModule UT', () => {
          "subnetSiblings": [],
        },
        "metadata": {
-         "awsAccountId": "account",
+         "awsAccountId": "123",
          "awsAvailabilityZones": [
            "us-east-1a",
          ],
@@ -210,13 +210,13 @@ describe('AwsSubnetModule UT', () => {
        },
        "models": {
          "subnet": {
-           "context": "subnet=region-private-subnet,region=region,account=account,app=test-app",
+           "context": "subnet=region-private-subnet,region=region,account=123,app=test-app",
            "options": {
              "disableSubnetIntraNetwork": false,
              "subnetType": "private",
            },
            "region": {
-             "context": "region=region,account=account,app=test-app",
+             "context": "region=region,account=123,app=test-app",
            },
            "subnetId": "region-private-subnet",
            "subnetName": "private-subnet",
@@ -228,14 +228,14 @@ describe('AwsSubnetModule UT', () => {
              {
                "anchorId": "AwsFilesystemAnchor",
                "parent": {
-                 "context": "filesystem=test-filesystem,region=region,account=account,app=test-app",
+                 "context": "filesystem=test-filesystem,region=region,account=123,app=test-app",
                },
                "properties": {},
              },
              {
                "anchorId": "AwsSubnetLocalFilesystemMountAnchor-test-filesystem",
                "parent": {
-                 "context": "subnet=region-private-subnet,region=region,account=account,app=test-app",
+                 "context": "subnet=region-private-subnet,region=region,account=123,app=test-app",
                },
                "properties": {},
              },
@@ -339,7 +339,7 @@ describe('AwsSubnetModule UT', () => {
     `);
     expect((result1.resourceDiffs[0][2].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
      {
-       "awsAccountId": "account",
+       "awsAccountId": "123",
        "awsRegionId": "us-east-1",
        "entries": [],
      }
@@ -547,7 +547,7 @@ describe('AwsSubnetModule UT', () => {
     `);
     expect((result1.resourceDiffs[0][5].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
      {
-       "awsAccountId": "account",
+       "awsAccountId": "123",
        "awsRegionId": "us-east-1",
        "entries": [
          {

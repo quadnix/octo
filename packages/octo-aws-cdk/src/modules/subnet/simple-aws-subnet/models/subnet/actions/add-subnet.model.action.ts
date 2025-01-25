@@ -6,13 +6,16 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  MatchingResource,
   SubnetType,
 } from '@quadnix/octo';
+import { InternetGatewaySchema } from '../../../../../../resources/internet-gateway/index.js';
 import { NetworkAcl, type NetworkAclSchema } from '../../../../../../resources/network-acl/index.js';
 import { RouteTable } from '../../../../../../resources/route-table/index.js';
 import { Subnet } from '../../../../../../resources/subnet/index.js';
+import { VpcSchema } from '../../../../../../resources/vpc/index.js';
 import { NetworkAclUtility } from '../../../../../../utilities/network-acl/network-acl.utility.js';
-import { AwsSubnetModule, InternetGatewayResourceSchema, VpcResourceSchema } from '../../../aws-subnet.module.js';
+import { type AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnet } from '../aws.subnet.model.js';
 
 @Action(AwsSubnet)
@@ -38,8 +41,8 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     >;
 
     const subnetCidrBlock = actionInputs.inputs.subnetCidrBlock;
-    const [[, vpc]] = await subnet.getResourcesMatchingSchema(VpcResourceSchema);
-    const [[, internetGateway]] = await subnet.getResourcesMatchingSchema(InternetGatewayResourceSchema);
+    const [vpc] = await subnet.getResourcesMatchingSchema(VpcSchema);
+    const [internetGateway] = await subnet.getResourcesMatchingSchema(InternetGatewaySchema);
 
     // Create Subnet.
     const subnetSubnet = new Subnet(
@@ -61,7 +64,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         awsAccountId,
         awsRegionId,
       },
-      [vpc, internetGateway, subnetSubnet],
+      [vpc, internetGateway, new MatchingResource(subnetSubnet, subnetSubnet.synth())],
     );
 
     // Create Network ACL entries - intra network.
@@ -135,7 +138,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         awsRegionId,
         entries: subnetNAclEntries,
       },
-      [vpc, subnetSubnet],
+      [vpc, new MatchingResource(subnetSubnet, subnetSubnet.synth())],
     );
 
     actionOutputs[subnetSubnet.resourceId] = subnetSubnet;

@@ -10,11 +10,11 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AddInternetGatewayResourceAction } from '../../../resources/internet-gateway/actions/add-internet-gateway.resource.action.js';
-import type { InternetGateway } from '../../../resources/internet-gateway/index.js';
+import { type InternetGatewaySchema } from '../../../resources/internet-gateway/index.js';
 import { AddSecurityGroupResourceAction } from '../../../resources/security-group/actions/add-security-group.resource.action.js';
-import type { SecurityGroup } from '../../../resources/security-group/index.js';
+import { type SecurityGroupSchema } from '../../../resources/security-group/index.js';
 import { AddVpcResourceAction } from '../../../resources/vpc/actions/add-vpc.resource.action.js';
-import type { Vpc } from '../../../resources/vpc/index.js';
+import { type VpcSchema } from '../../../resources/vpc/index.js';
 import { AwsRegionModule } from './aws-region.module.js';
 import { AddRegionModelAction } from './models/region/actions/add-region.model.action.js';
 import { RegionId } from './models/region/index.js';
@@ -23,7 +23,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
   const {
     account: [account],
     app: [app],
-  } = await testModuleContainer.createTestModels('testModule', { account: ['aws,account'], app: ['test-app'] });
+  } = await testModuleContainer.createTestModels('testModule', { account: ['aws,123'], app: ['test-app'] });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
   return { account, app };
 }
@@ -54,11 +54,11 @@ describe('AwsRegionModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     // Register resource captures.
-    testModuleContainer.registerCapture<Vpc>('@octo/vpc=vpc-aws-us-east-1a', { VpcId: 'VpcId' });
-    testModuleContainer.registerCapture<InternetGateway>('@octo/internet-gateway=igw-aws-us-east-1a', {
+    testModuleContainer.registerCapture<VpcSchema>('@octo/vpc=vpc-aws-us-east-1a', { VpcId: 'VpcId' });
+    testModuleContainer.registerCapture<InternetGatewaySchema>('@octo/internet-gateway=igw-aws-us-east-1a', {
       InternetGatewayId: 'InternetGatewayId',
     });
-    testModuleContainer.registerCapture<SecurityGroup>('@octo/security-group=sec-grp-aws-us-east-1a-access', {
+    testModuleContainer.registerCapture<SecurityGroupSchema>('@octo/security-group=sec-grp-aws-us-east-1a-access', {
       GroupId: 'GroupId',
       Rules: {
         egress: [{ SecurityGroupRuleId: 'SecurityGroupRuleId' }],
@@ -100,9 +100,9 @@ describe('AwsRegionModule UT', () => {
      {
        "inputs": {
          "account": {
-           "accountId": "account",
+           "accountId": "123",
            "accountType": "aws",
-           "context": "account=account,app=test-app",
+           "context": "account=123,app=test-app",
          },
          "regionId": "aws-us-east-1a",
          "vpcCidrBlock": "10.0.0.0/8",
@@ -114,7 +114,7 @@ describe('AwsRegionModule UT', () => {
              "us-east-1a",
            ],
            "awsRegionId": "us-east-1",
-           "context": "region=aws-us-east-1a,account=account,app=test-app",
+           "context": "region=aws-us-east-1a,account=123,app=test-app",
            "regionId": "aws-us-east-1a",
          },
        },

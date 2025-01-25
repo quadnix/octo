@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  MatchingResource,
 } from '@quadnix/octo';
 import { InternetGateway } from '../../../../../../resources/internet-gateway/index.js';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
@@ -48,7 +49,7 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
     const internetGateway = new InternetGateway(
       `igw-${regionId}`,
       { awsAccountId, awsRegionId: awsRegion.awsRegionId },
-      [vpc],
+      [new MatchingResource(vpc, vpc.synth())],
     );
 
     // Create Security Groups.
@@ -76,7 +77,7 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
           },
         ],
       },
-      [vpc],
+      [new MatchingResource(vpc, vpc.synth())],
     );
 
     actionOutputs[vpc.resourceId] = vpc;

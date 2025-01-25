@@ -1,11 +1,11 @@
 import { IAMClient } from '@aws-sdk/client-iam';
 import { S3Client } from '@aws-sdk/client-s3';
 import {
+  type AAnchor,
   AModule,
   type Account,
   type App,
   BaseAnchorSchema,
-  BaseResourceSchema,
   Container,
   ContainerRegistrationError,
   Module,
@@ -15,6 +15,7 @@ import {
   Validate,
 } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { S3StorageSchema } from '../../../resources/s3-storage/index.js';
 import { CommonUtility } from '../../../utilities/common/common.utility.js';
 import { AwsIamRoleAnchor } from './anchors/aws-iam-role.anchor.js';
 import { AwsSecurityGroupAnchor, type ISecurityGroupAnchorRule } from './anchors/aws-security-group.anchor.js';
@@ -25,17 +26,6 @@ export enum S3StorageAccess {
   READ = 'READ',
   READ_WRITE = 'READ_WRITE',
   WRITE = 'WRITE',
-}
-
-export class S3StorageResourceSchema extends BaseResourceSchema {
-  @Validate({
-    destruct: (value): string[] => [value.awsRegionId, [value.Bucket]],
-    options: { minLength: 1 },
-  })
-  override properties = Schema<{
-    awsRegionId: string;
-    Bucket: string;
-  }>();
 }
 
 export class AwsS3DirectoryAnchorSchema extends BaseAnchorSchema {
@@ -62,7 +52,7 @@ export class AwsS3StorageServiceSchema extends ServiceSchema {
   directories? = Schema<{ remoteDirectoryPath: string }[]>([]);
 }
 
-export class AwsS3StorageServiceDirectorySchema {
+class AwsS3StorageServiceDirectorySchema {
   access = Schema<S3StorageAccess>();
 
   remoteDirectoryPath = Schema<string>();
@@ -74,13 +64,12 @@ export class AwsServerModuleSchema {
   @Validate<unknown>([
     {
       destruct: (
-        value: { directories: AwsS3StorageServiceDirectorySchema[]; service: Service }[],
+        value: { directories: AwsS3StorageServiceDirectorySchema[] }[],
       ): AwsS3StorageServiceDirectorySchema[] => value.map((v) => v.directories).flat(),
       options: { isSchema: { schema: AwsS3StorageServiceDirectorySchema } },
     },
     {
-      destruct: (value: { directories: AwsS3StorageServiceDirectorySchema[]; service: Service }[]): Service[] =>
-        value.map((v) => v.service),
+      destruct: (value: { service: Service }[]): Service[] => value.map((v) => v.service),
       options: { isModel: { NODE_NAME: 'service' }, isSchema: { schema: AwsS3StorageServiceSchema } },
     },
   ])
@@ -96,13 +85,14 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
   async onInit(inputs: AwsServerModuleSchema): Promise<(AwsServer | AwsServerS3AccessOverlay)[]> {
     const account = inputs.account;
     const app = account.getParents()['app'][0].to as App;
+    const models: (AwsServer | AwsServerS3AccessOverlay)[] = [];
 
     // Create a new server.
     const server = new AwsServer(inputs.serverKey);
     app.addServer(server);
+    models.push(server);
 
-    const models: (AwsServer | AwsServerS3AccessOverlay)[] = [server];
-
+    // Add server anchors.
     const awsIamRoleAnchor = new AwsIamRoleAnchor(
       'AwsIamRoleAnchor',
       { iamRoleName: `ServerRole-${inputs.serverKey}` },
@@ -135,11 +125,17 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     if (inputs.s3) {
       for (const s3 of inputs.s3 || []) {
         const service = s3.service;
-        const [[s3StorageSynth]] = await service.getResourcesMatchingSchema(S3StorageResourceSchema, [], [], {
+        const [matchingS3StorageResource] = await service.getResourcesMatchingSchema(S3StorageSchema, [], [], {
           searchBoundaryMembers: false,
         });
-        if (awsRegionIds.indexOf(s3StorageSynth.properties.awsRegionId) === -1) {
-          awsRegionIds.push(s3StorageSynth.properties.awsRegionId);
+
+        if (matchingS3StorageResource.getSchemaInstance().properties.awsAccountId !== account.accountId) {
+          throw new Error('This module does not support adding s3 resources from other accounts!');
+        }
+
+        const awsRegionId = matchingS3StorageResource.getSchemaInstance().properties.awsRegionId;
+        if (awsRegionIds.indexOf(awsRegionId) === -1) {
+          awsRegionIds.push(awsRegionId);
         }
 
         for (const directory of s3.directories) {
@@ -157,7 +153,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
           if (matchingAnchors.length !== 1) {
             throw new Error('Cannot find remote directory in service!');
           }
-          const [, awsS3DirectoryAnchor] = matchingAnchors[0];
+          const awsS3DirectoryAnchor = matchingAnchors[0];
 
           const overlayIdSuffix = CommonUtility.hash(
             awsIamRoleAnchor.anchorId,
@@ -170,12 +166,12 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
             {
               allowRead,
               allowWrite,
-              bucketName: awsS3DirectoryAnchor.properties.bucketName,
+              bucketName: awsS3DirectoryAnchor.getSchemaInstance().properties.bucketName,
               iamRoleName: awsIamRoleAnchor.properties.iamRoleName,
               iamRolePolicyId: overlayId,
               remoteDirectoryPath: directory.remoteDirectoryPath,
             },
-            [awsIamRoleAnchor, awsS3DirectoryAnchor],
+            [awsIamRoleAnchor, awsS3DirectoryAnchor.getActual() as AAnchor<AwsS3DirectoryAnchorSchema, Service>],
           );
           models.push(serverS3AccessOverlay);
         }

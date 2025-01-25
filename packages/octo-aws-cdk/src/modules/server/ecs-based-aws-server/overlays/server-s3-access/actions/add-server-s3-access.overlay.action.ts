@@ -7,14 +7,14 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  MatchingResource,
 } from '@quadnix/octo';
 import type { IamRole } from '../../../../../../resources/iam-role/index.js';
-import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
+import { type S3Storage, S3StorageSchema } from '../../../../../../resources/s3-storage/index.js';
 import {
   AwsS3DirectoryAnchorSchema,
   type AwsS3StorageServiceSchema,
   type AwsServerModule,
-  S3StorageResourceSchema,
 } from '../../../aws-server.module.js';
 import { AwsServerS3AccessOverlay } from '../aws-server-s3-access.overlay.js';
 
@@ -43,21 +43,24 @@ export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServer
       allowWrite: properties.allowWrite,
     });
 
-    const [[, awsS3DirectoryAnchor]] = await serverS3AccessOverlay.getAnchorsMatchingSchema(
-      AwsS3DirectoryAnchorSchema,
-      [{ key: 'remoteDirectoryPath', value: properties.remoteDirectoryPath }],
-    );
-    const s3StorageService = awsS3DirectoryAnchor.getParent() as AModel<AwsS3StorageServiceSchema, any>;
-    const [[, s3Storage]] = await s3StorageService.getResourcesMatchingSchema(S3StorageResourceSchema, [], [], {
+    const [awsS3DirectoryAnchor] = await serverS3AccessOverlay.getAnchorsMatchingSchema(AwsS3DirectoryAnchorSchema, [
+      { key: 'remoteDirectoryPath', value: properties.remoteDirectoryPath },
+    ]);
+    const s3StorageService = awsS3DirectoryAnchor.getActual().getParent() as AModel<AwsS3StorageServiceSchema, any>;
+    const [matchingS3Storage] = await s3StorageService.getResourcesMatchingSchema(S3StorageSchema, [], [], {
       searchBoundaryMembers: false,
     });
-    (s3Storage as S3Storage).addPermission(iamRole, properties.remoteDirectoryPath, {
-      allowRead: properties.allowRead,
-      allowWrite: properties.allowWrite,
-    });
+    (matchingS3Storage.getActual() as S3Storage).addPermission(
+      new MatchingResource(iamRole, iamRole.synth()),
+      properties.remoteDirectoryPath,
+      {
+        allowRead: properties.allowRead,
+        allowWrite: properties.allowWrite,
+      },
+    );
 
     actionOutputs[iamRole.resourceId] = iamRole;
-    actionOutputs[s3Storage.resourceId] = s3Storage;
+    actionOutputs[matchingS3Storage.getActual().resourceId] = matchingS3Storage.getActual();
     return actionOutputs;
   }
 }

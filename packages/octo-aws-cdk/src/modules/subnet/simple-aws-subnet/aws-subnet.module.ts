@@ -3,7 +3,6 @@ import { EFSClient } from '@aws-sdk/client-efs';
 import {
   AModule,
   type Account,
-  BaseResourceSchema,
   Container,
   ContainerRegistrationError,
   type Filesystem,
@@ -12,50 +11,14 @@ import {
   Schema,
   type Subnet,
   SubnetType,
-  Validate,
 } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { EfsSchema } from '../../../resources/efs/index.js';
+import { VpcSchema } from '../../../resources/vpc/index.js';
 import { AwsFilesystemAnchor } from './anchors/aws-filesystem.anchor.js';
 import { AwsSubnetLocalFilesystemMountAnchor } from './anchors/aws-subnet-local-filesystem-mount.anchor.js';
 import { AwsSubnet } from './models/subnet/index.js';
 import { AwsSubnetLocalFilesystemMountOverlay } from './overlays/subnet-local-filesystem-mount/index.js';
-
-export class EfsResourceSchema extends BaseResourceSchema {
-  @Validate({ destruct: (value): string[] => [value.awsRegionId, value.filesystemName], options: { minLength: 1 } })
-  override properties = Schema<{
-    awsRegionId: string;
-    filesystemName: string;
-  }>();
-
-  @Validate({ destruct: (value): string[] => [value.FileSystemId, value.FileSystemArn], options: { minLength: 1 } })
-  override response = Schema<{
-    FileSystemArn: string;
-    FileSystemId: string;
-  }>();
-}
-
-export class InternetGatewayResourceSchema extends BaseResourceSchema {
-  @Validate({ destruct: (value): string[] => [value.InternetGatewayId], options: { minLength: 1 } })
-  override response = Schema<{
-    InternetGatewayId: string;
-  }>();
-}
-
-export class VpcResourceSchema extends BaseResourceSchema {
-  @Validate({
-    destruct: (value): string[] => [value.awsAvailabilityZones, value.awsRegionId],
-    options: { minLength: 1 },
-  })
-  override properties = Schema<{
-    awsAvailabilityZones: string[];
-    awsRegionId: string;
-  }>();
-
-  @Validate({ destruct: (value): string[] => [value.VpcId], options: { minLength: 1 } })
-  override response = Schema<{
-    VpcId: string;
-  }>();
-}
 
 export class AwsSubnetModuleSchema {
   localFilesystems? = Schema<Filesystem[]>([]);
@@ -108,7 +71,7 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
 
     for (const filesystem of inputs.localFilesystems || []) {
       const matchingEfsResources = await filesystem.getResourcesMatchingSchema(
-        EfsResourceSchema,
+        EfsSchema,
         [
           { key: 'awsRegionId', value: awsRegionId },
           { key: 'filesystemName', value: filesystem.filesystemName },
@@ -170,12 +133,12 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
     const account = region.getParents()['account'][0].to as Account;
 
     // Get AWS Region ID.
-    const [[vpcSynth]] = await region.getResourcesMatchingSchema(VpcResourceSchema);
-    const awsRegionId = vpcSynth.properties.awsRegionId;
+    const [matchingVpc] = await region.getResourcesMatchingSchema(VpcSchema);
+    const awsRegionId = matchingVpc.getSchemaInstance().properties.awsRegionId;
 
     return {
       awsAccountId: account.accountId,
-      awsAvailabilityZones: vpcSynth.properties.awsAvailabilityZones,
+      awsAvailabilityZones: matchingVpc.getSchemaInstance().properties.awsAvailabilityZones,
       awsRegionId,
     };
   }

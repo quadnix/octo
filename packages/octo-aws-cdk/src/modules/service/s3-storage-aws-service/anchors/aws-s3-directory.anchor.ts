@@ -1,6 +1,10 @@
-import { AAnchor, Anchor, BaseAnchorSchema, Schema, type Service } from '@quadnix/octo';
+import { AAnchor, Anchor, BaseAnchorSchema, Schema, type Service, Validate } from '@quadnix/octo';
 
 class AwsS3DirectoryAnchorSchema extends BaseAnchorSchema {
+  @Validate({
+    destruct: (value): string[] => [value.bucketName, [value.remoteDirectoryPath]],
+    options: { minLength: 1 },
+  })
   override properties = Schema<{
     bucketName: string;
     remoteDirectoryPath: string;

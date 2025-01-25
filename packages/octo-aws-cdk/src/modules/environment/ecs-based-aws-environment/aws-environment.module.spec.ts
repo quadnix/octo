@@ -11,7 +11,7 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AddEcsClusterResourceAction } from '../../../resources/ecs-cluster/actions/add-ecs-cluster.resource.action.js';
-import type { EcsCluster } from '../../../resources/ecs-cluster/index.js';
+import { type EcsClusterSchema } from '../../../resources/ecs-cluster/index.js';
 import { AwsEnvironmentModule } from './aws-environment.module.js';
 import { AddEnvironmentModelAction } from './models/environment/actions/add-environment.model.action.js';
 
@@ -23,7 +23,7 @@ async function setup(
     app: [app],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
-    account: ['aws,account'],
+    account: ['aws,123'],
     app: ['test-app'],
     region: ['region'],
   });
@@ -31,7 +31,13 @@ async function setup(
 
   await testModuleContainer.createTestResources(
     'testModule',
-    [{ properties: { awsRegionId: 'us-east-1' }, resourceContext: '@octo/vpc=vpc-region' }],
+    [
+      {
+        properties: { awsAvailabilityZones: ['us-east-1a'], awsRegionId: 'us-east-1' },
+        resourceContext: '@octo/vpc=vpc-region',
+        response: { VpcId: 'VpcId' },
+      },
+    ],
     { save: true },
   );
 
@@ -64,7 +70,7 @@ describe('AwsEnvironmentModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     // Register resource captures.
-    testModuleContainer.registerCapture<EcsCluster>('@octo/ecs-cluster=ecs-cluster-region-qa', {
+    testModuleContainer.registerCapture<EcsClusterSchema>('@octo/ecs-cluster=ecs-cluster-region-qa', {
       clusterArn: 'clusterArn',
     });
   });
@@ -102,17 +108,17 @@ describe('AwsEnvironmentModule UT', () => {
            "ENV_NAME": "qa",
          },
          "region": {
-           "context": "region=region,account=account,app=test-app",
+           "context": "region=region,account=123,app=test-app",
            "regionId": "region",
          },
        },
        "metadata": {
-         "awsAccountId": "account",
+         "awsAccountId": "123",
          "awsRegionId": "us-east-1",
        },
        "models": {
          "environment": {
-           "context": "environment=qa,region=region,account=account,app=test-app",
+           "context": "environment=qa,region=region,account=123,app=test-app",
            "environmentName": "qa",
            "environmentVariables": {
              "ENV_NAME": "qa",

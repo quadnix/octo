@@ -11,7 +11,7 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AddEfsResourceAction } from '../../../resources/efs/actions/add-efs.resource.action.js';
-import type { Efs } from '../../../resources/efs/index.js';
+import { type EfsSchema } from '../../../resources/efs/index.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsFilesystemModule } from './aws-filesystem.module.js';
 import { AddFilesystemModelAction } from './models/filesystem/actions/add-filesystem.model.action.js';
@@ -24,7 +24,7 @@ async function setup(
     app: [app],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
-    account: ['aws,account'],
+    account: ['aws,123'],
     app: ['test-app'],
     region: ['region'],
   });
@@ -32,7 +32,13 @@ async function setup(
 
   await testModuleContainer.createTestResources(
     'testModule',
-    [{ properties: { awsRegionId: 'us-east-1' }, resourceContext: '@octo/vpc=vpc-region' }],
+    [
+      {
+        properties: { awsAvailabilityZones: ['us-east-1a'], awsRegionId: 'us-east-1' },
+        resourceContext: '@octo/vpc=vpc-region',
+        response: { VpcId: 'VpcId' },
+      },
+    ],
     { save: true },
   );
 
@@ -72,7 +78,7 @@ describe('AwsFilesystemModule UT', () => {
     });
 
     // Register resource captures.
-    testModuleContainer.registerCapture<Efs>('@octo/efs=efs-region-test-filesystem', {
+    testModuleContainer.registerCapture<EfsSchema>('@octo/efs=efs-region-test-filesystem', {
       FileSystemArn: 'FileSystemArn',
       FileSystemId: 'FileSystemId',
     });
@@ -109,17 +115,17 @@ describe('AwsFilesystemModule UT', () => {
        "inputs": {
          "filesystemName": "test-filesystem",
          "region": {
-           "context": "region=region,account=account,app=test-app",
+           "context": "region=region,account=123,app=test-app",
            "regionId": "region",
          },
        },
        "metadata": {
-         "awsAccountId": "account",
+         "awsAccountId": "123",
          "awsRegionId": "us-east-1",
        },
        "models": {
          "filesystem": {
-           "context": "filesystem=test-filesystem,region=region,account=account,app=test-app",
+           "context": "filesystem=test-filesystem,region=region,account=123,app=test-app",
            "filesystemName": "test-filesystem",
          },
        },

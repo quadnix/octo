@@ -30,7 +30,7 @@ async function setup(
     app: [app],
     region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
-    account: ['aws,account'],
+    account: ['aws,123'],
     app: ['test-app'],
     region: ['region'],
   });
@@ -63,7 +63,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
             },
           },
           {
-            metadata: { awsAccountId: '123', package: '@octo' },
+            metadata: { package: '@octo' },
             type: 'Upload',
             value: class {
               done(): Promise<void> {
@@ -124,14 +124,14 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
          "directoryPath": "${websiteSourcePath}",
          "filter": null,
          "region": {
-           "context": "region=region,account=account,app=test-app",
+           "context": "region=region,account=123,app=test-app",
            "regionId": "region",
          },
          "subDirectoryOrFilePath": null,
          "transform": null,
        },
        "metadata": {
-         "awsAccountId": "account",
+         "awsAccountId": "123",
          "awsRegionId": "us-east-1",
        },
        "models": {

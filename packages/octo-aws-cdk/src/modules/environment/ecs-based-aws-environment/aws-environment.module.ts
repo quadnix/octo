@@ -2,23 +2,15 @@ import { ECSClient } from '@aws-sdk/client-ecs';
 import {
   AModule,
   type Account,
-  BaseResourceSchema,
   Container,
   ContainerRegistrationError,
   Module,
   type Region,
   Schema,
-  Validate,
 } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { VpcSchema } from '../../../resources/vpc/index.js';
 import { AwsEnvironment } from './models/environment/index.js';
-
-class AwsResourceSchema extends BaseResourceSchema {
-  @Validate({ destruct: (value): string[] => [value.awsRegionId], options: { minLength: 1 } })
-  override properties = Schema<{
-    awsRegionId: string;
-  }>();
-}
 
 export class AwsEnvironmentModuleSchema {
   environmentName = Schema<string>();
@@ -66,8 +58,8 @@ export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Aw
     const account = region.getParents()['account'][0].to as Account;
 
     // Get AWS Region ID.
-    const [[resourceSynth]] = await region.getResourcesMatchingSchema(AwsResourceSchema);
-    const awsRegionId = resourceSynth.properties.awsRegionId;
+    const [matchingResource] = await region.getResourcesMatchingSchema(VpcSchema);
+    const awsRegionId = matchingResource.getSchemaInstance().properties.awsRegionId;
 
     return {
       awsAccountId: account.accountId,
