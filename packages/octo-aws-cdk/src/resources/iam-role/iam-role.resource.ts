@@ -1,8 +1,8 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
 import {
-  IIamRoleAssumeRolePolicy,
-  IIamRolePolicyTypes,
-  IIamRoleS3BucketPolicy,
+  type IIamRoleAssumeRolePolicy,
+  type IIamRolePolicyTypes,
+  type IIamRoleS3BucketPolicy,
   IamRoleSchema,
 } from './iam-role.schema.js';
 

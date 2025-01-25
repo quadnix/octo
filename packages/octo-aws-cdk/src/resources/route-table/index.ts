@@ -3,8 +3,8 @@ import './actions/delete-route-table.resource.action.js';
 
 export { RouteTable } from './route-table.resource.js';
 export {
-  type RouteTableInternetGateway,
+  RouteTableInternetGatewaySchema,
   RouteTableSchema,
-  type RouteTableSubnet,
-  type RouteTableVpc,
+  RouteTableSubnetSchema,
+  RouteTableVpcSchema,
 } from './route-table.schema.js';

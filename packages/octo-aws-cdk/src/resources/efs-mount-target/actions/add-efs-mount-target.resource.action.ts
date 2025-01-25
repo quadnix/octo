@@ -10,7 +10,7 @@ import {
 } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
-import type { EfsMountTargetEfs, EfsMountTargetSchema, EfsMountTargetSubnet } from '../efs-mount-target.schema.js';
+import type { EfsMountTargetSchema } from '../efs-mount-target.schema.js';
 
 @Action(EfsMountTarget)
 export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
@@ -28,14 +28,10 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const efsMountTarget = diff.node as EfsMountTarget;
-    const parents = efsMountTarget.getParents();
     const properties = efsMountTarget.properties;
     const response = efsMountTarget.response;
-
-    const efs = parents['efs'][0].to as EfsMountTargetEfs;
-    const efsResponse = efs.response;
-    const subnet = parents['subnet'][0].to as EfsMountTargetSubnet;
-    const subnetResponse = subnet.response;
+    const efsMountTargetEfs = efsMountTarget.parents[0];
+    const efsMountTargetSubnet = efsMountTarget.parents[1];
 
     // Get instances.
     const efsClient = await this.container.get(EFSClient, {
@@ -45,9 +41,9 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     // Create a new EFS MountTarget.
     const data = await efsClient.send(
       new CreateMountTargetCommand({
-        FileSystemId: efsResponse.FileSystemId,
+        FileSystemId: efsMountTargetEfs.getSchemaInstance().response.FileSystemId,
         SecurityGroups: [],
-        SubnetId: subnetResponse.SubnetId,
+        SubnetId: efsMountTargetSubnet.getSchemaInstance().response.SubnetId,
       }),
     );
 
@@ -60,7 +56,9 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
           }),
         );
 
-        const mountTarget = result.MountTargets?.find((m) => m.FileSystemId === efsResponse.FileSystemId);
+        const mountTarget = result.MountTargets?.find(
+          (m) => m.FileSystemId === efsMountTargetEfs.getSchemaInstance().response.FileSystemId,
+        );
         if (!mountTarget) {
           throw new TransactionError('EFS FileSystem MountTarget does not exist!');
         }
@@ -83,10 +81,8 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
 
   async mock(diff: Diff, capture: Partial<EfsMountTargetSchema['response']>): Promise<void> {
     const efsMountTarget = diff.node as EfsMountTarget;
-    const parents = efsMountTarget.getParents();
     const properties = efsMountTarget.properties;
-    const efs = parents['efs'][0].to as EfsMountTargetEfs;
-    const efsResponse = efs.response;
+    const efsMountTargetEfs = efsMountTarget.parents[0];
 
     const efsClient = await this.container.get(EFSClient, {
       metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
@@ -95,7 +91,11 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
       if (instance instanceof CreateMountTargetCommand) {
         return { MountTargetId: capture.MountTargetId, NetworkInterfaceId: capture.NetworkInterfaceId };
       } else if (instance instanceof DescribeMountTargetsCommand) {
-        return { MountTargets: [{ FileSystemId: efsResponse.FileSystemId, LifeCycleState: 'available' }] };
+        return {
+          MountTargets: [
+            { FileSystemId: efsMountTargetEfs.getSchemaInstance().response.FileSystemId, LifeCycleState: 'available' },
+          ],
+        };
       }
     };
   }

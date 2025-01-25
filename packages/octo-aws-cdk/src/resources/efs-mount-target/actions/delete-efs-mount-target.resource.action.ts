@@ -15,7 +15,6 @@ import {
 } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
-import type { EfsMountTargetEfs } from '../efs-mount-target.schema.js';
 
 @Action(EfsMountTarget)
 export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
@@ -33,12 +32,9 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const efsMountTarget = diff.node as EfsMountTarget;
-    const parents = efsMountTarget.getParents();
     const properties = efsMountTarget.properties;
     const response = efsMountTarget.response;
-
-    const efs = parents['efs'][0].to as EfsMountTargetEfs;
-    const efsResponse = efs.response;
+    const efsMountTargetEfs = efsMountTarget.parents[0];
 
     // Get instances.
     const efsClient = await this.container.get(EFSClient, {
@@ -67,7 +63,9 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
           }
         }
 
-        const mountTarget = result!.MountTargets?.find((m) => m.FileSystemId === efsResponse.FileSystemId);
+        const mountTarget = result!.MountTargets?.find(
+          (m) => m.FileSystemId === efsMountTargetEfs.getSchemaInstance().response.FileSystemId,
+        );
         if (!mountTarget) {
           return true;
         }
@@ -87,10 +85,8 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
 
   async mock(diff: Diff): Promise<void> {
     const efsMountTarget = diff.node as EfsMountTarget;
-    const parents = efsMountTarget.getParents();
     const properties = efsMountTarget.properties;
-    const efs = parents['efs'][0].to as EfsMountTargetEfs;
-    const efsResponse = efs.response;
+    const efsMountTargetEfs = efsMountTarget.parents[0];
 
     const efsClient = await this.container.get(EFSClient, {
       metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
@@ -99,7 +95,11 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
       if (instance instanceof DeleteMountTargetCommand) {
         return;
       } else if (instance instanceof DescribeMountTargetsCommand) {
-        return { MountTargets: [{ FileSystemId: efsResponse.FileSystemId, LifeCycleState: 'deleted' }] };
+        return {
+          MountTargets: [
+            { FileSystemId: efsMountTargetEfs.getSchemaInstance().response.FileSystemId, LifeCycleState: 'deleted' },
+          ],
+        };
       }
     };
   }

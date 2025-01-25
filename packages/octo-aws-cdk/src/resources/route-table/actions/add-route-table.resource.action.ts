@@ -6,12 +6,7 @@ import {
 } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { RouteTable } from '../route-table.resource.js';
-import type {
-  RouteTableInternetGateway,
-  RouteTableSchema,
-  RouteTableSubnet,
-  RouteTableVpc,
-} from '../route-table.schema.js';
+import type { RouteTableSchema } from '../route-table.schema.js';
 
 @Action(RouteTable)
 export class AddRouteTableResourceAction implements IResourceAction<RouteTable> {
@@ -31,24 +26,19 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     const routeTable = diff.node as RouteTable;
     const properties = routeTable.properties;
     const response = routeTable.response;
+    const routeTableVpc = routeTable.parents[0];
+    const routeTableInternetGateway = routeTable.parents[1];
+    const routeTableSubnet = routeTable.parents[2];
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
       metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
 
-    const parents = routeTable.getParents();
-    const vpc = parents['vpc'][0].to as RouteTableVpc;
-    const vpcResponse = vpc.response;
-    const internetGateway = parents['internet-gateway'][0].to as RouteTableInternetGateway;
-    const internetGatewayResponse = internetGateway.response;
-    const subnet = parents['subnet'][0].to as RouteTableSubnet;
-    const subnetResponse = subnet.response;
-
     // Create Route Table.
     const routeTableOutput = await ec2Client.send(
       new CreateRouteTableCommand({
-        VpcId: vpcResponse.VpcId,
+        VpcId: routeTableVpc.getSchemaInstance().response.VpcId,
       }),
     );
 
@@ -57,14 +47,14 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
       ec2Client.send(
         new AssociateRouteTableCommand({
           RouteTableId: routeTableOutput!.RouteTable!.RouteTableId,
-          SubnetId: subnetResponse.SubnetId,
+          SubnetId: routeTableSubnet.getSchemaInstance().response.SubnetId,
         }),
       ),
       properties.associateWithInternetGateway
         ? ec2Client.send(
             new CreateRouteCommand({
               DestinationCidrBlock: '0.0.0.0/0',
-              GatewayId: internetGatewayResponse.InternetGatewayId,
+              GatewayId: routeTableInternetGateway.getSchemaInstance().response.InternetGatewayId,
               RouteTableId: routeTableOutput!.RouteTable!.RouteTableId,
             }),
           )

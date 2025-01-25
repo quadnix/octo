@@ -1,4 +1,4 @@
-import { type AResource, BaseResourceSchema, Schema } from '@quadnix/octo';
+import { BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class EcsTaskDefinitionSchema extends BaseResourceSchema {
   override properties = Schema<{
@@ -31,11 +31,9 @@ export class EcsTaskDefinitionEfsSchema extends BaseResourceSchema {
     FileSystemId: string;
   }>();
 }
-export type EcsTaskDefinitionEfs = AResource<EcsTaskDefinitionEfsSchema, any>;
 
 export class EcsTaskDefinitionIamRoleSchema extends BaseResourceSchema {
   override response = Schema<{
     Arn: string;
   }>();
 }
-export type EcsTaskDefinitionIamRole = AResource<EcsTaskDefinitionIamRoleSchema, any>;

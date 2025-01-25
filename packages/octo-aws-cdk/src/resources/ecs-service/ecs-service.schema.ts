@@ -1,4 +1,4 @@
-import { type AResource, BaseResourceSchema, Schema } from '@quadnix/octo';
+import { BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class EcsServiceSchema extends BaseResourceSchema {
   override properties = Schema<{
@@ -13,7 +13,7 @@ export class EcsServiceSchema extends BaseResourceSchema {
   }>();
 }
 
-export class EcsTaskDefinitionEcsClusterSchema extends BaseResourceSchema {
+export class EcsServiceEcsClusterSchema extends BaseResourceSchema {
   override properties = Schema<{
     clusterName: string;
   }>();
@@ -22,25 +22,21 @@ export class EcsTaskDefinitionEcsClusterSchema extends BaseResourceSchema {
     clusterArn: string;
   }>();
 }
-export type EcsTaskDefinitionEcsCluster = AResource<EcsTaskDefinitionEcsClusterSchema, any>;
 
 export class EcsServiceTaskDefinitionSchema extends BaseResourceSchema {
   override response = Schema<{
     taskDefinitionArn: string;
   }>();
 }
-export type EcsServiceTaskDefinition = AResource<EcsServiceTaskDefinitionSchema, any>;
 
 export class EcsServiceSecurityGroupSchema extends BaseResourceSchema {
   override response = Schema<{
     GroupId: string;
   }>();
 }
-export type EcsServiceSecurityGroup = AResource<EcsServiceSecurityGroupSchema, any>;
 
 export class EcsServiceSubnetSchema extends BaseResourceSchema {
   override response = Schema<{
     SubnetId: string;
   }>();
 }
-export type EcsServiceSubnet = AResource<EcsServiceSubnetSchema, any>;

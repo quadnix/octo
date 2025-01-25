@@ -1,7 +1,7 @@
 import { CreateSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { Subnet } from '../subnet.resource.js';
-import type { SubnetSchema, SubnetVpc } from '../subnet.schema.js';
+import type { SubnetSchema } from '../subnet.schema.js';
 
 @Action(Subnet)
 export class AddSubnetResourceAction implements IResourceAction<Subnet> {
@@ -21,8 +21,7 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
     const subnet = diff.node as Subnet;
     const properties = subnet.properties;
     const response = subnet.response;
-    const vpc = subnet.getParents('vpc')['vpc'][0].to as SubnetVpc;
-    const vpcResponse = vpc.response;
+    const subnetVpc = subnet.parents[0];
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
@@ -34,7 +33,7 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
       new CreateSubnetCommand({
         AvailabilityZone: properties.AvailabilityZone,
         CidrBlock: properties.CidrBlock,
-        VpcId: vpcResponse.VpcId,
+        VpcId: subnetVpc.getSchemaInstance().response.VpcId,
       }),
     );
 

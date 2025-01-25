@@ -1,11 +1,7 @@
 import { ECSClient, type PortMapping, RegisterTaskDefinitionCommand } from '@aws-sdk/client-ecs';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
-import type {
-  EcsTaskDefinitionEfs,
-  EcsTaskDefinitionIamRole,
-  EcsTaskDefinitionSchema,
-} from '../ecs-task-definition.schema.js';
+import type { EcsTaskDefinitionSchema } from '../ecs-task-definition.schema.js';
 
 @Action(EcsTaskDefinition)
 export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTaskDefinition> {
@@ -23,14 +19,10 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const ecsTaskDefinition = diff.node as EcsTaskDefinition;
-    const parents = ecsTaskDefinition.getParents();
     const properties = ecsTaskDefinition.properties;
     const response = ecsTaskDefinition.response;
-
-    const efsList = 'efs' in parents ? parents['efs'].map((d) => d.to as EcsTaskDefinitionEfs) : [];
-
-    const iamRole = parents['iam-role'][0].to as EcsTaskDefinitionIamRole;
-    const iamRoleResponse = iamRole.response;
+    const ecsTaskDefinitionIamRole = ecsTaskDefinition.parents[0];
+    const ecsTaskDefinitionEfsList = ecsTaskDefinition.parents.slice(1) as (typeof ecsTaskDefinition.parents)[1][];
 
     // Get instances.
     const ecsClient = await this.container.get(ECSClient, {
@@ -46,10 +38,10 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
             environment: properties.environmentVariables,
             essential: true,
             image: properties.image.uri,
-            mountPoints: efsList.map((efs: EcsTaskDefinitionEfs) => ({
-              containerPath: `/mnt/${efs.properties.filesystemName}`,
+            mountPoints: ecsTaskDefinitionEfsList.map((efs) => ({
+              containerPath: `/mnt/${efs.getSchemaInstance().properties.filesystemName}`,
               readOnly: false,
-              sourceVolume: efs.properties.filesystemName,
+              sourceVolume: efs.getSchemaInstance().properties.filesystemName,
             })),
             name: properties.deploymentTag.replace(/\./g, '_'),
             portMappings: properties.image.ports.map(
@@ -66,12 +58,12 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
         memory: String(properties.memory),
         networkMode: 'awsvpc',
         requiresCompatibilities: ['FARGATE'],
-        taskRoleArn: iamRoleResponse.Arn,
-        volumes: efsList.map((efs: EcsTaskDefinitionEfs) => ({
+        taskRoleArn: ecsTaskDefinitionIamRole.getSchemaInstance().response.Arn,
+        volumes: ecsTaskDefinitionEfsList.map((efs) => ({
           efsVolumeConfiguration: {
-            fileSystemId: efs.response.FileSystemId,
+            fileSystemId: efs.getSchemaInstance().response.FileSystemId,
           },
-          name: efs.properties.filesystemName,
+          name: efs.getSchemaInstance().properties.filesystemName,
         })),
       }),
     );

@@ -1,4 +1,4 @@
-import { type AResource, BaseResourceSchema, Schema } from '@quadnix/octo';
+import { BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class EfsMountTargetSchema extends BaseResourceSchema {
   override properties = Schema<{
@@ -17,11 +17,9 @@ export class EfsMountTargetEfsSchema extends BaseResourceSchema {
     FileSystemId: string;
   }>();
 }
-export type EfsMountTargetEfs = AResource<EfsMountTargetEfsSchema, any>;
 
 export class EfsMountTargetSubnetSchema extends BaseResourceSchema {
   override response = Schema<{
     SubnetId: string;
   }>();
 }
-export type EfsMountTargetSubnet = AResource<EfsMountTargetSubnetSchema, any>;

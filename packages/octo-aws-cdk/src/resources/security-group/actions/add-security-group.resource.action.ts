@@ -6,7 +6,7 @@ import {
 } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { SecurityGroup } from '../security-group.resource.js';
-import type { SecurityGroupSchema, SecurityGroupVpc } from '../security-group.schema.js';
+import type { SecurityGroupSchema } from '../security-group.schema.js';
 
 @Action(SecurityGroup)
 export class AddSecurityGroupResourceAction implements IResourceAction<SecurityGroup> {
@@ -26,8 +26,7 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
     const securityGroup = diff.node as SecurityGroup;
     const properties = securityGroup.properties;
     const response = securityGroup.response;
-    const vpc = securityGroup.getParents('vpc')['vpc'][0].to as SecurityGroupVpc;
-    const vpcResponse = vpc.response;
+    const securityGroupVpc = securityGroup.parents[0];
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
@@ -39,7 +38,7 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
       new CreateSecurityGroupCommand({
         Description: securityGroup.resourceId,
         GroupName: securityGroup.resourceId,
-        VpcId: vpcResponse.VpcId,
+        VpcId: securityGroupVpc.getSchemaInstance().response.VpcId,
       }),
     );
 

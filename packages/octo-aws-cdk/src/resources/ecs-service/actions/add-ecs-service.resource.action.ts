@@ -1,13 +1,7 @@
 import { CreateServiceCommand, ECSClient } from '@aws-sdk/client-ecs';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EcsService } from '../ecs-service.resource.js';
-import type {
-  EcsServiceSchema,
-  EcsServiceSecurityGroup,
-  EcsServiceSubnet,
-  EcsServiceTaskDefinition,
-  EcsTaskDefinitionEcsCluster,
-} from '../ecs-service.schema.js';
+import type { EcsServiceSchema } from '../ecs-service.schema.js';
 
 @Action(EcsService)
 export class AddEcsServiceResourceAction implements IResourceAction<EcsService> {
@@ -25,21 +19,12 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
   async handle(diff: Diff): Promise<void> {
     // Get properties.
     const ecsService = diff.node as EcsService;
-    const parents = ecsService.getParents();
     const properties = ecsService.properties;
     const response = ecsService.response;
-
-    const ecsCluster = parents['ecs-cluster'][0].to as EcsTaskDefinitionEcsCluster;
-    const ecsClusterProperties = ecsCluster.properties;
-
-    const ecsTaskDefinition = parents['ecs-task-definition'][0].to as EcsServiceTaskDefinition;
-    const ecsTaskDefinitionResponse = ecsTaskDefinition.response;
-
-    const subnet = parents['subnet'][0].to as EcsServiceSubnet;
-    const subnetResponse = subnet.response;
-
-    const securityGroupList =
-      'security-group' in parents ? parents['security-group'].map((d) => d.to as EcsServiceSecurityGroup) : [];
+    const ecsServiceEcsCluster = ecsService.parents[0];
+    const ecsServiceTaskDefinition = ecsService.parents[1];
+    const ecsServiceSubnet = ecsService.parents[2];
+    const ecsServiceSecurityGroupList = ecsService.parents.slice(3) as (typeof ecsService.parents)[3][];
 
     // Get instances.
     const ecsClient = await this.container.get(ECSClient, {
@@ -49,17 +34,17 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
     // Create a new service.
     const data = await ecsClient.send(
       new CreateServiceCommand({
-        cluster: ecsClusterProperties.clusterName,
+        cluster: ecsServiceEcsCluster.getSchemaInstance().properties.clusterName,
         desiredCount: properties.desiredCount,
         launchType: 'FARGATE',
         networkConfiguration: {
           awsvpcConfiguration: {
-            securityGroups: securityGroupList.map((sg) => sg.response.GroupId),
-            subnets: [subnetResponse.SubnetId],
+            securityGroups: ecsServiceSecurityGroupList.map((sg) => sg.getSchemaInstance().response.GroupId),
+            subnets: [ecsServiceSubnet.getSchemaInstance().response.SubnetId],
           },
         },
         serviceName: properties.serviceName,
-        taskDefinition: ecsTaskDefinitionResponse.taskDefinitionArn,
+        taskDefinition: ecsServiceTaskDefinition.getSchemaInstance().response.taskDefinitionArn,
       }),
     );
 

@@ -1,47 +1,39 @@
-import { AResource, DependencyRelationship, Diff, DiffAction, Resource, getSchemaInstance } from '@quadnix/octo';
-import assert from 'node:assert';
+import { AResource, DependencyRelationship, Diff, DiffAction, type MatchingResource, Resource } from '@quadnix/octo';
 import {
+  type EcsServiceEcsClusterSchema,
   EcsServiceSchema,
-  EcsServiceSecurityGroup,
-  EcsServiceSecurityGroupSchema,
-  EcsServiceSubnet,
-  EcsServiceSubnetSchema,
-  EcsServiceTaskDefinition,
-  EcsServiceTaskDefinitionSchema,
-  EcsTaskDefinitionEcsCluster,
-  EcsTaskDefinitionEcsClusterSchema,
+  type EcsServiceSecurityGroupSchema,
+  type EcsServiceSubnetSchema,
+  type EcsServiceTaskDefinitionSchema,
 } from './ecs-service.schema.js';
 
 @Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema)
 export class EcsService extends AResource<EcsServiceSchema, EcsService> {
+  declare parents: [
+    MatchingResource<EcsServiceEcsClusterSchema>,
+    MatchingResource<EcsServiceTaskDefinitionSchema>,
+    MatchingResource<EcsServiceSubnetSchema>,
+    ...MatchingResource<EcsServiceSecurityGroupSchema>[],
+  ];
   declare properties: EcsServiceSchema['properties'];
   declare response: EcsServiceSchema['response'];
 
   constructor(
     resourceId: string,
     properties: EcsServiceSchema['properties'],
-    parents: [EcsTaskDefinitionEcsCluster, EcsServiceTaskDefinition, EcsServiceSubnet, ...EcsServiceSecurityGroup[]],
+    parents: [
+      MatchingResource<EcsServiceEcsClusterSchema>,
+      MatchingResource<EcsServiceTaskDefinitionSchema>,
+      MatchingResource<EcsServiceSubnetSchema>,
+      ...MatchingResource<EcsServiceSecurityGroupSchema>[],
+    ],
   ) {
-    assert.strictEqual((parents[0].constructor as typeof AResource).NODE_NAME, 'ecs-cluster');
-    getSchemaInstance(EcsTaskDefinitionEcsClusterSchema, parents[0].synth() as unknown as Record<string, unknown>);
-    assert.strictEqual((parents[1].constructor as typeof AResource).NODE_NAME, 'ecs-task-definition');
-    getSchemaInstance(EcsServiceTaskDefinitionSchema, parents[1].synth() as unknown as Record<string, unknown>);
-    assert.strictEqual((parents[2].constructor as typeof AResource).NODE_NAME, 'subnet');
-    getSchemaInstance(EcsServiceSubnetSchema, parents[2].synth() as unknown as Record<string, unknown>);
-    parents.slice(3).every((p) => {
-      assert.strictEqual((p.constructor as typeof AResource).NODE_NAME, 'security-group');
-      getSchemaInstance(EcsServiceSecurityGroupSchema, p.synth() as unknown as Record<string, unknown>);
-      return true;
-    });
-
     super(resourceId, properties, parents);
 
     this.updateServiceSecurityGroups(
-      parents.filter((p) => this.isEcsServiceSecurityGroup(p)) as EcsServiceSecurityGroup[],
+      parents.slice(3).map((p) => p.getActual() as AResource<EcsServiceSecurityGroupSchema, any>),
     );
-    this.updateServiceTaskDefinition(
-      parents.find((p) => this.isEcsServiceTaskDefinition(p)) as EcsServiceTaskDefinition,
-    );
+    this.updateServiceTaskDefinition(parents[1].getActual() as AResource<EcsServiceTaskDefinitionSchema, any>);
   }
 
   override async diff(previous: EcsService): Promise<Diff[]> {
@@ -76,7 +68,9 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
 
   override async diffInverse(
     diff: Diff,
-    deReferenceResource: (resourceId: string) => Promise<EcsServiceTaskDefinition | EcsServiceSecurityGroup>,
+    deReferenceResource: (
+      resourceId: string,
+    ) => Promise<AResource<EcsServiceTaskDefinitionSchema, any> | AResource<EcsServiceSecurityGroupSchema, any>>,
   ): Promise<void> {
     if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
       await this.cloneResourceInPlace(diff.node as EcsService, deReferenceResource);
@@ -85,15 +79,15 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     }
   }
 
-  private isEcsServiceSecurityGroup(node: AResource<any, any>): boolean {
-    return node.response.hasOwnProperty('GroupId');
+  private isEcsServiceSecurityGroup(resource: AResource<any, any>): boolean {
+    return (resource.constructor as typeof AResource).NODE_NAME === 'security-group';
   }
 
-  private isEcsServiceTaskDefinition(node: AResource<any, any>): boolean {
-    return node.response.hasOwnProperty('taskDefinitionArn');
+  private isEcsServiceTaskDefinition(resource: AResource<any, any>): boolean {
+    return (resource.constructor as typeof AResource).NODE_NAME === 'ecs-task-definition';
   }
 
-  private updateServiceSecurityGroups(securityGroupParents: EcsServiceSecurityGroup[]): void {
+  private updateServiceSecurityGroups(securityGroupParents: AResource<EcsServiceSecurityGroupSchema, any>[]): void {
     for (const sgParent of securityGroupParents) {
       const ecsToSgDep = this.getDependency(sgParent, DependencyRelationship.CHILD)!;
       const sgToEcsDep = sgParent.getDependency(this, DependencyRelationship.PARENT)!;
@@ -105,36 +99,12 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     }
   }
 
-  private updateServiceTaskDefinition(taskDefinitionParent: EcsServiceTaskDefinition): void {
+  private updateServiceTaskDefinition(taskDefinitionParent: AResource<EcsServiceTaskDefinitionSchema, any>): void {
     const ecsToTdDep = this.getDependency(taskDefinitionParent, DependencyRelationship.CHILD)!;
 
     // Before updating ecs-service must add ecs-task-definition.
     ecsToTdDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
     // Before updating ecs-service must update ecs-task-definition.
     ecsToTdDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.UPDATE);
-  }
-
-  static override async unSynth(
-    _deserializationClass: any,
-    resource: EcsServiceSchema,
-    parentContexts: string[],
-    deReferenceResource: (context: string) => Promise<any>,
-  ): Promise<EcsService> {
-    const parents = await Promise.all(parentContexts.map((p) => deReferenceResource(p)));
-    const ecsCluster = parents.find((p) => p.constructor.NODE_NAME === 'ecs-cluster');
-    const ecsTaskDefinition = parents.find((p) => p.constructor.NODE_NAME === 'ecs-task-definition');
-    const subnet = parents.find((p) => p.constructor.NODE_NAME === 'subnet');
-    const securityGroups = parents.filter((p) => p.constructor.NODE_NAME === 'security-group');
-
-    const newResource = new EcsService(resource.resourceId, resource.properties, [
-      ecsCluster,
-      ecsTaskDefinition,
-      subnet,
-      ...securityGroups,
-    ]);
-    for (const key of Object.keys(resource.response)) {
-      newResource.response[key] = resource.response[key];
-    }
-    return newResource;
   }
 }

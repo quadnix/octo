@@ -5,8 +5,8 @@ import './actions/update-ecs-service.resource.action.js';
 export { EcsService } from './ecs-service.resource.js';
 export {
   EcsServiceSchema,
-  EcsTaskDefinitionEcsCluster,
-  EcsServiceTaskDefinition,
-  EcsServiceSecurityGroup,
-  EcsServiceSubnet,
+  EcsServiceEcsClusterSchema,
+  EcsServiceSecurityGroupSchema,
+  EcsServiceSubnetSchema,
+  EcsServiceTaskDefinitionSchema,
 } from './ecs-service.schema.js';

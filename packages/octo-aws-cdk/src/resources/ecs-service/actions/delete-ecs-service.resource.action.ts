@@ -2,7 +2,6 @@ import { DeleteServiceCommand, DescribeServicesCommand, ECSClient, UpdateService
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EcsService } from '../ecs-service.resource.js';
-import type { EcsTaskDefinitionEcsCluster } from '../ecs-service.schema.js';
 
 @Action(EcsService)
 export class DeleteEcsServiceResourceAction implements IResourceAction<EcsService> {
@@ -21,9 +20,7 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
     // Get properties.
     const ecsService = diff.node as EcsService;
     const properties = ecsService.properties;
-
-    const ecsCluster = ecsService.getParents('ecs-cluster')['ecs-cluster'][0].to as EcsTaskDefinitionEcsCluster;
-    const ecsClusterProperties = ecsCluster.properties;
+    const ecsServiceEcsCluster = ecsService.parents[0];
 
     // Get instances.
     const ecsClient = await this.container.get(ECSClient, {
@@ -33,7 +30,7 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
     // Check if service is ACTIVE.
     const describeResult = await ecsClient.send(
       new DescribeServicesCommand({
-        cluster: ecsClusterProperties.clusterName,
+        cluster: ecsServiceEcsCluster.getSchemaInstance().properties.clusterName,
         services: [properties.serviceName],
       }),
     );
@@ -44,7 +41,7 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
     // Scale down the service to 0.
     await ecsClient.send(
       new UpdateServiceCommand({
-        cluster: ecsClusterProperties.clusterName,
+        cluster: ecsServiceEcsCluster.getSchemaInstance().properties.clusterName,
         desiredCount: 0,
         service: properties.serviceName,
       }),
@@ -55,7 +52,7 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
       async (): Promise<boolean> => {
         const result = await ecsClient.send(
           new DescribeServicesCommand({
-            cluster: ecsClusterProperties.clusterName,
+            cluster: ecsServiceEcsCluster.getSchemaInstance().properties.clusterName,
             services: [properties.serviceName],
           }),
         );
@@ -71,7 +68,7 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
     // Delete the service.
     await ecsClient.send(
       new DeleteServiceCommand({
-        cluster: ecsClusterProperties.clusterName,
+        cluster: ecsServiceEcsCluster.getSchemaInstance().properties.clusterName,
         service: properties.serviceName,
       }),
     );

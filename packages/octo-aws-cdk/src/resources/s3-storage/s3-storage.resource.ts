@@ -1,7 +1,5 @@
-import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import { IamRole } from '../iam-role/index.js';
-import { IamUser } from '../iam-user/index.js';
-import { S3StorageSchema } from './s3-storage.schema.js';
+import { AResource, Diff, DiffAction, MatchingResource, Resource } from '@quadnix/octo';
+import { type PrincipalResourceSchema, S3StorageSchema } from './s3-storage.schema.js';
 
 export type S3StorageManifestDiff = {
   [key: string]: {
@@ -11,6 +9,7 @@ export type S3StorageManifestDiff = {
 
 @Resource<S3Storage>('@octo', 's3-storage', S3StorageSchema)
 export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
+  declare parents: MatchingResource<PrincipalResourceSchema>[];
   declare properties: S3StorageSchema['properties'];
   declare response: S3StorageSchema['response'];
 
@@ -22,11 +21,11 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
   }
 
   addPermission(
-    principal: IamRole | IamUser,
+    principal: MatchingResource<PrincipalResourceSchema>,
     remoteDirectoryPath: string,
     options: { allowRead: boolean; allowWrite: boolean },
   ): void {
-    const principalResourceId = principal.resourceId;
+    const principalResourceId = principal.getActual().resourceId;
 
     const existingPermission = this.properties.permissions.find(
       (p) => p.principalResourceId === principalResourceId && p.remoteDirectoryPath === remoteDirectoryPath,

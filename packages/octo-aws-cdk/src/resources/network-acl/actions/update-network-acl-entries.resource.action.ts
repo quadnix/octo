@@ -10,7 +10,7 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import pLimit from 'p-limit';
 import { NetworkAclUtility } from '../../../utilities/network-acl/network-acl.utility.js';
 import { NetworkAcl } from '../network-acl.resource.js';
-import type { NetworkAclSchema, NetworkAclSubnet } from '../network-acl.schema.js';
+import type { NetworkAclSchema } from '../network-acl.schema.js';
 
 @Action(NetworkAcl)
 export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<NetworkAcl> {
@@ -31,6 +31,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
     const networkAcl = diff.node as NetworkAcl;
     const properties = networkAcl.properties;
     const response = networkAcl.response;
+    const networkAclSubnet = networkAcl.parents[1];
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
@@ -38,17 +39,13 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
     });
     const limit = pLimit(100);
 
-    const parents = networkAcl.getParents();
-    const subnet = parents['subnet'][0].to as NetworkAclSubnet;
-    const subnetResponse = subnet.response;
-
     // Get NACL entries.
     const nAclOutput = await ec2Client.send(
       new DescribeNetworkAclsCommand({
         Filters: [
           {
             Name: 'association.subnet-id',
-            Values: [subnetResponse.SubnetId],
+            Values: [networkAclSubnet.getSchemaInstance().response.SubnetId],
           },
         ],
       }),

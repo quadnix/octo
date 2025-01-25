@@ -1,6 +1,10 @@
-import { BaseResourceSchema, Schema } from '@quadnix/octo';
+import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 export class S3StorageSchema extends BaseResourceSchema {
+  @Validate({
+    destruct: (value): string[] => [value.awsRegionId, [value.Bucket]],
+    options: { minLength: 1 },
+  })
   override properties = Schema<{
     awsAccountId: string;
     awsRegionId: string;
@@ -14,4 +18,11 @@ export class S3StorageSchema extends BaseResourceSchema {
   }>();
 
   override response = Schema<Record<never, never>>();
+}
+
+export class PrincipalResourceSchema extends BaseResourceSchema {
+  @Validate({ destruct: (value: { Arn: string }): string[] => [value.Arn], options: { minLength: 1 } })
+  override response = Schema<{
+    Arn: string;
+  }>();
 }

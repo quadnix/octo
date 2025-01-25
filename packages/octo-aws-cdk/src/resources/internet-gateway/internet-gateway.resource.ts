@@ -1,16 +1,17 @@
-import { AResource, Resource, getSchemaInstance } from '@quadnix/octo';
-import assert from 'node:assert';
-import { InternetGatewaySchema, type InternetGatewayVpc, InternetGatewayVpcSchema } from './internet-gateway.schema.js';
+import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
+import { InternetGatewaySchema, type InternetGatewayVpcSchema } from './internet-gateway.schema.js';
 
 @Resource<InternetGateway>('@octo', 'internet-gateway', InternetGatewaySchema)
 export class InternetGateway extends AResource<InternetGatewaySchema, InternetGateway> {
+  declare parents: [MatchingResource<InternetGatewayVpcSchema>];
   declare properties: InternetGatewaySchema['properties'];
   declare response: InternetGatewaySchema['response'];
 
-  constructor(resourceId: string, properties: InternetGatewaySchema['properties'], parents: [InternetGatewayVpc]) {
-    assert.strictEqual((parents[0].constructor as typeof AResource).NODE_NAME, 'vpc');
-    getSchemaInstance(InternetGatewayVpcSchema, parents[0].synth() as unknown as Record<string, unknown>);
-
+  constructor(
+    resourceId: string,
+    properties: InternetGatewaySchema['properties'],
+    parents: [MatchingResource<InternetGatewayVpcSchema>],
+  ) {
     super(resourceId, properties, parents);
   }
 }

@@ -1,7 +1,7 @@
 import { AttachInternetGatewayCommand, CreateInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { InternetGateway } from '../internet-gateway.resource.js';
-import type { InternetGatewaySchema, InternetGatewayVpc } from '../internet-gateway.schema.js';
+import type { InternetGatewaySchema } from '../internet-gateway.schema.js';
 
 @Action(InternetGateway)
 export class AddInternetGatewayResourceAction implements IResourceAction<InternetGateway> {
@@ -21,14 +21,12 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     const internetGateway = diff.node as InternetGateway;
     const properties = internetGateway.properties;
     const response = internetGateway.response;
+    const internetGatewayVpc = internetGateway.parents[0];
 
     // Get instances.
     const ec2Client = await this.container.get(EC2Client, {
       metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
     });
-
-    const vpc = internetGateway.getParents('vpc')['vpc'][0].to as InternetGatewayVpc;
-    const vpcResponse = vpc.response;
 
     // Create Internet Gateway.
     const internetGWOutput = await ec2Client.send(new CreateInternetGatewayCommand({}));
@@ -37,7 +35,7 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     await ec2Client.send(
       new AttachInternetGatewayCommand({
         InternetGatewayId: internetGWOutput!.InternetGateway!.InternetGatewayId,
-        VpcId: vpcResponse.VpcId,
+        VpcId: internetGatewayVpc.getSchemaInstance().response.VpcId,
       }),
     );
 

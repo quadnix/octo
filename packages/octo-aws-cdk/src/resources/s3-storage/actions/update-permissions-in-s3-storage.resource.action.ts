@@ -1,5 +1,5 @@
 import { PutBucketPolicyCommand, S3Client } from '@aws-sdk/client-s3';
-import { type AResource, Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { S3Storage, type S3StorageManifestDiff } from '../s3-storage.resource.js';
 
 @Action(S3Storage)
@@ -33,11 +33,9 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
     for (const [remoteDirectoryPath, principals] of Object.entries(manifestDiff)) {
       for (const [principalResourceId, operation] of Object.entries(principals)) {
         if (operation === 'addDirectoryPermissions' || operation === 'updateDirectoryPermissions') {
-          const parents = Object.values(s3Storage.getParents())
-            .flat()
-            .map((d) => d.to as unknown as AResource<any, any>);
-          const parent = parents.find((p) => p.resourceId === principalResourceId)!;
-          const principalArn = parent.response.Arn;
+          const principalArn = s3Storage.parents
+            .find((p) => p.getActual().resourceId === principalResourceId)!
+            .getSchemaInstance().response.Arn;
 
           const permission = properties.permissions.find(
             (p) => p.principalResourceId === principalResourceId && p.remoteDirectoryPath === remoteDirectoryPath,
