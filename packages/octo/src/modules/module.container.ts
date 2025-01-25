@@ -85,6 +85,7 @@ export class ModuleContainer {
           models = [models];
         }
 
+        // Register module outputs.
         for (const model of models) {
           if (model instanceof AOverlay) {
             this.overlayDataRepository.add(model);
@@ -95,6 +96,8 @@ export class ModuleContainer {
 
           result[i.moduleId] = model;
         }
+        // Register module.
+        this.inputService.registerModule(i.moduleId, instance);
 
         i.applied = true;
       }

@@ -1,4 +1,4 @@
-import type { UnknownModel, UnknownOverlay, UnknownResource } from '../../app.type.js';
+import type { UnknownModel, UnknownModule, UnknownOverlay, UnknownResource } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { InputRegistrationError, InputResolutionError } from '../../errors/index.js';
 import { Container } from '../../functions/container/container.js';
@@ -13,6 +13,8 @@ export class InputService {
   private metadata: { [key: string]: unknown } = {};
 
   private models: { [key: string]: UnknownModel } = {};
+
+  private modules: { [key: string]: UnknownModule } = {};
 
   private overlays: { [key: string]: string } = {};
 
@@ -49,6 +51,11 @@ export class InputService {
 
   getMetadataKeys(moduleId: string): string[] {
     return Object.keys(this.metadata).filter((key) => key.startsWith(`${moduleId}.metadata`));
+  }
+
+  getModule<M extends UnknownModule>(moduleId: string): M | undefined {
+    const moduleKey = `${moduleId}.module`;
+    return this.modules[moduleKey] as M | undefined;
   }
 
   getModuleIdFromModel(model: UnknownModel): string {
@@ -113,6 +120,14 @@ export class InputService {
       throw new InputRegistrationError('Model has already been registered!', modelKey);
     }
     this.models[modelKey] = model;
+  }
+
+  registerModule(moduleId: string, module: UnknownModule): void {
+    const moduleKey = `${moduleId}.module`;
+    if (this.modules.hasOwnProperty(moduleKey)) {
+      throw new InputRegistrationError('Module has already been registered!', moduleKey);
+    }
+    this.modules[moduleKey] = module;
   }
 
   /**
@@ -256,6 +271,7 @@ export class InputServiceFactory {
       this.instance['inputs'] = {};
       this.instance['metadata'] = {};
       this.instance['models'] = {};
+      this.instance['modules'] = {};
       this.instance['overlays'] = {};
       this.instance['resources'] = {};
     }

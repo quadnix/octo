@@ -8,6 +8,7 @@ import { ModuleContainer } from './modules/module.container.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
 import { BaseResourceSchema } from './resources/resource.schema.js';
 import { CaptureService } from './services/capture/capture.service.js';
+import { InputService } from './services/input/input.service.js';
 import { SchemaTranslationService } from './services/schema-translation/schema-translation.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from './services/serialization/resource/resource-serialization.service.js';
@@ -24,6 +25,7 @@ export class Octo {
   private readonly oldResourceStateFileName: string = 'resources-old.json';
 
   private captureService: CaptureService;
+  private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
   private moduleContainer: ModuleContainer;
   private resourceSerializationService: ResourceSerializationService;
@@ -103,6 +105,10 @@ export class Octo {
     return await this.moduleContainer.apply();
   }
 
+  getModule<M extends UnknownModule>(...args: Parameters<InputService['getModule']>): M | undefined {
+    return this.inputService.getModule(...args);
+  }
+
   async initialize(
     stateProvider: IStateProvider,
     initializeInContainer: {
@@ -117,6 +123,7 @@ export class Octo {
 
     [
       this.captureService,
+      this.inputService,
       this.modelSerializationService,
       this.moduleContainer,
       this.resourceSerializationService,
@@ -125,6 +132,7 @@ export class Octo {
       this.transactionService,
     ] = await Promise.all([
       container.get(CaptureService),
+      container.get(InputService),
       container.get(ModelSerializationService),
       container.get(ModuleContainer),
       container.get(ResourceSerializationService),
