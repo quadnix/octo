@@ -12,8 +12,11 @@ import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
+import { AModel } from '../models/model.abstract.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../overlays/overlay-data.repository.js';
+import { AOverlay } from '../overlays/overlay.abstract.js';
 import type { IResourceAction } from '../resources/resource-action.interface.js';
+import { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
@@ -67,7 +70,10 @@ export class TestModuleContainer {
 
   async commit(
     app: App,
-    { enableResourceCapture = false } = {},
+    {
+      enableResourceCapture = false,
+      filterByModuleIds = [],
+    }: { enableResourceCapture?: boolean; filterByModuleIds?: string[] } = {},
   ): Promise<{
     modelDiffs: DiffMetadata[][];
     modelTransaction: DiffMetadata[][];
@@ -88,6 +94,63 @@ export class TestModuleContainer {
     response.resourceDiffs = (await generator.next()).value;
     response.resourceTransaction = (await generator.next()).value;
     await generator.next();
+
+    const container = Container.getInstance();
+    const inputService = await container.get(InputService);
+
+    for (const moduleId of filterByModuleIds) {
+      response.modelDiffs = response.modelDiffs
+        .map((i) =>
+          i.filter((j) => {
+            if (j.node instanceof AModel && !(j.node instanceof AOverlay)) {
+              return inputService.getModuleIdFromModel(j.node) === moduleId;
+            } else if (j.node instanceof AOverlay) {
+              return inputService.getModuleIdFromOverlay(j.node) === moduleId;
+            } else {
+              return false;
+            }
+          }),
+        )
+        .filter((i) => i.length);
+
+      response.modelTransaction = response.modelTransaction
+        .map((i) =>
+          i.filter((j) => {
+            if (j.node instanceof AModel && !(j.node instanceof AOverlay)) {
+              return inputService.getModuleIdFromModel(j.node) === moduleId;
+            } else if (j.node instanceof AOverlay) {
+              return inputService.getModuleIdFromOverlay(j.node) === moduleId;
+            } else {
+              return false;
+            }
+          }),
+        )
+        .filter((i) => i.length);
+
+      response.resourceDiffs = response.resourceDiffs
+        .map((i) =>
+          i.filter((j) => {
+            if (j.node instanceof AResource) {
+              return inputService.getModuleIdFromResource(j.node) === moduleId;
+            } else {
+              return false;
+            }
+          }),
+        )
+        .filter((i) => i.length);
+
+      response.resourceTransaction = response.resourceTransaction
+        .map((i) =>
+          i.filter((j) => {
+            if (j.node instanceof AResource) {
+              return inputService.getModuleIdFromResource(j.node) === moduleId;
+            } else {
+              return false;
+            }
+          }),
+        )
+        .filter((i) => i.length);
+    }
 
     await this.reset();
 
@@ -112,14 +175,16 @@ export class TestModuleContainer {
       for (const model of models) {
         inputService.registerModel(moduleId, model);
 
+        const universalAction = new UniversalModelAction();
+        Object.assign(universalAction, {
+          constructor: { name: `${UniversalModelAction.name}For${model.constructor.name}` },
+        });
         try {
-          transactionService.registerModelActions(model.constructor as Constructable<UnknownModel>, [
-            new UniversalModelAction(),
-          ]);
+          transactionService.registerModelActions(model.constructor as Constructable<UnknownModel>, [universalAction]);
         } catch (error) {
           if (
             error.message !==
-            `Action "${UniversalModelAction.name}" already registered for model "${model.constructor.name}"!`
+            `Action "${universalAction.constructor.name}" already registered for model "${model.constructor.name}"!`
           ) {
             throw error;
           }
@@ -190,6 +255,12 @@ export class TestModuleContainer {
     }
 
     return result;
+  }
+
+  mapTransactionActions(transaction: DiffMetadata[][]): string[][] {
+    return transaction.map((i) =>
+      i.map((j) => j.actions.map((a: IModelAction<any> | IResourceAction<any>) => a.constructor.name)).flat(),
+    );
   }
 
   async initialize(
