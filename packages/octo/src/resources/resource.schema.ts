@@ -1,7 +1,12 @@
+import { Schema } from '../functions/schema/schema.js';
+import type { IResourceReference } from './resource.interface.js';
+
 export class BaseResourceSchema {
-  properties: { [key: string]: unknown };
+  parents = Schema<IResourceReference[]>();
 
-  resourceId: string;
+  properties = Schema<{ [key: string]: unknown }>();
 
-  response: { [key: string]: unknown };
+  resourceId = Schema<string>();
+
+  response = Schema<{ [key: string]: unknown }>();
 }

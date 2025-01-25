@@ -34,8 +34,8 @@ describe('Resource Serialization Service UT', () => {
         resources: {
           'resource-1': {
             className: 'ClassNotExist',
-            context: 'resource=resource-1',
             resource: {
+              parents: [],
               properties: {},
               resourceId: 'resource=resource-1',
               response: {},

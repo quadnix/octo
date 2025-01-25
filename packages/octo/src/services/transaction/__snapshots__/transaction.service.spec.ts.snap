@@ -75,6 +75,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
       "resources": {
         "resource1": {
           "context": "@octo/test-resource=resource1",
+          "parents": [],
           "properties": {},
           "resourceId": "resource1",
           "response": {},

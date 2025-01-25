@@ -62,6 +62,15 @@ export class MatchingResource<S extends BaseResourceSchema> {
     private readonly schemaTranslator?: (synth: any) => S,
   ) {}
 
+  addChild(
+    ...args: Parameters<AResource<BaseResourceSchema, any>['addChild']>
+  ): ReturnType<AResource<BaseResourceSchema, any>['addChild']> {
+    const results = this.actual.addChild(...args);
+    args[1].parents.pop();
+    args[1].parents.push(this);
+    return results;
+  }
+
   hasSchemaTranslator(): boolean {
     return !!this.schemaTranslator;
   }
@@ -133,8 +142,8 @@ export type ModelSerializedOutput = {
 };
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
-  resources: { [p: string]: { className: string; context: string; resource: BaseResourceSchema } };
-  sharedResources: { [p: string]: { className: string; context: string; resource: BaseResourceSchema } };
+  resources: { [p: string]: { className: string; resource: BaseResourceSchema } };
+  sharedResources: { [p: string]: { className: string; resource: BaseResourceSchema } };
 };
 export type TransactionOptions = {
   enableResourceCapture?: boolean;

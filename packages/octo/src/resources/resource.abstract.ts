@@ -1,4 +1,4 @@
-import { NodeType, type ResourceSchema, type UnknownNode, type UnknownResource } from '../app.type.js';
+import { MatchingResource, NodeType, type UnknownResource } from '../app.type.js';
 import { DiffInverseResourceError, RemoveResourceError, ResourceError } from '../errors/index.js';
 import { type Dependency, DependencyRelationship } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
@@ -14,18 +14,37 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 {
   private _deleteMarker = false;
 
+  readonly parents: (MatchingResource<BaseResourceSchema> | UnknownResource)[] = [];
+
   readonly response: S['response'] = {};
 
   protected constructor(
     readonly resourceId: S['resourceId'],
     readonly properties: S['properties'],
-    parents: UnknownResource[],
+    parents: (MatchingResource<BaseResourceSchema> | UnknownResource)[] = [],
   ) {
     super();
 
     for (const parent of parents) {
-      parent.addChild('resourceId', this, 'resourceId');
+      if (parent instanceof MatchingResource) {
+        parent.addChild('resourceId', this, 'resourceId');
+      } else {
+        parent.addChild('resourceId', this, 'resourceId');
+      }
     }
+  }
+
+  override addChild(
+    onField: keyof T | string,
+    child: UnknownResource,
+    toField: string,
+  ): {
+    childToParentDependency: Dependency;
+    parentToChildDependency: Dependency;
+  } {
+    const result = super.addChild(onField, child, toField);
+    child.parents.push(this);
+    return result;
   }
 
   /**
@@ -55,20 +74,8 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     sourceResource: T,
     deReferenceResource: (context: string) => Promise<UnknownResource>,
   ): Promise<T> {
-    const resource: BaseResourceSchema = {
-      properties: JSON.parse(JSON.stringify(sourceResource.properties)),
-      resourceId: sourceResource.resourceId,
-      response: JSON.parse(JSON.stringify(sourceResource.response)),
-    };
-
-    const parentContexts = await Promise.all(
-      Object.values(sourceResource.getParents())
-        .flat()
-        .map((d) => (d.to as UnknownResource).getContext()),
-    );
-
-    const deserializationClass = sourceResource.constructor as any;
-    return deserializationClass.unSynth(deserializationClass, resource, parentContexts, deReferenceResource);
+    const deserializationClass = sourceResource.constructor as typeof AResource<BaseResourceSchema, T>;
+    return deserializationClass.unSynth(deserializationClass, sourceResource.synth(), deReferenceResource);
   }
 
   async cloneResourceInPlace(
@@ -82,6 +89,8 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     for (const parent of selfParents) {
       this.removeRelationship(parent);
     }
+    // Empty inline parents.
+    this.parents.splice(0, this.parents.length);
 
     // From source resource, get all dependencies from source to its parents.
     const sourceChildToParentDependencies = Object.values(sourceResource.getParents()).flat();
@@ -90,6 +99,16 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     for (const sourceChildToParentDependency of sourceChildToParentDependencies) {
       const parent = await deReferenceResource((sourceChildToParentDependency.to as UnknownResource).getContext());
       const { childToParentDependency, parentToChildDependency } = parent.addChild('resourceId', this, 'resourceId');
+
+      // Clone inline parents.
+      const sourceInlineParent = sourceResource.parents.find((p) => {
+        if (p instanceof MatchingResource) {
+          return p.getActual().getContext() === parent.getContext();
+        } else {
+          return p.getContext() === parent.getContext();
+        }
+      })!;
+      this.parents.push(sourceInlineParent);
 
       // Clone behaviors from source to its parent.
       for (const b of sourceChildToParentDependency.synth().behaviors) {
@@ -214,7 +233,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   /**
    * @deprecated Boundary is not supported in resources!
    */
-  override getBoundaryMembers(): UnknownNode[] {
+  override getBoundaryMembers(): UnknownResource[] {
     throw new ResourceError('Boundary is not supported in resources!', this);
   }
 
@@ -294,20 +313,33 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
   override synth(): S {
     return {
+      parents: this.parents.map((p) => ({
+        context: p instanceof MatchingResource ? p.getActual().getContext() : p.getContext(),
+        isMatchingResource: p instanceof MatchingResource,
+      })),
       properties: JSON.parse(JSON.stringify(this.properties)),
       resourceId: this.resourceId,
       response: JSON.parse(JSON.stringify(this.response)),
     } as S;
   }
 
-  static override async unSynth(
+  static override async unSynth<S extends BaseResourceSchema, T>(
     deserializationClass: any,
-    resource: ResourceSchema<UnknownResource>,
-    parentContexts: string[],
+    resource: S,
     deReferenceResource: (context: string) => Promise<UnknownResource>,
-  ): Promise<UnknownResource> {
-    const parents = await Promise.all(parentContexts.map((p) => deReferenceResource(p)));
-    const newResource = new deserializationClass(resource.resourceId, resource.properties, parents);
+  ): Promise<T> {
+    const parents = await Promise.all(resource.parents.map((p) => deReferenceResource(p.context)));
+
+    const resourceInlineParents = parents.map((p) => {
+      const parentMetadata = resource.parents.find((pm) => pm.context === p.getContext())!;
+      if (parentMetadata.isMatchingResource) {
+        return new MatchingResource(p, p.synth(), () => p.synth());
+      } else {
+        return p;
+      }
+    });
+
+    const newResource = new deserializationClass(resource.resourceId, resource.properties, resourceInlineParents);
     for (const key of Object.keys(resource.response)) {
       newResource.response[key] = resource.response[key];
     }

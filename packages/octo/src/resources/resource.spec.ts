@@ -64,6 +64,12 @@ describe('Resource UT', () => {
 
       expect(resource2Copy.synth()).toMatchInlineSnapshot(`
        {
+         "parents": [
+           {
+             "context": "@octo/test-resource=resource-1",
+             "isMatchingResource": false,
+           },
+         ],
          "properties": {
            "key1": "value1",
          },
@@ -105,6 +111,16 @@ describe('Resource UT', () => {
 
       expect(resource3.synth()).toMatchInlineSnapshot(`
        {
+         "parents": [
+           {
+             "context": "@octo/test-resource=resource-1",
+             "isMatchingResource": false,
+           },
+           {
+             "context": "@octo/test-resource=resource-1",
+             "isMatchingResource": false,
+           },
+         ],
          "properties": {
            "key1": "value1",
          },
@@ -150,6 +166,16 @@ describe('Resource UT', () => {
 
       expect(resource4.synth()).toMatchInlineSnapshot(`
        {
+         "parents": [
+           {
+             "context": "@octo/test-resource=resource-1",
+             "isMatchingResource": false,
+           },
+           {
+             "context": "@octo/test-resource=resource-1",
+             "isMatchingResource": false,
+           },
+         ],
          "properties": {
            "key1": "value1",
          },
@@ -196,6 +222,16 @@ describe('Resource UT', () => {
 
       expect(resource4.synth()).toMatchInlineSnapshot(`
        {
+         "parents": [
+           {
+             "context": "@octo/test-resource=resource-1",
+             "isMatchingResource": false,
+           },
+           {
+             "context": "@octo/test-resource=resource-1",
+             "isMatchingResource": false,
+           },
+         ],
          "properties": {
            "key1": "value1",
          },
@@ -729,6 +765,7 @@ describe('Resource UT', () => {
 
       expect(resource1.synth()).toMatchInlineSnapshot(`
        {
+         "parents": [],
          "properties": {
            "key1": "value1",
          },
@@ -756,10 +793,9 @@ describe('Resource UT', () => {
           },
         ]);
 
-      const resource2_1 = await AResource.unSynth(
+      const resource2_1: UnknownResource = await AResource.unSynth(
         TestResource,
         resource2.synth(),
-        ['resource-1'],
         async () => resource1,
       );
 

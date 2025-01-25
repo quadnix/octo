@@ -3,7 +3,6 @@ import { Validate } from '../decorators/validate.decorator.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { Schema } from '../functions/schema/schema.js';
-import { AResource } from '../resources/resource.abstract.js';
 import { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService } from '../services/input/input.service.js';
 import { SchemaTranslationService } from '../services/schema-translation/schema-translation.service.js';
@@ -207,7 +206,7 @@ describe('Model UT', () => {
       const schemaTranslationService = await container.get(SchemaTranslationService);
       schemaTranslationService.registerSchemaTranslation(FromSchema, ToSchema, (resource) => {
         resource.properties['fromKey'] = resource.properties.toKey;
-        return resource as unknown as AResource<FromSchema, any>;
+        return resource as unknown as FromSchema;
       });
 
       const {
@@ -231,7 +230,7 @@ describe('Model UT', () => {
       const schemaTranslationService = await container.get(SchemaTranslationService);
       schemaTranslationService.registerSchemaTranslation(FromSchema, ToSchema, (resource) => {
         resource.properties['fromKey'] = resource.properties.toKey;
-        return resource as unknown as AResource<FromSchema, any>;
+        return resource as unknown as FromSchema;
       });
 
       const {
@@ -254,7 +253,7 @@ describe('Model UT', () => {
       const schemaTranslationService = await container.get(SchemaTranslationService);
       schemaTranslationService.registerSchemaTranslation(FromSchema, ToSchema, (resource) => {
         resource.properties['fromKey'] = resource.properties.toKey;
-        return resource as unknown as AResource<FromSchema, any>;
+        return resource as unknown as FromSchema;
       });
 
       const {

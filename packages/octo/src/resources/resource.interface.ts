@@ -1,6 +1,6 @@
 import type { UnknownResource } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
-import type { INode } from '../functions/node/node.interface.js';
+import type { INode, INodeReference } from '../functions/node/node.interface.js';
 import type { BaseResourceSchema } from './resource.schema.js';
 import type { ASharedResource } from './shared-resource.abstract.js';
 
@@ -36,4 +36,8 @@ export interface IResource<S extends BaseResourceSchema, T extends UnknownResour
    * @throws {@link RemoveResourceError} If node contains dependencies to other nodes.
    */
   remove(): void;
+}
+
+export interface IResourceReference extends INodeReference {
+  isMatchingResource: boolean;
 }

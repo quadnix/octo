@@ -4,6 +4,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a re
 [
   {
     "context": "@octo/test-resource=resource-1",
+    "parents": [],
     "properties": {
       "key1": {
         "key2": {
@@ -24,6 +25,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
 [
   {
     "context": "@octo/test-resource=resource-1",
+    "parents": [],
     "properties": {
       "key1": "value1",
     },
@@ -48,8 +50,8 @@ exports[`Resource Serialization Service UT serialize() should not serialize dele
   "resources": {
     "@octo/test-resource=resource-1": {
       "className": "@octo/TestResource",
-      "context": "@octo/test-resource=resource-1",
       "resource": {
+        "parents": [],
         "properties": {
           "key1": "value1",
         },
@@ -119,8 +121,8 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
   "resources": {
     "@octo/test-resource=resource-1": {
       "className": "@octo/TestResource",
-      "context": "@octo/test-resource=resource-1",
       "resource": {
+        "parents": [],
         "properties": {
           "key1": "value1",
         },
@@ -132,8 +134,13 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
     },
     "@octo/test-resource=resource-2": {
       "className": "@octo/TestResource",
-      "context": "@octo/test-resource=resource-2",
       "resource": {
+        "parents": [
+          {
+            "context": "@octo/test-resource=resource-1",
+            "isMatchingResource": false,
+          },
+        ],
         "properties": {
           "key2": "value2",
         },
@@ -154,8 +161,8 @@ exports[`Resource Serialization Service UT serialize() should serialize non-empt
   "resources": {
     "@octo/test-resource=resource-1": {
       "className": "@octo/TestResource",
-      "context": "@octo/test-resource=resource-1",
       "resource": {
+        "parents": [],
         "properties": {},
         "resourceId": "resource-1",
         "response": {},
@@ -213,8 +220,8 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
   "resources": {
     "@octo/test-resource=resource-1": {
       "className": "@octo/TestResource",
-      "context": "@octo/test-resource=resource-1",
       "resource": {
+        "parents": [],
         "properties": {
           "key1": "value1",
         },
@@ -228,8 +235,13 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
   "sharedResources": {
     "@octo/test-resource=resource-2": {
       "className": "@octo/SharedTestResource",
-      "context": "@octo/test-resource=resource-2",
       "resource": {
+        "parents": [
+          {
+            "context": "@octo/test-resource=resource-1",
+            "isMatchingResource": false,
+          },
+        ],
         "properties": {
           "key2": "value2",
         },
