@@ -80,7 +80,7 @@ exports[`Model E2E Test common functions Test common functions Test App getBound
   "account=account,app=test",
   "environment=qa,region=region,account=account,app=test",
   "pipeline=pipeline,app=test",
-  "image=image:v1,app=test",
+  "image=test/image,app=test",
 ]
 `;
 
@@ -291,21 +291,21 @@ exports[`Model E2E Test common functions Test common functions Test Filesystem s
 
 exports[`Model E2E Test common functions Test common functions Test Image getAncestors() 1`] = `
 [
-  "image=image:v1,app=test",
+  "image=test/image,app=test",
   "app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test common functions Test Image getBoundaryMembers() 1`] = `
 [
-  "image=image:v1,app=test",
+  "image=test/image,app=test",
   "app=test",
 ]
 `;
 
 exports[`Model E2E Test common functions Test common functions Test Image getChildren() 1`] = `[]`;
 
-exports[`Model E2E Test common functions Test common functions Test Image getContext() 1`] = `"image=image:v1,app=test"`;
+exports[`Model E2E Test common functions Test common functions Test Image getContext() 1`] = `"image=test/image,app=test"`;
 
 exports[`Model E2E Test common functions Test common functions Test Image getParents() 1`] = `
 [
@@ -317,9 +317,9 @@ exports[`Model E2E Test common functions Test common functions Test Image getSib
 
 exports[`Model E2E Test common functions Test common functions Test Image synth() 1`] = `
 {
-  "imageId": "v1",
+  "imageFamily": "test",
+  "imageId": "test/image",
   "imageName": "image",
-  "imageTag": "v1",
 }
 `;
 
@@ -623,7 +623,7 @@ exports[`Model E2E Test getBoundaryMembers() should include sibling's sibling in
   "region=region-1,account=account,app=app",
   "account=account,app=app",
   "app=app",
-  "image=imageName:v1,app=app",
+  "image=test/imageName,app=app",
   "region=region-2,account=account,app=app",
 ]
 `;

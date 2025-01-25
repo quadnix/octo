@@ -143,7 +143,10 @@ export function create({
     }
     const [id, i] = splitEntry(entry, index);
 
-    const image = new Image(id, 'v1');
+    const imageParts = id.split('/');
+    const imageFamily = imageParts.length > 1 ? imageParts[0] : 'test';
+    const imageName = imageParts.length > 1 ? imageParts[1] : id;
+    const image = new Image(imageFamily, imageName);
     const app = result.app[i];
     app.addImage(image);
     result.image.push(image);

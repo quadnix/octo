@@ -1,5 +1,6 @@
 import type { UnknownModel } from '../../src/app.type.js';
 import {
+  type AModel,
   Account,
   AccountType,
   App,
@@ -10,7 +11,6 @@ import {
   Service,
   TestContainer,
 } from '../../src/index.js';
-import type { AModel } from '../../src/models/model.abstract.js';
 import { TestAnchor, TestModelWithoutUnsynth } from '../../src/utilities/test-helpers/test-classes.js';
 import { create, createTestOverlays } from '../../src/utilities/test-helpers/test-models.js';
 
@@ -208,7 +208,7 @@ describe('Model E2E Test', () => {
         app.addRelationship(overlay1);
 
         const diff = await app.diff();
-        expect(diff.map((d) => d.value)).toEqual(['account', 'image:v1', 'app']);
+        expect(diff.map((d) => d.value)).toEqual(['account', 'test/image', 'app']);
       });
     });
   });
@@ -346,7 +346,7 @@ describe('Model E2E Test', () => {
         [
           "app=app",
           "@octo/test-overlay=test-overlay",
-          "image=image:v1,app=app",
+          "image=test/image,app=app",
           "account=account,app=app",
         ]
       `);

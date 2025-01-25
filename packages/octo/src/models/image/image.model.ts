@@ -18,17 +18,17 @@ import { ImageSchema } from './image.schema.js';
  */
 @Model<Image>('@octo', 'image', ImageSchema)
 export class Image extends AModel<ImageSchema, Image> {
+  readonly imageFamily: string;
+
   readonly imageId: string;
 
   readonly imageName: string;
 
-  readonly imageTag: string;
-
-  constructor(imageName: string, imageTag: string) {
+  constructor(imageFamily: string, imageName: string) {
     super();
-    this.imageId = `${imageName}:${imageTag}`;
+    this.imageFamily = imageFamily;
+    this.imageId = `${imageFamily}/${imageName}`;
     this.imageName = imageName;
-    this.imageTag = imageTag;
   }
 
   override setContext(): string {
@@ -39,9 +39,9 @@ export class Image extends AModel<ImageSchema, Image> {
 
   override synth(): ImageSchema {
     return {
-      imageId: this.imageTag,
+      imageFamily: this.imageFamily,
+      imageId: this.imageId,
       imageName: this.imageName,
-      imageTag: this.imageTag,
     };
   }
 
@@ -51,6 +51,6 @@ export class Image extends AModel<ImageSchema, Image> {
   ): Promise<Image> {
     assert(!!deReferenceContext);
 
-    return new Image(image.imageName, image.imageTag);
+    return new Image(image.imageFamily, image.imageName);
   }
 }

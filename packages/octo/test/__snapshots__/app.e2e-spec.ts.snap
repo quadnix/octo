@@ -47,8 +47,8 @@ exports[`App E2E Test should generate app diff 1`] = `
   {
     "action": "add",
     "field": "imageId",
-    "node": "image=image:v1,app=test-app",
-    "value": "image:v1",
+    "node": "image=test/image,app=test-app",
+    "value": "test/image",
   },
   {
     "action": "add",
