@@ -1,8 +1,9 @@
-import { ECRClient } from '@aws-sdk/client-ecr';
+import { ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
 import { jest } from '@jest/globals';
 import {
   type Account,
   type App,
+  type Container,
   type Region,
   TestContainer,
   TestModuleContainer,
@@ -42,10 +43,11 @@ async function setup(
 }
 
 describe('AwsImageModule UT', () => {
+  let container: Container;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    await TestContainer.create(
+    container = await TestContainer.create(
       {
         mocks: [
           {
@@ -77,6 +79,50 @@ describe('AwsImageModule UT', () => {
   afterEach(async () => {
     await testModuleContainer.reset();
     await TestContainer.reset();
+  });
+
+  describe('getEcrRepositoryAuthorizationToken()', () => {
+    it('should return repository commands', async () => {
+      await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsImageModule>({
+        inputs: {
+          imageFamily: 'family',
+          imageName: 'image',
+          regions: [stub('${{testModule.model.region}}')],
+        },
+        moduleId: 'image',
+        type: AwsImageModule,
+      });
+
+      const ecrClient = await container.get(ECRClient, {
+        metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+      });
+      ecrClient.send = async (instance: unknown): Promise<unknown> => {
+        if (instance instanceof GetAuthorizationTokenCommand) {
+          return {
+            authorizationData: [
+              {
+                authorizationToken: 'QVdTOnRva2Vu', // AWS:token
+                proxyEndpoint: 'https://123.dkr.ecr.us-east-1.amazonaws.com',
+              },
+            ],
+          };
+        }
+      };
+
+      const awsImageModule = testModuleContainer.octo.getModule<AwsImageModule>('image')!;
+      const ecrRepositoryCommands = await awsImageModule.getEcrRepositoryCommands('family', 'image', 'v1', {
+        awsAccountId: '123',
+        awsRegionId: 'us-east-1',
+      });
+      expect(ecrRepositoryCommands).toMatchInlineSnapshot(`
+       {
+         "login": "echo token | docker login --username AWS --password-stdin 123.dkr.ecr.us-east-1.amazonaws.com",
+         "push": "docker push 123.dkr.ecr.us-east-1.amazonaws.com/family/image:v1",
+         "tag": "docker tag family/image:v1 123.dkr.ecr.us-east-1.amazonaws.com/family/image:v1",
+       }
+      `);
+    });
   });
 
   it('should call correct actions', async () => {
@@ -122,7 +168,6 @@ describe('AwsImageModule UT', () => {
       moduleId: 'image',
       type: AwsImageModule,
     });
-
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
      [
@@ -139,7 +184,6 @@ describe('AwsImageModule UT', () => {
     `);
 
     const { app: app2 } = await setup(testModuleContainer);
-
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
      [

@@ -1,4 +1,4 @@
-import { ECRClient } from '@aws-sdk/client-ecr';
+import { ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
 import {
   AModule,
   type Account,
@@ -11,6 +11,7 @@ import {
 } from '@quadnix/octo';
 import { type AwsCredentialIdentityProvider } from '@smithy/types';
 import { VpcSchema } from '../../../resources/vpc/index.js';
+import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { AwsImage } from './models/image/index.js';
 
 export class AwsImageModuleSchema {
@@ -23,6 +24,42 @@ export class AwsImageModuleSchema {
 
 @Module<AwsImageModule>('@octo', AwsImageModuleSchema)
 export class AwsImageModule extends AModule<AwsImageModuleSchema, AwsImage> {
+  async getEcrRepositoryCommands(
+    imageFamily: string,
+    imageName: string,
+    imageTag: string,
+    properties: { awsAccountId: string; awsRegionId: string; dockerExec?: string },
+  ): Promise<{ login: string; push: string; tag: string }> {
+    const container = Container.getInstance();
+    const ecrClient = await container.get(ECRClient, {
+      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    });
+
+    const image = `${imageFamily}/${imageName}:${imageTag}`;
+    const dockerExec = properties.dockerExec || 'docker';
+
+    const tokenResponse = await ecrClient.send(new GetAuthorizationTokenCommand({}));
+    const token = FileUtility.base64Decode(tokenResponse.authorizationData![0].authorizationToken!);
+    const proxyEndpoint = new URL(tokenResponse.authorizationData![0].proxyEndpoint!).host;
+
+    const dockerLoginCommand = [
+      'echo',
+      token.split(':')[1], // Remove 'AWS:' from the beginning of token.
+      '|',
+      dockerExec,
+      'login --username AWS --password-stdin',
+      proxyEndpoint,
+    ].join(' ');
+    const dockerTagCommand = [dockerExec, 'tag', `${image}`, `${proxyEndpoint}/${image}`].join(' ');
+    const dockerPushCommand = [dockerExec, 'push', `${proxyEndpoint}/${image}`].join(' ');
+
+    return {
+      login: dockerLoginCommand,
+      push: dockerPushCommand,
+      tag: dockerTagCommand,
+    };
+  }
+
   async onInit(inputs: AwsImageModuleSchema): Promise<AwsImage> {
     const regions = inputs.regions;
     const account = regions[0].getParents()['account'][0].to as Account;
