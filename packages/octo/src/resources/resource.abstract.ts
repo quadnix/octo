@@ -4,7 +4,7 @@ import { type Dependency, DependencyRelationship } from '../functions/dependency
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
-import type { IResource } from './resource.interface.js';
+import type { IResource, IResourceReference } from './resource.interface.js';
 import type { BaseResourceSchema } from './resource.schema.js';
 import type { ASharedResource } from './shared-resource.abstract.js';
 
@@ -307,9 +307,15 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
   override synth(): S {
     return {
-      parents: this.parents.map((p) => ({
-        context: p instanceof MatchingResource ? p.getActual().getContext() : p.getContext(),
-      })),
+      parents: this.parents.map((p) => {
+        const parentReference: IResourceReference = {
+          context: p instanceof MatchingResource ? p.getActual().getContext() : p.getContext(),
+        };
+        if (p instanceof MatchingResource) {
+          parentReference.parentSchemaInstance = p.getSchemaInstance();
+        }
+        return parentReference;
+      }),
       properties: JSON.parse(JSON.stringify(this.properties)),
       resourceId: this.resourceId,
       response: JSON.parse(JSON.stringify(this.response)),
@@ -322,7 +328,17 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     deReferenceResource: (context: string) => Promise<UnknownResource>,
   ): Promise<T> {
     const parents = await Promise.all(resource.parents.map((p) => deReferenceResource(p.context)));
-    const newResource = new deserializationClass(resource.resourceId, resource.properties, parents);
+
+    const resourceInlineParents = parents.map((p) => {
+      const parentMetadata = resource.parents.find((pm) => pm.context === p.getContext())!;
+      if (parentMetadata.parentSchemaInstance) {
+        return new MatchingResource(p, parentMetadata.parentSchemaInstance, () => parentMetadata.parentSchemaInstance!);
+      } else {
+        return p;
+      }
+    });
+
+    const newResource = new deserializationClass(resource.resourceId, resource.properties, resourceInlineParents);
     for (const key of Object.keys(resource.response)) {
       newResource.response[key] = resource.response[key];
     }

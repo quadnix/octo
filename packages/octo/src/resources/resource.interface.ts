@@ -38,4 +38,6 @@ export interface IResource<S extends BaseResourceSchema, T extends UnknownResour
   remove(): void;
 }
 
-export interface IResourceReference extends INodeReference {}
+export interface IResourceReference extends INodeReference {
+  parentSchemaInstance?: BaseResourceSchema;
+}
