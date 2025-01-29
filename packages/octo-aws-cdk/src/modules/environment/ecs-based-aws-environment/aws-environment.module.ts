@@ -10,6 +10,7 @@ import {
 } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { VpcSchema } from '../../../resources/vpc/index.js';
+import { AwsEnvironmentEnvironmentVariablesAnchor } from './anchors/aws-environment-environment-variables.anchor.js';
 import { AwsEnvironment } from './models/environment/index.js';
 
 export class AwsEnvironmentModuleSchema {
@@ -33,6 +34,14 @@ export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Aw
       environment.environmentVariables.set(key, value);
     }
     region.addEnvironment(environment);
+
+    // Add anchors.
+    const awsEnvironmentEnvironmentVariablesAnchor = new AwsEnvironmentEnvironmentVariablesAnchor(
+      'AwsEnvironmentEnvironmentVariablesAnchor',
+      Object.fromEntries(environment.environmentVariables.entries()),
+      environment,
+    );
+    environment.addAnchor(awsEnvironmentEnvironmentVariablesAnchor);
 
     // Create and register a new ECSClient.
     const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
