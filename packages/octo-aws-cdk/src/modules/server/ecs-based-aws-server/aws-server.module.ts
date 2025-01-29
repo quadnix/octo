@@ -1,7 +1,6 @@
 import { IAMClient } from '@aws-sdk/client-iam';
 import { S3Client } from '@aws-sdk/client-s3';
 import {
-  type AAnchor,
   AModule,
   type Account,
   type App,
@@ -171,7 +170,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
               iamRolePolicyId: overlayId,
               remoteDirectoryPath: directory.remoteDirectoryPath,
             },
-            [awsIamRoleAnchor, awsS3DirectoryAnchor.getActual() as AAnchor<AwsS3DirectoryAnchorSchema, Service>],
+            [awsIamRoleAnchor, awsS3DirectoryAnchor],
           );
           models.push(serverS3AccessOverlay);
         }
