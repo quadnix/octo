@@ -24,10 +24,13 @@ import { SchemaTranslationService } from '../services/schema-translation/schema-
 import type { IModel } from './model.interface.js';
 
 export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> implements IModel<S, T> {
-  private readonly anchors: UnknownAnchor[] = [];
+  readonly anchors: (MatchingAnchor<BaseAnchorSchema> | UnknownAnchor)[] = [];
 
-  addAnchor(anchor: UnknownAnchor): void {
-    const existingAnchor = this.getAnchor(anchor.anchorId, anchor.getParent());
+  addAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | UnknownAnchor): void {
+    const existingAnchor =
+      anchor instanceof MatchingAnchor
+        ? this.getAnchor(anchor.getActual().anchorId, anchor.getActual().getParent())
+        : this.getAnchor(anchor.anchorId, anchor.getParent());
     if (existingAnchor) {
       throw new NodeError('Anchor already exists!', this);
     } else {
@@ -92,22 +95,47 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
 
   getAnchor(anchorId: string, parent?: UnknownModel): UnknownAnchor | undefined {
     const index = this.getAnchorIndex(anchorId, parent);
-    return index > -1 ? this.anchors[index] : undefined;
+    if (index === -1) {
+      return undefined;
+    }
+
+    const anchor = this.anchors[index];
+    if (anchor instanceof MatchingAnchor) {
+      return anchor.getActual();
+    } else {
+      return anchor;
+    }
   }
 
   getAnchorIndex(anchorId: string, parent?: UnknownModel): number {
-    return this.anchors.findIndex(
-      (a) => a.anchorId === anchorId && a.getParent().getContext() === (parent || this).getContext(),
-    );
+    return this.anchors.findIndex((a) => {
+      if (a instanceof MatchingAnchor) {
+        return (
+          a.getActual().anchorId === anchorId &&
+          a.getActual().getParent().getContext() === (parent || this).getContext()
+        );
+      } else {
+        return a.anchorId === anchorId && a.getParent().getContext() === (parent || this).getContext();
+      }
+    });
   }
 
   getAnchors(
     filters: { key: string; value: unknown }[] = [],
-    types: Constructable<UnknownAnchor>[] = [],
+    types: Constructable<MatchingAnchor<BaseAnchorSchema> | UnknownAnchor>[] = [],
   ): UnknownAnchor[] {
     return this.anchors
       .filter((a) => !types.length || types.some((t) => a instanceof t))
-      .filter((a) => filters.every((c) => a.properties[c.key] === c.value));
+      .filter((a) =>
+        filters.every((c) => {
+          if (a instanceof MatchingAnchor) {
+            return a.getSchemaInstance().properties[c.key] === c.value;
+          } else {
+            return a.properties[c.key] === c.value;
+          }
+        }),
+      )
+      .map((a) => (a instanceof MatchingAnchor ? a.getActual() : a));
   }
 
   async getAnchorsMatchingSchema<S extends BaseAnchorSchema>(
@@ -249,8 +277,11 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     }
   }
 
-  removeAnchor(anchor: UnknownAnchor): void {
-    const existingAnchorIndex = this.getAnchorIndex(anchor.anchorId, anchor.getParent());
+  removeAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | UnknownAnchor): void {
+    const existingAnchorIndex =
+      anchor instanceof MatchingAnchor
+        ? this.getAnchorIndex(anchor.getActual().anchorId, anchor.getActual().getParent())
+        : this.getAnchorIndex(anchor.anchorId, anchor.getParent());
     if (existingAnchorIndex !== -1) {
       this.anchors.splice(existingAnchorIndex, 1);
     }

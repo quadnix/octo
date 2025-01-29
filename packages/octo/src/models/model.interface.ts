@@ -22,7 +22,7 @@ export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
    * These anchors don't necessarily need to be parented by self, but must be unique,
    * i.e. an anchor, identified by it's parent, cannot be added twice to self's list of anchors.
    */
-  addAnchor(anchor: AAnchor<BaseAnchorSchema, T>): void;
+  addAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | AAnchor<BaseAnchorSchema, T>): void;
 
   /**
    * To get an anchor with a given ID and parent.
@@ -50,7 +50,7 @@ export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
    */
   getAnchors(
     filters: { key: string; value: any }[],
-    types: Constructable<AAnchor<BaseAnchorSchema, UnknownModel>>[],
+    types: Constructable<MatchingAnchor<BaseAnchorSchema> | AAnchor<BaseAnchorSchema, UnknownModel>>[],
   ): AAnchor<BaseAnchorSchema, UnknownModel>[];
 
   getAnchorsMatchingSchema<S extends BaseAnchorSchema>(
@@ -79,7 +79,7 @@ export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
    *
    * @param anchor The anchor to remove.
    */
-  removeAnchor(anchor: AAnchor<BaseAnchorSchema, UnknownModel>): void;
+  removeAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | AAnchor<BaseAnchorSchema, UnknownModel>): void;
 }
 
 export interface IModelReference extends INodeReference {}

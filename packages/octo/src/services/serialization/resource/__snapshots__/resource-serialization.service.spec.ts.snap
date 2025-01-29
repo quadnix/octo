@@ -138,7 +138,6 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
         "parents": [
           {
             "context": "@octo/test-resource=resource-1",
-            "isMatchingResource": false,
           },
         ],
         "properties": {
@@ -239,7 +238,6 @@ exports[`Resource Serialization Service UT serialize() should serialize shared r
         "parents": [
           {
             "context": "@octo/test-resource=resource-1",
-            "isMatchingResource": false,
           },
         ],
         "properties": {

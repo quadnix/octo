@@ -1,7 +1,15 @@
-import type { AnchorSchema, OverlaySchema, UnknownAnchor, UnknownModel, UnknownOverlay } from '../app.type.js';
+import {
+  type AnchorSchema,
+  MatchingAnchor,
+  type OverlaySchema,
+  type UnknownAnchor,
+  type UnknownModel,
+  type UnknownOverlay,
+} from '../app.type.js';
 import { ModelError, NodeUnsynthError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { AModel } from '../models/model.abstract.js';
+import type { BaseAnchorSchema } from './anchor.schema.js';
 import type { IOverlay } from './overlay.interface.js';
 import type { BaseOverlaySchema } from './overlay.schema.js';
 
@@ -12,7 +20,7 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
   protected constructor(
     readonly overlayId: S['overlayId'],
     readonly properties: S['properties'],
-    anchors: UnknownAnchor[],
+    anchors: (MatchingAnchor<BaseAnchorSchema> | UnknownAnchor)[],
   ) {
     super();
 
@@ -21,10 +29,10 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
     }
   }
 
-  override addAnchor(anchor: UnknownAnchor): void {
+  override addAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | UnknownAnchor): void {
     super.addAnchor(anchor);
 
-    const anchorParent = anchor.getParent();
+    const anchorParent = anchor instanceof MatchingAnchor ? anchor.getActual().getParent() : anchor.getParent();
     const anchorParentField = anchorParent.deriveDependencyField();
     if (!anchorParentField) {
       throw new ModelError('Cannot derive anchor parent field!', this);
@@ -71,7 +79,9 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
     return super.getAnchorIndex(anchorId, parent);
   }
 
-  override removeAnchor(anchor: UnknownAnchor): void {
+  override removeAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | UnknownAnchor): void {
+    anchor = anchor instanceof MatchingAnchor ? anchor.getActual() : anchor;
+
     const overlayParentDependencyIndex = this.getDependencies().findIndex(
       (d) => d.to.getContext() === anchor.getParent().getContext(),
     );
@@ -115,7 +125,7 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
         if (!anchor) {
           throw new NodeUnsynthError('Cannot find anchor while deserializing overlay!', overlay.overlayId);
         }
-        return anchor;
+        return anchor as UnknownAnchor;
       }),
     );
 

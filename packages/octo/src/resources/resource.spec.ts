@@ -67,7 +67,6 @@ describe('Resource UT', () => {
          "parents": [
            {
              "context": "@octo/test-resource=resource-1",
-             "isMatchingResource": false,
            },
          ],
          "properties": {
@@ -114,11 +113,9 @@ describe('Resource UT', () => {
          "parents": [
            {
              "context": "@octo/test-resource=resource-1",
-             "isMatchingResource": false,
            },
            {
              "context": "@octo/test-resource=resource-1",
-             "isMatchingResource": false,
            },
          ],
          "properties": {
@@ -169,11 +166,9 @@ describe('Resource UT', () => {
          "parents": [
            {
              "context": "@octo/test-resource=resource-1",
-             "isMatchingResource": false,
            },
            {
              "context": "@octo/test-resource=resource-1",
-             "isMatchingResource": false,
            },
          ],
          "properties": {
@@ -225,11 +220,9 @@ describe('Resource UT', () => {
          "parents": [
            {
              "context": "@octo/test-resource=resource-1",
-             "isMatchingResource": false,
            },
            {
              "context": "@octo/test-resource=resource-1",
-             "isMatchingResource": false,
            },
          ],
          "properties": {

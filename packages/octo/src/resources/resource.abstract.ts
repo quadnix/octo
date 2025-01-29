@@ -92,32 +92,26 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     // Empty inline parents.
     this.parents.splice(0, this.parents.length);
 
-    // From source resource, get all dependencies from source to its parents.
-    const sourceChildToParentDependencies = Object.values(sourceResource.getParents()).flat();
+    // From source resource, copy all parents.
+    for (const sourceParent of sourceResource.parents) {
+      const sourceParentActual = sourceParent instanceof MatchingResource ? sourceParent.getActual() : sourceParent;
 
-    // Clone each of those dependencies.
-    for (const sourceChildToParentDependency of sourceChildToParentDependencies) {
-      const parent = await deReferenceResource((sourceChildToParentDependency.to as UnknownResource).getContext());
+      const parent = await deReferenceResource(sourceParentActual.getContext());
       const { childToParentDependency, parentToChildDependency } = parent.addChild('resourceId', this, 'resourceId');
-
-      // Clone inline parents.
-      const sourceInlineParent = sourceResource.parents.find((p) => {
-        if (p instanceof MatchingResource) {
-          return p.getActual().getContext() === parent.getContext();
-        } else {
-          return p.getContext() === parent.getContext();
-        }
-      })!;
-      this.parents.push(sourceInlineParent);
+      this.parents.push(parent);
 
       // Clone behaviors from source to its parent.
+      const sourceChildToParentDependency = sourceResource.getDependency(
+        sourceParentActual,
+        DependencyRelationship.CHILD,
+      )!;
       for (const b of sourceChildToParentDependency.synth().behaviors) {
         childToParentDependency.addBehavior(b.onField, b.onAction, b.toField, b.forAction);
       }
 
       // Clone behaviors from parent to source.
-      const sourceParentToChildDependency = sourceChildToParentDependency.to.getDependency(
-        sourceChildToParentDependency.from,
+      const sourceParentToChildDependency = sourceParentActual.getDependency(
+        sourceResource,
         DependencyRelationship.PARENT,
       )!;
       for (const b of sourceParentToChildDependency.synth().behaviors) {
@@ -315,7 +309,6 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return {
       parents: this.parents.map((p) => ({
         context: p instanceof MatchingResource ? p.getActual().getContext() : p.getContext(),
-        isMatchingResource: p instanceof MatchingResource,
       })),
       properties: JSON.parse(JSON.stringify(this.properties)),
       resourceId: this.resourceId,
@@ -329,17 +322,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     deReferenceResource: (context: string) => Promise<UnknownResource>,
   ): Promise<T> {
     const parents = await Promise.all(resource.parents.map((p) => deReferenceResource(p.context)));
-
-    const resourceInlineParents = parents.map((p) => {
-      const parentMetadata = resource.parents.find((pm) => pm.context === p.getContext())!;
-      if (parentMetadata.isMatchingResource) {
-        return new MatchingResource(p, p.synth(), () => p.synth());
-      } else {
-        return p;
-      }
-    });
-
-    const newResource = new deserializationClass(resource.resourceId, resource.properties, resourceInlineParents);
+    const newResource = new deserializationClass(resource.resourceId, resource.properties, parents);
     for (const key of Object.keys(resource.response)) {
       newResource.response[key] = resource.response[key];
     }

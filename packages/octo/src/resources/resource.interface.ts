@@ -38,6 +38,4 @@ export interface IResource<S extends BaseResourceSchema, T extends UnknownResour
   remove(): void;
 }
 
-export interface IResourceReference extends INodeReference {
-  isMatchingResource: boolean;
-}
+export interface IResourceReference extends INodeReference {}
