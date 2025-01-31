@@ -40,7 +40,11 @@ export class ValidationUtility {
   }
 
   static validateMaxLength(subject: any, maxLength: number): boolean {
-    if (typeof subject === 'string') {
+    if (typeof subject === 'boolean') {
+      return String(subject).length <= maxLength;
+    } else if (typeof subject === 'number') {
+      return String(subject).length <= maxLength;
+    } else if (typeof subject === 'string') {
       return subject.length <= maxLength;
     } else if (Array.isArray(subject)) {
       return subject.length <= maxLength;
@@ -50,7 +54,11 @@ export class ValidationUtility {
   }
 
   static validateMinLength(subject: any, minLength: number): boolean {
-    if (typeof subject === 'string') {
+    if (typeof subject === 'boolean') {
+      return String(subject).length >= minLength;
+    } else if (typeof subject === 'number') {
+      return String(subject).length >= minLength;
+    } else if (typeof subject === 'string') {
       return subject.length >= minLength;
     } else if (Array.isArray(subject)) {
       return subject.length >= minLength;
