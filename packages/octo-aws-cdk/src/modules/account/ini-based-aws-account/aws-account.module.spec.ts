@@ -1,3 +1,4 @@
+import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
 import { AwsAccountModule } from './aws-account.module.js';
 
@@ -12,10 +13,33 @@ describe('AwsAccountModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    const container = await TestContainer.create(
+      {
+        mocks: [
+          {
+            metadata: { awsAccountId: '123', package: '@octo' },
+            type: STSClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
+        ],
+      },
+      { factoryTimeoutInMs: 500 },
+    );
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
+
+    // Mock GetCallerIdentityCommand() in STS.
+    const stsClient = await container.get(STSClient, { metadata: { awsAccountId: '123', package: '@octo' } });
+    stsClient.send = async (instance: unknown): Promise<unknown> => {
+      if (instance instanceof GetCallerIdentityCommand) {
+        return { Account: '123' };
+      }
+    };
   });
 
   afterEach(async () => {
@@ -27,7 +51,7 @@ describe('AwsAccountModule UT', () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
-        accountId: '1234',
+        accountId: '123',
         app: stub('${{testModule.model.app}}'),
       },
       moduleId: 'account',
@@ -52,7 +76,7 @@ describe('AwsAccountModule UT', () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsAccountModule>({
       inputs: {
-        accountId: '1234',
+        accountId: '123',
         app: stub('${{testModule.model.app}}'),
       },
       moduleId: 'account',
