@@ -6,7 +6,7 @@ export function getSchemaInstance<S extends object>(schemaClass: Constructable<S
   const t = new schemaClass();
 
   for (const key of getSchemaKeys<S>(schemaClass)) {
-    if (value.hasOwnProperty(key) && value[key]) {
+    if (value.hasOwnProperty(key) && value[key] !== undefined) {
       t[key] = value[key];
       instance[key] = t[key];
     } else {
