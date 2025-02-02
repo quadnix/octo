@@ -1,32 +1,18 @@
 import { ECSClient } from '@aws-sdk/client-ecs';
-import {
-  AModule,
-  type Account,
-  Container,
-  ContainerRegistrationError,
-  Module,
-  type Region,
-  Schema,
-} from '@quadnix/octo';
+import { AModule, type Account, Container, ContainerRegistrationError, Module } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
-import { VpcSchema } from '../../../resources/vpc/index.js';
-import { AwsEnvironmentEnvironmentVariablesAnchor } from './anchors/aws-environment-environment-variables.anchor.js';
+import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { EcsClusterAnchor } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.js';
+import { AwsEnvironmentModuleSchema } from './index.schema.js';
 import { AwsEnvironment } from './models/environment/index.js';
-
-export class AwsEnvironmentModuleSchema {
-  environmentName = Schema<string>();
-
-  environmentVariables? = Schema<Record<string, string>>({});
-
-  region = Schema<Region>();
-}
 
 @Module<AwsEnvironmentModule>('@octo', AwsEnvironmentModuleSchema)
 export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, AwsEnvironment> {
+  private context: { clusterName: string } = {} as { clusterName: string };
+
   async onInit(inputs: AwsEnvironmentModuleSchema): Promise<AwsEnvironment> {
     const region = inputs.region;
-    const account = region.getParents()['account'][0].to as Account;
-    const { awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
+    const { account, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
     // Create a new environment.
     const environment = new AwsEnvironment(inputs.environmentName);
@@ -35,13 +21,18 @@ export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Aw
     }
     region.addEnvironment(environment);
 
+    this.context.clusterName = [region.regionId, environment.environmentName].join('-');
+
     // Add anchors.
-    const awsEnvironmentEnvironmentVariablesAnchor = new AwsEnvironmentEnvironmentVariablesAnchor(
-      'AwsEnvironmentEnvironmentVariablesAnchor',
-      Object.fromEntries(environment.environmentVariables.entries()),
+    const clusterAnchor = new EcsClusterAnchor(
+      'EcsClusterAnchor',
+      {
+        clusterName: this.context.clusterName,
+        environmentVariables: Object.fromEntries(environment.environmentVariables.entries()),
+      },
       environment,
     );
-    environment.addAnchor(awsEnvironmentEnvironmentVariablesAnchor);
+    environment.addAnchor(clusterAnchor);
 
     // Create and register a new ECSClient.
     const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
@@ -60,19 +51,26 @@ export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Aw
     return environment;
   }
 
-  override async registerMetadata(
-    inputs: AwsEnvironmentModuleSchema,
-  ): Promise<{ awsAccountId: string; awsRegionId: string }> {
+  override async registerMetadata(inputs: AwsEnvironmentModuleSchema): Promise<{
+    account: Account;
+    awsAccountId: string;
+    awsRegionId: string;
+    context: AwsEnvironmentModule['context'];
+  }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
 
     // Get AWS Region ID.
-    const [matchingResource] = await region.getResourcesMatchingSchema(VpcSchema);
-    const awsRegionId = matchingResource.getSchemaInstance().properties.awsRegionId;
+    const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+      searchBoundaryMembers: false,
+    });
+    const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
+      account,
       awsAccountId: account.accountId,
       awsRegionId,
+      context: this.context,
     };
   }
 }

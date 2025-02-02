@@ -9,6 +9,7 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
 import { type EcsClusterSchema } from '../../../resources/ecs-cluster/index.js';
 import { AwsEnvironmentModule } from './aws-environment.module.js';
 
@@ -26,16 +27,8 @@ async function setup(
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
-  await testModuleContainer.createTestResources(
-    'testModule',
-    [
-      {
-        properties: { awsAvailabilityZones: ['us-east-1a'], awsRegionId: 'us-east-1' },
-        resourceContext: '@octo/vpc=vpc-region',
-        response: { VpcId: 'VpcId' },
-      },
-    ],
-    { save: true },
+  region.addAnchor(
+    new AwsRegionAnchor('AwsRegionAnchor', { awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' }, region),
   );
 
   return { account, app, region };

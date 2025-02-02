@@ -23,24 +23,18 @@ export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentMod
   }
 
   async handle(
-    diff: Diff,
+    _diff: Diff,
     actionInputs: EnhancedModuleSchema<AwsEnvironmentModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const environment = diff.node as AwsEnvironment;
-    const region = actionInputs.inputs.region;
-
-    const clusterName = [region.regionId, environment.environmentName].join('-');
-
-    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
+    const { awsAccountId, awsRegionId, context } = actionInputs.metadata as Awaited<
       ReturnType<AwsEnvironmentModule['registerMetadata']>
     >;
 
-    const ecsCluster = new EcsCluster(`ecs-cluster-${clusterName}`, {
+    const ecsCluster = new EcsCluster(`ecs-cluster-${context.clusterName}`, {
       awsAccountId,
       awsRegionId,
-      clusterName,
-      regionId: region.regionId,
+      clusterName: context.clusterName,
     });
 
     actionOutputs[ecsCluster.resourceId] = ecsCluster;
