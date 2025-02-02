@@ -38,16 +38,12 @@ export class AwsRegion extends Region {
     this.regionId = regionId;
   }
 
-  static getRegionIdParts(regionId: RegionId): { awsRegionAZ: string; awsRegionId: string } {
+  private static getRegionIdParts(regionId: RegionId): { awsRegionAZ: string; awsRegionId: string } {
     const regionIdParts = regionId.split('-');
     regionIdParts.shift();
     const awsRegionAZ = regionIdParts.join('-');
     const awsRegionId = awsRegionAZ.substring(0, awsRegionAZ.length - 1);
     return { awsRegionAZ, awsRegionId };
-  }
-
-  static getRandomRegionIdFromAwsRegionId(awsRegionId: string): RegionId | undefined {
-    return Object.values(RegionId).find((value) => this.getRegionIdParts(value).awsRegionId === awsRegionId);
   }
 
   override synth(): AwsRegionSchema {

@@ -1,23 +1,9 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
-import {
-  AModule,
-  type Account,
-  AccountType,
-  Container,
-  ContainerRegistrationError,
-  Module,
-  Schema,
-} from '@quadnix/octo';
+import { AModule, AccountType, Container, ContainerRegistrationError, Module } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
-import { AwsRegion, RegionId } from './models/region/index.js';
-
-export class AwsRegionModuleSchema {
-  account = Schema<Account>();
-
-  regionId = Schema<RegionId>();
-
-  vpcCidrBlock = Schema<string>();
-}
+import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
+import { AwsRegionModuleSchema } from './index.schema.js';
+import { AwsRegion } from './models/region/index.js';
 
 @Module<AwsRegionModule>('@octo', AwsRegionModuleSchema)
 export class AwsRegionModule extends AModule<AwsRegionModuleSchema, AwsRegion> {
@@ -30,6 +16,17 @@ export class AwsRegionModule extends AModule<AwsRegionModuleSchema, AwsRegion> {
     // Create a new region.
     const region = new AwsRegion(inputs.regionId);
     account.addRegion(region);
+
+    // Add anchors.
+    const awsRegionAnchor = new AwsRegionAnchor(
+      'AwsRegionAnchor',
+      {
+        awsRegionId: region.awsRegionId,
+        regionId: region.regionId,
+      },
+      region,
+    );
+    region.addAnchor(awsRegionAnchor);
 
     // Create and register a new EC2Client.
     const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
