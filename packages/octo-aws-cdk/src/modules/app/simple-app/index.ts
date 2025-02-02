@@ -1,3 +1,3 @@
 import './models/app/index.js';
 
-export { AppModule, AppModuleSchema } from './app.module.js';
+export { AppModule } from './app.module.js';
