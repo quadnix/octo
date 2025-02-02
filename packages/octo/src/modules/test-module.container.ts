@@ -180,6 +180,7 @@ export class TestModuleContainer {
           constructor: { name: `${UniversalModelAction.name}For${model.constructor.name}` },
         });
         try {
+          transactionService.unregisterModelActions(model.constructor as Constructable<UnknownModel>);
           transactionService.registerModelActions(model.constructor as Constructable<UnknownModel>, [universalAction]);
         } catch (error) {
           if (

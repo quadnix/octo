@@ -494,6 +494,15 @@ export class TransactionService {
       }
     }
   }
+
+  unregisterModelActions(forModel: Constructable<UnknownModel>): void {
+    const modelActions = this.modelActions.find((a) => a.modelClass === forModel);
+    if (!modelActions) {
+      return;
+    }
+
+    modelActions.actions = [];
+  }
 }
 
 @Factory<TransactionService>(TransactionService)
