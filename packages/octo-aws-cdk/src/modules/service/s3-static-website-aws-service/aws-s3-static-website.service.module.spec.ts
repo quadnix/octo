@@ -11,6 +11,7 @@ import {
 } from '@quadnix/octo';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
 import { AwsS3StaticWebsiteServiceModule } from './aws-s3-static-website.service.module.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -31,10 +32,8 @@ async function setup(
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
-  await testModuleContainer.createTestResources(
-    'testModule',
-    [{ properties: { awsRegionId: 'us-east-1' }, resourceContext: '@octo/vpc=vpc-region' }],
-    { save: true },
+  region.addAnchor(
+    new AwsRegionAnchor('AwsRegionAnchor', { awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' }, region),
   );
 
   return { account, app, region };

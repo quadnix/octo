@@ -4,42 +4,19 @@ import {
   AModule,
   type Account,
   type App,
-  BaseResourceSchema,
   Container,
   ContainerRegistrationError,
   type Diff,
   type DiffMetadata,
   type IModelAction,
   Module,
-  type Region,
-  Schema,
-  Validate,
 } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { AwsS3StaticWebsiteServiceModuleSchema } from './index.schema.js';
 import { AddS3StaticWebsiteModelAction } from './models/s3-static-website/actions/add-s3-static-website.model.action.js';
 import { UpdateSourcePathsS3StaticWebsiteModelAction } from './models/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
 import { AwsS3StaticWebsiteService } from './models/s3-static-website/index.js';
-
-class AwsResourceSchema extends BaseResourceSchema {
-  @Validate({ destruct: (value): string[] => [value.awsRegionId], options: { minLength: 1 } })
-  override properties = Schema<{
-    awsRegionId: string;
-  }>();
-}
-
-export class AwsS3StaticWebsiteServiceModuleSchema {
-  bucketName = Schema<string>();
-
-  directoryPath = Schema<string>();
-
-  filter? = Schema<((filePath: string) => boolean) | null>(null);
-
-  region = Schema<Region>();
-
-  subDirectoryOrFilePath? = Schema<string | null>(null);
-
-  transform? = Schema<((filePath: string) => string) | null>(null);
-}
 
 @Module<AwsS3StaticWebsiteServiceModule>('@octo', AwsS3StaticWebsiteServiceModuleSchema)
 export class AwsS3StaticWebsiteServiceModule extends AModule<
@@ -47,10 +24,7 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
   AwsS3StaticWebsiteService
 > {
   async onInit(inputs: AwsS3StaticWebsiteServiceModuleSchema): Promise<AwsS3StaticWebsiteService> {
-    const region = inputs.region;
-    const account = region.getParents()['account'][0].to as Account;
-    const app = account.getParents()['app'][0].to as App;
-    const { awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
+    const { account, app, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
     // Create a new s3-website service.
     const s3StaticWebsiteService = new AwsS3StaticWebsiteService(inputs.bucketName);
@@ -66,7 +40,7 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
 
     // Create and register a new S3Client.
     const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
-    const s3Client = new S3Client({ ...credentials });
+    const s3Client = new S3Client({ ...credentials, region: awsRegionId });
     const container = Container.getInstance();
     try {
       container.registerValue(S3Client, s3Client, {
@@ -122,15 +96,20 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
 
   override async registerMetadata(
     inputs: AwsS3StaticWebsiteServiceModuleSchema,
-  ): Promise<{ awsAccountId: string; awsRegionId: string }> {
+  ): Promise<{ account: Account; app: App; awsAccountId: string; awsRegionId: string }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
+    const app = account.getParents()['app'][0].to as App;
 
     // Get AWS Region ID.
-    const [matchingResource] = await region.getResourcesMatchingSchema(AwsResourceSchema);
-    const awsRegionId = matchingResource.getSchemaInstance().properties.awsRegionId;
+    const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+      searchBoundaryMembers: false,
+    });
+    const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
+      account,
+      app,
       awsAccountId: account.accountId,
       awsRegionId,
     };
