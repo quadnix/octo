@@ -2,70 +2,20 @@ import { IAMClient } from '@aws-sdk/client-iam';
 import { S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import {
-  AAnchor,
   type Account,
-  Anchor,
   type App,
-  Model,
-  Service,
+  type Service,
   TestContainer,
   TestModuleContainer,
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { S3StorageAnchor } from '../../../anchors/s3-storage/s3-storage.anchor.js';
 import { type IamRoleSchema } from '../../../resources/iam-role/index.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
-import {
-  AwsS3DirectoryAnchorSchema,
-  AwsS3StorageServiceSchema,
-  AwsServerModule,
-  S3StorageAccess,
-} from './aws-server.module.js';
-
-@Anchor('@octo')
-class TestS3StorageDirectoryAnchor extends AAnchor<AwsS3DirectoryAnchorSchema, Service> {
-  declare properties: AwsS3DirectoryAnchorSchema['properties'];
-
-  constructor(anchorId: string, properties: AwsS3DirectoryAnchorSchema['properties'], parent: Service) {
-    super(anchorId, properties, parent);
-  }
-}
-
-@Model<TestS3StorageService>('@octo', 'service', AwsS3StorageServiceSchema)
-class TestS3StorageService extends Service {
-  readonly bucketName = 'test-bucket';
-
-  readonly directories: { remoteDirectoryPath: string }[] = [];
-
-  constructor() {
-    super('test-bucket-s3-storage');
-  }
-
-  addDirectory(remoteDirectoryPath: string): void {
-    const directoryAnchor = new TestS3StorageDirectoryAnchor(
-      `TestS3StorageDirectoryAnchor-${remoteDirectoryPath}`,
-      { bucketName: this.bucketName, remoteDirectoryPath: remoteDirectoryPath },
-      this,
-    );
-    this.addAnchor(directoryAnchor);
-
-    this.directories.push({ remoteDirectoryPath });
-  }
-
-  override synth(): AwsS3StorageServiceSchema {
-    return {
-      bucketName: this.bucketName,
-      directories: JSON.parse(JSON.stringify(this.directories)),
-      serviceId: this.serviceId,
-    };
-  }
-
-  static override async unSynth(s3Storage: AwsS3StorageServiceSchema): Promise<TestS3StorageService> {
-    const service = new TestS3StorageService();
-    service.directories.push(...(s3Storage.directories || []));
-    return service;
-  }
-}
+import { AwsS3StorageService } from '../../service/s3-storage-aws-service/models/s3-storage/index.js';
+import { AwsServerModule } from './aws-server.module.js';
+import { S3StorageAccess } from './index.schema.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -77,11 +27,18 @@ async function setup(
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
     app: ['test-app'],
-    service: [[new TestS3StorageService()]],
+    service: [[new AwsS3StorageService('test-bucket')]],
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
-  (service as TestS3StorageService).addDirectory('uploads');
+  (service as AwsS3StorageService).addDirectory('uploads');
+  service.addAnchor(
+    new S3StorageAnchor(
+      'S3StorageAnchor',
+      { awsAccountId: '123', awsRegionId: 'us-east-1', bucketName: 'test-bucket' },
+      service,
+    ),
+  );
 
   const s3Storage = new S3Storage('bucket-test-bucket', {
     awsAccountId: '123',
@@ -130,7 +87,7 @@ describe('AwsServerModule UT', () => {
     testModuleContainer.registerCapture<IamRoleSchema>('@octo/iam-role=iam-role-ServerRole-backend', {
       Arn: 'Arn',
       policies: {
-        'server-s3-access-overlay-e9dc96db328e': ['server-s3-access-arn'],
+        'server-s3-access-overlay-56043e0e95bf': ['server-s3-access-arn'],
       },
       RoleId: 'RoleId',
       RoleName: 'RoleName',
@@ -308,7 +265,7 @@ describe('AwsServerModule UT', () => {
                "bucketName": "test-bucket",
                "remoteDirectoryPath": "uploads",
              },
-             "policyId": "server-s3-access-overlay-e9dc96db328e",
+             "policyId": "server-s3-access-overlay-56043e0e95bf",
            },
          },
        ],
@@ -345,7 +302,7 @@ describe('AwsServerModule UT', () => {
            "node": "@octo/iam-role=iam-role-ServerRole-backend",
            "value": {
              "action": "delete",
-             "policyId": "server-s3-access-overlay-e9dc96db328e",
+             "policyId": "server-s3-access-overlay-56043e0e95bf",
            },
          },
          {

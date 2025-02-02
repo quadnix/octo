@@ -3,88 +3,28 @@ import { S3Client } from '@aws-sdk/client-s3';
 import {
   AModule,
   type Account,
+  AccountType,
   type App,
-  BaseAnchorSchema,
   Container,
   ContainerRegistrationError,
   Module,
-  Schema,
-  type Service,
-  ServiceSchema,
-  Validate,
 } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
-import { S3StorageSchema } from '../../../resources/s3-storage/index.js';
+import { EcsServerAnchor } from '../../../anchors/ecs-server/ecs-server.anchor.js';
+import { IamRoleAnchor } from '../../../anchors/iam-role/iam-role.anchor.js';
+import { S3DirectoryAnchorSchema } from '../../../anchors/s3-directory/s3-directory.anchor.schema.js';
+import { S3StorageAnchorSchema } from '../../../anchors/s3-storage/s3-storage.anchor.schema.js';
+import { SecurityGroupAnchor } from '../../../anchors/security-group/security-group.anchor.js';
 import { CommonUtility } from '../../../utilities/common/common.utility.js';
-import { AwsIamRoleAnchor } from './anchors/aws-iam-role.anchor.js';
-import { AwsSecurityGroupAnchor, type ISecurityGroupAnchorRule } from './anchors/aws-security-group.anchor.js';
+import { AwsServerModuleSchema, S3StorageAccess } from './index.schema.js';
 import { AwsServer } from './models/server/index.js';
 import { AwsServerS3AccessOverlay } from './overlays/server-s3-access/index.js';
-
-export enum S3StorageAccess {
-  READ = 'READ',
-  READ_WRITE = 'READ_WRITE',
-  WRITE = 'WRITE',
-}
-
-export class AwsS3DirectoryAnchorSchema extends BaseAnchorSchema {
-  @Validate({
-    destruct: (value): string[] => [value.bucketName, [value.remoteDirectoryPath]],
-    options: { minLength: 1 },
-  })
-  override properties = Schema<{
-    bucketName: string;
-    remoteDirectoryPath: string;
-  }>();
-}
-
-export class AwsS3StorageServiceSchema extends ServiceSchema {
-  @Validate({ options: { minLength: 1 } })
-  bucketName = Schema<string>();
-
-  @Validate([
-    {
-      destruct: (value: { remoteDirectoryPath: string }[]): string[] => value.map((v) => v.remoteDirectoryPath),
-      options: { minLength: 1 },
-    },
-  ])
-  directories? = Schema<{ remoteDirectoryPath: string }[]>([]);
-}
-
-class AwsS3StorageServiceDirectorySchema {
-  access = Schema<S3StorageAccess>();
-
-  remoteDirectoryPath = Schema<string>();
-}
-
-export class AwsServerModuleSchema {
-  account = Schema<Account>();
-
-  @Validate<unknown>([
-    {
-      destruct: (
-        value: { directories: AwsS3StorageServiceDirectorySchema[] }[],
-      ): AwsS3StorageServiceDirectorySchema[] => value.map((v) => v.directories).flat(),
-      options: { isSchema: { schema: AwsS3StorageServiceDirectorySchema } },
-    },
-    {
-      destruct: (value: { service: Service }[]): Service[] => value.map((v) => v.service),
-      options: { isModel: { NODE_NAME: 'service' }, isSchema: { schema: AwsS3StorageServiceSchema } },
-    },
-  ])
-  s3? = Schema<{ directories: AwsS3StorageServiceDirectorySchema[]; service: Service }[]>([]);
-
-  securityGroupRules? = Schema<ISecurityGroupAnchorRule[]>([]);
-
-  serverKey = Schema<string>();
-}
 
 @Module<AwsServerModule>('@octo', AwsServerModuleSchema)
 export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
   async onInit(inputs: AwsServerModuleSchema): Promise<(AwsServer | AwsServerS3AccessOverlay)[]> {
-    const account = inputs.account;
-    const app = account.getParents()['app'][0].to as App;
     const models: (AwsServer | AwsServerS3AccessOverlay)[] = [];
+    const { account, app, iamRoleName } = await this.registerMetadata(inputs);
 
     // Create a new server.
     const server = new AwsServer(inputs.serverKey);
@@ -92,22 +32,24 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     models.push(server);
 
     // Add server anchors.
-    const awsIamRoleAnchor = new AwsIamRoleAnchor(
-      'AwsIamRoleAnchor',
-      { iamRoleName: `ServerRole-${inputs.serverKey}` },
+    const ecsServerAnchor = new EcsServerAnchor(
+      'EcsServerAnchor',
+      { deploymentType: 'ecs', serverKey: server.serverKey },
       server,
     );
-    server.addAnchor(awsIamRoleAnchor);
-    const awsSecurityGroupAnchor = new AwsSecurityGroupAnchor(
-      'AwsSecurityGroupAnchor',
+    server.addAnchor(ecsServerAnchor);
+    const iamRoleAnchor = new IamRoleAnchor('IamRoleAnchor', { iamRoleName }, server);
+    server.addAnchor(iamRoleAnchor);
+    const securityGroupAnchor = new SecurityGroupAnchor(
+      'SecurityGroupAnchor',
       { rules: [], securityGroupName: `SecurityGroup-${inputs.serverKey}` },
       server,
     );
-    server.addAnchor(awsSecurityGroupAnchor);
+    server.addAnchor(securityGroupAnchor);
 
     // Add security-group rules.
     for (const rule of inputs.securityGroupRules || []) {
-      const existingRule = awsSecurityGroupAnchor.properties.rules.find(
+      const existingRule = securityGroupAnchor.properties.rules.find(
         (r) =>
           r.CidrBlock === rule.CidrBlock &&
           r.Egress === rule.Egress &&
@@ -116,7 +58,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
           r.ToPort === rule.ToPort,
       );
       if (!existingRule) {
-        awsSecurityGroupAnchor.properties.rules.push(rule);
+        securityGroupAnchor.properties.rules.push(rule);
       }
     }
 
@@ -124,15 +66,15 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     if (inputs.s3) {
       for (const s3 of inputs.s3 || []) {
         const service = s3.service;
-        const [matchingS3StorageResource] = await service.getResourcesMatchingSchema(S3StorageSchema, [], [], {
+        const [matchingS3StorageAnchor] = await service.getAnchorsMatchingSchema(S3StorageAnchorSchema, [], {
           searchBoundaryMembers: false,
         });
 
-        if (matchingS3StorageResource.getSchemaInstance().properties.awsAccountId !== account.accountId) {
+        if (matchingS3StorageAnchor.getSchemaInstance().properties.awsAccountId !== account.accountId) {
           throw new Error('This module does not support adding s3 resources from other accounts!');
         }
 
-        const awsRegionId = matchingS3StorageResource.getSchemaInstance().properties.awsRegionId;
+        const awsRegionId = matchingS3StorageAnchor.getSchemaInstance().properties.awsRegionId;
         if (awsRegionIds.indexOf(awsRegionId) === -1) {
           awsRegionIds.push(awsRegionId);
         }
@@ -146,16 +88,18 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
             continue;
           }
 
-          const matchingAnchors = await service.getAnchorsMatchingSchema(AwsS3DirectoryAnchorSchema, [
-            { key: 'remoteDirectoryPath', value: directory.remoteDirectoryPath },
-          ]);
+          const matchingAnchors = await service.getAnchorsMatchingSchema(
+            S3DirectoryAnchorSchema,
+            [{ key: 'remoteDirectoryPath', value: directory.remoteDirectoryPath }],
+            { searchBoundaryMembers: false },
+          );
           if (matchingAnchors.length !== 1) {
-            throw new Error('Cannot find remote directory in service!');
+            throw new Error('Cannot find remote directory in S3Storage service!');
           }
-          const awsS3DirectoryAnchor = matchingAnchors[0];
+          const s3DirectoryAnchor = matchingAnchors[0];
 
           const overlayIdSuffix = CommonUtility.hash(
-            awsIamRoleAnchor.anchorId,
+            iamRoleAnchor.anchorId,
             directory.remoteDirectoryPath,
             directory.access,
           ).substring(0, 12);
@@ -165,12 +109,12 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
             {
               allowRead,
               allowWrite,
-              bucketName: awsS3DirectoryAnchor.getSchemaInstance().properties.bucketName,
-              iamRoleName: awsIamRoleAnchor.properties.iamRoleName,
+              bucketName: s3DirectoryAnchor.getSchemaInstance().properties.bucketName,
+              iamRoleName: iamRoleAnchor.properties.iamRoleName,
               iamRolePolicyId: overlayId,
               remoteDirectoryPath: directory.remoteDirectoryPath,
             },
-            [awsIamRoleAnchor, awsS3DirectoryAnchor],
+            [iamRoleAnchor, s3DirectoryAnchor],
           );
           models.push(serverS3AccessOverlay);
         }
@@ -179,14 +123,15 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
 
     // Create and register a new IAMClient and S3Client.
     const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
-    const iamClient = new IAMClient({ ...credentials });
-    const s3Client = new S3Client({ ...credentials });
     const container = Container.getInstance();
     try {
+      const iamClient = new IAMClient({ ...credentials });
       container.registerValue(IAMClient, iamClient, {
         metadata: { awsAccountId: account.accountId, package: '@octo' },
       });
+
       for (const awsRegionId of awsRegionIds) {
+        const s3Client = new S3Client({ ...credentials, region: awsRegionId });
         container.registerValue(S3Client, s3Client, {
           metadata: { awsAccountId: account.accountId, awsRegionId, package: '@octo' },
         });
@@ -198,5 +143,21 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     }
 
     return models;
+  }
+
+  override async registerMetadata(
+    inputs: AwsServerModuleSchema,
+  ): Promise<{ account: Account; app: App; iamRoleName: string }> {
+    const account = inputs.account;
+    if (account.accountType !== AccountType.AWS) {
+      throw new Error('Only AWS accounts are supported in this module!');
+    }
+    const app = account.getParents()['app'][0].to as App;
+
+    return {
+      account,
+      app,
+      iamRoleName: `ServerRole-${inputs.serverKey}`,
+    };
   }
 }

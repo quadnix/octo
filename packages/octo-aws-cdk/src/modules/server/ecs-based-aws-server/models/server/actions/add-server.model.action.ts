@@ -8,7 +8,6 @@ import {
   type IModelAction,
 } from '@quadnix/octo';
 import { IamRole } from '../../../../../../resources/iam-role/index.js';
-import type { AwsIamRoleAnchor } from '../../../anchors/aws-iam-role.anchor.js';
 import type { AwsServerModule } from '../../../aws-server.module.js';
 import { AwsServer } from '../aws.server.model.js';
 
@@ -24,16 +23,14 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
   }
 
   async handle(
-    diff: Diff,
+    _diff: Diff,
     actionInputs: EnhancedModuleSchema<AwsServerModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const server = diff.node as AwsServer;
-    const awsIamRoleAnchor = server.getAnchor('AwsIamRoleAnchor') as AwsIamRoleAnchor;
-    const serverIamRoleName = awsIamRoleAnchor.properties.iamRoleName;
+    const { iamRoleName } = actionInputs.metadata as Awaited<ReturnType<AwsServerModule['registerMetadata']>>;
 
     // Create IAM Role.
-    const iamRole = new IamRole(`iam-role-${serverIamRoleName}`, {
+    const iamRole = new IamRole(`iam-role-${iamRoleName}`, {
       awsAccountId: actionInputs.inputs.account.accountId,
       policies: [
         {
@@ -47,7 +44,7 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
           policyType: 'aws-policy',
         },
       ],
-      rolename: `iam-role-${serverIamRoleName}`,
+      rolename: `iam-role-${iamRoleName}`,
     });
 
     actionOutputs[iamRole.resourceId] = iamRole;
