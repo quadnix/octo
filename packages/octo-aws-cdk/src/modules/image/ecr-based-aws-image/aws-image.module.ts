@@ -1,26 +1,10 @@
 import { ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
-import {
-  AModule,
-  type Account,
-  type App,
-  Container,
-  ContainerRegistrationError,
-  Module,
-  type Region,
-  Schema,
-} from '@quadnix/octo';
+import { AModule, type Account, type App, Container, ContainerRegistrationError, Module } from '@quadnix/octo';
 import { type AwsCredentialIdentityProvider } from '@smithy/types';
-import { VpcSchema } from '../../../resources/vpc/index.js';
+import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
+import { AwsImageModuleSchema } from './index.schema.js';
 import { AwsImage } from './models/image/index.js';
-
-export class AwsImageModuleSchema {
-  imageFamily = Schema<string>();
-
-  imageName = Schema<string>();
-
-  regions = Schema<Region[]>();
-}
 
 @Module<AwsImageModule>('@octo', AwsImageModuleSchema)
 export class AwsImageModule extends AModule<AwsImageModuleSchema, AwsImage> {
@@ -61,10 +45,7 @@ export class AwsImageModule extends AModule<AwsImageModuleSchema, AwsImage> {
   }
 
   async onInit(inputs: AwsImageModuleSchema): Promise<AwsImage> {
-    const regions = inputs.regions;
-    const account = regions[0].getParents()['account'][0].to as Account;
-    const app = account.getParents()['app'][0].to as App;
-    const { uniqueImageRepositories } = await this.registerMetadata(inputs);
+    const { app, uniqueImageRepositories } = await this.registerMetadata(inputs);
 
     // Create a new image.
     const image = new AwsImage(inputs.imageFamily, inputs.imageName);
@@ -91,15 +72,23 @@ export class AwsImageModule extends AModule<AwsImageModuleSchema, AwsImage> {
 
   override async registerMetadata(
     inputs: AwsImageModuleSchema,
-  ): Promise<{ uniqueImageRepositories: { account: Account; awsAccountId: string; awsRegionId: string }[] }> {
-    const metadata: Awaited<ReturnType<AwsImageModule['registerMetadata']>> = { uniqueImageRepositories: [] };
+  ): Promise<{ app: App; uniqueImageRepositories: { account: Account; awsAccountId: string; awsRegionId: string }[] }> {
+    const metadata: Awaited<ReturnType<AwsImageModule['registerMetadata']>> = {
+      app: undefined as unknown as App,
+      uniqueImageRepositories: [],
+    };
 
     for (const region of inputs.regions) {
       const account = region.getParents()['account'][0].to as Account;
+      if (!metadata.app) {
+        metadata.app = account.getParents()['app'][0].to as App;
+      }
 
       // Get AWS Region ID.
-      const [matchingVpc] = await region.getResourcesMatchingSchema(VpcSchema);
-      const awsRegionId = matchingVpc.getSchemaInstance().properties.awsRegionId;
+      const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+        searchBoundaryMembers: false,
+      });
+      const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
       if (
         !metadata.uniqueImageRepositories.find(
