@@ -27,7 +27,11 @@ async function setup(
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   region.addAnchor(
-    new AwsRegionAnchor('AwsRegionAnchor', { awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' }, region),
+    new AwsRegionAnchor(
+      'AwsRegionAnchor',
+      { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
+      region,
+    ),
   );
 
   return { account, app, region };

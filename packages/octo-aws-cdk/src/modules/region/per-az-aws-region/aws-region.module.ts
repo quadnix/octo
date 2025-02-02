@@ -21,6 +21,7 @@ export class AwsRegionModule extends AModule<AwsRegionModuleSchema, AwsRegion> {
     const awsRegionAnchor = new AwsRegionAnchor(
       'AwsRegionAnchor',
       {
+        awsRegionAZs: region.awsRegionAZs,
         awsRegionId: region.awsRegionId,
         regionId: region.regionId,
       },
