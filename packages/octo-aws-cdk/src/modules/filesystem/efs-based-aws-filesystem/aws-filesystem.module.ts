@@ -1,29 +1,15 @@
 import { EFSClient } from '@aws-sdk/client-efs';
-import {
-  AModule,
-  type Account,
-  Container,
-  ContainerRegistrationError,
-  Module,
-  type Region,
-  Schema,
-} from '@quadnix/octo';
+import { AModule, type Account, Container, ContainerRegistrationError, Module } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
-import { VpcSchema } from '../../../resources/vpc/index.js';
+import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { AwsFilesystemModuleSchema } from './index.schema.js';
 import { AwsFilesystem } from './models/filesystem/index.js';
-
-export class AwsFilesystemModuleSchema {
-  filesystemName = Schema<string>();
-
-  region = Schema<Region>();
-}
 
 @Module<AwsFilesystemModule>('@octo', AwsFilesystemModuleSchema)
 export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, AwsFilesystem> {
   async onInit(inputs: AwsFilesystemModuleSchema): Promise<AwsFilesystem> {
     const region = inputs.region;
-    const account = region.getParents()['account'][0].to as Account;
-    const { awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
+    const { account, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
     // Create a new filesystem.
     const filesystem = new AwsFilesystem(inputs.filesystemName);
@@ -48,15 +34,18 @@ export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, AwsF
 
   override async registerMetadata(
     inputs: AwsFilesystemModuleSchema,
-  ): Promise<{ awsAccountId: string; awsRegionId: string }> {
+  ): Promise<{ account: Account; awsAccountId: string; awsRegionId: string }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
 
     // Get AWS Region ID.
-    const [matchingResource] = await region.getResourcesMatchingSchema(VpcSchema);
-    const awsRegionId = matchingResource.getSchemaInstance().properties.awsRegionId;
+    const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+      searchBoundaryMembers: false,
+    });
+    const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
+      account,
       awsAccountId: account.accountId,
       awsRegionId,
     };
