@@ -141,6 +141,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
   async getAnchorsMatchingSchema<S extends BaseAnchorSchema>(
     from: Constructable<S>,
     propertyFilters: ObjectKeyValue<S['properties']>[] = [],
+    { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
   ): Promise<MatchingAnchor<S>[]> {
     const matches: [S, AAnchor<S, any>, ((synth: any) => S) | undefined][] = [];
     const container = Container.getInstance();
@@ -151,7 +152,8 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       from = translatedSchema.schema;
     }
 
-    const anchors = this.getAnchors();
+    const boundaryMembers = searchBoundaryMembers ? (this.getBoundaryMembers() as UnknownModel[]) : [this];
+    const anchors = boundaryMembers.map((m) => m.getAnchors()).flat();
     while (anchors.length > 0) {
       const anchor = anchors.shift()!;
 
