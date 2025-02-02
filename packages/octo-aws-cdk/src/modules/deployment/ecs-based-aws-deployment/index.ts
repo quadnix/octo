@@ -1,3 +1,3 @@
 import './models/deployment/index.js';
 
-export { AwsDeploymentModule, AwsDeploymentModuleSchema } from './aws-deployment.module.js';
+export { AwsDeploymentModule } from './aws-deployment.module.js';
