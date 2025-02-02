@@ -1,6 +1,6 @@
 import { Model, ModelError, Service, Validate } from '@quadnix/octo';
+import { S3DirectoryAnchor } from '../../../../../anchors/s3-directory/s3-directory.anchor.js';
 import { CommonUtility } from '../../../../../utilities/common/common.utility.js';
-import { AwsS3DirectoryAnchor } from '../../anchors/aws-s3-directory.anchor.js';
 import { AwsS3StorageServiceSchema } from './aws-s3-storage.service.schema.js';
 
 @Model<AwsS3StorageService>('@octo', 'service', AwsS3StorageServiceSchema)
@@ -21,8 +21,8 @@ export class AwsS3StorageService extends Service {
       throw new ModelError('Remote directory already added in S3 bucket!', this);
     }
 
-    const directoryAnchorName = `AwsS3DirectoryAnchor-${CommonUtility.hash(remoteDirectoryPath).substring(0, 12)}`;
-    const directoryAnchor = new AwsS3DirectoryAnchor(
+    const directoryAnchorName = `S3DirectoryAnchor-${CommonUtility.hash(remoteDirectoryPath).substring(0, 12)}`;
+    const directoryAnchor = new S3DirectoryAnchor(
       directoryAnchorName,
       {
         bucketName: this.bucketName,
