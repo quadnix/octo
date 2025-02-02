@@ -5,46 +5,23 @@ import {
   type Account,
   Container,
   ContainerRegistrationError,
-  type Filesystem,
   Module,
-  type Region,
-  Schema,
   type Subnet,
   SubnetType,
 } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
-import { EfsSchema } from '../../../resources/efs/index.js';
-import { VpcSchema } from '../../../resources/vpc/index.js';
-import { AwsFilesystemAnchor } from './anchors/aws-filesystem.anchor.js';
-import { AwsSubnetLocalFilesystemMountAnchor } from './anchors/aws-subnet-local-filesystem-mount.anchor.js';
+import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
+import { SubnetLocalFilesystemMountAnchor } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.js';
+import { AwsSubnetModuleSchema } from './index.schema.js';
 import { AwsSubnet } from './models/subnet/index.js';
 import { AwsSubnetLocalFilesystemMountOverlay } from './overlays/subnet-local-filesystem-mount/index.js';
-
-export class AwsSubnetModuleSchema {
-  localFilesystems? = Schema<Filesystem[]>([]);
-
-  region = Schema<Region>();
-
-  subnetAvailabilityZone = Schema<string>();
-
-  subnetCidrBlock = Schema<string>();
-
-  subnetName = Schema<string>();
-
-  subnetOptions? = Schema<{ disableSubnetIntraNetwork: boolean; subnetType: SubnetType }>({
-    disableSubnetIntraNetwork: false,
-    subnetType: SubnetType.PRIVATE,
-  });
-
-  subnetSiblings? = Schema<{ subnetCidrBlock: string; subnetName: string }[]>([]);
-}
 
 @Module<AwsSubnetModule>('@octo', AwsSubnetModuleSchema)
 export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
   async onInit(inputs: AwsSubnetModuleSchema): Promise<(AwsSubnet | AwsSubnetLocalFilesystemMountOverlay)[]> {
     const region = inputs.region;
-    const account = region.getParents()['account'][0].to as Account;
-    const { awsAccountId, awsAvailabilityZones, awsRegionId } = await this.registerMetadata(inputs);
+    const { account, awsAccountId, awsAvailabilityZones, awsRegionId } = await this.registerMetadata(inputs);
 
     // Validate subnet availability zone.
     if (!awsAvailabilityZones.includes(inputs.subnetAvailabilityZone)) {
@@ -70,27 +47,20 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
     }
 
     for (const filesystem of inputs.localFilesystems || []) {
-      const matchingEfsResources = await filesystem.getResourcesMatchingSchema(
-        EfsSchema,
-        [
-          { key: 'awsRegionId', value: awsRegionId },
-          { key: 'filesystemName', value: filesystem.filesystemName },
-        ],
-        [],
-        {
-          searchBoundaryMembers: false,
-        },
-      );
-      if (matchingEfsResources.length !== 1) {
+      const [matchingEfsFilesystemAnchor] = await filesystem.getAnchorsMatchingSchema(EfsFilesystemAnchorSchema, [], {
+        searchBoundaryMembers: false,
+      });
+      if (!matchingEfsFilesystemAnchor) {
         throw new Error(`Filesystem "${filesystem.filesystemName}" not found in "${awsRegionId}"!`);
       }
 
-      const filesystemAnchor = new AwsFilesystemAnchor(`AwsFilesystemAnchor`, {}, filesystem);
-      const subnetLocalFilesystemMountAnchor = new AwsSubnetLocalFilesystemMountAnchor(
-        `AwsSubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
-        {},
+      // Add anchors.
+      const subnetLocalFilesystemMountAnchor = new SubnetLocalFilesystemMountAnchor(
+        `SubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
+        { awsAccountId, awsRegionId, filesystemName: filesystem.filesystemName, subnetName: inputs.subnetName },
         subnet,
       );
+      subnet.addAnchor(subnetLocalFilesystemMountAnchor);
 
       const subnetLocalFilesystemMountOverlay = new AwsSubnetLocalFilesystemMountOverlay(
         `subnet-local-filesystem-mount-overlay-${subnet.subnetName}-${filesystem.filesystemName}`,
@@ -100,7 +70,7 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
           subnetId: subnet.subnetId,
           subnetName: subnet.subnetName,
         },
-        [filesystemAnchor, subnetLocalFilesystemMountAnchor],
+        [matchingEfsFilesystemAnchor, subnetLocalFilesystemMountAnchor],
       );
       models.push(subnetLocalFilesystemMountOverlay);
     }
@@ -128,17 +98,20 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
 
   override async registerMetadata(
     inputs: AwsSubnetModuleSchema,
-  ): Promise<{ awsAccountId: string; awsAvailabilityZones: string[]; awsRegionId: string }> {
+  ): Promise<{ account: Account; awsAccountId: string; awsAvailabilityZones: string[]; awsRegionId: string }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
 
     // Get AWS Region ID.
-    const [matchingVpc] = await region.getResourcesMatchingSchema(VpcSchema);
-    const awsRegionId = matchingVpc.getSchemaInstance().properties.awsRegionId;
+    const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
+      searchBoundaryMembers: false,
+    });
+    const { awsRegionAZs, awsRegionId } = matchingAnchor.getSchemaInstance().properties;
 
     return {
+      account,
       awsAccountId: account.accountId,
-      awsAvailabilityZones: matchingVpc.getSchemaInstance().properties.awsAvailabilityZones,
+      awsAvailabilityZones: awsRegionAZs,
       awsRegionId,
     };
   }

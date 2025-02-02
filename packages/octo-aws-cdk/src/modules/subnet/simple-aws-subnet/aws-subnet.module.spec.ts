@@ -12,6 +12,8 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
+import { EfsFilesystemAnchor } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.js';
 import { type EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.js';
 import { type NetworkAcl, type NetworkAclSchema } from '../../../resources/network-acl/index.js';
 import { type RouteTableSchema } from '../../../resources/route-table/index.js';
@@ -35,20 +37,32 @@ async function setup(
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
+  filesystem.addAnchor(
+    new EfsFilesystemAnchor('EfsFilesystemAnchor', { filesystemName: 'test-filesystem' }, filesystem),
+  );
+  region.addAnchor(
+    new AwsRegionAnchor(
+      'AwsRegionAnchor',
+      { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
+      region,
+    ),
+  );
+
   await testModuleContainer.createTestResources(
     'testModule',
     [
       {
-        properties: { awsRegionId: 'us-east-1', filesystemName: 'test-filesystem' },
+        properties: { awsAccountId: '123', awsRegionId: 'us-east-1', filesystemName: 'test-filesystem' },
         resourceContext: '@octo/efs=efs-region-test-filesystem',
         response: { FileSystemArn: 'FileSystemArn', FileSystemId: 'FileSystemId' },
       },
       {
+        properties: { awsAccountId: '123', awsRegionId: 'us-east-1' },
         resourceContext: '@octo/internet-gateway=igw-region',
         response: { InternetGatewayId: 'InternetGatewayId' },
       },
       {
-        properties: { awsAvailabilityZones: ['us-east-1a'], awsRegionId: 'us-east-1' },
+        properties: { awsAccountId: '123', awsAvailabilityZones: ['us-east-1a'], awsRegionId: 'us-east-1' },
         resourceContext: '@octo/vpc=vpc-region',
         response: { VpcId: 'VpcId' },
       },

@@ -41,7 +41,7 @@ export class AddSubnetLocalFilesystemMountOverlayAction implements IModelAction<
     const [efs] = await subnetLocalFilesystemMountOverlay.getResourcesMatchingSchema(EfsSchema, [
       { key: 'filesystemName', value: properties.filesystemName },
     ]);
-    const subnet = actionInputs.resources[`subnet-${subnetLocalFilesystemMountOverlay.properties.subnetId}`] as Subnet;
+    const subnet = actionInputs.resources[`subnet-${properties.subnetId}`] as Subnet;
 
     // Create EFS Mount Target.
     const efsMountTarget = new EfsMountTarget(

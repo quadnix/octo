@@ -41,8 +41,14 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     >;
 
     const subnetCidrBlock = actionInputs.inputs.subnetCidrBlock;
-    const [vpc] = await subnet.getResourcesMatchingSchema(VpcSchema);
-    const [internetGateway] = await subnet.getResourcesMatchingSchema(InternetGatewaySchema);
+    const [vpc] = await subnet.getResourcesMatchingSchema(VpcSchema, [
+      { key: 'awsAccountId', value: awsAccountId },
+      { key: 'awsRegionId', value: awsRegionId },
+    ]);
+    const [internetGateway] = await subnet.getResourcesMatchingSchema(InternetGatewaySchema, [
+      { key: 'awsAccountId', value: awsAccountId },
+      { key: 'awsRegionId', value: awsRegionId },
+    ]);
 
     // Create Subnet.
     const subnetSubnet = new Subnet(
