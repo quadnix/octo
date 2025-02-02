@@ -2,6 +2,7 @@ import { EFSClient } from '@aws-sdk/client-efs';
 import { AModule, type Account, Container, ContainerRegistrationError, Module } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { EfsFilesystemAnchor } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.js';
 import { AwsFilesystemModuleSchema } from './index.schema.js';
 import { AwsFilesystem } from './models/filesystem/index.js';
 
@@ -14,6 +15,14 @@ export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, AwsF
     // Create a new filesystem.
     const filesystem = new AwsFilesystem(inputs.filesystemName);
     region.addFilesystem(filesystem);
+
+    // Add anchors.
+    const efsFilesystemAnchor = new EfsFilesystemAnchor(
+      'EfsFilesystemAnchor',
+      { filesystemName: inputs.filesystemName },
+      filesystem,
+    );
+    filesystem.addAnchor(efsFilesystemAnchor);
 
     // Create and register a new EFSClient.
     const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
