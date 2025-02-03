@@ -17,6 +17,8 @@ import { ANode } from '../functions/node/node.abstract.js';
 import { getSchemaInstance } from '../functions/schema/schema.js';
 import type { AAnchor } from '../overlays/anchor.abstract.js';
 import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
+import { type AOverlay } from '../overlays/overlay.abstract.js';
+import type { BaseOverlaySchema } from '../overlays/overlay.schema.js';
 import type { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService } from '../services/input/input.service.js';
@@ -208,6 +210,51 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
           matches.push([
             matchingSchemaInstance,
             model as AModel<S, any>,
+            translatedSchema ? translatedSchema.translator : undefined,
+          ]);
+        }
+      } catch (error) {
+        if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
+          throw error;
+        }
+      }
+    }
+
+    return matches.map((m) => new MatchingModel(m[1], m[0], m[2]));
+  }
+
+  async getOverlaysMatchingSchema<S extends BaseOverlaySchema>(
+    schema: Constructable<S>,
+    propertyFilters: ObjectKeyValue<S['properties']>[] = [],
+    { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
+  ): Promise<MatchingModel<S>[]> {
+    const matches: [S, AModel<S, any>, ((synth: any) => S) | undefined][] = [];
+    const container = Container.getInstance();
+    const schemaTranslationService = await container.get(SchemaTranslationService);
+
+    const translatedSchema = schemaTranslationService.getTranslatedSchema<S, any>(schema);
+    if (translatedSchema) {
+      schema = translatedSchema.schema;
+    }
+
+    const overlays = searchBoundaryMembers
+      ? (this.getBoundaryMembers() as UnknownModel[]).filter(
+          (m) => (m.constructor as typeof AOverlay).NODE_TYPE === NodeType.OVERLAY,
+        )
+      : [this];
+    while (overlays.length > 0) {
+      const overlay = overlays.shift()!;
+
+      try {
+        const schemaInstance = getSchemaInstance(schema, overlay.synth() as object);
+        const matchingSchemaInstance = (
+          translatedSchema ? translatedSchema.translator(schemaInstance) : overlay.synth()
+        ) as S;
+
+        if (propertyFilters.every((f) => matchingSchemaInstance[f.key as string] === f.value)) {
+          matches.push([
+            matchingSchemaInstance,
+            overlay as AModel<S, any>,
             translatedSchema ? translatedSchema.translator : undefined,
           ]);
         }
