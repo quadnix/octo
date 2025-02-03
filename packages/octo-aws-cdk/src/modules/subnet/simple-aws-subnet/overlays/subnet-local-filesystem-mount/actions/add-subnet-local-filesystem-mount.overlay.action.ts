@@ -38,16 +38,19 @@ export class AddSubnetLocalFilesystemMountOverlayAction implements IModelAction<
       ReturnType<AwsSubnetModule['registerMetadata']>
     >;
 
-    const [efs] = await subnetLocalFilesystemMountOverlay.getResourcesMatchingSchema(EfsSchema, [
+    const [matchingEfsResource] = await subnetLocalFilesystemMountOverlay.getResourcesMatchingSchema(EfsSchema, [
       { key: 'filesystemName', value: properties.filesystemName },
     ]);
+    if (!matchingEfsResource) {
+      throw new Error(`EFS "${properties.filesystemName}" not found!`);
+    }
     const subnet = actionInputs.resources[`subnet-${properties.subnetId}`] as Subnet;
 
     // Create EFS Mount Target.
     const efsMountTarget = new EfsMountTarget(
       `efs-mount-${properties.regionId}-${properties.subnetName}-${properties.filesystemName}`,
       { awsAccountId, awsRegionId },
-      [efs, new MatchingResource(subnet, subnet.synth())],
+      [matchingEfsResource, new MatchingResource(subnet, subnet.synth())],
     );
 
     actionOutputs[efsMountTarget.resourceId] = efsMountTarget;

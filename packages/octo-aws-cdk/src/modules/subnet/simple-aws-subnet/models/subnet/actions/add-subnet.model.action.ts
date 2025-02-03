@@ -41,14 +41,20 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     >;
 
     const subnetCidrBlock = actionInputs.inputs.subnetCidrBlock;
-    const [vpc] = await subnet.getResourcesMatchingSchema(VpcSchema, [
+    const [matchingVpcResource] = await subnet.getResourcesMatchingSchema(VpcSchema, [
       { key: 'awsAccountId', value: awsAccountId },
       { key: 'awsRegionId', value: awsRegionId },
     ]);
-    const [internetGateway] = await subnet.getResourcesMatchingSchema(InternetGatewaySchema, [
+    if (!matchingVpcResource) {
+      throw new Error(`Vpc in account "${awsAccountId}" and region "${awsRegionId}" not found!`);
+    }
+    const [matchingInternetGatewayResource] = await subnet.getResourcesMatchingSchema(InternetGatewaySchema, [
       { key: 'awsAccountId', value: awsAccountId },
       { key: 'awsRegionId', value: awsRegionId },
     ]);
+    if (!matchingInternetGatewayResource) {
+      throw new Error(`InternetGateway in account "${awsAccountId}" and region "${awsRegionId}" not found!`);
+    }
 
     // Create Subnet.
     const subnetSubnet = new Subnet(
@@ -58,8 +64,9 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         awsAccountId,
         awsRegionId,
         CidrBlock: subnetCidrBlock,
+        subnetName: subnet.subnetName,
       },
-      [vpc],
+      [matchingVpcResource],
     );
 
     // Create Route Table.
@@ -70,7 +77,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         awsAccountId,
         awsRegionId,
       },
-      [vpc, internetGateway, new MatchingResource(subnetSubnet, subnetSubnet.synth())],
+      [matchingVpcResource, matchingInternetGatewayResource, new MatchingResource(subnetSubnet, subnetSubnet.synth())],
     );
 
     // Create Network ACL entries - intra network.
@@ -144,7 +151,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         awsRegionId,
         entries: subnetNAclEntries,
       },
-      [vpc, new MatchingResource(subnetSubnet, subnetSubnet.synth())],
+      [matchingVpcResource, new MatchingResource(subnetSubnet, subnetSubnet.synth())],
     );
 
     actionOutputs[subnetSubnet.resourceId] = subnetSubnet;

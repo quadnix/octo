@@ -41,10 +41,14 @@ export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServer
 
     const s3DirectoryAnchor = serverS3AccessOverlay.anchors[1];
     const s3StorageService = s3DirectoryAnchor.getActual().getParent() as AModel<any, any>;
-    const [matchingS3Storage] = await s3StorageService.getResourcesMatchingSchema(S3StorageSchema, [], [], {
+    const [matchingS3StorageResource] = await s3StorageService.getResourcesMatchingSchema(S3StorageSchema, [], [], {
       searchBoundaryMembers: false,
     });
-    (matchingS3Storage.getActual() as S3Storage).addPermission(
+    if (!matchingS3StorageResource) {
+      throw new Error(`Bucket "${properties.bucketName}" not found!`);
+    }
+
+    (matchingS3StorageResource.getActual() as S3Storage).addPermission(
       new MatchingResource(iamRole, iamRole.synth()),
       properties.remoteDirectoryPath,
       {
@@ -54,7 +58,7 @@ export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServer
     );
 
     actionOutputs[iamRole.resourceId] = iamRole;
-    actionOutputs[matchingS3Storage.getActual().resourceId] = matchingS3Storage.getActual();
+    actionOutputs[matchingS3StorageResource.getActual().resourceId] = matchingS3StorageResource.getActual();
     return actionOutputs;
   }
 }
