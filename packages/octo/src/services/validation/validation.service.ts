@@ -38,7 +38,10 @@ export class ValidationService {
     const result: ReturnType<typeof this.validate> = { errors: [], pass: true };
 
     for (const subject of this.subjects) {
-      const values: any[] = subject.destruct ? subject.destruct(subject.value) : [subject.value];
+      let values: any[] = subject.destruct ? subject.destruct(subject.value) : [subject.value];
+      if (!values) {
+        values = [undefined];
+      }
 
       for (const value of values) {
         let pass: boolean = true;

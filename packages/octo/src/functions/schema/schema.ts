@@ -2,6 +2,10 @@ import type { Constructable } from '../../app.type.js';
 import { SchemaError } from '../../errors/index.js';
 
 export function getSchemaInstance<S extends object>(schemaClass: Constructable<S>, value: S): Record<string, unknown> {
+  if (value === undefined) {
+    throw new SchemaError(`Cannot determine schema with "${value}" value!`, schemaClass.name);
+  }
+
   const instance: Record<string, unknown> = {};
   const t = new schemaClass();
 
