@@ -114,9 +114,6 @@ describe('Resource UT', () => {
            {
              "context": "@octo/test-resource=resource-1",
            },
-           {
-             "context": "@octo/test-resource=resource-1",
-           },
          ],
          "properties": {
            "key1": "value1",
@@ -164,9 +161,6 @@ describe('Resource UT', () => {
       expect(resource4.synth()).toMatchInlineSnapshot(`
        {
          "parents": [
-           {
-             "context": "@octo/test-resource=resource-1",
-           },
            {
              "context": "@octo/test-resource=resource-1",
            },
@@ -218,9 +212,6 @@ describe('Resource UT', () => {
       expect(resource4.synth()).toMatchInlineSnapshot(`
        {
          "parents": [
-           {
-             "context": "@octo/test-resource=resource-1",
-           },
            {
              "context": "@octo/test-resource=resource-1",
            },

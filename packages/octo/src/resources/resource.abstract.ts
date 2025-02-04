@@ -97,8 +97,13 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       const sourceParentActual = sourceParent instanceof MatchingResource ? sourceParent.getActual() : sourceParent;
 
       const parent = await deReferenceResource(sourceParentActual.getContext());
-      const { childToParentDependency, parentToChildDependency } = parent.addChild('resourceId', this, 'resourceId');
-      this.parents.push(parent);
+      const parentMatching =
+        sourceParent instanceof MatchingResource ? new MatchingResource(parent, parent.synth()) : parent;
+      const { childToParentDependency, parentToChildDependency } = parentMatching.addChild(
+        'resourceId',
+        this,
+        'resourceId',
+      );
 
       // Clone behaviors from source to its parent.
       const sourceChildToParentDependency = sourceResource.getDependency(
