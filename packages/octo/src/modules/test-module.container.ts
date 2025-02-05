@@ -5,6 +5,7 @@ import type {
   ModuleSchemaInputs,
   UnknownModel,
   UnknownModule,
+  UnknownOverlay,
   UnknownResource,
 } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
@@ -23,6 +24,7 @@ import type { IStateProvider } from '../services/state-management/state-provider
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { create } from '../utilities/test-helpers/test-models.js';
+import { createTestOverlays } from '../utilities/test-helpers/test-overlays.js';
 import { createResources, createTestResources } from '../utilities/test-helpers/test-resources.js';
 import { AModule } from './module.abstract.js';
 import { ModuleContainer } from './module.container.js';
@@ -189,6 +191,48 @@ export class TestModuleContainer {
           ) {
             throw error;
           }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  async createTestOverlays(
+    moduleId: string,
+    args: Parameters<typeof createTestOverlays>[0],
+  ): Promise<ReturnType<typeof createTestOverlays>> {
+    const container = Container.getInstance();
+    const [inputService, moduleContainer, transactionService] = await Promise.all([
+      container.get(InputService),
+      container.get(ModuleContainer),
+      container.get(TransactionService),
+    ]);
+
+    // Register new moduleId as instance of the universal module.
+    moduleContainer.load(UniversalTestModule, moduleId, {});
+    // Immediately unload the universal module to ensure it does not run in apply().
+    moduleContainer.unload(UniversalTestModule);
+
+    const result = await createTestOverlays(args);
+    for (const overlay of Object.values(result)) {
+      inputService.registerOverlay(moduleId, overlay);
+
+      const universalAction = new UniversalModelAction();
+      Object.assign(universalAction, {
+        constructor: { name: `${UniversalModelAction.name}For${overlay.constructor.name}` },
+      });
+      try {
+        transactionService.unregisterOverlayActions(overlay.constructor as Constructable<UnknownOverlay>);
+        transactionService.registerOverlayActions(overlay.constructor as Constructable<UnknownOverlay>, [
+          universalAction,
+        ]);
+      } catch (error) {
+        if (
+          error.message !==
+          `Action "${universalAction.constructor.name}" already registered for overlay "${overlay.constructor.name}"!`
+        ) {
+          throw error;
         }
       }
     }

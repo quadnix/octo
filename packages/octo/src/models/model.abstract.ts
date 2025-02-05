@@ -251,7 +251,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
           translatedSchema ? translatedSchema.translator(schemaInstance) : overlay.synth()
         ) as S;
 
-        if (propertyFilters.every((f) => matchingSchemaInstance[f.key as string] === f.value)) {
+        if (propertyFilters.every((f) => matchingSchemaInstance.properties[f.key as string] === f.value)) {
           matches.push([
             matchingSchemaInstance,
             overlay as AModel<S, any>,

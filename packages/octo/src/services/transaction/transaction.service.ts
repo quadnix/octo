@@ -503,6 +503,15 @@ export class TransactionService {
 
     modelActions.actions = [];
   }
+
+  unregisterOverlayActions(forOverlay: Constructable<UnknownOverlay>): void {
+    const overlayActions = this.overlayActions.find((a) => a.overlayClass === forOverlay);
+    if (!overlayActions) {
+      return;
+    }
+
+    overlayActions.actions = [];
+  }
 }
 
 @Factory<TransactionService>(TransactionService)
