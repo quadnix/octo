@@ -150,27 +150,21 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
     }
 
     const matchingSGResources: MatchingResource<SecurityGroupSchema>[] = [];
-    // Get matching server's SecurityGroup resources.
+    // Get matching execution's SecurityGroup resources - server and execution SGs.
     const server = matchingServerSGAnchor.getActual().getParent() as Server;
-    const [matchingServerSGResource] = await server.getResourcesMatchingSchema(SecurityGroupSchema, [], [], {
-      searchBoundaryMembers: false,
-    });
-    if (!matchingServerSGResource) {
-      throw new Error(`SecurityGroup for server "${server.serverKey}" not found!`);
-    }
-    if (matchingServerSGResource.getSchemaInstance().properties.rules.length > 0) {
-      matchingSGResources.push(matchingServerSGResource);
-    }
-    // Get matching execution's SecurityGroup resources.
     const execution = executionSGAnchor.getParent() as Execution;
-    const [matchingExecutionSGResource] = await execution.getResourcesMatchingSchema(SecurityGroupSchema, [], [], {
+    const matchingExecutionSGResources = await execution.getResourcesMatchingSchema(SecurityGroupSchema, [], [], {
       searchBoundaryMembers: false,
     });
-    if (!matchingServerSGResource) {
-      throw new Error(`SecurityGroup for execution "${execution.executionId}" not found!`);
+    if (matchingExecutionSGResources.length !== 2) {
+      throw new Error(
+        `SecurityGroup for server "${server.serverKey}", or execution "${execution.executionId}" not found!`,
+      );
     }
-    if (matchingExecutionSGResource.getSchemaInstance().properties.rules.length > 0) {
-      matchingSGResources.push(matchingExecutionSGResource);
+    for (const matchingExecutionSGResource of matchingExecutionSGResources) {
+      if (matchingExecutionSGResource.getSchemaInstance().properties.rules.length > 0) {
+        matchingSGResources.push(matchingExecutionSGResource);
+      }
     }
 
     // Ensure there are no more than 5 security groups.

@@ -66,11 +66,18 @@ export class AwsExecutionModuleSchema {
   })
   securityGroupRules? = Schema<SecurityGroupAnchorRuleSchema[]>([]);
 
-  @Validate({
-    options: {
-      isModel: { NODE_NAME: 'subnet' },
-      isSchema: { schema: SubnetSchema },
+  @Validate([
+    {
+      options: {
+        isModel: { NODE_NAME: 'subnet' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsExecutionModuleSchema['subnet']): SubnetSchema[] => [value.synth()],
+      options: {
+        isSchema: { schema: SubnetSchema },
+      },
+    },
+  ])
   subnet = Schema<Subnet>();
 }

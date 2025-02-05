@@ -24,6 +24,7 @@ import { AwsExecutionModuleSchema } from './index.schema.js';
 import { AwsExecution } from './models/execution/index.js';
 import { AwsExecutionOverlay } from './overlays/execution/index.js';
 import { ServerExecutionSecurityGroupOverlay } from './overlays/server-execution-security-group/index.js';
+import { EC2Client } from '@aws-sdk/client-ec2';
 
 @Module<AwsExecutionModule>('@octo', AwsExecutionModuleSchema)
 export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExecution> {
@@ -165,11 +166,15 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
     // so that execution overlay always executes after security-group overlay.
     securityGroupOverlay.addChild('overlayId', executionOverlay, 'overlayId');
 
-    // Create and register a new ECSClient.
+    // Create and register a new EC2Client, and ECSClient.
     const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
+    const ec2Client = new EC2Client({ ...credentials, region: awsRegionId });
     const ecsClient = new ECSClient({ ...credentials, region: awsRegionId });
     const container = Container.getInstance();
     try {
+      container.registerValue(EC2Client, ec2Client, {
+        metadata: { awsAccountId, awsRegionId, package: '@octo' },
+      });
       container.registerValue(ECSClient, ecsClient, {
         metadata: { awsAccountId, awsRegionId, package: '@octo' },
       });

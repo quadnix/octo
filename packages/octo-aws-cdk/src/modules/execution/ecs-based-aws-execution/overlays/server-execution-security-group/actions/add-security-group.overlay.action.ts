@@ -44,9 +44,6 @@ export class AddSecurityGroupOverlayAction implements IModelAction<AwsExecutionM
 
     for (const anchor of anchors) {
       const anchorProperties = (anchor instanceof MatchingAnchor ? anchor.getSchemaInstance() : anchor).properties;
-      if (anchorProperties.rules.length === 0) {
-        continue;
-      }
 
       const securityGroup = new SecurityGroup(
         `sec-grp-${anchorProperties.securityGroupName}`,
