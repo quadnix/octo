@@ -98,7 +98,13 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
       const parent = await deReferenceResource(sourceParentActual.getContext());
       const parentMatching =
-        sourceParent instanceof MatchingResource ? new MatchingResource(parent, parent.synth()) : parent;
+        sourceParent instanceof MatchingResource
+          ? new MatchingResource(
+              parent,
+              sourceParent.hasSchemaTranslator() ? sourceParent.schemaTranslator!(parent.synth()) : parent.synth(),
+              sourceParent.schemaTranslator,
+            )
+          : parent;
       const { childToParentDependency, parentToChildDependency } = parentMatching.addChild(
         'resourceId',
         this,
@@ -317,7 +323,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
           context: p instanceof MatchingResource ? p.getActual().getContext() : p.getContext(),
         };
         if (p instanceof MatchingResource) {
-          parentReference.parentSchemaInstance = p.getSchemaInstance();
+          parentReference.parentSchemaTranslator = p.hasSchemaTranslator()
+            ? p.schemaTranslator!.toString()
+            : ((synth: BaseResourceSchema): BaseResourceSchema => synth).toString();
         }
         return parentReference;
       }),
@@ -336,8 +344,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
     const resourceInlineParents = parents.map((p) => {
       const parentMetadata = resource.parents.find((pm) => pm.context === p.getContext())!;
-      if (parentMetadata.parentSchemaInstance) {
-        return new MatchingResource(p, parentMetadata.parentSchemaInstance, () => parentMetadata.parentSchemaInstance!);
+      if (parentMetadata.parentSchemaTranslator) {
+        const parentSchemaTranslator = new Function('return ' + parentMetadata.parentSchemaTranslator)();
+        return new MatchingResource(p, parentSchemaTranslator(p.synth()), parentSchemaTranslator);
       } else {
         return p;
       }

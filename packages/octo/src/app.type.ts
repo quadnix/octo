@@ -59,7 +59,7 @@ export class MatchingResource<S extends BaseResourceSchema> {
   constructor(
     private readonly actual: AResource<BaseResourceSchema, any>,
     private readonly schemaInstance: S,
-    private readonly schemaTranslator?: (synth: any) => S,
+    readonly schemaTranslator?: (synth: BaseResourceSchema) => S,
   ) {}
 
   addChild(
