@@ -6,6 +6,7 @@ import {
   type App,
   type Deployment,
   type Environment,
+  type Filesystem,
   type Region,
   type Server,
   type Subnet,
@@ -17,8 +18,10 @@ import {
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
 import { EcsClusterAnchor } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.js';
 import { EcsTaskDefinitionAnchor } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.js';
+import { EfsFilesystemAnchor } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.js';
 import { IamRoleAnchor } from '../../../anchors/iam-role/iam-role.anchor.js';
 import { SecurityGroupAnchor } from '../../../anchors/security-group/security-group.anchor.js';
+import { SubnetLocalFilesystemMountAnchor } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.js';
 import { type EcsServiceSchema } from '../../../resources/ecs-service/index.js';
 import { type EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.js';
 import { type SecurityGroupSchema } from '../../../resources/security-group/index.js';
@@ -29,6 +32,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
   app: App;
   deployment: Deployment;
   environment: Environment;
+  filesystem: Filesystem;
   region: Region;
   server: Server;
   subnet: Subnet;
@@ -38,6 +42,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     app: [app],
     deployment: [deployment],
     environment: [environment],
+    filesystem: [filesystem],
     region: [region],
     server: [server],
     subnet: [subnet],
@@ -46,6 +51,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     app: ['test-app'],
     deployment: ['v1'],
     environment: ['qa'],
+    filesystem: ['test-filesystem'],
     region: ['region'],
     server: ['backend'],
     subnet: ['private-subnet'],
@@ -66,6 +72,12 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
   environment.addAnchor(
     new EcsClusterAnchor('EcsClusterAnchor', { clusterName: 'region-qa', environmentVariables: {} }, environment),
   );
+  const efsFilesystemAnchor = new EfsFilesystemAnchor(
+    'EfsFilesystemAnchor',
+    { filesystemName: 'test-filesystem' },
+    filesystem,
+  );
+  filesystem.addAnchor(efsFilesystemAnchor);
   region.addAnchor(
     new AwsRegionAnchor(
       'AwsRegionAnchor',
@@ -77,6 +89,31 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
   server.addAnchor(
     new SecurityGroupAnchor('SecurityGroupAnchor', { rules: [], securityGroupName: 'SecurityGroup-backend' }, server),
   );
+  const subnetLocalFilesystemMountAnchor = new SubnetLocalFilesystemMountAnchor(
+    `SubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
+    {
+      awsAccountId: '123',
+      awsRegionId: 'us-east-1',
+      filesystemName: filesystem.filesystemName,
+      subnetName: 'private-subnet',
+    },
+    subnet,
+  );
+  subnet.addAnchor(subnetLocalFilesystemMountAnchor);
+
+  await testModuleContainer.createTestOverlays('testModule', [
+    {
+      anchors: [efsFilesystemAnchor, subnetLocalFilesystemMountAnchor],
+      // eslint-disable-next-line max-len
+      context: `@octo/subnet-local-filesystem-mount-overlay=subnet-local-filesystem-mount-overlay-${subnet.subnetName}-${filesystem.filesystemName}`,
+      properties: {
+        filesystemName: filesystem.filesystemName,
+        regionId: region.regionId,
+        subnetId: subnet.subnetId,
+        subnetName: subnet.subnetName,
+      },
+    },
+  ]);
 
   await testModuleContainer.createTestResources(
     'testModule',
@@ -85,6 +122,16 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
         properties: { awsAccountId: '123', awsRegionId: 'us-east-1', clusterName: 'region-qa' },
         resourceContext: '@octo/ecs-cluster=ecs-cluster-region-qa',
         response: { clusterArn: 'clusterArn' },
+      },
+      {
+        properties: { awsAccountId: '123', awsRegionId: 'us-east-1', filesystemName: 'test-filesystem' },
+        resourceContext: '@octo/efs=efs-region-test-filesystem',
+        response: { FileSystemArn: 'FileSystemArn', FileSystemId: 'FileSystemId' },
+      },
+      {
+        properties: { awsAccountId: '123', awsRegionId: 'us-east-1' },
+        resourceContext: '@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem',
+        response: { MountTargetId: 'MountTargetId', NetworkInterfaceId: 'NetworkInterfaceId' },
       },
       {
         properties: { awsAccountId: '123', policies: [], rolename: 'iam-role-ServerRole-backend' },
@@ -111,7 +158,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     { save: true },
   );
 
-  return { account, app, deployment, environment, region, server, subnet };
+  return { account, app, deployment, environment, filesystem, region, server, subnet };
 }
 
 describe('AwsExecutionModule UT', () => {
@@ -287,12 +334,46 @@ describe('AwsExecutionModule UT', () => {
      ]
     `);
 
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsExecutionModule>({
+      inputs: {
+        deployment: stub('${{testModule.model.deployment}}'),
+        desiredCount: 2,
+        environment: stub('${{testModule.model.environment}}'),
+        filesystems: [stub('${{testModule.model.filesystem}}')],
+        subnet: stub('${{testModule.model.subnet}}'),
+      },
+      moduleId: 'execution',
+      type: AwsExecutionModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "resourceId",
+           "node": "@octo/ecs-task-definition=ecs-task-definition-region-backend-v1",
+           "value": "",
+         },
+         {
+           "action": "update",
+           "field": "resourceId",
+           "node": "@octo/ecs-service=ecs-service-region-backend",
+           "value": "",
+         },
+       ],
+       [],
+     ]
+    `);
+
     const { app: app4 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
         deployment: stub('${{testModule.model.deployment}}'),
         desiredCount: 2,
         environment: stub('${{testModule.model.environment}}'),
+        filesystems: [stub('${{testModule.model.filesystem}}')],
         securityGroupRules: [
           {
             CidrBlock: '10.0.0.0/8',

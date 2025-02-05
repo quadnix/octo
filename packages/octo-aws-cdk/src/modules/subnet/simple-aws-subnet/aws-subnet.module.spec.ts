@@ -114,10 +114,13 @@ describe('AwsSubnetModule UT', () => {
     });
 
     // Register resource captures.
-    testModuleContainer.registerCapture<EfsMountTargetSchema>('@octo/efs=efs-region-test-filesystem', {
-      MountTargetId: 'MountTargetId',
-      NetworkInterfaceId: 'NetworkInterfaceId',
-    });
+    testModuleContainer.registerCapture<EfsMountTargetSchema>(
+      '@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem',
+      {
+        MountTargetId: 'MountTargetId',
+        NetworkInterfaceId: 'NetworkInterfaceId',
+      },
+    );
     testModuleContainer.registerCapture<SubnetSchema>('@octo/subnet=subnet-region-private-subnet', {
       SubnetId: 'SubnetId-Private',
     });
