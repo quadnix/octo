@@ -36,7 +36,7 @@ module.exports = {
       {
         pattern: 'src',
         type: 'src',
-      }
+      },
     ],
     'import/resolver': {
       typescript: {
