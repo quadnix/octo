@@ -171,6 +171,12 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     for (const parent of newParents) {
       diffs.push(new Diff(this, DiffAction.ADD, 'parent', parent));
     }
+    for (const currentParent of currentParents) {
+      const previousParent = previousParents.find((p) => p.getContext() === currentParent.getContext());
+      if (previousParent && !DiffUtility.isObjectDeepEquals(currentParent, previousParent)) {
+        diffs.push(new Diff(this, DiffAction.UPDATE, 'parent', currentParent));
+      }
+    }
 
     return diffs;
   }
