@@ -10,10 +10,10 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { S3DirectoryAnchor } from '../../../anchors/s3-directory/s3-directory.anchor.js';
 import { S3StorageAnchor } from '../../../anchors/s3-storage/s3-storage.anchor.js';
 import type { IamRoleSchema } from '../../../resources/iam-role/iam-role.schema.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
-import { AwsS3StorageService } from '../../service/s3-storage-aws-service/models/s3-storage/index.js';
 import { AwsServerModule } from './aws-server.module.js';
 import { S3StorageAccess } from './index.schema.js';
 
@@ -27,11 +27,17 @@ async function setup(
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
     app: ['test-app'],
-    service: [[new AwsS3StorageService('test-bucket')]],
+    service: [['test-bucket', { bucketName: 'test-bucket' }]],
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
-  (service as AwsS3StorageService).addDirectory('uploads');
+  service.addAnchor(
+    new S3DirectoryAnchor(
+      'S3DirectoryAnchor-1234',
+      { bucketName: 'test-bucket', remoteDirectoryPath: 'uploads' },
+      service,
+    ),
+  );
   service.addAnchor(
     new S3StorageAnchor(
       'S3StorageAnchor',
