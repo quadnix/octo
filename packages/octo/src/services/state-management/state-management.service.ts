@@ -1,4 +1,4 @@
-import { ModelSerializedOutput, ResourceSerializedOutput } from '../../app.type.js';
+import type { ModelSerializedOutput, ResourceSerializedOutput } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';

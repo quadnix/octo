@@ -1,6 +1,6 @@
 import { Validate } from '../../decorators/validate.decorator.js';
 import { Schema } from '../../functions/schema/schema.js';
-import { IModelReference } from '../model.interface.js';
+import type { IModelReference } from '../model.interface.js';
 
 /**
  * The type of subnet.

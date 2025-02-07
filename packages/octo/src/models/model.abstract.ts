@@ -17,7 +17,7 @@ import { ANode } from '../functions/node/node.abstract.js';
 import { getSchemaInstance } from '../functions/schema/schema.js';
 import type { AAnchor } from '../overlays/anchor.abstract.js';
 import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
-import { type AOverlay } from '../overlays/overlay.abstract.js';
+import type { AOverlay } from '../overlays/overlay.abstract.js';
 import type { BaseOverlaySchema } from '../overlays/overlay.schema.js';
 import type { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';

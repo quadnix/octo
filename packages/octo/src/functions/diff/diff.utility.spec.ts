@@ -1,4 +1,4 @@
-import { type UnknownNode } from '../../app.type.js';
+import type { UnknownNode } from '../../app.type.js';
 import { DiffUtility } from './diff.utility.js';
 
 describe('Diff Utility UT', () => {

@@ -7,12 +7,12 @@ import { Diff, DiffAction } from '../../functions/diff/diff.js';
 import { Account } from '../../models/account/account.model.js';
 import { AccountType } from '../../models/account/account.schema.js';
 import { App } from '../../models/app/app.model.js';
-import { type IModelAction } from '../../models/model-action.interface.js';
+import type { IModelAction } from '../../models/model-action.interface.js';
 import { Region } from '../../models/region/region.model.js';
 import { ModuleContainer } from '../../modules/module.container.js';
 import { TestModuleContainer } from '../../modules/test-module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
-import { type IResourceAction } from '../../resources/resource-action.interface.js';
+import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import {
   SharedTestResource,

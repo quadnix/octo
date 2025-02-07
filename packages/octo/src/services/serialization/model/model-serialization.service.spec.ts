@@ -1,9 +1,9 @@
 import { TestAnchor, TestOverlay } from '../../../utilities/test-helpers/test-classes.js';
 import { commit, create, createTestOverlays } from '../../../utilities/test-helpers/test-models.js';
-import { type ModelSerializedOutput } from '../../../app.type.js';
+import type { ModelSerializedOutput } from '../../../app.type.js';
 import type { Container } from '../../../functions/container/container.js';
 import { TestContainer } from '../../../functions/container/test-container.js';
-import { type IDependency } from '../../../functions/dependency/dependency.js';
+import type { IDependency } from '../../../functions/dependency/dependency.js';
 import { Account } from '../../../models/account/account.model.js';
 import { App } from '../../../models/app/app.model.js';
 import { Image } from '../../../models/image/image.model.js';

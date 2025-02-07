@@ -1,4 +1,4 @@
-import { Constructable, ValidationType } from '../../app.type.js';
+import { type Constructable, ValidationType } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { ValidationUtility } from '../../utilities/validation/validation.utility.js';
 

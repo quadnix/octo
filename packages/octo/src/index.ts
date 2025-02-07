@@ -49,7 +49,7 @@ export { type IModelReference } from './models/model.interface.js';
 export { type IModelAction } from './models/model-action.interface.js';
 
 export { AModule } from './modules/module.abstract.js';
-export { TestModule, TestModuleContainer } from './modules/test-module.container.js';
+export { type TestModule, TestModuleContainer } from './modules/test-module.container.js';
 
 export { AAnchor } from './overlays/anchor.abstract.js';
 export { BaseAnchorSchema } from './overlays/anchor.schema.js';

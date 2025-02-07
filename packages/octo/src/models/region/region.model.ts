@@ -5,7 +5,7 @@ import { ModelError } from '../../errors/index.js';
 import { Environment } from '../environment/environment.model.js';
 import type { Filesystem } from '../filesystem/filesystem.model.js';
 import { AModel } from '../model.abstract.js';
-import { Subnet } from '../subnet/subnet.model.js';
+import type { Subnet } from '../subnet/subnet.model.js';
 import { RegionSchema } from './region.schema.js';
 
 /**

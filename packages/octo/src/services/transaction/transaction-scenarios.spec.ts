@@ -6,7 +6,7 @@ import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { ModuleContainer } from '../../modules/module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
-import { type IResourceAction } from '../../resources/resource-action.interface.js';
+import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
