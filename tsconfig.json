@@ -21,6 +21,7 @@
     "target": "ES2022",
     "typeRoots": ["node_modules/@types"],
     "useDefineForClassFields": false,
+    "verbatimModuleSyntax": true
   },
   "exclude": ["node_modules"],
   "include": [".eslintrc.cjs", "**/*.json", "**/*.ts"]
