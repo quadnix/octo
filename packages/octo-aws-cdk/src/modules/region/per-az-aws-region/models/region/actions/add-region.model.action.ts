@@ -11,7 +11,7 @@ import {
 import { InternetGateway } from '../../../../../../resources/internet-gateway/index.js';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
 import { Vpc } from '../../../../../../resources/vpc/index.js';
-import { AwsRegionModule } from '../../../aws-region.module.js';
+import type { AwsRegionModule } from '../../../aws-region.module.js';
 import { AwsRegion } from '../aws.region.model.js';
 
 @Action(AwsRegion)

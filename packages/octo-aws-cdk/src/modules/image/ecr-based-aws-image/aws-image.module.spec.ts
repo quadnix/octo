@@ -11,7 +11,7 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
-import { type EcrImageSchema } from '../../../resources/ecr/index.js';
+import type { EcrImageSchema } from '../../../resources/ecr/ecr-image.schema.js';
 import { AwsImageModule } from './aws-image.module.js';
 
 async function setup(

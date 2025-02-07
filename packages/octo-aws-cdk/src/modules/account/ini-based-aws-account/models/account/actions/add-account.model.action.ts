@@ -7,7 +7,7 @@ import {
   Factory,
   type IModelAction,
 } from '@quadnix/octo';
-import { AwsAccountModule } from '../../../aws-account.module.js';
+import type { AwsAccountModule } from '../../../aws-account.module.js';
 import { AwsAccount } from '../aws.account.model.js';
 
 @Action(AwsAccount)

@@ -10,13 +10,13 @@ import {
   MatchingResource,
   type Server,
 } from '@quadnix/octo';
-import { EcsClusterSchema } from '../../../../../../resources/ecs-cluster/index.js';
+import { EcsClusterSchema } from '../../../../../../resources/ecs-cluster/ecs-cluster.schema.js';
 import { EcsService } from '../../../../../../resources/ecs-service/index.js';
 import { EcsTaskDefinition } from '../../../../../../resources/ecs-task-definition/index.js';
-import { EfsSchema } from '../../../../../../resources/efs/index.js';
-import { IamRoleSchema } from '../../../../../../resources/iam-role/index.js';
-import { SecurityGroupSchema } from '../../../../../../resources/security-group/index.js';
-import { SubnetSchema } from '../../../../../../resources/subnet/index.js';
+import { EfsSchema } from '../../../../../../resources/efs/efs.schema.js';
+import { IamRoleSchema } from '../../../../../../resources/iam-role/iam-role.schema.js';
+import { SecurityGroupSchema } from '../../../../../../resources/security-group/security-group.schema.js';
+import { SubnetSchema } from '../../../../../../resources/subnet/subnet.schema.js';
 import type { AwsExecutionModule } from '../../../aws-execution.module.js';
 import { AwsExecutionOverlay } from '../aws-execution.overlay.js';
 

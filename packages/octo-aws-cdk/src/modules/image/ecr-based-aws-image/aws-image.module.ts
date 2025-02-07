@@ -1,6 +1,6 @@
 import { ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
 import { AModule, type Account, type App, Container, ContainerRegistrationError, Module } from '@quadnix/octo';
-import { type AwsCredentialIdentityProvider } from '@smithy/types';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { AwsImageModuleSchema } from './index.schema.js';

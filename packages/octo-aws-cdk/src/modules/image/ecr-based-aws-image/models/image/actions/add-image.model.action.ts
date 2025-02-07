@@ -8,7 +8,7 @@ import {
   type IModelAction,
 } from '@quadnix/octo';
 import { EcrImage } from '../../../../../../resources/ecr/index.js';
-import { type AwsImageModule } from '../../../aws-image.module.js';
+import type { AwsImageModule } from '../../../aws-image.module.js';
 import { AwsImage } from '../aws.image.model.js';
 
 @Action(AwsImage)

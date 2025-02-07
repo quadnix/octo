@@ -14,10 +14,11 @@ import {
 } from '@quadnix/octo';
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
 import { EfsFilesystemAnchor } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.js';
-import { type EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.js';
-import { type NetworkAcl, type NetworkAclSchema } from '../../../resources/network-acl/index.js';
-import { type RouteTableSchema } from '../../../resources/route-table/index.js';
-import { type SubnetSchema } from '../../../resources/subnet/index.js';
+import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/efs-mount-target.schema.js';
+import type { NetworkAcl } from '../../../resources/network-acl/index.js';
+import type { NetworkAclSchema } from '../../../resources/network-acl/network-acl.schema.js';
+import type { RouteTableSchema } from '../../../resources/route-table/route-table.schema.js';
+import type { SubnetSchema } from '../../../resources/subnet/subnet.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsSubnetModule } from './aws-subnet.module.js';
 

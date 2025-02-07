@@ -22,9 +22,9 @@ import { EfsFilesystemAnchor } from '../../../anchors/efs-filesystem/efs-filesys
 import { IamRoleAnchor } from '../../../anchors/iam-role/iam-role.anchor.js';
 import { SecurityGroupAnchor } from '../../../anchors/security-group/security-group.anchor.js';
 import { SubnetLocalFilesystemMountAnchor } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.js';
-import { type EcsServiceSchema } from '../../../resources/ecs-service/index.js';
-import { type EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.js';
-import { type SecurityGroupSchema } from '../../../resources/security-group/index.js';
+import type { EcsServiceSchema } from '../../../resources/ecs-service/ecs-service.schema.js';
+import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/ecs-task-definition.schema.js';
+import type { SecurityGroupSchema } from '../../../resources/security-group/security-group.schema.js';
 import { AwsExecutionModule } from './aws-execution.module.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{

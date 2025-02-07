@@ -10,8 +10,9 @@ import {
   MatchingResource,
 } from '@quadnix/octo';
 import type { IamRole } from '../../../../../../resources/iam-role/index.js';
-import { type S3Storage, S3StorageSchema } from '../../../../../../resources/s3-storage/index.js';
-import { type AwsServerModule } from '../../../aws-server.module.js';
+import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
+import { S3StorageSchema } from '../../../../../../resources/s3-storage/s3-storage.schema.js';
+import type { AwsServerModule } from '../../../aws-server.module.js';
 import { AwsServerS3AccessOverlay } from '../aws-server-s3-access.overlay.js';
 
 @Action(AwsServerS3AccessOverlay)

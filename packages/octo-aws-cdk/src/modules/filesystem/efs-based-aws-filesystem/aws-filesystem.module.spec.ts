@@ -10,7 +10,7 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
-import { type EfsSchema } from '../../../resources/efs/index.js';
+import type { EfsSchema } from '../../../resources/efs/efs.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsFilesystemModule } from './aws-filesystem.module.js';
 

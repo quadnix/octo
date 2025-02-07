@@ -9,7 +9,7 @@ import {
   MatchingAnchor,
 } from '@quadnix/octo';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
-import { VpcSchema } from '../../../../../../resources/vpc/index.js';
+import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
 import type { AwsExecutionModule } from '../../../aws-execution.module.js';
 import { ServerExecutionSecurityGroupOverlay } from '../server-execution-security-group.overlay.js';
 

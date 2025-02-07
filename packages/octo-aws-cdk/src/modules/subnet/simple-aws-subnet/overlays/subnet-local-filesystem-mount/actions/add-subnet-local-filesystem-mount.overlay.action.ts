@@ -9,9 +9,9 @@ import {
   MatchingResource,
 } from '@quadnix/octo';
 import { EfsMountTarget } from '../../../../../../resources/efs-mount-target/index.js';
-import { EfsSchema } from '../../../../../../resources/efs/index.js';
-import { Subnet } from '../../../../../../resources/subnet/index.js';
-import { type AwsSubnetModule } from '../../../aws-subnet.module.js';
+import { EfsSchema } from '../../../../../../resources/efs/efs.schema.js';
+import type { Subnet } from '../../../../../../resources/subnet/index.js';
+import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnetLocalFilesystemMountOverlay } from '../aws-subnet-local-filesystem-mount.overlay.js';
 
 @Action(AwsSubnetLocalFilesystemMountOverlay)

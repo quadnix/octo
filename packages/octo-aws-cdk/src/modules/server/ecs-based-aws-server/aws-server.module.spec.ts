@@ -11,7 +11,7 @@ import {
   stub,
 } from '@quadnix/octo';
 import { S3StorageAnchor } from '../../../anchors/s3-storage/s3-storage.anchor.js';
-import { type IamRoleSchema } from '../../../resources/iam-role/index.js';
+import type { IamRoleSchema } from '../../../resources/iam-role/iam-role.schema.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
 import { AwsS3StorageService } from '../../service/s3-storage-aws-service/models/s3-storage/index.js';
 import { AwsServerModule } from './aws-server.module.js';

@@ -10,7 +10,7 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
-import { type EcsClusterSchema } from '../../../resources/ecs-cluster/index.js';
+import type { EcsClusterSchema } from '../../../resources/ecs-cluster/ecs-cluster.schema.js';
 import { AwsEnvironmentModule } from './aws-environment.module.js';
 
 async function setup(

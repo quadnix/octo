@@ -7,7 +7,8 @@ import {
   Factory,
   type IModelAction,
 } from '@quadnix/octo';
-import { NetworkAcl, type NetworkAclSchema } from '../../../../../../resources/network-acl/index.js';
+import type { NetworkAcl } from '../../../../../../resources/network-acl/index.js';
+import type { NetworkAclSchema } from '../../../../../../resources/network-acl/network-acl.schema.js';
 import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnet } from '../aws.subnet.model.js';
 
