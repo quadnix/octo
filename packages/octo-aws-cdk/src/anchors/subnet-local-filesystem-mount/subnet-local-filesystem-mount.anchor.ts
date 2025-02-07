@@ -1,5 +1,5 @@
 import { AAnchor, Anchor, type Subnet } from '@quadnix/octo';
-import { type SubnetLocalFilesystemMountAnchorSchema } from './subnet-local-filesystem-mount.anchor.schema.js';
+import type { SubnetLocalFilesystemMountAnchorSchema } from './subnet-local-filesystem-mount.anchor.schema.js';
 
 @Anchor('@octo')
 export class SubnetLocalFilesystemMountAnchor extends AAnchor<SubnetLocalFilesystemMountAnchorSchema, Subnet> {

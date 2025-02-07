@@ -1,5 +1,5 @@
 import { AAnchor, Anchor, type Execution } from '@quadnix/octo';
-import { EcsExecutionAnchorSchema } from './ecs-execution.anchor.schema.js';
+import type { EcsExecutionAnchorSchema } from './ecs-execution.anchor.schema.js';
 
 @Anchor('@octo')
 export class EcsExecutionAnchor extends AAnchor<EcsExecutionAnchorSchema, Execution> {
