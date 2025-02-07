@@ -56,7 +56,7 @@
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",
     "test:cov": "jest --coverage --testRegex=\"\\.spec.ts$\"",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --testRegex=\"\\.e2e-spec.ts$\"",
+    "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.e2e-spec.ts$\"",
     "test:integration": "jest --testRegex=\"\\.ispec.ts$\"",
     "test:watch": "jest --watch"
   },

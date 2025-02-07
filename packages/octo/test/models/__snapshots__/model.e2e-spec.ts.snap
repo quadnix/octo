@@ -446,34 +446,6 @@ exports[`Model E2E Test common functions Test common functions Test Server synth
 }
 `;
 
-exports[`Model E2E Test common functions Test common functions Test Service getAncestors() 1`] = `
-[
-  "service=service,app=test",
-  "app=test",
-]
-`;
-
-exports[`Model E2E Test common functions Test common functions Test Service getBoundaryMembers() 1`] = `
-[
-  "service=service,app=test",
-  "app=test",
-]
-`;
-
-exports[`Model E2E Test common functions Test common functions Test Service getChildren() 1`] = `[]`;
-
-exports[`Model E2E Test common functions Test common functions Test Service getContext() 1`] = `"service=service,app=test"`;
-
-exports[`Model E2E Test common functions Test common functions Test Service getParents() 1`] = `
-[
-  "app",
-]
-`;
-
-exports[`Model E2E Test common functions Test common functions Test Service getSiblings() 1`] = `[]`;
-
-exports[`Model E2E Test common functions Test common functions Test Service synth() 1`] = `"Method not implemented! Use subclass"`;
-
 exports[`Model E2E Test common functions Test common functions Test Subnet getAncestors() 1`] = `
 [
   "subnet=region-public,region=region,account=account,app=test",
@@ -529,6 +501,38 @@ exports[`Model E2E Test common functions Test common functions Test Subnet synth
   },
   "subnetId": "region-public",
   "subnetName": "public",
+}
+`;
+
+exports[`Model E2E Test common functions Test common functions Test TestServiceClass getAncestors() 1`] = `
+[
+  "service=service,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test common functions Test TestServiceClass getBoundaryMembers() 1`] = `
+[
+  "service=service,app=test",
+  "app=test",
+]
+`;
+
+exports[`Model E2E Test common functions Test common functions Test TestServiceClass getChildren() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test common functions Test TestServiceClass getContext() 1`] = `"service=service,app=test"`;
+
+exports[`Model E2E Test common functions Test common functions Test TestServiceClass getParents() 1`] = `
+[
+  "app",
+]
+`;
+
+exports[`Model E2E Test common functions Test common functions Test TestServiceClass getSiblings() 1`] = `[]`;
+
+exports[`Model E2E Test common functions Test common functions Test TestServiceClass synth() 1`] = `
+{
+  "serviceId": "service",
 }
 `;
 

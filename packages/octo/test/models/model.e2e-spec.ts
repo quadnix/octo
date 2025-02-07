@@ -1,6 +1,5 @@
 import type { UnknownModel } from '../../src/app.type.js';
 import {
-  type AModel,
   Account,
   AccountType,
   App,
@@ -8,7 +7,6 @@ import {
   DiffAction,
   Environment,
   Region,
-  Service,
   TestContainer,
 } from '../../src/index.js';
 import { TestAnchor, TestModelWithoutUnsynth } from '../../src/utilities/test-helpers/test-classes.js';
@@ -48,7 +46,7 @@ describe('Model E2E Test', () => {
       pipeline: ['pipeline'],
       region: ['region'],
       server: ['backend'],
-      service: [[new Service('service')]],
+      service: [['service']],
       subnet: ['public', 'private:-1'],
     });
     subnet1.updateNetworkingRules(subnet2, true);
@@ -121,13 +119,7 @@ describe('Model E2E Test', () => {
         });
 
         it('synth()', () => {
-          if ((data.model.constructor as typeof AModel).NODE_NAME === 'service') {
-            expect(() => {
-              data.model.synth();
-            }).toThrowErrorMatchingSnapshot();
-          } else {
-            expect(data.model.synth()).toMatchSnapshot();
-          }
+          expect(data.model.synth()).toMatchSnapshot();
         });
       });
     });
@@ -165,7 +157,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [[new Service('service')]] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [['service']] });
 
       service.addRelationship(region);
 
@@ -182,7 +174,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['test'], region: ['region'], service: [[new Service('service')]] });
+      } = create({ account: ['aws,account'], app: ['test'], region: ['region'], service: [['service']] });
 
       const { thisToThatDependency } = service.addRelationship(region);
       thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
@@ -226,7 +218,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [[new Service('service')]] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [['service']] });
 
       service.addRelationship(region);
 
@@ -238,7 +230,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [[new Service('service')]] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [['service']] });
 
       const { thisToThatDependency } = service.addRelationship(region);
       thisToThatDependency.addBehavior('serviceId', DiffAction.ADD, 'regionId', DiffAction.ADD);
@@ -308,7 +300,7 @@ describe('Model E2E Test', () => {
       const {
         region: [region],
         service: [service],
-      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [[new Service('service')]] });
+      } = create({ account: ['aws,account'], app: ['app'], region: ['region'], service: [['service']] });
 
       service.addRelationship(region);
 

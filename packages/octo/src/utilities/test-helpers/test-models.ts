@@ -1,4 +1,4 @@
-import type { UnknownAnchor, UnknownModel, UnknownOverlay, UnknownResource } from '../../app.type.js';
+import type { Constructable, UnknownAnchor, UnknownModel, UnknownOverlay, UnknownResource } from '../../app.type.js';
 import { Container } from '../../functions/container/container.js';
 import { Account } from '../../models/account/account.model.js';
 import { AccountType } from '../../models/account/account.schema.js';
@@ -11,7 +11,8 @@ import { Image } from '../../models/image/image.model.js';
 import { Pipeline } from '../../models/pipeline/pipeline.model.js';
 import { Region } from '../../models/region/region.model.js';
 import { Server } from '../../models/server/server.model.js';
-import type { Service } from '../../models/service/service.model.js';
+import { Service } from '../../models/service/service.model.js';
+import type { ServiceSchema } from '../../models/service/service.schema.js';
 import { Subnet } from '../../models/subnet/subnet.model.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
@@ -80,7 +81,7 @@ export function create({
   pipeline?: (string | undefined)[];
   region?: (string | undefined)[];
   server?: (string | undefined)[];
-  service?: ([Service, number?] | undefined)[];
+  service?: ([string, Record<string, unknown>?] | undefined)[];
   subnet?: (string | undefined)[];
 }): {
   account: Account[];
@@ -236,11 +237,14 @@ export function create({
     result.deployment.push(deployment);
   }
 
-  for (const [index, entry] of service.entries()) {
-    if (entry === undefined) {
+  for (const [index, serviceEntry] of service.entries()) {
+    if (serviceEntry === undefined) {
       continue;
     }
-    const [service, i] = splitEntryOfArray(entry, index);
+    const [entry, serviceProperties] = serviceEntry;
+    const [id, i] = splitEntry(entry, index);
+    const TestServiceClass = createTestServiceModel(id, serviceProperties || {});
+    const service = new TestServiceClass();
 
     const app = result.app[i];
     app.addService(service);
@@ -258,6 +262,29 @@ export function create({
   }
 
   return result;
+}
+
+function createTestServiceModel(serviceId: string, properties: Record<string, unknown>): Constructable<Service> {
+  const TestServiceClass = class extends Service {
+    constructor() {
+      super(serviceId);
+
+      for (const key of Object.keys(properties)) {
+        this[key] = properties[key];
+      }
+    }
+
+    override synth(): ServiceSchema {
+      return {
+        ...properties,
+        serviceId: this.serviceId,
+      };
+    }
+  };
+  TestServiceClass['unSynth'] = async (): Promise<Service> => {
+    return new TestServiceClass();
+  };
+  return TestServiceClass;
 }
 
 export async function createTestOverlays(overlays: { [key: string]: UnknownAnchor[] }): Promise<UnknownOverlay[]> {
@@ -316,11 +343,4 @@ function splitEntry(entry: string, currentIndex: number): [string, ...number[]] 
     return [parts[0], currentIndex];
   }
   return [parts[0], ...parts.slice(1).map((p) => currentIndex + Number(p))];
-}
-
-function splitEntryOfArray<T>(entry: [T, number?], currentIndex: number): [T, ...number[]] {
-  if (entry.length === 1) {
-    return [entry[0], currentIndex];
-  }
-  return [entry[0], ...entry.slice(1).map((p) => currentIndex + Number(p))];
 }
