@@ -2,7 +2,7 @@ import {
   DeleteBucketCommand,
   DeleteObjectsCommand,
   ListObjectsV2Command,
-  ListObjectsV2CommandOutput,
+  type ListObjectsV2CommandOutput,
   S3Client,
 } from '@aws-sdk/client-s3';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';

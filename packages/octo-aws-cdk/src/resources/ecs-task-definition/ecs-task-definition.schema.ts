@@ -21,19 +21,3 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
     taskDefinitionArn: string;
   }>();
 }
-
-export class EcsTaskDefinitionEfsSchema extends BaseResourceSchema {
-  override properties = Schema<{
-    filesystemName: string;
-  }>();
-
-  override response = Schema<{
-    FileSystemId: string;
-  }>();
-}
-
-export class EcsTaskDefinitionIamRoleSchema extends BaseResourceSchema {
-  override response = Schema<{
-    Arn: string;
-  }>();
-}

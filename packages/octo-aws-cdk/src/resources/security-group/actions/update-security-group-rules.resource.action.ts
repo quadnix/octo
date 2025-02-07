@@ -18,7 +18,8 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof SecurityGroup &&
       (diff.node.constructor as typeof SecurityGroup).NODE_NAME === 'security-group' &&
-      diff.field === 'rules'
+      diff.field === 'properties' &&
+      (diff.value as { key: string }).key === 'rules'
     );
   }
 

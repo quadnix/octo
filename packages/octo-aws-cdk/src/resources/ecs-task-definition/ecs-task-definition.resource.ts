@@ -1,29 +1,22 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, type MatchingResource, Resource } from '@quadnix/octo';
-import {
-  type EcsTaskDefinitionEfsSchema,
-  type EcsTaskDefinitionIamRoleSchema,
-  EcsTaskDefinitionSchema,
-} from './ecs-task-definition.schema.js';
+import type { EfsSchema } from '../efs/efs.schema.js';
+import type { IamRoleSchema } from '../iam-role/iam-role.schema.js';
+import { EcsTaskDefinitionSchema } from './ecs-task-definition.schema.js';
 
 @Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema)
 export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
-  declare parents: [
-    MatchingResource<EcsTaskDefinitionIamRoleSchema>,
-    ...MatchingResource<EcsTaskDefinitionEfsSchema>[],
-  ];
+  declare parents: [MatchingResource<IamRoleSchema>, ...MatchingResource<EfsSchema>[]];
   declare properties: EcsTaskDefinitionSchema['properties'];
   declare response: EcsTaskDefinitionSchema['response'];
 
   constructor(
     resourceId: string,
     properties: EcsTaskDefinitionSchema['properties'],
-    parents: [MatchingResource<EcsTaskDefinitionIamRoleSchema>, ...MatchingResource<EcsTaskDefinitionEfsSchema>[]],
+    parents: [MatchingResource<IamRoleSchema>, ...MatchingResource<EfsSchema>[]],
   ) {
     super(resourceId, properties, parents);
 
-    this.updateTaskDefinitionEfs(
-      parents.slice(1).map((p) => p.getActual() as AResource<EcsTaskDefinitionEfsSchema, any>),
-    );
+    this.updateTaskDefinitionEfs(parents.slice(1).map((p) => p.getActual() as AResource<EfsSchema, any>));
   }
 
   override async diff(previous: EcsTaskDefinition): Promise<Diff[]> {
@@ -44,12 +37,6 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
 
     if (shouldConsolidateDiffs) {
       diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', ''));
-
-      // Since ecs-task-definition is updated, all ecs-service using this must be updated too.
-      const ecsServices = this.getChildren('ecs-service')['ecs-service'].map((d) => d.to as EcsService);
-      for (const ecsService of ecsServices) {
-        diffs.push(new Diff(ecsService, DiffAction.UPDATE, 'resourceId', ''));
-      }
     }
 
     return diffs;
@@ -57,7 +44,7 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
 
   override async diffInverse(
     diff: Diff,
-    deReferenceResource: (resourceId: string) => Promise<AResource<EcsTaskDefinitionEfsSchema, any>>,
+    deReferenceResource: (resourceId: string) => Promise<AResource<EfsSchema, any>>,
   ): Promise<void> {
     if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
       await this.cloneResourceInPlace(diff.node as EcsTaskDefinition, deReferenceResource);
@@ -70,7 +57,7 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
     return (resource.constructor as typeof AResource).NODE_NAME === 'efs';
   }
 
-  private updateTaskDefinitionEfs(efsParents: AResource<EcsTaskDefinitionEfsSchema, any>[]): void {
+  private updateTaskDefinitionEfs(efsParents: AResource<EfsSchema, any>[]): void {
     for (const efsParent of efsParents) {
       const tdToEfsDep = this.getDependency(efsParent, DependencyRelationship.CHILD)!;
       const efsToTdDep = efsParent.getDependency(this, DependencyRelationship.PARENT)!;

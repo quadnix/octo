@@ -1,10 +1,6 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 export class S3StorageSchema extends BaseResourceSchema {
-  @Validate({
-    destruct: (value): string[] => [value.awsRegionId, [value.Bucket]],
-    options: { minLength: 1 },
-  })
   override properties = Schema<{
     awsAccountId: string;
     awsRegionId: string;

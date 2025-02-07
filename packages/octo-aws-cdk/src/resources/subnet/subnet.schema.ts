@@ -1,4 +1,4 @@
-import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
+import { BaseResourceSchema, Schema } from '@quadnix/octo';
 
 export class SubnetSchema extends BaseResourceSchema {
   override properties = Schema<{
@@ -6,16 +6,10 @@ export class SubnetSchema extends BaseResourceSchema {
     awsAccountId: string;
     awsRegionId: string;
     CidrBlock: string;
+    subnetName: string;
   }>();
 
   override response = Schema<{
     SubnetId: string;
-  }>();
-}
-
-export class SubnetVpcSchema extends BaseResourceSchema {
-  @Validate({ destruct: (value: { VpcId: string }): string[] => [value.VpcId], options: { minLength: 1 } })
-  override response = Schema<{
-    VpcId: string;
   }>();
 }

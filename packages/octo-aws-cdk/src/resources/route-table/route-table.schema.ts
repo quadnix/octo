@@ -12,21 +12,3 @@ export class RouteTableSchema extends BaseResourceSchema {
     subnetAssociationId: string;
   }>();
 }
-
-export class RouteTableInternetGatewaySchema extends BaseResourceSchema {
-  override response = Schema<{
-    InternetGatewayId: string;
-  }>();
-}
-
-export class RouteTableSubnetSchema extends BaseResourceSchema {
-  override response = Schema<{
-    SubnetId: string;
-  }>();
-}
-
-export class RouteTableVpcSchema extends BaseResourceSchema {
-  override response = Schema<{
-    VpcId: string;
-  }>();
-}

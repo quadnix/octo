@@ -1,19 +1,17 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, type MatchingResource, Resource } from '@quadnix/octo';
-import {
-  type EcsServiceEcsClusterSchema,
-  EcsServiceSchema,
-  type EcsServiceSecurityGroupSchema,
-  type EcsServiceSubnetSchema,
-  type EcsServiceTaskDefinitionSchema,
-} from './ecs-service.schema.js';
+import type { EcsClusterSchema } from '../ecs-cluster/ecs-cluster.schema.js';
+import type { EcsTaskDefinitionSchema } from '../ecs-task-definition/ecs-task-definition.schema.js';
+import type { SecurityGroupSchema } from '../security-group/security-group.schema.js';
+import type { SubnetSchema } from '../subnet/subnet.schema.js';
+import { EcsServiceSchema } from './ecs-service.schema.js';
 
 @Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema)
 export class EcsService extends AResource<EcsServiceSchema, EcsService> {
   declare parents: [
-    MatchingResource<EcsServiceEcsClusterSchema>,
-    MatchingResource<EcsServiceTaskDefinitionSchema>,
-    MatchingResource<EcsServiceSubnetSchema>,
-    ...MatchingResource<EcsServiceSecurityGroupSchema>[],
+    MatchingResource<EcsClusterSchema>,
+    MatchingResource<EcsTaskDefinitionSchema>,
+    MatchingResource<SubnetSchema>,
+    ...MatchingResource<SecurityGroupSchema>[],
   ];
   declare properties: EcsServiceSchema['properties'];
   declare response: EcsServiceSchema['response'];
@@ -22,18 +20,16 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     resourceId: string,
     properties: EcsServiceSchema['properties'],
     parents: [
-      MatchingResource<EcsServiceEcsClusterSchema>,
-      MatchingResource<EcsServiceTaskDefinitionSchema>,
-      MatchingResource<EcsServiceSubnetSchema>,
-      ...MatchingResource<EcsServiceSecurityGroupSchema>[],
+      MatchingResource<EcsClusterSchema>,
+      MatchingResource<EcsTaskDefinitionSchema>,
+      MatchingResource<SubnetSchema>,
+      ...MatchingResource<SecurityGroupSchema>[],
     ],
   ) {
     super(resourceId, properties, parents);
 
-    this.updateServiceSecurityGroups(
-      parents.slice(3).map((p) => p.getActual() as AResource<EcsServiceSecurityGroupSchema, any>),
-    );
-    this.updateServiceTaskDefinition(parents[1].getActual() as AResource<EcsServiceTaskDefinitionSchema, any>);
+    this.updateServiceSecurityGroups(parents.slice(3).map((p) => p.getActual() as AResource<SecurityGroupSchema, any>));
+    this.updateServiceTaskDefinition(parents[1].getActual() as AResource<EcsTaskDefinitionSchema, any>);
   }
 
   override async diff(previous: EcsService): Promise<Diff[]> {
@@ -70,7 +66,7 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     diff: Diff,
     deReferenceResource: (
       resourceId: string,
-    ) => Promise<AResource<EcsServiceTaskDefinitionSchema, any> | AResource<EcsServiceSecurityGroupSchema, any>>,
+    ) => Promise<AResource<EcsTaskDefinitionSchema, any> | AResource<SecurityGroupSchema, any>>,
   ): Promise<void> {
     if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
       await this.cloneResourceInPlace(diff.node as EcsService, deReferenceResource);
@@ -87,7 +83,7 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     return (resource.constructor as typeof AResource).NODE_NAME === 'ecs-task-definition';
   }
 
-  private updateServiceSecurityGroups(securityGroupParents: AResource<EcsServiceSecurityGroupSchema, any>[]): void {
+  private updateServiceSecurityGroups(securityGroupParents: AResource<SecurityGroupSchema, any>[]): void {
     for (const sgParent of securityGroupParents) {
       const ecsToSgDep = this.getDependency(sgParent, DependencyRelationship.CHILD)!;
       const sgToEcsDep = sgParent.getDependency(this, DependencyRelationship.PARENT)!;
@@ -99,7 +95,7 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     }
   }
 
-  private updateServiceTaskDefinition(taskDefinitionParent: AResource<EcsServiceTaskDefinitionSchema, any>): void {
+  private updateServiceTaskDefinition(taskDefinitionParent: AResource<EcsTaskDefinitionSchema, any>): void {
     const ecsToTdDep = this.getDependency(taskDefinitionParent, DependencyRelationship.CHILD)!;
 
     // Before updating ecs-service must add ecs-task-definition.

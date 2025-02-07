@@ -11,15 +11,3 @@ export class EfsMountTargetSchema extends BaseResourceSchema {
     NetworkInterfaceId: string;
   }>();
 }
-
-export class EfsMountTargetEfsSchema extends BaseResourceSchema {
-  override response = Schema<{
-    FileSystemId: string;
-  }>();
-}
-
-export class EfsMountTargetSubnetSchema extends BaseResourceSchema {
-  override response = Schema<{
-    SubnetId: string;
-  }>();
-}

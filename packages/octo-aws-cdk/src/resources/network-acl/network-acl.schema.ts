@@ -20,15 +20,3 @@ export class NetworkAclSchema extends BaseResourceSchema {
     NetworkAclId: string;
   }>();
 }
-
-export class NetworkAclSubnetSchema extends BaseResourceSchema {
-  override response = Schema<{
-    SubnetId: string;
-  }>();
-}
-
-export class NetworkAclVpcSchema extends BaseResourceSchema {
-  override response = Schema<{
-    VpcId: string;
-  }>();
-}
