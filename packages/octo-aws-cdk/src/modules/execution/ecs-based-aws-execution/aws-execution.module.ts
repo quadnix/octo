@@ -19,7 +19,7 @@ import { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.s
 import { SecurityGroupAnchor } from '../../../anchors/security-group/security-group.anchor.js';
 import { SecurityGroupAnchorSchema } from '../../../anchors/security-group/security-group.anchor.schema.js';
 import { SubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.schema.js';
-import { AwsSubnetLocalFilesystemMountSchema } from '../../subnet/simple-aws-subnet/overlays/subnet-local-filesystem-mount/aws-subnet-local-filesystem-mount.schema.js';
+import { AwsSubnetLocalFilesystemMountSchema } from '../../subnet/simple-aws-subnet/index.schema.js';
 import { AwsExecutionModuleSchema } from './index.schema.js';
 import { AwsExecution } from './models/execution/index.js';
 import { AwsExecutionOverlay } from './overlays/execution/index.js';
