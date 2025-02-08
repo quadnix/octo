@@ -41,7 +41,7 @@
     "infrastructure",
     "octo"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0 license",
   "name": "@quadnix/packages",
   "private": true,
   "repository": {
