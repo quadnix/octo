@@ -165,6 +165,10 @@ export class Octo {
     this.moduleContainer.load(module, moduleId, inputs);
   }
 
+  orderModules(...args: Parameters<ModuleContainer['order']>): ReturnType<ModuleContainer['order']> {
+    this.moduleContainer.order(...args);
+  }
+
   registerCapture<S extends BaseResourceSchema>(resourceContext: string, response: Partial<S['response']>): void {
     this.captureService.registerCapture(resourceContext, response);
   }
