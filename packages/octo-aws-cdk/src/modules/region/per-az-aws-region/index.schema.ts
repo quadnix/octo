@@ -1,6 +1,7 @@
 import { type Account, AccountSchema, Schema, Validate } from '@quadnix/octo';
-import type { RegionId } from './models/region/index.js';
+import { RegionId } from './models/region/index.js';
 
+export { RegionId };
 export { AwsRegionSchema } from './models/region/aws.region.schema.js';
 
 export class AwsRegionModuleSchema {
