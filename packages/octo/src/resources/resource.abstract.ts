@@ -98,13 +98,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
       const parent = await deReferenceResource(sourceParentActual.getContext());
       const parentMatching =
-        sourceParent instanceof MatchingResource
-          ? new MatchingResource(
-              parent,
-              sourceParent.hasSchemaTranslator() ? sourceParent.schemaTranslator!(parent.synth()) : parent.synth(),
-              sourceParent.schemaTranslator,
-            )
-          : parent;
+        sourceParent instanceof MatchingResource ? new MatchingResource(parent, sourceParent.schemaTranslator) : parent;
       const { childToParentDependency, parentToChildDependency } = parentMatching.addChild(
         'resourceId',
         this,
@@ -352,7 +346,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       const parentMetadata = resource.parents.find((pm) => pm.context === p.getContext())!;
       if (parentMetadata.parentSchemaTranslator) {
         const parentSchemaTranslator = new Function('return ' + parentMetadata.parentSchemaTranslator)();
-        return new MatchingResource(p, parentSchemaTranslator(p.synth()), parentSchemaTranslator);
+        return new MatchingResource(p, parentSchemaTranslator);
       } else {
         return p;
       }

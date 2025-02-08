@@ -145,7 +145,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     propertyFilters: ObjectKeyValue<S['properties']>[] = [],
     { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
   ): Promise<MatchingAnchor<S>[]> {
-    const matches: [S, AAnchor<S, any>, ((synth: any) => S) | undefined][] = [];
+    const matches: [AAnchor<S, any>, ((synth: any) => S) | undefined][] = [];
     const container = Container.getInstance();
     const schemaTranslationService = await container.get(SchemaTranslationService);
 
@@ -166,11 +166,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
         ) as S;
 
         if (propertyFilters.every((f) => matchingSchemaInstance.properties[f.key as string] === f.value)) {
-          matches.push([
-            matchingSchemaInstance,
-            anchor as AAnchor<S, any>,
-            translatedSchema ? translatedSchema.translator : undefined,
-          ]);
+          matches.push([anchor as AAnchor<S, any>, translatedSchema ? translatedSchema.translator : undefined]);
         }
       } catch (error) {
         if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
@@ -179,7 +175,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       }
     }
 
-    return matches.map((m) => new MatchingAnchor(m[1], m[0], m[2]));
+    return matches.map((m) => new MatchingAnchor(m[0], m[1]));
   }
 
   async getModelsMatchingSchema<S extends object>(
@@ -187,7 +183,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     filters: ObjectKeyValue<S>[] = [],
     { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
   ): Promise<MatchingModel<S>[]> {
-    const matches: [S, AModel<S, any>, ((synth: any) => S) | undefined][] = [];
+    const matches: [AModel<S, any>, ((synth: any) => S) | undefined][] = [];
     const container = Container.getInstance();
     const schemaTranslationService = await container.get(SchemaTranslationService);
 
@@ -207,11 +203,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
         ) as S;
 
         if (filters.every((f) => matchingSchemaInstance[f.key] === f.value)) {
-          matches.push([
-            matchingSchemaInstance,
-            model as AModel<S, any>,
-            translatedSchema ? translatedSchema.translator : undefined,
-          ]);
+          matches.push([model as AModel<S, any>, translatedSchema ? translatedSchema.translator : undefined]);
         }
       } catch (error) {
         if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
@@ -220,7 +212,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       }
     }
 
-    return matches.map((m) => new MatchingModel(m[1], m[0], m[2]));
+    return matches.map((m) => new MatchingModel(m[0], m[1]));
   }
 
   async getOverlaysMatchingSchema<S extends BaseOverlaySchema>(
@@ -228,7 +220,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     propertyFilters: ObjectKeyValue<S['properties']>[] = [],
     { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
   ): Promise<MatchingModel<S>[]> {
-    const matches: [S, AModel<S, any>, ((synth: any) => S) | undefined][] = [];
+    const matches: [AModel<S, any>, ((synth: any) => S) | undefined][] = [];
     const container = Container.getInstance();
     const schemaTranslationService = await container.get(SchemaTranslationService);
 
@@ -252,11 +244,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
         ) as S;
 
         if (propertyFilters.every((f) => matchingSchemaInstance.properties[f.key as string] === f.value)) {
-          matches.push([
-            matchingSchemaInstance,
-            overlay as AModel<S, any>,
-            translatedSchema ? translatedSchema.translator : undefined,
-          ]);
+          matches.push([overlay as AModel<S, any>, translatedSchema ? translatedSchema.translator : undefined]);
         }
       } catch (error) {
         if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
@@ -265,7 +253,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       }
     }
 
-    return matches.map((m) => new MatchingModel(m[1], m[0], m[2]));
+    return matches.map((m) => new MatchingModel(m[0], m[1]));
   }
 
   async getResourcesMatchingSchema<S extends BaseResourceSchema>(
@@ -274,7 +262,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     responseFilters: ObjectKeyValue<S['response']>[] = [],
     { searchBoundaryMembers = true }: { searchBoundaryMembers?: boolean } = {},
   ): Promise<MatchingResource<S>[]> {
-    const matches: [S, AResource<S, any>, ((synth: any) => S) | undefined][] = [];
+    const matches: [AResource<S, any>, ((synth: any) => S) | undefined][] = [];
     const container = Container.getInstance();
     const [inputService, schemaTranslationService] = await Promise.all([
       container.get(InputService),
@@ -306,7 +294,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
             propertyFilters.every((f) => matchingSchemaInstance.properties[f.key as string] === f.value) &&
             responseFilters.every((f) => matchingSchemaInstance.response[f.key as string] === f.value)
           ) {
-            matches.push([matchingSchemaInstance, r, translatedSchema ? translatedSchema.translator : undefined]);
+            matches.push([r, translatedSchema ? translatedSchema.translator : undefined]);
           }
         } catch (error) {
           if (!(error instanceof SchemaError) && !(error instanceof ValidationTransactionError)) {
@@ -316,7 +304,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
       });
     }
 
-    return matches.map((m) => new MatchingResource(m[1], m[0], m[2]));
+    return matches.map((m) => new MatchingResource(m[0], m[1]));
   }
 
   removeAllAnchors(): void {

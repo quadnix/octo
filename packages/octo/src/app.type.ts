@@ -18,7 +18,6 @@ import type { ValidationUtility } from './utilities/validation/validation.utilit
 export class MatchingAnchor<S extends BaseAnchorSchema> {
   constructor(
     private readonly actual: AAnchor<S, any>,
-    private readonly schemaInstance: S,
     private readonly schemaTranslator?: (synth: any) => S,
   ) {}
 
@@ -31,14 +30,13 @@ export class MatchingAnchor<S extends BaseAnchorSchema> {
   }
 
   getSchemaInstance(): S {
-    return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : this.schemaInstance;
+    return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : (this.actual.synth() as S);
   }
 }
 
 export class MatchingModel<S extends object> {
   constructor(
     private readonly actual: AModel<S, any>,
-    private readonly schemaInstance: S,
     private readonly schemaTranslator?: (synth: any) => S,
   ) {}
 
@@ -51,14 +49,13 @@ export class MatchingModel<S extends object> {
   }
 
   getSchemaInstance(): S {
-    return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : this.schemaInstance;
+    return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : (this.actual.synth() as S);
   }
 }
 
 export class MatchingResource<S extends BaseResourceSchema> {
   constructor(
     private readonly actual: AResource<BaseResourceSchema, any>,
-    private readonly schemaInstance: S,
     readonly schemaTranslator?: (synth: BaseResourceSchema) => S,
   ) {}
 
@@ -85,7 +82,7 @@ export class MatchingResource<S extends BaseResourceSchema> {
   }
 
   getSchemaInstance(): S {
-    return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : this.schemaInstance;
+    return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : (this.actual.synth() as S);
   }
 }
 
