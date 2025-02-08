@@ -183,7 +183,7 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
       },
       [
         matchingEcsClusterResource,
-        new MatchingResource(ecsTaskDefinition, ecsTaskDefinition.synth()),
+        new MatchingResource(ecsTaskDefinition),
         matchingSubnetResource,
         ...matchingSGResources,
       ],

@@ -78,7 +78,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         awsAccountId,
         awsRegionId,
       },
-      [matchingVpcResource, matchingInternetGatewayResource, new MatchingResource(subnetSubnet, subnetSubnet.synth())],
+      [matchingVpcResource, matchingInternetGatewayResource, new MatchingResource(subnetSubnet)],
     );
 
     // Create Network ACL entries - intra network.
@@ -152,7 +152,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         awsRegionId,
         entries: subnetNAclEntries,
       },
-      [matchingVpcResource, new MatchingResource(subnetSubnet, subnetSubnet.synth())],
+      [matchingVpcResource, new MatchingResource(subnetSubnet)],
     );
 
     actionOutputs[subnetSubnet.resourceId] = subnetSubnet;

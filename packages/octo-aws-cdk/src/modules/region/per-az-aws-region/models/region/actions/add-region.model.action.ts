@@ -49,7 +49,7 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
     const internetGateway = new InternetGateway(
       `igw-${regionId}`,
       { awsAccountId, awsRegionId: awsRegion.awsRegionId },
-      [new MatchingResource(vpc, vpc.synth())],
+      [new MatchingResource(vpc)],
     );
 
     // Create Security Groups.
@@ -77,7 +77,7 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
           },
         ],
       },
-      [new MatchingResource(vpc, vpc.synth())],
+      [new MatchingResource(vpc)],
     );
 
     actionOutputs[vpc.resourceId] = vpc;

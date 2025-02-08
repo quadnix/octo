@@ -17,7 +17,7 @@ describe('AppModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app: app } = await testModuleContainer.runModule<AppModule>({
+    const { 'app.model.app': app } = await testModuleContainer.runModule<AppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: AppModule,
@@ -38,7 +38,7 @@ describe('AppModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: app } = await testModuleContainer.runModule<AppModule>({
+    const { 'app.model.app': app } = await testModuleContainer.runModule<AppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: AppModule,

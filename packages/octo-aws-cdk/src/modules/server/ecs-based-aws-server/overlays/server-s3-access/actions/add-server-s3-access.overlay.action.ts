@@ -50,7 +50,7 @@ export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServer
     }
 
     (matchingS3StorageResource.getActual() as S3Storage).addPermission(
-      new MatchingResource(iamRole, iamRole.synth()),
+      new MatchingResource(iamRole),
       properties.remoteDirectoryPath,
       {
         allowRead: properties.allowRead,

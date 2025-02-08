@@ -50,7 +50,7 @@ export class AddSubnetLocalFilesystemMountOverlayAction implements IModelAction<
     const efsMountTarget = new EfsMountTarget(
       `efs-mount-${properties.regionId}-${properties.subnetName}-${properties.filesystemName}`,
       { awsAccountId, awsRegionId },
-      [matchingEfsResource, new MatchingResource(subnet, subnet.synth())],
+      [matchingEfsResource, new MatchingResource(subnet)],
     );
 
     actionOutputs[efsMountTarget.resourceId] = efsMountTarget;
