@@ -62,7 +62,7 @@ describe('ModelActionHook UT', () => {
       postModelActionHooks: [{ action: universalModelAction, handle: postModelActionHookMock as any }],
       preModelActionHooks: [{ action: universalModelAction, handle: preModelActionHookMock as any }],
     });
-    const { moduleId: app } = await testModuleContainer.runModule<TestAppModule>({
+    const { 'moduleId.model.app': app } = await testModuleContainer.runModule<TestAppModule>({
       inputs: { name: 'app' },
       moduleId: 'moduleId',
       type: TestAppModule,

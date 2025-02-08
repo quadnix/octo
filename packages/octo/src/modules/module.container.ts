@@ -6,6 +6,7 @@ import { Container } from '../functions/container/container.js';
 import { CommitHook } from '../functions/hook/commit.hook.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
+import type { ANode } from '../functions/node/node.abstract.js';
 import { getSchemaInstance, getSchemaKeys } from '../functions/schema/schema.js';
 import { OverlayDataRepository } from '../overlays/overlay-data.repository.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
@@ -90,11 +91,11 @@ export class ModuleContainer {
           if (model instanceof AOverlay) {
             this.overlayDataRepository.add(model);
             this.inputService.registerOverlay(i.moduleId, model);
+            result[`${i.moduleId}.overlay.${model.overlayId}`] = model;
           } else {
             this.inputService.registerModel(i.moduleId, model);
+            result[`${i.moduleId}.model.${(model.constructor as typeof ANode).NODE_NAME}`] = model;
           }
-
-          result[i.moduleId] = model;
         }
         // Register module.
         this.inputService.registerModule(i.moduleId, instance);
