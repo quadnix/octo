@@ -1,65 +1,66 @@
-(() => {
-  const { readFileSync } = require('fs');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { readFileSync } = require('fs');
 
-  const dictionarySkipWords = readFileSync(__dirname + '/dictionary.dic').toString().split('\n');
+const dictionarySkipWords = readFileSync(__dirname + '/dictionary.dic')
+  .toString()
+  .split('\n');
 
-  module.exports = {
-    env: {
-      jest: true,
-      node: true,
+module.exports = {
+  env: {
+    jest: true,
+    node: true,
+  },
+  extends: [
+    'plugin:@typescript-eslint/recommended',
+    'plugin:boundaries/recommended',
+    'plugin:jsonc/recommended-with-jsonc',
+    'plugin:prettier/recommended',
+  ],
+  ignorePatterns: ['package-lock.json'],
+  overrides: [
+    {
+      files: ['*.ts'],
+      rules: {
+        '@typescript-eslint/no-non-null-assertion': 'off',
+      },
     },
-    extends: [
-      'plugin:@typescript-eslint/recommended',
-      'plugin:boundaries/recommended',
-      'plugin:jsonc/recommended-with-jsonc',
-      'plugin:prettier/recommended',
-    ],
-    ignorePatterns: ['package-lock.json'],
-    overrides: [
+  ],
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaVersion: '2022',
+    extraFileExtensions: ['.json'],
+    project: 'tsconfig.json',
+    sourceType: 'module',
+    tsconfigRootDir: __dirname,
+  },
+  plugins: ['@nx', '@typescript-eslint/eslint-plugin', 'boundaries', 'import', 'spellcheck'],
+  root: true,
+  rules: {
+    '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
+    '@typescript-eslint/explicit-function-return-type': 2,
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/interface-name-prefix': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
+    'jsonc/sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
+    'max-len': ['error', { code: 120, ignoreStrings: true }],
+    'no-duplicate-imports': ['error', { includeExports: true }],
+    'sort-imports': [
+      'error',
       {
-        files: ['*.ts'],
-        rules: {
-          '@typescript-eslint/no-non-null-assertion': 'off',
-        },
+        allowSeparatedGroups: true,
+        ignoreCase: false,
+        ignoreDeclarationSort: true,
+        ignoreMemberSort: false,
+        memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
       },
     ],
-    parser: '@typescript-eslint/parser',
-    parserOptions: {
-      ecmaVersion: '2022',
-      extraFileExtensions: ['.json'],
-      project: 'tsconfig.json',
-      sourceType: 'module',
-      tsconfigRootDir: __dirname,
-    },
-    plugins: ['@nx', '@typescript-eslint/eslint-plugin', 'boundaries', 'import', 'spellcheck'],
-    root: true,
-    rules: {
-      '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports'}],
-      '@typescript-eslint/explicit-function-return-type': 2,
-      '@typescript-eslint/explicit-module-boundary-types': 'off',
-      '@typescript-eslint/interface-name-prefix': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      'jsonc/sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
-      'max-len': ['error', { code: 120, ignoreStrings: true }],
-      'no-duplicate-imports': ['error', { 'includeExports': true }],
-      'sort-imports': [
-        'error',
-        {
-          allowSeparatedGroups: true,
-          ignoreCase: false,
-          ignoreDeclarationSort: true,
-          ignoreMemberSort: false,
-          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
-        },
-      ],
-      'sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
-      'spellcheck/spell-checker': [
-        1,
-        {
-          minLength: 3,
-          skipWords: dictionarySkipWords,
-        },
-      ],
-    },
-  };
-})();
+    'sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
+    'spellcheck/spell-checker': [
+      1,
+      {
+        minLength: 3,
+        skipWords: dictionarySkipWords,
+      },
+    ],
+  },
+};
