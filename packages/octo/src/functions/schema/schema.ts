@@ -10,11 +10,15 @@ export function getSchemaInstance<S extends object>(schemaClass: Constructable<S
   const t = new schemaClass();
 
   for (const key of getSchemaKeys<S>(schemaClass)) {
-    if (value.hasOwnProperty(key) && value[key] !== undefined) {
-      t[key] = value[key];
-      instance[key] = t[key];
-    } else {
-      instance[key] = t[key];
+    try {
+      if (value.hasOwnProperty(key) && value[key] !== undefined) {
+        t[key] = value[key];
+        instance[key] = t[key];
+      } else {
+        instance[key] = t[key];
+      }
+    } catch (error) {
+      throw new SchemaError(`Property "${key}" in schema could not be validated!`, schemaClass.name);
     }
 
     if (instance[key] === undefined) {
