@@ -60,7 +60,7 @@ describe('Execution UT', () => {
 
       expect(() => {
         getSchemaInstance<ExecutionSchema>(ExecutionSchema, execution.synth());
-      }).toThrow('Validation error!');
+      }).toThrow('Property "environmentVariables" in schema could not be validated!');
     });
   });
 });

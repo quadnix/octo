@@ -25,7 +25,7 @@ describe('Server UT', () => {
 
       expect(() => {
         getSchemaInstance<ServerSchema>(ServerSchema, server.synth());
-      }).toThrow('Validation error!');
+      }).toThrow('Property "serverKey" in schema could not be validated!');
     });
   });
 

@@ -20,7 +20,7 @@ describe('Environment UT', () => {
 
       expect(() => {
         getSchemaInstance<EnvironmentSchema>(EnvironmentSchema, environment.synth());
-      }).toThrow('Validation error!');
+      }).toThrow('Property "environmentName" in schema could not be validated!');
     });
 
     it('should validate environmentVariables', async () => {
@@ -29,7 +29,7 @@ describe('Environment UT', () => {
 
       expect(() => {
         getSchemaInstance<EnvironmentSchema>(EnvironmentSchema, environment.synth());
-      }).toThrow('Validation error!');
+      }).toThrow('Property "environmentVariables" in schema could not be validated!');
     });
   });
 });

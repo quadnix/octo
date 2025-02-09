@@ -67,7 +67,9 @@ describe('Schema UT', () => {
       expect(() => getSchemaInstance(TestSchema, value1)).toThrow();
 
       const value2 = { student: { name: 'bad' } };
-      expect(() => getSchemaInstance(TestSchema, value2)).toThrow('Validation error!');
+      expect(() => getSchemaInstance(TestSchema, value2)).toThrow(
+        'Property "student" in schema could not be validated!',
+      );
 
       const value3 = { student: { name: 'good' } };
       const instance3 = getSchemaInstance(TestSchema, value3);

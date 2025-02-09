@@ -25,7 +25,7 @@ describe('Region UT', () => {
 
       expect(() => {
         getSchemaInstance<RegionSchema>(RegionSchema, region.synth());
-      }).toThrow('Validation error!');
+      }).toThrow('Property "regionId" in schema could not be validated!');
     });
   });
 

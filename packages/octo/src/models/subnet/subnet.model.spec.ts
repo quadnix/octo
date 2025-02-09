@@ -35,7 +35,7 @@ describe('Subnet UT', () => {
 
       expect(() => {
         getSchemaInstance<SubnetSchema>(SubnetSchema, subnet.synth());
-      }).toThrow('Validation error!');
+      }).toThrow('Property "subnetName" in schema could not be validated!');
     });
   });
 
