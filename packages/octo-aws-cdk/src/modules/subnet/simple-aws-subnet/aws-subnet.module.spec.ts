@@ -63,7 +63,13 @@ async function setup(
         response: { InternetGatewayId: 'InternetGatewayId' },
       },
       {
-        properties: { awsAccountId: '123', awsAvailabilityZones: ['us-east-1a'], awsRegionId: 'us-east-1' },
+        properties: {
+          awsAccountId: '123',
+          awsAvailabilityZones: ['us-east-1a'],
+          awsRegionId: 'us-east-1',
+          CidrBlock: '10.0.0.0/24',
+          InstanceTenancy: 'default',
+        },
         resourceContext: '@octo/vpc=vpc-region',
         response: { VpcId: 'VpcId' },
       },

@@ -1,4 +1,4 @@
-import { BaseResourceSchema, Schema } from '@quadnix/octo';
+import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 export interface IIamUserS3BucketPolicy {
   allowRead: boolean;
@@ -13,6 +13,10 @@ export type IIamUserPolicyTypes = {
 
 export class IamUserSchema extends BaseResourceSchema {
   // Source: https://stackoverflow.com/a/56837244/1834562
+  @Validate({
+    destruct: (value: IamUserSchema['properties']): string[] => [value.awsAccountId, value.username],
+    options: { minLength: 1 },
+  })
   override properties = Schema<{
     awsAccountId: string;
     policies: {
@@ -21,6 +25,22 @@ export class IamUserSchema extends BaseResourceSchema {
     username: string;
   }>();
 
+  @Validate({
+    destruct: (value: IamUserSchema['response']): string[] => {
+      const subjects: string[] = [];
+      if (value.Arn) {
+        subjects.push(value.Arn);
+      }
+      if (value.UserId) {
+        subjects.push(value.UserId);
+      }
+      if (value.UserName) {
+        subjects.push(value.UserName);
+      }
+      return subjects;
+    },
+    options: { minLength: 1 },
+  })
   override response = Schema<{
     Arn: string;
     policies: { [key: string]: string[] };

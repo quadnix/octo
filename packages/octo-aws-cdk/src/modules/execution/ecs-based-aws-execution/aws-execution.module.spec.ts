@@ -150,7 +150,13 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
         response: { SubnetId: 'SubnetId' },
       },
       {
-        properties: { awsAccountId: '123', awsAvailabilityZones: ['us-east-1a'], awsRegionId: 'us-east-1' },
+        properties: {
+          awsAccountId: '123',
+          awsAvailabilityZones: ['us-east-1a'],
+          awsRegionId: 'us-east-1',
+          CidrBlock: '10.0.0.0/24',
+          InstanceTenancy: 'default',
+        },
         resourceContext: '@octo/vpc=vpc-region',
         response: { VpcId: 'VpcId' },
       },
@@ -195,10 +201,14 @@ describe('AwsExecutionModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     // Register resource captures.
+    testModuleContainer.registerCapture<SecurityGroupSchema>('@octo/security-group=sec-grp-SecurityGroup-backend', {
+      GroupId: 'GroupId-1',
+      Rules: { egress: [], ingress: [] },
+    });
     testModuleContainer.registerCapture<SecurityGroupSchema>(
       '@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet',
       {
-        GroupId: 'GroupId',
+        GroupId: 'GroupId-2',
         Rules: { egress: [], ingress: [] },
       },
     );

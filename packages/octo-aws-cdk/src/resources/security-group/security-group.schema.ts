@@ -25,22 +25,27 @@ export class SecurityGroupSchema extends BaseResourceSchema {
       options: { minLength: 1 },
     },
     {
-      destruct: (value: SecurityGroupSchema['properties']): SecurityGroupSchema['properties']['rules'] => value.rules,
+      destruct: (value: SecurityGroupSchema['properties']): SecurityGroupRuleSchema[] =>
+        value.rules.length === 0 ? [] : value.rules,
       options: { isSchema: { schema: SecurityGroupRuleSchema } },
     },
   ])
   override properties = Schema<{
     awsAccountId: string;
     awsRegionId: string;
-    rules: {
-      CidrBlock: string;
-      Egress: boolean;
-      FromPort: number;
-      IpProtocol: string;
-      ToPort: number;
-    }[];
+    rules: SecurityGroupRuleSchema[];
   }>();
 
+  @Validate({
+    destruct: (value: SecurityGroupSchema['response']): string[] => {
+      const subjects: string[] = [];
+      if (value.GroupId) {
+        subjects.push(value.GroupId);
+      }
+      return subjects;
+    },
+    options: { minLength: 1 },
+  })
   override response = Schema<{
     GroupId: string;
     Rules: {
