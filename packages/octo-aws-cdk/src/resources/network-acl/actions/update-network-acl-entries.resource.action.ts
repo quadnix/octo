@@ -8,6 +8,7 @@ import {
 } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import pLimit from 'p-limit';
+import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import { NetworkAclUtility } from '../../../utilities/network-acl/network-acl.utility.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 import type { NetworkAclSchema } from '../network-acl.schema.js';
@@ -34,8 +35,9 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
     const networkAclSubnet = networkAcl.parents[1];
 
     // Get instances.
-    const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     const limit = pLimit(100);
 
@@ -140,8 +142,9 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
     const networkAcl = diff.node as NetworkAcl;
     const properties = networkAcl.properties;
 
-    const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DescribeNetworkAclsCommand) {

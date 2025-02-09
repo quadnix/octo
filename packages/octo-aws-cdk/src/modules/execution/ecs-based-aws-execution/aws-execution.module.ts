@@ -1,15 +1,4 @@
-import { ECSClient } from '@aws-sdk/client-ecs';
-import {
-  AModule,
-  type Account,
-  Container,
-  ContainerRegistrationError,
-  type MatchingAnchor,
-  Module,
-  type Region,
-  type Server,
-} from '@quadnix/octo';
-import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { AModule, type Account, type MatchingAnchor, Module, type Region, type Server } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { EcsClusterAnchorSchema } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.schema.js';
 import { EcsExecutionAnchor } from '../../../anchors/ecs-execution/ecs-execution.anchor.js';
@@ -24,7 +13,6 @@ import { AwsExecutionModuleSchema } from './index.schema.js';
 import { AwsExecution } from './models/execution/index.js';
 import { AwsExecutionOverlay } from './overlays/execution/index.js';
 import { ServerExecutionSecurityGroupOverlay } from './overlays/server-execution-security-group/index.js';
-import { EC2Client } from '@aws-sdk/client-ec2';
 
 @Module<AwsExecutionModule>('@octo', AwsExecutionModuleSchema)
 export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExecution> {
@@ -32,7 +20,7 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
     inputs: AwsExecutionModuleSchema,
   ): Promise<(AwsExecution | AwsExecutionOverlay | ServerExecutionSecurityGroupOverlay)[]> {
     const { deployment, environment, subnet } = inputs;
-    const { account, awsAccountId, awsRegionId, region, server } = await this.registerMetadata(inputs);
+    const { region, server } = await this.registerMetadata(inputs);
 
     if (environment.getParents()['region'][0].to.getContext() !== subnet.getParents()['region'][0].to.getContext()) {
       throw new Error('Environment and Subnet must be in the same region!');
@@ -166,30 +154,12 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
     // so that execution overlay always executes after security-group overlay.
     securityGroupOverlay.addChild('overlayId', executionOverlay, 'overlayId');
 
-    // Create and register a new EC2Client, and ECSClient.
-    const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
-    const ec2Client = new EC2Client({ ...credentials, region: awsRegionId });
-    const ecsClient = new ECSClient({ ...credentials, region: awsRegionId });
-    const container = Container.getInstance();
-    try {
-      container.registerValue(EC2Client, ec2Client, {
-        metadata: { awsAccountId, awsRegionId, package: '@octo' },
-      });
-      container.registerValue(ECSClient, ecsClient, {
-        metadata: { awsAccountId, awsRegionId, package: '@octo' },
-      });
-    } catch (error) {
-      if (!(error instanceof ContainerRegistrationError)) {
-        throw error;
-      }
-    }
-
     return models;
   }
 
   override async registerMetadata(
     inputs: AwsExecutionModuleSchema,
-  ): Promise<{ account: Account; awsAccountId: string; awsRegionId: string; region: Region; server: Server }> {
+  ): Promise<{ awsAccountId: string; awsRegionId: string; region: Region; server: Server }> {
     const { deployment, environment } = inputs;
     const region = environment.getParents()['region'][0].to as Region;
     const account = region.getParents()['account'][0].to as Account;
@@ -202,7 +172,6 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
     const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
-      account,
       awsAccountId: account.accountId,
       awsRegionId,
       region,

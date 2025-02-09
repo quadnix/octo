@@ -1,5 +1,6 @@
 import { DeleteRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamRole } from '../iam-role.resource.js';
 
 @Action(IamRole)
@@ -22,8 +23,9 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
     const response = iamRole.response;
 
     // Get instances.
-    const iamClient = await this.container.get(IAMClient, {
-      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
+    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
+      args: [properties.awsAccountId],
+      metadata: { package: '@octo' },
     });
 
     // Delete IAM role.
@@ -38,8 +40,9 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
     const iamRole = diff.node as IamRole;
     const properties = iamRole.properties;
 
-    const iamClient = await this.container.get(IAMClient, {
-      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
+    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
+      args: [properties.awsAccountId],
+      metadata: { package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteRoleCommand) {

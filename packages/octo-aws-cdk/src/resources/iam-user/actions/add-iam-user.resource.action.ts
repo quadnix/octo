@@ -1,5 +1,6 @@
 import { CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamUser } from '../iam-user.resource.js';
 import type { IamUserSchema } from '../iam-user.schema.js';
 
@@ -23,8 +24,9 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     const response = iamUser.response;
 
     // Get instances.
-    const iamClient = await this.container.get(IAMClient, {
-      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
+    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
+      args: [properties.awsAccountId],
+      metadata: { package: '@octo' },
     });
 
     // Create IAM user.
@@ -45,8 +47,9 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     const iamUser = diff.node as IamUser;
     const properties = iamUser.properties;
 
-    const iamClient = await this.container.get(IAMClient, {
-      metadata: { awsAccountId: properties.awsAccountId, package: '@octo' },
+    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
+      args: [properties.awsAccountId],
+      metadata: { package: '@octo' },
     });
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateUserCommand) {

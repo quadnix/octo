@@ -1,3 +1,5 @@
+import '../../../factories/aws-client.factory.js';
+
 import './models/server/index.js';
 import './overlays/server-s3-access/index.js';
 

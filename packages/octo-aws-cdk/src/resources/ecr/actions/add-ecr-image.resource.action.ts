@@ -1,5 +1,6 @@
 import { CreateRepositoryCommand, ECRClient } from '@aws-sdk/client-ecr';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcrImage } from '../ecr-image.resource.js';
 import type { EcrImageSchema } from '../ecr-image.schema.js';
 
@@ -23,8 +24,9 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
     const response = ecrImage.response;
 
     // Get instances.
-    const ecrClient = await this.container.get(ECRClient, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const ecrClient = await this.container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
 
     // Create a new repository.
@@ -50,8 +52,9 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
     const ecrImage = diff.node as EcrImage;
     const properties = ecrImage.properties;
 
-    const ecrClient = await this.container.get(ECRClient, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const ecrClient = await this.container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     ecrClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateRepositoryCommand) {

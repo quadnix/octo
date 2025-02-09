@@ -85,7 +85,7 @@ describe('AwsSubnetModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { package: '@octo' },
             type: EC2Client,
             value: {
               send: (): void => {
@@ -94,7 +94,7 @@ describe('AwsSubnetModule UT', () => {
             },
           },
           {
-            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { package: '@octo' },
             type: EFSClient,
             value: {
               send: (): void => {

@@ -1,6 +1,4 @@
-import { EC2Client } from '@aws-sdk/client-ec2';
-import { AModule, AccountType, Container, ContainerRegistrationError, Module } from '@quadnix/octo';
-import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { AModule, AccountType, Module } from '@quadnix/octo';
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
 import { AwsRegionModuleSchema } from './index.schema.js';
 import { AwsRegion } from './models/region/index.js';
@@ -28,20 +26,6 @@ export class AwsRegionModule extends AModule<AwsRegionModuleSchema, AwsRegion> {
       region,
     );
     region.addAnchor(awsRegionAnchor);
-
-    // Create and register a new EC2Client.
-    const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
-    const ec2Client = new EC2Client({ ...credentials, region: region.awsRegionId });
-    const container = Container.getInstance();
-    try {
-      container.registerValue(EC2Client, ec2Client, {
-        metadata: { awsAccountId: account.accountId, awsRegionId: region.awsRegionId, package: '@octo' },
-      });
-    } catch (error) {
-      if (!(error instanceof ContainerRegistrationError)) {
-        throw error;
-      }
-    }
 
     return region;
   }

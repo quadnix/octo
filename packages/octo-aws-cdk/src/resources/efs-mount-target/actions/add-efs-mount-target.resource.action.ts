@@ -8,6 +8,7 @@ import {
   type IResourceAction,
   TransactionError,
 } from '@quadnix/octo';
+import type { EFSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
 import type { EfsMountTargetSchema } from '../efs-mount-target.schema.js';
@@ -34,8 +35,9 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     const efsMountTargetSubnet = efsMountTarget.parents[1];
 
     // Get instances.
-    const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
 
     // Create a new EFS MountTarget.
@@ -84,8 +86,9 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     const properties = efsMountTarget.properties;
     const efsMountTargetEfs = efsMountTarget.parents[0];
 
-    const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateMountTargetCommand) {

@@ -1,5 +1,6 @@
 import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcsService } from '../ecs-service.resource.js';
 import type { EcsServiceSchema } from '../ecs-service.schema.js';
 
@@ -26,8 +27,9 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
     const ecsServiceSecurityGroupList = ecsService.parents.slice(3) as (typeof ecsService.parents)[3][];
 
     // Get instances.
-    const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
 
     // Update the service.
@@ -55,8 +57,9 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
     const ecsService = diff.node as EcsService;
     const properties = ecsService.properties;
 
-    const ecsClient = await this.container.get(ECSClient, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     ecsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof UpdateServiceCommand) {

@@ -1,5 +1,6 @@
 import { CreateVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import { Vpc } from '../vpc.resource.js';
 import type { VpcSchema } from '../vpc.schema.js';
 
@@ -23,8 +24,9 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
     const response = vpc.response;
 
     // Get instances.
-    const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
 
     // Create VPC.
@@ -44,8 +46,9 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
     const vpc = diff.node as Vpc;
     const properties = vpc.properties;
 
-    const ec2Client = await this.container.get(EC2Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateVpcCommand) {

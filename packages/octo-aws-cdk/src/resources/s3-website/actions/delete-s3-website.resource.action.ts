@@ -6,6 +6,7 @@ import {
   S3Client,
 } from '@aws-sdk/client-s3';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { S3Website } from '../s3-website.resource.js';
 
 @Action(S3Website)
@@ -27,8 +28,9 @@ export class DeleteS3WebsiteResourceAction implements IResourceAction<S3Website>
     const properties = s3Website.properties;
 
     // Get instances.
-    const s3Client = await this.container.get(S3Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
 
     // Delete objects.
@@ -68,8 +70,9 @@ export class DeleteS3WebsiteResourceAction implements IResourceAction<S3Website>
     const s3Website = diff.node as S3Website;
     const properties = s3Website.properties;
 
-    const s3Client = await this.container.get(S3Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof ListObjectsV2Command) {

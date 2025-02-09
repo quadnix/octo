@@ -1,3 +1,5 @@
+import '../../../factories/aws-client.factory.js';
+
 import './models/subnet/index.js';
 import './overlays/subnet-local-filesystem-mount/index.js';
 

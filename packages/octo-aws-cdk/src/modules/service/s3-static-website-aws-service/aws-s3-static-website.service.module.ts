@@ -1,17 +1,12 @@
-import { S3Client } from '@aws-sdk/client-s3';
-import { Upload } from '@aws-sdk/lib-storage';
 import {
   AModule,
   type Account,
   type App,
-  Container,
-  ContainerRegistrationError,
   type Diff,
   type DiffMetadata,
   type IModelAction,
   Module,
 } from '@quadnix/octo';
-import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsS3StaticWebsiteServiceModuleSchema } from './index.schema.js';
 import { AddS3StaticWebsiteModelAction } from './models/s3-static-website/actions/add-s3-static-website.model.action.js';
@@ -24,7 +19,7 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
   AwsS3StaticWebsiteService
 > {
   async onInit(inputs: AwsS3StaticWebsiteServiceModuleSchema): Promise<AwsS3StaticWebsiteService> {
-    const { account, app, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
+    const { app } = await this.registerMetadata(inputs);
 
     // Create a new s3-website service.
     const s3StaticWebsiteService = new AwsS3StaticWebsiteService(inputs.bucketName);
@@ -37,23 +32,6 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
       inputs.filter || undefined,
       inputs.transform || undefined,
     );
-
-    // Create and register a new S3Client.
-    const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
-    const s3Client = new S3Client({ ...credentials, region: awsRegionId });
-    const container = Container.getInstance();
-    try {
-      container.registerValue(S3Client, s3Client, {
-        metadata: { awsAccountId, awsRegionId, package: '@octo' },
-      });
-      container.registerValue('Upload', Upload, {
-        metadata: { package: '@octo' },
-      });
-    } catch (error) {
-      if (!(error instanceof ContainerRegistrationError)) {
-        throw error;
-      }
-    }
 
     return s3StaticWebsiteService;
   }
@@ -96,7 +74,7 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
 
   override async registerMetadata(
     inputs: AwsS3StaticWebsiteServiceModuleSchema,
-  ): Promise<{ account: Account; app: App; awsAccountId: string; awsRegionId: string }> {
+  ): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
     const app = account.getParents()['app'][0].to as App;
@@ -108,7 +86,6 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
     const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
-      account,
       app,
       awsAccountId: account.accountId,
       awsRegionId,

@@ -169,7 +169,7 @@ describe('AwsExecutionModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { package: '@octo' },
             type: EC2Client,
             value: {
               send: (): void => {
@@ -178,7 +178,7 @@ describe('AwsExecutionModule UT', () => {
             },
           },
           {
-            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { package: '@octo' },
             type: ECSClient,
             value: {
               send: (): void => {

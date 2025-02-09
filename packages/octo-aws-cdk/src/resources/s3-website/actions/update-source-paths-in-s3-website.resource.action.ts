@@ -3,6 +3,7 @@ import type { Upload } from '@aws-sdk/lib-storage';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { createReadStream } from 'fs';
 import mime from 'mime';
+import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { S3Website } from '../s3-website.resource.js';
 
 @Action(S3Website)
@@ -25,8 +26,9 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     const properties = s3Website.properties;
 
     // Get instances.
-    const s3Client = await this.container.get(S3Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     const UploadClient = await this.container.get<typeof Upload>('Upload', {
       metadata: { package: '@octo' },
@@ -65,8 +67,9 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     const s3Website = diff.node as S3Website;
     const properties = s3Website.properties;
 
-    const s3Client = await this.container.get(S3Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteObjectCommand) {

@@ -1,7 +1,7 @@
 import { ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
-import { AModule, type Account, type App, Container, ContainerRegistrationError, Module } from '@quadnix/octo';
-import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { AModule, type Account, type App, Container, Module } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { AwsImageModuleSchema } from './index.schema.js';
 import { AwsImage } from './models/image/index.js';
@@ -15,8 +15,9 @@ export class AwsImageModule extends AModule<AwsImageModuleSchema, AwsImage> {
     properties: { awsAccountId: string; awsRegionId: string; dockerExec?: string },
   ): Promise<{ login: string; push: string; tag: string }> {
     const container = Container.getInstance();
-    const ecrClient = await container.get(ECRClient, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const ecrClient = await container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
 
     const image = `${imageFamily}/${imageName}:${imageTag}`;
@@ -45,34 +46,18 @@ export class AwsImageModule extends AModule<AwsImageModuleSchema, AwsImage> {
   }
 
   async onInit(inputs: AwsImageModuleSchema): Promise<AwsImage> {
-    const { app, uniqueImageRepositories } = await this.registerMetadata(inputs);
+    const { app } = await this.registerMetadata(inputs);
 
     // Create a new image.
     const image = new AwsImage(inputs.imageFamily, inputs.imageName);
     app.addImage(image);
-
-    for (const { account, awsAccountId, awsRegionId } of uniqueImageRepositories) {
-      // Create and register a new EFSClient.
-      const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
-      const ecrClient = new ECRClient({ ...credentials, region: awsRegionId });
-      const container = Container.getInstance();
-      try {
-        container.registerValue(ECRClient, ecrClient, {
-          metadata: { awsAccountId, awsRegionId, package: '@octo' },
-        });
-      } catch (error) {
-        if (!(error instanceof ContainerRegistrationError)) {
-          throw error;
-        }
-      }
-    }
 
     return image;
   }
 
   override async registerMetadata(
     inputs: AwsImageModuleSchema,
-  ): Promise<{ app: App; uniqueImageRepositories: { account: Account; awsAccountId: string; awsRegionId: string }[] }> {
+  ): Promise<{ app: App; uniqueImageRepositories: { awsAccountId: string; awsRegionId: string }[] }> {
     const metadata: Awaited<ReturnType<AwsImageModule['registerMetadata']>> = {
       app: undefined as unknown as App,
       uniqueImageRepositories: [],
@@ -96,7 +81,6 @@ export class AwsImageModule extends AModule<AwsImageModuleSchema, AwsImage> {
         )
       ) {
         metadata.uniqueImageRepositories.push({
-          account,
           awsAccountId: account.accountId,
           awsRegionId,
         });

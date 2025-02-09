@@ -1,15 +1,4 @@
-import { EC2Client } from '@aws-sdk/client-ec2';
-import { EFSClient } from '@aws-sdk/client-efs';
-import {
-  AModule,
-  type Account,
-  Container,
-  ContainerRegistrationError,
-  Module,
-  type Subnet,
-  SubnetType,
-} from '@quadnix/octo';
-import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { AModule, type Account, Module, type Subnet, SubnetType } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
 import { SubnetLocalFilesystemMountAnchor } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.js';
@@ -21,7 +10,7 @@ import { AwsSubnetLocalFilesystemMountOverlay } from './overlays/subnet-local-fi
 export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
   async onInit(inputs: AwsSubnetModuleSchema): Promise<(AwsSubnet | AwsSubnetLocalFilesystemMountOverlay)[]> {
     const region = inputs.region;
-    const { account, awsAccountId, awsAvailabilityZones, awsRegionId } = await this.registerMetadata(inputs);
+    const { awsAccountId, awsAvailabilityZones, awsRegionId } = await this.registerMetadata(inputs);
 
     // Validate subnet availability zone.
     if (!awsAvailabilityZones.includes(inputs.subnetAvailabilityZone)) {
@@ -75,30 +64,12 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
       models.push(subnetLocalFilesystemMountOverlay);
     }
 
-    // Create and register a new EC2Client & EFSClient.
-    const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
-    const ec2Client = new EC2Client({ ...credentials, region: awsRegionId });
-    const efsClient = new EFSClient({ ...credentials, region: awsRegionId });
-    const container = Container.getInstance();
-    try {
-      container.registerValue(EC2Client, ec2Client, {
-        metadata: { awsAccountId, awsRegionId, package: '@octo' },
-      });
-      container.registerValue(EFSClient, efsClient, {
-        metadata: { awsAccountId, awsRegionId, package: '@octo' },
-      });
-    } catch (error) {
-      if (!(error instanceof ContainerRegistrationError)) {
-        throw error;
-      }
-    }
-
     return models;
   }
 
   override async registerMetadata(
     inputs: AwsSubnetModuleSchema,
-  ): Promise<{ account: Account; awsAccountId: string; awsAvailabilityZones: string[]; awsRegionId: string }> {
+  ): Promise<{ awsAccountId: string; awsAvailabilityZones: string[]; awsRegionId: string }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;
 
@@ -109,7 +80,6 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
     const { awsRegionAZs, awsRegionId } = matchingAnchor.getSchemaInstance().properties;
 
     return {
-      account,
       awsAccountId: account.accountId,
       awsAvailabilityZones: awsRegionAZs,
       awsRegionId,

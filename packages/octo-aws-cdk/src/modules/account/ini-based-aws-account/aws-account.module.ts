@@ -1,5 +1,6 @@
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { AModule, Container, ContainerRegistrationError, Module } from '@quadnix/octo';
+import { AModule, Container, Module } from '@quadnix/octo';
+import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsAccountModuleSchema } from './index.schema.js';
 import { AwsAccount } from './models/account/index.js';
 
@@ -7,27 +8,22 @@ import { AwsAccount } from './models/account/index.js';
 export class AwsAccountModule extends AModule<AwsAccountModuleSchema, AwsAccount> {
   async onInit(inputs: AwsAccountModuleSchema): Promise<AwsAccount> {
     const app = inputs.app;
+    const container = Container.getInstance();
 
     // Create a new account.
     const account = new AwsAccount(inputs.accountId, inputs.iniProfile!);
     app.addAccount(account);
 
-    // Create and register a new STSClient.
+    // Register AWS credentials.
     const credentials = account.getCredentials();
-    const container = Container.getInstance();
-    try {
-      container.registerValue(STSClient, new STSClient({ ...credentials }), {
-        metadata: { awsAccountId: inputs.accountId, package: '@octo' },
-      });
-    } catch (error) {
-      if (!(error instanceof ContainerRegistrationError)) {
-        throw error;
-      }
-    }
+    container.registerValue('AwsCredentialIdentityProvider', credentials, {
+      metadata: { awsAccountId: inputs.accountId, package: '@octo' },
+    });
 
     // Ensure profile is valid, and the account ID matches.
-    const stsClient = await container.get(STSClient, {
-      metadata: { awsAccountId: inputs.accountId, package: '@octo' },
+    const stsClient = await container.get<STSClient, typeof STSClientFactory>(STSClient, {
+      args: [inputs.accountId],
+      metadata: { package: '@octo' },
     });
     const data = await stsClient.send(new GetCallerIdentityCommand({}));
     if (data.Account !== inputs.accountId) {

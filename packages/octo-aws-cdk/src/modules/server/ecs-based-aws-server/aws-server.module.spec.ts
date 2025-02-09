@@ -64,7 +64,7 @@ describe('AwsServerModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { package: '@octo' },
             type: IAMClient,
             value: {
               send: (): void => {
@@ -73,7 +73,7 @@ describe('AwsServerModule UT', () => {
             },
           },
           {
-            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { package: '@octo' },
             type: S3Client,
             value: {
               send: (): void => {

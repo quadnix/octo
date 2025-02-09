@@ -11,6 +11,7 @@ import {
   stub,
 } from '@quadnix/octo';
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
+import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import type { EcrImageSchema } from '../../../resources/ecr/ecr-image.schema.js';
 import { AwsImageModule } from './aws-image.module.js';
 
@@ -48,7 +49,7 @@ describe('AwsImageModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { package: '@octo' },
             type: ECRClient,
             value: {
               send: (): void => {
@@ -91,8 +92,9 @@ describe('AwsImageModule UT', () => {
         type: AwsImageModule,
       });
 
-      const ecrClient = await container.get(ECRClient, {
-        metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+      const ecrClient = await container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
+        args: ['123', 'us-east-1'],
+        metadata: { package: '@octo' },
       });
       ecrClient.send = async (instance: unknown): Promise<unknown> => {
         if (instance instanceof GetAuthorizationTokenCommand) {

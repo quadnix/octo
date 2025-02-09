@@ -8,6 +8,7 @@ import {
   type IResourceAction,
   TransactionError,
 } from '@quadnix/octo';
+import type { EFSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { Efs } from '../efs.resource.js';
 import type { EfsSchema } from '../efs.schema.js';
@@ -32,8 +33,9 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
     const response = efs.response;
 
     // Get instances.
-    const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
 
     // Create a new EFS.
@@ -81,8 +83,9 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
     const efs = diff.node as Efs;
     const properties = efs.properties;
 
-    const efsClient = await this.container.get(EFSClient, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     efsClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateFileSystemCommand) {

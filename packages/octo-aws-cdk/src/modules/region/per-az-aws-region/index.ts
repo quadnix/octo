@@ -1,3 +1,5 @@
+import '../../../factories/aws-client.factory.js';
+
 import './models/region/index.js';
 
 import '../../../resources/internet-gateway/index.js';

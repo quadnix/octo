@@ -1,15 +1,4 @@
-import { IAMClient } from '@aws-sdk/client-iam';
-import { S3Client } from '@aws-sdk/client-s3';
-import {
-  AModule,
-  type Account,
-  AccountType,
-  type App,
-  Container,
-  ContainerRegistrationError,
-  Module,
-} from '@quadnix/octo';
-import type { AwsCredentialIdentityProvider } from '@smithy/types';
+import { AModule, type Account, AccountType, type App, Module } from '@quadnix/octo';
 import { EcsServerAnchor } from '../../../anchors/ecs-server/ecs-server.anchor.js';
 import { IamRoleAnchor } from '../../../anchors/iam-role/iam-role.anchor.js';
 import { S3DirectoryAnchorSchema } from '../../../anchors/s3-directory/s3-directory.anchor.schema.js';
@@ -118,27 +107,6 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
           );
           models.push(serverS3AccessOverlay);
         }
-      }
-    }
-
-    // Create and register a new IAMClient and S3Client.
-    const credentials = account.getCredentials() as AwsCredentialIdentityProvider;
-    const container = Container.getInstance();
-    try {
-      const iamClient = new IAMClient({ ...credentials });
-      container.registerValue(IAMClient, iamClient, {
-        metadata: { awsAccountId: account.accountId, package: '@octo' },
-      });
-
-      for (const awsRegionId of awsRegionIds) {
-        const s3Client = new S3Client({ ...credentials, region: awsRegionId });
-        container.registerValue(S3Client, s3Client, {
-          metadata: { awsAccountId: account.accountId, awsRegionId, package: '@octo' },
-        });
-      }
-    } catch (error) {
-      if (!(error instanceof ContainerRegistrationError)) {
-        throw error;
       }
     }
 

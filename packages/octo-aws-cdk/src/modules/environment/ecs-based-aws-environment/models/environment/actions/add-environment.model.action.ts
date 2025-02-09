@@ -27,14 +27,14 @@ export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentMod
     actionInputs: EnhancedModuleSchema<AwsEnvironmentModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const { awsAccountId, awsRegionId, context } = actionInputs.metadata as Awaited<
+    const { awsAccountId, awsRegionId, clusterName } = actionInputs.metadata as Awaited<
       ReturnType<AwsEnvironmentModule['registerMetadata']>
     >;
 
-    const ecsCluster = new EcsCluster(`ecs-cluster-${context.clusterName}`, {
+    const ecsCluster = new EcsCluster(`ecs-cluster-${clusterName}`, {
       awsAccountId,
       awsRegionId,
-      clusterName: context.clusterName,
+      clusterName,
     });
 
     actionOutputs[ecsCluster.resourceId] = ecsCluster;

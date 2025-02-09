@@ -45,7 +45,7 @@ describe('AwsS3StorageServiceModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { package: '@octo' },
             type: S3Client,
             value: {
               send: (): void => {

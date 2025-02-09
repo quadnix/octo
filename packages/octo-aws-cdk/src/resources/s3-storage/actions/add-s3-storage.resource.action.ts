@@ -1,5 +1,6 @@
 import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { S3Storage } from '../s3-storage.resource.js';
 
 @Action(S3Storage)
@@ -21,8 +22,9 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
     const properties = s3Storage.properties;
 
     // Get instances.
-    const s3Client = await this.container.get(S3Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
 
     // Create a new bucket.
@@ -38,8 +40,9 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
     const s3Storage = diff.node as S3Storage;
     const properties = s3Storage.properties;
 
-    const s3Client = await this.container.get(S3Client, {
-      metadata: { awsAccountId: properties.awsAccountId, awsRegionId: properties.awsRegionId, package: '@octo' },
+    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
+      args: [properties.awsAccountId, properties.awsRegionId],
+      metadata: { package: '@octo' },
     });
     s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateBucketCommand) {

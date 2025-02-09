@@ -50,7 +50,7 @@ describe('AwsFilesystemModule UT', () => {
       {
         mocks: [
           {
-            metadata: { awsAccountId: '123', awsRegionId: 'us-east-1', package: '@octo' },
+            metadata: { package: '@octo' },
             type: EFSClient,
             value: {
               send: (): void => {
