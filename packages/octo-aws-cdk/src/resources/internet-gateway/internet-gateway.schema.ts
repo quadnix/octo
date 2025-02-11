@@ -2,12 +2,17 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 export class InternetGatewaySchema extends BaseResourceSchema {
   @Validate({
-    destruct: (value: InternetGatewaySchema['properties']): string[] => [value.awsAccountId, value.awsRegionId],
+    destruct: (value: InternetGatewaySchema['properties']): string[] => [
+      value.awsAccountId,
+      value.awsRegionId,
+      value.internetGatewayName,
+    ],
     options: { minLength: 1 },
   })
   override properties = Schema<{
     awsAccountId: string;
     awsRegionId: string;
+    internetGatewayName: string;
   }>();
 
   @Validate({

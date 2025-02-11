@@ -48,7 +48,7 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
     // Create Internet Gateway.
     const internetGateway = new InternetGateway(
       `igw-${regionId}`,
-      { awsAccountId, awsRegionId: awsRegion.awsRegionId },
+      { awsAccountId, awsRegionId: awsRegion.awsRegionId, internetGatewayName: 'default' },
       [new MatchingResource(vpc)],
     );
 

@@ -58,7 +58,7 @@ async function setup(
         response: { FileSystemArn: 'FileSystemArn', FileSystemId: 'FileSystemId' },
       },
       {
-        properties: { awsAccountId: '123', awsRegionId: 'us-east-1' },
+        properties: { awsAccountId: '123', awsRegionId: 'us-east-1', internetGatewayName: 'default' },
         resourceContext: '@octo/internet-gateway=igw-region',
         response: { InternetGatewayId: 'InternetGatewayId' },
       },
