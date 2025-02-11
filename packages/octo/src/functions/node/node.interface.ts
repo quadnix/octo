@@ -37,10 +37,9 @@ export interface INode<S, T> {
    *
    * @param to The sibling node.
    * @returns
-   * - thatToThisDependency: The dependency edge from sibling to self.
    * - thisToThatDependency: The dependency edge from self to sibling.
    */
-  addRelationship(to: UnknownNode): { thatToThisDependency: Dependency; thisToThatDependency: Dependency };
+  addRelationship(to: UnknownNode): { thisToThatDependency: Dependency };
 
   /**
    * Compares and calculates the difference between the current version of self node, and the previous version.

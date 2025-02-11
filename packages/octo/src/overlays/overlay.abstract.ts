@@ -38,7 +38,8 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
       throw new ModelError('Cannot derive anchor parent field!', this);
     }
 
-    const { thisToThatDependency, thatToThisDependency } = this.addRelationship(anchorParent);
+    const { thisToThatDependency } = this.addRelationship(anchorParent);
+    const { thisToThatDependency: thatToThisDependency } = anchorParent.addRelationship(this);
     thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, anchorParentField, DiffAction.ADD);
     thisToThatDependency.addBehavior('overlayId', DiffAction.ADD, anchorParentField, DiffAction.UPDATE);
     thatToThisDependency.addBehavior(anchorParentField, DiffAction.DELETE, 'overlayId', DiffAction.DELETE);

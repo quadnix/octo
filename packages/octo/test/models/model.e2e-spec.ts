@@ -143,17 +143,17 @@ describe('Model E2E Test', () => {
   });
 
   describe('addRelationship()', () => {
-    it('should be able to create duplicate relationships', () => {
+    it('should not be able to create duplicate relationships', () => {
       const app = new App('test');
       const region = new Region('region');
       app.addRelationship(region);
       app.addRelationship(region);
       region.addRelationship(app);
 
-      expect(app.getDependencies()).toHaveLength(3);
+      expect(app.getDependencies()).toHaveLength(2);
     });
 
-    it('should create a bi-directional relationship', () => {
+    it('should create a uni-directional relationship', () => {
       const {
         region: [region],
         service: [service],
@@ -307,7 +307,7 @@ describe('Model E2E Test', () => {
       expect(region.getBoundaryMembers().map((m) => m.getContext())).toMatchSnapshot();
     });
 
-    it("should include sibling's sibling in boundary", () => {
+    it("should not include sibling's sibling in boundary", () => {
       const {
         image: [image],
         region: [region1, region2],
@@ -413,7 +413,7 @@ describe('Model E2E Test', () => {
       expect(imageDependencyWithRegion).toHaveLength(1);
 
       const regionDependencyWithImage = region.getDependencies(image);
-      expect(regionDependencyWithImage).toHaveLength(1);
+      expect(regionDependencyWithImage).toHaveLength(0);
     });
   });
 

@@ -48,7 +48,7 @@ describe('Subnet UT', () => {
       privateSubnet.updateNetworkingRules(publicSubnet, true);
 
       expect(privateSubnet.getSiblings()['subnet'].length).toBe(1);
-      expect(publicSubnet.getSiblings()['subnet'].length).toBe(1);
+      expect(publicSubnet.getSiblings()['subnet']).toBeUndefined();
 
       privateSubnet.updateNetworkingRules(publicSubnet, false);
 
@@ -65,7 +65,7 @@ describe('Subnet UT', () => {
       privateSubnet.updateNetworkingRules(publicSubnet, true);
 
       expect(privateSubnet.getSiblings()['subnet'].length).toBe(1);
-      expect(publicSubnet.getSiblings()['subnet'].length).toBe(1);
+      expect(publicSubnet.getSiblings()['subnet']).toBeUndefined();
     });
   });
 });

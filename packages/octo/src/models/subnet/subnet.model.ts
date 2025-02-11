@@ -92,8 +92,8 @@ export class Subnet extends AModel<SubnetSchema, Subnet> {
 
   /**
    * To update the networking rules of this subnet to allow or deny connectivity from another subnet.
-   * The networking rules are bi-directional,
-   * i.e. if subnet A can connect to subnet B, then subnet B can also connect to subnet A.
+   * The networking rules are uni-directional,
+   * i.e. if subnet A can connect to subnet B, then subnet B doesn't automatically connect to subnet A.
    *
    * @param subnet The other subnet.
    * @param allowConnections Set to `true` to allow this and the other subnet to connect.
@@ -105,11 +105,9 @@ export class Subnet extends AModel<SubnetSchema, Subnet> {
     const subnets = siblingDependencies['subnet'].map((d) => d.to);
 
     if (allowConnections && !subnets.find((s: Subnet) => s.subnetId === subnet.subnetId)) {
-      const { thisToThatDependency, thatToThisDependency } = this.addRelationship(subnet);
+      const { thisToThatDependency } = this.addRelationship(subnet);
       thisToThatDependency.addBehavior('sibling', DiffAction.ADD, 'subnetId', DiffAction.ADD);
       thisToThatDependency.addBehavior('sibling', DiffAction.ADD, 'subnetId', DiffAction.UPDATE);
-      thatToThisDependency.addBehavior('sibling', DiffAction.ADD, 'subnetId', DiffAction.ADD);
-      thatToThisDependency.addBehavior('sibling', DiffAction.ADD, 'subnetId', DiffAction.UPDATE);
     } else if (!allowConnections && subnets.find((s: Subnet) => s.subnetId === subnet.subnetId)) {
       this.removeRelationship(subnet);
     }

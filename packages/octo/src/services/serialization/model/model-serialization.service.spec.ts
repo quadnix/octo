@@ -274,6 +274,7 @@ describe('Model Serialization Service UT', () => {
 
       const [overlay1, overlay2] = await createTestOverlays({ 'overlay-1': [anchor1], 'overlay-2': [anchor2] });
       overlay1.addRelationship(overlay2);
+      overlay2.addRelationship(overlay1);
 
       const service = await container.get(ModelSerializationService);
 

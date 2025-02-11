@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Model E2E Test addRelationship() should create a bi-directional relationship 1`] = `
+exports[`Model E2E Test addRelationship() should create a uni-directional relationship 1`] = `
 [
   [
     "region=region,account=account,app=app",
@@ -8,13 +8,7 @@ exports[`Model E2E Test addRelationship() should create a bi-directional relatio
 ]
 `;
 
-exports[`Model E2E Test addRelationship() should create a bi-directional relationship 2`] = `
-[
-  [
-    "service=service,app=app",
-  ],
-]
-`;
+exports[`Model E2E Test addRelationship() should create a uni-directional relationship 2`] = `[]`;
 
 exports[`Model E2E Test common functions Test common functions Test Account getAncestors() 1`] = `
 [
@@ -618,17 +612,15 @@ exports[`Model E2E Test getBoundaryMembers() should include sibling dependency i
   "region=region,account=account,app=app",
   "account=account,app=app",
   "app=app",
-  "service=service,app=app",
 ]
 `;
 
-exports[`Model E2E Test getBoundaryMembers() should include sibling's sibling in boundary 1`] = `
+exports[`Model E2E Test getBoundaryMembers() should not include sibling's sibling in boundary 1`] = `
 [
   "region=region-1,account=account,app=app",
   "account=account,app=app",
   "app=app",
   "image=test/imageName,app=app",
-  "region=region-2,account=account,app=app",
 ]
 `;
 

@@ -105,12 +105,10 @@ export abstract class ANode<S, T> implements INode<S, T> {
     }
   }
 
-  addRelationship(to: UnknownNode): { thatToThisDependency: Dependency; thisToThatDependency: Dependency } {
+  addRelationship(to: UnknownNode): { thisToThatDependency: Dependency } {
     const thisToThatDependency = new Dependency(this, to);
     this.dependencies.push(thisToThatDependency);
-    const thatToThisDependency = new Dependency(to, this);
-    to.dependencies.push(thatToThisDependency);
-    return { thatToThisDependency, thisToThatDependency };
+    return { thisToThatDependency };
   }
 
   abstract diff(previous?: T): Promise<Diff[]>;
