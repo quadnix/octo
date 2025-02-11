@@ -43,7 +43,7 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
       }
     }
 
-    // Update IAM role assume role policy.
+    // Update IAM role assume role policies.
     await iamClient.send(
       new UpdateAssumeRolePolicyCommand({
         PolicyDocument: JSON.stringify({

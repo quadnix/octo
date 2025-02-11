@@ -140,7 +140,6 @@ describe('AwsServerModule UT', () => {
      [
        [
          "AddIamRoleResourceAction",
-         "UpdateIamRoleAssumeRolePolicyResourceAction",
          "UpdateIamRoleWithAwsPolicyResourceAction",
          "UpdateIamRoleWithS3StoragePolicyResourceAction",
        ],
@@ -167,16 +166,6 @@ describe('AwsServerModule UT', () => {
            "field": "resourceId",
            "node": "@octo/iam-role=iam-role-ServerRole-backend",
            "value": "@octo/iam-role=iam-role-ServerRole-backend",
-         },
-         {
-           "action": "update",
-           "field": "assume-role-policy",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "action": "add",
-             "policy": "ecs-tasks.amazonaws.com",
-             "policyId": "AmazonECSTasksAssumeRolePolicy",
-           },
          },
          {
            "action": "update",
@@ -284,15 +273,6 @@ describe('AwsServerModule UT', () => {
     expect(result4.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
-         {
-           "action": "update",
-           "field": "assume-role-policy",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "action": "delete",
-             "policyId": "AmazonECSTasksAssumeRolePolicy",
-           },
-         },
          {
            "action": "update",
            "field": "aws-policy",

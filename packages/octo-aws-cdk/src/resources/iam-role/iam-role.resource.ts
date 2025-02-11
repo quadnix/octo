@@ -28,6 +28,10 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
   declare response: IamRoleSchema['response'];
 
   constructor(resourceId: string, properties: IamRoleSchema['properties']) {
+    if (properties.policies.length === 0) {
+      throw new Error('At least one policy is required!');
+    }
+
     super(resourceId, properties, []);
   }
 
@@ -130,6 +134,10 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
       const diffs: Diff[] = [diff];
 
       for (const policy of (diff.node as IamRole).properties.policies) {
+        if (policy.policyType === 'assume-role-policy') {
+          continue;
+        }
+
         diffs.push(
           new Diff(this, DiffAction.UPDATE, policy.policyType, {
             action: 'add',
@@ -144,6 +152,10 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
       const diffs: Diff[] = [];
 
       for (const policy of (diff.node as IamRole).properties.policies) {
+        if (policy.policyType === 'assume-role-policy') {
+          continue;
+        }
+
         diffs.push(
           new Diff(this, DiffAction.UPDATE, policy.policyType, {
             action: 'delete',
