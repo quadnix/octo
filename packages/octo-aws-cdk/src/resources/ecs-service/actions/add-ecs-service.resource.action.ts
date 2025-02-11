@@ -41,6 +41,7 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
         launchType: 'FARGATE',
         networkConfiguration: {
           awsvpcConfiguration: {
+            assignPublicIp: properties.assignPublicIp,
             securityGroups: ecsServiceSecurityGroupList.map((sg) => sg.getSchemaInstance().response.GroupId),
             subnets: [ecsServiceSubnet.getSchemaInstance().response.SubnetId],
           },

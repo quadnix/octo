@@ -11,6 +11,7 @@ export class EcsServiceSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override properties = Schema<{
+    assignPublicIp: 'ENABLED' | 'DISABLED';
     awsAccountId: string;
     awsRegionId: string;
     desiredCount: number;

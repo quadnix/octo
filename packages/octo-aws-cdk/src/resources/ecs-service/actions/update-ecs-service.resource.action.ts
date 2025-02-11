@@ -39,6 +39,7 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
         desiredCount: properties.desiredCount,
         networkConfiguration: {
           awsvpcConfiguration: {
+            assignPublicIp: properties.assignPublicIp,
             securityGroups: ecsServiceSecurityGroupList.map((sg) => sg.getSchemaInstance().response.GroupId),
             subnets: [ecsServiceSubnet.getSchemaInstance().response.SubnetId],
           },

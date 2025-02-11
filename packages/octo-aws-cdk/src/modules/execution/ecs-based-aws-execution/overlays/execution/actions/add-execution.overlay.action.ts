@@ -149,7 +149,6 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
       throw new Error(`Subnet "${subnet.subnetName}" not found!`);
     }
 
-    const matchingSGResources: MatchingResource<SecurityGroupSchema>[] = [];
     // Get matching execution's SecurityGroup resources - server and execution SGs.
     const server = matchingServerSGAnchor.getActual().getParent() as Server;
     const execution = executionSGAnchor.getParent() as Execution;
@@ -161,21 +160,12 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
         `SecurityGroup for server "${server.serverKey}", or execution "${execution.executionId}" not found!`,
       );
     }
-    for (const matchingExecutionSGResource of matchingExecutionSGResources) {
-      if (matchingExecutionSGResource.getSchemaInstance().properties.rules.length > 0) {
-        matchingSGResources.push(matchingExecutionSGResource);
-      }
-    }
-
-    // Ensure there are no more than 5 security groups.
-    if (matchingSGResources.length > 5) {
-      throw new Error('Cannot have more than 5 security groups in ECS Service!');
-    }
 
     // Create ECS Service.
     const ecsService = new EcsService(
       `ecs-service-${properties.regionId}-${properties.serverKey}`,
       {
+        assignPublicIp: 'ENABLED',
         awsAccountId,
         awsRegionId,
         desiredCount: ecsServiceAnchor.properties.desiredCount,
@@ -185,7 +175,7 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
         matchingEcsClusterResource,
         new MatchingResource(ecsTaskDefinition),
         matchingSubnetResource,
-        ...matchingSGResources,
+        ...matchingExecutionSGResources,
       ],
     );
 

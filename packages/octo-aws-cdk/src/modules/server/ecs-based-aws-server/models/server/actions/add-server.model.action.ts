@@ -44,7 +44,7 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
           policyType: 'aws-policy',
         },
       ],
-      rolename: `iam-role-${iamRoleName}`,
+      rolename: iamRoleName,
     });
 
     actionOutputs[iamRole.resourceId] = iamRole;
