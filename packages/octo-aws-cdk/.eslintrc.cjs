@@ -89,6 +89,12 @@ module.exports = {
             allow: [['resource-actions', { family: '${from.family}' }]],
             from: ['resource-index'],
           },
+
+          // Utility rules.
+          {
+            allow: ['resource-schema'],
+            from: ['utilities'],
+          },
         ],
       },
     ],

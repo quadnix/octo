@@ -90,7 +90,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         PortRange: { From: -1, To: -1 },
         Protocol: '-1', // All.
         RuleAction: 'deny',
-        RuleNumber: 1,
+        RuleNumber: -1,
       });
       subnetNAclEntries.push({
         CidrBlock: subnetCidrBlock,
@@ -98,19 +98,26 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         PortRange: { From: -1, To: -1 },
         Protocol: '-1', // All.
         RuleAction: 'deny',
-        RuleNumber: 1,
+        RuleNumber: -1,
       });
     }
     // Create Network ACL entries - public network.
     if (subnet.subnetType === SubnetType.PUBLIC) {
-      const subnetNAclLastEntryRuleNumber = Math.max(...subnetNAclEntries.map((e) => e.RuleNumber), 0);
       subnetNAclEntries.push({
         CidrBlock: '0.0.0.0/0',
         Egress: false,
         PortRange: { From: -1, To: -1 },
         Protocol: '-1', // All.
         RuleAction: 'allow',
-        RuleNumber: Math.ceil(subnetNAclLastEntryRuleNumber / 10) * 10 + 1,
+        RuleNumber: -1,
+      });
+      subnetNAclEntries.push({
+        CidrBlock: '0.0.0.0/0',
+        Egress: true,
+        PortRange: { From: -1, To: -1 },
+        Protocol: '-1', // All.
+        RuleAction: 'allow',
+        RuleNumber: -1,
       });
       subnetNAclEntries.push({
         CidrBlock: subnetCidrBlock,
@@ -118,7 +125,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         PortRange: { From: -1, To: -1 },
         Protocol: '-1', // All.
         RuleAction: 'allow',
-        RuleNumber: Math.ceil(subnetNAclLastEntryRuleNumber / 10) * 10 + 1,
+        RuleNumber: -1,
       });
     } else {
       for (let i = subnetNAclEntries.length - 1; i >= 0; i--) {
@@ -127,6 +134,13 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
           NetworkAclUtility.isNAclEntryEqual(entry, {
             CidrBlock: '0.0.0.0/0',
             Egress: false,
+            PortRange: { From: -1, To: -1 },
+            Protocol: '-1', // All.
+            RuleAction: 'allow',
+          }) ||
+          NetworkAclUtility.isNAclEntryEqual(entry, {
+            CidrBlock: '0.0.0.0/0',
+            Egress: true,
             PortRange: { From: -1, To: -1 },
             Protocol: '-1', // All.
             RuleAction: 'allow',

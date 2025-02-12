@@ -286,7 +286,7 @@ describe('AwsSubnetModule UT', () => {
                  },
                  "Protocol": "-1",
                  "RuleAction": "deny",
-                 "RuleNumber": 1,
+                 "RuleNumber": 10,
                },
                {
                  "CidrBlock": "10.0.0.0/24",
@@ -297,7 +297,7 @@ describe('AwsSubnetModule UT', () => {
                  },
                  "Protocol": "-1",
                  "RuleAction": "deny",
-                 "RuleNumber": 1,
+                 "RuleNumber": 10,
                },
              ],
            },
@@ -464,7 +464,18 @@ describe('AwsSubnetModule UT', () => {
            },
            "Protocol": "-1",
            "RuleAction": "allow",
-           "RuleNumber": 1,
+           "RuleNumber": 10,
+         },
+         {
+           "CidrBlock": "0.0.0.0/0",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 10,
          },
          {
            "CidrBlock": "10.0.1.0/24",
@@ -475,7 +486,7 @@ describe('AwsSubnetModule UT', () => {
            },
            "Protocol": "-1",
            "RuleAction": "allow",
-           "RuleNumber": 1,
+           "RuleNumber": 20,
          },
          {
            "CidrBlock": "10.0.0.0/24",
@@ -486,7 +497,7 @@ describe('AwsSubnetModule UT', () => {
            },
            "Protocol": "-1",
            "RuleAction": "allow",
-           "RuleNumber": 11,
+           "RuleNumber": 20,
          },
          {
            "CidrBlock": "10.0.0.0/24",
@@ -497,7 +508,7 @@ describe('AwsSubnetModule UT', () => {
            },
            "Protocol": "-1",
            "RuleAction": "allow",
-           "RuleNumber": 11,
+           "RuleNumber": 30,
          },
        ],
      }

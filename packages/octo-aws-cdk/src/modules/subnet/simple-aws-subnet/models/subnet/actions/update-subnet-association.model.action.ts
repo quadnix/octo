@@ -35,27 +35,25 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
     const siblingSubnetInput = siblingSubnetInputs.find((s) => s.subnetName === siblingSubnet.subnetName)!;
     const subnetNAcl = actionInputs.resources[`nacl-${subnet.subnetId}`] as NetworkAcl;
 
-    const subnetNAclLastEntryRuleNumber = Math.max(...subnetNAcl.properties.entries.map((e) => e.RuleNumber), 0);
-
     // Create Network ACL entries.
     const subnetNAclEntries: NetworkAclSchema['properties']['entries'] = [];
     subnetNAclEntries.push({
-      CidrBlock: siblingSubnetInput?.subnetCidrBlock,
+      CidrBlock: siblingSubnetInput.subnetCidrBlock,
       Egress: false,
       PortRange: { From: -1, To: -1 },
       Protocol: '-1', // All.
       RuleAction: 'allow',
-      RuleNumber: Math.ceil(subnetNAclLastEntryRuleNumber / 10) * 10 + 1,
+      RuleNumber: -1,
     });
     subnetNAclEntries.push({
-      CidrBlock: siblingSubnetInput?.subnetCidrBlock,
+      CidrBlock: siblingSubnetInput.subnetCidrBlock,
       Egress: true,
       PortRange: { From: -1, To: -1 },
       Protocol: '-1', // All.
       RuleAction: 'allow',
-      RuleNumber: Math.ceil(subnetNAclLastEntryRuleNumber / 10) * 10 + 1,
+      RuleNumber: -1,
     });
-    subnetNAcl.properties.entries.push(...subnetNAclEntries);
+    subnetNAcl.updateNaclEntries(subnetNAclEntries);
 
     actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
     return actionOutputs;
