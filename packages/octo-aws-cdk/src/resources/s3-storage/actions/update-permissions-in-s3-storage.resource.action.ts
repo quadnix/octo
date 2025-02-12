@@ -30,7 +30,7 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
     });
 
     const bucketPolicy: {
-      Statement: { Action: string[]; Effect: 'Allow'; Principal: string; Resource: string[]; Sid: string }[];
+      Statement: { Action: string[]; Effect: 'Allow'; Principal: { AWS: string[] }; Resource: string[]; Sid: string }[];
       Version: '2012-10-17';
     } = { Statement: [], Version: '2012-10-17' };
     for (const [remoteDirectoryPath, principals] of Object.entries(manifestDiff)) {
@@ -48,7 +48,7 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
             bucketPolicy.Statement.push({
               Action: ['s3:GetObject'],
               Effect: 'Allow',
-              Principal: principalArn,
+              Principal: { AWS: [principalArn] },
               Resource: [
                 `arn:aws:s3:::${properties.Bucket}/${remoteDirectoryPath}`,
                 `arn:aws:s3:::${properties.Bucket}/${remoteDirectoryPath}/*`,
@@ -61,7 +61,7 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
             bucketPolicy.Statement.push({
               Action: ['s3:PutObject'],
               Effect: 'Allow',
-              Principal: principalArn,
+              Principal: { AWS: [principalArn] },
               Resource: [
                 `arn:aws:s3:::${properties.Bucket}/${remoteDirectoryPath}`,
                 `arn:aws:s3:::${properties.Bucket}/${remoteDirectoryPath}/*`,
