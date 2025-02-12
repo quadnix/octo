@@ -24,7 +24,10 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
 
     let shouldConsolidateDiffs = false;
     for (let i = diffs.length - 1; i >= 0; i--) {
-      if (diffs[i].field === 'parent' && this.isEcsTaskDefinitionEfs(diffs[i].value as AResource<any, any>)) {
+      if (diffs[i].field === 'parent' && this.isResourceIamRole(diffs[i].value as AResource<any, any>)) {
+        // Skip updating TaskDefinition when iam-role is updated.
+        diffs.splice(i, 1);
+      } else if (diffs[i].field === 'parent' && this.isResourceEfs(diffs[i].value as AResource<any, any>)) {
         // Consolidate all Efs parent updates into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
@@ -53,7 +56,11 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
     }
   }
 
-  private isEcsTaskDefinitionEfs(resource: AResource<any, any>): boolean {
+  private isResourceIamRole(resource: AResource<any, any>): boolean {
+    return (resource.constructor as typeof AResource).NODE_NAME === 'iam-role';
+  }
+
+  private isResourceEfs(resource: AResource<any, any>): boolean {
     return (resource.constructor as typeof AResource).NODE_NAME === 'efs';
   }
 
