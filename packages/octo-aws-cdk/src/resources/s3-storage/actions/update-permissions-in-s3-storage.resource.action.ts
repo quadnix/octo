@@ -1,6 +1,7 @@
 import { PutBucketPolicyCommand, S3Client } from '@aws-sdk/client-s3';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
+import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { S3Storage, type S3StorageManifestDiff } from '../s3-storage.resource.js';
 
 @Action(S3Storage)
@@ -52,7 +53,7 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
                 `arn:aws:s3:::${properties.Bucket}/${remoteDirectoryPath}`,
                 `arn:aws:s3:::${properties.Bucket}/${remoteDirectoryPath}/*`,
               ],
-              Sid: `${principalResourceId}-ReadPermission`,
+              Sid: PolicyUtility.getSafeSid(`${principalResourceId}-ReadPermission`),
             });
           }
 
@@ -65,7 +66,7 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
                 `arn:aws:s3:::${properties.Bucket}/${remoteDirectoryPath}`,
                 `arn:aws:s3:::${properties.Bucket}/${remoteDirectoryPath}/*`,
               ],
-              Sid: `${principalResourceId}-WritePermission`,
+              Sid: PolicyUtility.getSafeSid(`${principalResourceId}-WritePermission`),
             });
           }
         }

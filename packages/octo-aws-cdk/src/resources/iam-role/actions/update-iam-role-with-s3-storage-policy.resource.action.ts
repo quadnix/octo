@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
+import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { type IIamRolePolicyDiff, IamRole, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-role.resource.js';
 import type { IIamRoleS3BucketPolicy, IamRoleSchema } from '../iam-role.schema.js';
 
@@ -60,7 +61,7 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
                   `arn:aws:s3:::${policy.bucketName}/${policy.remoteDirectoryPath}`,
                   `arn:aws:s3:::${policy.bucketName}/${policy.remoteDirectoryPath}/*`,
                 ],
-          Sid: `Allow read from bucket ${policy.bucketName}`,
+          Sid: PolicyUtility.getSafeSid(`Allow read from bucket ${policy.bucketName}`),
         });
       }
       if (policy.allowWrite) {
@@ -71,7 +72,7 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
             policy.remoteDirectoryPath === '' || policy.remoteDirectoryPath === '/'
               ? [`arn:aws:s3:::${policy.bucketName}`, `arn:aws:s3:::${policy.bucketName}/*`]
               : [`arn:aws:s3:::${policy.bucketName}/${policy.remoteDirectoryPath}/*`],
-          Sid: `Allow write from bucket ${policy.bucketName}`,
+          Sid: PolicyUtility.getSafeSid(`Allow write from bucket ${policy.bucketName}`),
         });
       }
 
@@ -79,6 +80,7 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
         new CreatePolicyCommand({
           PolicyDocument: JSON.stringify({
             Statement: policyDocument,
+            Version: '2012-10-17',
           }),
           PolicyName: iamRolePolicyDiff.policyId,
         }),

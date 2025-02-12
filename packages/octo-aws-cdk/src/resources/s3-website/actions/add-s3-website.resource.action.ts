@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/client-s3';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
+import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { S3Website } from '../s3-website.resource.js';
 
 @Action(S3Website)
@@ -80,7 +81,7 @@ export class AddS3WebsiteResourceAction implements IResourceAction<S3Website> {
               Effect: 'Allow',
               Principal: '*',
               Resource: [`arn:aws:s3:::${properties.Bucket}/*`],
-              Sid: 'PublicReadGetObject',
+              Sid: PolicyUtility.getSafeSid('PublicReadGetObject'),
             },
           ],
           Version: '2012-10-17',
