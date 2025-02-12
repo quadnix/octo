@@ -70,7 +70,11 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     ),
   );
   environment.addAnchor(
-    new EcsClusterAnchor('EcsClusterAnchor', { clusterName: 'region-qa', environmentVariables: {} }, environment),
+    new EcsClusterAnchor(
+      'EcsClusterAnchor',
+      { clusterName: 'region-qa', environmentVariables: { NODE_ENV: 'qa' } },
+      environment,
+    ),
   );
   const efsFilesystemAnchor = new EfsFilesystemAnchor(
     'EfsFilesystemAnchor',

@@ -63,7 +63,7 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
       ecsClusterAnchorProperties.environmentVariables,
     ).map((key) => ({
       name: key,
-      value: ecsClusterAnchorProperties[key],
+      value: ecsClusterAnchorProperties.environmentVariables[key],
     }));
     for (const key of Object.keys(executionAnchor.properties.environmentVariables)) {
       const value = executionAnchor.properties.environmentVariables[key];
