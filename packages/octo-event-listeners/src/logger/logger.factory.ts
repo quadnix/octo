@@ -1,11 +1,12 @@
 import { Factory } from '@quadnix/octo';
-import * as Pino from 'pino';
-import { LogLayer, LoggerType } from 'loglayer';
+import { pino } from 'pino';
+import { LogLayer } from 'loglayer';
+import { PinoTransport } from '@loglayer/transport-pino';
 
 export class OctoEventLogger {
-  readonly log: LogLayer<any>;
+  readonly log: LogLayer;
 
-  constructor(logLayer: LogLayer<any>) {
+  constructor(logLayer: LogLayer) {
     this.log = logLayer;
   }
 }
@@ -16,11 +17,14 @@ export class OctoEventLoggerFactory {
 
   static async create(): Promise<OctoEventLogger> {
     if (!this.instance) {
-      const logLayer = new LogLayer<Pino.Logger>({
-        logger: {
-          instance: Pino.pino({ level: 'trace', timestamp: false }),
-          type: LoggerType.PINO,
-        },
+      const logLayer = new LogLayer({
+        transport: new PinoTransport({
+          logger: pino({
+            level: 'trace',
+            timestamp: false,
+            transport: { options: { colorize: true }, target: 'pino-pretty' },
+          }),
+        }),
       });
       this.instance = new OctoEventLogger(logLayer);
     }
