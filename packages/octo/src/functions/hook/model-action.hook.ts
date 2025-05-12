@@ -1,9 +1,5 @@
 import type { ActionOutputs, IUnknownModelAction } from '../../app.type.js';
-import {
-  ModelActionHookCallbackDoneEvent,
-  PostModelActionHookCallbackDoneEvent,
-  PreModelActionHookCallbackDoneEvent,
-} from '../../events/index.js';
+import { PostModelActionHookCallbackDoneEvent, PreModelActionHookCallbackDoneEvent } from '../../events/index.js';
 import { EventService } from '../../services/event/event.service.js';
 import { Container } from '../container/container.js';
 import type { IHook } from './hook.interface.js';
@@ -67,15 +63,14 @@ export class ModelActionHook implements IHook<PreHookSignature, PostHookSignatur
 
       for (const { handle } of self.preModelActionHooks[modelAction.constructor.name] || []) {
         output = await handle.apply(this, [args[0], args[1], output]);
-        eventService.emit(new PreModelActionHookCallbackDoneEvent());
+        eventService.emit(new PreModelActionHookCallbackDoneEvent(modelAction.constructor.name));
       }
 
       output = await originalHandleMethod.apply(this, [args[0], args[1], output]);
-      eventService.emit(new ModelActionHookCallbackDoneEvent());
 
       for (const { handle } of self.postModelActionHooks[modelAction.constructor.name] || []) {
         output = await handle.apply(this, [args[0], args[1], output]);
-        eventService.emit(new PostModelActionHookCallbackDoneEvent());
+        eventService.emit(new PostModelActionHookCallbackDoneEvent(modelAction.constructor.name));
       }
 
       return output;

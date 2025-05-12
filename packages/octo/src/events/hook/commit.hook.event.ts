@@ -9,14 +9,6 @@ import { HookEvent } from './hook.event.js';
 export class CommitHookEvent extends HookEvent {}
 
 /**
- * This hook event is emitted when the base decorated method is done executing.
- *
- * @group Events
- * @returns The Event instance.
- */
-export class CommitHookCallbackDoneEvent extends CommitHookEvent {}
-
-/**
  * This hook event is emitted when a post-commit hook callback is done executing.
  *
  * @group Events

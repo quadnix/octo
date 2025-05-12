@@ -1,9 +1,5 @@
 import type { IUnknownResourceAction } from '../../app.type.js';
-import {
-  PostResourceActionHookCallbackDoneEvent,
-  PreResourceActionHookCallbackDoneEvent,
-  ResourceActionHookCallbackDoneEvent,
-} from '../../events/index.js';
+import { PostResourceActionHookCallbackDoneEvent, PreResourceActionHookCallbackDoneEvent } from '../../events/index.js';
 import { EventService } from '../../services/event/event.service.js';
 import { Container } from '../container/container.js';
 import type { IHook } from './hook.interface.js';
@@ -65,15 +61,14 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
 
       for (const { handle } of self.preResourceActionHooks[resourceAction.constructor.name] || []) {
         await handle.apply(this, args);
-        eventService.emit(new PreResourceActionHookCallbackDoneEvent());
+        eventService.emit(new PreResourceActionHookCallbackDoneEvent(resourceAction.constructor.name));
       }
 
       await originalHandleMethod.apply(this, args);
-      eventService.emit(new ResourceActionHookCallbackDoneEvent());
 
       for (const { handle } of self.postResourceActionHooks[resourceAction.constructor.name] || []) {
         await handle.apply(this, args);
-        eventService.emit(new PostResourceActionHookCallbackDoneEvent());
+        eventService.emit(new PostResourceActionHookCallbackDoneEvent(resourceAction.constructor.name));
       }
     };
   }

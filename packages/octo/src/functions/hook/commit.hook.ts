@@ -1,8 +1,4 @@
-import {
-  CommitHookCallbackDoneEvent,
-  PostCommitHookCallbackDoneEvent,
-  PreCommitHookCallbackDoneEvent,
-} from '../../events/index.js';
+import { PostCommitHookCallbackDoneEvent, PreCommitHookCallbackDoneEvent } from '../../events/index.js';
 import type { Octo } from '../../main.js';
 import { EventService } from '../../services/event/event.service.js';
 import { Container } from '../container/container.js';
@@ -53,7 +49,6 @@ export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
       }
 
       await originalMethod.apply(this, args);
-      eventService.emit(new CommitHookCallbackDoneEvent());
 
       for (const { handle } of self.postCommitHooks) {
         await handle.apply(this, args);

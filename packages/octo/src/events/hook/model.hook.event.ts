@@ -9,14 +9,6 @@ import { HookEvent } from './hook.event.js';
 export class ModelActionHookEvent extends HookEvent {}
 
 /**
- * This hook event is emitted when the base decorated method is done executing.
- *
- * @group Events
- * @returns The Event instance.
- */
-export class ModelActionHookCallbackDoneEvent extends ModelActionHookEvent {}
-
-/**
  * This hook event is emitted when a post-model action hook callback is done executing.
  *
  * @group Events

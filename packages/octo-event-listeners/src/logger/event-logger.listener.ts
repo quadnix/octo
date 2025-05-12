@@ -1,11 +1,9 @@
 import {
   ActualResourceSerializedEvent,
   AnchorRegistrationEvent,
-  CommitHookCallbackDoneEvent,
   Container,
   Factory,
   HookEvent,
-  ModelActionHookCallbackDoneEvent,
   ModelActionRegistrationEvent,
   ModelActionTransactionEvent,
   ModelDeserializedEvent,
@@ -24,7 +22,6 @@ import {
   PreModelActionHookCallbackDoneEvent,
   PreResourceActionHookCallbackDoneEvent,
   RegistrationEvent,
-  ResourceActionHookCallbackDoneEvent,
   ResourceActionRegistrationEvent,
   ResourceActionTransactionEvent,
   ResourceDeserializedEvent,
@@ -41,33 +38,25 @@ export class EventLoggerListener {
 
   @OnEvent(HookEvent)
   onHook(event: HookEvent): void {
-    if (event instanceof CommitHookCallbackDoneEvent) {
-      this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('Commit hook callback executed.');
-    } else if (event instanceof PostCommitHookCallbackDoneEvent) {
+    if (event instanceof PostCommitHookCallbackDoneEvent) {
       this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('PostCommit hook callback executed.');
     } else if (event instanceof PreCommitHookCallbackDoneEvent) {
       this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('PreCommit hook callback executed.');
-    } else if (event instanceof ModelActionHookCallbackDoneEvent) {
-      this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('ModelAction hook callback executed.');
     } else if (event instanceof PostModelActionHookCallbackDoneEvent) {
       this.logger.log
-        .withMetadata({ timestamp: event.header.timestamp })
+        .withMetadata({ name: event.name, timestamp: event.header.timestamp })
         .debug('PostModelAction hook callback executed.');
     } else if (event instanceof PreModelActionHookCallbackDoneEvent) {
       this.logger.log
-        .withMetadata({ timestamp: event.header.timestamp })
+        .withMetadata({ name: event.name, timestamp: event.header.timestamp })
         .debug('PreModelAction hook callback executed.');
-    } else if (event instanceof ResourceActionHookCallbackDoneEvent) {
-      this.logger.log
-        .withMetadata({ timestamp: event.header.timestamp })
-        .debug('ResourceAction hook callback executed.');
     } else if (event instanceof PostResourceActionHookCallbackDoneEvent) {
       this.logger.log
-        .withMetadata({ timestamp: event.header.timestamp })
+        .withMetadata({ name: event.name, timestamp: event.header.timestamp })
         .debug('PostResourceAction hook callback executed.');
     } else if (event instanceof PreResourceActionHookCallbackDoneEvent) {
       this.logger.log
-        .withMetadata({ timestamp: event.header.timestamp })
+        .withMetadata({ name: event.name, timestamp: event.header.timestamp })
         .debug('PreResourceAction hook callback executed.');
     }
   }
@@ -132,9 +121,13 @@ export class EventLoggerListener {
         .withMetadata({ name: event.name, timestamp: event.header.timestamp })
         .debug('Resource action executed.');
     } else if (event instanceof ResourceDiffsTransactionEvent) {
-      this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('Resource diffs executed.');
+      this.logger.log
+        .withMetadata({ payload: event.payload, timestamp: event.header.timestamp })
+        .debug('Resource diffs executed.');
     } else if (event instanceof ResourceTransactionTransactionEvent) {
-      this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('Resource transactions executed.');
+      this.logger.log
+        .withMetadata({ payload: event.payload, timestamp: event.header.timestamp })
+        .debug('Resource transactions executed.');
     }
   }
 }
