@@ -38,6 +38,7 @@ export class AddS3StorageServiceModelAction implements IModelAction<AwsS3Storage
       awsAccountId,
       awsRegionId,
       Bucket: bucketName,
+      permissions: [],
     });
     actionOutputs[s3Storage.resourceId] = s3Storage;
 

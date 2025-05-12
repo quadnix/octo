@@ -15,9 +15,10 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
 
   constructor(
     resourceId: string,
-    properties: Pick<S3StorageSchema['properties'], 'awsAccountId' | 'awsRegionId' | 'Bucket'>,
+    properties: S3StorageSchema['properties'],
+    parents?: MatchingResource<PrincipalResourceSchema>[],
   ) {
-    super(resourceId, { ...properties, permissions: [] }, []);
+    super(resourceId, properties, parents || []);
   }
 
   addPermission(
@@ -45,15 +46,6 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
         remoteDirectoryPath,
       });
     }
-  }
-
-  override async diff(previous: S3Storage): Promise<Diff[]> {
-    const diffs: Diff[] = [];
-
-    const propertyDiffs = await this.diffProperties(previous);
-    diffs.push(...propertyDiffs);
-
-    return diffs;
   }
 
   override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
