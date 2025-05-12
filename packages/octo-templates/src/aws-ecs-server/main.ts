@@ -23,6 +23,7 @@ import { AwsServerModule } from '@quadnix/octo-aws-cdk/server/ecs-based-aws-serv
 import { S3StorageAccess } from '@quadnix/octo-aws-cdk/server/ecs-based-aws-server/schema';
 import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/service/s3-storage-aws-service';
 import { AwsSubnetModule } from '@quadnix/octo-aws-cdk/subnet/simple-aws-subnet';
+import { EventLoggerListener } from '@quadnix/octo-event-listeners';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -32,9 +33,9 @@ const octoStatePath = join(__dirname, '.octo');
 const octo = new Octo();
 const stateProvider = new LocalStateProvider(octoStatePath);
 
-await octo.initialize(stateProvider);
+await octo.initialize(stateProvider, [{ type: EventLoggerListener }]);
 
-octo.loadModule(AppModule, 'app-module', { name: 'aws-s3-website' });
+octo.loadModule(AppModule, 'app-module', { name: 'aws-ecs-server' });
 octo.loadModule(AwsAccountModule, 'account-module', {
   accountId: '099051346528', // Fix me: AWS account ID.
   app: stub<App>('${{app-module.model.app}}'),
