@@ -126,13 +126,16 @@ export class ResourceSerializationService {
     const serializedResources: ResourceSerializedOutput['resources'] = {};
     const sharedSerializedResources: ResourceSerializedOutput['sharedResources'] = {};
 
-    for (const resource of resources) {
+    for (const resource of resources.sort((a, b) => a.getContext().localeCompare(b.getContext()))) {
       // Skip serializing resources marked as deleted.
       if (resource.isMarkedDeleted()) {
         continue;
       }
 
-      const resourceDependencies = resource.getDependencies().map((d) => d.synth());
+      const resourceDependencies = resource
+        .getDependencies()
+        .map((d) => d.synth())
+        .sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
       dependencies.push(...resourceDependencies);
 
       if ((resource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
