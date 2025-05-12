@@ -29,7 +29,7 @@ export class ModelDeserializedEvent extends SerializationEvent<ModelSerializedOu
     ): ReturnType<ModelSerializationService['deserialize']> {
       const result = await originalMethod.apply(this, args);
 
-      eventService.emit(new ModelDeserializedEvent(args[0]));
+      eventService.emit(new ModelDeserializedEvent(undefined, args[0]));
 
       return result;
     };
@@ -53,7 +53,7 @@ export class ModelSerializedEvent extends SerializationEvent<ModelSerializedOutp
     ): ReturnType<ModelSerializationService['serialize']> {
       const result = await originalMethod.apply(this, args);
 
-      eventService.emit(new ModelSerializedEvent(result));
+      eventService.emit(new ModelSerializedEvent(undefined, result));
 
       return result;
     };
@@ -80,7 +80,7 @@ export class ResourceDeserializedEvent extends SerializationEvent<{
     ): ReturnType<ResourceSerializationService['deserialize']> {
       await originalMethod.apply(this, args);
 
-      eventService.emit(new ResourceDeserializedEvent({ actual: args[0], old: args[1] }));
+      eventService.emit(new ResourceDeserializedEvent(undefined, { actual: args[0], old: args[1] }));
     };
   }
 }
@@ -102,7 +102,7 @@ export class ActualResourceSerializedEvent extends SerializationEvent<ResourceSe
     ): ReturnType<ResourceSerializationService['serializeActualResources']> {
       const result = await originalMethod.apply(this, args);
 
-      eventService.emit(new ActualResourceSerializedEvent(result));
+      eventService.emit(new ActualResourceSerializedEvent(undefined, result));
 
       return result;
     };
@@ -126,7 +126,7 @@ export class NewResourceSerializedEvent extends SerializationEvent<ResourceSeria
     ): ReturnType<ResourceSerializationService['serializeNewResources']> {
       const result = await originalMethod.apply(this, args);
 
-      eventService.emit(new NewResourceSerializedEvent(result));
+      eventService.emit(new NewResourceSerializedEvent(undefined, result));
 
       return result;
     };

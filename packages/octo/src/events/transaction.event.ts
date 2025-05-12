@@ -16,7 +16,7 @@ export class TransactionEvent<T> extends Event<T> {}
  * @group Events
  * @returns The Event instance.
  */
-export class ModelActionTransactionEvent extends TransactionEvent<string> {}
+export class ModelActionTransactionEvent extends TransactionEvent<void> {}
 
 /**
  * This event is emitted when transaction prepares a model diff.
@@ -40,7 +40,7 @@ export class ModelTransactionTransactionEvent extends TransactionEvent<DiffMetad
  * @group Events
  * @returns The Event instance.
  */
-export class ResourceActionTransactionEvent extends TransactionEvent<string> {}
+export class ResourceActionTransactionEvent extends TransactionEvent<void> {}
 
 /**
  * This event is emitted when transaction prepares a resource diff.

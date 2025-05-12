@@ -3,11 +3,11 @@ import type { EventService } from '../services/event/event.service.js';
 /**
  * The Event class is the superclass for all events.
  * An event is generated when something important happens in Octo.
- * The body of the event contains a header, a payload, and an optional user data.
+ * The body of the event contains a header, name (optional), and payload (optional).
  *
  * @example
  * ```ts
- * const myEvent = new Event<string>('my payload', { key: 'value' });
+ * const myEvent = new Event<{ value: string }>('event name', { value: 'my payload' });
  * EventService.getInstance().emit(myEvent);
  * ```
  * @group Events
@@ -18,16 +18,16 @@ export class Event<T> {
     timestamp: number;
   };
 
-  readonly payload: T;
+  readonly name: string | undefined;
 
-  readonly userData: object;
+  readonly payload: T | undefined;
 
-  constructor(payload: T, userData: object = {}) {
+  constructor(name?: string, payload?: T) {
     this.header = {
       timestamp: Date.now(),
     };
+    this.name = name;
     this.payload = payload;
-    this.userData = userData;
   }
 
   /**

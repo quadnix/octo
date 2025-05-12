@@ -7,4 +7,4 @@ import { Event } from './event.model.js';
  * @group Events
  * @returns The Event instance.
  */
-export class ModuleEvent extends Event<string> {}
+export class ModuleEvent extends Event<void> {}

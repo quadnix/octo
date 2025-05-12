@@ -342,7 +342,7 @@ export class TransactionService {
       this.setApplyOrder(diff, modelDiffs);
     }
 
-    this.eventService.emit(new ModelDiffsTransactionEvent([modelDiffs]));
+    this.eventService.emit(new ModelDiffsTransactionEvent(undefined, [modelDiffs]));
     if (yieldModelDiffs) {
       yield [modelDiffs];
     }
@@ -350,7 +350,7 @@ export class TransactionService {
     // Apply model diffs.
     const modelTransaction = await this.applyModels(modelDiffs);
 
-    this.eventService.emit(new ModelTransactionTransactionEvent(modelTransaction));
+    this.eventService.emit(new ModelTransactionTransactionEvent(undefined, modelTransaction));
     if (yieldModelTransaction) {
       yield modelTransaction;
     }
@@ -428,7 +428,7 @@ export class TransactionService {
       this.setApplyOrder(diff, dirtyResourceDiffs);
     }
 
-    this.eventService.emit(new ResourceDiffsTransactionEvent([[resourceDiffs], [dirtyResourceDiffs]]));
+    this.eventService.emit(new ResourceDiffsTransactionEvent(undefined, [[resourceDiffs], [dirtyResourceDiffs]]));
     if (yieldResourceDiffs) {
       yield [resourceDiffs, dirtyResourceDiffs];
     }
@@ -442,7 +442,9 @@ export class TransactionService {
       enableResourceCapture,
     });
 
-    this.eventService.emit(new ResourceTransactionTransactionEvent([resourceTransaction, dirtyResourceTransaction]));
+    this.eventService.emit(
+      new ResourceTransactionTransactionEvent(undefined, [resourceTransaction, dirtyResourceTransaction]),
+    );
     if (yieldResourceTransaction) {
       yield [...resourceTransaction, ...dirtyResourceTransaction];
     }
