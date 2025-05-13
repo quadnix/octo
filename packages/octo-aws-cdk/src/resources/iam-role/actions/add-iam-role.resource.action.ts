@@ -1,6 +1,7 @@
-import { CreateRoleCommand, IAMClient } from '@aws-sdk/client-iam';
+import { CreateRoleCommand, GetRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { IamRole } from '../iam-role.resource.js';
 import type { IIamRoleAssumeRolePolicy, IamRoleSchema } from '../iam-role.schema.js';
 
@@ -53,6 +54,24 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
         }),
         RoleName: properties.rolename,
       }),
+    );
+
+    // Wait for iam-role to be created.
+    await RetryUtility.retryPromise(
+      async (): Promise<boolean> => {
+        const result = await iamClient.send(
+          new GetRoleCommand({
+            RoleName: properties.rolename,
+          }),
+        );
+
+        return result?.Role?.Arn === data.Role!.Arn;
+      },
+      {
+        initialDelayInMs: 5000,
+        maxRetries: 36,
+        retryDelayInMs: 1000,
+      },
     );
 
     // Set response.

@@ -1,6 +1,7 @@
-import { CreateUserCommand, IAMClient } from '@aws-sdk/client-iam';
+import { CreateUserCommand, GetUserCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { IamUser } from '../iam-user.resource.js';
 import type { IamUserSchema } from '../iam-user.schema.js';
 
@@ -34,6 +35,24 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
       new CreateUserCommand({
         UserName: properties.username,
       }),
+    );
+
+    // Wait for iam-user to be created.
+    await RetryUtility.retryPromise(
+      async (): Promise<boolean> => {
+        const result = await iamClient.send(
+          new GetUserCommand({
+            UserName: properties.username,
+          }),
+        );
+
+        return result?.User?.Arn === data.User!.Arn;
+      },
+      {
+        initialDelayInMs: 5000,
+        maxRetries: 36,
+        retryDelayInMs: 1000,
+      },
     );
 
     // Set response.
