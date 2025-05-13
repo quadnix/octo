@@ -18,6 +18,7 @@ import {
   ModelTransactionTransactionEvent,
   ResourceActionRegistrationEvent,
   ResourceActionTransactionEvent,
+  ResourceActionTransactionInitiatedEvent,
   ResourceDiffsTransactionEvent,
   ResourceTransactionTransactionEvent,
 } from '../../events/index.js';
@@ -194,6 +195,8 @@ export class TransactionService {
         const diffToProcess = duplicateDiffs[0].diff;
 
         for (const a of diff.actions as IUnknownResourceAction[]) {
+          this.eventService.emit(new ResourceActionTransactionInitiatedEvent(a.constructor.name));
+
           if (enableResourceCapture) {
             const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
             await a.mock(diff, capture?.response || {});

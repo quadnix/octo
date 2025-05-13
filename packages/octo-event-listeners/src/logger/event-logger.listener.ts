@@ -24,6 +24,7 @@ import {
   RegistrationEvent,
   ResourceActionRegistrationEvent,
   ResourceActionTransactionEvent,
+  ResourceActionTransactionInitiatedEvent,
   ResourceDeserializedEvent,
   ResourceDiffsTransactionEvent,
   ResourceRegistrationEvent,
@@ -120,6 +121,10 @@ export class EventLoggerListener {
       this.logger.log
         .withMetadata({ name: event.name, timestamp: event.header.timestamp })
         .debug('Resource action executed.');
+    } else if (event instanceof ResourceActionTransactionInitiatedEvent) {
+      this.logger.log
+        .withMetadata({ name: event.name, timestamp: event.header.timestamp })
+        .debug('Resource action execution initiated.');
     } else if (event instanceof ResourceDiffsTransactionEvent) {
       this.logger.log
         .withMetadata({ payload: event.payload, timestamp: event.header.timestamp })

@@ -43,6 +43,14 @@ export class ModelTransactionTransactionEvent extends TransactionEvent<DiffMetad
 export class ResourceActionTransactionEvent extends TransactionEvent<void> {}
 
 /**
+ * This event is emitted when a resource action in a transaction begins executing.
+ *
+ * @group Events
+ * @returns The Event instance.
+ */
+export class ResourceActionTransactionInitiatedEvent extends TransactionEvent<void> {}
+
+/**
  * This event is emitted when transaction prepares a resource diff.
 
  * @group Events
