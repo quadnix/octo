@@ -44,11 +44,15 @@ export class DeleteS3StorageResourceAction implements IResourceAction<S3Storage>
         }),
       );
 
+      if (!data.Contents || data.Contents.length === 0) {
+        break;
+      }
+
       await s3Client.send(
         new DeleteObjectsCommand({
           Bucket: properties.Bucket,
           Delete: {
-            Objects: data.Contents?.map((l) => ({ Key: l.Key })),
+            Objects: data.Contents.map((l) => ({ Key: l.Key })),
             Quiet: true,
           },
         }),
