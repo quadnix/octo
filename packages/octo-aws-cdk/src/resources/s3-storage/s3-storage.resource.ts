@@ -1,4 +1,4 @@
-import { AResource, Diff, DiffAction, MatchingResource, Resource } from '@quadnix/octo';
+import { AResource, DependencyRelationship, Diff, DiffAction, MatchingResource, Resource } from '@quadnix/octo';
 import { type PrincipalResourceSchema, S3StorageSchema } from './s3-storage.schema.js';
 
 export type S3StorageManifestDiff = {
@@ -19,6 +19,10 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
     parents?: MatchingResource<PrincipalResourceSchema>[],
   ) {
     super(resourceId, properties, parents || []);
+
+    this.updatePrincipalResourceDependencyBehaviors(
+      (parents || []).map((p) => p.getActual() as AResource<PrincipalResourceSchema, any>),
+    );
   }
 
   addPermission(
@@ -139,6 +143,30 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
       return diffs;
     } else {
       return [diff];
+    }
+  }
+
+  private updatePrincipalResourceDependencyBehaviors(
+    principalResourceParents: AResource<PrincipalResourceSchema, any>[],
+  ): void {
+    for (const principal of principalResourceParents) {
+      const s3StorageToPrincipalResourceDep = this.getDependency(principal, DependencyRelationship.CHILD)!;
+      const principalResourceToS3StorageDep = principal.getDependency(this, DependencyRelationship.PARENT)!;
+
+      // Before updating s3-storage must add principal-resource.
+      s3StorageToPrincipalResourceDep.addBehavior(
+        'update-permissions',
+        DiffAction.UPDATE,
+        'resourceId',
+        DiffAction.ADD,
+      );
+      // Before deleting principal-resource must update s3-storage.
+      principalResourceToS3StorageDep.addBehavior(
+        'resourceId',
+        DiffAction.DELETE,
+        'update-permissions',
+        DiffAction.UPDATE,
+      );
     }
   }
 }
