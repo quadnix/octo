@@ -18,9 +18,9 @@ import {
   ModelActionTransactionEvent,
   ModelDiffsTransactionEvent,
   ModelTransactionTransactionEvent,
+  ResourceActionCompletedTransactionEvent,
+  ResourceActionInitiatedTransactionEvent,
   ResourceActionRegistrationEvent,
-  ResourceActionTransactionEvent,
-  ResourceActionTransactionInitiatedEvent,
   ResourceDiffsTransactionEvent,
   ResourceTransactionTransactionEvent,
 } from '../../events/index.js';
@@ -195,7 +195,7 @@ export class TransactionService {
         const diffToProcess = duplicateDiffs[0].diff;
 
         for (const a of diff.actions as IUnknownResourceAction[]) {
-          this.eventService.emit(new ResourceActionTransactionInitiatedEvent(a.constructor.name));
+          this.eventService.emit(new ResourceActionInitiatedTransactionEvent(a.constructor.name));
 
           if (enableResourceCapture) {
             const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
@@ -219,7 +219,7 @@ export class TransactionService {
             await actualResource.diffInverse(diffToProcess, deReferenceResource);
           }
 
-          this.eventService.emit(new ResourceActionTransactionEvent(a.constructor.name));
+          this.eventService.emit(new ResourceActionCompletedTransactionEvent(a.constructor.name));
         }
 
         // Include the diff to process in the list of diffs processed in the same level.
