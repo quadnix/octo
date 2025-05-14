@@ -119,11 +119,11 @@ export class EventLoggerListener {
       this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('Model transactions executed.');
     } else if (event instanceof ResourceActionCompletedTransactionEvent) {
       this.logger.log
-        .withMetadata({ name: event.name, timestamp: event.header.timestamp })
+        .withMetadata({ name: event.name, payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource action executed.');
     } else if (event instanceof ResourceActionInitiatedTransactionEvent) {
       this.logger.log
-        .withMetadata({ name: event.name, timestamp: event.header.timestamp })
+        .withMetadata({ name: event.name, payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource action execution initiated.');
     } else if (event instanceof ResourceDiffsTransactionEvent) {
       this.logger.log
