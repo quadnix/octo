@@ -10,6 +10,8 @@ import {
   type UnknownResource,
   type UnknownSharedResource,
 } from '../../app.type.js';
+import { EventSource } from '../../decorators/event-source.decorator.js';
+import { Factory } from '../../decorators/factory.decorator.js';
 import { InputNotFoundTransactionError, InputRegistrationError, TransactionError } from '../../errors/index.js';
 import {
   ModelActionRegistrationEvent,
@@ -23,8 +25,6 @@ import {
   ResourceTransactionTransactionEvent,
 } from '../../events/index.js';
 import { Container } from '../../functions/container/container.js';
-import { EventSource } from '../../decorators/event-source.decorator.js';
-import { Factory } from '../../decorators/factory.decorator.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
 import { type Diff, DiffAction } from '../../functions/diff/diff.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
@@ -239,6 +239,10 @@ export class TransactionService {
     return transaction;
   }
 
+  private getDiffsOfSameNode(diff: DiffMetadata, diffs: DiffMetadata[], diffAction: DiffAction): DiffMetadata[] {
+    return diffs.filter((d) => d.node.getContext() === diff.node.getContext() && d.action === diffAction);
+  }
+
   private getDuplicateDiffs(diff: DiffMetadata, diffs: DiffMetadata[]): DiffMetadata[] {
     return diffs.filter(
       (d) =>
@@ -299,6 +303,22 @@ export class TransactionService {
       for (const matchingParentDiff of matchingParentDiffs) {
         this.setApplyOrder(matchingParentDiff, diffs, [...seen, diff]);
         dependencyApplyOrders.push(matchingParentDiff.applyOrder);
+      }
+    }
+
+    // Get diffs of same node.
+    // Process ADD before UPDATE, and UPDATE before DELETE.
+    if (diff.action === DiffAction.UPDATE) {
+      const diffsOfSameNodeWithAddAction = this.getDiffsOfSameNode(diff, diffs, DiffAction.ADD);
+      for (const sameNodeDiffWithAddAction of diffsOfSameNodeWithAddAction) {
+        this.setApplyOrder(sameNodeDiffWithAddAction, diffs, [...seen, diff]);
+        dependencyApplyOrders.push(sameNodeDiffWithAddAction.applyOrder);
+      }
+    } else if (diff.action === DiffAction.DELETE) {
+      const diffsOfSameNodeWithUpdateAction = this.getDiffsOfSameNode(diff, diffs, DiffAction.UPDATE);
+      for (const sameNodeDiffWithUpdateAction of diffsOfSameNodeWithUpdateAction) {
+        this.setApplyOrder(sameNodeDiffWithUpdateAction, diffs, [...seen, diff]);
+        dependencyApplyOrders.push(sameNodeDiffWithUpdateAction.applyOrder);
       }
     }
 

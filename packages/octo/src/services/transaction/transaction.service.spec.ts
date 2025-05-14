@@ -601,6 +601,50 @@ describe('TransactionService UT', () => {
         setApplyOrder(diffsMetadata[2], diffsMetadata);
       }).toThrow('Found conflicting actions in same transaction!');
     });
+
+    it('should process an ADD diff before an UPDATE diff of the same node', () => {
+      const {
+        environment: [environment],
+        region: [region],
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['env'], region: ['region-1'] });
+
+      const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
+      const diff2 = new Diff(environment, DiffAction.ADD, 'environmentName', 'env');
+      const diff3 = new Diff(environment, DiffAction.UPDATE, 'environmentName', 'env');
+      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
+
+      expect(diffsMetadata[0].applyOrder).toBe(-1);
+      expect(diffsMetadata[1].applyOrder).toBe(-1);
+      expect(diffsMetadata[2].applyOrder).toBe(-1);
+      setApplyOrder(diffsMetadata[2], diffsMetadata);
+      setApplyOrder(diffsMetadata[1], diffsMetadata);
+      setApplyOrder(diffsMetadata[0], diffsMetadata);
+      expect(diffsMetadata[0].applyOrder).toBe(0);
+      expect(diffsMetadata[1].applyOrder).toBe(1);
+      expect(diffsMetadata[2].applyOrder).toBe(2);
+    });
+
+    it('should process an UPDATE diff before a DELETE diff of the same node', () => {
+      const {
+        environment: [environment],
+        region: [region],
+      } = create({ account: ['aws,account'], app: ['test'], environment: ['env'], region: ['region-1'] });
+
+      const diff1 = new Diff(region, DiffAction.ADD, 'regionId', 'region');
+      const diff2 = new Diff(environment, DiffAction.UPDATE, 'environmentName', 'env');
+      const diff3 = new Diff(environment, DiffAction.DELETE, 'environmentName', 'env');
+      const diffsMetadata = [diff1, diff2, diff3].map((d) => new DiffMetadata(d, modelActions));
+
+      expect(diffsMetadata[0].applyOrder).toBe(-1);
+      expect(diffsMetadata[1].applyOrder).toBe(-1);
+      expect(diffsMetadata[2].applyOrder).toBe(-1);
+      setApplyOrder(diffsMetadata[2], diffsMetadata);
+      setApplyOrder(diffsMetadata[1], diffsMetadata);
+      setApplyOrder(diffsMetadata[0], diffsMetadata);
+      expect(diffsMetadata[0].applyOrder).toBe(0);
+      expect(diffsMetadata[1].applyOrder).toBe(0);
+      expect(diffsMetadata[2].applyOrder).toBe(1);
+    });
   });
 
   describe('beginTransaction()', () => {
