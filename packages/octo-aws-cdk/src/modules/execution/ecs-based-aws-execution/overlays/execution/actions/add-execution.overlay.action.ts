@@ -163,7 +163,7 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
 
     // Create ECS Service.
     const ecsService = new EcsService(
-      `ecs-service-${properties.regionId}-${properties.serverKey}`,
+      `ecs-service-${properties.executionId}`,
       {
         assignPublicIp: 'ENABLED',
         awsAccountId,

@@ -223,9 +223,12 @@ describe('AwsExecutionModule UT', () => {
         taskDefinitionArn: 'taskDefinitionArn',
       },
     );
-    testModuleContainer.registerCapture<EcsServiceSchema>('@octo/ecs-service=ecs-service-region-backend', {
-      serviceArn: 'serviceArn',
-    });
+    testModuleContainer.registerCapture<EcsServiceSchema>(
+      '@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet',
+      {
+        serviceArn: 'serviceArn',
+      },
+    );
   });
 
   afterEach(async () => {
@@ -314,8 +317,8 @@ describe('AwsExecutionModule UT', () => {
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-region-backend",
-           "value": "@octo/ecs-service=ecs-service-region-backend",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+           "value": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
          },
        ],
        [],
@@ -340,7 +343,7 @@ describe('AwsExecutionModule UT', () => {
          {
            "action": "update",
            "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-region-backend",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
            "value": "",
          },
        ],
@@ -373,7 +376,7 @@ describe('AwsExecutionModule UT', () => {
          {
            "action": "update",
            "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-region-backend",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
            "value": "",
          },
        ],
@@ -426,7 +429,7 @@ describe('AwsExecutionModule UT', () => {
          {
            "action": "update",
            "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-region-backend",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
            "value": "",
          },
        ],
@@ -460,8 +463,8 @@ describe('AwsExecutionModule UT', () => {
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-region-backend",
-           "value": "@octo/ecs-service=ecs-service-region-backend",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+           "value": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
          },
        ],
        [],

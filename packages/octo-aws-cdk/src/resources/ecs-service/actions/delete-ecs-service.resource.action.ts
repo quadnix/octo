@@ -67,9 +67,6 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
       },
     );
 
-    // Wait for ENIs used by the tasks to be deleted.
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-
     // Delete the service.
     await ecsClient.send(
       new DeleteServiceCommand({
@@ -77,6 +74,10 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
         service: properties.serviceName,
       }),
     );
+
+    // Wait for ENIs used by the tasks to be deleted.
+    // Wait for ECS service to drain.
+    await new Promise((resolve) => setTimeout(resolve, 10000));
   }
 
   async mock(diff: Diff): Promise<void> {
