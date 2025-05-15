@@ -67,6 +67,9 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
       },
     );
 
+    // Wait for ENIs used by the tasks to be deleted.
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+
     // Delete the service.
     await ecsClient.send(
       new DeleteServiceCommand({
