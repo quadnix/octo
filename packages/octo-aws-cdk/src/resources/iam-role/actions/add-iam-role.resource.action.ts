@@ -92,6 +92,8 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateRoleCommand) {
         return { Role: { Arn: capture.Arn, RoleId: capture.RoleId, RoleName: capture.RoleName } };
+      } else if (instance instanceof GetRoleCommand) {
+        return { Role: { Arn: capture.Arn } };
       }
     };
   }

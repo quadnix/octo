@@ -73,6 +73,8 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     iamClient.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof CreateUserCommand) {
         return { User: { Arn: capture.Arn, UserId: capture.UserId, UserName: capture.UserName } };
+      } else if (instance instanceof GetUserCommand) {
+        return { User: { Arn: capture.Arn } };
       }
     };
   }

@@ -14,6 +14,7 @@ import { S3DirectoryAnchor } from '../../../anchors/s3-directory/s3-directory.an
 import { S3StorageAnchor } from '../../../anchors/s3-storage/s3-storage.anchor.js';
 import type { IamRoleSchema } from '../../../resources/iam-role/iam-role.schema.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsServerModule } from './aws-server.module.js';
 import { S3StorageAccess } from './index.schema.js';
 
@@ -58,6 +59,9 @@ async function setup(
 }
 
 describe('AwsServerModule UT', () => {
+  const originalRetryPromise = RetryUtility.retryPromise;
+
+  let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -90,6 +94,10 @@ describe('AwsServerModule UT', () => {
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
 
+    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
+      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
+    });
+
     // Register resource captures.
     testModuleContainer.registerCapture<IamRoleSchema>('@octo/iam-role=iam-role-ServerRole-backend', {
       Arn: 'Arn',
@@ -104,6 +112,8 @@ describe('AwsServerModule UT', () => {
   afterEach(async () => {
     await testModuleContainer.reset();
     await TestContainer.reset();
+
+    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {
@@ -141,6 +151,8 @@ describe('AwsServerModule UT', () => {
      [
        [
          "AddIamRoleResourceAction",
+       ],
+       [
          "UpdateIamRoleWithAwsPolicyResourceAction",
          "UpdateIamRoleWithS3StoragePolicyResourceAction",
        ],
@@ -241,16 +253,6 @@ describe('AwsServerModule UT', () => {
        [
          {
            "action": "update",
-           "field": "update-permissions",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": {
-             "uploads": {
-               "iam-role-ServerRole-backend": "addDirectoryPermissions",
-             },
-           },
-         },
-         {
-           "action": "update",
            "field": "s3-storage-access-policy",
            "node": "@octo/iam-role=iam-role-ServerRole-backend",
            "value": {
@@ -264,6 +266,22 @@ describe('AwsServerModule UT', () => {
              "policyId": "server-s3-access-overlay-56043e0e95bf",
            },
          },
+         {
+           "action": "update",
+           "field": "update-permissions",
+           "node": "@octo/s3-storage=bucket-test-bucket",
+           "value": {
+             "uploads": {
+               "iam-role-ServerRole-backend": "addDirectoryPermissions",
+             },
+           },
+         },
+         {
+           "action": "add",
+           "field": "parent",
+           "node": "@octo/s3-storage=bucket-test-bucket",
+           "value": "@octo/iam-role=iam-role-ServerRole-backend",
+         },
        ],
        [],
      ]
@@ -274,24 +292,6 @@ describe('AwsServerModule UT', () => {
     expect(result4.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
-         {
-           "action": "update",
-           "field": "aws-policy",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "action": "delete",
-             "policyId": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-           },
-         },
-         {
-           "action": "update",
-           "field": "s3-storage-access-policy",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "action": "delete",
-             "policyId": "server-s3-access-overlay-56043e0e95bf",
-           },
-         },
          {
            "action": "delete",
            "field": "resourceId",
