@@ -102,7 +102,7 @@ octo.loadModule(AwsDeploymentModule, 'backend-deployment-v1-module', {
   deploymentTag: 'v1',
   server: stub<Server>('${{backend-server-module.model.server}}'),
 });
-octo.loadModule(AwsExecutionModule, 'backend-v1-execution-module', {
+octo.loadModule(AwsExecutionModule, 'backend-v1-public-execution-module', {
   deployment: stub<Deployment>('${{backend-deployment-v1-module.model.deployment}}'),
   desiredCount: 1,
   environment: stub<Environment>('${{qa-environment-module.model.environment}}'),
@@ -110,12 +110,27 @@ octo.loadModule(AwsExecutionModule, 'backend-v1-execution-module', {
     {
       CidrBlock: '0.0.0.0/0',
       Egress: false,
-      FromPort: 3000,
+      FromPort: 80,
       IpProtocol: 'tcp',
-      ToPort: 3000,
+      ToPort: 80,
     },
   ],
   subnet: stub<Subnet>('${{public-subnet-module.model.subnet}}'),
+});
+octo.loadModule(AwsExecutionModule, 'backend-v1-private-execution-module', {
+  deployment: stub<Deployment>('${{backend-deployment-v1-module.model.deployment}}'),
+  desiredCount: 1,
+  environment: stub<Environment>('${{qa-environment-module.model.environment}}'),
+  securityGroupRules: [
+    {
+      CidrBlock: '0.0.0.0/0',
+      Egress: false,
+      FromPort: 80,
+      IpProtocol: 'tcp',
+      ToPort: 80,
+    },
+  ],
+  subnet: stub<Subnet>('${{private-subnet-module.model.subnet}}'),
 });
 
 octo.orderModules([
