@@ -100,6 +100,23 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         RuleAction: 'deny',
         RuleNumber: -1,
       });
+    } else {
+      subnetNAclEntries.push({
+        CidrBlock: subnetCidrBlock,
+        Egress: false,
+        PortRange: { From: -1, To: -1 },
+        Protocol: '-1', // All.
+        RuleAction: 'allow',
+        RuleNumber: -1,
+      });
+      subnetNAclEntries.push({
+        CidrBlock: subnetCidrBlock,
+        Egress: true,
+        PortRange: { From: -1, To: -1 },
+        Protocol: '-1', // All.
+        RuleAction: 'allow',
+        RuleNumber: -1,
+      });
     }
     // Create Network ACL entries - public network.
     if (subnet.subnetType === SubnetType.PUBLIC) {
@@ -119,14 +136,6 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
         RuleAction: 'allow',
         RuleNumber: -1,
       });
-      subnetNAclEntries.push({
-        CidrBlock: subnetCidrBlock,
-        Egress: true,
-        PortRange: { From: -1, To: -1 },
-        Protocol: '-1', // All.
-        RuleAction: 'allow',
-        RuleNumber: -1,
-      });
     } else {
       for (let i = subnetNAclEntries.length - 1; i >= 0; i--) {
         const entry = subnetNAclEntries[i];
@@ -140,13 +149,6 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
           }) ||
           NetworkAclUtility.isNAclEntryEqual(entry, {
             CidrBlock: '0.0.0.0/0',
-            Egress: true,
-            PortRange: { From: -1, To: -1 },
-            Protocol: '-1', // All.
-            RuleAction: 'allow',
-          }) ||
-          NetworkAclUtility.isNAclEntryEqual(entry, {
-            CidrBlock: subnetCidrBlock,
             Egress: true,
             PortRange: { From: -1, To: -1 },
             Protocol: '-1', // All.

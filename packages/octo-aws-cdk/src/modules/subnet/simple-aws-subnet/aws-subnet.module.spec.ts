@@ -246,7 +246,30 @@ describe('AwsSubnetModule UT', () => {
      {
        "awsAccountId": "123",
        "awsRegionId": "us-east-1",
-       "entries": [],
+       "entries": [
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 10,
+         },
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 10,
+         },
+       ],
      }
     `);
 
@@ -352,8 +375,8 @@ describe('AwsSubnetModule UT', () => {
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": "@octo/route-table=rt-region-private-subnet",
+           "node": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+           "value": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
          },
          {
            "action": "delete",
@@ -364,8 +387,8 @@ describe('AwsSubnetModule UT', () => {
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
-           "value": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": "@octo/route-table=rt-region-private-subnet",
          },
        ],
        [],
@@ -456,7 +479,7 @@ describe('AwsSubnetModule UT', () => {
        "awsRegionId": "us-east-1",
        "entries": [
          {
-           "CidrBlock": "0.0.0.0/0",
+           "CidrBlock": "10.0.1.0/24",
            "Egress": false,
            "PortRange": {
              "From": -1,
@@ -467,7 +490,7 @@ describe('AwsSubnetModule UT', () => {
            "RuleNumber": 10,
          },
          {
-           "CidrBlock": "0.0.0.0/0",
+           "CidrBlock": "10.0.1.0/24",
            "Egress": true,
            "PortRange": {
              "From": -1,
@@ -478,7 +501,18 @@ describe('AwsSubnetModule UT', () => {
            "RuleNumber": 10,
          },
          {
-           "CidrBlock": "10.0.1.0/24",
+           "CidrBlock": "0.0.0.0/0",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 20,
+         },
+         {
+           "CidrBlock": "0.0.0.0/0",
            "Egress": true,
            "PortRange": {
              "From": -1,
@@ -497,7 +531,7 @@ describe('AwsSubnetModule UT', () => {
            },
            "Protocol": "-1",
            "RuleAction": "allow",
-           "RuleNumber": 20,
+           "RuleNumber": 30,
          },
          {
            "CidrBlock": "10.0.0.0/24",

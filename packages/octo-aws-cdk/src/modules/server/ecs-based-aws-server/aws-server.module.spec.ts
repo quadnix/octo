@@ -50,6 +50,7 @@ async function setup(
     awsAccountId: '123',
     awsRegionId: 'us-east-1',
     Bucket: 'test-bucket',
+    permissions: [],
   });
   await testModuleContainer.createResources('testModule', [s3Storage], { save: true });
 

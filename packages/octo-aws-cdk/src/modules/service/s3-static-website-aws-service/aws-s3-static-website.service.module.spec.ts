@@ -112,6 +112,8 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
      [
        [
          "AddS3WebsiteResourceAction",
+       ],
+       [
          "UpdateSourcePathsInS3WebsiteResourceAction",
        ],
      ]
