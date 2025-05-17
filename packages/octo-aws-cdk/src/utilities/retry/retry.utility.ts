@@ -43,9 +43,7 @@ export class RetryUtility {
       }
     } while (maxRetries! >= 0);
 
-    if (throwOnError) {
-      throw new Error('Exhausted all retries for the operation!');
-    }
+    throw new Error('Exhausted all retries for the operation!');
   }
 
   static setDefaults(options: Partial<IRetryOptions>): void {

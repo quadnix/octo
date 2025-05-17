@@ -93,7 +93,7 @@ describe('Retry Utility UT', () => {
 
     it('should respect throwOnError', async () => {
       const operation: jest.Mock<() => Promise<boolean>> = jest.fn();
-      operation.mockResolvedValue(false);
+      operation.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
       const startTime = Date.now();
 
       await RetryUtility.retryPromise(operation, {
@@ -105,7 +105,39 @@ describe('Retry Utility UT', () => {
       });
 
       const duration = Date.now() - startTime;
-      expect(duration).toBeGreaterThanOrEqual(20);
+      expect(duration).toBeGreaterThanOrEqual(10);
+    });
+
+    it('should retry on error when throwOnError is false', async () => {
+      const operation: jest.Mock<() => Promise<boolean>> = jest.fn();
+      operation.mockRejectedValueOnce(new Error('error!'));
+      operation.mockResolvedValueOnce(true);
+
+      await RetryUtility.retryPromise(operation, {
+        backOffFactor: 1,
+        initialDelayInMs: 0,
+        maxRetries: 1,
+        retryDelayInMs: 10,
+        throwOnError: false,
+      });
+
+      expect(operation).toHaveBeenCalledTimes(2);
+    });
+
+    it('should throw error when throwOnError is true', async () => {
+      const operation: jest.Mock<() => Promise<boolean>> = jest.fn();
+      operation.mockRejectedValueOnce(new Error('error!'));
+      operation.mockResolvedValueOnce(true);
+
+      await expect(async () => {
+        await RetryUtility.retryPromise(operation, {
+          backOffFactor: 1,
+          initialDelayInMs: 0,
+          maxRetries: 1,
+          retryDelayInMs: 10,
+          throwOnError: true,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"error!"`);
     });
   });
 });
