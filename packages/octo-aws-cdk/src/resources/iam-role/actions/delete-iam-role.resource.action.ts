@@ -1,4 +1,4 @@
-import { DeletePolicyCommand, DeleteRoleCommand, DetachRolePolicyCommand, IAMClient } from '@aws-sdk/client-iam';
+import { DeleteRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamRole } from '../iam-role.resource.js';
@@ -27,45 +27,6 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
       args: [properties.awsAccountId],
       metadata: { package: '@octo' },
     });
-
-    // Delete all policies.
-    const promiseToDeleteAllPolicies: Promise<any>[] = [];
-    for (const policy of properties.policies) {
-      if (policy.policyType === 'assume-role-policy') {
-        continue;
-      }
-
-      if (policy.policyType === 'aws-policy') {
-        promiseToDeleteAllPolicies.push(
-          iamClient.send(
-            new DetachRolePolicyCommand({
-              PolicyArn: policy.policy,
-              RoleName: response.RoleName,
-            }),
-          ),
-        );
-      } else {
-        const policyARNs = response.policies[policy.policyId] || [];
-        promiseToDeleteAllPolicies.push(
-          Promise.all(
-            policyARNs.map(async (policyArn) => {
-              await iamClient.send(
-                new DetachRolePolicyCommand({
-                  PolicyArn: policyArn,
-                  RoleName: response.RoleName,
-                }),
-              );
-              await iamClient.send(
-                new DeletePolicyCommand({
-                  PolicyArn: policyArn,
-                }),
-              );
-            }),
-          ),
-        );
-      }
-    }
-    await Promise.all(promiseToDeleteAllPolicies);
 
     // Delete IAM role.
     await iamClient.send(

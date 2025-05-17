@@ -293,6 +293,24 @@ describe('AwsServerModule UT', () => {
      [
        [
          {
+           "action": "update",
+           "field": "aws-policy",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "action": "delete",
+             "policyId": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+           },
+         },
+         {
+           "action": "update",
+           "field": "s3-storage-access-policy",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "action": "delete",
+             "policyId": "server-s3-access-overlay-56043e0e95bf",
+           },
+         },
+         {
            "action": "delete",
            "field": "resourceId",
            "node": "@octo/iam-role=iam-role-ServerRole-backend",

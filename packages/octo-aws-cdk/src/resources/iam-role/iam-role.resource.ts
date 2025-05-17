@@ -152,6 +152,24 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
       }
 
       return diffs;
+    } else if (diff.action === DiffAction.DELETE && diff.field === 'resourceId') {
+      const diffs: Diff[] = [];
+
+      for (const policy of (diff.node as IamRole).properties.policies) {
+        if (policy.policyType === 'assume-role-policy') {
+          continue;
+        }
+
+        diffs.push(
+          new Diff(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'delete',
+            policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
+          } as IIamRoleDeletePolicyDiff),
+        );
+      }
+
+      diffs.push(diff);
+      return diffs;
     } else {
       return [diff];
     }
