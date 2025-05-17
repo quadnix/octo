@@ -188,6 +188,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       case 'parent': {
         if (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE) {
           await this.cloneResourceInPlace(diff.node as T, deReferenceResource);
+        } else if (diff.action === DiffAction.UPDATE) {
+          // Do nothing, since the parent of this resource has been updated,
+          // but this resource has no changes relevant to the parent.
         } else {
           throw new DiffInverseResourceError('Unknown action on "parent" field during diff inverse!', this, diff);
         }

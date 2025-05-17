@@ -424,9 +424,9 @@ describe('Resource UT', () => {
         expect(resource1.cloneResourceInPlace).toHaveBeenCalledTimes(1);
       });
 
-      it('should throw error when action is not ADD or DELETE', async () => {
+      it('should throw error when action is not ADD or DELETE or UPDATE', async () => {
         const resource1 = new TestResource('resource-1', {}, []);
-        const diff = new Diff(resource1, DiffAction.UPDATE, 'parent', 'value');
+        const diff = new Diff(resource1, DiffAction.REPLACE, 'parent', 'value');
 
         await expect(async () => {
           await resource1.diffInverse(diff, async () => resource1);
