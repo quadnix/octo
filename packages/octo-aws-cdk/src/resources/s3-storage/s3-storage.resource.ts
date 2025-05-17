@@ -54,6 +54,8 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
 
   override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
     if (diff.field === 'update-permissions' && diff.action === DiffAction.UPDATE) {
+      // All changes to properties.permissions is in this single diff, invoking one single action.
+      // There is no need to individually clone properties. A single clone is enough.
       this.clonePropertiesInPlace(diff.node as S3Storage);
     } else {
       await super.diffInverse(diff, deReferenceResource);

@@ -5,8 +5,9 @@ export type IIamUserAddPolicyDiff = {
   action: 'add';
   policy: IIamUserPolicyTypes[keyof IIamUserPolicyTypes];
   policyId: string;
+  policyType: keyof IIamUserPolicyTypes;
 };
-export type IIamUserDeletePolicyDiff = { action: 'delete'; policyId: string };
+export type IIamUserDeletePolicyDiff = { action: 'delete'; policyId: string; policyType: keyof IIamUserPolicyTypes };
 export type IIamUserPolicyDiff = IIamUserAddPolicyDiff | IIamUserDeletePolicyDiff;
 
 export function isAddPolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUserAddPolicyDiff {
@@ -63,7 +64,24 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
 
   override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
     if (diff.action === DiffAction.UPDATE) {
-      this.clonePropertiesInPlace(diff.node as IamUser);
+      if (isAddPolicyDiff((diff.value as IIamUserPolicyDiff) || {})) {
+        const newPolicy = (diff.node as AResource<IamUserSchema, IamUser>).properties.policies.find(
+          (p) => p.policyId === (diff.value as IIamUserAddPolicyDiff).policyId,
+        );
+        if (newPolicy) {
+          this.properties.policies.push(newPolicy);
+        }
+      } else if (isDeletePolicyDiff((diff.value as IIamUserPolicyDiff) || {})) {
+        const deletedPolicyIndex = this.properties.policies.findIndex(
+          (p) => p.policyId === (diff.value as IIamUserDeletePolicyDiff).policyId,
+        );
+        if (deletedPolicyIndex > -1) {
+          this.properties.policies.splice(deletedPolicyIndex, 1);
+        }
+      } else {
+        this.clonePropertiesInPlace(diff.node as IamUser);
+      }
+
       this.cloneResponseInPlace(diff.node as IamUser);
     } else {
       await super.diffInverse(diff, deReferenceResource);
@@ -79,6 +97,7 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
           new Diff(this, DiffAction.UPDATE, policy.policyType, {
             action: 'delete',
             policyId: policy.policyId,
+            policyType: policy.policyType,
           } as IIamUserDeletePolicyDiff),
         );
       }
@@ -90,6 +109,7 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
             action: 'add',
             policy: policy.policy,
             policyId: policy.policyId,
+            policyType: policy.policyType,
           } as IIamUserAddPolicyDiff),
         );
       }
@@ -108,6 +128,7 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
             action: 'add',
             policy: policy.policy,
             policyId: policy.policyId,
+            policyType: policy.policyType,
           } as IIamUserAddPolicyDiff),
         );
       }
@@ -121,6 +142,7 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
           new Diff(this, DiffAction.UPDATE, policy.policyType, {
             action: 'delete',
             policyId: policy.policyId,
+            policyType: policy.policyType,
           } as IIamUserDeletePolicyDiff),
         );
       }

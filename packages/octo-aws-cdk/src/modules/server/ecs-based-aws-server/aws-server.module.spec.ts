@@ -188,6 +188,7 @@ describe('AwsServerModule UT', () => {
              "action": "add",
              "policy": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
              "policyId": "AmazonECSTaskExecutionRolePolicy",
+             "policyType": "aws-policy",
            },
          },
        ],
@@ -264,6 +265,7 @@ describe('AwsServerModule UT', () => {
                "remoteDirectoryPath": "uploads",
              },
              "policyId": "server-s3-access-overlay-56043e0e95bf",
+             "policyType": "s3-storage-access-policy",
            },
          },
          {
@@ -299,6 +301,7 @@ describe('AwsServerModule UT', () => {
            "value": {
              "action": "delete",
              "policyId": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+             "policyType": "aws-policy",
            },
          },
          {
@@ -308,6 +311,7 @@ describe('AwsServerModule UT', () => {
            "value": {
              "action": "delete",
              "policyId": "server-s3-access-overlay-56043e0e95bf",
+             "policyType": "s3-storage-access-policy",
            },
          },
          {

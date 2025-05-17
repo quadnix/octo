@@ -5,7 +5,7 @@ import { S3Storage } from '../s3-storage.resource.js';
 export class UpdateParentInS3StorageResourceAction implements IResourceAction<S3Storage> {
   filter(diff: Diff): boolean {
     return (
-      (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE) &&
+      (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE || diff.action === DiffAction.UPDATE) &&
       diff.node instanceof S3Storage &&
       (diff.node.constructor as typeof S3Storage).NODE_NAME === 's3-storage' &&
       diff.field === 'parent'
