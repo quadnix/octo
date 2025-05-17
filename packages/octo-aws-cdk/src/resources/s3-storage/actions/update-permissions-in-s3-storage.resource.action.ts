@@ -1,4 +1,4 @@
-import { PutBucketPolicyCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteBucketPolicyCommand, PutBucketPolicyCommand, S3Client } from '@aws-sdk/client-s3';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
@@ -69,16 +69,33 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
               Sid: PolicyUtility.getSafeSid(`${principalResourceId}-WritePermission`),
             });
           }
+        } else {
+          bucketPolicy.Statement.splice(
+            bucketPolicy.Statement.findIndex((s) => s.Sid === `${principalResourceId}-ReadPermission`),
+            1,
+          );
+          bucketPolicy.Statement.splice(
+            bucketPolicy.Statement.findIndex((s) => s.Sid === `${principalResourceId}-WritePermission`),
+            1,
+          );
         }
       }
     }
 
-    await s3Client.send(
-      new PutBucketPolicyCommand({
-        Bucket: properties.Bucket,
-        Policy: JSON.stringify(bucketPolicy),
-      }),
-    );
+    if (bucketPolicy.Statement.length > 0) {
+      await s3Client.send(
+        new PutBucketPolicyCommand({
+          Bucket: properties.Bucket,
+          Policy: JSON.stringify(bucketPolicy),
+        }),
+      );
+    } else {
+      await s3Client.send(
+        new DeleteBucketPolicyCommand({
+          Bucket: properties.Bucket,
+        }),
+      );
+    }
   }
 
   async mock(diff: Diff): Promise<void> {
@@ -92,6 +109,8 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
     });
     s3Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof PutBucketPolicyCommand) {
+        return;
+      } else if (instance instanceof DeleteBucketPolicyCommand) {
         return;
       }
     };
