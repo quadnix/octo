@@ -179,7 +179,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     switch (diff.field) {
       case 'resourceId': {
         if (diff.action === DiffAction.DELETE) {
-          this.remove();
+          this.remove(true);
         } else {
           throw new DiffInverseResourceError('Unknown action on "resourceId" field during diff inverse!', this, diff);
         }
@@ -288,17 +288,19 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return this._deleteMarker;
   }
 
-  remove(): void {
+  remove(force: boolean = false): void {
     const dependencies = this.getDependencies();
 
     // Verify resource can be removed.
-    const children = dependencies.filter((d) => d.isParentRelationship()).map((d) => d.to);
-    if (children.length > 0) {
-      throw new RemoveResourceError(
-        'Cannot remove resource until dependent nodes exist!',
-        this,
-        children as UnknownResource[],
-      );
+    if (!force) {
+      const children = dependencies.filter((d) => d.isParentRelationship()).map((d) => d.to);
+      if (children.length > 0) {
+        throw new RemoveResourceError(
+          'Cannot remove resource until dependent nodes exist!',
+          this,
+          children as UnknownResource[],
+        );
+      }
     }
 
     // Removing all dependencies that points to this.
