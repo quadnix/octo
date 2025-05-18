@@ -56,7 +56,7 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
           },
         ],
         cpu: String(properties.cpu),
-        family: properties.serverKey,
+        family: properties.family,
         memory: String(properties.memory),
         networkMode: 'awsvpc',
         requiresCompatibilities: ['FARGATE'],

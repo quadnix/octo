@@ -38,8 +38,8 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
         value.awsRegionId,
         String(value.cpu),
         value.deploymentTag,
+        value.family,
         String(value.memory),
-        value.serverKey,
       ],
       options: { minLength: 1 },
     },
@@ -59,9 +59,9 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
     cpu: number;
     deploymentTag: string;
     environmentVariables: EcsTaskDefinitionEnvironmentVariableSchema[];
+    family: string;
     image: EcsTaskDefinitionImageSchema;
     memory: number;
-    serverKey: string;
   }>();
 
   @Validate({
