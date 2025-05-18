@@ -14,9 +14,13 @@ import { EcsClusterAnchorSchema } from '../../../anchors/ecs-cluster/ecs-cluster
 import { EcsTaskDefinitionAnchorSchema } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.schema.js';
 import { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
 import { SecurityGroupAnchorRuleSchema } from '../../../anchors/security-group/security-group.anchor.schema.js';
+import {
+  AwsExecutionOverlayDeploymentContainerPropertiesSchema,
+  AwsExecutionOverlaySchema,
+} from './overlays/execution/aws-execution.schema.js';
 
 export { AwsExecutionSchema } from './models/execution/aws.execution.schema.js';
-export { AwsExecutionOverlaySchema } from './overlays/execution/aws-execution.schema.js';
+export { AwsExecutionOverlayDeploymentContainerPropertiesSchema, AwsExecutionOverlaySchema };
 export { ServerExecutionSecurityGroupOverlaySchema } from './overlays/server-execution-security-group/server-execution-security-group.overlay.schema.js';
 
 export class AwsExecutionModuleSchema {
@@ -27,6 +31,14 @@ export class AwsExecutionModuleSchema {
     },
   })
   deployment = Schema<Deployment>();
+
+  @Validate({
+    destruct: (
+      value: AwsExecutionOverlayDeploymentContainerPropertiesSchema,
+    ): AwsExecutionOverlayDeploymentContainerPropertiesSchema[] => (Object.keys(value).length > 0 ? [value] : []),
+    options: { isSchema: { schema: AwsExecutionOverlayDeploymentContainerPropertiesSchema } },
+  })
+  deploymentContainerProperties? = Schema<AwsExecutionOverlayDeploymentContainerPropertiesSchema>({});
 
   @Validate({ options: { minLength: 1 } })
   desiredCount = Schema<number>();

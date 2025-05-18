@@ -107,6 +107,7 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
     const executionOverlay = new AwsExecutionOverlay(
       executionOverlayId,
       {
+        deploymentContainerProperties: inputs.deploymentContainerProperties || {},
         deploymentTag: deployment.deploymentTag,
         environmentName: environment.environmentName,
         executionId: execution.executionId,

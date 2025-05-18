@@ -108,23 +108,27 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
 
     // Create ECS Task Definition.
     const ecsTaskDefinition = new EcsTaskDefinition(
-      `ecs-task-definition-${properties.regionId}-${properties.serverKey}-${properties.deploymentTag}`,
+      `ecs-task-definition-${properties.executionId}`,
       {
         awsAccountId,
         awsRegionId,
-        cpu: taskDefinitionAnchorProperties.cpu,
+        cpu: properties.deploymentContainerProperties.cpu || taskDefinitionAnchorProperties.cpu,
         deploymentTag: properties.deploymentTag,
         environmentVariables,
+        family: `${properties.environmentName}-${properties.subnetId}-${properties.serverKey}`,
         image: {
-          command: taskDefinitionAnchorProperties.image.command.split(' '),
-          ports: taskDefinitionAnchorProperties.image.ports.map((p) => ({
+          command: (
+            properties.deploymentContainerProperties.image?.command || taskDefinitionAnchorProperties.image.command
+          ).split(' '),
+          ports: (
+            properties.deploymentContainerProperties.image?.ports || taskDefinitionAnchorProperties.image.ports
+          ).map((p) => ({
             containerPort: p.containerPort,
             protocol: p.protocol,
           })),
           uri: taskDefinitionAnchorProperties.image.uri,
         },
-        memory: taskDefinitionAnchorProperties.memory,
-        serverKey: properties.serverKey,
+        memory: properties.deploymentContainerProperties.memory || taskDefinitionAnchorProperties.memory,
       },
       [matchingIamRoleResource, ...efsList],
     );

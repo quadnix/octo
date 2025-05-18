@@ -217,7 +217,7 @@ describe('AwsExecutionModule UT', () => {
       },
     );
     testModuleContainer.registerCapture<EcsTaskDefinitionSchema>(
-      '@octo/ecs-task-definition=ecs-task-definition-region-backend-v1',
+      '@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet',
       {
         revision: 1,
         taskDefinitionArn: 'taskDefinitionArn',
@@ -241,6 +241,7 @@ describe('AwsExecutionModule UT', () => {
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
         deployment: stub('${{testModule.model.deployment}}'),
+        deploymentContainerProperties: {},
         desiredCount: 1,
         environment: stub('${{testModule.model.environment}}'),
         subnet: stub('${{testModule.model.subnet}}'),
@@ -311,8 +312,8 @@ describe('AwsExecutionModule UT', () => {
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-region-backend-v1",
-           "value": "@octo/ecs-task-definition=ecs-task-definition-region-backend-v1",
+           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+           "value": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
          },
          {
            "action": "add",
@@ -329,7 +330,8 @@ describe('AwsExecutionModule UT', () => {
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
         deployment: stub('${{testModule.model.deployment}}'),
-        desiredCount: 2,
+        deploymentContainerProperties: { image: { command: 'npm start' } },
+        desiredCount: 1,
         environment: stub('${{testModule.model.environment}}'),
         subnet: stub('${{testModule.model.subnet}}'),
       },
@@ -340,6 +342,12 @@ describe('AwsExecutionModule UT', () => {
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
+         {
+           "action": "update",
+           "field": "resourceId",
+           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+           "value": "",
+         },
          {
            "action": "update",
            "field": "resourceId",
@@ -355,9 +363,8 @@ describe('AwsExecutionModule UT', () => {
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
         deployment: stub('${{testModule.model.deployment}}'),
-        desiredCount: 2,
+        desiredCount: 1,
         environment: stub('${{testModule.model.environment}}'),
-        filesystems: [stub('${{testModule.model.filesystem}}')],
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
@@ -370,7 +377,7 @@ describe('AwsExecutionModule UT', () => {
          {
            "action": "update",
            "field": "resourceId",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-region-backend-v1",
+           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
            "value": "",
          },
          {
@@ -385,6 +392,65 @@ describe('AwsExecutionModule UT', () => {
     `);
 
     const { app: app4 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsExecutionModule>({
+      inputs: {
+        deployment: stub('${{testModule.model.deployment}}'),
+        desiredCount: 2,
+        environment: stub('${{testModule.model.environment}}'),
+        subnet: stub('${{testModule.model.subnet}}'),
+      },
+      moduleId: 'execution',
+      type: AwsExecutionModule,
+    });
+    const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
+    expect(result4.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "resourceId",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+           "value": "",
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app5 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsExecutionModule>({
+      inputs: {
+        deployment: stub('${{testModule.model.deployment}}'),
+        desiredCount: 2,
+        environment: stub('${{testModule.model.environment}}'),
+        filesystems: [stub('${{testModule.model.filesystem}}')],
+        subnet: stub('${{testModule.model.subnet}}'),
+      },
+      moduleId: 'execution',
+      type: AwsExecutionModule,
+    });
+    const result5 = await testModuleContainer.commit(app5, { enableResourceCapture: true });
+    expect(result5.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "resourceId",
+           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+           "value": "",
+         },
+         {
+           "action": "update",
+           "field": "resourceId",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+           "value": "",
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app6 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
         deployment: stub('${{testModule.model.deployment}}'),
@@ -405,8 +471,8 @@ describe('AwsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsExecutionModule,
     });
-    const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
-    expect(result4.resourceDiffs).toMatchInlineSnapshot(`
+    const result6 = await testModuleContainer.commit(app6, { enableResourceCapture: true });
+    expect(result6.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -437,16 +503,16 @@ describe('AwsExecutionModule UT', () => {
      ]
     `);
 
-    const { app: app5 } = await setup(testModuleContainer);
-    const result5 = await testModuleContainer.commit(app5, { enableResourceCapture: true });
-    expect(result5.resourceDiffs).toMatchInlineSnapshot(`
+    const { app: app7 } = await setup(testModuleContainer);
+    const result7 = await testModuleContainer.commit(app7, { enableResourceCapture: true });
+    expect(result7.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-region-backend-v1",
-           "value": "@octo/ecs-task-definition=ecs-task-definition-region-backend-v1",
+           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+           "value": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
          },
          {
            "action": "delete",
