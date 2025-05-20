@@ -9,6 +9,7 @@ import {
   type IModelAction,
   MatchingResource,
   type Server,
+  SubnetType,
 } from '@quadnix/octo';
 import { EcsClusterSchema } from '../../../../../../resources/ecs-cluster/ecs-cluster.schema.js';
 import { EcsService } from '../../../../../../resources/ecs-service/index.js';
@@ -169,7 +170,7 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
     const ecsService = new EcsService(
       `ecs-service-${properties.executionId}`,
       {
-        assignPublicIp: 'ENABLED',
+        assignPublicIp: properties.subnetType === SubnetType.PUBLIC ? 'ENABLED' : 'DISABLED',
         awsAccountId,
         awsRegionId,
         desiredCount: ecsServiceAnchor.properties.desiredCount,

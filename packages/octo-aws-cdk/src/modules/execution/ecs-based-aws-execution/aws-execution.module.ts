@@ -114,6 +114,7 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
         regionId: region.regionId,
         serverKey: server.serverKey,
         subnetId: subnet.subnetId,
+        subnetType: subnet.subnetType,
       },
       [
         matchingIamRoleAnchor,

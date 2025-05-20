@@ -1,4 +1,4 @@
-import { BaseOverlaySchema, Schema, Validate } from '@quadnix/octo';
+import { BaseOverlaySchema, Schema, type SubnetType, Validate } from '@quadnix/octo';
 
 export class AwsExecutionOverlayDeploymentContainerPropertiesSchema {
   @Validate({ destruct: (value: number | null): number[] => (value ? [value] : []), options: { minLength: 1 } })
@@ -52,6 +52,7 @@ export class AwsExecutionOverlaySchema extends BaseOverlaySchema {
         value.regionId,
         value.serverKey,
         value.subnetId,
+        value.subnetType,
       ],
       options: { minLength: 1 },
     },
@@ -64,5 +65,6 @@ export class AwsExecutionOverlaySchema extends BaseOverlaySchema {
     regionId: string;
     serverKey: string;
     subnetId: string;
+    subnetType: SubnetType;
   }>();
 }
