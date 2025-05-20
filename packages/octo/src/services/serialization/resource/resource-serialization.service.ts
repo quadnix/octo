@@ -51,10 +51,8 @@ export class ResourceSerializationService {
       return seen[context];
     };
 
-    const deserializeResource = async (context: string, isSharedResource: boolean): Promise<UnknownResource> => {
-      const { className, resource } = isSharedResource
-        ? serializedOutput.sharedResources[context]
-        : serializedOutput.resources[context];
+    const deserializeResource = async (context: string): Promise<UnknownResource> => {
+      const { className, resource } = serializedOutput.resources[context];
       const deserializationClass = this.classMapping[className];
 
       const deserializedResource = await deserializationClass.unSynth(
@@ -76,16 +74,9 @@ export class ResourceSerializationService {
     // Deserialize all serialized resources.
     const promiseToDeserializeResources: Promise<UnknownResource>[] = [];
     for (const context of Object.keys(serializedOutput.resources)) {
-      promiseToDeserializeResources.push(deserializeResource(context, false));
+      promiseToDeserializeResources.push(deserializeResource(context));
     }
     await Promise.all(promiseToDeserializeResources);
-
-    // Deserialize all serialized shared-resources.
-    const promiseToDeserializeSharedResources: Promise<UnknownResource>[] = [];
-    for (const context of Object.keys(serializedOutput.sharedResources)) {
-      promiseToDeserializeSharedResources.push(deserializeResource(context, true));
-    }
-    await Promise.all(promiseToDeserializeSharedResources);
 
     if (freeze) {
       for (const resource of Object.values(seen)) {
@@ -124,7 +115,6 @@ export class ResourceSerializationService {
   private async serialize(resources: UnknownResource[]): Promise<ResourceSerializedOutput> {
     const dependencies: IDependency[] = [];
     const serializedResources: ResourceSerializedOutput['resources'] = {};
-    const sharedSerializedResources: ResourceSerializedOutput['sharedResources'] = {};
 
     for (const resource of resources.sort((a, b) => a.getContext().localeCompare(b.getContext()))) {
       // Skip serializing resources marked as deleted.
@@ -138,20 +128,13 @@ export class ResourceSerializationService {
         .sort((a, b) => (a.from + a.to > b.from + b.to ? 1 : b.from + b.to > a.from + a.to ? -1 : 0));
       dependencies.push(...resourceDependencies);
 
-      if ((resource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
-        sharedSerializedResources[resource.getContext()] = {
-          className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
-          resource: resource.synth(),
-        };
-      } else {
-        serializedResources[resource.getContext()] = {
-          className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
-          resource: resource.synth(),
-        };
-      }
+      serializedResources[resource.getContext()] = {
+        className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
+        resource: resource.synth(),
+      };
     }
 
-    return { dependencies, resources: serializedResources, sharedResources: sharedSerializedResources };
+    return { dependencies, resources: serializedResources };
   }
 
   @EventSource(ActualResourceSerializedEvent)

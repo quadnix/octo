@@ -11,7 +11,6 @@ import type { BaseOverlaySchema } from './overlays/overlay.schema.js';
 import type { IResourceAction } from './resources/resource-action.interface.js';
 import type { AResource } from './resources/resource.abstract.js';
 import type { BaseResourceSchema } from './resources/resource.schema.js';
-import type { ASharedResource } from './resources/shared-resource.abstract.js';
 import type { ValidationUtility } from './utilities/validation/validation.utility.js';
 
 /* Classes */
@@ -91,7 +90,6 @@ export enum NodeType {
   MODEL = 'model',
   OVERLAY = 'overlay',
   RESOURCE = 'resource',
-  SHARED_RESOURCE = 'shared-resource',
 }
 
 export enum ValidationType {
@@ -140,7 +138,6 @@ export type ModelSerializedOutput = {
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
   resources: { [p: string]: { className: string; resource: BaseResourceSchema } };
-  sharedResources: { [p: string]: { className: string; resource: BaseResourceSchema } };
 };
 export type TransactionOptions = {
   enableResourceCapture?: boolean;
@@ -180,4 +177,3 @@ export type UnknownModule = AModule<unknown, any>;
 export type UnknownNode = ANode<unknown, unknown>;
 export type UnknownOverlay = AOverlay<BaseOverlaySchema, any>;
 export type UnknownResource = AResource<any, any>;
-export type UnknownSharedResource = ASharedResource<any, any>;

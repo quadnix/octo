@@ -8,7 +8,6 @@ import {
   type UnknownModel,
   type UnknownOverlay,
   type UnknownResource,
-  type UnknownSharedResource,
 } from '../../app.type.js';
 import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
@@ -119,13 +118,10 @@ export class TransactionService {
 
           // Apply all actions on the diff, then update diff metadata with inputs and outputs.
           const outputs = await a.handle(diffToProcess, inputs, {});
-          // Add new resources, except for shared resources, which can be merged if it exists.
           for (const resource of Object.values(outputs)) {
             const previousResource = this.resourceDataRepository.getNewResourceByContext(resource.getContext());
-            if ((resource.constructor as typeof AResource).NODE_TYPE === 'shared-resource' && previousResource) {
-              this.resourceDataRepository.addNewResource(
-                (resource as UnknownSharedResource).merge(previousResource as UnknownSharedResource),
-              );
+            if (previousResource) {
+              resource.merge(previousResource);
             } else {
               this.resourceDataRepository.addNewResource(resource);
             }

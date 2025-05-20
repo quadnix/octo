@@ -1,9 +1,8 @@
-import { type Constructable, NodeType, type UnknownResource, type UnknownSharedResource } from '../../app.type.js';
+import { type Constructable, NodeType, type UnknownResource } from '../../app.type.js';
 import { Container } from '../../functions/container/container.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
-import { ASharedResource } from '../../resources/shared-resource.abstract.js';
 import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
 
 function createResource(nodeName: string): Constructable<AResource<any, any>> {
@@ -23,27 +22,10 @@ function createResource(nodeName: string): Constructable<AResource<any, any>> {
   };
 }
 
-function createSharedResource(nodeName: string): Constructable<ASharedResource<any, any>> {
-  return class extends ASharedResource<BaseResourceSchema, any> {
-    static override readonly NODE_NAME: string = nodeName;
-    static override readonly NODE_PACKAGE: string = '@octo';
-    static override readonly NODE_SCHEMA = {};
-    static override readonly NODE_TYPE: NodeType = NodeType.SHARED_RESOURCE;
-
-    constructor(
-      resourceId: string,
-      properties: BaseResourceSchema['properties'] = {},
-      parents: UnknownResource[] = [],
-    ) {
-      super(resourceId, properties, parents);
-    }
-  };
-}
-
 export async function createResources(
-  args: (UnknownResource | UnknownSharedResource)[],
+  args: UnknownResource[],
   options?: { save?: boolean },
-): Promise<{ [key: string]: UnknownResource | UnknownSharedResource }> {
+): Promise<{ [key: string]: UnknownResource }> {
   const container = Container.getInstance();
   const [resourceDataRepository, resourceSerializationService] = await Promise.all([
     container.get(ResourceDataRepository),
@@ -54,7 +36,7 @@ export async function createResources(
     return this.resourceDataRepository.getActualResourceByContext(context)!;
   };
 
-  const resources: { [key: string]: UnknownResource | UnknownSharedResource } = {};
+  const resources: { [key: string]: UnknownResource } = {};
   for (const resource of args) {
     resourceDataRepository.addNewResource(resource);
     if (options?.save) {
@@ -79,14 +61,13 @@ export async function createResources(
 
 export async function createTestResources(
   args: {
-    NODE_TYPE?: NodeType;
     parents?: string[] | UnknownResource[];
     properties?: { [key: string]: unknown };
     resourceContext: string;
     response?: { [key: string]: unknown };
   }[],
   options?: { save?: boolean },
-): Promise<{ [key: string]: UnknownResource | UnknownSharedResource }> {
+): Promise<{ [key: string]: UnknownResource }> {
   const container = Container.getInstance();
   const [resourceDataRepository, resourceSerializationService] = await Promise.all([
     container.get(ResourceDataRepository),
@@ -101,7 +82,7 @@ export async function createTestResources(
   };
 
   return args.reduce(async (accumulator: Promise<{ [key: string]: UnknownResource }>, arg) => {
-    const { NODE_TYPE, parents, properties, resourceContext, response } = arg;
+    const { parents, properties, resourceContext, response } = arg;
     const [resourceMeta, resourceId] = resourceContext.split('=');
     const [, NODE_NAME] = resourceMeta.split('/');
 
@@ -128,10 +109,7 @@ export async function createTestResources(
       }),
     );
 
-    const Resource =
-      (NODE_TYPE || NodeType.RESOURCE) === NodeType.RESOURCE
-        ? createResource(NODE_NAME)
-        : createSharedResource(NODE_NAME);
+    const Resource = createResource(NODE_NAME);
     Object.defineProperty(Resource, 'name', { value: NODE_NAME });
     const resource = new Resource(resourceId, {}, parentsResolved);
     if (properties) {

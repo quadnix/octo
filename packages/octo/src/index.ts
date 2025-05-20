@@ -59,7 +59,6 @@ export { BaseOverlaySchema } from './overlays/overlay.schema.js';
 export { AResource } from './resources/resource.abstract.js';
 export { BaseResourceSchema } from './resources/resource.schema.js';
 export { type IResourceAction } from './resources/resource-action.interface.js';
-export { ASharedResource } from './resources/shared-resource.abstract.js';
 
 export { LocalStateProvider } from './services/state-management/local.state-provider.js';
 export { StateManagementService } from './services/state-management/state-management.service.js';

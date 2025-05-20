@@ -32,7 +32,6 @@ function isResource(nodeClass: Constructable<UnknownNode>): nodeClass is Constru
  * - A NodeType.MODEL action must implement the {@link IModelAction} interface.
  * - A NodeType.OVERLAY action must implement the {@link IModelAction} interface.
  * - A NodeType.RESOURCE action must implement the {@link IResourceAction} interface.
- * - A NodeType.SHARED_RESOURCE action must implement the {@link IResourceAction} interface.
  *
  * @example
  * ```ts

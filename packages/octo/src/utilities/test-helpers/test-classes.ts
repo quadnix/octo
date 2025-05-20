@@ -10,18 +10,6 @@ import { AOverlay } from '../../overlays/overlay.abstract.js';
 import type { BaseOverlaySchema } from '../../overlays/overlay.schema.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
-import { ASharedResource } from '../../resources/shared-resource.abstract.js';
-
-export class SharedTestResource extends ASharedResource<BaseResourceSchema, TestResource> {
-  static override readonly NODE_NAME: string = 'test-resource';
-  static override readonly NODE_PACKAGE: string = '@octo';
-  static override readonly NODE_SCHEMA = {};
-  static override readonly NODE_TYPE: NodeType = NodeType.SHARED_RESOURCE;
-
-  constructor(resourceId: string, properties: { [key: string]: unknown }, parents: TestResource[]) {
-    super(resourceId, properties, parents as AResource<BaseResourceSchema, TestResource>[]);
-  }
-}
 
 export class TestAction {}
 

@@ -44,7 +44,6 @@ export class StateManagementService {
       data: {
         dependencies: [],
         resources: {},
-        sharedResources: {},
       },
       userData: {},
     };

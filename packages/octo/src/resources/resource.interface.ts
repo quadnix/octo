@@ -1,8 +1,8 @@
 import type { UnknownResource } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
 import type { INode, INodeReference } from '../functions/node/node.interface.js';
+import type { AResource } from './resource.abstract.js';
 import type { BaseResourceSchema } from './resource.schema.js';
-import type { ASharedResource } from './shared-resource.abstract.js';
 
 export interface IResource<S extends BaseResourceSchema, T extends UnknownResource> extends INode<S, T> {
   clonePropertiesInPlace(sourceResource: T): void;
@@ -18,8 +18,6 @@ export interface IResource<S extends BaseResourceSchema, T extends UnknownResour
 
   findParentsByProperty(filters: { key: string; value: unknown }[]): UnknownResource[];
 
-  getSharedResource(): ASharedResource<S, T> | undefined;
-
   isDeepEquals(other?: UnknownResource): boolean;
 
   /**
@@ -27,6 +25,8 @@ export interface IResource<S extends BaseResourceSchema, T extends UnknownResour
    * A deleted node will be removed from the graph after the transaction.
    */
   isMarkedDeleted(): boolean;
+
+  merge(previous: AResource<S, T>): AResource<S, T>;
 
   /**
    * To mark self as deleted.

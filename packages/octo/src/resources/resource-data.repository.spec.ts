@@ -1,5 +1,4 @@
 import { jest } from '@jest/globals';
-import { NodeType } from '../app.type.js';
 import { commitResources } from '../utilities/test-helpers/test-models.js';
 import { createTestResources } from '../utilities/test-helpers/test-resources.js';
 import type { Container } from '../functions/container/container.js';
@@ -45,26 +44,36 @@ describe('ResourceDataRepository UT', () => {
       `);
     });
 
-    it('should produce diff of a resource associated with a shared resource using the diff()', async () => {
+    it('should produce an add diff of a resource associated with another resource', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+      await createTestResources([
         {
           resourceContext: '@octo/test-resource=resource-1',
         },
         {
-          NODE_TYPE: NodeType.SHARED_RESOURCE,
           parents: ['@octo/test-resource=resource-1'],
-          resourceContext: '@octo/test-resource=shared-resource-1',
+          resourceContext: '@octo/test-resource=resource-2',
         },
       ]);
 
-      const diffOverrideSpy = jest.spyOn(resource1, 'diff');
-      await resourceDataRepository.diff();
-
-      expect(diffOverrideSpy).toHaveBeenCalledTimes(1);
-      expect(diffOverrideSpy.mock.calls[0]).toHaveLength(1);
-      expect((diffOverrideSpy.mock.calls[0] as any)[0].resourceId).toBe('shared-resource-1');
+      const diffs = await resourceDataRepository.diff();
+      expect(diffs).toMatchInlineSnapshot(`
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/test-resource=resource-1",
+           "value": "@octo/test-resource=resource-1",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/test-resource=resource-2",
+           "value": "@octo/test-resource=resource-2",
+         },
+       ]
+      `);
     });
 
     it('should produce a delete diff', async () => {

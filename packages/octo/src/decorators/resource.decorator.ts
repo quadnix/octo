@@ -1,6 +1,5 @@
 import { type Constructable, NodeType, type ResourceSchema, type UnknownResource } from '../app.type.js';
 import { AResource } from '../resources/resource.abstract.js';
-import { ASharedResource } from '../resources/shared-resource.abstract.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
 import { Container } from '../functions/container/container.js';
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
@@ -32,15 +31,14 @@ export function Resource<T extends UnknownResource>(
     if (!ValidationUtility.validateRegex(resourceName, /^[A-Za-z][\w-]+[A-Za-z]$/)) {
       throw new Error(`Invalid resource name: ${resourceName}`);
     }
-    if (!(constructor.prototype instanceof AResource) && !(constructor.prototype instanceof ASharedResource)) {
-      throw new Error(`Class "${constructor.name}" must extend the AResource or ASharedResource class!`);
+    if (!(constructor.prototype instanceof AResource)) {
+      throw new Error(`Class "${constructor.name}" must extend the AResource class!`);
     }
 
     constructor.NODE_NAME = resourceName;
     constructor.NODE_PACKAGE = packageName;
     constructor.NODE_SCHEMA = schema;
-    constructor.NODE_TYPE =
-      constructor.prototype instanceof ASharedResource ? NodeType.SHARED_RESOURCE : NodeType.RESOURCE;
+    constructor.NODE_TYPE = NodeType.RESOURCE;
 
     const promise = container.get(ResourceSerializationService).then((resourceSerializationService) => {
       resourceSerializationService.registerClass(`${packageName}/${constructor.name}`, constructor);

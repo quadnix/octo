@@ -120,8 +120,7 @@ export class OverlayRegistrationEvent extends RegistrationEvent {
 }
 
 /**
- * This event is emitted when a class with `@Action(ResourceClass)` or `@Action(SharedResourceClass)`
- * decorator is registered.
+ * This event is emitted when a class with `@Action(ResourceClass)` decorator is registered.
  * It emits the name of the resource class and the name of the action.
  *
  * @group Events

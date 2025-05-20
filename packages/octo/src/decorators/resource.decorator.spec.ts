@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { SharedTestResource, TestOverlay, TestResource } from '../utilities/test-helpers/test-classes.js';
+import { TestOverlay, TestResource } from '../utilities/test-helpers/test-classes.js';
 import { NodeType } from '../app.type.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
@@ -23,10 +23,6 @@ describe('Resource UT', () => {
             },
           },
           {
-            type: SharedTestResource,
-            value: new SharedTestResource('resourceId', {}, []),
-          },
-          {
             type: TestResource,
             value: new TestResource('resourceId', {}, []),
           },
@@ -39,14 +35,6 @@ describe('Resource UT', () => {
   });
 
   afterEach(async () => {
-    // @ts-expect-error static members are readonly.
-    SharedTestResource['NODE_NAME'] = undefined;
-    // @ts-expect-error static members are readonly.
-    SharedTestResource['NODE_PACKAGE'] = undefined;
-    // @ts-expect-error static members are readonly.
-    SharedTestResource['NODE_SCHEMA'] = undefined;
-    // @ts-expect-error static members are readonly.
-    SharedTestResource['NODE_TYPE'] = undefined;
     // @ts-expect-error static members are readonly.
     TestResource['NODE_NAME'] = undefined;
     // @ts-expect-error static members are readonly.
@@ -71,10 +59,10 @@ describe('Resource UT', () => {
     }).toThrowErrorMatchingInlineSnapshot(`"Invalid resource name: $$"`);
   });
 
-  it('should throw error when resource class does not extend AResource or ASharedResource', () => {
+  it('should throw error when resource class does not extend AResource', () => {
     expect(() => {
       Resource<TestResource>('@octo', 'test', TestResourceSchema)(TestOverlay);
-    }).toThrowErrorMatchingInlineSnapshot(`"Class "TestOverlay" must extend the AResource or ASharedResource class!"`);
+    }).toThrowErrorMatchingInlineSnapshot(`"Class "TestOverlay" must extend the AResource class!"`);
   });
 
   it('should throw error when registration fails', async () => {
@@ -107,31 +95,6 @@ describe('Resource UT', () => {
 
     it('should register a resource', async () => {
       Resource<TestResource>('@octo', 'test', TestResourceSchema)(TestResource);
-
-      await container.waitToResolveAllFactories();
-
-      const resourceSerializationService = await container.get(ResourceSerializationService);
-      expect(resourceSerializationService.registerClass).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('when a shared-resource is decorated', () => {
-    it('should set static members', async () => {
-      expect(SharedTestResource.NODE_NAME).toBeUndefined();
-      expect(SharedTestResource.NODE_PACKAGE).toBeUndefined();
-      expect(SharedTestResource.NODE_SCHEMA).toBeUndefined();
-      expect(SharedTestResource.NODE_TYPE).toBeUndefined();
-
-      Resource<TestResource>('@octo', 'test', TestResourceSchema)(SharedTestResource);
-
-      expect(SharedTestResource.NODE_NAME).toEqual('test');
-      expect(SharedTestResource.NODE_PACKAGE).toEqual('@octo');
-      expect(SharedTestResource.NODE_SCHEMA).toEqual(TestResourceSchema);
-      expect(SharedTestResource.NODE_TYPE).toEqual(NodeType.SHARED_RESOURCE);
-    });
-
-    it('should register a shared-resource', async () => {
-      Resource<TestResource>('@octo', 'test', TestResourceSchema)(SharedTestResource);
 
       await container.waitToResolveAllFactories();
 

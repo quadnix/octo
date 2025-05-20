@@ -26,10 +26,7 @@ export class ResourceDataRepository {
   }
 
   addActualResource(resource: UnknownResource): void {
-    if (
-      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE &&
-      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.SHARED_RESOURCE
-    ) {
+    if ((resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE) {
       throw new ResourceError('Adding non-resource node!', resource);
     }
 
@@ -43,10 +40,7 @@ export class ResourceDataRepository {
   }
 
   addNewResource(resource: UnknownResource): void {
-    if (
-      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE &&
-      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.SHARED_RESOURCE
-    ) {
+    if ((resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE) {
       throw new ResourceError('Adding non-resource node!', resource);
     }
 
@@ -104,24 +98,8 @@ export class ResourceDataRepository {
       }
 
       const newResource = newResources[newResourceContext];
-
-      // A shared resource is being added, but shared resources don't have diffs.
-      if ((newResource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
-        continue;
-      }
-
-      const sharedResource = newResource.getSharedResource();
-      if (sharedResource !== undefined) {
-        // If a new resource is being added, and it has a shared resource,
-        // we expect the resource to override diff() and diff against the shared resource.
-        // The custom diff() would decide diff actions.
-        const rDiff = await newResource.diff(sharedResource);
-        diffs.push(...rDiff.map((d) => newResource.diffUnpack(d)).flat());
-      } else {
-        // The resource is a normal resource, and just needs to be added.
-        const rDiff = new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext);
-        diffs.push(...newResource.diffUnpack(rDiff));
-      }
+      const rDiff = new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext);
+      diffs.push(...newResource.diffUnpack(rDiff));
     }
 
     return diffs;
@@ -171,24 +149,8 @@ export class ResourceDataRepository {
       }
 
       const newResource = newResources[newResourceContext];
-
-      // A shared resource is being added, but shared resources don't have diffs.
-      if ((newResource.constructor as typeof AResource).NODE_TYPE === 'shared-resource') {
-        continue;
-      }
-
-      const sharedResource = newResource.getSharedResource();
-      if (sharedResource !== undefined) {
-        // If a new resource is being added, and it has a shared resource,
-        // we expect the resource to override diff() and diff against the shared resource.
-        // The custom diff() would decide diff actions.
-        const rDiff = await newResource.diff(sharedResource);
-        diffs.push(...rDiff.map((d) => newResource.diffUnpack(d)).flat());
-      } else {
-        // The resource is a normal resource, and just needs to be added.
-        const rDiff = new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext);
-        diffs.push(...newResource.diffUnpack(rDiff));
-      }
+      const rDiff = new Diff(newResource, DiffAction.ADD, 'resourceId', newResourceContext);
+      diffs.push(...newResource.diffUnpack(rDiff));
     }
 
     return diffs;
@@ -221,10 +183,7 @@ export class ResourceDataRepository {
   }
 
   removeNewResource(resource: UnknownResource): void {
-    if (
-      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE &&
-      (resource.constructor as typeof AResource).NODE_TYPE !== NodeType.SHARED_RESOURCE
-    ) {
+    if ((resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE) {
       throw new ResourceError('Removing non-resource node!', resource);
     }
 

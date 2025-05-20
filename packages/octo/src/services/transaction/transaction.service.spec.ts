@@ -15,7 +15,6 @@ import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import {
-  SharedTestResource,
   TestAnchor,
   TestAppModule,
   TestOverlay,
@@ -53,7 +52,6 @@ describe('TransactionService UT', () => {
       ]);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
     resourceSerializationService.registerClass('@octo/TestResource', TestResource);
     container.unRegisterFactory(ResourceSerializationService);
     container.registerValue(ResourceSerializationService, resourceSerializationService);
@@ -254,6 +252,36 @@ describe('TransactionService UT', () => {
       expect((universalModelAction.handle as jest.Mock).mock.calls).toMatchSnapshot();
     });
 
+    it('should merge resources with same context', async () => {
+      const resource1_1 = new TestResource('resource1');
+      const resource1_2 = new TestResource('resource1');
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({
+        resource1: resource1_1,
+      });
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({
+        resource1: resource1_2,
+      });
+      const mergeFunction1_1 = jest.spyOn(resource1_1, 'merge');
+      const mergeFunction1_2 = jest.spyOn(resource1_2, 'merge');
+
+      const { 'moduleId.model.app': app } = await testModuleContainer.runModule<TestAppModule>({
+        inputs: { name: 'app' },
+        moduleId: 'moduleId',
+        type: TestAppModule,
+      });
+
+      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
+      const diffMetadata = new DiffMetadata(diff, [universalModelAction, universalModelAction]);
+      diffMetadata.applyOrder = 0;
+
+      await applyModels([diffMetadata]);
+
+      expect(universalModelAction.handle).toHaveBeenCalledTimes(2);
+      expect((universalModelAction.handle as jest.Mock).mock.calls).toMatchSnapshot();
+      expect(mergeFunction1_1).not.toHaveBeenCalled();
+      expect(mergeFunction1_2).toHaveBeenCalledTimes(1);
+    });
+
     it('should process diffs in different levels', async () => {
       (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
@@ -273,50 +301,6 @@ describe('TransactionService UT', () => {
       const result = await applyModels([diffMetadata1, diffMetadata2]);
 
       expect(result).toMatchSnapshot();
-    });
-
-    it('should add the shared-resource to set of resources if it does not exist', async () => {
-      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({
-        resource1: new SharedTestResource('shared-resource', { key1: 'value-1' }, []),
-      });
-
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule<TestAppModule>({
-        inputs: { name: 'app' },
-        moduleId: 'moduleId',
-        type: TestAppModule,
-      });
-
-      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
-      const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
-      diffMetadata.applyOrder = 0;
-
-      await applyModels([diffMetadata]);
-
-      expect(diffMetadata.outputs['resource1'].resourceId).toBe('shared-resource');
-    });
-
-    it('should merge the shared-resource with existing set of resources', async () => {
-      const [sharedResource1] = await createTestResources({}, { 'shared-resource': [] });
-      sharedResource1.properties['key1'] = 'value-1';
-
-      const sharedResource2 = new SharedTestResource('shared-resource', { key2: 'value-2' }, []);
-      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ 'shared-resource': sharedResource2 });
-      const mergeFunction = jest.spyOn(sharedResource2 as SharedTestResource, 'merge');
-
-      const { 'moduleId.model.app': app } = await testModuleContainer.runModule<TestAppModule>({
-        inputs: { name: 'app' },
-        moduleId: 'moduleId',
-        type: TestAppModule,
-      });
-
-      const diff = new Diff(app, DiffAction.ADD, 'name', 'app');
-      const diffMetadata = new DiffMetadata(diff, [universalModelAction]);
-      diffMetadata.applyOrder = 0;
-
-      await applyModels([diffMetadata]);
-
-      expect(mergeFunction).toHaveBeenCalledTimes(1);
-      expect(diffMetadata.outputs['shared-resource'].properties).toEqual({ key1: 'value-1', key2: 'value-2' });
     });
   });
 

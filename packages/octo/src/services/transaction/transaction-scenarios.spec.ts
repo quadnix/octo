@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { SharedTestResource, TestResource } from '../../utilities/test-helpers/test-classes.js';
+import { TestResource } from '../../utilities/test-helpers/test-classes.js';
 import { commitResources, createTestResources } from '../../utilities/test-helpers/test-models.js';
 import type { UnknownResource } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
@@ -37,7 +37,6 @@ describe('Transaction Scenarios UT', () => {
       ]);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
     resourceSerializationService.registerClass('@octo/TestResource', TestResource);
     container.unRegisterFactory(ResourceSerializationService);
     container.registerValue(ResourceSerializationService, resourceSerializationService);

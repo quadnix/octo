@@ -87,6 +87,65 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
 ]
 `;
 
+exports[`TransactionService UT applyModels() should merge resources with same context 1`] = `
+[
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "node": "app=app",
+      "value": "app",
+    },
+    {
+      "inputs": {
+        "name": "app",
+      },
+      "metadata": {},
+      "models": {
+        "app": {
+          "context": "app=app",
+          "name": "app",
+        },
+      },
+      "overlays": {},
+      "resources": {},
+    },
+    {},
+  ],
+  [
+    {
+      "action": "add",
+      "field": "name",
+      "node": "app=app",
+      "value": "app",
+    },
+    {
+      "inputs": {
+        "name": "app",
+      },
+      "metadata": {},
+      "models": {
+        "app": {
+          "context": "app=app",
+          "name": "app",
+        },
+      },
+      "overlays": {},
+      "resources": {
+        "resource1": {
+          "context": "@octo/test-resource=resource1",
+          "parents": [],
+          "properties": {},
+          "resourceId": "resource1",
+          "response": {},
+        },
+      },
+    },
+    {},
+  ],
+]
+`;
+
 exports[`TransactionService UT applyModels() should only process 1 matching diff when duplicates found 1`] = `
 [
   [

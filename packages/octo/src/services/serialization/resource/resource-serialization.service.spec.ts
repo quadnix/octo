@@ -1,4 +1,4 @@
-import { SharedTestResource, TestResource } from '../../../utilities/test-helpers/test-classes.js';
+import { TestResource } from '../../../utilities/test-helpers/test-classes.js';
 import { commitResources, createTestResources } from '../../../utilities/test-helpers/test-models.js';
 import type { ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
 import type { Container } from '../../../functions/container/container.js';
@@ -15,7 +15,6 @@ describe('Resource Serialization Service UT', () => {
     const resourceDataRepository = await container.get(ResourceDataRepository);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    resourceSerializationService.registerClass('@octo/SharedTestResource', SharedTestResource);
     resourceSerializationService.registerClass('@octo/TestResource', TestResource);
     container.unRegisterFactory(ResourceSerializationService);
     container.registerValue(ResourceSerializationService, resourceSerializationService);
@@ -42,7 +41,6 @@ describe('Resource Serialization Service UT', () => {
             },
           },
         },
-        sharedResources: {},
       };
 
       await expect(async () => {
@@ -78,10 +76,10 @@ describe('Resource Serialization Service UT', () => {
       expect(resourceDataRepository['oldResources']).toMatchSnapshot();
     });
 
-    it('should deserialize a single shared resource', async () => {
+    it('should deserialize multiple resources', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [] }, { 'resource-2': ['resource-1'] });
+      const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
 
@@ -142,10 +140,11 @@ describe('Resource Serialization Service UT', () => {
     it('should have exact same dependencies on deserialized object as original object', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1, resource2] = await createTestResources(
-        { 'resource-1': [], 'resource-2': ['resource-1'] },
-        { 'resource-3': ['resource-1'] },
-      );
+      const [resource1, resource2] = await createTestResources({
+        'resource-1': [],
+        'resource-2': ['resource-1'],
+        'resource-3': ['resource-1'],
+      });
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
       resource2.properties['key2'] = 'value2';
@@ -245,8 +244,8 @@ describe('Resource Serialization Service UT', () => {
       expect(await service.serializeNewResources()).toMatchSnapshot();
     });
 
-    it('should serialize shared resources', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [] }, { 'resource-2': ['resource-1'] });
+    it('should serialize multiple resources', async () => {
+      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
       resource2.properties['key2'] = 'value2';

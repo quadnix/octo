@@ -80,7 +80,6 @@ describe('LocalStateProvider UT', () => {
        {
          "dependencies": [],
          "resources": {},
-         "sharedResources": {},
        }
       `);
       expect(userData).toMatchInlineSnapshot(`{}`);

@@ -1,4 +1,4 @@
-import { MatchingResource, NodeType, type UnknownResource } from '../app.type.js';
+import { MatchingResource, type UnknownResource } from '../app.type.js';
 import { DiffInverseResourceError, RemoveResourceError, ResourceError } from '../errors/index.js';
 import { type Dependency, DependencyRelationship } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
@@ -6,7 +6,6 @@ import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
 import type { IResource, IResourceReference } from './resource.interface.js';
 import type { BaseResourceSchema } from './resource.schema.js';
-import type { ASharedResource } from './shared-resource.abstract.js';
 
 export abstract class AResource<S extends BaseResourceSchema, T extends UnknownResource>
   extends ANode<S, T>
@@ -139,8 +138,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
   }
 
-  // @ts-expect-error since this overridden diff() is always called with previous.
-  override async diff(previous: T | ASharedResource<S, T>): Promise<Diff[]> {
+  override async diff(previous: T): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     const propertyDiffs = await this.diffProperties(previous);
@@ -218,7 +216,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
   }
 
-  override async diffProperties(previous: T | ASharedResource<S, T>): Promise<Diff[]> {
+  override async diffProperties(previous: T): Promise<Diff[]> {
     return DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
   }
 
@@ -243,14 +241,6 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
    */
   override getBoundaryMembers(): UnknownResource[] {
     throw new ResourceError('Boundary is not supported in resources!', this);
-  }
-
-  getSharedResource(): ASharedResource<S, T> | undefined {
-    const sameNodeDependencies = this.getChildren()[(this.constructor as typeof AResource).NODE_NAME];
-    const sharedResourceDependency = sameNodeDependencies?.find(
-      (d) => (d.to.constructor as typeof AResource).NODE_TYPE === NodeType.SHARED_RESOURCE,
-    );
-    return sharedResourceDependency?.to as ASharedResource<S, T>;
   }
 
   /**
@@ -289,6 +279,33 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
   isMarkedDeleted(): boolean {
     return this._deleteMarker;
+  }
+
+  merge(previous: AResource<S, T>): AResource<S, T> {
+    const currentDependencies = Object.values(this.getParents()).flat();
+    const previousDependencies = Object.values(previous.getParents()).flat();
+
+    for (const key in this.properties) {
+      if (this.properties.hasOwnProperty(key) && !(key in previous.properties)) {
+        previous.properties[key] = this.properties[key];
+      }
+    }
+
+    for (const key in this.response) {
+      if (this.response.hasOwnProperty(key) && !(key in previous.response)) {
+        previous.response[key] = this.response[key];
+      }
+    }
+
+    const currentParentsNotInPreviousResource = currentDependencies
+      .filter((cd) => !previousDependencies.find((pd) => pd.isEqual(cd)))
+      .map((cd) => cd.to);
+    for (const parent of currentParentsNotInPreviousResource) {
+      parent.addChild('resourceId', previous, 'resourceId');
+    }
+
+    Object.assign(this, previous);
+    return previous;
   }
 
   remove(force: boolean = false): void {

@@ -20,7 +20,7 @@ import { AResource } from '../../resources/resource.abstract.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
 import { NodeUtility } from '../node/node.utility.js';
-import { SharedTestResource, TestOverlay, TestResource } from './test-classes.js';
+import { TestOverlay, TestResource } from './test-classes.js';
 
 export async function commit<T extends UnknownModel>(model: T): Promise<T> {
   const modelSerializationService = await Container.getInstance().get(ModelSerializationService);
@@ -301,10 +301,9 @@ export async function createTestOverlays(overlays: { [key: string]: UnknownAncho
   return result;
 }
 
-export async function createTestResources(
-  resources: { [key: string]: (UnknownResource | string)[] },
-  sharedResources: { [key: string]: (UnknownResource | string)[] } = {},
-): Promise<UnknownResource[]> {
+export async function createTestResources(resources: {
+  [key: string]: (UnknownResource | string)[];
+}): Promise<UnknownResource[]> {
   const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
   const result: UnknownResource[] = [];
 
@@ -316,19 +315,6 @@ export async function createTestResources(
       return p;
     });
     const resource = new TestResource(resourceId, {}, parents);
-    resourceDataRepository.addNewResource(resource);
-
-    result.push(resource);
-  }
-
-  for (const [resourceId, parentEntries] of Object.entries(sharedResources)) {
-    const parents = parentEntries.map((p) => {
-      if (typeof p === 'string') {
-        return result.find((r) => r.resourceId === p)!;
-      }
-      return p;
-    });
-    const resource = new SharedTestResource(resourceId, {}, parents);
     resourceDataRepository.addNewResource(resource);
 
     result.push(resource);
