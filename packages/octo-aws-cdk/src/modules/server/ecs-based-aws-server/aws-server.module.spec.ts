@@ -320,6 +320,22 @@ describe('AwsServerModule UT', () => {
            "node": "@octo/iam-role=iam-role-ServerRole-backend",
            "value": "@octo/iam-role=iam-role-ServerRole-backend",
          },
+         {
+           "action": "update",
+           "field": "update-permissions",
+           "node": "@octo/s3-storage=bucket-test-bucket",
+           "value": {
+             "uploads": {
+               "iam-role-ServerRole-backend": "deleteDirectoryPermissions",
+             },
+           },
+         },
+         {
+           "action": "delete",
+           "field": "parent",
+           "node": "@octo/s3-storage=bucket-test-bucket",
+           "value": "@octo/iam-role=iam-role-ServerRole-backend",
+         },
        ],
        [],
      ]
