@@ -1,9 +1,10 @@
 import { unlink } from 'fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { create, createTestResources } from '../../utilities/test-helpers/test-models.js';
+import { create } from '../../utilities/test-helpers/test-models.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
+import { createTestResources } from '../../utilities/test-helpers/test-resources.js';
 import { ModelSerializationService } from '../serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
 import { LocalStateProvider } from './local.state-provider.js';
@@ -89,7 +90,7 @@ describe('LocalStateProvider UT', () => {
       filePath = join(__dirname, 'resources2.json');
       const resourceSerializationService = await container.get(ResourceSerializationService);
 
-      await createTestResources({ 'resource-1': [] });
+      await createTestResources([{ resourceContext: '@octo/test-resource=resource-1' }]);
 
       const serializedOutput = await resourceSerializationService.serializeNewResources();
 

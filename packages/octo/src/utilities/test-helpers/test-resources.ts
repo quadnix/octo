@@ -1,9 +1,41 @@
-import { type Constructable, NodeType, type UnknownResource } from '../../app.type.js';
+import { type Constructable, type IUnknownResourceAction, NodeType, type UnknownResource } from '../../app.type.js';
 import { Container } from '../../functions/container/container.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
+import { TransactionService } from '../../services/transaction/transaction.service.js';
+import { NodeUtility } from '../node/node.utility.js';
+
+export async function commitResources({
+  skipAddActualResource = false,
+}: {
+  skipAddActualResource?: boolean;
+} = {}): Promise<void> {
+  const container = Container.getInstance();
+  const [resourceDataRepository, resourceSerializationService] = await Promise.all([
+    container.get(ResourceDataRepository),
+    container.get(ResourceSerializationService),
+  ]);
+
+  if (!skipAddActualResource) {
+    const deReferenceResource = async (context: string): Promise<UnknownResource> => {
+      return resourceDataRepository.getActualResourceByContext(context)!;
+    };
+
+    const sortedNewResources = NodeUtility.sortResourcesByDependency(
+      resourceDataRepository.getNewResourcesByProperties(),
+    );
+    for (const resource of sortedNewResources) {
+      const resourceClone = await AResource.cloneResource(resource, deReferenceResource);
+      resourceDataRepository.addActualResource(resourceClone);
+    }
+  }
+
+  const actualSerializedResources = await resourceSerializationService.serializeActualResources();
+  const oldSerializedResources = await resourceSerializationService.serializeNewResources();
+  await resourceSerializationService.deserialize(actualSerializedResources, oldSerializedResources);
+}
 
 function createResource(nodeName: string): Constructable<AResource<any, any>> {
   return class extends AResource<BaseResourceSchema, any> {
@@ -41,7 +73,14 @@ export async function createResources(
     resourceDataRepository.addNewResource(resource);
     if (options?.save) {
       const resourceClone = await AResource.cloneResource(resource, deReferenceResource);
-      resourceDataRepository.addActualResource(resourceClone);
+      const rIndex = resourceDataRepository['actualResources'].findIndex((r) => r.resourceId === resource.resourceId);
+      if (rIndex === -1) {
+        resourceDataRepository.addActualResource(resourceClone);
+      } else {
+        resourceDataRepository['actualResources'][rIndex] = resourceClone.merge(
+          resourceDataRepository['actualResources'][rIndex],
+        );
+      }
     }
 
     const resourceClassName = `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`;
@@ -63,15 +102,17 @@ export async function createTestResources(
   args: {
     parents?: string[] | UnknownResource[];
     properties?: { [key: string]: unknown };
+    resourceActions?: IUnknownResourceAction[];
     resourceContext: string;
     response?: { [key: string]: unknown };
   }[],
   options?: { save?: boolean },
 ): Promise<{ [key: string]: UnknownResource }> {
   const container = Container.getInstance();
-  const [resourceDataRepository, resourceSerializationService] = await Promise.all([
+  const [resourceDataRepository, resourceSerializationService, transactionService] = await Promise.all([
     container.get(ResourceDataRepository),
     container.get(ResourceSerializationService),
+    container.get(TransactionService),
   ]);
   const resources: {
     [key: string]: UnknownResource | [Promise<UnknownResource>, (value: UnknownResource) => UnknownResource];
@@ -111,6 +152,8 @@ export async function createTestResources(
 
     const Resource = createResource(NODE_NAME);
     Object.defineProperty(Resource, 'name', { value: NODE_NAME });
+    transactionService.registerResourceActions(Resource, arg.resourceActions || []);
+
     const resource = new Resource(resourceId, {}, parentsResolved);
     if (properties) {
       for (const [key, value] of Object.entries(properties)) {
@@ -125,7 +168,14 @@ export async function createTestResources(
     resourceDataRepository.addNewResource(resource);
     if (options?.save) {
       const resourceClone = await AResource.cloneResource(resource, deReferenceResource);
-      resourceDataRepository.addActualResource(resourceClone);
+      const rIndex = resourceDataRepository['actualResources'].findIndex((r) => r.resourceId === resource.resourceId);
+      if (rIndex === -1) {
+        resourceDataRepository.addActualResource(resourceClone);
+      } else {
+        resourceDataRepository['actualResources'][rIndex] = resourceClone.merge(
+          resourceDataRepository['actualResources'][rIndex],
+        );
+      }
     }
 
     const resourceClassName = `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`;

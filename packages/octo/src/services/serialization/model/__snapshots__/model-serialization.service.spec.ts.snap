@@ -592,7 +592,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
   },
   "overlays": [
     {
-      "className": "@octo/TestOverlay",
+      "className": "@octo/test-overlay",
       "overlay": {
         "anchors": [
           {
@@ -773,7 +773,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
   },
   "overlays": [
     {
-      "className": "@octo/TestOverlay",
+      "className": "@octo/test-overlay",
       "overlay": {
         "anchors": [
           {
@@ -789,7 +789,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
       },
     },
     {
-      "className": "@octo/TestOverlay",
+      "className": "@octo/test-overlay",
       "overlay": {
         "anchors": [
           {

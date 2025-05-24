@@ -233,14 +233,14 @@ exports[`TransactionService UT beginTransaction() yieldModelDiffs should yield m
     {
       "action": "add",
       "field": "anchor",
-      "node": "@octo/test-overlay=test-overlay",
+      "node": "@octo/test-overlay=overlay-1",
       "value": "anchorId=anchor-1",
     },
     {
       "action": "add",
       "field": "overlayId",
-      "node": "@octo/test-overlay=test-overlay",
-      "value": "test-overlay",
+      "node": "@octo/test-overlay=overlay-1",
+      "value": "overlay-1",
     },
   ],
 ]

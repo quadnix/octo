@@ -1,5 +1,12 @@
 import { jest } from '@jest/globals';
-import { type UnknownModel, type UnknownModule, type UnknownResource, stub } from '../../app.type.js';
+import {
+  type Constructable,
+  type UnknownModel,
+  type UnknownModule,
+  type UnknownOverlay,
+  type UnknownResource,
+  stub,
+} from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
@@ -21,12 +28,9 @@ import {
   TestOverlayModule,
   TestResource,
 } from '../../utilities/test-helpers/test-classes.js';
-import {
-  commitResources,
-  create,
-  createTestOverlays,
-  createTestResources,
-} from '../../utilities/test-helpers/test-models.js';
+import { create } from '../../utilities/test-helpers/test-models.js';
+import { createTestOverlays } from '../../utilities/test-helpers/test-overlays.js';
+import { commitResources, createTestResources } from '../../utilities/test-helpers/test-resources.js';
 import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
@@ -52,7 +56,6 @@ describe('TransactionService UT', () => {
       ]);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    resourceSerializationService.registerClass('@octo/TestResource', TestResource);
     container.unRegisterFactory(ResourceSerializationService);
     container.registerValue(ResourceSerializationService, resourceSerializationService);
 
@@ -332,7 +335,9 @@ describe('TransactionService UT', () => {
 
     it('should skip processing diffs that are already applied', async () => {
       (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
 
       const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
       const diffMetadata = new DiffMetadata(diff, [universalResourceAction]);
@@ -346,7 +351,9 @@ describe('TransactionService UT', () => {
 
     it('should only process 1 matching diff when duplicates found', async () => {
       (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
 
       const diff1 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
       const diffMetadata1 = new DiffMetadata(diff1, [universalResourceAction]);
@@ -362,7 +369,11 @@ describe('TransactionService UT', () => {
 
     it('should process diffs of resources per dependency graph', async () => {
       (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
 
       const diff1 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
       const diffMetadata1 = new DiffMetadata(diff1, [universalResourceAction]);
@@ -377,7 +388,9 @@ describe('TransactionService UT', () => {
     });
 
     it('should call mock when run with enableResourceCapture flag on', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
 
       const inputService = await container.get(InputService);
       inputService.registerResource('moduleId', resource1);
@@ -666,10 +679,12 @@ describe('TransactionService UT', () => {
         const anchor1 = new TestAnchor('anchor-1', {}, app);
         app.addAnchor(anchor1);
 
-        await createTestOverlays({ 'test-overlay': [anchor1] });
+        const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+          { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+        ]);
 
         const service = await container.get(TransactionService);
-        service.registerOverlayActions(TestOverlay, [universalModelAction]);
+        service.registerOverlayActions(overlay1.constructor as Constructable<UnknownOverlay>, [universalModelAction]);
         const generator = service.beginTransaction([], { yieldModelDiffs: true });
 
         const result = await generator.next();
@@ -747,16 +762,19 @@ describe('TransactionService UT', () => {
       });
 
       it('should yield resource diffs', async () => {
-        await createTestResources({ 'resource-1': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         await commitResources();
 
         // Replace resource1 with resource2.
         // Since after commitResources() new resources are empty,
         // so we need to just add resource-2 in order to replace resource-1.
-        await createTestResources({ 'resource-2': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
 
         const service = await container.get(TransactionService);
-        service.registerResourceActions(TestResource, [universalResourceAction]);
         const generator = service.beginTransaction([], { yieldResourceDiffs: true });
 
         const result = await generator.next();
@@ -780,16 +798,19 @@ describe('TransactionService UT', () => {
       it('should yield resource transaction', async () => {
         (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
 
-        await createTestResources({ 'resource-1': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         await commitResources();
 
         // Replace resource1 with resource2.
         // Since after commitResources() new resources are empty,
         // so we need to just add resource-2 in order to replace resource-1.
-        await createTestResources({ 'resource-2': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
 
         const service = await container.get(TransactionService);
-        service.registerResourceActions(TestResource, [universalResourceAction]);
         const generator = service.beginTransaction([], { yieldResourceTransaction: true });
 
         const result = await generator.next();

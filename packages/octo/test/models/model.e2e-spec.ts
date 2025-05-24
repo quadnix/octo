@@ -10,7 +10,8 @@ import {
   TestContainer,
 } from '../../src/index.js';
 import { TestAnchor, TestModelWithoutUnsynth } from '../../src/utilities/test-helpers/test-classes.js';
-import { create, createTestOverlays } from '../../src/utilities/test-helpers/test-models.js';
+import { create } from '../../src/utilities/test-helpers/test-models.js';
+import { createTestOverlays } from '../../src/utilities/test-helpers/test-overlays.js';
 
 describe('Model E2E Test', () => {
   beforeEach(async () => {
@@ -195,7 +196,9 @@ describe('Model E2E Test', () => {
         const anchor1 = new TestAnchor('anchor-1', {}, app);
         app.addAnchor(anchor1);
 
-        const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+        const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+          { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+        ]);
 
         app.addRelationship(overlay1);
 
@@ -326,7 +329,9 @@ describe('Model E2E Test', () => {
       const anchor = new TestAnchor('test-anchor', {}, app);
       app.addAnchor(anchor);
 
-      const [overlay] = await createTestOverlays({ 'test-overlay': [anchor] });
+      const { '@octo/test-overlay=test-overlay': overlay } = await createTestOverlays([
+        { anchors: [anchor], context: '@octo/test-overlay=test-overlay' },
+      ]);
 
       expect(overlay.getBoundaryMembers().map((m) => m.getContext())).toMatchInlineSnapshot(`
        [
@@ -383,7 +388,9 @@ describe('Model E2E Test', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
 
       expect(overlay1.getAnchor('anchor-1', app)!.anchorId).toBe(anchor1.anchorId);
     });

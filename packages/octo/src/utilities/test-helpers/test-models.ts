@@ -1,4 +1,4 @@
-import type { Constructable, UnknownAnchor, UnknownModel, UnknownOverlay, UnknownResource } from '../../app.type.js';
+import type { Constructable, UnknownModel } from '../../app.type.js';
 import { Container } from '../../functions/container/container.js';
 import { Account } from '../../models/account/account.model.js';
 import { AccountType } from '../../models/account/account.schema.js';
@@ -14,47 +14,11 @@ import { Server } from '../../models/server/server.model.js';
 import { Service } from '../../models/service/service.model.js';
 import type { ServiceSchema } from '../../models/service/service.schema.js';
 import { Subnet } from '../../models/subnet/subnet.model.js';
-import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
-import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
-import { AResource } from '../../resources/resource.abstract.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
-import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
-import { NodeUtility } from '../node/node.utility.js';
-import { TestOverlay, TestResource } from './test-classes.js';
 
 export async function commit<T extends UnknownModel>(model: T): Promise<T> {
   const modelSerializationService = await Container.getInstance().get(ModelSerializationService);
   return (await modelSerializationService.deserialize(await modelSerializationService.serialize(model))) as T;
-}
-
-export async function commitResources({
-  skipAddActualResource = false,
-}: {
-  skipAddActualResource?: boolean;
-} = {}): Promise<void> {
-  const container = Container.getInstance();
-  const [resourceDataRepository, resourceSerializationService] = await Promise.all([
-    container.get(ResourceDataRepository),
-    container.get(ResourceSerializationService),
-  ]);
-
-  if (!skipAddActualResource) {
-    const deReferenceResource = async (context: string): Promise<UnknownResource> => {
-      return resourceDataRepository.getActualResourceByContext(context)!;
-    };
-
-    const sortedNewResources = NodeUtility.sortResourcesByDependency(
-      resourceDataRepository.getNewResourcesByProperties(),
-    );
-    for (const resource of sortedNewResources) {
-      const resourceClone = await AResource.cloneResource(resource, deReferenceResource);
-      resourceDataRepository.addActualResource(resourceClone);
-    }
-  }
-
-  const actualSerializedResources = await resourceSerializationService.serializeActualResources();
-  const oldSerializedResources = await resourceSerializationService.serializeNewResources();
-  await resourceSerializationService.deserialize(actualSerializedResources, oldSerializedResources);
 }
 
 export function create({
@@ -285,42 +249,6 @@ function createTestServiceModel(serviceId: string, properties: Record<string, un
     return new TestServiceClass();
   };
   return TestServiceClass;
-}
-
-export async function createTestOverlays(overlays: { [key: string]: UnknownAnchor[] }): Promise<UnknownOverlay[]> {
-  const overlayDataRepository = await Container.getInstance().get(OverlayDataRepository);
-  const result: UnknownOverlay[] = [];
-
-  for (const [overlayId, anchors] of Object.entries(overlays)) {
-    const overlay = new TestOverlay(overlayId, {}, anchors);
-    overlayDataRepository.add(overlay);
-
-    result.push(overlay);
-  }
-
-  return result;
-}
-
-export async function createTestResources(resources: {
-  [key: string]: (UnknownResource | string)[];
-}): Promise<UnknownResource[]> {
-  const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
-  const result: UnknownResource[] = [];
-
-  for (const [resourceId, parentEntries] of Object.entries(resources)) {
-    const parents = parentEntries.map((p) => {
-      if (typeof p === 'string') {
-        return result.find((r) => r.resourceId === p)!;
-      }
-      return p;
-    });
-    const resource = new TestResource(resourceId, {}, parents);
-    resourceDataRepository.addNewResource(resource);
-
-    result.push(resource);
-  }
-
-  return result;
 }
 
 function splitEntry(entry: string, currentIndex: number): [string, ...number[]] {

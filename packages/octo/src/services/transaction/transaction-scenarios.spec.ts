@@ -1,6 +1,4 @@
 import { jest } from '@jest/globals';
-import { TestResource } from '../../utilities/test-helpers/test-classes.js';
-import { commitResources, createTestResources } from '../../utilities/test-helpers/test-models.js';
 import type { UnknownResource } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
@@ -8,6 +6,7 @@ import { ModuleContainer } from '../../modules/module.container.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
+import { commitResources, createTestResources } from '../../utilities/test-helpers/test-resources.js';
 import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
@@ -37,7 +36,6 @@ describe('Transaction Scenarios UT', () => {
       ]);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    resourceSerializationService.registerClass('@octo/TestResource', TestResource);
     container.unRegisterFactory(ResourceSerializationService);
     container.registerValue(ResourceSerializationService, resourceSerializationService);
 
@@ -62,9 +60,11 @@ describe('Transaction Scenarios UT', () => {
   describe('when actual and old resources are equal', () => {
     beforeEach(async () => {
       const transactionService = await container.get(TransactionService);
-      transactionService.registerResourceActions(TestResource, [universalResourceAction]);
 
-      await createTestResources({ 'resource-1': [] });
+      await createTestResources([
+        { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+      ]);
+
       const generator = transactionService.beginTransaction([]);
       await generator.next();
       await commitResources({ skipAddActualResource: true });
@@ -74,7 +74,9 @@ describe('Transaction Scenarios UT', () => {
       it('should not produce any resource changes', async () => {
         const transactionService = await container.get(TransactionService);
 
-        await createTestResources({ 'resource-1': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
@@ -88,8 +90,10 @@ describe('Transaction Scenarios UT', () => {
       it('should produce new resource changes on adding new resource', async () => {
         const transactionService = await container.get(TransactionService);
 
-        await createTestResources({ 'resource-1': [], 'resource-2': [] });
-
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
@@ -115,13 +119,19 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await container.get(TransactionService);
 
         // Create a change.
-        await createTestResources({ 'resource-1': [], 'resource-2': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         const generator1 = transactionService.beginTransaction([]);
         await generator1.next();
         await commitResources({ skipAddActualResource: true });
 
         // Revert last change.
-        const [, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
+        const { '@octo/test-resource=resource-2': resource2 } = await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         resource2.remove();
         const generator2 = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
@@ -149,9 +159,10 @@ describe('Transaction Scenarios UT', () => {
       (universalResourceAction.handle as jest.Mock<() => Promise<void>>).mockRejectedValueOnce(new Error('error'));
 
       const transactionService = await container.get(TransactionService);
-      transactionService.registerResourceActions(TestResource, [universalResourceAction]);
 
-      await createTestResources({ 'resource-1': [] });
+      await createTestResources([
+        { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       const generator = transactionService.beginTransaction([]);
 
       try {
@@ -165,7 +176,9 @@ describe('Transaction Scenarios UT', () => {
       it('should only produce dirty resource changes', async () => {
         const transactionService = await container.get(TransactionService);
 
-        await createTestResources({ 'resource-1': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
@@ -190,7 +203,10 @@ describe('Transaction Scenarios UT', () => {
       it('should produce new and dirty resource changes on adding new resource', async () => {
         const transactionService = await container.get(TransactionService);
 
-        await createTestResources({ 'resource-1': [], 'resource-2': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
@@ -221,7 +237,14 @@ describe('Transaction Scenarios UT', () => {
       it('should throw error on adding new resource with dependency on dirty resource', async () => {
         const transactionService = await container.get(TransactionService);
 
-        await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            resourceActions: [universalResourceAction],
+            resourceContext: '@octo/test-resource=resource-2',
+          },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
@@ -235,7 +258,10 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await container.get(TransactionService);
 
         // Modify resource-1 which is already a dirty resource.
-        const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         resource1.properties['key1'] = 'value1';
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
@@ -284,7 +310,9 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await container.get(TransactionService);
 
         // Not creating resource-1 is equivalent to reverting the last change in this case.
-        await createTestResources({ 'resource-2': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
@@ -314,16 +342,19 @@ describe('Transaction Scenarios UT', () => {
       (universalResourceAction.handle as jest.Mock<() => Promise<void>>).mockRejectedValueOnce(new Error('error'));
 
       const transactionService = await container.get(TransactionService);
-      transactionService.registerResourceActions(TestResource, [universalResourceAction]);
 
       // Add resource-1.
-      await createTestResources({ 'resource-1': [] });
+      await createTestResources([
+        { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       const generator1 = transactionService.beginTransaction([]);
       await generator1.next();
       await commitResources({ skipAddActualResource: true });
 
       // Modify resource-1.
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['key1'] = 'value1';
       const generator2 = transactionService.beginTransaction([]);
 
@@ -331,6 +362,8 @@ describe('Transaction Scenarios UT', () => {
         await generator2.next();
       } catch (error) {
         await commitResources({ skipAddActualResource: true });
+      } finally {
+        (universalResourceAction.handle as jest.Mock<() => Promise<void>>).mockReset();
       }
     });
 
@@ -338,7 +371,9 @@ describe('Transaction Scenarios UT', () => {
       it('should only produce dirty resource changes', async () => {
         const transactionService = await container.get(TransactionService);
 
-        const [resource1] = await createTestResources({ 'resource-1': [] });
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         resource1.properties['key1'] = 'value1';
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
@@ -367,7 +402,10 @@ describe('Transaction Scenarios UT', () => {
       it('should produce new and dirty resource changes on adding new resource', async () => {
         const transactionService = await container.get(TransactionService);
 
-        const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         resource1.properties['key1'] = 'value1';
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
@@ -402,7 +440,14 @@ describe('Transaction Scenarios UT', () => {
       it('should throw error on adding new resource with dependency on dirty resource', async () => {
         const transactionService = await container.get(TransactionService);
 
-        const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            resourceActions: [universalResourceAction],
+            resourceContext: '@octo/test-resource=resource-2',
+          },
+        ]);
         resource1.properties['key1'] = 'value1';
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
@@ -417,7 +462,9 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await container.get(TransactionService);
 
         // Modify resource-1 which is already a dirty resource.
-        const [resource1] = await createTestResources({ 'resource-1': [] });
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         resource1.properties['key1'] = 'value2';
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
@@ -446,7 +493,9 @@ describe('Transaction Scenarios UT', () => {
       it('should not produce any resource changes', async () => {
         const transactionService = await container.get(TransactionService);
 
-        await createTestResources({ 'resource-1': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
@@ -461,7 +510,10 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await container.get(TransactionService);
 
         // Not creating resource-1 is equivalent to reverting the last change in this case.
-        await createTestResources({ 'resource-1': [], 'resource-2': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
@@ -491,16 +543,19 @@ describe('Transaction Scenarios UT', () => {
       (universalResourceAction.handle as jest.Mock<() => Promise<void>>).mockRejectedValueOnce(new Error('error'));
 
       const transactionService = await container.get(TransactionService);
-      transactionService.registerResourceActions(TestResource, [universalResourceAction]);
 
       // Add resource-1.
-      await createTestResources({ 'resource-1': [] });
+      await createTestResources([
+        { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       const generator1 = transactionService.beginTransaction([]);
       await generator1.next();
       await commitResources({ skipAddActualResource: true });
 
       // Delete resource-1.
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.remove();
       const generator2 = transactionService.beginTransaction([]);
 
@@ -515,7 +570,9 @@ describe('Transaction Scenarios UT', () => {
       it('should only produce dirty resource changes', async () => {
         const transactionService = await container.get(TransactionService);
 
-        const [resource1] = await createTestResources({ 'resource-1': [] });
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         resource1.remove();
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
@@ -541,7 +598,10 @@ describe('Transaction Scenarios UT', () => {
       it('should produce new and dirty resource changes on adding new resource', async () => {
         const transactionService = await container.get(TransactionService);
 
-        const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         resource1.remove();
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
@@ -573,7 +633,11 @@ describe('Transaction Scenarios UT', () => {
       it('should throw error on adding new resource with dependency on dirty resource', async () => {
         const transactionService = await container.get(TransactionService);
 
-        const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
+        const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+          await createTestResources([
+            { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+            { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+          ]);
         resource1.remove();
         resource1.addChild('resourceId', resource2, 'resourceId');
         const generator = transactionService.beginTransaction([], {
@@ -589,7 +653,9 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await container.get(TransactionService);
 
         // Modify resource-1 which is already a dirty resource.
-        const [resource1] = await createTestResources({ 'resource-1': [] });
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         resource1.properties['key1'] = 'value2';
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
@@ -618,7 +684,9 @@ describe('Transaction Scenarios UT', () => {
       it('should not produce any resource changes', async () => {
         const transactionService = await container.get(TransactionService);
 
-        await createTestResources({ 'resource-1': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });
@@ -633,7 +701,10 @@ describe('Transaction Scenarios UT', () => {
         const transactionService = await container.get(TransactionService);
 
         // Not creating resource-1 is equivalent to reverting the last change in this case.
-        await createTestResources({ 'resource-1': [], 'resource-2': [] });
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
         const generator = transactionService.beginTransaction([], {
           yieldResourceTransaction: true,
         });

@@ -1,9 +1,8 @@
-import { TestResource } from '../../../utilities/test-helpers/test-classes.js';
-import { commitResources, createTestResources } from '../../../utilities/test-helpers/test-models.js';
 import type { ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
 import type { Container } from '../../../functions/container/container.js';
 import { TestContainer } from '../../../functions/container/test-container.js';
 import { ResourceDataRepository } from '../../../resources/resource-data.repository.js';
+import { commitResources, createTestResources } from '../../../utilities/test-helpers/test-resources.js';
 import { ResourceSerializationService } from './resource-serialization.service.js';
 
 describe('Resource Serialization Service UT', () => {
@@ -15,7 +14,6 @@ describe('Resource Serialization Service UT', () => {
     const resourceDataRepository = await container.get(ResourceDataRepository);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    resourceSerializationService.registerClass('@octo/TestResource', TestResource);
     container.unRegisterFactory(ResourceSerializationService);
     container.registerValue(ResourceSerializationService, resourceSerializationService);
   });
@@ -51,7 +49,9 @@ describe('Resource Serialization Service UT', () => {
     it('should deserialize a single resource', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
 
@@ -65,7 +65,9 @@ describe('Resource Serialization Service UT', () => {
     it('should deserialize a resource with complex properties', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['key1'] = { key2: { key3: 'value3' }, key4: 'value4' };
       resource1.response['response1'] = 'value1';
 
@@ -79,7 +81,10 @@ describe('Resource Serialization Service UT', () => {
     it('should deserialize multiple resources', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+        { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+      ]);
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
 
@@ -93,7 +98,11 @@ describe('Resource Serialization Service UT', () => {
     it('should deserialize dependencies', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
       resource2.properties['key2'] = 'value2';
@@ -116,8 +125,11 @@ describe('Resource Serialization Service UT', () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
       // Reverse order of resources.
-      // eslint-disable-next-line sort-keys
-      const [resource2, resource1] = await createTestResources({ 'resource-2': [], 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-2' },
+          { resourceContext: '@octo/test-resource=resource-1' },
+        ]);
       resource2.properties['key2'] = 'value2';
       resource2.response['response2'] = 'value2';
       resource1.properties['key1'] = 'value1';
@@ -140,11 +152,15 @@ describe('Resource Serialization Service UT', () => {
     it('should have exact same dependencies on deserialized object as original object', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1, resource2] = await createTestResources({
-        'resource-1': [],
-        'resource-2': ['resource-1'],
-        'resource-3': ['resource-1'],
-      });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            resourceContext: '@octo/test-resource=resource-3',
+          },
+        ]);
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
       resource2.properties['key2'] = 'value2';
@@ -170,7 +186,9 @@ describe('Resource Serialization Service UT', () => {
     it('should initialize ResourceDataRepository with separate old and new resources', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
 
@@ -187,7 +205,9 @@ describe('Resource Serialization Service UT', () => {
     it('should not initialize ResourceDataRepository with new resources marked for deletion', async () => {
       const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
 
@@ -212,7 +232,7 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should serialize non-empty array', async () => {
-      await createTestResources({ 'resource-1': [] });
+      await createTestResources([{ resourceContext: '@octo/test-resource=resource-1' }]);
 
       const service = await container.get(ResourceSerializationService);
 
@@ -220,7 +240,11 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should not serialize deleted resources', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { resourceContext: '@octo/test-resource=resource-2' },
+        ]);
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
       resource2.properties['key2'] = 'value2';
@@ -233,7 +257,11 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should serialize dependencies and properties and resources', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
       resource2.properties['key2'] = 'value2';
@@ -245,7 +273,11 @@ describe('Resource Serialization Service UT', () => {
     });
 
     it('should serialize multiple resources', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': ['resource-1'] });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
       resource1.properties['key1'] = 'value1';
       resource1.response['response1'] = 'value1';
       resource2.properties['key2'] = 'value2';

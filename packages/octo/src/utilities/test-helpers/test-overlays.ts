@@ -1,6 +1,5 @@
 import { type Constructable, NodeType, type UnknownAnchor, type UnknownOverlay } from '../../app.type.js';
 import { Container } from '../../functions/container/container.js';
-import type { Diff } from '../../functions/diff/diff.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { AOverlay } from '../../overlays/overlay.abstract.js';
 import type { BaseOverlaySchema } from '../../overlays/overlay.schema.js';
@@ -15,10 +14,6 @@ function createOverlay(nodeName: string): Constructable<AOverlay<any, any>> {
 
     constructor(overlayId: string, properties: BaseOverlaySchema['properties'] = {}, anchors: UnknownAnchor[] = []) {
       super(overlayId, properties, anchors);
-    }
-
-    override async diffAnchors(): Promise<Diff[]> {
-      return [];
     }
   };
 }

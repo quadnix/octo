@@ -1,5 +1,5 @@
 import { TestAnchor, TestOverlay } from '../../../utilities/test-helpers/test-classes.js';
-import { commit, create, createTestOverlays } from '../../../utilities/test-helpers/test-models.js';
+import { commit, create } from '../../../utilities/test-helpers/test-models.js';
 import type { ModelSerializedOutput } from '../../../app.type.js';
 import type { Container } from '../../../functions/container/container.js';
 import { TestContainer } from '../../../functions/container/test-container.js';
@@ -11,6 +11,7 @@ import { Region } from '../../../models/region/region.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Subnet } from '../../../models/subnet/subnet.model.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
+import { createTestOverlays } from '../../../utilities/test-helpers/test-overlays.js';
 import { ModelSerializationService } from './model-serialization.service.js';
 
 describe('Model Serialization Service UT', () => {
@@ -144,7 +145,7 @@ describe('Model Serialization Service UT', () => {
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
-      await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
+      await createTestOverlays([{ anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' }]);
 
       const app_1 = await commit(app);
       expect(overlayDataRepository['newOverlays']).toHaveLength(1);
@@ -173,7 +174,7 @@ describe('Model Serialization Service UT', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      await createTestOverlays({ 'overlay-1': [anchor1] });
+      await createTestOverlays([{ anchors: [anchor1], context: '@octo/test-overlay=overlay-1' }]);
 
       // Before commit the overlay has reference to the app, and the app has no region children.
       expect(overlayDataRepository['newOverlays'][0].getAnchors()[0].getParent().getChildren()['region']).toBe(
@@ -256,7 +257,7 @@ describe('Model Serialization Service UT', () => {
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
-      await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
+      await createTestOverlays([{ anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' }]);
 
       const service = await container.get(ModelSerializationService);
 
@@ -272,7 +273,11 @@ describe('Model Serialization Service UT', () => {
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
-      const [overlay1, overlay2] = await createTestOverlays({ 'overlay-1': [anchor1], 'overlay-2': [anchor2] });
+      const { '@octo/test-overlay=overlay-1': overlay1, '@octo/test-overlay=overlay-2': overlay2 } =
+        await createTestOverlays([
+          { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+          { anchors: [anchor2], context: '@octo/test-overlay=overlay-2' },
+        ]);
       overlay1.addRelationship(overlay2);
       overlay2.addRelationship(overlay1);
 

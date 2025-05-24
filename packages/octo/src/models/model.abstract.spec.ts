@@ -6,7 +6,8 @@ import { Schema } from '../functions/schema/schema.js';
 import { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService } from '../services/input/input.service.js';
 import { SchemaTranslationService } from '../services/schema-translation/schema-translation.service.js';
-import { create, createTestResources } from '../utilities/test-helpers/test-models.js';
+import { create } from '../utilities/test-helpers/test-models.js';
+import { createTestResources } from '../utilities/test-helpers/test-resources.js';
 
 describe('Model UT', () => {
   let container: Container;
@@ -144,7 +145,9 @@ describe('Model UT', () => {
     });
 
     it('should return empty array if no matching resources found', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['toKey'] = 'value1';
 
       const inputService = await container.get(InputService);
@@ -160,7 +163,9 @@ describe('Model UT', () => {
     });
 
     it('should return matching resources without translation', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['fromKey'] = 'value1';
 
       const inputService = await container.get(InputService);
@@ -177,7 +182,11 @@ describe('Model UT', () => {
     });
 
     it('should return all matching resources without translation', async () => {
-      const [resource1, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { resourceContext: '@octo/test-resource=resource-2' },
+        ]);
       resource1.properties['toKey'] = 'value0';
       resource2.properties['fromKey'] = 'value1';
 
@@ -195,7 +204,9 @@ describe('Model UT', () => {
     });
 
     it('should return matching resources with translation', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['toKey'] = 'value1';
 
       const inputService = await container.get(InputService);
@@ -219,7 +230,9 @@ describe('Model UT', () => {
     });
 
     it('should return empty array with translation and non-matching filters', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['toKey'] = 'value1';
 
       const inputService = await container.get(InputService);
@@ -242,7 +255,9 @@ describe('Model UT', () => {
     });
 
     it('should return matching resources with translation and filters', async () => {
-      const [resource1] = await createTestResources({ 'resource-1': [] });
+      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
+      ]);
       resource1.properties['toKey'] = 'value1';
 
       const inputService = await container.get(InputService);

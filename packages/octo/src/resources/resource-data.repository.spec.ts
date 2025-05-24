@@ -1,6 +1,5 @@
 import { jest } from '@jest/globals';
-import { commitResources } from '../utilities/test-helpers/test-models.js';
-import { createTestResources } from '../utilities/test-helpers/test-resources.js';
+import { commitResources, createTestResources } from '../utilities/test-helpers/test-resources.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';

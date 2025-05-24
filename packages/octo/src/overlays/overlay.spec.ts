@@ -1,8 +1,9 @@
 import { TestAnchor, TestOverlay } from '../utilities/test-helpers/test-classes.js';
-import { create, createTestOverlays } from '../utilities/test-helpers/test-models.js';
+import { create } from '../utilities/test-helpers/test-models.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import type { ANode } from '../functions/node/node.abstract.js';
 import { App } from '../models/app/app.model.js';
+import { createTestOverlays } from '../utilities/test-helpers/test-overlays.js';
 import { AOverlay } from './overlay.abstract.js';
 
 describe('Overlay UT', () => {
@@ -21,7 +22,9 @@ describe('Overlay UT', () => {
     const anchor1 = new TestAnchor('anchor-1', {}, app);
     app.addAnchor(anchor1);
 
-    const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+    const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+      { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+    ]);
 
     expect(overlay1.getContext()).toBe('@octo/test-overlay=overlay-1');
   });
@@ -39,7 +42,7 @@ describe('Overlay UT', () => {
       (app.constructor as typeof ANode)['NODE_NAME'] = 'unknown';
 
       await expect(async () => {
-        await createTestOverlays({ 'overlay-1': [anchor1] });
+        await createTestOverlays([{ anchors: [anchor1], context: '@octo/test-overlay=overlay-1' }]);
       }).rejects.toMatchInlineSnapshot(`[Error: Cannot derive anchor parent field!]`);
 
       // Reset app NODE_NAME
@@ -54,7 +57,9 @@ describe('Overlay UT', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
       expect(overlay1.getAnchors()).toHaveLength(1);
 
       expect(() => {
@@ -69,7 +74,9 @@ describe('Overlay UT', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
 
       // App to Overlay dependency.
       expect(app.getSiblings()['test-overlay'].map((d) => d.synth())).toMatchInlineSnapshot(`
@@ -125,7 +132,9 @@ describe('Overlay UT', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
 
       const diffs = await overlay1.diff();
       expect(diffs).toMatchInlineSnapshot(`
@@ -141,7 +150,9 @@ describe('Overlay UT', () => {
     });
 
     it('should not produce any diff for properties', async () => {
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [], context: '@octo/test-overlay=overlay-1' },
+      ]);
       overlay1.properties.key1 = 'value1';
 
       const diffs = await overlay1.diff();
@@ -157,7 +168,9 @@ describe('Overlay UT', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
       expect(overlay1.getAnchor('anchor-1', app)).toBe(anchor1);
     });
   });
@@ -170,7 +183,9 @@ describe('Overlay UT', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
       expect(overlay1.getAnchorIndex('anchor-1', app)).toBeGreaterThan(-1);
     });
   });
@@ -185,7 +200,9 @@ describe('Overlay UT', () => {
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
 
       expect(overlay1.getAnchors().length).toBe(1);
 
@@ -201,7 +218,9 @@ describe('Overlay UT', () => {
       const anchor1 = new TestAnchor('anchor-1', {}, app);
       app.addAnchor(anchor1);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
 
       expect(app.getSiblings()['test-overlay'].length).toBe(1);
       expect(overlay1.getSiblings()['app'].length).toBe(1);
@@ -221,7 +240,9 @@ describe('Overlay UT', () => {
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' },
+      ]);
 
       expect(app.getSiblings()['test-overlay'].length).toBe(2);
       expect(overlay1.getSiblings()['app'].length).toBe(2);
@@ -243,7 +264,9 @@ describe('Overlay UT', () => {
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' },
+      ]);
 
       expect(app.getSiblings()['test-overlay'].length).toBe(2);
       expect(overlay1.getSiblings()['app'].length).toBe(2);
@@ -257,9 +280,11 @@ describe('Overlay UT', () => {
 
   describe('synth()', () => {
     it('should be able to synth an empty overlay', async () => {
-      const [overlay] = await createTestOverlays({ 'overlay-1': [] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [], context: '@octo/test-overlay=overlay-1' },
+      ]);
 
-      expect(overlay.synth()).toMatchInlineSnapshot(`
+      expect(overlay1.synth()).toMatchInlineSnapshot(`
         {
           "anchors": [],
           "overlayId": "overlay-1",
@@ -277,7 +302,9 @@ describe('Overlay UT', () => {
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' },
+      ]);
       overlay1.properties['key1'] = 'value1';
 
       expect(overlay1.synth()).toMatchInlineSnapshot(`
@@ -317,7 +344,9 @@ describe('Overlay UT', () => {
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' },
+      ]);
       overlay1.properties['key1'] = 'value1';
 
       const overlaySynth = overlay1.synth();
@@ -343,7 +372,9 @@ describe('Overlay UT', () => {
       const anchor2 = new TestAnchor('anchor-2', {}, app);
       app.addAnchor(anchor2);
 
-      const [overlay1] = await createTestOverlays({ 'overlay-1': [anchor1, anchor2] });
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' },
+      ]);
       overlay1.properties['key1'] = 'value1';
 
       const overlaySynth = overlay1.synth();
