@@ -1,6 +1,7 @@
 import { DeleteInternetGatewayCommand, DetachInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
 @Action(InternetGateway)
@@ -30,14 +31,25 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction<Inte
     });
 
     // Detach from VPC.
-    await ec2Client.send(
-      new DetachInternetGatewayCommand({
-        InternetGatewayId: response.InternetGatewayId,
-        VpcId: internetGatewayVpc.getSchemaInstance().response.VpcId,
-      }),
+    await RetryUtility.retryPromise(
+      async (): Promise<boolean> => {
+        await ec2Client.send(
+          new DetachInternetGatewayCommand({
+            InternetGatewayId: response.InternetGatewayId,
+            VpcId: internetGatewayVpc.getSchemaInstance().response.VpcId,
+          }),
+        );
+        return true;
+      },
+      {
+        initialDelayInMs: 0,
+        maxRetries: 10,
+        retryDelayInMs: 5000,
+        throwOnError: false,
+      },
     );
 
-    // Create Internet Gateway.
+    // Delete Internet Gateway.
     await ec2Client.send(
       new DeleteInternetGatewayCommand({
         InternetGatewayId: response.InternetGatewayId,
