@@ -32,14 +32,14 @@ export class RetryUtility {
           return;
         }
 
-        await new Promise((resolve) => setTimeout(resolve, retryDelayInMs));
-
         maxRetries! -= 1;
         retryDelayInMs! *= backOffFactor!;
       } catch (error) {
         if (throwOnError) {
           throw error;
         }
+      } finally {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayInMs));
       }
     } while (maxRetries! >= 0);
 

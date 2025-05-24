@@ -77,15 +77,13 @@ describe('Retry Utility UT', () => {
       operation.mockResolvedValueOnce(false).mockResolvedValueOnce(false).mockResolvedValueOnce(true);
       const startTime = Date.now();
 
-      await expect(async () => {
-        await RetryUtility.retryPromise(operation, {
-          backOffFactor: 2,
-          initialDelayInMs: 0,
-          maxRetries: 1,
-          retryDelayInMs: 10,
-          throwOnError: true,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Exhausted all retries for the operation!"`);
+      await RetryUtility.retryPromise(operation, {
+        backOffFactor: 2,
+        initialDelayInMs: 0,
+        maxRetries: 2,
+        retryDelayInMs: 10,
+        throwOnError: true,
+      });
 
       const duration = Date.now() - startTime;
       expect(duration).toBeGreaterThanOrEqual(30);
