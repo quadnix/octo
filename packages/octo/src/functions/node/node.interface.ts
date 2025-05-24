@@ -168,7 +168,7 @@ export interface INode<S, T> {
    * To set the context of self.
    * A context is a string representation of self that uniquely identifies self in the graph.
    */
-  setContext(): string;
+  setContext(): string | undefined;
 
   /**
    * Generates a serializable representation of self.

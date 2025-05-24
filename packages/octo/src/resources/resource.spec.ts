@@ -1,14 +1,18 @@
 import { jest } from '@jest/globals';
+import type { Container } from '../functions/container/container.js';
+import { Dependency } from '../functions/dependency/dependency.js';
 import { TestResource } from '../utilities/test-helpers/test-classes.js';
 import { createTestResources } from '../utilities/test-helpers/test-resources.js';
-import { type UnknownResource } from '../app.type.js';
+import { MatchingResource, type UnknownResource } from '../app.type.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
+import { ResourceDataRepository } from './resource-data.repository.js';
 import { AResource } from './resource.abstract.js';
 
 describe('Resource UT', () => {
+  let container: Container;
   beforeEach(async () => {
-    await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
   });
 
   afterEach(async () => {
@@ -24,12 +28,12 @@ describe('Resource UT', () => {
         { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
       ]);
 
-    expect((resource1.getChildren()['test-resource'][0].to as UnknownResource).resourceId).toBe('resource-2');
-    expect((resource2.getParents()['test-resource'][0].to as UnknownResource).resourceId).toBe('resource-1');
+    expect(resource1.getDependencies().length).toBe(1);
+    expect(resource2.getDependencies().length).toBe(1);
   });
 
-  it('should not add same parent twice', async () => {
-    await expect(async () => {
+  it('should skip adding the same parent twice', async () => {
+    const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
       await createTestResources([
         { resourceContext: '@octo/test-resource=resource-1' },
         {
@@ -37,30 +41,79 @@ describe('Resource UT', () => {
           resourceContext: '@octo/test-resource=resource-2',
         },
       ]);
-    }).rejects.toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
+
+    expect(resource1.getDependencies().length).toBe(1);
+    expect(resource2.getDependencies().length).toBe(1);
+  });
+
+  describe('addChild()', () => {
+    it('should add resource parent to the parents list', async () => {
+      const resource1 = new TestResource('resource-1', {}, []);
+      const resource2 = new TestResource('resource-2', {}, []);
+
+      resource1.addChild('resourceId', resource2, 'resourceId');
+
+      expect(resource1.parents.length).toBe(0);
+      expect(resource2.parents.length).toBe(1);
+    });
+
+    it('should skip adding resource parent to the parents list that already exists', async () => {
+      const resource1 = new TestResource('resource-1', {}, []);
+      const resource2 = new TestResource('resource-2', {}, []);
+
+      resource1.addChild('resourceId', resource2, 'resourceId');
+      resource1.addChild('resourceId', resource2, 'resourceId');
+
+      expect(resource1.parents.length).toBe(0);
+      expect(resource2.parents.length).toBe(1);
+    });
+
+    it('should add matching resource parent to the parents list', async () => {
+      const resource1 = new MatchingResource(new TestResource('resource-1', {}, []));
+      const resource2 = new MatchingResource(new TestResource('resource-2', {}, []));
+
+      resource1.addChild('resourceId', resource2.getActual(), 'resourceId');
+
+      expect(resource1.getActual().parents.length).toBe(0);
+      expect(resource2.getActual().parents.length).toBe(1);
+    });
+
+    it('should skip adding matching resource parent to the parents list that already exists', async () => {
+      const resource1 = new MatchingResource(new TestResource('resource-1', {}, []));
+      const resource2 = new MatchingResource(new TestResource('resource-2', {}, []));
+
+      resource1.addChild('resourceId', resource2.getActual(), 'resourceId');
+      resource1.addChild('resourceId', resource2.getActual(), 'resourceId');
+
+      expect(resource1.getActual().parents.length).toBe(0);
+      expect(resource2.getActual().parents.length).toBe(1);
+    });
   });
 
   describe('cloneResource()', () => {
     it('should clone a resource', async () => {
-      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
-        await createTestResources([
-          { resourceContext: '@octo/test-resource=resource-1' },
+      const resourceDataRepository = await container.get(ResourceDataRepository);
+
+      await createTestResources([{ resourceContext: '@octo/test-resource=resource-1' }], { save: true });
+
+      const { '@octo/test-resource=resource-2': resource2 } = await createTestResources(
+        [
           {
             parents: ['@octo/test-resource=resource-1'],
             properties: { key1: 'value1' },
             resourceContext: '@octo/test-resource=resource-2',
             response: { key1: 'value1' },
           },
-        ]);
+        ],
+        { save: false },
+      );
 
-      const resource2Copy = await AResource.cloneResource(resource2, async (context: string) => {
-        if (context === '@octo/test-resource=resource-1') {
-          return resource1;
-        } else if (context === '@octo/test-resource=resource-2') {
-          return resource2;
-        }
-        throw new Error('Unknown resource!');
-      });
+      const deReferenceResource = async (context: string): Promise<UnknownResource> => {
+        return resourceDataRepository.getActualResourceByContext(context)!;
+      };
+
+      // Clone resource from "new" to "actual", as done in transaction-service.
+      const resource2Copy = await AResource.cloneResource(resource2, deReferenceResource);
 
       expect(resource2Copy.synth()).toMatchInlineSnapshot(`
        {
@@ -647,11 +700,25 @@ describe('Resource UT', () => {
     });
 
     it('should return true when the other resource is same including parents', async () => {
-      const resource1 = new TestResource('resource-1', {}, []);
-      const resource2 = new TestResource('resource-2', {}, [resource1]);
-      const resource2New = new TestResource('resource-2', {}, [resource1]);
+      const resourceDataRepository = await container.get(ResourceDataRepository);
 
-      const result = resource2.isDeepEquals(resource2New);
+      const { '@octo/test-resource=resource-2': resource2 } = await createTestResources(
+        [
+          { resourceContext: '@octo/test-resource=resource-1' },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            properties: { key1: 'value1' },
+            resourceContext: '@octo/test-resource=resource-2',
+            response: { key1: 'value1' },
+          },
+        ],
+        { save: true },
+      );
+
+      // Compare new and actual resources.
+      const resource2Actual = resourceDataRepository.getActualResourceByContext('@octo/test-resource=resource-2')!;
+
+      const result = resource2.isDeepEquals(resource2Actual);
 
       expect(result).toBe(true);
     });
@@ -659,35 +726,29 @@ describe('Resource UT', () => {
 
   describe('merge()', () => {
     it('should merge previous resource with self and return previous resource', async () => {
-      const { '@octo/test-resource=resource-1': currentResource } = await createTestResources([
-        { resourceContext: '@octo/test-resource=resource-0' },
+      const { '@octo/test-resource=resource-2': previousResource } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
         {
-          parents: ['@octo/test-resource=resource-0'],
+          parents: ['@octo/test-resource=resource-1'],
           properties: { 'property-1': 'property-value-1', 'property-2': 'property-value-3' },
-          resourceContext: '@octo/test-resource=resource-1',
+          resourceContext: '@octo/test-resource=resource-2',
           response: { 'response-1': 'response-value-1' },
         },
       ]);
 
-      // Create previous resource.
-      const { '@octo/test-resource=resource-1': previousResource } = await createTestResources([
-        {
-          properties: { 'property-2': 'property-value-2' },
-          resourceContext: '@octo/test-resource=resource-1',
-          response: { 'response-2': 'response-value-2' },
-        },
-      ]);
+      const currentResource = new TestResource('resource-2', { 'property-2': 'property-value-2' }, []);
+      currentResource.response['response-2'] = 'response-value-2';
 
-      expect(previousResource.getDependencies()).toHaveLength(0);
+      expect(currentResource.getDependencies()).toHaveLength(0);
       currentResource.merge(previousResource);
-      expect(previousResource.getDependencies()).toHaveLength(1);
-      expect(previousResource.properties).toMatchInlineSnapshot(`
+      expect(currentResource.getDependencies()).toHaveLength(1);
+      expect(currentResource.properties).toMatchInlineSnapshot(`
         {
           "property-1": "property-value-1",
           "property-2": "property-value-2",
         }
       `);
-      expect(previousResource.response).toMatchInlineSnapshot(`
+      expect(currentResource.response).toMatchInlineSnapshot(`
         {
           "response-1": "response-value-1",
           "response-2": "response-value-2",
@@ -696,24 +757,18 @@ describe('Resource UT', () => {
     });
 
     it('should reference previous resource when self merged with previous', async () => {
-      const { '@octo/test-resource=resource-1': currentResource } = await createTestResources([
-        { resourceContext: '@octo/test-resource=resource-0' },
+      const { '@octo/test-resource=resource-2': previousResource } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1' },
         {
-          parents: ['@octo/test-resource=resource-0'],
+          parents: ['@octo/test-resource=resource-1'],
           properties: { 'property-1': 'property-value-1', 'property-2': 'property-value-3' },
-          resourceContext: '@octo/test-resource=resource-1',
+          resourceContext: '@octo/test-resource=resource-2',
           response: { 'response-1': 'response-value-1' },
         },
       ]);
 
-      // Create previous resource.
-      const { '@octo/test-resource=resource-1': previousResource } = await createTestResources([
-        {
-          properties: { 'property-2': 'property-value-2' },
-          resourceContext: '@octo/test-resource=resource-1',
-          response: { 'response-2': 'response-value-2' },
-        },
-      ]);
+      const currentResource = new TestResource('resource-2', { 'property-2': 'property-value-2' }, []);
+      currentResource.response['response-2'] = 'response-value-2';
 
       currentResource.merge(previousResource);
       expect(previousResource.properties).toMatchInlineSnapshot(`
@@ -748,28 +803,57 @@ describe('Resource UT', () => {
     });
 
     it("should update current resource's resourceId when merged with previous", async () => {
-      const { '@octo/test-resource=resource-1': currentResource } = await createTestResources([
-        { resourceContext: '@octo/test-resource=resource-0' },
-        {
-          parents: ['@octo/test-resource=resource-0'],
-          properties: { 'property-1': 'property-value-1', 'property-2': 'property-value-3' },
-          resourceContext: '@octo/test-resource=resource-1',
-          response: { 'response-1': 'response-value-1' },
-        },
-      ]);
+      const { '@octo/test-resource=resource-1': previousResource, '@octo/test-resource=resource-2': currentResource } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { resourceContext: '@octo/test-resource=resource-2' },
+        ]);
 
-      // Create previous resource.
-      const { '@octo/test-resource=resource-2': previousResource } = await createTestResources([
-        {
-          properties: { 'property-2': 'property-value-2' },
-          resourceContext: '@octo/test-resource=resource-2',
-          response: { 'response-2': 'response-value-2' },
-        },
-      ]);
-
-      expect(currentResource.resourceId).toBe('resource-1');
-      currentResource.merge(previousResource);
       expect(currentResource.resourceId).toBe('resource-2');
+      currentResource.merge(previousResource);
+      expect(currentResource.resourceId).toBe('resource-1');
+    });
+
+    it('should copy parents of current resource to previous resource', async () => {
+      const { '@octo/test-resource=resource-2': previousResource, '@octo/test-resource=resource-3': currentResource } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { resourceContext: '@octo/test-resource=resource-2' },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            resourceContext: '@octo/test-resource=resource-3',
+          },
+        ]);
+
+      expect(previousResource.getDependencies()).toHaveLength(0);
+      currentResource.merge(previousResource);
+      expect(previousResource.getDependencies()).toHaveLength(1);
+    });
+
+    it('should copy children of current resource to previous resource', async () => {
+      const { '@octo/test-resource=resource-1': currentResource, '@octo/test-resource=resource-3': previousResource } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+          { resourceContext: '@octo/test-resource=resource-3' },
+        ]);
+
+      expect(previousResource.getDependencies()).toHaveLength(0);
+      currentResource.merge(previousResource);
+      expect(previousResource.getDependencies()).toHaveLength(1);
+    });
+
+    it('should throw error when copying current resource dependencies that are neither parent nor child', async () => {
+      const { '@octo/test-resource=resource-1': previousResource, '@octo/test-resource=resource-2': currentResource } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+          { resourceContext: '@octo/test-resource=resource-2' },
+        ]);
+
+      currentResource['dependencies'].push(new Dependency(currentResource, currentResource));
+      expect(() => {
+        currentResource.merge(previousResource);
+      }).toThrowErrorMatchingInlineSnapshot(`"Unknown dependency found in merge!"`);
     });
   });
 

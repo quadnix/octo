@@ -534,10 +534,10 @@ describe('TransactionService UT', () => {
         account.addRegion(region);
         region.addChild('regionId', account, 'accountId');
         setApplyOrder(diffsMetadata[0], diffsMetadata);
-      }).toThrow('Dependency relationship already exists!');
+      }).toThrow('Found circular dependencies!');
       expect(diffsMetadata[0].applyOrder).toBe(-1);
       expect(diffsMetadata[1].applyOrder).toBe(-1);
-      expect(diffsMetadata[2].applyOrder).toBe(-1);
+      expect(diffsMetadata[2].applyOrder).toBe(0);
     });
 
     it('should throw errors with 2 level of circular dependencies', () => {

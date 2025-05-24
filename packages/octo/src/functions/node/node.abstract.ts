@@ -1,5 +1,5 @@
 import type { NodeSchema, NodeType, UnknownNode } from '../../app.type.js';
-import { NodeError } from '../../errors/index.js';
+import { ContextNodeError, NodeError } from '../../errors/index.js';
 import { Dependency, type DependencyRelationship } from '../dependency/dependency.js';
 import { type Diff, DiffAction } from '../diff/diff.js';
 import type { INode } from './node.interface.js';
@@ -57,22 +57,57 @@ export abstract class ANode<S, T> implements INode<S, T> {
     child: UnknownNode,
     toField: string,
   ): { childToParentDependency: Dependency; parentToChildDependency: Dependency } {
-    const cIndex = child.dependencies.findIndex((d) => Object.is(d.to, this));
-    const pIndex = this.dependencies.findIndex((d) => Object.is(d.to, child));
-    if (cIndex !== -1 || pIndex !== -1) {
-      throw new NodeError('Dependency relationship already exists!', this);
+    const cIndex = child.dependencies
+      .filter((d) => d.isChildRelationship())
+      .findIndex((d) => {
+        try {
+          d.to.getContext();
+          this.getContext();
+        } catch (error: unknown) {
+          if (error instanceof ContextNodeError) {
+            return false;
+          } else {
+            throw error;
+          }
+        }
+        return d.to.getContext() === this.getContext();
+      });
+    const pIndex = this.dependencies
+      .filter((d) => d.isParentRelationship())
+      .findIndex((d) => {
+        try {
+          d.to.getContext();
+          child.getContext();
+        } catch (error: unknown) {
+          if (error instanceof ContextNodeError) {
+            return false;
+          } else {
+            throw error;
+          }
+        }
+        return d.to.getContext() === child.getContext();
+      });
+
+    let childToParentDependency: Dependency;
+    if (cIndex === -1) {
+      childToParentDependency = new Dependency(child, this);
+      childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.ADD);
+      childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.UPDATE);
+      childToParentDependency.addChildRelationship(toField, onField as string);
+      child.dependencies.push(childToParentDependency);
+    } else {
+      childToParentDependency = child.dependencies[cIndex];
     }
 
-    const childToParentDependency = new Dependency(child, this);
-    childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.ADD);
-    childToParentDependency.addBehavior(toField, DiffAction.ADD, onField as string, DiffAction.UPDATE);
-    childToParentDependency.addChildRelationship(toField, onField as string);
-    child.dependencies.push(childToParentDependency);
-
-    const parentToChildDependency = new Dependency(this, child);
-    parentToChildDependency.addBehavior(onField as string, DiffAction.DELETE, toField, DiffAction.DELETE);
-    parentToChildDependency.addParentRelationship(onField as string, toField);
-    this.dependencies.push(parentToChildDependency);
+    let parentToChildDependency: Dependency;
+    if (pIndex === -1) {
+      parentToChildDependency = new Dependency(this, child);
+      parentToChildDependency.addBehavior(onField as string, DiffAction.DELETE, toField, DiffAction.DELETE);
+      parentToChildDependency.addParentRelationship(onField as string, toField);
+      this.dependencies.push(parentToChildDependency);
+    } else {
+      parentToChildDependency = this.dependencies[pIndex];
+    }
 
     return { childToParentDependency, parentToChildDependency };
   }
@@ -80,7 +115,20 @@ export abstract class ANode<S, T> implements INode<S, T> {
   addFieldDependency(
     behaviors: { forAction: DiffAction; onAction: DiffAction; onField: keyof T | string; toField: keyof T | string }[],
   ): void {
-    const index = this.dependencies.findIndex((d) => Object.is(d.from, this) && Object.is(d.to, this));
+    const index = this.dependencies.findIndex((d) => {
+      try {
+        d.from.getContext();
+        d.to.getContext();
+        this.getContext();
+      } catch (error: unknown) {
+        if (error instanceof ContextNodeError) {
+          return false;
+        } else {
+          throw error;
+        }
+      }
+      return d.from.getContext() === this.getContext() && d.to.getContext() === this.getContext();
+    });
     const dependency = index > -1 ? this.dependencies[index] : new Dependency(this, this);
     if (index === -1) {
       this.dependencies.push(dependency);
@@ -244,7 +292,11 @@ export abstract class ANode<S, T> implements INode<S, T> {
 
   getContext(): string {
     if (!this.context) {
-      this.context = this.setContext();
+      const context = this.setContext();
+      if (!context) {
+        throw new ContextNodeError('Context is unset!', this);
+      }
+      this.context = context;
     }
     return this.context;
   }
@@ -353,7 +405,7 @@ export abstract class ANode<S, T> implements INode<S, T> {
     }
   }
 
-  abstract setContext(): string;
+  abstract setContext(): string | undefined;
 
   abstract synth(): S;
 

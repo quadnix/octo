@@ -59,9 +59,12 @@ export class Subnet extends AModel<SubnetSchema, Subnet> {
     this.options.subnetType = subnetType || SubnetType.PRIVATE;
   }
 
-  override setContext(): string {
+  override setContext(): string | undefined {
     const parents = this.getParents();
-    const region = parents['region'][0].to;
+    const region = parents['region']?.[0]?.to;
+    if (!region) {
+      return undefined;
+    }
     return [`${(this.constructor as typeof Subnet).NODE_NAME}=${this.subnetId}`, region.getContext()].join(',');
   }
 

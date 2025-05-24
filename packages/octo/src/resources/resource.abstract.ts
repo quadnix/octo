@@ -4,6 +4,7 @@ import { type Dependency, DependencyRelationship } from '../functions/dependency
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { ANode } from '../functions/node/node.abstract.js';
+import { ObjectUtility } from '../utilities/object/object.utility.js';
 import type { IResource, IResourceReference } from './resource.interface.js';
 import type { BaseResourceSchema } from './resource.schema.js';
 
@@ -42,7 +43,16 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     parentToChildDependency: Dependency;
   } {
     const result = super.addChild(onField, child, toField);
-    child.parents.push(this);
+    if (
+      child.parents.findIndex((p) =>
+        p instanceof MatchingResource
+          ? p.getActual().getContext() === this.getContext()
+          : p.getContext() === this.getContext(),
+      ) === -1
+    ) {
+      child.parents.push(this);
+    }
+
     return result;
   }
 
@@ -282,26 +292,23 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   }
 
   merge(previous: AResource<S, T>): AResource<S, T> {
-    const currentDependencies = Object.values(this.getParents()).flat();
-    const previousDependencies = Object.values(previous.getParents()).flat();
+    const currentDependencies = this.getDependencies();
+    const previousDependencies = previous.getDependencies();
 
-    for (const key in this.properties) {
-      if (this.properties.hasOwnProperty(key) && !(key in previous.properties)) {
-        previous.properties[key] = this.properties[key];
+    ObjectUtility.deepMergeInPlace(previous.properties, this.properties);
+    ObjectUtility.deepMergeInPlace(previous.response, this.response);
+
+    const currentDependenciesNotInPreviousResource = currentDependencies.filter(
+      (cd) => !previousDependencies.find((pd) => pd.isEqual(cd)),
+    );
+    for (const dependency of currentDependenciesNotInPreviousResource) {
+      if (dependency.isChildRelationship()) {
+        dependency.to.addChild('resourceId', previous, 'resourceId');
+      } else if (dependency.isParentRelationship()) {
+        previous.addChild('resourceId', dependency.to as UnknownResource, 'resourceId');
+      } else {
+        throw new ResourceError('Unknown dependency found in merge!', this);
       }
-    }
-
-    for (const key in this.response) {
-      if (this.response.hasOwnProperty(key) && !(key in previous.response)) {
-        previous.response[key] = this.response[key];
-      }
-    }
-
-    const currentParentsNotInPreviousResource = currentDependencies
-      .filter((cd) => !previousDependencies.find((pd) => pd.isEqual(cd)))
-      .map((cd) => cd.to);
-    for (const parent of currentParentsNotInPreviousResource) {
-      parent.addChild('resourceId', previous, 'resourceId');
     }
 
     Object.assign(this, previous);

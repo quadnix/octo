@@ -31,9 +31,12 @@ export class Image extends AModel<ImageSchema, Image> {
     this.imageName = imageName;
   }
 
-  override setContext(): string {
+  override setContext(): string | undefined {
     const parents = this.getParents();
-    const app = parents['app'][0].to;
+    const app = parents['app']?.[0]?.to;
+    if (!app) {
+      return undefined;
+    }
     return [`${(this.constructor as typeof Image).NODE_NAME}=${this.imageId}`, app.getContext()].join(',');
   }
 

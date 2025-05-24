@@ -26,9 +26,12 @@ export class Environment extends AModel<EnvironmentSchema, Environment> {
     this.environmentName = environmentName;
   }
 
-  override setContext(): string {
+  override setContext(): string | undefined {
     const parents = this.getParents();
-    const region = parents['region'][0].to;
+    const region = parents['region']?.[0]?.to;
+    if (!region) {
+      return undefined;
+    }
     return [`${(this.constructor as typeof Environment).NODE_NAME}=${this.environmentName}`, region.getContext()].join(
       ',',
     );

@@ -324,7 +324,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
     }
   }
 
-  abstract override setContext(): string;
+  abstract override setContext(): string | undefined;
 
   abstract override synth(): S;
 

@@ -40,6 +40,14 @@ export class NodeError extends Error {
   }
 }
 
+export class ContextNodeError extends NodeError {
+  constructor(message: string, node: UnknownNode) {
+    super(message, node);
+
+    Object.setPrototypeOf(this, ContextNodeError.prototype);
+  }
+}
+
 export class ModelError extends NodeError {
   constructor(message: string, model: UnknownModel) {
     super(message, model);

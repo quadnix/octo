@@ -126,19 +126,19 @@ describe('Model E2E Test', () => {
   });
 
   describe('addChild()', () => {
-    it('should throw error adding relationship to an already existing relationship', () => {
+    it('should skip adding the same relationship twice', () => {
       const {
         account: [account],
         app: [app],
       } = create({ account: ['aws,account'], app: ['test'] });
 
-      expect(() => {
-        app.addChild('name', account, 'accountId');
-      }).toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
+      app.addChild('name', account, 'accountId');
+      expect(app.getDependencies().length).toBe(1);
+      expect(account.getDependencies().length).toBe(1);
 
-      expect(() => {
-        account.addChild('accountId', app, 'name');
-      }).toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
+      account.addChild('accountId', app, 'name');
+      expect(app.getDependencies().length).toBe(2);
+      expect(account.getDependencies().length).toBe(2);
     });
   });
 
@@ -346,14 +346,16 @@ describe('Model E2E Test', () => {
 
     describe('Circular Dependencies', () => {
       it('should throw error on one level of circular dependency', () => {
+        const app = new App('test-app');
         const account = new Account(AccountType.AWS, 'account');
         const region = new Region('region');
 
         expect(() => {
+          app.addAccount(account);
           account.addRegion(region);
           region.addChild('regionId', account, 'accountId');
           account.getBoundaryMembers();
-        }).toThrowErrorMatchingInlineSnapshot(`"Dependency relationship already exists!"`);
+        }).toThrowErrorMatchingInlineSnapshot(`"Found circular dependencies!"`);
       });
 
       it('should throw error on two levels of circular dependency', () => {

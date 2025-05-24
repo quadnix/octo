@@ -77,6 +77,93 @@ describe('Object Utility Test', () => {
     });
   });
 
+  describe('deepMergeInPlace()', () => {
+    it('should merge plain objects', () => {
+      const target = { a: 1, b: 2 };
+      const source = { b: 3, c: 4 };
+      ObjectUtility.deepMergeInPlace(target, source);
+      expect(target).toEqual({ a: 1, b: 3, c: 4 });
+    });
+
+    it('should merge nested objects', () => {
+      const target = { a: { x: 1, y: 2 } };
+      const source = { a: { y: 3, z: 4 } };
+      ObjectUtility.deepMergeInPlace(target, source);
+      expect(target).toEqual({ a: { x: 1, y: 3, z: 4 } });
+    });
+
+    it('should merge arrays', () => {
+      const target = { a: [1, 2, 3] };
+      const source = { a: [3, 4, 5] };
+      ObjectUtility.deepMergeInPlace(target, source);
+      expect(target).toEqual({ a: [1, 2, 3, 4, 5] });
+    });
+
+    it('should merge nested arrays', () => {
+      const target = { a: { b: [1, 2] } };
+      const source = { a: { b: [2, 3] } };
+      ObjectUtility.deepMergeInPlace(target, source);
+      expect(target).toEqual({ a: { b: [1, 2, 3] } });
+    });
+
+    it('should handle undefined values', () => {
+      const target = { a: undefined };
+      const source = { b: undefined };
+      ObjectUtility.deepMergeInPlace(target, source);
+      expect(target).toEqual({ a: undefined, b: undefined });
+    });
+
+    it('should handle null values', () => {
+      const target = { a: null };
+      const source = { b: null };
+      ObjectUtility.deepMergeInPlace(target, source);
+      expect(target).toEqual({ a: null, b: null });
+    });
+
+    it('should handle mixed types', () => {
+      const target = { a: 1, b: [1, 2], c: { x: 1 } };
+      const source = { b: [2, 3], c: { y: 2 }, d: true };
+      ObjectUtility.deepMergeInPlace(target, source);
+      expect(target).toEqual({
+        a: 1,
+        b: [1, 2, 3],
+        c: { x: 1, y: 2 },
+        d: true,
+      });
+    });
+
+    it('should not modify source object', () => {
+      const target = { a: 1 };
+      const source = { b: 2 };
+      ObjectUtility.deepMergeInPlace(target, source);
+      expect(source).toEqual({ b: 2 });
+    });
+  });
+
+  describe('isPlainObject()', () => {
+    it('should return true for plain objects', () => {
+      expect(ObjectUtility.isPlainObject({})).toBe(true);
+      expect(ObjectUtility.isPlainObject({ key: 'value' })).toBe(true);
+      expect(ObjectUtility.isPlainObject(new Date())).toBe(true);
+      expect(ObjectUtility.isPlainObject(new Map())).toBe(true);
+      expect(ObjectUtility.isPlainObject(new Set())).toBe(true);
+    });
+
+    it('should return false for non-plain objects', () => {
+      expect(ObjectUtility.isPlainObject([])).toBe(false);
+      expect(ObjectUtility.isPlainObject(null)).toBe(false);
+      expect(ObjectUtility.isPlainObject(undefined)).toBe(false);
+      expect(ObjectUtility.isPlainObject(42)).toBe(false);
+      expect(ObjectUtility.isPlainObject('string')).toBe(false);
+      expect(ObjectUtility.isPlainObject(true)).toBe(false);
+    });
+
+    it('should return true for class instances', () => {
+      class TestClass {}
+      expect(ObjectUtility.isPlainObject(new TestClass())).toBe(true);
+    });
+  });
+
   describe('onEveryNestedKey()', () => {
     it('should call the callback for every nested key', () => {
       const subject = {

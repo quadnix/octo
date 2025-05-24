@@ -9,6 +9,25 @@ export class ObjectUtility {
       .forEach(ObjectUtility.deepFreeze);
   }
 
+  static deepMergeInPlace(target: object, source: object): void {
+    for (const key of Object.keys(source)) {
+      const sourceValue = source[key];
+      const targetValue = target[key];
+
+      if (this.isPlainObject(sourceValue) && this.isPlainObject(targetValue)) {
+        this.deepMergeInPlace(targetValue, sourceValue);
+      } else if (Array.isArray(sourceValue) && Array.isArray(targetValue)) {
+        target[key] = Array.from(new Set([...targetValue, ...sourceValue]));
+      } else {
+        target[key] = sourceValue;
+      }
+    }
+  }
+
+  static isPlainObject(value: unknown): value is object {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
   static onEveryNestedKey(object: object, callback: (parent: object, key: string, value: unknown) => void): void {
     const keys = object instanceof ANode ? Object.keys(object.synth()) : Object.keys(object);
     for (const key of keys) {

@@ -13,9 +13,12 @@ export class Filesystem extends AModel<FilesystemSchema, Filesystem> {
     this.filesystemName = filesystemName;
   }
 
-  override setContext(): string {
+  override setContext(): string | undefined {
     const parents = this.getParents();
-    const region = parents['region'][0].to;
+    const region = parents['region']?.[0]?.to;
+    if (!region) {
+      return undefined;
+    }
     return [`${(this.constructor as typeof Filesystem).NODE_NAME}=${this.filesystemName}`, region.getContext()].join(
       ',',
     );

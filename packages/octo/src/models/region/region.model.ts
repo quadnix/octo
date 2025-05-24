@@ -71,9 +71,12 @@ export class Region extends AModel<RegionSchema, Region> {
     this.addChild('regionId', subnet, 'subnetId');
   }
 
-  override setContext(): string {
+  override setContext(): string | undefined {
     const parents = this.getParents();
-    const account = parents['account'][0].to;
+    const account = parents['account']?.[0]?.to;
+    if (!account) {
+      return undefined;
+    }
     return [`${(this.constructor as typeof Region).NODE_NAME}=${this.regionId}`, account.getContext()].join(',');
   }
 

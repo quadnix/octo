@@ -67,7 +67,7 @@ describe('Transaction Scenarios UT', () => {
       await createTestResources({ 'resource-1': [] });
       const generator = transactionService.beginTransaction([]);
       await generator.next();
-      await commitResources();
+      await commitResources({ skipAddActualResource: true });
     });
 
     describe('when no resources are modified', () => {
@@ -118,7 +118,7 @@ describe('Transaction Scenarios UT', () => {
         await createTestResources({ 'resource-1': [], 'resource-2': [] });
         const generator1 = transactionService.beginTransaction([]);
         await generator1.next();
-        await commitResources();
+        await commitResources({ skipAddActualResource: true });
 
         // Revert last change.
         const [, resource2] = await createTestResources({ 'resource-1': [], 'resource-2': [] });
@@ -320,7 +320,7 @@ describe('Transaction Scenarios UT', () => {
       await createTestResources({ 'resource-1': [] });
       const generator1 = transactionService.beginTransaction([]);
       await generator1.next();
-      await commitResources();
+      await commitResources({ skipAddActualResource: true });
 
       // Modify resource-1.
       const [resource1] = await createTestResources({ 'resource-1': [] });
@@ -497,7 +497,7 @@ describe('Transaction Scenarios UT', () => {
       await createTestResources({ 'resource-1': [] });
       const generator1 = transactionService.beginTransaction([]);
       await generator1.next();
-      await commitResources();
+      await commitResources({ skipAddActualResource: true });
 
       // Delete resource-1.
       const [resource1] = await createTestResources({ 'resource-1': [] });

@@ -24,9 +24,12 @@ export class Deployment extends AModel<DeploymentSchema, Deployment> {
     this.deploymentTag = deploymentTag;
   }
 
-  override setContext(): string {
+  override setContext(): string | undefined {
     const parents = this.getParents();
-    const parent = parents['server'][0].to;
+    const parent = parents['server']?.[0]?.to;
+    if (!parent) {
+      return undefined;
+    }
     return [`${(this.constructor as typeof Deployment).NODE_NAME}=${this.deploymentTag}`, parent.getContext()].join(
       ',',
     );

@@ -35,7 +35,7 @@ export class ResourceDataRepository {
     if (rIndex === -1) {
       this.actualResources.push(resource);
     } else {
-      this.actualResources[rIndex] = resource;
+      throw new ResourceError('Resource in actual already exists!', resource);
     }
   }
 
@@ -49,7 +49,7 @@ export class ResourceDataRepository {
     if (rIndex === -1) {
       this.newResources.push(resource);
     } else {
-      this.newResources[rIndex] = resource;
+      throw new ResourceError('Resource in new already exists!', resource);
     }
 
     // Clone response from old.

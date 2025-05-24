@@ -93,11 +93,14 @@ export class Execution extends AModel<ExecutionSchema, Execution> {
     ].join('-');
   }
 
-  override setContext(): string {
+  override setContext(): string | undefined {
     const parents = this.getParents();
-    const deployment = parents['deployment'][0]['to'] as Deployment;
-    const environment = parents['environment'][0]['to'] as Environment;
-    const subnet = parents['subnet'][0]['to'] as Subnet;
+    const deployment = parents['deployment']?.[0]?.to as Deployment;
+    const environment = parents['environment']?.[0]?.to as Environment;
+    const subnet = parents['subnet']?.[0]?.to as Subnet;
+    if (!deployment || !environment || !subnet) {
+      return undefined;
+    }
     return [
       `${(this.constructor as typeof Execution).NODE_NAME}=${this.executionId}`,
       deployment.getContext(),

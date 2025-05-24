@@ -62,8 +62,15 @@ export class MatchingResource<S extends BaseResourceSchema> {
     ...args: Parameters<AResource<BaseResourceSchema, any>['addChild']>
   ): ReturnType<AResource<BaseResourceSchema, any>['addChild']> {
     const results = this.actual.addChild(...args);
-    args[1].parents.pop();
-    args[1].parents.push(this);
+
+    if (
+      !(args[1].parents[args[1].parents.length - 1] instanceof MatchingResource) &&
+      (args[1].parents[args[1].parents.length - 1] as UnknownResource).resourceId === this.getActual().resourceId
+    ) {
+      args[1].parents.pop();
+      args[1].parents.push(this);
+    }
+
     return results;
   }
 

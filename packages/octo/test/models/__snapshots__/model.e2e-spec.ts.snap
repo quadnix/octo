@@ -615,19 +615,19 @@ exports[`Model E2E Test getBoundaryMembers() should include sibling dependency i
 ]
 `;
 
+exports[`Model E2E Test getBoundaryMembers() should not include non-dependents in boundary 1`] = `
+[
+  "region=region,account=account,app=test-app",
+  "account=account,app=test-app",
+  "app=test-app",
+]
+`;
+
 exports[`Model E2E Test getBoundaryMembers() should not include sibling's sibling in boundary 1`] = `
 [
   "region=region-1,account=account,app=app",
   "account=account,app=app",
   "app=app",
   "image=test/imageName,app=app",
-]
-`;
-
-exports[`Model E2E Test getBoundaryMembers() should not include non-dependents in boundary 1`] = `
-[
-  "region=region,account=account,app=test-app",
-  "account=account,app=test-app",
-  "app=test-app",
 ]
 `;
