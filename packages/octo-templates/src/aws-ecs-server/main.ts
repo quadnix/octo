@@ -16,6 +16,7 @@ import {
 import { AwsAccountModule } from '@quadnix/octo-aws-cdk/account/ini-based-aws-account';
 import { AppModule } from '@quadnix/octo-aws-cdk/app/simple-app';
 import { AwsDeploymentModule } from '@quadnix/octo-aws-cdk/deployment/ecs-based-aws-deployment';
+import { AwsImageModule } from '@quadnix/octo-aws-cdk/image/ecr-based-aws-image';
 import { AwsFilesystemModule } from '@quadnix/octo-aws-cdk/filesystem/efs-based-aws-filesystem';
 import { AwsEnvironmentModule } from '@quadnix/octo-aws-cdk/environment/ecs-based-aws-environment';
 import { AwsExecutionModule } from '@quadnix/octo-aws-cdk/execution/ecs-based-aws-execution';
@@ -47,7 +48,12 @@ octo.loadModule(AwsRegionModule, 'region-module', {
   regionId: RegionId.AWS_US_EAST_1A,
   vpcCidrBlock: '10.0.0.0/16',
 });
-octo.loadModule(AwsFilesystemModule, 'region-filesystem', {
+octo.loadModule(AwsImageModule, 'image-module', {
+  imageFamily: 'quadnix',
+  imageName: 'test',
+  regions: [stub<Region>('${{region-module.model.region}}')],
+});
+octo.loadModule(AwsFilesystemModule, 'region-filesystem-module', {
   filesystemName: 'region-filesystem',
   region: stub<Region>('${{region-module.model.region}}'),
 });
@@ -57,7 +63,7 @@ octo.loadModule(AwsEnvironmentModule, 'qa-environment-module', {
   region: stub<Region>('${{region-module.model.region}}'),
 });
 octo.loadModule(AwsSubnetModule, 'public-subnet-module', {
-  localFilesystems: [stub<Filesystem>('${{region-filesystem.model.filesystem}}')],
+  localFilesystems: [stub<Filesystem>('${{region-filesystem-module.model.filesystem}}')],
   region: stub<Region>('${{region-module.model.region}}'),
   subnetAvailabilityZone: 'us-east-1a',
   subnetCidrBlock: '10.0.0.0/24',
@@ -113,7 +119,7 @@ octo.loadModule(AwsExecutionModule, 'backend-v1-public-execution-module', {
   deployment: stub<Deployment>('${{backend-deployment-v1-module.model.deployment}}'),
   desiredCount: 1,
   environment: stub<Environment>('${{qa-environment-module.model.environment}}'),
-  filesystems: [stub<Filesystem>('${{region-filesystem.model.filesystem}}')],
+  filesystems: [stub<Filesystem>('${{region-filesystem-module.model.filesystem}}')],
   securityGroupRules: [
     {
       CidrBlock: '0.0.0.0/0',
@@ -145,6 +151,7 @@ octo.orderModules([
   AppModule,
   AwsAccountModule,
   AwsRegionModule,
+  AwsImageModule,
   AwsFilesystemModule,
   AwsEnvironmentModule,
   AwsSubnetModule,
