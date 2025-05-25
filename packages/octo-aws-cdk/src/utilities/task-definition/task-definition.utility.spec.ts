@@ -27,4 +27,87 @@ describe('TaskDefinition UT', () => {
       ]);
     });
   });
+
+  describe('isCpuAndMemoryValid()', () => {
+    it('should return true for valid CPU and memory combinations', () => {
+      // Test cases for CPU = 256
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(256, 512)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(256, 1024)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(256, 2048)).toBe(true);
+
+      // Test cases for CPU = 512
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(512, 1024)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(512, 2048)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(512, 4096)).toBe(true);
+
+      // Test cases for CPU = 1024
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(1024, 2048)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(1024, 4096)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(1024, 8192)).toBe(true);
+
+      // Test cases for CPU = 2048
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(2048, 4096)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(2048, 8192)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(2048, 16384)).toBe(true);
+
+      // Test cases for CPU = 4096
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(4096, 8192)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(4096, 16384)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(4096, 30720)).toBe(true);
+
+      // Test cases for CPU = 8192
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(8192, 16384)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(8192, 32768)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(8192, 61440)).toBe(true);
+
+      // Test cases for CPU = 16384
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(16384, 32768)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(16384, 65536)).toBe(true);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(16384, 122880)).toBe(true);
+    });
+
+    it('should return false for invalid CPU values', () => {
+      // Invalid CPU values
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(128, 512)).toBe(false);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(10240, 1024)).toBe(false);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(3072, 1024)).toBe(false);
+    });
+
+    it('should return false for invalid memory values', () => {
+      // Invalid memory values for CPU = 256
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(256, 256)).toBe(false);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(256, 4096)).toBe(false);
+
+      // Invalid memory values for CPU = 512
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(512, 512)).toBe(false);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(512, 16384)).toBe(false);
+
+      // Invalid memory values for CPU = 1024
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(1024, 1024)).toBe(false);
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(1024, 16384)).toBe(false);
+    });
+
+    it('should return false for memory values exceeding maximum limits', () => {
+      // Memory exceeding maximum for CPU = 256
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(256, 8192)).toBe(false);
+
+      // Memory exceeding maximum for CPU = 512
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(512, 16384)).toBe(false);
+
+      // Memory exceeding maximum for CPU = 1024
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(1024, 32768)).toBe(false);
+
+      // Memory exceeding maximum for CPU = 2048
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(2048, 65536)).toBe(false);
+
+      // Memory exceeding maximum for CPU = 4096
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(4096, 32768)).toBe(false);
+
+      // Memory exceeding maximum for CPU = 8192
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(8192, 122880)).toBe(false);
+
+      // Memory exceeding maximum for CPU = 16384
+      expect(TaskDefinitionUtility.isCpuAndMemoryValid(16384, 245760)).toBe(false);
+    });
+  });
 });

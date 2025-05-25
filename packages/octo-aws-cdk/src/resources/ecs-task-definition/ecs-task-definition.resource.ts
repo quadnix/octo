@@ -1,4 +1,5 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, type MatchingResource, Resource } from '@quadnix/octo';
+import { TaskDefinitionUtility } from '../../utilities/task-definition/task-definition.utility.js';
 import type { EfsSchema } from '../efs/efs.schema.js';
 import type { IamRoleSchema } from '../iam-role/iam-role.schema.js';
 import { EcsTaskDefinitionSchema } from './ecs-task-definition.schema.js';
@@ -14,6 +15,10 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
     properties: EcsTaskDefinitionSchema['properties'],
     parents: [MatchingResource<IamRoleSchema>, ...MatchingResource<EfsSchema>[]],
   ) {
+    if (!TaskDefinitionUtility.isCpuAndMemoryValid(properties.cpu, properties.memory)) {
+      throw new Error('Invalid values for CPU and/or memory!');
+    }
+
     super(resourceId, properties, parents);
 
     this.updateTaskDefinitionEfs(parents.slice(1).map((p) => p.getActual() as AResource<EfsSchema, any>));
