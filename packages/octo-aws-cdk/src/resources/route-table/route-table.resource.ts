@@ -1,5 +1,6 @@
-import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
 import type { InternetGatewaySchema } from '../internet-gateway/internet-gateway.schema.js';
+import type { NatGatewaySchema } from '../nat-gateway/nat-gateway.schema.js';
 import type { SubnetSchema } from '../subnet/subnet.schema.js';
 import type { VpcSchema } from '../vpc/vpc.schema.js';
 import { RouteTableSchema } from './route-table.schema.js';
@@ -20,5 +21,37 @@ export class RouteTable extends AResource<RouteTableSchema, RouteTable> {
     parents: [MatchingResource<VpcSchema>, MatchingResource<InternetGatewaySchema>, MatchingResource<SubnetSchema>],
   ) {
     super(resourceId, properties, parents);
+  }
+
+  addRouteToNatGateway(natGateway: MatchingResource<NatGatewaySchema>): void {
+    const existingNatGatewayParentDependencies = this.getParents('nat-gateway')['nat-gateway'];
+    if (existingNatGatewayParentDependencies?.length > 0) {
+      throw new ResourceError('A NAT Gateway is already associated with this route-table', this);
+    }
+
+    const { childToParentDependency, parentToChildDependency } = natGateway.addChild('resourceId', this, 'resourceId');
+    childToParentDependency.addBehavior('parent', DiffAction.ADD, 'resourceId', DiffAction.ADD);
+    childToParentDependency.addBehavior('parent', DiffAction.ADD, 'resourceId', DiffAction.UPDATE);
+    childToParentDependency.addBehavior('parent', DiffAction.DELETE, 'resourceId', DiffAction.ADD);
+    childToParentDependency.addBehavior('parent', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
+    childToParentDependency.addBehavior('parent', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+    childToParentDependency.addBehavior('parent', DiffAction.UPDATE, 'resourceId', DiffAction.UPDATE);
+    parentToChildDependency.addBehavior('resourceId', DiffAction.DELETE, 'parent', DiffAction.DELETE);
+    parentToChildDependency.addBehavior('resourceId', DiffAction.DELETE, 'parent', DiffAction.UPDATE);
+  }
+
+  override diffUnpack(diff: Diff): Diff[] {
+    if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
+      const diffs: Diff[] = [diff];
+
+      const existingNatGatewayParentDependencies = this.getParents('nat-gateway')['nat-gateway'];
+      if (existingNatGatewayParentDependencies?.length > 0) {
+        diffs.push(new Diff(this, DiffAction.ADD, 'parent', existingNatGatewayParentDependencies[0].to));
+      }
+
+      return diffs;
+    } else {
+      return [diff];
+    }
   }
 }
