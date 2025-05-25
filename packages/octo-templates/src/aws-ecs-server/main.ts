@@ -3,6 +3,7 @@ import {
   type App,
   type Deployment,
   type Environment,
+  type Filesystem,
   LocalStateProvider,
   Octo,
   type Region,
@@ -15,6 +16,7 @@ import {
 import { AwsAccountModule } from '@quadnix/octo-aws-cdk/account/ini-based-aws-account';
 import { AppModule } from '@quadnix/octo-aws-cdk/app/simple-app';
 import { AwsDeploymentModule } from '@quadnix/octo-aws-cdk/deployment/ecs-based-aws-deployment';
+import { AwsFilesystemModule } from '@quadnix/octo-aws-cdk/filesystem/efs-based-aws-filesystem';
 import { AwsEnvironmentModule } from '@quadnix/octo-aws-cdk/environment/ecs-based-aws-environment';
 import { AwsExecutionModule } from '@quadnix/octo-aws-cdk/execution/ecs-based-aws-execution';
 import { AwsRegionModule } from '@quadnix/octo-aws-cdk/region/per-az-aws-region';
@@ -45,12 +47,17 @@ octo.loadModule(AwsRegionModule, 'region-module', {
   regionId: RegionId.AWS_US_EAST_1A,
   vpcCidrBlock: '10.0.0.0/16',
 });
+octo.loadModule(AwsFilesystemModule, 'region-filesystem', {
+  filesystemName: 'region-filesystem',
+  region: stub<Region>('${{region-module.model.region}}'),
+});
 octo.loadModule(AwsEnvironmentModule, 'qa-environment-module', {
   environmentName: 'qa',
-  environmentVariables: { NODE_ENV: 'qa' },
+  environmentVariables: { NODE_ENV: 'qa', REGION: RegionId.AWS_US_EAST_1A },
   region: stub<Region>('${{region-module.model.region}}'),
 });
 octo.loadModule(AwsSubnetModule, 'public-subnet-module', {
+  localFilesystems: [stub<Filesystem>('${{region-filesystem.model.filesystem}}')],
   region: stub<Region>('${{region-module.model.region}}'),
   subnetAvailabilityZone: 'us-east-1a',
   subnetCidrBlock: '10.0.0.0/24',
@@ -106,6 +113,7 @@ octo.loadModule(AwsExecutionModule, 'backend-v1-public-execution-module', {
   deployment: stub<Deployment>('${{backend-deployment-v1-module.model.deployment}}'),
   desiredCount: 1,
   environment: stub<Environment>('${{qa-environment-module.model.environment}}'),
+  filesystems: [stub<Filesystem>('${{region-filesystem.model.filesystem}}')],
   securityGroupRules: [
     {
       CidrBlock: '0.0.0.0/0',
@@ -137,6 +145,7 @@ octo.orderModules([
   AppModule,
   AwsAccountModule,
   AwsRegionModule,
+  AwsFilesystemModule,
   AwsEnvironmentModule,
   AwsSubnetModule,
   AwsS3StorageServiceModule,
