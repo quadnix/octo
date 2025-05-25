@@ -8,7 +8,7 @@ import {
   type IModelAction,
 } from '@quadnix/octo';
 import type { NetworkAcl } from '../../../../../../resources/network-acl/index.js';
-import type { NetworkAclSchema } from '../../../../../../resources/network-acl/network-acl.schema.js';
+import { NetworkAclSchema } from '../../../../../../resources/network-acl/network-acl.schema.js';
 import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnet } from '../aws.subnet.model.js';
 
@@ -34,8 +34,11 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
     const siblingSubnetInputs = actionInputs.inputs.subnetSiblings || [];
     const siblingSubnetInput = siblingSubnetInputs.find((s) => s.subnetName === siblingSubnet.subnetName)!;
     const subnetNAcl = actionInputs.resources[`nacl-${subnet.subnetId}`] as NetworkAcl;
+    const [matchingSiblingSubnetNAcl] = await siblingSubnet.getResourcesMatchingSchema(NetworkAclSchema, [], [], {
+      searchBoundaryMembers: false,
+    });
 
-    // Create Network ACL entries.
+    // Create Network ACL entries on subnet NAcl.
     const subnetNAclEntries: NetworkAclSchema['properties']['entries'] = [];
     subnetNAclEntries.push({
       CidrBlock: siblingSubnetInput.subnetCidrBlock,
@@ -55,7 +58,28 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
     });
     subnetNAcl.updateNaclEntries(subnetNAclEntries);
 
+    // Create Network ACL entries on sibling subnet NAcl.
+    const siblingSubnetNAclEntries: NetworkAclSchema['properties']['entries'] = [];
+    siblingSubnetNAclEntries.push({
+      CidrBlock: actionInputs.inputs.subnetCidrBlock,
+      Egress: false,
+      PortRange: { From: -1, To: -1 },
+      Protocol: '-1', // All.
+      RuleAction: 'allow',
+      RuleNumber: -1,
+    });
+    siblingSubnetNAclEntries.push({
+      CidrBlock: actionInputs.inputs.subnetCidrBlock,
+      Egress: true,
+      PortRange: { From: -1, To: -1 },
+      Protocol: '-1', // All.
+      RuleAction: 'allow',
+      RuleNumber: -1,
+    });
+    (matchingSiblingSubnetNAcl.getActual() as NetworkAcl).updateNaclEntries(siblingSubnetNAclEntries);
+
     actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
+    actionOutputs[matchingSiblingSubnetNAcl.getActual().resourceId] = subnetNAcl;
     return actionOutputs;
   }
 }

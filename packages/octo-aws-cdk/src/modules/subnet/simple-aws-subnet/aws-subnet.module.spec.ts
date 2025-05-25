@@ -67,7 +67,7 @@ async function setup(
           awsAccountId: '123',
           awsAvailabilityZones: ['us-east-1a'],
           awsRegionId: 'us-east-1',
-          CidrBlock: '10.0.0.0/24',
+          CidrBlock: '10.0.0.0/16',
           InstanceTenancy: 'default',
         },
         resourceContext: '@octo/vpc=vpc-region',
@@ -168,7 +168,7 @@ describe('AwsSubnetModule UT', () => {
         localFilesystems: [stub('${{testModule.model.filesystem}}')],
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
+        subnetCidrBlock: '10.0.1.0/24',
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet',
@@ -209,7 +209,7 @@ describe('AwsSubnetModule UT', () => {
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
+        subnetCidrBlock: '10.0.1.0/24',
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet',
@@ -248,7 +248,7 @@ describe('AwsSubnetModule UT', () => {
        "awsRegionId": "us-east-1",
        "entries": [
          {
-           "CidrBlock": "10.0.0.0/24",
+           "CidrBlock": "10.0.1.0/24",
            "Egress": false,
            "PortRange": {
              "From": -1,
@@ -259,7 +259,7 @@ describe('AwsSubnetModule UT', () => {
            "RuleNumber": 10,
          },
          {
-           "CidrBlock": "10.0.0.0/24",
+           "CidrBlock": "10.0.1.0/24",
            "Egress": true,
            "PortRange": {
              "From": -1,
@@ -278,7 +278,7 @@ describe('AwsSubnetModule UT', () => {
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
+        subnetCidrBlock: '10.0.1.0/24',
         subnetName: 'private-subnet',
         subnetOptions: {
           disableSubnetIntraNetwork: true,
@@ -301,7 +301,7 @@ describe('AwsSubnetModule UT', () => {
              "key": "entries",
              "value": [
                {
-                 "CidrBlock": "10.0.0.0/24",
+                 "CidrBlock": "10.0.1.0/24",
                  "Egress": false,
                  "PortRange": {
                    "From": -1,
@@ -312,7 +312,7 @@ describe('AwsSubnetModule UT', () => {
                  "RuleNumber": 10,
                },
                {
-                 "CidrBlock": "10.0.0.0/24",
+                 "CidrBlock": "10.0.1.0/24",
                  "Egress": true,
                  "PortRange": {
                    "From": -1,
@@ -336,7 +336,7 @@ describe('AwsSubnetModule UT', () => {
         localFilesystems: [stub('${{testModule.model.filesystem}}')],
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
+        subnetCidrBlock: '10.0.1.0/24',
         subnetName: 'private-subnet',
         subnetOptions: {
           disableSubnetIntraNetwork: true,
@@ -396,13 +396,13 @@ describe('AwsSubnetModule UT', () => {
     `);
   });
 
-  it('should associate subnet with siblings', async () => {
+  it('should associate and disassociate subnet with siblings', async () => {
     const { app: app1 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.0.0/24',
+        subnetCidrBlock: '10.0.1.0/24',
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet1',
@@ -412,7 +412,7 @@ describe('AwsSubnetModule UT', () => {
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
-        subnetCidrBlock: '10.0.1.0/24',
+        subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'public-subnet',
         subnetOptions: {
           disableSubnetIntraNetwork: false,
@@ -473,7 +473,7 @@ describe('AwsSubnetModule UT', () => {
        [],
      ]
     `);
-    expect((result1.resourceDiffs[0][5].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+    expect((result1.resourceDiffs[0][2].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
        "awsRegionId": "us-east-1",
@@ -501,6 +501,58 @@ describe('AwsSubnetModule UT', () => {
            "RuleNumber": 10,
          },
          {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 20,
+         },
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 20,
+         },
+       ],
+     }
+    `);
+    expect((result1.resourceDiffs[0][5].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+     {
+       "awsAccountId": "123",
+       "awsRegionId": "us-east-1",
+       "entries": [
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 10,
+         },
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 10,
+         },
+         {
            "CidrBlock": "0.0.0.0/0",
            "Egress": false,
            "PortRange": {
@@ -523,7 +575,7 @@ describe('AwsSubnetModule UT', () => {
            "RuleNumber": 20,
          },
          {
-           "CidrBlock": "10.0.0.0/24",
+           "CidrBlock": "10.0.1.0/24",
            "Egress": false,
            "PortRange": {
              "From": -1,
@@ -534,7 +586,7 @@ describe('AwsSubnetModule UT', () => {
            "RuleNumber": 30,
          },
          {
-           "CidrBlock": "10.0.0.0/24",
+           "CidrBlock": "10.0.1.0/24",
            "Egress": true,
            "PortRange": {
              "From": -1,
@@ -546,6 +598,128 @@ describe('AwsSubnetModule UT', () => {
          },
        ],
      }
+    `);
+
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+      },
+      moduleId: 'subnet1',
+      type: AwsSubnetModule,
+    });
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.0.0/24',
+        subnetName: 'public-subnet',
+        subnetOptions: {
+          disableSubnetIntraNetwork: false,
+          subnetType: SubnetType.PUBLIC,
+        },
+        subnetSiblings: [],
+      },
+      moduleId: 'subnet2',
+      type: AwsSubnetModule,
+    });
+
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "properties",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
+           "value": {
+             "key": "entries",
+             "value": [
+               {
+                 "CidrBlock": "10.0.1.0/24",
+                 "Egress": false,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 10,
+               },
+               {
+                 "CidrBlock": "10.0.1.0/24",
+                 "Egress": true,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 10,
+               },
+             ],
+           },
+         },
+         {
+           "action": "update",
+           "field": "properties",
+           "node": "@octo/network-acl=nacl-region-public-subnet",
+           "value": {
+             "key": "entries",
+             "value": [
+               {
+                 "CidrBlock": "10.0.0.0/24",
+                 "Egress": false,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 10,
+               },
+               {
+                 "CidrBlock": "10.0.0.0/24",
+                 "Egress": true,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 10,
+               },
+               {
+                 "CidrBlock": "0.0.0.0/0",
+                 "Egress": false,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 20,
+               },
+               {
+                 "CidrBlock": "0.0.0.0/0",
+                 "Egress": true,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 20,
+               },
+             ],
+           },
+         },
+       ],
+       [],
+     ]
     `);
   });
 });
