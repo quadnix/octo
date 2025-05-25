@@ -10,6 +10,7 @@ import {
   SubnetType,
 } from '@quadnix/octo';
 import { InternetGatewaySchema } from '../../../../../../resources/internet-gateway/internet-gateway.schema.js';
+import { NatGateway } from '../../../../../../resources/nat-gateway/index.js';
 import { NetworkAcl } from '../../../../../../resources/network-acl/index.js';
 import type { NetworkAclSchema } from '../../../../../../resources/network-acl/network-acl.schema.js';
 import { RouteTable } from '../../../../../../resources/route-table/index.js';
@@ -69,6 +70,20 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
       },
       [matchingVpcResource],
     );
+
+    // Create NAT Gateway.
+    let subnetNatGateway: NatGateway | undefined;
+    if (subnet.createNatGateway) {
+      subnetNatGateway = new NatGateway(
+        `nat-gateway-${subnet.subnetId}`,
+        {
+          awsAccountId,
+          awsRegionId,
+          ConnectivityType: 'public',
+        },
+        [matchingVpcResource, new MatchingResource(subnetSubnet)],
+      );
+    }
 
     // Create Route Table.
     const subnetRT = new RouteTable(
@@ -172,6 +187,9 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     );
 
     actionOutputs[subnetSubnet.resourceId] = subnetSubnet;
+    if (subnetNatGateway) {
+      actionOutputs[subnetNatGateway.resourceId] = subnetNatGateway;
+    }
     actionOutputs[subnetRT.resourceId] = subnetRT;
     actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
     return actionOutputs;

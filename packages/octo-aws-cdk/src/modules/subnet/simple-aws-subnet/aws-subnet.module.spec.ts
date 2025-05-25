@@ -281,6 +281,7 @@ describe('AwsSubnetModule UT', () => {
         subnetCidrBlock: '10.0.1.0/24',
         subnetName: 'private-subnet',
         subnetOptions: {
+          createNatGateway: false,
           disableSubnetIntraNetwork: true,
           subnetType: SubnetType.PRIVATE,
         },
@@ -339,6 +340,7 @@ describe('AwsSubnetModule UT', () => {
         subnetCidrBlock: '10.0.1.0/24',
         subnetName: 'private-subnet',
         subnetOptions: {
+          createNatGateway: false,
           disableSubnetIntraNetwork: true,
           subnetType: SubnetType.PRIVATE,
         },
@@ -415,6 +417,7 @@ describe('AwsSubnetModule UT', () => {
         subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'public-subnet',
         subnetOptions: {
+          createNatGateway: false,
           disableSubnetIntraNetwork: false,
           subnetType: SubnetType.PUBLIC,
         },
@@ -618,6 +621,7 @@ describe('AwsSubnetModule UT', () => {
         subnetCidrBlock: '10.0.0.0/24',
         subnetName: 'public-subnet',
         subnetOptions: {
+          createNatGateway: false,
           disableSubnetIntraNetwork: false,
           subnetType: SubnetType.PUBLIC,
         },
@@ -716,6 +720,407 @@ describe('AwsSubnetModule UT', () => {
                },
              ],
            },
+         },
+       ],
+       [],
+     ]
+    `);
+  });
+
+  it('should associate and disassociate private subnet with public subnet with a NAT Gateway', async () => {
+    const { app: app1 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.0.0/24',
+        subnetName: 'public-subnet',
+        subnetOptions: {
+          createNatGateway: true,
+          disableSubnetIntraNetwork: false,
+          subnetType: SubnetType.PUBLIC,
+        },
+      },
+      moduleId: 'subnet1',
+      type: AwsSubnetModule,
+    });
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+        subnetSiblings: [
+          {
+            subnetCidrBlock: stub('${{subnet1.input.subnetCidrBlock}}'),
+            subnetName: stub('${{subnet1.input.subnetName}}'),
+          },
+        ],
+      },
+      moduleId: 'subnet2',
+      type: AwsSubnetModule,
+    });
+
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/subnet=subnet-region-public-subnet",
+           "value": "@octo/subnet=subnet-region-public-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/nat-gateway=nat-gateway-region-public-subnet",
+           "value": "@octo/nat-gateway=nat-gateway-region-public-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/route-table=rt-region-public-subnet",
+           "value": "@octo/route-table=rt-region-public-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/network-acl=nacl-region-public-subnet",
+           "value": "@octo/network-acl=nacl-region-public-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/subnet=subnet-region-private-subnet",
+           "value": "@octo/subnet=subnet-region-private-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": "@octo/route-table=rt-region-private-subnet",
+         },
+         {
+           "action": "add",
+           "field": "parent",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": "@octo/nat-gateway=nat-gateway-region-public-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
+           "value": "@octo/network-acl=nacl-region-private-subnet",
+         },
+       ],
+       [],
+     ]
+    `);
+    expect((result1.resourceDiffs[0][3].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+     {
+       "awsAccountId": "123",
+       "awsRegionId": "us-east-1",
+       "entries": [
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 10,
+         },
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 10,
+         },
+         {
+           "CidrBlock": "0.0.0.0/0",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 20,
+         },
+         {
+           "CidrBlock": "0.0.0.0/0",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 20,
+         },
+         {
+           "CidrBlock": "10.0.1.0/24",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 30,
+         },
+         {
+           "CidrBlock": "10.0.1.0/24",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 30,
+         },
+       ],
+     }
+    `);
+    expect((result1.resourceDiffs[0][7].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+     {
+       "awsAccountId": "123",
+       "awsRegionId": "us-east-1",
+       "entries": [
+         {
+           "CidrBlock": "10.0.1.0/24",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 10,
+         },
+         {
+           "CidrBlock": "10.0.1.0/24",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 10,
+         },
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": false,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 20,
+         },
+         {
+           "CidrBlock": "10.0.0.0/24",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 20,
+         },
+         {
+           "CidrBlock": "0.0.0.0/0",
+           "Egress": true,
+           "PortRange": {
+             "From": -1,
+             "To": -1,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 30,
+         },
+       ],
+     }
+    `);
+
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.0.0/24',
+        subnetName: 'public-subnet',
+        subnetOptions: {
+          createNatGateway: true,
+          disableSubnetIntraNetwork: false,
+          subnetType: SubnetType.PUBLIC,
+        },
+      },
+      moduleId: 'subnet1',
+      type: AwsSubnetModule,
+    });
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+        subnetSiblings: [],
+      },
+      moduleId: 'subnet2',
+      type: AwsSubnetModule,
+    });
+
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "properties",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
+           "value": {
+             "key": "entries",
+             "value": [
+               {
+                 "CidrBlock": "10.0.1.0/24",
+                 "Egress": false,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 10,
+               },
+               {
+                 "CidrBlock": "10.0.1.0/24",
+                 "Egress": true,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 10,
+               },
+             ],
+           },
+         },
+         {
+           "action": "update",
+           "field": "properties",
+           "node": "@octo/network-acl=nacl-region-public-subnet",
+           "value": {
+             "key": "entries",
+             "value": [
+               {
+                 "CidrBlock": "10.0.0.0/24",
+                 "Egress": false,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 10,
+               },
+               {
+                 "CidrBlock": "10.0.0.0/24",
+                 "Egress": true,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 10,
+               },
+               {
+                 "CidrBlock": "0.0.0.0/0",
+                 "Egress": false,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 20,
+               },
+               {
+                 "CidrBlock": "0.0.0.0/0",
+                 "Egress": true,
+                 "PortRange": {
+                   "From": -1,
+                   "To": -1,
+                 },
+                 "Protocol": "-1",
+                 "RuleAction": "allow",
+                 "RuleNumber": 20,
+               },
+             ],
+           },
+         },
+         {
+           "action": "delete",
+           "field": "parent",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": "@octo/nat-gateway=nat-gateway-region-public-subnet",
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.0.0/24',
+        subnetName: 'public-subnet',
+        subnetOptions: {
+          createNatGateway: false,
+          disableSubnetIntraNetwork: false,
+          subnetType: SubnetType.PUBLIC,
+        },
+      },
+      moduleId: 'subnet1',
+      type: AwsSubnetModule,
+    });
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+        subnetSiblings: [],
+      },
+      moduleId: 'subnet2',
+      type: AwsSubnetModule,
+    });
+
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "delete",
+           "field": "resourceId",
+           "node": "@octo/nat-gateway=nat-gateway-region-public-subnet",
+           "value": "@octo/nat-gateway=nat-gateway-region-public-subnet",
          },
        ],
        [],

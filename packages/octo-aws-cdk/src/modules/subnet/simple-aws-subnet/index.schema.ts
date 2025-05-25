@@ -42,12 +42,14 @@ export class AwsSubnetModuleSchema {
 
   @Validate({
     destruct: (value: AwsSubnetModuleSchema['subnetOptions']): string[] => [
+      String(value!.createNatGateway),
       String(value!.disableSubnetIntraNetwork),
       value!.subnetType,
     ],
     options: { minLength: 1 },
   })
-  subnetOptions? = Schema<{ disableSubnetIntraNetwork: boolean; subnetType: SubnetType }>({
+  subnetOptions? = Schema<{ createNatGateway: boolean; disableSubnetIntraNetwork: boolean; subnetType: SubnetType }>({
+    createNatGateway: false,
     disableSubnetIntraNetwork: false,
     subnetType: SubnetType.PRIVATE,
   });

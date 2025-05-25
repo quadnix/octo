@@ -6,9 +6,12 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  SubnetType,
 } from '@quadnix/octo';
+import { NatGatewaySchema } from '../../../../../../resources/nat-gateway/nat-gateway.schema.js';
 import type { NetworkAcl } from '../../../../../../resources/network-acl/index.js';
 import { NetworkAclSchema } from '../../../../../../resources/network-acl/network-acl.schema.js';
+import { RouteTable } from '../../../../../../resources/route-table/index.js';
 import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnet } from '../aws.subnet.model.js';
 
@@ -33,7 +36,11 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
 
     const siblingSubnetInputs = actionInputs.inputs.subnetSiblings || [];
     const siblingSubnetInput = siblingSubnetInputs.find((s) => s.subnetName === siblingSubnet.subnetName)!;
+    const subnetRouteTable = actionInputs.resources[`rt-${subnet.subnetId}`] as RouteTable;
     const subnetNAcl = actionInputs.resources[`nacl-${subnet.subnetId}`] as NetworkAcl;
+    const [matchingSiblingSubnetNatGateway] = await siblingSubnet.getResourcesMatchingSchema(NatGatewaySchema, [], [], {
+      searchBoundaryMembers: false,
+    });
     const [matchingSiblingSubnetNAcl] = await siblingSubnet.getResourcesMatchingSchema(NetworkAclSchema, [], [], {
       searchBoundaryMembers: false,
     });
@@ -56,7 +63,6 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
       RuleAction: 'allow',
       RuleNumber: -1,
     });
-    subnetNAcl.updateNaclEntries(subnetNAclEntries);
 
     // Create Network ACL entries on sibling subnet NAcl.
     const siblingSubnetNAclEntries: NetworkAclSchema['properties']['entries'] = [];
@@ -76,8 +82,28 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
       RuleAction: 'allow',
       RuleNumber: -1,
     });
+
+    if (siblingSubnet.subnetType === SubnetType.PUBLIC && siblingSubnet.createNatGateway) {
+      // Create route table entries on subnet route table to allow traffic to NAT Gateway.
+      subnetRouteTable.addRouteToNatGateway(matchingSiblingSubnetNatGateway);
+
+      // Also create Network ACL entries on subnet NAcl to allow Egress traffic to the internet.
+      subnetNAclEntries.push({
+        CidrBlock: '0.0.0.0/0',
+        Egress: true,
+        PortRange: { From: -1, To: -1 },
+        Protocol: '-1', // All.
+        RuleAction: 'allow',
+        RuleNumber: -1,
+      });
+    }
+
+    subnetNAcl.updateNaclEntries(subnetNAclEntries);
     (matchingSiblingSubnetNAcl.getActual() as NetworkAcl).updateNaclEntries(siblingSubnetNAclEntries);
 
+    if (siblingSubnet.subnetType === SubnetType.PUBLIC && siblingSubnet.createNatGateway) {
+      actionOutputs[subnetRouteTable.resourceId] = subnetRouteTable;
+    }
     actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
     actionOutputs[matchingSiblingSubnetNAcl.getActual().resourceId] = subnetNAcl;
     return actionOutputs;

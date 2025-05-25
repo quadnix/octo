@@ -17,8 +17,14 @@ export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
       throw new Error('Invalid subnet availability zone!');
     }
 
+    // Validate NAT Gateway option.
+    if (inputs.subnetOptions?.createNatGateway && inputs.subnetOptions.subnetType !== SubnetType.PUBLIC) {
+      throw new Error('NAT Gateway can only be created for public subnets!');
+    }
+
     // Create a new subnet.
     const subnet = new AwsSubnet(region, inputs.subnetName);
+    subnet.createNatGateway = inputs.subnetOptions?.createNatGateway || false;
     subnet.disableSubnetIntraNetwork = inputs.subnetOptions?.disableSubnetIntraNetwork || false;
     subnet.subnetType = inputs.subnetOptions?.subnetType || SubnetType.PRIVATE;
     region.addSubnet(subnet);
