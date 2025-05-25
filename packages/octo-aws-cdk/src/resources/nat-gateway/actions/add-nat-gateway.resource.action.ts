@@ -1,6 +1,6 @@
 import { AllocateAddressCommand, CreateNatGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
+import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { NatGateway } from '../nat-gateway.resource.js';
 import type { NatGatewaySchema } from '../nat-gateway.schema.js';
 
@@ -25,7 +25,7 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     const subnet = natGateway.parents[1];
 
     // Get instances.
-    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
       args: [properties.awsAccountId, properties.awsRegionId],
       metadata: { package: '@octo' },
     });
@@ -56,7 +56,7 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     const natGateway = diff.node as NatGateway;
     const properties = natGateway.properties;
 
-    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
       args: [properties.awsAccountId, properties.awsRegionId],
       metadata: { package: '@octo' },
     });

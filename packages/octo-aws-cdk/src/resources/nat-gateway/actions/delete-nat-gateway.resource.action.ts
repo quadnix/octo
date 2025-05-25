@@ -1,6 +1,6 @@
 import { DeleteNatGatewayCommand, EC2Client, ReleaseAddressCommand } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
+import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { NatGateway } from '../nat-gateway.resource.js';
 
@@ -24,7 +24,7 @@ export class DeleteNatGatewayResourceAction implements IResourceAction<NatGatewa
     const response = natGateway.response;
 
     // Get instances.
-    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
       args: [properties.awsAccountId, properties.awsRegionId],
       metadata: { package: '@octo' },
     });
@@ -60,7 +60,7 @@ export class DeleteNatGatewayResourceAction implements IResourceAction<NatGatewa
     const natGateway = diff.node as NatGateway;
     const properties = natGateway.properties;
 
-    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
       args: [properties.awsAccountId, properties.awsRegionId],
       metadata: { package: '@octo' },
     });

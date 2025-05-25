@@ -1,6 +1,6 @@
 import { DeleteSecurityGroupCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
+import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
@@ -24,7 +24,7 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction<Securi
     const response = securityGroup.response;
 
     // Get instances.
-    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
       args: [properties.awsAccountId, properties.awsRegionId],
       metadata: { package: '@octo' },
     });
@@ -54,7 +54,7 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction<Securi
     const properties = securityGroup.properties;
 
     // Get instances.
-    const ec2Client = await this.container.get<EC2Client, typeof ECSClientFactory>(EC2Client, {
+    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
       args: [properties.awsAccountId, properties.awsRegionId],
       metadata: { package: '@octo' },
     });
