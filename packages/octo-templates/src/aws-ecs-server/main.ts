@@ -69,6 +69,7 @@ octo.loadModule(AwsSubnetModule, 'public-subnet-module', {
   subnetCidrBlock: '10.0.0.0/24',
   subnetName: 'public-subnet',
   subnetOptions: {
+    createNatGateway: true,
     disableSubnetIntraNetwork: false,
     subnetType: SubnetType.PUBLIC,
   },
@@ -79,6 +80,7 @@ octo.loadModule(AwsSubnetModule, 'private-subnet-module', {
   subnetCidrBlock: '10.0.1.0/24',
   subnetName: 'private-subnet',
   subnetOptions: {
+    createNatGateway: false,
     disableSubnetIntraNetwork: true,
     subnetType: SubnetType.PRIVATE,
   },
