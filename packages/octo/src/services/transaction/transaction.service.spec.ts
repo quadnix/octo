@@ -313,6 +313,12 @@ describe('TransactionService UT', () => {
       handle: jest.fn() as jest.Mocked<any>,
       mock: jest.fn() as jest.Mocked<any>,
     };
+    const universalResourceActionWithTimeout: IResourceAction<UnknownResource> = {
+      actionTimeoutInMs: 100,
+      filter: () => true,
+      handle: jest.fn() as jest.Mocked<any>,
+      mock: jest.fn() as jest.Mocked<any>,
+    };
 
     let applyResources: TransactionService['applyResources'];
 
@@ -325,6 +331,8 @@ describe('TransactionService UT', () => {
     afterEach(() => {
       (universalResourceAction.handle as jest.Mock).mockReset();
       (universalResourceAction.mock as jest.Mock).mockReset();
+      (universalResourceActionWithTimeout.handle as jest.Mock).mockReset();
+      (universalResourceActionWithTimeout.mock as jest.Mock).mockReset();
     });
 
     it('should return empty transaction if diffs is empty', async () => {
@@ -406,6 +414,61 @@ describe('TransactionService UT', () => {
 
       expect(universalResourceAction.mock).toHaveBeenCalledTimes(1);
       expect((universalResourceAction.mock as jest.Mock).mock.calls[0][1]).toEqual({ 'key-1': 'value-1' });
+    });
+
+    describe('with actionTimeoutInMs', () => {
+      it('should throw error if action does not resolve in time', async () => {
+        (universalResourceActionWithTimeout.handle as jest.Mocked<any>).mockImplementationOnce(
+          async (): Promise<void> => {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          },
+        );
+
+        const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+          await createTestResources([
+            { resourceContext: '@octo/test-resource=resource-1' },
+            { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+          ]);
+
+        const diff1 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+        const diffMetadata1 = new DiffMetadata(diff1, [universalResourceActionWithTimeout]);
+        diffMetadata1.applyOrder = 0;
+        const diff2 = new Diff(resource2, DiffAction.ADD, 'resourceId', 'resource-2');
+        const diffMetadata2 = new DiffMetadata(diff2, [universalResourceAction]);
+        diffMetadata2.applyOrder = 1;
+
+        await expect(async () => {
+          await applyResources([diffMetadata2, diffMetadata1]);
+        }).rejects.toThrowErrorMatchingInlineSnapshot(`"Resource action timed out after 100ms!"`);
+
+        expect(universalResourceAction.handle).toHaveBeenCalledTimes(0);
+      });
+
+      it('should process diffs if action resolves in time', async () => {
+        (universalResourceActionWithTimeout.handle as jest.Mocked<any>).mockImplementationOnce(
+          async (): Promise<void> => {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          },
+        );
+
+        const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+          await createTestResources([
+            { resourceContext: '@octo/test-resource=resource-1' },
+            { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+          ]);
+
+        const diff1 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+        const diffMetadata1 = new DiffMetadata(diff1, [universalResourceActionWithTimeout]);
+        diffMetadata1.applyOrder = 0;
+        const diff2 = new Diff(resource2, DiffAction.ADD, 'resourceId', 'resource-2');
+        const diffMetadata2 = new DiffMetadata(diff2, [universalResourceAction]);
+        diffMetadata2.applyOrder = 1;
+
+        await applyResources([diffMetadata2, diffMetadata1]);
+
+        expect(universalResourceActionWithTimeout.handle).toHaveBeenCalledTimes(1);
+        expect(universalResourceAction.handle).toHaveBeenCalledTimes(1);
+      });
     });
   });
 

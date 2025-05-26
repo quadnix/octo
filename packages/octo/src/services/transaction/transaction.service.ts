@@ -11,7 +11,12 @@ import {
 } from '../../app.type.js';
 import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
-import { InputNotFoundTransactionError, InputRegistrationError, TransactionError } from '../../errors/index.js';
+import {
+  InputNotFoundTransactionError,
+  InputRegistrationError,
+  ResourceActionTimeoutTransactionError,
+  TransactionError,
+} from '../../errors/index.js';
 import {
   ModelActionRegistrationEvent,
   ModelActionTransactionEvent,
@@ -200,7 +205,28 @@ export class TransactionService {
             await a.mock(diff, capture?.response || {});
             await a.handle(diffToProcess);
           } else {
-            await a.handle(diffToProcess);
+            let actionTimeoutId: NodeJS.Timeout | undefined;
+            try {
+              await Promise.race([
+                a.handle(diffToProcess),
+                new Promise(
+                  (_resolve, reject) =>
+                    (actionTimeoutId = setTimeout(() => {
+                      reject(
+                        new ResourceActionTimeoutTransactionError(
+                          `Resource action timed out after ${a.actionTimeoutInMs || 60000}ms!`,
+                          diffToProcess,
+                          a.constructor.name,
+                        ),
+                      );
+                    }, a.actionTimeoutInMs || 90000)), // 1.5 minutes.
+                ),
+              ]);
+            } finally {
+              if (actionTimeoutId) {
+                clearTimeout(actionTimeoutId);
+              }
+            }
           }
 
           // De-reference from actual resources.
