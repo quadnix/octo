@@ -951,6 +951,17 @@ describe('AwsSubnetModule UT', () => {
            "RuleAction": "allow",
            "RuleNumber": 30,
          },
+         {
+           "CidrBlock": "0.0.0.0/0",
+           "Egress": false,
+           "PortRange": {
+             "From": 1024,
+             "To": 65535,
+           },
+           "Protocol": "-1",
+           "RuleAction": "allow",
+           "RuleNumber": 30,
+         },
        ],
      }
     `);

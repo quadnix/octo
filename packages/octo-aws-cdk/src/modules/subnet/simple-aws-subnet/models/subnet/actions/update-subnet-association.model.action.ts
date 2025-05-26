@@ -87,11 +87,19 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
       // Create route table entries on subnet route table to allow traffic to NAT Gateway.
       subnetRouteTable.addRouteToNatGateway(matchingSiblingSubnetNatGateway);
 
-      // Also create Network ACL entries on subnet NAcl to allow Egress traffic to the internet.
+      // Also create Network ACL entries on subnet NAcl to allow Egress/Ingress traffic to the internet.
       subnetNAclEntries.push({
         CidrBlock: '0.0.0.0/0',
         Egress: true,
         PortRange: { From: -1, To: -1 },
+        Protocol: '-1', // All.
+        RuleAction: 'allow',
+        RuleNumber: -1,
+      });
+      subnetNAclEntries.push({
+        CidrBlock: '0.0.0.0/0',
+        Egress: false,
+        PortRange: { From: 1024, To: 65535 },
         Protocol: '-1', // All.
         RuleAction: 'allow',
         RuleNumber: -1,
