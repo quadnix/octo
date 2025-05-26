@@ -4,6 +4,7 @@ import { type Account, type App, TestContainer, TestModuleContainer, TestStatePr
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/internet-gateway.schema.js';
 import type { SecurityGroupSchema } from '../../../resources/security-group/security-group.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/vpc.schema.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsRegionModule } from './aws-region.module.js';
 import { RegionId } from './models/region/index.js';
 
@@ -17,6 +18,9 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 }
 
 describe('AwsRegionModule UT', () => {
+  const originalRetryPromise = RetryUtility.retryPromise;
+
+  let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -40,6 +44,10 @@ describe('AwsRegionModule UT', () => {
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
 
+    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
+      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
+    });
+
     // Register resource captures.
     testModuleContainer.registerCapture<VpcSchema>('@octo/vpc=vpc-aws-us-east-1a', { VpcId: 'VpcId' });
     testModuleContainer.registerCapture<InternetGatewaySchema>('@octo/internet-gateway=igw-aws-us-east-1a', {
@@ -57,6 +65,8 @@ describe('AwsRegionModule UT', () => {
   afterEach(async () => {
     await testModuleContainer.reset();
     await TestContainer.reset();
+
+    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {

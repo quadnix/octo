@@ -25,6 +25,7 @@ import { SubnetLocalFilesystemMountAnchor } from '../../../anchors/subnet-local-
 import type { EcsServiceSchema } from '../../../resources/ecs-service/ecs-service.schema.js';
 import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/ecs-task-definition.schema.js';
 import type { SecurityGroupSchema } from '../../../resources/security-group/security-group.schema.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsExecutionModule } from './aws-execution.module.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{
@@ -172,6 +173,9 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
 }
 
 describe('AwsExecutionModule UT', () => {
+  const originalRetryPromise = RetryUtility.retryPromise;
+
+  let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -204,6 +208,10 @@ describe('AwsExecutionModule UT', () => {
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
 
+    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
+      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
+    });
+
     // Register resource captures.
     testModuleContainer.registerCapture<SecurityGroupSchema>('@octo/security-group=sec-grp-SecurityGroup-backend', {
       GroupId: 'GroupId-1',
@@ -234,6 +242,8 @@ describe('AwsExecutionModule UT', () => {
   afterEach(async () => {
     await testModuleContainer.reset();
     await TestContainer.reset();
+
+    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {
