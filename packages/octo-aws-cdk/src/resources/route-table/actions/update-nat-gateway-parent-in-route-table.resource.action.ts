@@ -10,6 +10,7 @@ import {
   type IResourceAction,
 } from '@quadnix/octo';
 import { type EC2ClientFactory } from '../../../factories/aws-client.factory.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { RouteTable } from '../route-table.resource.js';
 
 @Action(RouteTable)
@@ -48,12 +49,23 @@ export class UpdateNatGatewayParentInRouteTableResourceAction implements IResour
     }
     // Then, create a new NAT Gateway route in the route-table.
     if (diff.action === DiffAction.ADD || diff.action === DiffAction.UPDATE) {
-      await ec2Client.send(
-        new CreateRouteCommand({
-          DestinationCidrBlock: '0.0.0.0/0',
-          NatGatewayId: (diff.value as AResource<BaseResourceSchema, any>).response.NatGatewayId as string,
-          RouteTableId: response.RouteTableId,
-        }),
+      await RetryUtility.retryPromise(
+        async (): Promise<boolean> => {
+          await ec2Client.send(
+            new CreateRouteCommand({
+              DestinationCidrBlock: '0.0.0.0/0',
+              NatGatewayId: (diff.value as AResource<BaseResourceSchema, any>).response.NatGatewayId as string,
+              RouteTableId: response.RouteTableId,
+            }),
+          );
+          return true;
+        },
+        {
+          initialDelayInMs: 1000,
+          maxRetries: 5,
+          retryDelayInMs: 5000,
+          throwOnError: false,
+        },
       );
     }
   }
