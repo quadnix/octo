@@ -49,7 +49,7 @@ export class DeleteNatGatewayResourceAction implements IResourceAction<NatGatewa
       {
         initialDelayInMs: 0,
         maxRetries: 10,
-        retryDelayInMs: 5000,
+        retryDelayInMs: 10000,
         throwOnError: false,
       },
     );
