@@ -19,6 +19,8 @@ import { EfsMountTarget } from '../efs-mount-target.resource.js';
 
 @Action(EfsMountTarget)
 export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
+  actionTimeoutInMs: number = 240000; // 4 minutes.
+
   constructor(private readonly container: Container) {}
 
   filter(diff: Diff): boolean {

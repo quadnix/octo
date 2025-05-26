@@ -6,6 +6,8 @@ import { EcsService } from '../ecs-service.resource.js';
 
 @Action(EcsService)
 export class DeleteEcsServiceResourceAction implements IResourceAction<EcsService> {
+  actionTimeoutInMs: number = 240000; // 4 minutes.
+
   constructor(private readonly container: Container) {}
 
   filter(diff: Diff): boolean {

@@ -15,6 +15,8 @@ import type { EfsMountTargetSchema } from '../efs-mount-target.schema.js';
 
 @Action(EfsMountTarget)
 export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
+  actionTimeoutInMs: number = 240000; // 4 minutes.
+
   constructor(private readonly container: Container) {}
 
   filter(diff: Diff): boolean {

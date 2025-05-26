@@ -6,6 +6,8 @@ import { NatGateway } from '../nat-gateway.resource.js';
 
 @Action(NatGateway)
 export class DeleteNatGatewayResourceAction implements IResourceAction<NatGateway> {
+  actionTimeoutInMs: number = 180000; // 3 minutes.
+
   constructor(private readonly container: Container) {}
 
   filter(diff: Diff): boolean {

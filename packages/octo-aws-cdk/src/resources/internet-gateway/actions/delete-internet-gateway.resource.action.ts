@@ -6,6 +6,8 @@ import { InternetGateway } from '../internet-gateway.resource.js';
 
 @Action(InternetGateway)
 export class DeleteInternetGatewayResourceAction implements IResourceAction<InternetGateway> {
+  actionTimeoutInMs: number = 120000; // 2 minutes.
+
   constructor(private readonly container: Container) {}
 
   filter(diff: Diff): boolean {
