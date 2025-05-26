@@ -35,6 +35,7 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     const response = efsMountTarget.response;
     const efsMountTargetEfs = efsMountTarget.parents[0];
     const efsMountTargetSubnet = efsMountTarget.parents[1];
+    const efsMountTargetSecurityGroup = efsMountTarget.parents[2];
 
     // Get instances.
     const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
@@ -46,7 +47,7 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     const data = await efsClient.send(
       new CreateMountTargetCommand({
         FileSystemId: efsMountTargetEfs.getSchemaInstance().response.FileSystemId,
-        SecurityGroups: [],
+        SecurityGroups: [efsMountTargetSecurityGroup.getSchemaInstance().response.GroupId],
         SubnetId: efsMountTargetSubnet.getSchemaInstance().response.SubnetId,
       }),
     );
