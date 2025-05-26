@@ -22,7 +22,7 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     const natGateway = diff.node as NatGateway;
     const properties = natGateway.properties;
     const response = natGateway.response;
-    const subnet = natGateway.parents[1];
+    const subnet = natGateway.parents[2];
 
     // Get instances.
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

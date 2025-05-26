@@ -81,7 +81,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
           awsRegionId,
           ConnectivityType: 'public',
         },
-        [matchingVpcResource, new MatchingResource(subnetSubnet)],
+        [matchingVpcResource, matchingInternetGatewayResource, new MatchingResource(subnetSubnet)],
       );
     }
 
