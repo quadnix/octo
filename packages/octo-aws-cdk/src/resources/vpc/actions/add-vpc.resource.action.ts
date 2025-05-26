@@ -42,6 +42,11 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
         EnableDnsHostnames: {
           Value: true,
         },
+        VpcId: vpcOutput.Vpc!.VpcId!,
+      }),
+    );
+    await ec2Client.send(
+      new ModifyVpcAttributeCommand({
         EnableDnsSupport: {
           Value: true,
         },
