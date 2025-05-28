@@ -2,6 +2,7 @@ import { EC2Client } from '@aws-sdk/client-ec2';
 import { ECRClient } from '@aws-sdk/client-ecr';
 import { ECSClient } from '@aws-sdk/client-ecs';
 import { EFSClient } from '@aws-sdk/client-efs';
+import { ElasticLoadBalancingV2Client } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { IAMClient } from '@aws-sdk/client-iam';
 import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
@@ -73,6 +74,16 @@ export class ECSClientFactory extends AwsClientFactory {
 export class EFSClientFactory extends AwsClientFactory {
   static override createInstance(awsRegionId: string, credentials: AwsCredentialIdentityProvider): EFSClient {
     return new EFSClient({ ...credentials, region: awsRegionId });
+  }
+}
+
+@Factory<ElasticLoadBalancingV2Client>(ElasticLoadBalancingV2Client, { metadata: { package: '@octo' } })
+export class ElasticLoadBalancingV2ClientFactory extends AwsClientFactory {
+  static override createInstance(
+    awsRegionId: string,
+    credentials: AwsCredentialIdentityProvider,
+  ): ElasticLoadBalancingV2Client {
+    return new ElasticLoadBalancingV2Client({ ...credentials, region: awsRegionId });
   }
 }
 
