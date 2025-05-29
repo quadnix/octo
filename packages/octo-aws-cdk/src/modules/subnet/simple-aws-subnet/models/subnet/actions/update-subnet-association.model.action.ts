@@ -83,7 +83,12 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
       RuleNumber: -1,
     });
 
-    if (siblingSubnet.subnetType === SubnetType.PUBLIC && siblingSubnet.createNatGateway) {
+    if (
+      subnet.subnetType === SubnetType.PRIVATE &&
+      siblingSubnet.subnetType === SubnetType.PUBLIC &&
+      siblingSubnet.createNatGateway &&
+      siblingSubnetInput.attachToNatGateway
+    ) {
       // Create route table entries on subnet route table to allow traffic to NAT Gateway.
       subnetRouteTable.addRouteToNatGateway(matchingSiblingSubnetNatGateway);
 

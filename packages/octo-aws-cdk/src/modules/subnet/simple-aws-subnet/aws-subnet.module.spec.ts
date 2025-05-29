@@ -18,6 +18,7 @@ import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/e
 import type { NetworkAcl } from '../../../resources/network-acl/index.js';
 import type { NetworkAclSchema } from '../../../resources/network-acl/network-acl.schema.js';
 import type { RouteTableSchema } from '../../../resources/route-table/route-table.schema.js';
+import type { SecurityGroupSchema } from '../../../resources/security-group/security-group.schema.js';
 import type { SubnetSchema } from '../../../resources/subnet/subnet.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsSubnetModule } from './aws-subnet.module.js';
@@ -152,6 +153,13 @@ describe('AwsSubnetModule UT', () => {
       defaultNetworkAclId: 'defaultNetworkAclId-Public',
       NetworkAclId: 'NetworkAclId-Public',
     });
+    testModuleContainer.registerCapture<SecurityGroupSchema>(
+      '@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem',
+      {
+        GroupId: 'GroupId',
+        Rules: { egress: [], ingress: [] },
+      },
+    );
   });
 
   afterEach(async () => {
@@ -193,6 +201,7 @@ describe('AwsSubnetModule UT', () => {
      [
        [
          "AddSubnetResourceAction",
+         "AddSecurityGroupResourceAction",
        ],
        [
          "AddRouteTableResourceAction",
@@ -355,6 +364,12 @@ describe('AwsSubnetModule UT', () => {
          {
            "action": "add",
            "field": "resourceId",
+           "node": "@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
+           "value": "@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
            "node": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
            "value": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
          },
@@ -368,6 +383,12 @@ describe('AwsSubnetModule UT', () => {
     expect(result4.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
+         {
+           "action": "delete",
+           "field": "resourceId",
+           "node": "@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
+           "value": "@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
+         },
          {
            "action": "delete",
            "field": "resourceId",
@@ -423,6 +444,7 @@ describe('AwsSubnetModule UT', () => {
         },
         subnetSiblings: [
           {
+            attachToNatGateway: false,
             subnetCidrBlock: stub('${{subnet1.input.subnetCidrBlock}}'),
             subnetName: stub('${{subnet1.input.subnetName}}'),
           },
@@ -752,6 +774,7 @@ describe('AwsSubnetModule UT', () => {
         subnetName: 'private-subnet',
         subnetSiblings: [
           {
+            attachToNatGateway: true,
             subnetCidrBlock: stub('${{subnet1.input.subnetCidrBlock}}'),
             subnetName: stub('${{subnet1.input.subnetName}}'),
           },

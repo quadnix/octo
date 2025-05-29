@@ -56,8 +56,8 @@ export class AwsSubnetModuleSchema {
 
   @Validate({
     destruct: (value: AwsSubnetModuleSchema['subnetSiblings']): string[] =>
-      value!.map((v) => [v.subnetCidrBlock, v.subnetName]).flat(),
+      value!.map((v) => [String(v.attachToNatGateway), v.subnetCidrBlock, v.subnetName]).flat(),
     options: { minLength: 1 },
   })
-  subnetSiblings? = Schema<{ subnetCidrBlock: string; subnetName: string }[]>([]);
+  subnetSiblings? = Schema<{ attachToNatGateway: boolean; subnetCidrBlock: string; subnetName: string }[]>([]);
 }
