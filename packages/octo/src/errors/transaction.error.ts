@@ -52,6 +52,25 @@ export class NoMatchingActionFoundTransactionError extends TransactionError {
   }
 }
 
+export class ResourceActionExceptionTransactionError extends TransactionError {
+  readonly actionClassName: string;
+  readonly diff: ReturnType<Diff['toJSON']>;
+
+  constructor(message: string, originalError: Error, diff: Diff, actionClassName: string) {
+    super(message);
+
+    this.actionClassName = actionClassName;
+    this.diff = diff.toJSON();
+
+    Object.setPrototypeOf(this, ResourceActionExceptionTransactionError.prototype);
+
+    Object.defineProperties(this, Object.getOwnPropertyDescriptors(originalError));
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+}
+
 export class ResourceActionTimeoutTransactionError extends TransactionError {
   readonly actionClassName: string;
   readonly diff: ReturnType<Diff['toJSON']>;

@@ -14,6 +14,7 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import {
   InputNotFoundTransactionError,
   InputRegistrationError,
+  ResourceActionExceptionTransactionError,
   ResourceActionTimeoutTransactionError,
   TransactionError,
 } from '../../errors/index.js';
@@ -208,7 +209,21 @@ export class TransactionService {
             let actionTimeoutId: NodeJS.Timeout | undefined;
             try {
               await Promise.race([
-                a.handle(diffToProcess),
+                new Promise<void>(async (resolve, reject) => {
+                  try {
+                    await a.handle(diffToProcess);
+                    resolve();
+                  } catch (error) {
+                    reject(
+                      new ResourceActionExceptionTransactionError(
+                        error.message,
+                        error,
+                        diffToProcess,
+                        a.constructor.name,
+                      ),
+                    );
+                  }
+                }),
                 new Promise(
                   (_resolve, reject) =>
                     (actionTimeoutId = setTimeout(() => {

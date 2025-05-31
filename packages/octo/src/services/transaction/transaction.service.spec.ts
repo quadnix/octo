@@ -7,6 +7,7 @@ import {
   type UnknownResource,
   stub,
 } from '../../app.type.js';
+import { ResourceActionExceptionTransactionError } from '../../errors/index.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { DiffMetadata } from '../../functions/diff/diff-metadata.js';
@@ -414,6 +415,41 @@ describe('TransactionService UT', () => {
 
       expect(universalResourceAction.mock).toHaveBeenCalledTimes(1);
       expect((universalResourceAction.mock as jest.Mock).mock.calls[0][1]).toEqual({ 'key-1': 'value-1' });
+    });
+
+    describe('when resource action throws error', () => {
+      it('should throw transaction error and persist error properties', async () => {
+        const customError = new Error('error!');
+        customError['$metadata'] = { 'key-1': 'value-1' };
+        (universalResourceAction.handle as jest.Mocked<any>).mockRejectedValue(customError);
+        const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+          await createTestResources([
+            { resourceContext: '@octo/test-resource=resource-1' },
+            { parents: ['@octo/test-resource=resource-1'], resourceContext: '@octo/test-resource=resource-2' },
+          ]);
+
+        const diff1 = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+        const diffMetadata1 = new DiffMetadata(diff1, [universalResourceAction]);
+        diffMetadata1.applyOrder = 0;
+        const diff2 = new Diff(resource2, DiffAction.ADD, 'resourceId', 'resource-2');
+        const diffMetadata2 = new DiffMetadata(diff2, [universalResourceAction]);
+        diffMetadata2.applyOrder = 1;
+
+        await expect(async () => {
+          await applyResources([diffMetadata2, diffMetadata1]);
+        }).rejects.toThrow(customError);
+
+        try {
+          await applyResources([diffMetadata2, diffMetadata1]);
+        } catch (error) {
+          expect(error instanceof ResourceActionExceptionTransactionError).toBe(true);
+          expect(error['$metadata']).toMatchInlineSnapshot(`
+           {
+             "key-1": "value-1",
+           }
+          `);
+        }
+      });
     });
 
     describe('with actionTimeoutInMs', () => {
