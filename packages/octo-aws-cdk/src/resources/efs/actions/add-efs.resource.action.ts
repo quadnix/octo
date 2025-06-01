@@ -11,7 +11,7 @@ import {
 import type { EFSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { Efs } from '../efs.resource.js';
-import type { EfsSchema } from '../efs.schema.js';
+import type { EfsSchema } from '../index.schema.js';
 
 @Action(Efs)
 export class AddEfsResourceAction implements IResourceAction<Efs> {

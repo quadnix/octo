@@ -1,6 +1,8 @@
-import { BaseAnchorSchema, Schema, Validate } from '@quadnix/octo';
+import { BaseAnchorSchema, type Execution, Schema, Validate } from '@quadnix/octo';
 
 export class EcsExecutionAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Execution;
+
   @Validate([
     {
       destruct: (value: EcsExecutionAnchorSchema['properties']): string[] => Object.keys(value.environmentVariables),

@@ -1,6 +1,8 @@
-import { BaseAnchorSchema, Schema, Validate } from '@quadnix/octo';
+import { BaseAnchorSchema, type Environment, Schema, Validate } from '@quadnix/octo';
 
 export class EcsClusterAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Environment;
+
   @Validate([
     {
       destruct: (value: EcsClusterAnchorSchema['properties']): string[] => [value.clusterName],

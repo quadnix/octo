@@ -9,13 +9,13 @@ import {
   MatchingResource,
   SubnetType,
 } from '@quadnix/octo';
-import { InternetGatewaySchema } from '../../../../../../resources/internet-gateway/internet-gateway.schema.js';
+import { InternetGatewaySchema } from '../../../../../../resources/internet-gateway/index.schema.js';
 import { NatGateway } from '../../../../../../resources/nat-gateway/index.js';
 import { NetworkAcl } from '../../../../../../resources/network-acl/index.js';
-import type { NetworkAclSchema } from '../../../../../../resources/network-acl/network-acl.schema.js';
+import type { NetworkAclSchema } from '../../../../../../resources/network-acl/index.schema.js';
 import { RouteTable } from '../../../../../../resources/route-table/index.js';
 import { Subnet } from '../../../../../../resources/subnet/index.js';
-import { VpcSchema } from '../../../../../../resources/vpc/vpc.schema.js';
+import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
 import { NetworkAclUtility } from '../../../../../../utilities/network-acl/network-acl.utility.js';
 import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnet } from '../aws.subnet.model.js';

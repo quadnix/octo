@@ -1,5 +1,5 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import { type IIamUserPolicyTypes, type IIamUserS3BucketPolicy, IamUserSchema } from './iam-user.schema.js';
+import { type IIamUserPolicyTypes, type IIamUserS3BucketPolicy, IamUserSchema } from './index.schema.js';
 
 export type IIamUserAddPolicyDiff = {
   action: 'add';

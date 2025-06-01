@@ -9,7 +9,7 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { type IIamRolePolicyDiff, IamRole, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-role.resource.js';
-import type { IIamRoleS3BucketPolicy, IamRoleSchema } from '../iam-role.schema.js';
+import type { IIamRoleS3BucketPolicy, IamRoleSchema } from '../index.schema.js';
 
 @Action(IamRole)
 export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResourceAction<IamRole> {

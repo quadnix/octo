@@ -1,11 +1,18 @@
-import { AAnchor, Anchor, type Execution, type Server } from '@quadnix/octo';
+import { AAnchor, Anchor } from '@quadnix/octo';
 import type { SecurityGroupAnchorSchema } from './security-group.anchor.schema.js';
 
 @Anchor('@octo')
-export class SecurityGroupAnchor extends AAnchor<SecurityGroupAnchorSchema, Execution | Server> {
+export class SecurityGroupAnchor extends AAnchor<
+  SecurityGroupAnchorSchema,
+  SecurityGroupAnchorSchema['parentInstance']
+> {
   declare properties: SecurityGroupAnchorSchema['properties'];
 
-  constructor(anchorId: string, properties: SecurityGroupAnchorSchema['properties'], parent: Execution | Server) {
+  constructor(
+    anchorId: string,
+    properties: SecurityGroupAnchorSchema['properties'],
+    parent: SecurityGroupAnchorSchema['parentInstance'],
+  ) {
     super(anchorId, properties, parent);
   }
 }

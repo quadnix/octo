@@ -1,4 +1,4 @@
-import { BaseAnchorSchema, Schema, Validate } from '@quadnix/octo';
+import { BaseAnchorSchema, type Execution, Schema, type Server, Validate } from '@quadnix/octo';
 
 export class SecurityGroupAnchorRuleSchema {
   @Validate({ options: { minLength: 1 } })
@@ -18,6 +18,8 @@ export class SecurityGroupAnchorRuleSchema {
 }
 
 export class SecurityGroupAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Execution | Server;
+
   @Validate<unknown>([
     {
       destruct: (value: SecurityGroupAnchorSchema['properties']): SecurityGroupAnchorRuleSchema[] => value.rules,

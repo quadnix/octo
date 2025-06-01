@@ -3,7 +3,7 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { IamRole } from '../iam-role.resource.js';
-import type { IIamRoleAssumeRolePolicy, IamRoleSchema } from '../iam-role.schema.js';
+import type { IIamRoleAssumeRolePolicy, IamRoleSchema } from '../index.schema.js';
 
 @Action(IamRole)
 export class AddIamRoleResourceAction implements IResourceAction<IamRole> {

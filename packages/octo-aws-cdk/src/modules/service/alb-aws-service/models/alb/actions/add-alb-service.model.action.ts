@@ -10,8 +10,8 @@ import {
 } from '@quadnix/octo';
 import { Alb } from '../../../../../../resources/alb/index.js';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
-import { SubnetSchema } from '../../../../../../resources/subnet/subnet.schema.js';
-import { VpcSchema } from '../../../../../../resources/vpc/vpc.schema.js';
+import { SubnetSchema } from '../../../../../../resources/subnet/index.schema.js';
+import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
 import type { AwsAlbServiceModule } from '../../../aws-alb.service.module.js';
 import { AwsAlbService } from '../aws-alb.service.model.js';
 

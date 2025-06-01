@@ -1,7 +1,10 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
+export { S3DirectoryAnchorSchema } from '../../../anchors/s3-directory/s3-directory.anchor.schema.js';
+export { S3StorageAnchorSchema } from '../../../anchors/s3-storage/s3-storage.anchor.schema.js';
 export { AwsS3StorageServiceSchema } from './models/s3-storage/aws-s3-storage.service.schema.js';
+export { PrincipalResourceSchema, S3StorageSchema } from '../../../resources/s3-storage/index.schema.js';
 
 export class AwsS3StorageServiceModuleSchema {
   @Validate({ options: { minLength: 1 } })

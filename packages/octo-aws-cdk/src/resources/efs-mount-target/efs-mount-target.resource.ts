@@ -1,8 +1,8 @@
 import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
-import type { EfsSchema } from '../efs/efs.schema.js';
-import type { SecurityGroupSchema } from '../security-group/security-group.schema.js';
-import type { SubnetSchema } from '../subnet/subnet.schema.js';
-import { EfsMountTargetSchema } from './efs-mount-target.schema.js';
+import type { EfsSchema } from '../efs/index.schema.js';
+import type { SecurityGroupSchema } from '../security-group/index.schema.js';
+import type { SubnetSchema } from '../subnet/index.schema.js';
+import { EfsMountTargetSchema } from './index.schema.js';
 
 @Resource<EfsMountTarget>('@octo', 'efs-mount-target', EfsMountTargetSchema)
 export class EfsMountTarget extends AResource<EfsMountTargetSchema, EfsMountTarget> {

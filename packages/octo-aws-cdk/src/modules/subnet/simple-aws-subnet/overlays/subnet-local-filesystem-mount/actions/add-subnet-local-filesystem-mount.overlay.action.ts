@@ -9,10 +9,10 @@ import {
   MatchingResource,
 } from '@quadnix/octo';
 import { EfsMountTarget } from '../../../../../../resources/efs-mount-target/index.js';
-import { EfsSchema } from '../../../../../../resources/efs/efs.schema.js';
+import { EfsSchema } from '../../../../../../resources/efs/index.schema.js';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
 import type { Subnet } from '../../../../../../resources/subnet/index.js';
-import { VpcSchema } from '../../../../../../resources/vpc/vpc.schema.js';
+import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
 import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnetLocalFilesystemMountOverlay } from '../aws-subnet-local-filesystem-mount.overlay.js';
 

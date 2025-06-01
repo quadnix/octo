@@ -10,8 +10,14 @@ import {
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
 
+export { SubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.schema.js';
 export { AwsSubnetSchema } from './models/subnet/aws.subnet.schema.js';
 export { AwsSubnetLocalFilesystemMountSchema } from './overlays/subnet-local-filesystem-mount/aws-subnet-local-filesystem-mount.schema.js';
+export { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
+export { NetworkAclSchema } from '../../../resources/network-acl/index.schema.js';
+export { RouteTableSchema } from '../../../resources/route-table/index.schema.js';
+export { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
+export { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 
 export class AwsSubnetModuleSchema {
   @Validate({

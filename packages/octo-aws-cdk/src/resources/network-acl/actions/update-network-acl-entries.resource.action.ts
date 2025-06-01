@@ -11,7 +11,7 @@ import pLimit from 'p-limit';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { NetworkAclUtility } from '../../../utilities/network-acl/network-acl.utility.js';
 import { NetworkAcl } from '../network-acl.resource.js';
-import type { NetworkAclSchema } from '../network-acl.schema.js';
+import type { NetworkAclSchema } from '../index.schema.js';
 
 @Action(NetworkAcl)
 export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<NetworkAcl> {

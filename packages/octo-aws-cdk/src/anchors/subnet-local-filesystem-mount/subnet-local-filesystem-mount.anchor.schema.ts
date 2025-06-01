@@ -1,6 +1,8 @@
-import { BaseAnchorSchema, Schema, Validate } from '@quadnix/octo';
+import { BaseAnchorSchema, Schema, type Subnet, Validate } from '@quadnix/octo';
 
 export class SubnetLocalFilesystemMountAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Subnet;
+
   @Validate({
     destruct: (value: SubnetLocalFilesystemMountAnchorSchema['properties']): string[] => [
       value.awsAccountId,

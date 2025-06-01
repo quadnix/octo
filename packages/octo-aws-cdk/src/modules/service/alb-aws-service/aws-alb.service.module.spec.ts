@@ -12,10 +12,10 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
-import type { SecurityGroupSchema } from '../../../resources/security-group/security-group.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsAlbServiceModule } from './aws-alb.service.module.js';
+import { AwsAlbServiceModule } from './index.js';
+import type { SecurityGroupSchema } from './index.schema.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -34,7 +34,7 @@ async function setup(
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   region.addAnchor(
-    new AwsRegionAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
       { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
       region,

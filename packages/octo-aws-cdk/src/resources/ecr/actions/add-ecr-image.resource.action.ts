@@ -2,7 +2,7 @@ import { CreateRepositoryCommand, ECRClient } from '@aws-sdk/client-ecr';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcrImage } from '../ecr-image.resource.js';
-import type { EcrImageSchema } from '../ecr-image.schema.js';
+import type { EcrImageSchema } from '../index.schema.js';
 
 @Action(EcrImage)
 export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {

@@ -11,7 +11,7 @@ import {
 } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { Alb } from '../alb.resource.js';
-import type { AlbSchema } from '../alb.schema.js';
+import type { AlbSchema } from '../index.schema.js';
 
 @Action(Alb)
 export class AddAlbResourceAction implements IResourceAction<Alb> {

@@ -1,6 +1,8 @@
-import { BaseAnchorSchema, Schema, Validate } from '@quadnix/octo';
+import { BaseAnchorSchema, type Region, Schema, Validate } from '@quadnix/octo';
 
 export class AwsRegionAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Region;
+
   @Validate({
     destruct: (value: AwsRegionAnchorSchema['properties']): string[] => [
       ...value.awsRegionAZs,

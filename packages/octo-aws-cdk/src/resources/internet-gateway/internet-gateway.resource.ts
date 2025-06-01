@@ -1,6 +1,6 @@
 import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
-import type { VpcSchema } from '../vpc/vpc.schema.js';
-import { InternetGatewaySchema } from './internet-gateway.schema.js';
+import type { VpcSchema } from '../vpc/index.schema.js';
+import { InternetGatewaySchema } from './index.schema.js';
 
 @Resource<InternetGateway>('@octo', 'internet-gateway', InternetGatewaySchema)
 export class InternetGateway extends AResource<InternetGatewaySchema, InternetGateway> {

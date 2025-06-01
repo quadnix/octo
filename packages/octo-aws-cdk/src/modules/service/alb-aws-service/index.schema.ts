@@ -1,6 +1,9 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
+export { AlbSchema } from '../../../resources/alb/index.schema.js';
+export { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
+
 export class AwsAlbServiceModuleSchema {
   @Validate({ options: { minLength: 1 } })
   albName = Schema<string>();

@@ -15,18 +15,20 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
-import { EcsClusterAnchor } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.js';
-import { EcsTaskDefinitionAnchor } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.js';
-import { EfsFilesystemAnchor } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.js';
-import { IamRoleAnchor } from '../../../anchors/iam-role/iam-role.anchor.js';
-import { SecurityGroupAnchor } from '../../../anchors/security-group/security-group.anchor.js';
-import { SubnetLocalFilesystemMountAnchor } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.js';
-import type { EcsServiceSchema } from '../../../resources/ecs-service/ecs-service.schema.js';
-import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/ecs-task-definition.schema.js';
-import type { SecurityGroupSchema } from '../../../resources/security-group/security-group.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsExecutionModule } from './aws-execution.module.js';
+import type { EcsTaskDefinitionAnchorSchema } from '../../../modules/deployment/ecs-based-aws-deployment/index.schema.js';
+import type { EcsClusterAnchorSchema } from '../../../modules/environment/ecs-based-aws-environment/index.schema.js';
+import type { EfsFilesystemAnchorSchema } from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
+import type { IamRoleAnchorSchema } from '../../../modules/server/ecs-based-aws-server/index.schema.js';
+import type { SubnetLocalFilesystemMountAnchorSchema } from '../../../modules/subnet/simple-aws-subnet/index.schema.js';
+import { AwsExecutionModule } from './index.js';
+import type {
+  EcsServiceSchema,
+  EcsTaskDefinitionSchema,
+  SecurityGroupAnchorSchema,
+  SecurityGroupSchema,
+} from './index.schema.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{
   account: Account;
@@ -60,7 +62,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   deployment.addAnchor(
-    new EcsTaskDefinitionAnchor(
+    testModuleContainer.createTestAnchor<EcsTaskDefinitionAnchorSchema>(
       'EcsTaskDefinitionAnchor',
       {
         cpu: 256,
@@ -71,30 +73,40 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     ),
   );
   environment.addAnchor(
-    new EcsClusterAnchor(
+    testModuleContainer.createTestAnchor<EcsClusterAnchorSchema>(
       'EcsClusterAnchor',
       { clusterName: 'region-qa', environmentVariables: { NODE_ENV: 'qa' } },
       environment,
     ),
   );
-  const efsFilesystemAnchor = new EfsFilesystemAnchor(
+  const efsFilesystemAnchor = testModuleContainer.createTestAnchor<EfsFilesystemAnchorSchema>(
     'EfsFilesystemAnchor',
     { filesystemName: 'test-filesystem' },
     filesystem,
   );
   filesystem.addAnchor(efsFilesystemAnchor);
   region.addAnchor(
-    new AwsRegionAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
       { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
       region,
     ),
   );
-  server.addAnchor(new IamRoleAnchor('IamRoleAnchor', { iamRoleName: 'iam-role-ServerRole-backend' }, server));
   server.addAnchor(
-    new SecurityGroupAnchor('SecurityGroupAnchor', { rules: [], securityGroupName: 'SecurityGroup-backend' }, server),
+    testModuleContainer.createTestAnchor<IamRoleAnchorSchema>(
+      'IamRoleAnchor',
+      { iamRoleName: 'iam-role-ServerRole-backend' },
+      server,
+    ),
   );
-  const subnetLocalFilesystemMountAnchor = new SubnetLocalFilesystemMountAnchor(
+  server.addAnchor(
+    testModuleContainer.createTestAnchor<SecurityGroupAnchorSchema>(
+      'SecurityGroupAnchor',
+      { rules: [], securityGroupName: 'SecurityGroup-backend' },
+      server,
+    ),
+  );
+  const subnetLocalFilesystemMountAnchor = testModuleContainer.createTestAnchor<SubnetLocalFilesystemMountAnchorSchema>(
     `SubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
     {
       awsAccountId: '123',

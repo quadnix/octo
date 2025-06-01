@@ -1,9 +1,17 @@
 import { type Account, AccountSchema, Schema, type Service, ServiceSchema, Validate } from '@quadnix/octo';
 import { S3StorageAnchorSchema } from '../../../anchors/s3-storage/s3-storage.anchor.schema.js';
-import { SecurityGroupAnchorRuleSchema } from '../../../anchors/security-group/security-group.anchor.schema.js';
+import {
+  SecurityGroupAnchorRuleSchema,
+  SecurityGroupAnchorSchema,
+} from '../../../anchors/security-group/security-group.anchor.schema.js';
 
+export { SecurityGroupAnchorRuleSchema, SecurityGroupAnchorSchema };
+export { EcsServerAnchorSchema } from '../../../anchors/ecs-server/ecs-server.anchor.schema.js';
+export { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.schema.js';
 export { AwsServerSchema } from './models/server/aws.server.schema.js';
 export { AwsServerS3AccessSchema } from './overlays/server-s3-access/aws-server-s3-access.schema.js';
+export { IamRoleSchema, type IIamRoleS3BucketPolicy } from '../../../resources/iam-role/index.schema.js';
+export { PrincipalResourceSchema, S3StorageSchema } from '../../../resources/s3-storage/index.schema.js';
 
 class S3StorageServiceDirectorySchema {
   @Validate({ options: { minLength: 1 } })

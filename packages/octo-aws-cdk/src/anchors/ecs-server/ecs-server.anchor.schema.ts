@@ -1,6 +1,8 @@
-import { BaseAnchorSchema, Schema, Validate } from '@quadnix/octo';
+import { BaseAnchorSchema, Schema, type Server, Validate } from '@quadnix/octo';
 
 export class EcsServerAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Server;
+
   @Validate([
     {
       destruct: (value: EcsServerAnchorSchema['properties']): string[] => [value.deploymentType],

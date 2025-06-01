@@ -3,6 +3,7 @@ import type {
   Constructable,
   ModuleOutput,
   ModuleSchemaInputs,
+  UnknownAnchor,
   UnknownModel,
   UnknownModule,
   UnknownOverlay,
@@ -14,6 +15,7 @@ import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
 import { AModel } from '../models/model.abstract.js';
+import type { BaseAnchorSchema } from '../overlays/anchor.schema.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../overlays/overlay-data.repository.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import type { IResourceAction } from '../resources/resource-action.interface.js';
@@ -23,6 +25,7 @@ import { InputService, type InputServiceFactory } from '../services/input/input.
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
+import { TestAnchor } from '../utilities/test-helpers/test-classes.js';
 import { create } from '../utilities/test-helpers/test-models.js';
 import { createTestOverlays } from '../utilities/test-helpers/test-overlays.js';
 import { createResources, createTestResources } from '../utilities/test-helpers/test-resources.js';
@@ -157,6 +160,14 @@ export class TestModuleContainer {
     await this.reset();
 
     return response;
+  }
+
+  createTestAnchor<S extends BaseAnchorSchema & { parentInstance: UnknownModel }>(
+    anchorId: string,
+    properties: S['properties'],
+    parent: S['parentInstance'],
+  ): UnknownAnchor {
+    return new TestAnchor(anchorId, properties, parent);
   }
 
   async createTestModels(moduleId: string, args: Parameters<typeof create>[0]): Promise<ReturnType<typeof create>> {

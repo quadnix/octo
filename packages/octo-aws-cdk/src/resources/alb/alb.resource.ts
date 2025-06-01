@@ -1,7 +1,7 @@
 import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
-import type { SecurityGroupSchema } from '../security-group/security-group.schema.js';
-import type { SubnetSchema } from '../subnet/subnet.schema.js';
-import { AlbSchema } from './alb.schema.js';
+import type { SecurityGroupSchema } from '../security-group/index.schema.js';
+import type { SubnetSchema } from '../subnet/index.schema.js';
+import { AlbSchema } from './index.schema.js';
 
 @Resource<Alb>('@octo', 'alb', AlbSchema)
 export class Alb extends AResource<AlbSchema, Alb> {

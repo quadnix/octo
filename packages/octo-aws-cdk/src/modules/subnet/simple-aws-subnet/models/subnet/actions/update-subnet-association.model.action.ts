@@ -8,9 +8,9 @@ import {
   type IModelAction,
   SubnetType,
 } from '@quadnix/octo';
-import { NatGatewaySchema } from '../../../../../../resources/nat-gateway/nat-gateway.schema.js';
+import { NatGatewaySchema } from '../../../../../../resources/nat-gateway/index.schema.js';
 import type { NetworkAcl } from '../../../../../../resources/network-acl/index.js';
-import { NetworkAclSchema } from '../../../../../../resources/network-acl/network-acl.schema.js';
+import { NetworkAclSchema } from '../../../../../../resources/network-acl/index.schema.js';
 import { RouteTable } from '../../../../../../resources/route-table/index.js';
 import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnet } from '../aws.subnet.model.js';

@@ -1,7 +1,9 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
+export { EcsClusterAnchorSchema } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.schema.js';
 export { AwsEnvironmentSchema } from './models/environment/aws.environment.schema.js';
+export { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 
 export class AwsEnvironmentModuleSchema {
   @Validate({ options: { minLength: 1 } })

@@ -1,4 +1,4 @@
-import { BaseAnchorSchema, Schema, Validate } from '@quadnix/octo';
+import { BaseAnchorSchema, type Deployment, Schema, Validate } from '@quadnix/octo';
 
 class EcsTaskDefinitionAnchorImagePortSchema {
   @Validate({ options: { minLength: 1 } })
@@ -34,6 +34,8 @@ export class EcsTaskDefinitionAnchorPropertiesSchema {
 }
 
 export class EcsTaskDefinitionAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Deployment;
+
   @Validate({ options: { isSchema: { schema: EcsTaskDefinitionAnchorPropertiesSchema } } })
   override properties =
     Schema<{ [K in keyof EcsTaskDefinitionAnchorPropertiesSchema]: EcsTaskDefinitionAnchorPropertiesSchema[K] }>();

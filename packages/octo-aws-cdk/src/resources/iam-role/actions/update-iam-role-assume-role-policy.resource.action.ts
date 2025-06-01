@@ -2,7 +2,7 @@ import { IAMClient, UpdateAssumeRolePolicyCommand } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamRole } from '../iam-role.resource.js';
-import type { IIamRoleAssumeRolePolicy } from '../iam-role.schema.js';
+import type { IIamRoleAssumeRolePolicy } from '../index.schema.js';
 
 @Action(IamRole)
 export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAction<IamRole> {

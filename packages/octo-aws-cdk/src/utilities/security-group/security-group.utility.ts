@@ -1,4 +1,4 @@
-import type { SecurityGroupSchema } from '../../resources/security-group/security-group.schema.js';
+import type { SecurityGroupSchema } from '../../resources/security-group/index.schema.js';
 
 export class SecurityGroupUtility {
   static isSecurityGroupRuleEqual(

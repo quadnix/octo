@@ -4,7 +4,7 @@ import {
   type IIamRolePolicyTypes,
   type IIamRoleS3BucketPolicy,
   IamRoleSchema,
-} from './iam-role.schema.js';
+} from './index.schema.js';
 
 export type IIamRoleAddPolicyDiff = {
   action: 'add';

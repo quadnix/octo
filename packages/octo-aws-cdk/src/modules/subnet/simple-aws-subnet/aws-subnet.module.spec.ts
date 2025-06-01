@@ -2,8 +2,10 @@ import { EC2Client } from '@aws-sdk/client-ec2';
 import { EFSClient } from '@aws-sdk/client-efs';
 import { jest } from '@jest/globals';
 import {
+  type AResource,
   type Account,
   type App,
+  type BaseResourceSchema,
   type Filesystem,
   type Region,
   SubnetType,
@@ -12,16 +14,17 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
-import { EfsFilesystemAnchor } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.js';
-import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/efs-mount-target.schema.js';
-import type { NetworkAcl } from '../../../resources/network-acl/index.js';
-import type { NetworkAclSchema } from '../../../resources/network-acl/network-acl.schema.js';
-import type { RouteTableSchema } from '../../../resources/route-table/route-table.schema.js';
-import type { SecurityGroupSchema } from '../../../resources/security-group/security-group.schema.js';
-import type { SubnetSchema } from '../../../resources/subnet/subnet.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
+import type { EfsFilesystemAnchorSchema } from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
+import type {
+  EfsMountTargetSchema,
+  NetworkAclSchema,
+  RouteTableSchema,
+  SecurityGroupSchema,
+  SubnetSchema,
+} from './index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsSubnetModule } from './aws-subnet.module.js';
+import { AwsSubnetModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -40,10 +43,14 @@ async function setup(
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   filesystem.addAnchor(
-    new EfsFilesystemAnchor('EfsFilesystemAnchor', { filesystemName: 'test-filesystem' }, filesystem),
+    testModuleContainer.createTestAnchor<EfsFilesystemAnchorSchema>(
+      'EfsFilesystemAnchor',
+      { filesystemName: 'test-filesystem' },
+      filesystem,
+    ),
   );
   region.addAnchor(
-    new AwsRegionAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
       { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
       region,
@@ -251,7 +258,8 @@ describe('AwsSubnetModule UT', () => {
        [],
      ]
     `);
-    expect((result1.resourceDiffs[0][2].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+    expect((result1.resourceDiffs[0][2].diff.node as AResource<BaseResourceSchema, any>).properties)
+      .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
        "awsRegionId": "us-east-1",
@@ -498,7 +506,8 @@ describe('AwsSubnetModule UT', () => {
        [],
      ]
     `);
-    expect((result1.resourceDiffs[0][2].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+    expect((result1.resourceDiffs[0][2].diff.node as AResource<BaseResourceSchema, any>).properties)
+      .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
        "awsRegionId": "us-east-1",
@@ -550,7 +559,8 @@ describe('AwsSubnetModule UT', () => {
        ],
      }
     `);
-    expect((result1.resourceDiffs[0][5].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+    expect((result1.resourceDiffs[0][5].diff.node as AResource<BaseResourceSchema, any>).properties)
+      .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
        "awsRegionId": "us-east-1",
@@ -840,7 +850,8 @@ describe('AwsSubnetModule UT', () => {
        [],
      ]
     `);
-    expect((result1.resourceDiffs[0][3].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+    expect((result1.resourceDiffs[0][3].diff.node as AResource<BaseResourceSchema, any>).properties)
+      .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
        "awsRegionId": "us-east-1",
@@ -914,7 +925,8 @@ describe('AwsSubnetModule UT', () => {
        ],
      }
     `);
-    expect((result1.resourceDiffs[0][7].diff.node as NetworkAcl).properties).toMatchInlineSnapshot(`
+    expect((result1.resourceDiffs[0][7].diff.node as AResource<BaseResourceSchema, any>).properties)
+      .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
        "awsRegionId": "us-east-1",

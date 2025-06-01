@@ -38,6 +38,8 @@
     "./region/per-az-aws-region/schema": "./dist/modules/region/per-az-aws-region/index.schema.js",
     "./server/ecs-based-aws-server": "./dist/modules/server/ecs-based-aws-server/index.js",
     "./server/ecs-based-aws-server/schema": "./dist/modules/server/ecs-based-aws-server/index.schema.js",
+    "./service/alb-aws-service": "./dist/modules/service/alb-aws-service/index.js",
+    "./service/alb-aws-service/schema": "./dist/modules/service/alb-aws-service/index.schema.js",
     "./service/s3-static-website-aws-service": "./dist/modules/service/s3-static-website-aws-service/index.js",
     "./service/s3-static-website-aws-service/schema": "./dist/modules/service/s3-static-website-aws-service/index.schema.js",
     "./service/s3-storage-aws-service": "./dist/modules/service/s3-storage-aws-service/index.js",

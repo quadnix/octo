@@ -7,11 +7,11 @@ import {
   Resource,
   ResourceError,
 } from '@quadnix/octo';
-import type { InternetGatewaySchema } from '../internet-gateway/internet-gateway.schema.js';
-import type { NatGatewaySchema } from '../nat-gateway/nat-gateway.schema.js';
-import type { SubnetSchema } from '../subnet/subnet.schema.js';
-import type { VpcSchema } from '../vpc/vpc.schema.js';
-import { RouteTableSchema } from './route-table.schema.js';
+import type { InternetGatewaySchema } from '../internet-gateway/index.schema.js';
+import type { NatGatewaySchema } from '../nat-gateway/index.schema.js';
+import type { SubnetSchema } from '../subnet/index.schema.js';
+import type { VpcSchema } from '../vpc/index.schema.js';
+import { RouteTableSchema } from './index.schema.js';
 
 @Resource<RouteTable>('@octo', 'route-table', RouteTableSchema)
 export class RouteTable extends AResource<RouteTableSchema, RouteTable> {

@@ -1,6 +1,6 @@
 import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
-import type { VpcSchema } from '../vpc/vpc.schema.js';
-import { SecurityGroupSchema } from './security-group.schema.js';
+import type { VpcSchema } from '../vpc/index.schema.js';
+import { SecurityGroupSchema } from './index.schema.js';
 
 @Resource<SecurityGroup>('@octo', 'security-group', SecurityGroupSchema)
 export class SecurityGroup extends AResource<SecurityGroupSchema, SecurityGroup> {

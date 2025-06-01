@@ -2,7 +2,7 @@ import { ECSClient, type PortMapping, RegisterTaskDefinitionCommand } from '@aws
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
-import type { EcsTaskDefinitionSchema } from '../ecs-task-definition.schema.js';
+import type { EcsTaskDefinitionSchema } from '../index.schema.js';
 
 @Action(EcsTaskDefinition)
 export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTaskDefinition> {

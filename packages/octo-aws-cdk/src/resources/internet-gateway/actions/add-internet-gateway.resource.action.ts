@@ -2,7 +2,7 @@ import { AttachInternetGatewayCommand, CreateInternetGatewayCommand, EC2Client }
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
-import type { InternetGatewaySchema } from '../internet-gateway.schema.js';
+import type { InternetGatewaySchema } from '../index.schema.js';
 
 @Action(InternetGateway)
 export class AddInternetGatewayResourceAction implements IResourceAction<InternetGateway> {

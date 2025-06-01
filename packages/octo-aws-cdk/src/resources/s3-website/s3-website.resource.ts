@@ -1,5 +1,5 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
-import { S3WebsiteSchema } from './s3-website.schema.js';
+import { S3WebsiteSchema } from './index.schema.js';
 
 @Resource<S3Website>('@octo', 's3-website', S3WebsiteSchema)
 export class S3Website extends AResource<S3WebsiteSchema, S3Website> {

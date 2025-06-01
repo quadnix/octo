@@ -7,7 +7,7 @@ import {
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RouteTable } from '../route-table.resource.js';
-import type { RouteTableSchema } from '../route-table.schema.js';
+import type { RouteTableSchema } from '../index.schema.js';
 
 @Action(RouteTable)
 export class AddRouteTableResourceAction implements IResourceAction<RouteTable> {

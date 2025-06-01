@@ -1,9 +1,9 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, type MatchingResource, Resource } from '@quadnix/octo';
-import type { EcsClusterSchema } from '../ecs-cluster/ecs-cluster.schema.js';
-import type { EcsTaskDefinitionSchema } from '../ecs-task-definition/ecs-task-definition.schema.js';
-import type { SecurityGroupSchema } from '../security-group/security-group.schema.js';
-import type { SubnetSchema } from '../subnet/subnet.schema.js';
-import { EcsServiceSchema } from './ecs-service.schema.js';
+import type { EcsClusterSchema } from '../ecs-cluster/index.schema.js';
+import type { EcsTaskDefinitionSchema } from '../ecs-task-definition/index.schema.js';
+import type { SecurityGroupSchema } from '../security-group/index.schema.js';
+import type { SubnetSchema } from '../subnet/index.schema.js';
+import { EcsServiceSchema } from './index.schema.js';
 
 @Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema)
 export class EcsService extends AResource<EcsServiceSchema, EcsService> {

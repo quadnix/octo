@@ -1,6 +1,8 @@
-import { BaseAnchorSchema, Schema, Validate } from '@quadnix/octo';
+import { BaseAnchorSchema, Schema, type Service, Validate } from '@quadnix/octo';
 
 export class S3StorageAnchorSchema extends BaseAnchorSchema {
+  parentInstance: Service;
+
   @Validate({
     destruct: (value: S3StorageAnchorSchema['properties']): string[] => [
       value.awsAccountId,

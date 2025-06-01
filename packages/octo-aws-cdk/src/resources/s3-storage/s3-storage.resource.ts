@@ -1,5 +1,5 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, MatchingResource, Resource } from '@quadnix/octo';
-import { type PrincipalResourceSchema, S3StorageSchema } from './s3-storage.schema.js';
+import { type PrincipalResourceSchema, S3StorageSchema } from './index.schema.js';
 
 export type S3StorageManifestDiff = {
   [key: string]: {

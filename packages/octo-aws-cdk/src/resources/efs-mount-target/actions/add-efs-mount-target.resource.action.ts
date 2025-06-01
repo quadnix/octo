@@ -11,7 +11,7 @@ import {
 import type { EFSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
-import type { EfsMountTargetSchema } from '../efs-mount-target.schema.js';
+import type { EfsMountTargetSchema } from '../index.schema.js';
 
 @Action(EfsMountTarget)
 export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {

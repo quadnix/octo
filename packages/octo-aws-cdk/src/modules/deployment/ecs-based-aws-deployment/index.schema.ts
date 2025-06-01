@@ -6,6 +6,7 @@ import {
 } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.schema.js';
 import { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.schema.js';
 
+export { EcsTaskDefinitionAnchorSchema, EcsTaskDefinitionAnchorPropertiesSchema };
 export { AwsDeploymentSchema } from './models/deployment/aws.deployment.schema.js';
 
 export class AwsDeploymentModuleSchema {

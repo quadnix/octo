@@ -8,9 +8,8 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { EcsServerAnchor } from '../../../anchors/ecs-server/ecs-server.anchor.js';
-import { IamRoleAnchor } from '../../../anchors/iam-role/iam-role.anchor.js';
-import { AwsDeploymentModule } from './aws-deployment.module.js';
+import { AwsDeploymentModule } from './index.js';
+import type { EcsServerAnchorSchema, IamRoleAnchorSchema } from '../../server/ecs-based-aws-server/index.schema.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -26,8 +25,16 @@ async function setup(
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
-  server.addAnchor(new EcsServerAnchor('EcsServerAnchor', { deploymentType: 'ecs', serverKey: 'backend' }, server));
-  server.addAnchor(new IamRoleAnchor('IamRoleAnchor', { iamRoleName: 'iamRoleName' }, server));
+  server.addAnchor(
+    testModuleContainer.createTestAnchor<EcsServerAnchorSchema>(
+      'EcsServerAnchor',
+      { deploymentType: 'ecs', serverKey: 'backend' },
+      server,
+    ),
+  );
+  server.addAnchor(
+    testModuleContainer.createTestAnchor<IamRoleAnchorSchema>('IamRoleAnchor', { iamRoleName: 'iamRoleName' }, server),
+  );
 
   return { account, app, server };
 }

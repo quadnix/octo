@@ -29,46 +29,82 @@ module.exports = {
         rules: [
           // Anchor rules.
           {
-            allow: ['utilities'],
-            from: ['anchors'],
+            allow: [['anchor-schema', { family: '${from.family}' }], 'utilities'],
+            from: ['anchor-anchor'],
+          },
+          {
+            allow: [],
+            from: ['anchor-schema'],
           },
 
           // Module rules.
           {
             allow: [
-              ['module-*', { family: '${from.family}' }],
-              'anchors',
+              ['module-models', { family: '${from.family}' }],
+              ['module-module', { family: '${from.family}' }],
+              'anchor-anchor',
+              'anchor-schema',
               'resource-index',
-              'resource-schema',
+              'resource-schema-index',
               'utilities',
             ],
-            from: ['module-actions'],
+            from: ['module-model-actions'],
           },
           {
-            allow: [['module-*', { family: '${from.family}' }], 'anchors', 'utilities'],
-            from: ['module-models', 'module-overlays'],
+            allow: [
+              ['module-model-actions', { family: '${from.family}' }],
+              ['module-models', { family: '${from.family}' }],
+            ],
+            from: ['module-model-indexes'],
           },
           {
-            allow: [['module-*', { family: '${from.family}' }], 'anchors', 'module-schema-index', 'utilities'],
+            allow: [],
+            from: ['module-model-schemas'],
+          },
+          {
+            allow: [
+              ['module-model-schemas', { family: '${from.family}' }],
+              'anchor-anchor',
+              'anchor-schema',
+              'utilities',
+            ],
+            from: ['module-models'],
+          },
+          {
+            allow: [
+              ['module-model-actions', { family: '${from.family}' }],
+              ['module-model-indexes', { family: '${from.family}' }],
+              ['module-schema-index', { family: '${from.family}' }],
+              'anchor-anchor',
+              'anchor-schema',
+              'module-schema-index',
+              'utilities',
+            ],
             from: ['module-module'],
           },
           {
             allow: [
-              ['module-*', { family: '${from.family}' }],
-              'anchors',
+              ['module-index', { family: '${from.family}' }],
+              ['module-schema-index', { family: '${from.family}' }],
               'module-schema-index',
-              'resource-index',
-              'resource-schema',
               'utilities',
             ],
             from: ['module-spec'],
           },
           {
-            allow: ['module-models', 'module-overlays', 'resource-index'],
+            allow: [
+              ['module-model-indexes', { family: '${from.family}' }],
+              ['module-module', { family: '${from.family}' }],
+            ],
             from: ['module-index'],
           },
           {
-            allow: [['module-*', { family: '${from.family}' }], 'anchors'],
+            allow: [
+              ['module-model-indexes', { family: '${from.family}' }],
+              ['module-model-schemas', { family: '${from.family}' }],
+              'anchor-schema',
+              'resource-schema-index',
+            ],
             from: ['module-schema-index'],
           },
 
@@ -76,23 +112,30 @@ module.exports = {
           {
             allow: [
               ['resource-resource', { family: '${from.family}' }],
-              ['resource-schema', { family: '${from.family}' }],
+              ['resource-schema-index', { family: '${from.family}' }],
               'utilities',
             ],
             from: ['resource-actions'],
           },
           {
-            allow: [['resource-schema', { family: '${from.family}' }], 'resource-schema', 'utilities'],
+            allow: [['resource-schema-index', { family: '${from.family}' }], 'resource-schema-index', 'utilities'],
             from: ['resource-resource'],
           },
           {
-            allow: [['resource-actions', { family: '${from.family}' }]],
+            allow: [
+              ['resource-actions', { family: '${from.family}' }],
+              ['resource-resource', { family: '${from.family}' }],
+            ],
             from: ['resource-index'],
+          },
+          {
+            allow: [],
+            from: ['resource-schema-index'],
           },
 
           // Utility rules.
           {
-            allow: ['resource-schema'],
+            allow: ['resource-schema-index'],
             from: ['utilities'],
           },
         ],
@@ -101,13 +144,20 @@ module.exports = {
     'boundaries/external': ['off'],
   },
   settings: {
+    'boundaries/dependency-nodes': ['export', 'import'],
     'boundaries/elements': [
       // Anchor patterns.
       {
         capture: ['family'],
-        mode: 'folder',
-        pattern: 'src/anchors/*',
-        type: 'anchors',
+        mode: 'file',
+        pattern: 'src/anchors/*/*.anchor.ts',
+        type: `anchor-anchor`,
+      },
+      {
+        capture: ['family'],
+        mode: 'file',
+        pattern: 'src/anchors/*/*.anchor.schema.ts',
+        type: `anchor-schema`,
       },
 
       // Module patterns.
@@ -115,19 +165,25 @@ module.exports = {
         capture: ['familyCategory', 'family'],
         mode: 'file',
         pattern: ['src/modules/*/*/**/*.action.ts'],
-        type: 'module-actions',
+        type: 'module-model-actions',
       },
       {
         capture: ['familyCategory', 'family'],
         mode: 'file',
-        pattern: ['src/modules/*/*/models/*/*.ts'],
+        pattern: ['src/modules/*/*/models/*/index.ts', 'src/modules/*/*/overlays/*/index.ts'],
+        type: 'module-model-indexes',
+      },
+      {
+        capture: ['familyCategory', 'family'],
+        mode: 'file',
+        pattern: ['src/modules/*/*/models/*/*.schema.ts', 'src/modules/*/*/overlays/*/*.schema.ts'],
+        type: 'module-model-schemas',
+      },
+      {
+        capture: ['familyCategory', 'family'],
+        mode: 'file',
+        pattern: ['src/modules/*/*/models/*/*.model.ts', 'src/modules/*/*/overlays/*/*.overlay.ts'],
         type: 'module-models',
-      },
-      {
-        capture: ['familyCategory', 'family'],
-        mode: 'file',
-        pattern: ['src/modules/*/*/overlays/*/*.ts'],
-        type: 'module-overlays',
       },
       {
         capture: ['familyCategory', 'family'],
@@ -167,13 +223,13 @@ module.exports = {
         pattern: 'src/resources/*/*.resource.ts',
         type: `resource-resource`,
       },
+      { capture: ['family'], mode: 'file', pattern: 'src/resources/*/index.ts', type: `resource-index` },
       {
         capture: ['family'],
         mode: 'file',
-        pattern: 'src/resources/*/*.schema.ts',
-        type: `resource-schema`,
+        pattern: 'src/resources/*/index.schema.ts',
+        type: `resource-schema-index`,
       },
-      { capture: ['family'], mode: 'file', pattern: 'src/resources/*/index.ts', type: `resource-index` },
 
       // Utility patterns.
       {

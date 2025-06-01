@@ -9,9 +9,9 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
-import type { EcsClusterSchema } from '../../../resources/ecs-cluster/ecs-cluster.schema.js';
-import { AwsEnvironmentModule } from './aws-environment.module.js';
+import type { AwsRegionAnchorSchema } from '../../region/per-az-aws-region/index.schema.js';
+import type { EcsClusterSchema } from './index.schema.js';
+import { AwsEnvironmentModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -28,7 +28,7 @@ async function setup(
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   region.addAnchor(
-    new AwsRegionAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
       { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
       region,

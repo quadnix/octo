@@ -2,6 +2,7 @@ import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
 export { AwsS3StaticWebsiteServiceSchema } from './models/s3-static-website/aws-s3-static-website.service.schema.js';
+export { S3WebsiteSchema } from '../../../resources/s3-website/index.schema.js';
 
 export class AwsS3StaticWebsiteServiceModuleSchema {
   @Validate({ options: { minLength: 1 } })

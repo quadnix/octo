@@ -1,7 +1,7 @@
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
 import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
-import { AwsAccountModule } from './aws-account.module.js';
+import { AwsAccountModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
   const {

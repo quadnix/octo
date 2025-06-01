@@ -10,13 +10,15 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { S3DirectoryAnchor } from '../../../anchors/s3-directory/s3-directory.anchor.js';
-import { S3StorageAnchor } from '../../../anchors/s3-storage/s3-storage.anchor.js';
-import type { IamRoleSchema } from '../../../resources/iam-role/iam-role.schema.js';
+// eslint-disable-next-line boundaries/element-types
 import { S3Storage } from '../../../resources/s3-storage/index.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsServerModule } from './aws-server.module.js';
-import { S3StorageAccess } from './index.schema.js';
+import type {
+  S3DirectoryAnchorSchema,
+  S3StorageAnchorSchema,
+} from '../../../modules/service/s3-storage-aws-service/index.schema.js';
+import { AwsServerModule } from './index.js';
+import { type IamRoleSchema, S3StorageAccess } from './index.schema.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -33,14 +35,14 @@ async function setup(
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   service.addAnchor(
-    new S3DirectoryAnchor(
+    testModuleContainer.createTestAnchor<S3DirectoryAnchorSchema>(
       'S3DirectoryAnchor-1234',
       { bucketName: 'test-bucket', remoteDirectoryPath: 'uploads' },
       service,
     ),
   );
   service.addAnchor(
-    new S3StorageAnchor(
+    testModuleContainer.createTestAnchor<S3StorageAnchorSchema>(
       'S3StorageAnchor',
       { awsAccountId: '123', awsRegionId: 'us-east-1', bucketName: 'test-bucket' },
       service,

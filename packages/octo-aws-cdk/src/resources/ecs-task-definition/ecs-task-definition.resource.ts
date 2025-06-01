@@ -1,8 +1,8 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, type MatchingResource, Resource } from '@quadnix/octo';
 import { TaskDefinitionUtility } from '../../utilities/task-definition/task-definition.utility.js';
-import type { EfsSchema } from '../efs/efs.schema.js';
-import type { IamRoleSchema } from '../iam-role/iam-role.schema.js';
-import { EcsTaskDefinitionSchema } from './ecs-task-definition.schema.js';
+import type { EfsSchema } from '../efs/index.schema.js';
+import type { IamRoleSchema } from '../iam-role/index.schema.js';
+import { EcsTaskDefinitionSchema } from './index.schema.js';
 
 @Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema)
 export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {

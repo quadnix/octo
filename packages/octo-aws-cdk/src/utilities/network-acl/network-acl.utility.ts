@@ -1,5 +1,5 @@
 import type { NetworkAclEntry } from '@aws-sdk/client-ec2';
-import type { NetworkAclSchema } from '../../resources/network-acl/network-acl.schema.js';
+import type { NetworkAclSchema } from '../../resources/network-acl/index.schema.js';
 
 export class NetworkAclUtility {
   static assignRuleNumber(

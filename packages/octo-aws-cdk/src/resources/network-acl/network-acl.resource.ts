@@ -1,8 +1,8 @@
 import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
 import { NetworkAclUtility } from '../../utilities/network-acl/network-acl.utility.js';
-import type { SubnetSchema } from '../subnet/subnet.schema.js';
-import type { VpcSchema } from '../vpc/vpc.schema.js';
-import { NetworkAclSchema } from './network-acl.schema.js';
+import type { SubnetSchema } from '../subnet/index.schema.js';
+import type { VpcSchema } from '../vpc/index.schema.js';
+import { NetworkAclSchema } from './index.schema.js';
 
 @Resource<NetworkAcl>('@octo', 'network-acl', NetworkAclSchema)
 export class NetworkAcl extends AResource<NetworkAclSchema, NetworkAcl> {

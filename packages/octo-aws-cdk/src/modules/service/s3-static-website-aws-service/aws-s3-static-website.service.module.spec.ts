@@ -11,8 +11,8 @@ import {
 } from '@quadnix/octo';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
-import { AwsS3StaticWebsiteServiceModule } from './aws-s3-static-website.service.module.js';
+import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
+import { AwsS3StaticWebsiteServiceModule } from './index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const resourcesPath = join(__dirname, '../../../../resources');
@@ -33,7 +33,7 @@ async function setup(
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   region.addAnchor(
-    new AwsRegionAnchor(
+    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
       { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
       region,

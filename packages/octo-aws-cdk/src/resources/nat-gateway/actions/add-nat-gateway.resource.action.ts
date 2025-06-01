@@ -2,7 +2,7 @@ import { AllocateAddressCommand, CreateNatGatewayCommand, EC2Client } from '@aws
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { NatGateway } from '../nat-gateway.resource.js';
-import type { NatGatewaySchema } from '../nat-gateway.schema.js';
+import type { NatGatewaySchema } from '../index.schema.js';
 
 @Action(NatGateway)
 export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> {

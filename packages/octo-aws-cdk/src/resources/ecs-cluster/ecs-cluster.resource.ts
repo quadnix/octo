@@ -1,5 +1,5 @@
 import { AResource, Resource } from '@quadnix/octo';
-import { EcsClusterSchema } from './ecs-cluster.schema.js';
+import { EcsClusterSchema } from './index.schema.js';
 
 @Resource<EcsCluster>('@octo', 'ecs-cluster', EcsClusterSchema)
 export class EcsCluster extends AResource<EcsClusterSchema, EcsCluster> {
