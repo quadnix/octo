@@ -46,7 +46,7 @@ export {
 export class AwsExecutionModuleSchema {
   @Validate({
     options: {
-      isModel: { anchors: [EcsTaskDefinitionAnchorSchema], NODE_NAME: 'deployment' },
+      isModel: { anchors: [{ schema: EcsTaskDefinitionAnchorSchema }], NODE_NAME: 'deployment' },
       isSchema: { schema: DeploymentSchema },
     },
   })
@@ -65,7 +65,7 @@ export class AwsExecutionModuleSchema {
 
   @Validate({
     options: {
-      isModel: { anchors: [EcsClusterAnchorSchema], NODE_NAME: 'environment' },
+      isModel: { anchors: [{ schema: EcsClusterAnchorSchema }], NODE_NAME: 'environment' },
       isSchema: { schema: EnvironmentSchema },
     },
   })
@@ -74,7 +74,7 @@ export class AwsExecutionModuleSchema {
   @Validate({
     destruct: (value: AwsExecutionModuleSchema['filesystems']): Filesystem[] => value!,
     options: {
-      isModel: { anchors: [EfsFilesystemAnchorSchema], NODE_NAME: 'filesystem' },
+      isModel: { anchors: [{ schema: EfsFilesystemAnchorSchema }], NODE_NAME: 'filesystem' },
       isSchema: { schema: FilesystemSchema },
     },
   })

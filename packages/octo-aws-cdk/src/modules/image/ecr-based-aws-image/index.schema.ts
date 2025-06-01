@@ -19,7 +19,7 @@ export class AwsImageModuleSchema {
     {
       destruct: (value: AwsImageModuleSchema['regions']): Region[] => value,
       options: {
-        isModel: { anchors: [AwsRegionAnchorSchema], NODE_NAME: 'region' },
+        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
         isSchema: { schema: RegionSchema },
       },
     },

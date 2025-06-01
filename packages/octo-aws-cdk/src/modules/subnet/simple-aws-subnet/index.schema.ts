@@ -33,7 +33,7 @@ export class AwsSubnetModuleSchema {
   @Validate({
     destruct: (value: AwsSubnetModuleSchema['localFilesystems']): Filesystem[] => value!,
     options: {
-      isModel: { anchors: [EfsFilesystemAnchorSchema], NODE_NAME: 'filesystem' },
+      isModel: { anchors: [{ schema: EfsFilesystemAnchorSchema }], NODE_NAME: 'filesystem' },
       isSchema: { schema: FilesystemSchema },
     },
   })
@@ -41,7 +41,7 @@ export class AwsSubnetModuleSchema {
 
   @Validate({
     options: {
-      isModel: { anchors: [AwsRegionAnchorSchema], NODE_NAME: 'region' },
+      isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
       isSchema: { schema: RegionSchema },
     },
   })

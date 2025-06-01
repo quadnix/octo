@@ -18,7 +18,7 @@ export class AwsDeploymentModuleSchema {
 
   @Validate({
     options: {
-      isModel: { anchors: [EcsServerAnchorSchema, IamRoleAnchorSchema], NODE_NAME: 'server' },
+      isModel: { anchors: [{ schema: EcsServerAnchorSchema }, { schema: IamRoleAnchorSchema }], NODE_NAME: 'server' },
       isSchema: { schema: ServerSchema },
     },
   })

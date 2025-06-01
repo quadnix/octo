@@ -51,7 +51,7 @@ export class AwsServerModuleSchema {
     {
       destruct: (value: AwsServerModuleSchema['s3']): Service[] => value!.map((v) => v.service),
       options: {
-        isModel: { anchors: [S3StorageAnchorSchema], NODE_NAME: 'service' },
+        isModel: { anchors: [{ schema: S3StorageAnchorSchema }], NODE_NAME: 'service' },
         isSchema: { schema: ServiceSchema },
       },
     },

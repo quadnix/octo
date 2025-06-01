@@ -3,12 +3,17 @@ import { SchemaError, ValidationTransactionError } from '../../errors/index.js';
 import { getSchemaInstance } from '../../functions/schema/schema.js';
 import { AModel } from '../../models/model.abstract.js';
 import type { BaseAnchorSchema } from '../../overlays/anchor.schema.js';
+import { AOverlay } from '../../overlays/overlay.abstract.js';
 import { AResource } from '../../resources/resource.abstract.js';
 
 export class ValidationUtility {
   static validateIsModel(
     subject: any,
-    staticProperties: { anchors?: Constructable<BaseAnchorSchema>[]; NODE_NAME: string; NODE_PACKAGE?: string },
+    staticProperties: {
+      anchors?: { anchorId?: string; schema: Constructable<BaseAnchorSchema> }[];
+      NODE_NAME: string;
+      NODE_PACKAGE?: string;
+    },
   ): boolean {
     const result =
       subject instanceof AModel &&
@@ -25,26 +30,71 @@ export class ValidationUtility {
     }
 
     const anchors = subject.getAnchors();
-    return staticProperties.anchors.every((anchorSchema) =>
-      anchors.some((anchor) => {
+    return staticProperties.anchors.every((anchor) => {
+      const { anchorId, schema: anchorSchema } = anchor;
+
+      return anchors.some((anchor) => {
         try {
           getSchemaInstance(anchorSchema, anchor.synth());
-          return true;
+          return anchorId ? anchorId === anchor.anchorId : true;
         } catch (error) {
           return false;
         }
-      }),
-    );
+      });
+    });
   }
 
-  static validateIsResource(subject: any, staticProperties: { NODE_NAME: string; NODE_PACKAGE?: string }): boolean {
+  static validateIsOverlay(
+    subject: any,
+    staticProperties: {
+      anchors?: { anchorId?: string; schema: Constructable<BaseAnchorSchema> }[];
+      NODE_NAME: string;
+      NODE_PACKAGE?: string;
+      overlayId?: string;
+    },
+  ): boolean {
+    const result =
+      subject instanceof AOverlay &&
+      (subject.constructor as typeof AModel).NODE_NAME === staticProperties.NODE_NAME &&
+      (subject.constructor as typeof AModel).NODE_TYPE === NodeType.OVERLAY &&
+      (staticProperties.NODE_PACKAGE
+        ? (subject.constructor as typeof AModel).NODE_PACKAGE === staticProperties.NODE_PACKAGE
+        : true) &&
+      (staticProperties.overlayId ? subject.overlayId === staticProperties.overlayId : true);
+    if (!result) {
+      return false;
+    }
+    if (!staticProperties.anchors || staticProperties.anchors.length === 0) {
+      return true;
+    }
+
+    const anchors = subject.getAnchors();
+    return staticProperties.anchors.every((anchor) => {
+      const { anchorId, schema: anchorSchema } = anchor;
+
+      return anchors.some((anchor) => {
+        try {
+          getSchemaInstance(anchorSchema, anchor.synth());
+          return anchorId ? anchorId === anchor.anchorId : true;
+        } catch (error) {
+          return false;
+        }
+      });
+    });
+  }
+
+  static validateIsResource(
+    subject: any,
+    staticProperties: { NODE_NAME: string; NODE_PACKAGE?: string; resourceId?: string },
+  ): boolean {
     return (
       subject instanceof AResource &&
       (subject.constructor as typeof AResource).NODE_NAME === staticProperties.NODE_NAME &&
       (subject.constructor as typeof AResource).NODE_TYPE === NodeType.RESOURCE &&
       (staticProperties.NODE_PACKAGE
         ? (subject.constructor as typeof AResource).NODE_PACKAGE === staticProperties.NODE_PACKAGE
-        : true)
+        : true) &&
+      (staticProperties.resourceId ? subject.resourceId === staticProperties.resourceId : true)
     );
   }
 

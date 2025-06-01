@@ -50,6 +50,9 @@ export class ValidationService {
           case ValidationType.IS_MODEL:
             pass = ValidationUtility.validateIsModel(value, subject.constraint);
             break;
+          case ValidationType.IS_OVERLAY:
+            pass = ValidationUtility.validateIsOverlay(value, subject.constraint);
+            break;
           case ValidationType.IS_RESOURCE:
             pass = ValidationUtility.validateIsResource(value, subject.constraint);
             break;

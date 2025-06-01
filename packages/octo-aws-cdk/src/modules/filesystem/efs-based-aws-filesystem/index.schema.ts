@@ -12,7 +12,7 @@ export class AwsFilesystemModuleSchema {
 
   @Validate({
     options: {
-      isModel: { anchors: [AwsRegionAnchorSchema], NODE_NAME: 'region' },
+      isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
       isSchema: { schema: RegionSchema },
     },
   })

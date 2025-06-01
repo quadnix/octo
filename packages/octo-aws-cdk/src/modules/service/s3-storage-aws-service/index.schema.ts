@@ -19,7 +19,7 @@ export class AwsS3StorageServiceModuleSchema {
 
   @Validate({
     options: {
-      isModel: { anchors: [AwsRegionAnchorSchema], NODE_NAME: 'region' },
+      isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
       isSchema: { schema: RegionSchema },
     },
   })

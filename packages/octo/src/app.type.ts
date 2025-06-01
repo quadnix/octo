@@ -101,6 +101,7 @@ export enum NodeType {
 
 export enum ValidationType {
   IS_MODEL = 'isModel',
+  IS_OVERLAY = 'isOverlay',
   IS_RESOURCE = 'isResource',
   IS_SCHEMA = 'isSchema',
   MAX_LENGTH = 'maxLength',
@@ -114,6 +115,7 @@ export function stub<T>(value: string): T {
 
 export type ValidationTypeOptions = {
   [ValidationType.IS_MODEL]: Parameters<typeof ValidationUtility.validateIsModel>[1];
+  [ValidationType.IS_OVERLAY]: Parameters<typeof ValidationUtility.validateIsOverlay>[1];
   [ValidationType.IS_RESOURCE]: Parameters<typeof ValidationUtility.validateIsResource>[1];
   [ValidationType.IS_SCHEMA]: Parameters<typeof ValidationUtility.validateIsSchema>[1];
   [ValidationType.MAX_LENGTH]: Parameters<typeof ValidationUtility.validateMaxLength>[1];
