@@ -1,7 +1,7 @@
-import { Factory } from '@quadnix/octo';
-import { pino } from 'pino';
-import { LogLayer } from 'loglayer';
 import { PinoTransport } from '@loglayer/transport-pino';
+import { Factory } from '@quadnix/octo';
+import { LogLayer } from 'loglayer';
+import { pino } from 'pino';
 
 export class OctoEventLogger {
   readonly log: LogLayer;

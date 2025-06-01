@@ -6,8 +6,8 @@ import {
 } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
-import { SecurityGroup } from '../security-group.resource.js';
 import type { SecurityGroupSchema } from '../index.schema.js';
+import { SecurityGroup } from '../security-group.resource.js';
 
 @Action(SecurityGroup)
 export class AddSecurityGroupResourceAction implements IResourceAction<SecurityGroup> {

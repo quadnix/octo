@@ -15,14 +15,15 @@ import {
   stub,
 } from '@quadnix/octo';
 import type {
+  EfsFilesystemAnchorSchema,
+  EfsSchema,
+} from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
+import type {
   AwsRegionAnchorSchema,
   InternetGatewaySchema,
   VpcSchema,
 } from '../../../modules/region/per-az-aws-region/index.schema.js';
-import type {
-  EfsFilesystemAnchorSchema,
-  EfsSchema,
-} from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type {
   EfsMountTargetSchema,
   NetworkAclSchema,
@@ -30,7 +31,6 @@ import type {
   SecurityGroupSchema,
   SubnetSchema,
 } from './index.schema.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsSubnetModule } from './index.js';
 
 async function setup(

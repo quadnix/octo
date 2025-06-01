@@ -11,30 +11,37 @@ import {
   Validate,
 } from '@quadnix/octo';
 import { EcsClusterAnchorSchema } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.schema.js';
+import { EcsExecutionAnchorSchema } from '../../../anchors/ecs-execution/ecs-execution.anchor.schema.js';
+import { EcsServiceAnchorSchema } from '../../../anchors/ecs-service/ecs-service.anchor.schema.js';
 import { EcsTaskDefinitionAnchorSchema } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.schema.js';
 import { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
 import {
   SecurityGroupAnchorRuleSchema,
   SecurityGroupAnchorSchema,
 } from '../../../anchors/security-group/security-group.anchor.schema.js';
+import { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
+import { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
+import { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
+import { AwsExecutionSchema } from './models/execution/aws.execution.schema.js';
 import {
   AwsExecutionOverlayDeploymentContainerPropertiesSchema,
   AwsExecutionOverlaySchema,
 } from './overlays/execution/aws-execution.schema.js';
+import { ServerExecutionSecurityGroupOverlaySchema } from './overlays/server-execution-security-group/server-execution-security-group.overlay.schema.js';
 
 export {
   AwsExecutionOverlayDeploymentContainerPropertiesSchema,
   AwsExecutionOverlaySchema,
+  AwsExecutionSchema,
+  EcsExecutionAnchorSchema,
+  EcsServiceAnchorSchema,
+  EcsServiceSchema,
+  EcsTaskDefinitionSchema,
   SecurityGroupAnchorRuleSchema,
   SecurityGroupAnchorSchema,
+  SecurityGroupSchema,
+  ServerExecutionSecurityGroupOverlaySchema,
 };
-export { EcsServiceAnchorSchema } from '../../../anchors/ecs-service/ecs-service.anchor.schema.js';
-export { EcsExecutionAnchorSchema } from '../../../anchors/ecs-execution/ecs-execution.anchor.schema.js';
-export { AwsExecutionSchema } from './models/execution/aws.execution.schema.js';
-export { ServerExecutionSecurityGroupOverlaySchema } from './overlays/server-execution-security-group/server-execution-security-group.overlay.schema.js';
-export { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
-export { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
-export { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
 
 export class AwsExecutionModuleSchema {
   @Validate({

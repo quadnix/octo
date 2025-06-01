@@ -1,6 +1,6 @@
-import { jest } from '@jest/globals';
-import { type ChildProcessWithoutNullStreams } from 'child_process';
+import type { ChildProcessWithoutNullStreams } from 'child_process';
 import { resolve } from 'path';
+import { jest } from '@jest/globals';
 import { Main } from './main.js';
 import { type IBuildConfiguration, type IJob } from './models/build-configuration.interface.js';
 import { type IRunArguments } from './models/run-arguments.interface.js';

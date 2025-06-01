@@ -15,7 +15,6 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { EcsTaskDefinitionAnchorSchema } from '../../../modules/deployment/ecs-based-aws-deployment/index.schema.js';
 import type {
   EcsClusterAnchorSchema,
@@ -32,13 +31,14 @@ import type {
   SubnetLocalFilesystemMountAnchorSchema,
   SubnetSchema,
 } from '../../../modules/subnet/simple-aws-subnet/index.schema.js';
-import { AwsExecutionModule } from './index.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type {
   EcsServiceSchema,
   EcsTaskDefinitionSchema,
   SecurityGroupAnchorSchema,
   SecurityGroupSchema,
 } from './index.schema.js';
+import { AwsExecutionModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{
   account: Account;

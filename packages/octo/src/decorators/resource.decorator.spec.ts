@@ -1,10 +1,10 @@
 import { jest } from '@jest/globals';
-import { TestOverlay, TestResource } from '../utilities/test-helpers/test-classes.js';
 import { NodeType } from '../app.type.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { BaseResourceSchema } from '../resources/resource.schema.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
+import { TestOverlay, TestResource } from '../utilities/test-helpers/test-classes.js';
 import { Resource } from './resource.decorator.js';
 
 class TestResourceSchema extends BaseResourceSchema {}

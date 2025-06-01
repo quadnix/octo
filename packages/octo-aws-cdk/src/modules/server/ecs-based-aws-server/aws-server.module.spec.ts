@@ -10,15 +10,15 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-// eslint-disable-next-line boundaries/element-types
-import { S3Storage } from '../../../resources/s3-storage/index.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type {
   S3DirectoryAnchorSchema,
   S3StorageAnchorSchema,
 } from '../../../modules/service/s3-storage-aws-service/index.schema.js';
-import { AwsServerModule } from './index.js';
+// eslint-disable-next-line boundaries/element-types
+import { S3Storage } from '../../../resources/s3-storage/index.js';
+import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { type IamRoleSchema, S3StorageAccess } from './index.schema.js';
+import { AwsServerModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,

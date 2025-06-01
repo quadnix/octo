@@ -1,7 +1,7 @@
 import { type Constructable, NodeType, type OverlaySchema, type UnknownOverlay } from '../app.type.js';
+import { Container } from '../functions/container/container.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
-import { Container } from '../functions/container/container.js';
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
 /**

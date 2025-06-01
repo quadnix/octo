@@ -1,5 +1,3 @@
-import { TestAnchor, TestOverlay } from '../../../utilities/test-helpers/test-classes.js';
-import { commit, create } from '../../../utilities/test-helpers/test-models.js';
 import type { ModelSerializedOutput } from '../../../app.type.js';
 import type { Container } from '../../../functions/container/container.js';
 import { TestContainer } from '../../../functions/container/test-container.js';
@@ -11,6 +9,8 @@ import { Region } from '../../../models/region/region.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Subnet } from '../../../models/subnet/subnet.model.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
+import { TestAnchor, TestOverlay } from '../../../utilities/test-helpers/test-classes.js';
+import { commit, create } from '../../../utilities/test-helpers/test-models.js';
 import { createTestOverlays } from '../../../utilities/test-helpers/test-overlays.js';
 import { ModelSerializationService } from './model-serialization.service.js';
 

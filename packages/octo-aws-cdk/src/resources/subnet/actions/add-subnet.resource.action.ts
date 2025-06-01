@@ -1,8 +1,8 @@
 import { CreateSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
-import { Subnet } from '../subnet.resource.js';
 import type { SubnetSchema } from '../index.schema.js';
+import { Subnet } from '../subnet.resource.js';
 
 @Action(Subnet)
 export class AddSubnetResourceAction implements IResourceAction<Subnet> {

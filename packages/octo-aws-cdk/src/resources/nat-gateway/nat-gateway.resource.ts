@@ -1,7 +1,7 @@
 import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
 import type { InternetGatewaySchema } from '../internet-gateway/index.schema.js';
-import type { VpcSchema } from '../vpc/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
+import type { VpcSchema } from '../vpc/index.schema.js';
 import { NatGatewaySchema } from './index.schema.js';
 
 @Resource<NatGateway>('@octo', 'nat-gateway', NatGatewaySchema)

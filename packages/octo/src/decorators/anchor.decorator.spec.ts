@@ -1,10 +1,10 @@
 import { jest } from '@jest/globals';
-import { TestAnchor, TestModelWithoutUnsynth } from '../utilities/test-helpers/test-classes.js';
 import type { UnknownModel } from '../app.type.js';
-import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
-import { Anchor } from './anchor.decorator.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
+import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
+import { TestAnchor, TestModelWithoutUnsynth } from '../utilities/test-helpers/test-classes.js';
+import { Anchor } from './anchor.decorator.js';
 
 describe('Anchor UT', () => {
   let container: Container;

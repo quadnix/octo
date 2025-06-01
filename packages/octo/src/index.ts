@@ -17,7 +17,7 @@ export { Dependency, DependencyRelationship, type IDependency } from './function
 export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { type DiffMetadata } from './functions/diff/diff-metadata.js';
-export { getSchemaInstance, getSchemaKeys, Schema } from './functions/schema/schema.js';
+export { Schema, getSchemaInstance, getSchemaKeys } from './functions/schema/schema.js';
 
 export { Account } from './models/account/account.model.js';
 export { AccountSchema, AccountType } from './models/account/account.schema.js';
@@ -66,17 +66,17 @@ export { type IStateProvider } from './services/state-management/state-provider.
 export { TestStateProvider } from './services/state-management/test.state-provider.js';
 
 export {
+  type ActionOutputs,
+  type AnchorSchema,
+  type Constructable,
+  type EnhancedModuleSchema,
   MatchingAnchor,
   MatchingModel,
   MatchingResource,
-  stub,
-  type ActionOutputs,
-  type Constructable,
-  type AnchorSchema,
-  type EnhancedModuleSchema,
   type ModuleSchema,
   type OverlaySchema,
   type ResourceSchema,
+  stub,
 } from './app.type.js';
 
 export { Octo } from './main.js';

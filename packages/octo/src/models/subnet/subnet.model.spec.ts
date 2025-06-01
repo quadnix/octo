@@ -1,6 +1,6 @@
-import { create } from '../../utilities/test-helpers/test-models.js';
 import { NodeType } from '../../app.type.js';
 import { getSchemaInstance } from '../../functions/schema/schema.js';
+import { create } from '../../utilities/test-helpers/test-models.js';
 import type { AModel } from '../model.abstract.js';
 import { SubnetSchema, SubnetType } from './subnet.schema.js';
 

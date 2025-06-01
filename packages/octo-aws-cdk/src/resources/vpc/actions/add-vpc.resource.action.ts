@@ -1,8 +1,8 @@
 import { CreateVpcCommand, EC2Client, ModifyVpcAttributeCommand } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
-import { Vpc } from '../vpc.resource.js';
 import type { VpcSchema } from '../index.schema.js';
+import { Vpc } from '../vpc.resource.js';
 
 @Action(Vpc)
 export class AddVpcResourceAction implements IResourceAction<Vpc> {

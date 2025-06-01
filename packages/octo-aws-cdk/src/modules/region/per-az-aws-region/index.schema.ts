@@ -1,12 +1,12 @@
 import { type Account, AccountSchema, Schema, Validate } from '@quadnix/octo';
+import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
+import { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
+import { VpcSchema } from '../../../resources/vpc/index.schema.js';
+import { AwsRegionSchema } from './models/region/aws.region.schema.js';
 import { RegionId } from './models/region/index.js';
 
-export { RegionId };
-export { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-export { AwsRegionSchema } from './models/region/aws.region.schema.js';
-export { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
-export { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
-export { VpcSchema } from '../../../resources/vpc/index.schema.js';
+export { AwsRegionAnchorSchema, AwsRegionSchema, InternetGatewaySchema, RegionId, SecurityGroupSchema, VpcSchema };
 
 export class AwsRegionModuleSchema {
   @Validate({ options: { isSchema: { schema: AccountSchema } } })

@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
-import { CommitHook } from '../functions/hook/commit.hook.js';
 import { TestContainer } from '../functions/container/test-container.js';
+import { CommitHook } from '../functions/hook/commit.hook.js';
 import { EnableHook } from './enable-hook.decorator.js';
 
 describe('EnableHook UT', () => {

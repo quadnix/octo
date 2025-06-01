@@ -2,18 +2,18 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 export type IIamRoleAssumeRolePolicy = 'ecs-tasks.amazonaws.com';
 
+export type IIamRolePolicyTypes = {
+  'assume-role-policy': IIamRoleAssumeRolePolicy;
+  'aws-policy': string;
+  's3-storage-access-policy': IIamRoleS3BucketPolicy;
+};
+
 export interface IIamRoleS3BucketPolicy {
   allowRead: boolean;
   allowWrite: boolean;
   bucketName: string;
   remoteDirectoryPath: string;
 }
-
-export type IIamRolePolicyTypes = {
-  'assume-role-policy': IIamRoleAssumeRolePolicy;
-  'aws-policy': string;
-  's3-storage-access-policy': IIamRoleS3BucketPolicy;
-};
 
 export class IamRoleSchema extends BaseResourceSchema {
   // Source: https://stackoverflow.com/a/56837244/1834562

@@ -1,8 +1,8 @@
 import { jest } from '@jest/globals';
-import { TestOverlay } from '../../utilities/test-helpers/test-classes.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
+import { TestOverlay } from '../../utilities/test-helpers/test-classes.js';
 import type { Container } from './container.js';
 import { TestContainer } from './test-container.js';
 

@@ -2,8 +2,8 @@ import { EC2Client } from '@aws-sdk/client-ec2';
 import { jest } from '@jest/globals';
 import { type Account, type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsRegionModule } from './index.js';
 import { type InternetGatewaySchema, RegionId, type SecurityGroupSchema, type VpcSchema } from './index.schema.js';
+import { AwsRegionModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
   const {

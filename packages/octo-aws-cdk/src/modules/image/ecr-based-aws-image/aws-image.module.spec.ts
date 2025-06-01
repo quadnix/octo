@@ -10,10 +10,10 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
 import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
-import { AwsImageModule } from './index.js';
+import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
 import type { EcrImageSchema } from './index.schema.js';
+import { AwsImageModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,

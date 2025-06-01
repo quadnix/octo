@@ -14,6 +14,22 @@ class S3StoragePermissionSchema {
   remoteDirectoryPath: string;
 }
 
+export class PrincipalResourceSchema extends BaseResourceSchema {
+  @Validate({
+    destruct: (value: PrincipalResourceSchema['response']): string[] => {
+      const subjects: string[] = [];
+      if (value.Arn) {
+        subjects.push(value.Arn);
+      }
+      return subjects;
+    },
+    options: { minLength: 1 },
+  })
+  override response = Schema<{
+    Arn: string;
+  }>();
+}
+
 export class S3StorageSchema extends BaseResourceSchema {
   @Validate<unknown>([
     {
@@ -37,20 +53,4 @@ export class S3StorageSchema extends BaseResourceSchema {
   }>();
 
   override response = Schema<Record<never, never>>();
-}
-
-export class PrincipalResourceSchema extends BaseResourceSchema {
-  @Validate({
-    destruct: (value: PrincipalResourceSchema['response']): string[] => {
-      const subjects: string[] = [];
-      if (value.Arn) {
-        subjects.push(value.Arn);
-      }
-      return subjects;
-    },
-    options: { minLength: 1 },
-  })
-  override response = Schema<{
-    Arn: string;
-  }>();
 }

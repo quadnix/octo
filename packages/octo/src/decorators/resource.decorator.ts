@@ -1,7 +1,7 @@
 import { type Constructable, NodeType, type ResourceSchema, type UnknownResource } from '../app.type.js';
+import { Container } from '../functions/container/container.js';
 import { AResource } from '../resources/resource.abstract.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
-import { Container } from '../functions/container/container.js';
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
 /**

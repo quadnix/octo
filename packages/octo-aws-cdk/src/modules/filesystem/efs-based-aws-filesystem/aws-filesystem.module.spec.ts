@@ -11,8 +11,8 @@ import {
 } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsFilesystemModule } from './index.js';
 import type { EfsSchema } from './index.schema.js';
+import { AwsFilesystemModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,

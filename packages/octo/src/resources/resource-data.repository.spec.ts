@@ -1,8 +1,8 @@
 import { jest } from '@jest/globals';
-import { commitResources, createTestResources } from '../utilities/test-helpers/test-resources.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
+import { commitResources, createTestResources } from '../utilities/test-helpers/test-resources.js';
 import { ResourceDataRepository } from './resource-data.repository.js';
 
 describe('ResourceDataRepository UT', () => {

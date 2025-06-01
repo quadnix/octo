@@ -1,3 +1,5 @@
+import { lstat, readdir } from 'fs/promises';
+import { join, parse, resolve } from 'path';
 import {
   Container,
   Diff,
@@ -8,8 +10,6 @@ import {
   StateManagementService,
   Validate,
 } from '@quadnix/octo';
-import { lstat, readdir } from 'fs/promises';
-import { join, parse, resolve } from 'path';
 import { FileUtility } from '../../../../../utilities/file/file.utility.js';
 import { AwsS3StaticWebsiteServiceSchema } from './aws-s3-static-website.service.schema.js';
 

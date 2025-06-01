@@ -8,7 +8,6 @@ import {
   type UnknownModel,
   type UnknownOverlay,
 } from '../../../app.type.js';
-import { Container } from '../../../functions/container/container.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import {
@@ -18,6 +17,7 @@ import {
   ModelSerializedEvent,
   OverlayRegistrationEvent,
 } from '../../../events/index.js';
+import { Container } from '../../../functions/container/container.js';
 import { Dependency, type IDependency } from '../../../functions/dependency/dependency.js';
 import type { ANode } from '../../../functions/node/node.abstract.js';
 import type { AAnchor } from '../../../overlays/anchor.abstract.js';

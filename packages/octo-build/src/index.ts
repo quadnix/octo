@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import chalk from 'chalk';
 import { accessSync, constants, existsSync, readFileSync } from 'fs';
-import { load } from 'js-yaml';
 import { join, resolve, sep } from 'path';
 import * as process from 'process';
+import chalk from 'chalk';
+import { load } from 'js-yaml';
 import yargs from 'yargs/yargs';
 import { Main } from './main.js';
 import type { IRunArguments } from './models/run-arguments.interface.js';

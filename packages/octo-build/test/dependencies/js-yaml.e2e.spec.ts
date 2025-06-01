@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
-import { load } from 'js-yaml';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { load } from 'js-yaml';
 import { BuildFileParser } from '../../src/parsers/build-file.parser.js';
 
 describe('js-yaml E2E', () => {

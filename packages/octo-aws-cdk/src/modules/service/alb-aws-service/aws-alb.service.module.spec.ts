@@ -15,8 +15,8 @@ import {
 import type { AwsRegionAnchorSchema, VpcSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
 import type { SubnetSchema } from '../../../modules/subnet/simple-aws-subnet/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsAlbServiceModule } from './index.js';
 import type { SecurityGroupSchema } from './index.schema.js';
+import { AwsAlbServiceModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,

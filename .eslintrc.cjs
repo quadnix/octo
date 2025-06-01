@@ -13,6 +13,7 @@ module.exports = {
   extends: [
     'plugin:@typescript-eslint/recommended',
     'plugin:boundaries/recommended',
+    'plugin:import/recommended',
     'plugin:jsonc/recommended-with-jsonc',
     'plugin:prettier/recommended',
   ],
@@ -41,6 +42,13 @@ module.exports = {
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/interface-name-prefix': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
+    'import/order': [
+      'error',
+      {
+        alphabetize: { caseInsensitive: false, order: 'asc', orderImportKind: 'asc' },
+        named: { enabled: true, types: 'mixed' },
+      },
+    ],
     'jsonc/sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
     'max-len': ['error', { code: 120, ignoreStrings: true }],
     'no-duplicate-imports': ['error', { includeExports: true }],

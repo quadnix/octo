@@ -1,7 +1,7 @@
+import { createReadStream } from 'fs';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { Upload } from '@aws-sdk/lib-storage';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
-import { createReadStream } from 'fs';
 import mime from 'mime';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { S3Website } from '../s3-website.resource.js';

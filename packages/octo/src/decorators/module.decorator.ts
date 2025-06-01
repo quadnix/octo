@@ -1,7 +1,7 @@
 import type { Constructable, ModuleSchema } from '../app.type.js';
+import { Container } from '../functions/container/container.js';
 import { AModule } from '../modules/module.abstract.js';
 import { ModuleContainer } from '../modules/module.container.js';
-import { Container } from '../functions/container/container.js';
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
 /**

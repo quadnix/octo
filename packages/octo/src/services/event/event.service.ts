@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
 import type { Constructable } from '../../app.type.js';
-import { Container } from '../../functions/container/container.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { Event } from '../../events/index.js';
+import { Container } from '../../functions/container/container.js';
 
 export class EventService {
   private readonly EVENT_BUFFER_SIZE = 50;

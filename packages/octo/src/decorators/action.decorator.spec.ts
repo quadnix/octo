@@ -1,14 +1,14 @@
 import { jest } from '@jest/globals';
+import type { Container } from '../functions/container/container.js';
+import { TestContainer } from '../functions/container/test-container.js';
+import { TransactionService } from '../services/transaction/transaction.service.js';
 import {
   TestAction,
   TestModelWithoutUnsynth,
   TestOverlay,
   TestResource,
 } from '../utilities/test-helpers/test-classes.js';
-import { TransactionService } from '../services/transaction/transaction.service.js';
 import { Action } from './action.decorator.js';
-import type { Container } from '../functions/container/container.js';
-import { TestContainer } from '../functions/container/test-container.js';
 
 describe('Action UT', () => {
   let container: Container;

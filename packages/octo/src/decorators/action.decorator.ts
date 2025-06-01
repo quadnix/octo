@@ -7,13 +7,13 @@ import type {
   UnknownOverlay,
   UnknownResource,
 } from '../app.type.js';
+import { Container } from '../functions/container/container.js';
 import { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 import { AModel } from '../models/model.abstract.js';
 import { AOverlay } from '../overlays/overlay.abstract.js';
 import { AResource } from '../resources/resource.abstract.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
-import { Container } from '../functions/container/container.js';
 
 function isModel(nodeClass: Constructable<UnknownNode>): nodeClass is Constructable<UnknownModel> {
   return nodeClass.prototype instanceof AModel;

@@ -1,5 +1,4 @@
 import type { ActionOutputs, ResourceSerializedOutput, UnknownResource } from '../../../app.type.js';
-import { Container } from '../../../functions/container/container.js';
 import { EventSource } from '../../../decorators/event-source.decorator.js';
 import { Factory } from '../../../decorators/factory.decorator.js';
 import {
@@ -8,6 +7,7 @@ import {
   ResourceDeserializedEvent,
   ResourceRegistrationEvent,
 } from '../../../events/index.js';
+import { Container } from '../../../functions/container/container.js';
 import type { IDependency } from '../../../functions/dependency/dependency.js';
 import {
   ResourceDataRepository,

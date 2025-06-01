@@ -1,6 +1,6 @@
+import { Container } from '../functions/container/container.js';
 import { AAnchor } from '../overlays/anchor.abstract.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
-import { Container } from '../functions/container/container.js';
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
 /**

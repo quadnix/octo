@@ -1,3 +1,5 @@
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import {
@@ -9,8 +11,6 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
 import { AwsS3StaticWebsiteServiceModule } from './index.js';
 

@@ -7,8 +7,8 @@ import {
 } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
-import { NetworkAcl } from '../network-acl.resource.js';
 import type { NetworkAclSchema } from '../index.schema.js';
+import { NetworkAcl } from '../network-acl.resource.js';
 
 @Action(NetworkAcl)
 export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> {

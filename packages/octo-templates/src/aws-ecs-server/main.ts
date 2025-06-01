@@ -1,3 +1,5 @@
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import {
   type Account,
   type App,
@@ -16,10 +18,10 @@ import {
 import { AwsAccountModule } from '@quadnix/octo-aws-cdk/account/ini-based-aws-account';
 import { AppModule } from '@quadnix/octo-aws-cdk/app/simple-app';
 import { AwsDeploymentModule } from '@quadnix/octo-aws-cdk/deployment/ecs-based-aws-deployment';
-import { AwsImageModule } from '@quadnix/octo-aws-cdk/image/ecr-based-aws-image';
-import { AwsFilesystemModule } from '@quadnix/octo-aws-cdk/filesystem/efs-based-aws-filesystem';
 import { AwsEnvironmentModule } from '@quadnix/octo-aws-cdk/environment/ecs-based-aws-environment';
 import { AwsExecutionModule } from '@quadnix/octo-aws-cdk/execution/ecs-based-aws-execution';
+import { AwsFilesystemModule } from '@quadnix/octo-aws-cdk/filesystem/efs-based-aws-filesystem';
+import { AwsImageModule } from '@quadnix/octo-aws-cdk/image/ecr-based-aws-image';
 import { AwsRegionModule } from '@quadnix/octo-aws-cdk/region/per-az-aws-region';
 import { RegionId } from '@quadnix/octo-aws-cdk/region/per-az-aws-region/schema';
 import { AwsServerModule } from '@quadnix/octo-aws-cdk/server/ecs-based-aws-server';
@@ -27,8 +29,6 @@ import { S3StorageAccess } from '@quadnix/octo-aws-cdk/server/ecs-based-aws-serv
 import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/service/s3-storage-aws-service';
 import { AwsSubnetModule } from '@quadnix/octo-aws-cdk/subnet/simple-aws-subnet';
 import { EventLoggerListener } from '@quadnix/octo-event-listeners';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const octoStatePath = join(__dirname, '.octo');
@@ -85,7 +85,11 @@ octo.loadModule(AwsSubnetModule, 'private-subnet-module', {
     subnetType: SubnetType.PRIVATE,
   },
   subnetSiblings: [
-    { subnetCidrBlock: stub<string>('${{public-subnet-module.input.subnetCidrBlock}}'), subnetName: 'public-subnet' },
+    {
+      attachToNatGateway: true,
+      subnetCidrBlock: stub<string>('${{public-subnet-module.input.subnetCidrBlock}}'),
+      subnetName: 'public-subnet',
+    },
   ],
 });
 octo.loadModule(AwsS3StorageServiceModule, 's3-storage-module', {
