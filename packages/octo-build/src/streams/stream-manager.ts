@@ -1,7 +1,7 @@
-import chalk, { type ChalkInstance } from 'chalk';
-import { type ChildProcessWithoutNullStreams } from 'child_process';
+import type { ChildProcessWithoutNullStreams } from 'child_process';
 import { createWriteStream } from 'fs';
 import { join, resolve } from 'path';
+import chalk, { type ChalkInstance } from 'chalk';
 
 export class StreamManager {
   private colors = {

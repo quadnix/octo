@@ -1,4 +1,4 @@
-import { type ChildProcessWithoutNullStreams } from 'child_process';
+import type { ChildProcessWithoutNullStreams } from 'child_process';
 import { mkdirSync } from 'fs';
 import { join, resolve } from 'path';
 import pLimit from 'p-limit';
