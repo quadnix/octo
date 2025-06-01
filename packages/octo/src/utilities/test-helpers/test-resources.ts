@@ -98,16 +98,16 @@ export async function createResources(
   return resources;
 }
 
-export async function createTestResources(
+export async function createTestResources<S extends BaseResourceSchema[]>(
   args: {
-    parents?: string[] | UnknownResource[];
-    properties?: { [key: string]: unknown };
-    resourceActions?: IUnknownResourceAction[];
-    resourceContext: string;
-    response?: { [key: string]: unknown };
-  }[],
+    [K in keyof S]: Partial<Pick<S[K], 'properties' | 'response'>> & {
+      parents?: string[] | UnknownResource[];
+      resourceActions?: IUnknownResourceAction[];
+      resourceContext: string;
+    };
+  },
   options?: { save?: boolean },
-): Promise<{ [key: string]: UnknownResource }> {
+): Promise<{ [key: string]: AResource<S[number], any> }> {
   const container = Container.getInstance();
   const [resourceDataRepository, resourceSerializationService, transactionService] = await Promise.all([
     container.get(ResourceDataRepository),

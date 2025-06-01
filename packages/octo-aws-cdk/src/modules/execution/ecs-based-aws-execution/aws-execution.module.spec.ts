@@ -17,11 +17,21 @@ import {
 } from '@quadnix/octo';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { EcsTaskDefinitionAnchorSchema } from '../../../modules/deployment/ecs-based-aws-deployment/index.schema.js';
-import type { EcsClusterAnchorSchema } from '../../../modules/environment/ecs-based-aws-environment/index.schema.js';
-import type { EfsFilesystemAnchorSchema } from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
-import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
-import type { IamRoleAnchorSchema } from '../../../modules/server/ecs-based-aws-server/index.schema.js';
-import type { SubnetLocalFilesystemMountAnchorSchema } from '../../../modules/subnet/simple-aws-subnet/index.schema.js';
+import type {
+  EcsClusterAnchorSchema,
+  EcsClusterSchema,
+} from '../../../modules/environment/ecs-based-aws-environment/index.schema.js';
+import type {
+  EfsFilesystemAnchorSchema,
+  EfsSchema,
+} from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
+import type { AwsRegionAnchorSchema, VpcSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
+import type { IamRoleAnchorSchema, IamRoleSchema } from '../../../modules/server/ecs-based-aws-server/index.schema.js';
+import type {
+  EfsMountTargetSchema,
+  SubnetLocalFilesystemMountAnchorSchema,
+  SubnetSchema,
+} from '../../../modules/subnet/simple-aws-subnet/index.schema.js';
 import { AwsExecutionModule } from './index.js';
 import type {
   EcsServiceSchema,
@@ -132,7 +142,9 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     },
   ]);
 
-  await testModuleContainer.createTestResources(
+  await testModuleContainer.createTestResources<
+    [EcsClusterSchema, EfsSchema, EfsMountTargetSchema, IamRoleSchema, SubnetSchema, VpcSchema]
+  >(
     'testModule',
     [
       {

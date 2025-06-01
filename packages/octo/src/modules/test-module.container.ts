@@ -275,11 +275,11 @@ export class TestModuleContainer {
     return result;
   }
 
-  async createTestResources(
+  async createTestResources<S extends BaseResourceSchema[]>(
     moduleId: string,
-    args: Parameters<typeof createTestResources>[0],
+    args: Parameters<typeof createTestResources<S>>[0],
     options?: Parameters<typeof createTestResources>[1],
-  ): Promise<ReturnType<typeof createTestResources>> {
+  ): Promise<ReturnType<typeof createTestResources<S>>> {
     const container = Container.getInstance();
     const [inputService, moduleContainer, transactionService] = await Promise.all([
       container.get(InputService),

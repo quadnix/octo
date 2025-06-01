@@ -14,8 +14,15 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
-import type { EfsFilesystemAnchorSchema } from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
+import type {
+  AwsRegionAnchorSchema,
+  InternetGatewaySchema,
+  VpcSchema,
+} from '../../../modules/region/per-az-aws-region/index.schema.js';
+import type {
+  EfsFilesystemAnchorSchema,
+  EfsSchema,
+} from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
 import type {
   EfsMountTargetSchema,
   NetworkAclSchema,
@@ -57,7 +64,7 @@ async function setup(
     ),
   );
 
-  await testModuleContainer.createTestResources(
+  await testModuleContainer.createTestResources<[EfsSchema, InternetGatewaySchema, VpcSchema]>(
     'testModule',
     [
       {

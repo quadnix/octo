@@ -12,7 +12,8 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
+import type { AwsRegionAnchorSchema, VpcSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
+import type { SubnetSchema } from '../../../modules/subnet/simple-aws-subnet/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsAlbServiceModule } from './index.js';
 import type { SecurityGroupSchema } from './index.schema.js';
@@ -43,7 +44,7 @@ async function setup(
 
   subnet.subnetType = SubnetType.PUBLIC;
 
-  await testModuleContainer.createTestResources(
+  await testModuleContainer.createTestResources<[SubnetSchema, VpcSchema]>(
     'testModule',
     [
       {
