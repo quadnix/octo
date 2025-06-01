@@ -28,6 +28,15 @@ class ValidationTest {
     return JSON.parse(value);
   })
   property4: string;
+
+  @Validate({ options: { custom: (value: string): boolean => value === 'good' } })
+  property5: string;
+
+  @Validate({
+    destruct: (value: string): string[] => [value],
+    options: { custom: (value: string): boolean => value === 'good' },
+  })
+  property6: string;
 }
 
 describe('Validate UT', () => {
@@ -86,6 +95,27 @@ describe('Validate UT', () => {
       validationTest.property4 = JSON.stringify({ key: 'value' });
 
       expect(validationTest.property4).toEqual({ key: 'value' });
+    });
+  });
+
+  describe('custom validator', () => {
+    it('should throw error when custom validator fails', () => {
+      const validationTest = new ValidationTest();
+
+      expect(() => {
+        validationTest.property5 = 'bad';
+      }).toThrow('Validation error!');
+      expect(() => {
+        validationTest.property6 = 'bad';
+      }).toThrow('Validation error!');
+    });
+
+    it('should not throw error when custom validator passes', () => {
+      const validationTest = new ValidationTest();
+      validationTest.property5 = 'good';
+      validationTest.property6 = 'good';
+
+      expect(validationTest.property5).toBe('good');
     });
   });
 });
