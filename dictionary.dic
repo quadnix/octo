@@ -76,6 +76,7 @@ jsonc
 len
 loglayer
 lstat
+matcher
 mdx
 microservice
 microservices
