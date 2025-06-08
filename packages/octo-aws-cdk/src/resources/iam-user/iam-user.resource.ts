@@ -35,13 +35,14 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
   ): void {
     const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
     if (index === -1) {
+      const policy: IIamUserS3BucketPolicy = {
+        allowRead: options.allowRead,
+        allowWrite: options.allowWrite,
+        bucketName,
+        remoteDirectoryPath,
+      };
       this.properties.policies.push({
-        policy: {
-          allowRead: options.allowRead,
-          allowWrite: options.allowWrite,
-          bucketName,
-          remoteDirectoryPath,
-        } as IIamUserS3BucketPolicy,
+        policy,
         policyId,
         policyType: 's3-storage-access-policy',
       });
@@ -51,7 +52,7 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
         allowWrite: options.allowWrite,
         bucketName,
         remoteDirectoryPath,
-      } as IIamUserS3BucketPolicy;
+      };
     }
   }
 
@@ -93,25 +94,23 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
 
     for (const policy of previous.properties.policies) {
       if (!this.properties.policies.find((p) => p.policyId === policy.policyId)) {
-        diffs.push(
-          new Diff(this, DiffAction.UPDATE, policy.policyType, {
-            action: 'delete',
-            policyId: policy.policyId,
-            policyType: policy.policyType,
-          } as IIamUserDeletePolicyDiff),
-        );
+        const deletePolicyDiff: IIamUserDeletePolicyDiff = {
+          action: 'delete',
+          policyId: policy.policyId,
+          policyType: policy.policyType,
+        };
+        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, deletePolicyDiff));
       }
     }
     for (const policy of this.properties.policies) {
       if (!previous.properties.policies.find((p) => p.policyId === policy.policyId)) {
-        diffs.push(
-          new Diff(this, DiffAction.UPDATE, policy.policyType, {
-            action: 'add',
-            policy: policy.policy,
-            policyId: policy.policyId,
-            policyType: policy.policyType,
-          } as IIamUserAddPolicyDiff),
-        );
+        const addPolicyDiff: IIamUserAddPolicyDiff = {
+          action: 'add',
+          policy: policy.policy,
+          policyId: policy.policyId,
+          policyType: policy.policyType,
+        };
+        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, addPolicyDiff));
       }
     }
 
@@ -123,14 +122,13 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
       const diffs: Diff[] = [diff];
 
       for (const policy of (diff.node as IamUser).properties.policies) {
-        diffs.push(
-          new Diff(this, DiffAction.UPDATE, policy.policyType, {
-            action: 'add',
-            policy: policy.policy,
-            policyId: policy.policyId,
-            policyType: policy.policyType,
-          } as IIamUserAddPolicyDiff),
-        );
+        const addPolicyDiff: IIamUserAddPolicyDiff = {
+          action: 'add',
+          policy: policy.policy,
+          policyId: policy.policyId,
+          policyType: policy.policyType,
+        };
+        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, addPolicyDiff));
       }
 
       return diffs;
@@ -138,13 +136,12 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
       const diffs: Diff[] = [];
 
       for (const policy of (diff.node as IamUser).properties.policies) {
-        diffs.push(
-          new Diff(this, DiffAction.UPDATE, policy.policyType, {
-            action: 'delete',
-            policyId: policy.policyId,
-            policyType: policy.policyType,
-          } as IIamUserDeletePolicyDiff),
-        );
+        const updatePolicyDiff: IIamUserDeletePolicyDiff = {
+          action: 'delete',
+          policyId: policy.policyId,
+          policyType: policy.policyType,
+        };
+        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, updatePolicyDiff));
       }
 
       diffs.push(diff);

@@ -66,13 +66,14 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
   ): void {
     const index = this.properties.policies.findIndex((p) => p.policyId === policyId);
     if (index === -1) {
+      const policy: IIamRoleS3BucketPolicy = {
+        allowRead: options.allowRead,
+        allowWrite: options.allowWrite,
+        bucketName,
+        remoteDirectoryPath,
+      };
       this.properties.policies.push({
-        policy: {
-          allowRead: options.allowRead,
-          allowWrite: options.allowWrite,
-          bucketName,
-          remoteDirectoryPath,
-        } as IIamRoleS3BucketPolicy,
+        policy,
         policyId,
         policyType: 's3-storage-access-policy',
       });
@@ -82,7 +83,7 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
         allowWrite: options.allowWrite,
         bucketName,
         remoteDirectoryPath,
-      } as IIamRoleS3BucketPolicy;
+      };
     }
   }
 
@@ -132,25 +133,23 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
 
     for (const policy of previous.properties.policies) {
       if (!this.properties.policies.find((p) => p.policyId === policy.policyId)) {
-        diffs.push(
-          new Diff(this, DiffAction.UPDATE, policy.policyType, {
-            action: 'delete',
-            policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
-            policyType: policy.policyType,
-          } as IIamRoleDeletePolicyDiff),
-        );
+        const deletePolicyDiff: IIamRoleDeletePolicyDiff = {
+          action: 'delete',
+          policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
+          policyType: policy.policyType,
+        };
+        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, deletePolicyDiff));
       }
     }
     for (const policy of this.properties.policies) {
       if (!previous.properties.policies.find((p) => p.policyId === policy.policyId)) {
-        diffs.push(
-          new Diff(this, DiffAction.UPDATE, policy.policyType, {
-            action: 'add',
-            policy: policy.policy,
-            policyId: policy.policyId,
-            policyType: policy.policyType,
-          } as IIamRoleAddPolicyDiff),
-        );
+        const addPolicyDiff: IIamRoleAddPolicyDiff = {
+          action: 'add',
+          policy: policy.policy,
+          policyId: policy.policyId,
+          policyType: policy.policyType,
+        };
+        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, addPolicyDiff));
       }
     }
 
@@ -166,14 +165,13 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
           continue;
         }
 
-        diffs.push(
-          new Diff(this, DiffAction.UPDATE, policy.policyType, {
-            action: 'add',
-            policy: policy.policy,
-            policyId: policy.policyId,
-            policyType: policy.policyType,
-          } as IIamRoleAddPolicyDiff),
-        );
+        const addPolicyDiff: IIamRoleAddPolicyDiff = {
+          action: 'add',
+          policy: policy.policy,
+          policyId: policy.policyId,
+          policyType: policy.policyType,
+        };
+        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, addPolicyDiff));
       }
 
       return diffs;
@@ -185,13 +183,12 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
           continue;
         }
 
-        diffs.push(
-          new Diff(this, DiffAction.UPDATE, policy.policyType, {
-            action: 'delete',
-            policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
-            policyType: policy.policyType,
-          } as IIamRoleDeletePolicyDiff),
-        );
+        const deletePolicyDiff: IIamRoleDeletePolicyDiff = {
+          action: 'delete',
+          policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
+          policyType: policy.policyType,
+        };
+        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, deletePolicyDiff));
       }
 
       diffs.push(diff);
