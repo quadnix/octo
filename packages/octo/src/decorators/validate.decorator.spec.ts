@@ -37,6 +37,9 @@ class ValidationTest {
     options: { custom: (value: string): boolean => value === 'good' },
   })
   property6: string;
+
+  @Validate({ options: { minLength: 1 } })
+  property7?: string;
 }
 
 describe('Validate UT', () => {
@@ -116,6 +119,33 @@ describe('Validate UT', () => {
       validationTest.property6 = 'good';
 
       expect(validationTest.property5).toBe('good');
+    });
+  });
+
+  describe('optional validator', () => {
+    it('should skip validation if the property is undefined', () => {
+      const validationTest = new ValidationTest();
+      validationTest.property7 = undefined;
+
+      expect(validationTest.property7).toBeUndefined();
+    });
+
+    it('should validate and throw error if the property is not undefined and validation fails', () => {
+      const validationTest = new ValidationTest();
+
+      expect(() => {
+        validationTest.property7 = '';
+      }).toThrow('Validation error!');
+      expect(() => {
+        validationTest.property7 = null as any;
+      }).toThrow('Validation error!');
+    });
+
+    it('should validate if the property is not undefined and validation passes', () => {
+      const validationTest = new ValidationTest();
+      validationTest.property7 = 'good';
+
+      expect(validationTest.property7).toBe('good');
     });
   });
 });
