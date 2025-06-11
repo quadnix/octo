@@ -39,27 +39,25 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
     // Create a new task definition.
     const data = await ecsClient.send(
       new RegisterTaskDefinitionCommand({
-        containerDefinitions: [
-          {
-            command: properties.image.command,
-            environment: properties.environmentVariables,
-            essential: true,
-            image: properties.image.uri,
-            mountPoints: ecsTaskDefinitionEfsList.map((efs) => ({
-              containerPath: `/mnt/${efs.getSchemaInstance().properties.filesystemName}`,
-              readOnly: false,
-              sourceVolume: efs.getSchemaInstance().properties.filesystemName,
-            })),
-            name: properties.deploymentTag.replace(/\./g, '_'),
-            portMappings: properties.image.ports.map(
-              (i): PortMapping => ({
-                containerPort: i.containerPort,
-                hostPort: i.containerPort,
-                protocol: i.protocol,
-              }),
-            ),
-          },
-        ],
+        containerDefinitions: properties.images.map((image) => ({
+          command: image.command,
+          environment: properties.environmentVariables,
+          essential: image.essential,
+          image: image.uri,
+          mountPoints: ecsTaskDefinitionEfsList.map((efs) => ({
+            containerPath: `/mnt/${efs.getSchemaInstance().properties.filesystemName}`,
+            readOnly: false,
+            sourceVolume: efs.getSchemaInstance().properties.filesystemName,
+          })),
+          name: image.name,
+          portMappings: image.ports.map(
+            (i): PortMapping => ({
+              containerPort: i.containerPort,
+              hostPort: i.containerPort,
+              protocol: i.protocol,
+            }),
+          ),
+        })),
         cpu: String(properties.cpu),
         family: properties.family,
         memory: String(properties.memory),

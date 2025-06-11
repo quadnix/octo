@@ -1,6 +1,6 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
-class EcsTaskDefinitionEnvironmentVariableSchema {
+export class EcsTaskDefinitionEnvironmentVariableSchema {
   @Validate({ options: { minLength: 1 } })
   name: string;
 
@@ -8,7 +8,7 @@ class EcsTaskDefinitionEnvironmentVariableSchema {
   value: string;
 }
 
-class EcsTaskDefinitionImagePortSchema {
+export class EcsTaskDefinitionImagePortSchema {
   @Validate({ options: { minLength: 1 } })
   containerPort: number;
 
@@ -16,9 +16,15 @@ class EcsTaskDefinitionImagePortSchema {
   protocol: 'tcp' | 'udp';
 }
 
-class EcsTaskDefinitionImageSchema {
+export class EcsTaskDefinitionImageSchema {
   @Validate({ options: { minLength: 1 } })
   command: string[];
+
+  @Validate({ options: { minLength: 1 } })
+  essential: boolean;
+
+  @Validate({ options: { minLength: 1 } })
+  name: string;
 
   @Validate({
     destruct: (value: EcsTaskDefinitionImageSchema['ports']): EcsTaskDefinitionImagePortSchema[] => value,
@@ -49,7 +55,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
       options: { isSchema: { schema: EcsTaskDefinitionEnvironmentVariableSchema } },
     },
     {
-      destruct: (value: EcsTaskDefinitionSchema['properties']): EcsTaskDefinitionImageSchema[] => [value.image],
+      destruct: (value: EcsTaskDefinitionSchema['properties']): EcsTaskDefinitionImageSchema[] => value.images,
       options: { isSchema: { schema: EcsTaskDefinitionImageSchema } },
     },
   ])
@@ -60,7 +66,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
     deploymentTag: string;
     environmentVariables: EcsTaskDefinitionEnvironmentVariableSchema[];
     family: string;
-    image: EcsTaskDefinitionImageSchema;
+    images: EcsTaskDefinitionImageSchema[];
     memory: number;
   }>();
 

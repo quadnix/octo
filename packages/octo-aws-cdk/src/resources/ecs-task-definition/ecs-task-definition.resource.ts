@@ -54,7 +54,7 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
     diff: Diff,
     deReferenceResource: (resourceId: string) => Promise<AResource<EfsSchema, any>>,
   ): Promise<void> {
-    if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
+    if (diff.action === DiffAction.UPDATE && diff.field === 'resourceId') {
       await this.cloneResourceInPlace(diff.node as EcsTaskDefinition, deReferenceResource);
     } else {
       await super.diffInverse(diff, deReferenceResource);
