@@ -8,7 +8,6 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
-  type Server,
   SubnetType,
 } from '@quadnix/octo';
 import { EcsClusterSchema } from '../../../../../../resources/ecs-cluster/index.schema.js';
@@ -46,18 +45,16 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
     >;
 
     const [
-      matchingIamRoleAnchor,
-      matchingTaskDefinitionAnchor,
+      matchingMainIamRoleAnchor,
       ecsServiceAnchor,
-      executionAnchor,
+      ecsExecutionAnchor,
       matchingEcsClusterAnchor,
-      executionSGAnchor,
-      matchingServerSGAnchor,
+      securityGroupAnchor,
       ...matchingSubnetLocalFilesystemMountAnchors
     ] = awsExecutionOverlay.anchors;
+
     const ecsClusterAnchorProperties = matchingEcsClusterAnchor.getSchemaInstance().properties;
-    const iamRoleProperties = matchingIamRoleAnchor.getSchemaInstance().properties;
-    const taskDefinitionAnchorProperties = matchingTaskDefinitionAnchor.getSchemaInstance().properties;
+    const mainIamRoleProperties = matchingMainIamRoleAnchor.getSchemaInstance().properties;
 
     // Calculate final environment variables.
     const environmentVariables: { name: string; value: string }[] = Object.keys(
@@ -66,8 +63,8 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
       name: key,
       value: ecsClusterAnchorProperties.environmentVariables[key],
     }));
-    for (const key of Object.keys(executionAnchor.properties.environmentVariables)) {
-      const value = executionAnchor.properties.environmentVariables[key];
+    for (const key of Object.keys(ecsExecutionAnchor.properties.environmentVariables)) {
+      const value = ecsExecutionAnchor.properties.environmentVariables[key];
       const keyIndex = environmentVariables.findIndex((e) => e.name === key);
       if (keyIndex !== -1) {
         environmentVariables[keyIndex].value = value;
@@ -76,13 +73,13 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
       }
     }
 
-    // Get matching IAM role resource.
-    const [matchingIamRoleResource] = await awsExecutionOverlay.getResourcesMatchingSchema(IamRoleSchema, [
+    // Get matching main IAM role resource.
+    const [matchingMainIamRoleResource] = await awsExecutionOverlay.getResourcesMatchingSchema(IamRoleSchema, [
       { key: 'awsAccountId', value: awsAccountId },
-      { key: 'rolename', value: iamRoleProperties.iamRoleName },
+      { key: 'rolename', value: mainIamRoleProperties.iamRoleName },
     ]);
-    if (!matchingIamRoleResource) {
-      throw new Error(`IamRole "${iamRoleProperties.iamRoleName}" not found in "${awsAccountId}"!`);
+    if (!matchingMainIamRoleResource) {
+      throw new Error(`IamRole "${mainIamRoleProperties.iamRoleName}" not found in "${awsAccountId}"!`);
     }
 
     // Get matching EFS resources based on mounts of subnet.
@@ -113,25 +110,14 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
       {
         awsAccountId,
         awsRegionId,
-        cpu: properties.deploymentContainerProperties.cpu || taskDefinitionAnchorProperties.cpu,
+        cpu: properties.deploymentContainerProperties.cpu,
         deploymentTag: properties.deploymentTag,
         environmentVariables,
         family: `${properties.environmentName}-${properties.subnetId}-${properties.serverKey}`,
-        image: {
-          command: (
-            properties.deploymentContainerProperties.image?.command || taskDefinitionAnchorProperties.image.command
-          ).split(' '),
-          ports: (
-            properties.deploymentContainerProperties.image?.ports || taskDefinitionAnchorProperties.image.ports
-          ).map((p) => ({
-            containerPort: p.containerPort,
-            protocol: p.protocol,
-          })),
-          uri: taskDefinitionAnchorProperties.image.uri,
-        },
-        memory: properties.deploymentContainerProperties.memory || taskDefinitionAnchorProperties.memory,
+        images: properties.deploymentContainerProperties.images,
+        memory: properties.deploymentContainerProperties.memory,
       },
-      [matchingIamRoleResource, ...efsList],
+      [matchingMainIamRoleResource, ...efsList],
     );
 
     // Get matching ECS Cluster resource.
@@ -154,16 +140,13 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
       throw new Error(`Subnet "${subnet.subnetName}" not found!`);
     }
 
-    // Get matching execution's SecurityGroup resources - server and execution SGs.
-    const server = matchingServerSGAnchor.getActual().getParent() as Server;
-    const execution = executionSGAnchor.getParent() as Execution;
+    // Get matching execution's SecurityGroup resources - server, sidecar server, and execution SGs.
+    const execution = securityGroupAnchor.getParent() as Execution;
     const matchingExecutionSGResources = await execution.getResourcesMatchingSchema(SecurityGroupSchema, [], [], {
       searchBoundaryMembers: false,
     });
-    if (matchingExecutionSGResources.length !== 2) {
-      throw new Error(
-        `SecurityGroup for server "${server.serverKey}", or execution "${execution.executionId}" not found!`,
-      );
+    if (matchingExecutionSGResources.length !== 2 + actionInputs.inputs.deployments.sidecars.length) {
+      throw new Error('One or more security groups from main server, sidecar server, and/or execution not found!');
     }
 
     // Create ECS Service.

@@ -19,15 +19,20 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
   async onInit(
     inputs: AwsExecutionModuleSchema,
   ): Promise<(AwsExecution | AwsExecutionOverlay | ServerExecutionSecurityGroupOverlay)[]> {
-    const { deployment, environment, subnet } = inputs;
-    const { region, server } = await this.registerMetadata(inputs);
+    const { deployments, environment, subnet } = inputs;
+    const { region } = await this.registerMetadata(inputs);
 
     if (environment.getParents()['region'][0].to.getContext() !== subnet.getParents()['region'][0].to.getContext()) {
       throw new Error('Environment and Subnet must be in the same region!');
     }
 
     // Create a new execution.
-    const execution = new AwsExecution(deployment, environment, subnet);
+    const execution = new AwsExecution(
+      inputs.executionId,
+      { main: deployments.main.deployment, sidecars: deployments.sidecars.map((d) => d.deployment) },
+      environment,
+      subnet,
+    );
     for (const [key, value] of Object.entries(inputs.environmentVariables || {})) {
       execution.environmentVariables.set(key, value);
     }
@@ -68,27 +73,63 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
       }
     }
 
-    const [matchingIamRoleAnchor] = await server.getAnchorsMatchingSchema(IamRoleAnchorSchema, [], {
+    // Get main deployment server's anchors.
+    const mainServer = deployments.main.deployment.getParents()['server'][0].to as Server;
+    const [matchingMainIamRoleAnchor] = await mainServer.getAnchorsMatchingSchema(IamRoleAnchorSchema, [], {
       searchBoundaryMembers: false,
     });
-    const [matchingSecurityGroupAnchor] = await server.getAnchorsMatchingSchema(SecurityGroupAnchorSchema, [], {
+    const [matchingMainSecurityGroupAnchor] = await mainServer.getAnchorsMatchingSchema(SecurityGroupAnchorSchema, [], {
       searchBoundaryMembers: false,
     });
-    if (!matchingIamRoleAnchor || !matchingSecurityGroupAnchor) {
-      throw new Error('Deployment does not belong to a compatible server!');
+    if (!matchingMainIamRoleAnchor || !matchingMainSecurityGroupAnchor) {
+      throw new Error(`Server "${mainServer.serverKey}" does not have compatible anchors!`);
     }
 
-    const [matchingTaskDefinitionAnchor] = await deployment.getAnchorsMatchingSchema(
+    // Get sidecar deployment server's anchors.
+    const sidecarServers = deployments.sidecars.map((d) => d.deployment.getParents()['server'][0].to as Server);
+    const matchingSidecarSecurityGroupAnchors: MatchingAnchor<SecurityGroupAnchorSchema>[] = [];
+    for (const server of sidecarServers) {
+      const [matchingSidecarSecurityGroupAnchor] = await server.getAnchorsMatchingSchema(
+        SecurityGroupAnchorSchema,
+        [],
+        {
+          searchBoundaryMembers: false,
+        },
+      );
+      if (!matchingSidecarSecurityGroupAnchor) {
+        throw new Error(`Server "${server.serverKey}" does not have compatible anchors!`);
+      }
+      matchingSidecarSecurityGroupAnchors.push(matchingSidecarSecurityGroupAnchor);
+    }
+
+    // Get main deployment anchors.
+    const [matchingMainTaskDefinitionAnchor] = await deployments.main.deployment.getAnchorsMatchingSchema(
       EcsTaskDefinitionAnchorSchema,
       [],
       {
         searchBoundaryMembers: false,
       },
     );
+
+    // Get sidecar deployment anchors.
+    const matchingSidecarTaskDefinitionAnchors: MatchingAnchor<EcsTaskDefinitionAnchorSchema>[] = [];
+    for (const deployment of deployments.sidecars) {
+      const [matchingSidecarTaskDefinitionAnchor] = await deployment.deployment.getAnchorsMatchingSchema(
+        EcsTaskDefinitionAnchorSchema,
+        [],
+        {
+          searchBoundaryMembers: false,
+        },
+      );
+      matchingSidecarTaskDefinitionAnchors.push(matchingSidecarTaskDefinitionAnchor);
+    }
+
+    // Get environment anchors.
     const [matchingEcsClusterAnchor] = await environment.getAnchorsMatchingSchema(EcsClusterAnchorSchema, [], {
       searchBoundaryMembers: false,
     });
 
+    // Get filesystem anchors.
     const matchingSubnetLocalFilesystemMountAnchors: MatchingAnchor<SubnetLocalFilesystemMountAnchorSchema>[] = [];
     for (const filesystem of inputs.filesystems || []) {
       const [matchingSubnetLocalFilesystemMountAnchor] = await subnet.getAnchorsMatchingSchema(
@@ -107,23 +148,68 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
     const executionOverlay = new AwsExecutionOverlay(
       executionOverlayId,
       {
-        deploymentContainerProperties: inputs.deploymentContainerProperties || {},
-        deploymentTag: deployment.deploymentTag,
+        deploymentContainerProperties: {
+          cpu:
+            inputs.deployments.main.containerProperties.cpu ||
+            matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.cpu,
+          images: [
+            {
+              command: (
+                inputs.deployments.main.containerProperties.image.command ||
+                matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.image.command
+              ).split(' '),
+              essential: inputs.deployments.main.containerProperties.image.essential,
+              name: inputs.deployments.main.containerProperties.image.name,
+              ports: (
+                inputs.deployments.main.containerProperties.image.ports ||
+                matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.image.ports
+              ).map((p) => ({
+                containerPort: p.containerPort,
+                protocol: p.protocol,
+              })),
+              uri: matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.image.uri,
+            },
+            ...inputs.deployments.sidecars.map((deployment) => {
+              const matchingSidecarTaskDefinitionAnchor = matchingSidecarTaskDefinitionAnchors.find(
+                (a) => a.getActual().getParent().deploymentTag === deployment.deployment.deploymentTag,
+              )!;
+
+              return {
+                command: (
+                  deployment.containerProperties.image.command ||
+                  matchingSidecarTaskDefinitionAnchor.getSchemaInstance().properties.image.command
+                ).split(' '),
+                essential: deployment.containerProperties.image.essential,
+                name: deployment.containerProperties.image.name,
+                ports: (
+                  deployment.containerProperties.image.ports ||
+                  matchingSidecarTaskDefinitionAnchor.getSchemaInstance().properties.image.ports
+                ).map((p) => ({
+                  containerPort: p.containerPort,
+                  protocol: p.protocol,
+                })),
+                uri: matchingSidecarTaskDefinitionAnchor.getSchemaInstance().properties.image.uri,
+              };
+            }),
+          ],
+          memory:
+            inputs.deployments.main.containerProperties.memory ||
+            matchingMainTaskDefinitionAnchor.getSchemaInstance().properties.memory,
+        },
+        deploymentTag: deployments.main.deployment.deploymentTag,
         environmentName: environment.environmentName,
         executionId: execution.executionId,
         regionId: region.regionId,
-        serverKey: server.serverKey,
+        serverKey: mainServer.serverKey,
         subnetId: subnet.subnetId,
         subnetType: subnet.subnetType,
       },
       [
-        matchingIamRoleAnchor,
-        matchingTaskDefinitionAnchor,
+        matchingMainIamRoleAnchor,
         ecsServiceAnchor,
         ecsExecutionAnchor,
         matchingEcsClusterAnchor,
         securityGroupAnchor,
-        matchingSecurityGroupAnchor,
         ...matchingSubnetLocalFilesystemMountAnchors,
       ],
     );
@@ -148,7 +234,7 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
     const securityGroupOverlay = new ServerExecutionSecurityGroupOverlay(
       `server-execution-security-group-overlay-${execution.executionId}`,
       {},
-      [matchingSecurityGroupAnchor, securityGroupAnchor],
+      [matchingMainSecurityGroupAnchor, ...matchingSidecarSecurityGroupAnchors, securityGroupAnchor],
     );
     models.push(securityGroupOverlay);
 
@@ -161,11 +247,10 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
 
   override async registerMetadata(
     inputs: AwsExecutionModuleSchema,
-  ): Promise<{ awsAccountId: string; awsRegionId: string; region: Region; server: Server }> {
-    const { deployment, environment } = inputs;
+  ): Promise<{ awsAccountId: string; awsRegionId: string; region: Region }> {
+    const { environment } = inputs;
     const region = environment.getParents()['region'][0].to as Region;
     const account = region.getParents()['account'][0].to as Account;
-    const server = deployment.getParents()['server'][0].to as Server;
 
     // Get AWS Region ID.
     const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
@@ -177,7 +262,6 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExe
       awsAccountId: account.accountId,
       awsRegionId,
       region,
-      server,
     };
   }
 }

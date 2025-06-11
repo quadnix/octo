@@ -274,10 +274,21 @@ describe('AwsExecutionModule UT', () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
-        deployment: stub('${{testModule.model.deployment}}'),
-        deploymentContainerProperties: {},
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
         desiredCount: 1,
         environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
@@ -319,9 +330,21 @@ describe('AwsExecutionModule UT', () => {
     const { app: app1 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
-        deployment: stub('${{testModule.model.deployment}}'),
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
         desiredCount: 1,
         environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
@@ -363,10 +386,22 @@ describe('AwsExecutionModule UT', () => {
     const { app: app2 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
-        deployment: stub('${{testModule.model.deployment}}'),
-        deploymentContainerProperties: { image: { command: 'npm start' } },
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                command: 'npm start',
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
         desiredCount: 1,
         environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
@@ -396,9 +431,21 @@ describe('AwsExecutionModule UT', () => {
     const { app: app3 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
-        deployment: stub('${{testModule.model.deployment}}'),
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
         desiredCount: 1,
         environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
@@ -428,9 +475,21 @@ describe('AwsExecutionModule UT', () => {
     const { app: app4 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
-        deployment: stub('${{testModule.model.deployment}}'),
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
         desiredCount: 2,
         environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
@@ -454,9 +513,21 @@ describe('AwsExecutionModule UT', () => {
     const { app: app5 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
-        deployment: stub('${{testModule.model.deployment}}'),
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
         desiredCount: 2,
         environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
         filesystems: [stub('${{testModule.model.filesystem}}')],
         subnet: stub('${{testModule.model.subnet}}'),
       },
@@ -487,9 +558,21 @@ describe('AwsExecutionModule UT', () => {
     const { app: app6 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsExecutionModule>({
       inputs: {
-        deployment: stub('${{testModule.model.deployment}}'),
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
         desiredCount: 2,
         environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
         filesystems: [stub('${{testModule.model.filesystem}}')],
         securityGroupRules: [
           {

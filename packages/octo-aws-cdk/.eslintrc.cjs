@@ -58,7 +58,7 @@ module.exports = {
             from: ['module-model-indexes'],
           },
           {
-            allow: [],
+            allow: ['resource-schema-index'],
             from: ['module-model-schemas'],
           },
           {

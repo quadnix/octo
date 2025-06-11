@@ -20,22 +20,26 @@ import {
   SecurityGroupAnchorSchema,
 } from '../../../anchors/security-group/security-group.anchor.schema.js';
 import { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
-import { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
+import {
+  EcsTaskDefinitionEnvironmentVariableSchema,
+  EcsTaskDefinitionImagePortSchema,
+  EcsTaskDefinitionImageSchema,
+  EcsTaskDefinitionSchema,
+} from '../../../resources/ecs-task-definition/index.schema.js';
 import { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
 import { AwsExecutionSchema } from './models/execution/aws.execution.schema.js';
-import {
-  AwsExecutionOverlayDeploymentContainerPropertiesSchema,
-  AwsExecutionOverlaySchema,
-} from './overlays/execution/aws-execution.schema.js';
+import { AwsExecutionOverlaySchema } from './overlays/execution/aws-execution.schema.js';
 import { ServerExecutionSecurityGroupOverlaySchema } from './overlays/server-execution-security-group/server-execution-security-group.overlay.schema.js';
 
 export {
-  AwsExecutionOverlayDeploymentContainerPropertiesSchema,
   AwsExecutionOverlaySchema,
   AwsExecutionSchema,
   EcsExecutionAnchorSchema,
   EcsServiceAnchorSchema,
   EcsServiceSchema,
+  EcsTaskDefinitionEnvironmentVariableSchema,
+  EcsTaskDefinitionImagePortSchema,
+  EcsTaskDefinitionImageSchema,
   EcsTaskDefinitionSchema,
   SecurityGroupAnchorRuleSchema,
   SecurityGroupAnchorSchema,
@@ -43,22 +47,83 @@ export {
   ServerExecutionSecurityGroupOverlaySchema,
 };
 
-export class AwsExecutionModuleSchema {
+export class AwsExecutionModuleDeploymentContainerPropertiesImageSchema {
   @Validate({
-    options: {
-      isModel: { anchors: [{ schema: EcsTaskDefinitionAnchorSchema }], NODE_NAME: 'deployment' },
-      isSchema: { schema: DeploymentSchema },
-    },
+    destruct: (value: AwsExecutionModuleDeploymentContainerPropertiesImageSchema['command']): string[] =>
+      value ? [value] : [],
+    options: { minLength: 1 },
   })
-  deployment = Schema<Deployment>();
+  command? = Schema<string | null>(null);
+
+  @Validate({ options: { minLength: 1 } })
+  essential = Schema<boolean>();
+
+  @Validate({ options: { minLength: 1 } })
+  name = Schema<string>();
 
   @Validate({
-    destruct: (
-      value: AwsExecutionOverlayDeploymentContainerPropertiesSchema,
-    ): AwsExecutionOverlayDeploymentContainerPropertiesSchema[] => (Object.keys(value).length > 0 ? [value] : []),
-    options: { isSchema: { schema: AwsExecutionOverlayDeploymentContainerPropertiesSchema } },
+    destruct: (value: AwsExecutionModuleDeploymentContainerPropertiesImageSchema['ports']): string[] => {
+      const values: string[] = [];
+      for (const portMapping of value!) {
+        values.push(String(portMapping.containerPort), portMapping.protocol);
+      }
+      return values;
+    },
+    options: { minLength: 1 },
   })
-  deploymentContainerProperties? = Schema<AwsExecutionOverlayDeploymentContainerPropertiesSchema>({});
+  ports? = Schema<
+    {
+      containerPort: number;
+      protocol: 'tcp' | 'udp';
+    }[]
+  >([]);
+}
+
+export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
+  @Validate({ destruct: (value: number | null): number[] => (value ? [value] : []), options: { minLength: 1 } })
+  cpu?: (256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384) | null = Schema(null);
+
+  @Validate({
+    options: { isSchema: { schema: AwsExecutionModuleDeploymentContainerPropertiesImageSchema } },
+  })
+  image = Schema<AwsExecutionModuleDeploymentContainerPropertiesImageSchema>();
+
+  @Validate({ destruct: (value: number | null): number[] => (value ? [value] : []), options: { minLength: 1 } })
+  memory?: number | null = Schema(null);
+}
+
+export class AwsExecutionModuleSchema {
+  @Validate<unknown>([
+    {
+      destruct: (value: AwsExecutionModuleSchema['deployments']): Deployment[] => [
+        value.main.deployment,
+        ...value.sidecars.map((d) => d.deployment),
+      ],
+      options: {
+        isModel: { anchors: [{ schema: EcsTaskDefinitionAnchorSchema }], NODE_NAME: 'deployment' },
+        isSchema: { schema: DeploymentSchema },
+      },
+    },
+    {
+      destruct: (
+        value: AwsExecutionModuleSchema['deployments'],
+      ): AwsExecutionModuleDeploymentContainerPropertiesSchema[] => [
+        value.main.containerProperties,
+        ...value.sidecars.map((d) => d.containerProperties),
+      ],
+      options: { isSchema: { schema: AwsExecutionModuleDeploymentContainerPropertiesSchema } },
+    },
+  ])
+  deployments = Schema<{
+    main: {
+      containerProperties: AwsExecutionModuleDeploymentContainerPropertiesSchema;
+      deployment: Deployment;
+    };
+    sidecars: {
+      containerProperties: Pick<AwsExecutionModuleDeploymentContainerPropertiesSchema, 'image'>;
+      deployment: Deployment;
+    }[];
+  }>();
 
   @Validate({ options: { minLength: 1 } })
   desiredCount = Schema<number>();
@@ -70,6 +135,9 @@ export class AwsExecutionModuleSchema {
     },
   })
   environment = Schema<Environment>();
+
+  @Validate({ options: { minLength: 1 } })
+  executionId = Schema<string>();
 
   @Validate({
     destruct: (value: AwsExecutionModuleSchema['filesystems']): Filesystem[] => value!,
