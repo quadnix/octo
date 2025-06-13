@@ -90,6 +90,10 @@ export class MatchingResource<S extends BaseResourceSchema> {
   getSchemaInstance(): S {
     return this.hasSchemaTranslator() ? this.schemaTranslator!(this.actual.synth()) : (this.actual.synth() as S);
   }
+
+  getSchemaInstanceInResourceAction(): Omit<S, 'response'> & { response: Required<S['response']> } {
+    return this.getSchemaInstance() as unknown as Omit<S, 'response'> & { response: Required<S['response']> };
+  }
 }
 
 /* Enumerations */
