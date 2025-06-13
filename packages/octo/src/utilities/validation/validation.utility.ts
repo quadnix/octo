@@ -121,7 +121,7 @@ export class ValidationUtility {
     if (typeof subject === 'boolean') {
       return String(subject).length <= maxLength;
     } else if (typeof subject === 'number') {
-      return String(subject).length <= maxLength;
+      return subject <= maxLength;
     } else if (typeof subject === 'string') {
       return subject.length <= maxLength;
     } else if (Array.isArray(subject)) {
@@ -135,7 +135,7 @@ export class ValidationUtility {
     if (typeof subject === 'boolean') {
       return String(subject).length >= minLength;
     } else if (typeof subject === 'number') {
-      return String(subject).length >= minLength;
+      return subject >= minLength;
     } else if (typeof subject === 'string') {
       return subject.length >= minLength;
     } else if (Array.isArray(subject)) {
