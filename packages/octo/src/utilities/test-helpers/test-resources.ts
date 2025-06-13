@@ -65,7 +65,7 @@ export async function createResources(
   ]);
 
   const deReferenceResource = async (context: string): Promise<UnknownResource> => {
-    return this.resourceDataRepository.getActualResourceByContext(context)!;
+    return resourceDataRepository.getActualResourceByContext(context)!;
   };
 
   const resources: { [key: string]: UnknownResource } = {};
