@@ -1,16 +1,8 @@
 import { CreateRouteCommand, DeleteRouteCommand, EC2Client } from '@aws-sdk/client-ec2';
-import {
-  type AResource,
-  Action,
-  type BaseResourceSchema,
-  Container,
-  type Diff,
-  DiffAction,
-  Factory,
-  type IResourceAction,
-} from '@quadnix/octo';
+import { type AResource, Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { type EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import type { NatGatewaySchema } from '../../nat-gateway/index.schema.js';
 import { RouteTable } from '../route-table.resource.js';
 
 @Action(RouteTable)
@@ -54,7 +46,7 @@ export class UpdateNatGatewayParentInRouteTableResourceAction implements IResour
           await ec2Client.send(
             new CreateRouteCommand({
               DestinationCidrBlock: '0.0.0.0/0',
-              NatGatewayId: (diff.value as AResource<BaseResourceSchema, any>).response.NatGatewayId as string,
+              NatGatewayId: (diff.value as AResource<NatGatewaySchema, any>).response.NatGatewayId,
               RouteTableId: response.RouteTableId,
             }),
           );

@@ -113,6 +113,7 @@ module.exports = {
             allow: [
               ['resource-resource', { family: '${from.family}' }],
               ['resource-schema-index', { family: '${from.family}' }],
+              'resource-schema-index',
               'utilities',
             ],
             from: ['resource-actions'],
