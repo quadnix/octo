@@ -1,6 +1,17 @@
 import { CreateServiceCommand, ECSClient } from '@aws-sdk/client-ecs';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  AResource,
+  Action,
+  Container,
+  type Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  type MatchingResource,
+} from '@quadnix/octo';
 import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
+import type { AlbTargetGroupSchema } from '../../alb-target-group/index.schema.js';
+import type { SecurityGroupSchema } from '../../security-group/index.schema.js';
 import { EcsService } from '../ecs-service.resource.js';
 import type { EcsServiceSchema } from '../index.schema.js';
 
@@ -25,7 +36,16 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
     const ecsServiceEcsCluster = ecsService.parents[0];
     const ecsServiceTaskDefinition = ecsService.parents[1];
     const ecsServiceSubnet = ecsService.parents[2];
-    const ecsServiceSecurityGroupList = ecsService.parents.slice(3) as (typeof ecsService.parents)[3][];
+    const ecsServiceTargetGroupList = ecsService.parents
+      .slice(3)
+      .filter(
+        (p) => (p.getActual().constructor as typeof AResource).NODE_NAME === 'alb-target-group',
+      ) as MatchingResource<AlbTargetGroupSchema>[];
+    const ecsServiceSecurityGroupList = ecsService.parents
+      .slice(3)
+      .filter(
+        (p) => (p.getActual().constructor as typeof AResource).NODE_NAME === 'security-group',
+      ) as MatchingResource<SecurityGroupSchema>[];
 
     // Get instances.
     const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
@@ -39,6 +59,13 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
         cluster: ecsServiceEcsCluster.getSchemaInstance().properties.clusterName,
         desiredCount: properties.desiredCount,
         launchType: 'FARGATE',
+        loadBalancers: properties.loadBalancers.map((lb) => ({
+          containerName: lb.containerName,
+          containerPort: lb.containerPort,
+          targetGroupArn: ecsServiceTargetGroupList
+            .find((tg) => tg.getSchemaInstance().properties.Name === lb.targetGroupName)!
+            .getSchemaInstance().response.TargetGroupArn,
+        })),
         networkConfiguration: {
           awsvpcConfiguration: {
             assignPublicIp: properties.assignPublicIp,

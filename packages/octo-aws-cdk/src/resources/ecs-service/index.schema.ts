@@ -1,20 +1,39 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+export class EcsServiceLoadBalancerSchema {
+  @Validate({ options: { minLength: 1 } })
+  containerName: string;
+
+  @Validate({ options: { minLength: 1 } })
+  containerPort: number;
+
+  @Validate({ options: { minLength: 1 } })
+  targetGroupName: string;
+}
+
 export class EcsServiceSchema extends BaseResourceSchema {
-  @Validate({
-    destruct: (value: EcsServiceSchema['properties']): string[] => [
-      value.awsAccountId,
-      value.awsRegionId,
-      String(value.desiredCount),
-      value.serviceName,
-    ],
-    options: { minLength: 1 },
-  })
+  @Validate<unknown>([
+    {
+      destruct: (value: EcsServiceSchema['properties']): string[] => [
+        value.assignPublicIp,
+        value.awsAccountId,
+        value.awsRegionId,
+        String(value.desiredCount),
+        value.serviceName,
+      ],
+      options: { minLength: 1 },
+    },
+    {
+      destruct: (value: EcsServiceSchema['properties']): EcsServiceLoadBalancerSchema[] => value.loadBalancers,
+      options: { isSchema: { schema: EcsServiceLoadBalancerSchema } },
+    },
+  ])
   override properties = Schema<{
     assignPublicIp: 'ENABLED' | 'DISABLED';
     awsAccountId: string;
     awsRegionId: string;
     desiredCount: number;
+    loadBalancers: EcsServiceLoadBalancerSchema[];
     serviceName: string;
   }>();
 
