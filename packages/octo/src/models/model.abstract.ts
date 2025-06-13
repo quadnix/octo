@@ -283,7 +283,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
           ? inputService.getModuleIdFromOverlay(model as UnknownOverlay)
           : inputService.getModuleIdFromModel(model);
       const moduleResources = inputService.getModuleResources(moduleId);
-      moduleResources.forEach((r) => {
+      for (const r of moduleResources) {
         try {
           const schemaInstance = getSchemaInstance(schema, r.synth());
           const matchingSchemaInstance = (
@@ -301,7 +301,7 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
             throw error;
           }
         }
-      });
+      }
     }
 
     return matches.map((m) => new MatchingResource(m[0], m[1]));
