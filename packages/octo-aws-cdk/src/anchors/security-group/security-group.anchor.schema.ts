@@ -7,13 +7,13 @@ export class SecurityGroupAnchorRuleSchema {
   @Validate({ options: { minLength: 1 } })
   Egress: boolean;
 
-  @Validate({ options: { minLength: 1 } })
+  @Validate({ options: { maxLength: 65535, minLength: 0 } })
   FromPort: number;
 
   @Validate({ options: { minLength: 1 } })
   IpProtocol: 'tcp' | 'udp';
 
-  @Validate({ options: { minLength: 1 } })
+  @Validate({ options: { maxLength: 65535, minLength: 0 } })
   ToPort: number;
 }
 
