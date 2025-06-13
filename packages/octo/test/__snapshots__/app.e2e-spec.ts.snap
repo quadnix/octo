@@ -5,8 +5,8 @@ exports[`App E2E Test should generate app diff 1`] = `
   {
     "action": "add",
     "field": "executionId",
-    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
-    "value": "backend-v0.0.1-region-qa-public",
+    "node": "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
+    "value": "backend-v1-region-qa-public",
   },
   {
     "action": "add",
@@ -23,8 +23,8 @@ exports[`App E2E Test should generate app diff 1`] = `
   {
     "action": "add",
     "field": "executionId",
-    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
-    "value": "backend-v0.0.1-region-qa-public",
+    "node": "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
+    "value": "backend-v1-region-qa-public",
   },
   {
     "action": "add",
@@ -59,14 +59,14 @@ exports[`App E2E Test should generate app diff 1`] = `
   {
     "action": "add",
     "field": "executionId",
-    "node": "execution=backend-v0.0.1-region-qa-public,deployment=v0.0.1,server=backend,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
-    "value": "backend-v0.0.1-region-qa-public",
+    "node": "execution=backend-v1-region-qa-public,deployment=v1,server=backend,app=test-app,environment=qa,region=region,account=account,app=test-app,subnet=region-public,region=region,account=account,app=test-app",
+    "value": "backend-v1-region-qa-public",
   },
   {
     "action": "add",
     "field": "deploymentTag",
-    "node": "deployment=v0.0.1,server=backend,app=test-app",
-    "value": "v0.0.1",
+    "node": "deployment=v1,server=backend,app=test-app",
+    "value": "v1",
   },
   {
     "action": "add",

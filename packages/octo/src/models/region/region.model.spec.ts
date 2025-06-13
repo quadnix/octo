@@ -1,6 +1,5 @@
 import { NodeType } from '../../app.type.js';
 import { DependencyRelationship } from '../../functions/dependency/dependency.js';
-import { getSchemaInstance } from '../../functions/schema/schema.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
 import type { AModel } from '../model.abstract.js';
 import { RegionSchema } from './region.schema.js';
@@ -19,12 +18,8 @@ describe('Region UT', () => {
 
   describe('schema validation', () => {
     it('should validate regionId', async () => {
-      const {
-        region: [region],
-      } = create({ account: ['aws,account'], app: ['test'], region: ['$$'] });
-
       expect(() => {
-        getSchemaInstance<RegionSchema>(RegionSchema, region.synth());
+        create({ account: ['aws,account'], app: ['test'], region: ['$$'] });
       }).toThrow('Property "regionId" in schema could not be validated!');
     });
   });

@@ -1,19 +1,30 @@
 import type { Constructable, UnknownModel } from '../../app.type.js';
 import { Container } from '../../functions/container/container.js';
+import { getSchemaInstance } from '../../functions/schema/schema.js';
 import { Account } from '../../models/account/account.model.js';
-import { AccountType } from '../../models/account/account.schema.js';
+import { AccountSchema, AccountType } from '../../models/account/account.schema.js';
 import { App } from '../../models/app/app.model.js';
+import { AppSchema } from '../../models/app/app.schema.js';
 import { Deployment } from '../../models/deployment/deployment.model.js';
+import { DeploymentSchema } from '../../models/deployment/deployment.schema.js';
 import { Environment } from '../../models/environment/environment.model.js';
+import { EnvironmentSchema } from '../../models/environment/environment.schema.js';
 import { Execution } from '../../models/execution/execution.model.js';
+import { ExecutionSchema } from '../../models/execution/execution.schema.js';
 import { Filesystem } from '../../models/filesystem/filesystem.model.js';
+import { FilesystemSchema } from '../../models/filesystem/filesystem.schema.js';
 import { Image } from '../../models/image/image.model.js';
+import { ImageSchema } from '../../models/image/image.schema.js';
 import { Pipeline } from '../../models/pipeline/pipeline.model.js';
+import { PipelineSchema } from '../../models/pipeline/pipeline.schema.js';
 import { Region } from '../../models/region/region.model.js';
+import { RegionSchema } from '../../models/region/region.schema.js';
 import { Server } from '../../models/server/server.model.js';
+import { ServerSchema } from '../../models/server/server.schema.js';
 import { Service } from '../../models/service/service.model.js';
-import type { ServiceSchema } from '../../models/service/service.schema.js';
+import { ServiceSchema } from '../../models/service/service.schema.js';
 import { Subnet } from '../../models/subnet/subnet.model.js';
+import { SubnetSchema } from '../../models/subnet/subnet.schema.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 
 export async function commit<T extends UnknownModel>(model: T): Promise<T> {
@@ -82,6 +93,8 @@ export function create({
     }
 
     const app = new App(entry);
+
+    getSchemaInstance(AppSchema, app.synth());
     result.app.push(app);
   }
 
@@ -99,6 +112,8 @@ export function create({
     const account = new Account(type, id);
     const app = result.app[i];
     app.addAccount(account);
+
+    getSchemaInstance(AccountSchema, account.synth());
     result.account.push(account);
   }
 
@@ -114,6 +129,8 @@ export function create({
     const image = new Image(imageFamily, imageName);
     const app = result.app[i];
     app.addImage(image);
+
+    getSchemaInstance(ImageSchema, image.synth());
     result.image.push(image);
   }
 
@@ -126,6 +143,8 @@ export function create({
     const pipeline = new Pipeline(id);
     const app = result.app[i];
     app.addPipeline(pipeline);
+
+    getSchemaInstance(PipelineSchema, pipeline.synth());
     result.pipeline.push(pipeline);
   }
 
@@ -138,6 +157,8 @@ export function create({
     const region = new Region(id);
     const account = result.account[i];
     account.addRegion(region);
+
+    getSchemaInstance(RegionSchema, region.synth());
     result.region.push(region);
   }
 
@@ -150,6 +171,8 @@ export function create({
     const environment = new Environment(id);
     const region = result.region[i];
     region.addEnvironment(environment);
+
+    getSchemaInstance(EnvironmentSchema, environment.synth());
     result.environment.push(environment);
   }
 
@@ -162,6 +185,8 @@ export function create({
     const filesystem = new Filesystem(id);
     const region = result.region[i];
     region.addFilesystem(filesystem);
+
+    getSchemaInstance(FilesystemSchema, filesystem.synth());
     result.filesystem.push(filesystem);
   }
 
@@ -174,6 +199,8 @@ export function create({
     const region = result.region[i];
     const subnet = new Subnet(region, id);
     region.addSubnet(subnet);
+
+    getSchemaInstance(SubnetSchema, subnet.synth());
     result.subnet.push(subnet);
   }
 
@@ -186,6 +213,8 @@ export function create({
     const server = new Server(id);
     const app = result.app[i];
     app.addServer(server);
+
+    getSchemaInstance(ServerSchema, server.synth());
     result.server.push(server);
   }
 
@@ -198,6 +227,8 @@ export function create({
     const deployment = new Deployment(id);
     const server = result.server[i];
     server.addDeployment(deployment);
+
+    getSchemaInstance(DeploymentSchema, deployment.synth());
     result.deployment.push(deployment);
   }
 
@@ -212,6 +243,8 @@ export function create({
 
     const app = result.app[i];
     app.addService(service);
+
+    getSchemaInstance(ServiceSchema, service.synth());
     result.service.push(service);
   }
 
@@ -222,6 +255,8 @@ export function create({
     const [, i1, i2, i3] = splitEntry(entry, index);
 
     const execution = new Execution(result.deployment[i1], result.environment[i2], result.subnet[i3]);
+
+    getSchemaInstance(ExecutionSchema, execution.synth());
     result.execution.push(execution);
   }
 

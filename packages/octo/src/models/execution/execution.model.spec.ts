@@ -11,7 +11,7 @@ describe('Execution UT', () => {
     } = create({
       account: ['aws,account'],
       app: ['test'],
-      deployment: ['0.0.1'],
+      deployment: ['v1'],
       environment: ['qa'],
       execution: [':0:0:0'],
       region: ['region'],
@@ -31,7 +31,7 @@ describe('Execution UT', () => {
     } = create({
       account: ['aws,account'],
       app: ['test'],
-      deployment: ['0.0.1'],
+      deployment: ['v1'],
       environment: ['qa'],
       execution: [':0:0:0'],
       region: ['region'],
@@ -39,7 +39,7 @@ describe('Execution UT', () => {
       subnet: ['subnet'],
     });
 
-    expect(execution.executionId).toBe('backend-0.0.1-region-qa-subnet');
+    expect(execution.executionId).toBe('backend-v1-region-qa-subnet');
   });
 
   describe('schema validation', () => {
@@ -49,7 +49,7 @@ describe('Execution UT', () => {
       } = create({
         account: ['aws,account'],
         app: ['test'],
-        deployment: ['0.0.1'],
+        deployment: ['v1'],
         environment: ['qa'],
         execution: [':0:0:0'],
         region: ['region'],

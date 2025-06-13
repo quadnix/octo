@@ -10,7 +10,7 @@ import { DeploymentSchema } from './deployment.schema.js';
  *
  * @example
  * ```ts
- * const deployment = new Deployment('v0.0.1');
+ * const deployment = new Deployment('v1');
  * ```
  * @group Models
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).

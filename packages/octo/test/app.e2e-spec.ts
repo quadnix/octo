@@ -9,7 +9,7 @@ describe('App E2E Test', () => {
     } = create({
       account: ['aws,account'],
       app: ['test-app'],
-      deployment: ['v0.0.1'],
+      deployment: ['v1'],
       environment: ['qa'],
       execution: [':0:0:0'],
       filesystem: ['filesystem'],

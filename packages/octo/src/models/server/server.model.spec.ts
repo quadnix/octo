@@ -1,6 +1,5 @@
 import { NodeType } from '../../app.type.js';
 import { DependencyRelationship } from '../../functions/dependency/dependency.js';
-import { getSchemaInstance } from '../../functions/schema/schema.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
 import type { AModel } from '../model.abstract.js';
 import { ServerSchema } from './server.schema.js';
@@ -19,12 +18,8 @@ describe('Server UT', () => {
 
   describe('schema validation', () => {
     it('should validate serverKey', async () => {
-      const {
-        server: [server],
-      } = create({ account: ['aws,account'], app: ['test'], server: ['$$'] });
-
       expect(() => {
-        getSchemaInstance<ServerSchema>(ServerSchema, server.synth());
+        create({ account: ['aws,account'], app: ['test'], server: ['$$'] });
       }).toThrow('Property "serverKey" in schema could not be validated!');
     });
   });
@@ -32,7 +27,7 @@ describe('Server UT', () => {
   describe('addDeployment()', () => {
     it('should throw error if duplicate deployment exist', () => {
       expect(() => {
-        create({ account: ['aws,account'], app: ['test'], deployment: ['0.0.1', '0.0.1:-1'], server: ['backend'] });
+        create({ account: ['aws,account'], app: ['test'], deployment: ['v1', 'v1:-1'], server: ['backend'] });
       }).toThrow('Deployment already exists!');
     });
 
@@ -40,7 +35,7 @@ describe('Server UT', () => {
       const {
         deployment: [deployment],
         server: [server],
-      } = create({ account: ['aws,account'], app: ['test'], deployment: ['0.0.1'], server: ['backend'] });
+      } = create({ account: ['aws,account'], app: ['test'], deployment: ['v1'], server: ['backend'] });
 
       expect(server.getDependencyIndex(deployment, DependencyRelationship.PARENT)).toBeGreaterThan(-1);
       expect(deployment.getDependencyIndex(server, DependencyRelationship.CHILD)).toBeGreaterThan(-1);

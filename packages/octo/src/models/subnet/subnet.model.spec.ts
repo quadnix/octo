@@ -1,5 +1,4 @@
 import { NodeType } from '../../app.type.js';
-import { getSchemaInstance } from '../../functions/schema/schema.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
 import type { AModel } from '../model.abstract.js';
 import { SubnetSchema, SubnetType } from './subnet.schema.js';
@@ -29,12 +28,8 @@ describe('Subnet UT', () => {
 
   describe('schema validation', () => {
     it('should validate subnetName', async () => {
-      const {
-        subnet: [subnet],
-      } = create({ account: ['aws,account'], app: ['test'], region: ['region'], subnet: ['$$'] });
-
       expect(() => {
-        getSchemaInstance<SubnetSchema>(SubnetSchema, subnet.synth());
+        create({ account: ['aws,account'], app: ['test'], region: ['region'], subnet: ['$$'] });
       }).toThrow('Property "subnetName" in schema could not be validated!');
     });
   });
