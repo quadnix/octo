@@ -38,19 +38,19 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
 
     // Revoke existing rules from security group.
     await Promise.all([
-      response.Rules.egress!.length > 0
+      response.Rules!.egress!.length > 0
         ? ec2Client.send(
             new RevokeSecurityGroupEgressCommand({
               GroupId: response.GroupId,
-              SecurityGroupRuleIds: response.Rules.egress!.map((r) => r.SecurityGroupRuleId!),
+              SecurityGroupRuleIds: response.Rules!.egress!.map((r) => r.SecurityGroupRuleId!),
             }),
           )
         : Promise.resolve(),
-      response.Rules.ingress!.length > 0
+      response.Rules!.ingress!.length > 0
         ? ec2Client.send(
             new RevokeSecurityGroupIngressCommand({
               GroupId: response.GroupId,
-              SecurityGroupRuleIds: response.Rules.ingress!.map((r) => r.SecurityGroupRuleId!),
+              SecurityGroupRuleIds: response.Rules!.ingress!.map((r) => r.SecurityGroupRuleId!),
             }),
           )
         : Promise.resolve(),

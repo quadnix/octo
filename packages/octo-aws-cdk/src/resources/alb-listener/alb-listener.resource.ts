@@ -156,7 +156,7 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     // Diff rules.
     for (const previousRule of previous.properties.rules) {
       const currentRule = this.properties.rules.find((r) => r.Priority === previousRule.Priority);
-      const previousRuleResponse = previous.response.Rules.find((r) => r.Priority === previousRule.Priority)!;
+      const previousRuleResponse = previous.response.Rules!.find((r) => r.Priority === previousRule.Priority)!;
 
       if (!currentRule) {
         const deleteRuleDiff: IAlbListenerDeleteRuleDiff = {

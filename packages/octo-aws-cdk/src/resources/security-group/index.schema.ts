@@ -42,13 +42,19 @@ export class SecurityGroupSchema extends BaseResourceSchema {
       if (value.GroupId) {
         subjects.push(value.GroupId);
       }
+      if (value.Rules && value.Rules.egress) {
+        subjects.push(...value.Rules.egress.map((r) => r.SecurityGroupRuleId!).flat());
+      }
+      if (value.Rules && value.Rules.ingress) {
+        subjects.push(...value.Rules.ingress.map((r) => r.SecurityGroupRuleId!).flat());
+      }
       return subjects;
     },
     options: { minLength: 1 },
   })
   override response = Schema<{
-    GroupId: string;
-    Rules: {
+    GroupId?: string;
+    Rules?: {
       egress: AuthorizeSecurityGroupEgressCommandOutput['SecurityGroupRules'];
       ingress: AuthorizeSecurityGroupEgressCommandOutput['SecurityGroupRules'];
     };

@@ -35,6 +35,9 @@ export class IamRoleSchema extends BaseResourceSchema {
       if (value.Arn) {
         subjects.push(value.Arn);
       }
+      if (value.policies && Object.keys(value.policies).length > 0) {
+        subjects.push(...Object.values(value.policies).flat());
+      }
       if (value.RoleId) {
         subjects.push(value.RoleId);
       }
@@ -46,9 +49,9 @@ export class IamRoleSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    Arn: string;
-    policies: { [key: string]: string[] };
-    RoleId: string;
-    RoleName: string;
+    Arn?: string;
+    policies?: { [key: string]: string[] };
+    RoleId?: string;
+    RoleName?: string;
   }>();
 }

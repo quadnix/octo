@@ -29,7 +29,7 @@ export class NatGatewaySchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    AllocationId: string;
-    NatGatewayId: string;
+    AllocationId?: string;
+    NatGatewayId?: string;
   }>();
 }

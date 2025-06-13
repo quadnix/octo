@@ -58,10 +58,10 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
         memory: String(properties.memory),
         networkMode: 'awsvpc',
         requiresCompatibilities: ['FARGATE'],
-        taskRoleArn: ecsTaskDefinitionIamRole.getSchemaInstance().response.Arn,
+        taskRoleArn: ecsTaskDefinitionIamRole.getSchemaInstanceInResourceAction().response.Arn,
         volumes: ecsTaskDefinitionEfsList.map((efs) => ({
           efsVolumeConfiguration: {
-            fileSystemId: efs.getSchemaInstance().response.FileSystemId,
+            fileSystemId: efs.getSchemaInstanceInResourceAction().response.FileSystemId,
           },
           name: efs.getSchemaInstance().properties.filesystemName,
         })),

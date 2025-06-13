@@ -29,7 +29,7 @@ export class RouteTableSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    RouteTableId: string;
-    subnetAssociationId: string;
+    RouteTableId?: string;
+    subnetAssociationId?: string;
   }>();
 }

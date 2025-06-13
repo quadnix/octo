@@ -9,7 +9,7 @@ class NetworkAclEntrySchema {
 
   @Validate({
     destruct: (value: NetworkAclEntrySchema['PortRange']): number[] => [value.From, value.To],
-    options: { minLength: 1 },
+    options: { maxLength: 65535, minLength: -1 },
   })
   PortRange: { From: number; To: number };
 
@@ -57,8 +57,8 @@ export class NetworkAclSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    associationId: string;
-    defaultNetworkAclId: string;
-    NetworkAclId: string;
+    associationId?: string;
+    defaultNetworkAclId?: string;
+    NetworkAclId?: string;
   }>();
 }

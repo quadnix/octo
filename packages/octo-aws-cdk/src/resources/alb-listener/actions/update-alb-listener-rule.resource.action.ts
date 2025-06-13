@@ -8,7 +8,6 @@ import {
 } from '@aws-sdk/client-elastic-load-balancing-v2';
 import {
   Action,
-  type BaseResourceSchema,
   Container,
   type Diff,
   DiffAction,
@@ -17,6 +16,7 @@ import {
   type MatchingResource,
 } from '@quadnix/octo';
 import type { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
+import type { AlbTargetGroupSchema } from '../../alb-target-group/index.schema.js';
 import {
   AlbListener,
   type IAlbListenerPropertiesDiff,
@@ -47,7 +47,7 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
     const albListener = diff.node as AlbListener;
     const properties = albListener.properties;
     const response = albListener.response;
-    const matchingAlbTargetGroups = albListener.parents.slice(1) as MatchingResource<BaseResourceSchema>[];
+    const matchingAlbTargetGroups = albListener.parents.slice(1) as MatchingResource<AlbTargetGroupSchema>[];
     const ruleDiff = (diff.value as { Rule: IAlbListenerRuleDiff }).Rule;
 
     // Get instances.
@@ -81,7 +81,7 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
                 TargetGroups: action.action.TargetGroups.map((t) => ({
                   TargetGroupArn: matchingAlbTargetGroups
                     .find((mt) => mt.getSchemaInstance().properties.Name === t.targetGroupName)!
-                    .getSchemaInstance().response.TargetGroupArn! as string,
+                    .getSchemaInstanceInResourceAction().response.TargetGroupArn,
                   Weight: t.Weight,
                 })),
                 TargetGroupStickinessConfig: action.action.TargetGroupStickinessConfig
@@ -212,8 +212,8 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
       );
 
       // Set response.
-      response.Rules.splice(
-        response.Rules.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
+      response.Rules!.splice(
+        response.Rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
         1,
       );
     } else if (isUpdateRuleDiff(ruleDiff)) {
@@ -238,8 +238,8 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
       );
 
       // Set response.
-      response.Rules.splice(
-        response.Rules.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
+      response.Rules!.splice(
+        response.Rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
         1,
         { Priority: ruleDiff.rule.Priority, RuleArn: modifyRuleResponse.Rules![0].RuleArn! },
       );

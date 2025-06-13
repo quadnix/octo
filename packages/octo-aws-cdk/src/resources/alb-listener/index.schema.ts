@@ -337,7 +337,7 @@ export class AlbListenerSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    ListenerArn: string;
-    Rules: { Priority: number; RuleArn: string }[];
+    ListenerArn?: string;
+    Rules?: { Priority: number; RuleArn: string }[];
   }>();
 }

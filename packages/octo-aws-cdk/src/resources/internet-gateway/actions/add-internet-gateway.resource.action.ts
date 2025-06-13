@@ -37,7 +37,7 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     await ec2Client.send(
       new AttachInternetGatewayCommand({
         InternetGatewayId: internetGWOutput!.InternetGateway!.InternetGatewayId,
-        VpcId: internetGatewayVpc.getSchemaInstance().response.VpcId,
+        VpcId: internetGatewayVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );
 

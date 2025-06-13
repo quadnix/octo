@@ -84,7 +84,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    revision: number;
-    taskDefinitionArn: string;
+    revision?: number;
+    taskDefinitionArn?: string;
   }>();
 }

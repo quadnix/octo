@@ -26,6 +26,6 @@ export class EcsClusterSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    clusterArn: string;
+    clusterArn?: string;
   }>();
 }

@@ -1,7 +1,6 @@
 import { CreateLoadBalancerCommand, ElasticLoadBalancingV2Client } from '@aws-sdk/client-elastic-load-balancing-v2';
 import {
   Action,
-  type BaseResourceSchema,
   Container,
   type Diff,
   DiffAction,
@@ -10,6 +9,7 @@ import {
   type MatchingResource,
 } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
+import type { SubnetSchema } from '../../subnet/index.schema.js';
 import { Alb } from '../alb.resource.js';
 import type { AlbSchema } from '../index.schema.js';
 
@@ -32,7 +32,7 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
     const properties = alb.properties;
     const response = alb.response;
     const matchingAlbSecurityGroup = alb.parents[0];
-    const matchingAlbSubnets = alb.parents.slice(1) as MatchingResource<BaseResourceSchema>[];
+    const matchingAlbSubnets = alb.parents.slice(1) as MatchingResource<SubnetSchema>[];
 
     // Get instances.
     const elbv2Client = await this.container.get<
@@ -49,8 +49,8 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
         IpAddressType: properties.IpAddressType,
         Name: properties.Name,
         Scheme: properties.Scheme,
-        SecurityGroups: [matchingAlbSecurityGroup.getSchemaInstance().response.GroupId],
-        Subnets: matchingAlbSubnets.map((s) => s.getSchemaInstance().response.SubnetId as string),
+        SecurityGroups: [matchingAlbSecurityGroup.getSchemaInstanceInResourceAction().response.GroupId],
+        Subnets: matchingAlbSubnets.map((s) => s.getSchemaInstanceInResourceAction().response.SubnetId),
         Type: properties.Type,
       }),
     );

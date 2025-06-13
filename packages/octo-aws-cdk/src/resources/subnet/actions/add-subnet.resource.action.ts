@@ -35,7 +35,7 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
       new CreateSubnetCommand({
         AvailabilityZone: properties.AvailabilityZone,
         CidrBlock: properties.CidrBlock,
-        VpcId: subnetVpc.getSchemaInstance().response.VpcId,
+        VpcId: subnetVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );
 

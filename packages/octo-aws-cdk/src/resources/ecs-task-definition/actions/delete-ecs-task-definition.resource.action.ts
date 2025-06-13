@@ -37,7 +37,7 @@ export class DeleteEcsTaskDefinitionResourceAction implements IResourceAction<Ec
     // Delete the task definition.
     const data = await ecsClient.send(
       new DeleteTaskDefinitionsCommand({
-        taskDefinitions: [response.taskDefinitionArn],
+        taskDefinitions: [response.taskDefinitionArn!],
       }),
     );
 

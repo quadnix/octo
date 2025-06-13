@@ -6,7 +6,6 @@ import {
 } from '@aws-sdk/client-elastic-load-balancing-v2';
 import {
   Action,
-  type BaseResourceSchema,
   Container,
   type Diff,
   DiffAction,
@@ -15,6 +14,7 @@ import {
   type MatchingResource,
 } from '@quadnix/octo';
 import type { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
+import type { AlbTargetGroupSchema } from '../../alb-target-group/index.schema.js';
 import {
   AlbListener,
   type IAlbListenerPropertiesDiff,
@@ -41,7 +41,7 @@ export class UpdateAlbListenerResourceAction implements IResourceAction<AlbListe
     const albListener = diff.node as AlbListener;
     const properties = albListener.properties;
     const response = albListener.response;
-    const matchingAlbTargetGroups = albListener.parents.slice(1) as MatchingResource<BaseResourceSchema>[];
+    const matchingAlbTargetGroups = albListener.parents.slice(1) as MatchingResource<AlbTargetGroupSchema>[];
 
     // Get instances.
     const elbv2Client = await this.container.get<
@@ -74,7 +74,7 @@ export class UpdateAlbListenerResourceAction implements IResourceAction<AlbListe
                 TargetGroups: action.action.TargetGroups.map((t) => ({
                   TargetGroupArn: matchingAlbTargetGroups
                     .find((mt) => mt.getSchemaInstance().properties.Name === t.targetGroupName)!
-                    .getSchemaInstance().response.TargetGroupArn! as string,
+                    .getSchemaInstanceInResourceAction().response.TargetGroupArn,
                   Weight: t.Weight,
                 })),
                 TargetGroupStickinessConfig: action.action.TargetGroupStickinessConfig

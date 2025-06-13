@@ -26,7 +26,7 @@ export class PrincipalResourceSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    Arn: string;
+    Arn?: string;
   }>();
 }
 

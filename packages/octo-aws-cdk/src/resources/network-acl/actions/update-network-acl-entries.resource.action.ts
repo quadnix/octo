@@ -47,7 +47,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
         Filters: [
           {
             Name: 'association.subnet-id',
-            Values: [networkAclSubnet.getSchemaInstance().response.SubnetId],
+            Values: [networkAclSubnet.getSchemaInstanceInResourceAction().response.SubnetId],
           },
         ],
       }),

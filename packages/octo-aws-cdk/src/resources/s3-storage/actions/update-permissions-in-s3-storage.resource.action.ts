@@ -38,7 +38,7 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
         if (operation === 'addDirectoryPermissions' || operation === 'updateDirectoryPermissions') {
           const principalArn = s3Storage.parents
             .find((p) => p.getActual().resourceId === principalResourceId)!
-            .getSchemaInstance().response.Arn;
+            .getSchemaInstanceInResourceAction().response.Arn;
 
           const permission = properties.permissions.find(
             (p) => p.principalResourceId === principalResourceId && p.remoteDirectoryPath === remoteDirectoryPath,

@@ -46,9 +46,9 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     // Create a new EFS MountTarget.
     const data = await efsClient.send(
       new CreateMountTargetCommand({
-        FileSystemId: efsMountTargetEfs.getSchemaInstance().response.FileSystemId,
-        SecurityGroups: [efsMountTargetSecurityGroup.getSchemaInstance().response.GroupId],
-        SubnetId: efsMountTargetSubnet.getSchemaInstance().response.SubnetId,
+        FileSystemId: efsMountTargetEfs.getSchemaInstanceInResourceAction().response.FileSystemId,
+        SecurityGroups: [efsMountTargetSecurityGroup.getSchemaInstanceInResourceAction().response.GroupId],
+        SubnetId: efsMountTargetSubnet.getSchemaInstanceInResourceAction().response.SubnetId,
       }),
     );
 
@@ -62,7 +62,7 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
         );
 
         const mountTarget = result.MountTargets?.find(
-          (m) => m.FileSystemId === efsMountTargetEfs.getSchemaInstance().response.FileSystemId,
+          (m) => m.FileSystemId === efsMountTargetEfs.getSchemaInstanceInResourceAction().response.FileSystemId,
         );
         if (!mountTarget) {
           throw new TransactionError('EFS FileSystem MountTarget does not exist!');
@@ -99,7 +99,10 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
       } else if (instance instanceof DescribeMountTargetsCommand) {
         return {
           MountTargets: [
-            { FileSystemId: efsMountTargetEfs.getSchemaInstance().response.FileSystemId, LifeCycleState: 'available' },
+            {
+              FileSystemId: efsMountTargetEfs.getSchemaInstanceInResourceAction().response.FileSystemId,
+              LifeCycleState: 'available',
+            },
           ],
         };
       }

@@ -26,6 +26,6 @@ export class InternetGatewaySchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    InternetGatewayId: string;
+    InternetGatewayId?: string;
   }>();
 }

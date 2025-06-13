@@ -46,7 +46,7 @@ export class AddAlbListenerResourceAction implements IResourceAction<AlbListener
             Type: 'fixed-response',
           },
         ],
-        LoadBalancerArn: matchingAlb.getSchemaInstance().response.LoadBalancerArn,
+        LoadBalancerArn: matchingAlb.getSchemaInstanceInResourceAction().response.LoadBalancerArn,
         Port: properties.Port,
         Protocol: properties.Protocol,
       }),

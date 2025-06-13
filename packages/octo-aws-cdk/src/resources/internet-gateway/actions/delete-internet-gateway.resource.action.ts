@@ -38,7 +38,7 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction<Inte
         await ec2Client.send(
           new DetachInternetGatewayCommand({
             InternetGatewayId: response.InternetGatewayId,
-            VpcId: internetGatewayVpc.getSchemaInstance().response.VpcId,
+            VpcId: internetGatewayVpc.getSchemaInstanceInResourceAction().response.VpcId,
           }),
         );
         return true;

@@ -30,6 +30,6 @@ export class S3WebsiteSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    awsRegionId: string;
+    awsRegionId?: string;
   }>();
 }

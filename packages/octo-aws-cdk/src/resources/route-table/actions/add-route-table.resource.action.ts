@@ -40,7 +40,7 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     // Create Route Table.
     const routeTableOutput = await ec2Client.send(
       new CreateRouteTableCommand({
-        VpcId: routeTableVpc.getSchemaInstance().response.VpcId,
+        VpcId: routeTableVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );
 
@@ -49,14 +49,14 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
       ec2Client.send(
         new AssociateRouteTableCommand({
           RouteTableId: routeTableOutput!.RouteTable!.RouteTableId,
-          SubnetId: routeTableSubnet.getSchemaInstance().response.SubnetId,
+          SubnetId: routeTableSubnet.getSchemaInstanceInResourceAction().response.SubnetId,
         }),
       ),
       properties.associateWithInternetGateway
         ? ec2Client.send(
             new CreateRouteCommand({
               DestinationCidrBlock: '0.0.0.0/0',
-              GatewayId: routeTableInternetGateway.getSchemaInstance().response.InternetGatewayId,
+              GatewayId: routeTableInternetGateway.getSchemaInstanceInResourceAction().response.InternetGatewayId,
               RouteTableId: routeTableOutput!.RouteTable!.RouteTableId,
             }),
           )

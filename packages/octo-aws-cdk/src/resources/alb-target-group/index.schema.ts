@@ -78,6 +78,6 @@ export class AlbTargetGroupSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    TargetGroupArn: string;
+    TargetGroupArn?: string;
   }>();
 }

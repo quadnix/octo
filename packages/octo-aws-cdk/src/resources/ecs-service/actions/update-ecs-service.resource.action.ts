@@ -55,24 +55,26 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
     // Update the service.
     const data = await ecsClient.send(
       new UpdateServiceCommand({
-        cluster: ecsServiceEcsCluster.getSchemaInstance().properties.clusterName,
+        cluster: ecsServiceEcsCluster.getSchemaInstanceInResourceAction().properties.clusterName,
         desiredCount: properties.desiredCount,
         loadBalancers: properties.loadBalancers.map((lb) => ({
           containerName: lb.containerName,
           containerPort: lb.containerPort,
           targetGroupArn: ecsServiceTargetGroupList
-            .find((tg) => tg.getSchemaInstance().properties.Name === lb.targetGroupName)!
-            .getSchemaInstance().response.TargetGroupArn,
+            .find((tg) => tg.getSchemaInstanceInResourceAction().properties.Name === lb.targetGroupName)!
+            .getSchemaInstanceInResourceAction().response.TargetGroupArn,
         })),
         networkConfiguration: {
           awsvpcConfiguration: {
             assignPublicIp: properties.assignPublicIp,
-            securityGroups: ecsServiceSecurityGroupList.map((sg) => sg.getSchemaInstance().response.GroupId),
-            subnets: [ecsServiceSubnet.getSchemaInstance().response.SubnetId],
+            securityGroups: ecsServiceSecurityGroupList.map(
+              (sg) => sg.getSchemaInstanceInResourceAction().response.GroupId,
+            ),
+            subnets: [ecsServiceSubnet.getSchemaInstanceInResourceAction().response.SubnetId],
           },
         },
         service: properties.serviceName,
-        taskDefinition: ecsServiceTaskDefinition.getSchemaInstance().response.taskDefinitionArn,
+        taskDefinition: ecsServiceTaskDefinition.getSchemaInstanceInResourceAction().response.taskDefinitionArn,
       }),
     );
 

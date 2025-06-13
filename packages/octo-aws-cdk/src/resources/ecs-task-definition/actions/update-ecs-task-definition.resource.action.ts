@@ -63,10 +63,10 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
         memory: String(properties.memory),
         networkMode: 'awsvpc',
         requiresCompatibilities: ['FARGATE'],
-        taskRoleArn: ecsTaskDefinitionIamRole.getSchemaInstance().response.Arn,
+        taskRoleArn: ecsTaskDefinitionIamRole.getSchemaInstanceInResourceAction().response.Arn,
         volumes: ecsTaskDefinitionEfsList.map((efs) => ({
           efsVolumeConfiguration: {
-            fileSystemId: efs.getSchemaInstance().response.FileSystemId,
+            fileSystemId: efs.getSchemaInstanceInResourceAction().response.FileSystemId,
           },
           name: efs.getSchemaInstance().properties.filesystemName,
         })),
@@ -82,7 +82,7 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
     // Delete the old task definition.
     const deleteTaskDefinitionResponse = await ecsClient.send(
       new DeleteTaskDefinitionsCommand({
-        taskDefinitions: [response.taskDefinitionArn],
+        taskDefinitions: [response.taskDefinitionArn!],
       }),
     );
 

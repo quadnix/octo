@@ -30,6 +30,6 @@ export class VpcSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    VpcId: string;
+    VpcId?: string;
   }>();
 }

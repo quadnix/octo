@@ -24,7 +24,7 @@ export class EfsMountTargetSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    MountTargetId: string;
-    NetworkInterfaceId: string;
+    MountTargetId?: string;
+    NetworkInterfaceId?: string;
   }>();
 }

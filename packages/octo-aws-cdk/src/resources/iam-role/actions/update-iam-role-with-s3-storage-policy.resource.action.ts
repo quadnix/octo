@@ -93,9 +93,9 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
       );
 
       // Set response.
-      response.policies[iamRolePolicyDiff.policyId] = [data.Policy!.Arn!];
+      response.policies![iamRolePolicyDiff.policyId] = [data.Policy!.Arn!];
     } else if (isDeletePolicyDiff(iamRolePolicyDiff)) {
-      const policyARNs = response.policies[iamRolePolicyDiff.policyId] || [];
+      const policyARNs = response.policies![iamRolePolicyDiff.policyId] || [];
       await Promise.all(
         policyARNs.map(async (policyArn) => {
           await iamClient.send(
@@ -114,7 +114,7 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
 
       // Set response.
       if (!Object.isFrozen(response)) {
-        delete response.policies[iamRolePolicyDiff.policyId];
+        delete response.policies![iamRolePolicyDiff.policyId];
       }
     }
   }

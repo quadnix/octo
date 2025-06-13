@@ -31,9 +31,9 @@ export class EcrImageSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    registryId: string;
-    repositoryArn: string;
-    repositoryName: string;
-    repositoryUri: string;
+    registryId?: string;
+    repositoryArn?: string;
+    repositoryName?: string;
+    repositoryUri?: string;
   }>();
 }

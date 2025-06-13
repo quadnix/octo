@@ -61,7 +61,7 @@ export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTarge
         Protocol: properties.Protocol,
         ProtocolVersion: properties.ProtocolVersion,
         TargetType: properties.TargetType,
-        VpcId: matchingAlbTargetGroupVpc.getSchemaInstance().response.VpcId,
+        VpcId: matchingAlbTargetGroupVpc.getSchemaInstanceInResourceAction().response.VpcId,
         ...(Object.keys(targetGroupHealthCheck).length > 0 ? targetGroupHealthCheck : { HealthCheckEnabled: false }),
       }),
     );

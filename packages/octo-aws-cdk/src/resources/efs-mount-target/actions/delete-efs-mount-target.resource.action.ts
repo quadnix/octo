@@ -68,7 +68,7 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
         }
 
         const mountTarget = result!.MountTargets?.find(
-          (m) => m.FileSystemId === efsMountTargetEfs.getSchemaInstance().response.FileSystemId,
+          (m) => m.FileSystemId === efsMountTargetEfs.getSchemaInstanceInResourceAction().response.FileSystemId,
         );
         if (!mountTarget) {
           return true;
@@ -102,7 +102,10 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
       } else if (instance instanceof DescribeMountTargetsCommand) {
         return {
           MountTargets: [
-            { FileSystemId: efsMountTargetEfs.getSchemaInstance().response.FileSystemId, LifeCycleState: 'deleted' },
+            {
+              FileSystemId: efsMountTargetEfs.getSchemaInstanceInResourceAction().response.FileSystemId,
+              LifeCycleState: 'deleted',
+            },
           ],
         };
       }

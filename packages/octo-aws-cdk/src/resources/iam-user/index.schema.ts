@@ -31,6 +31,9 @@ export class IamUserSchema extends BaseResourceSchema {
       if (value.Arn) {
         subjects.push(value.Arn);
       }
+      if (value.policies && Object.keys(value.policies).length > 0) {
+        subjects.push(...Object.values(value.policies).flat());
+      }
       if (value.UserId) {
         subjects.push(value.UserId);
       }
@@ -42,9 +45,9 @@ export class IamUserSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    Arn: string;
-    policies: { [key: string]: string[] };
-    UserId: string;
-    UserName: string;
+    Arn?: string;
+    policies?: { [key: string]: string[] };
+    UserId?: string;
+    UserName?: string;
   }>();
 }

@@ -48,6 +48,6 @@ export class EcsServiceSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    serviceArn: string;
+    serviceArn?: string;
   }>();
 }

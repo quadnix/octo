@@ -42,7 +42,7 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
       new CreateNatGatewayCommand({
         AllocationId: elasticIpOutput.AllocationId,
         ConnectivityType: properties.ConnectivityType,
-        SubnetId: subnet.getSchemaInstance().response.SubnetId,
+        SubnetId: subnet.getSchemaInstanceInResourceAction().response.SubnetId,
       }),
     );
 

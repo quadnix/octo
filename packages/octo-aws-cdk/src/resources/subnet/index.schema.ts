@@ -30,6 +30,6 @@ export class SubnetSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    SubnetId: string;
+    SubnetId?: string;
   }>();
 }

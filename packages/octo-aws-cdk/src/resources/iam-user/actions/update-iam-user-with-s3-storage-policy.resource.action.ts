@@ -93,9 +93,9 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
       );
 
       // Set response.
-      response.policies[iamUserPolicyDiff.policyId] = [data.Policy!.Arn!];
+      response.policies![iamUserPolicyDiff.policyId] = [data.Policy!.Arn!];
     } else if (isDeletePolicyDiff(iamUserPolicyDiff)) {
-      const policyARNs = response.policies[iamUserPolicyDiff.policyId] || [];
+      const policyARNs = response.policies![iamUserPolicyDiff.policyId] || [];
       await Promise.all(
         policyARNs.map(async (policyArn) => {
           await iamClient.send(
@@ -114,7 +114,7 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
 
       // Set response.
       if (!Object.isFrozen(response)) {
-        delete response.policies[iamUserPolicyDiff.policyId];
+        delete response.policies![iamUserPolicyDiff.policyId];
       }
     }
   }

@@ -35,7 +35,7 @@ export class AlbSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    DNSName: string;
-    LoadBalancerArn: string;
+    DNSName?: string;
+    LoadBalancerArn?: string;
   }>();
 }

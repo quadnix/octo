@@ -43,19 +43,19 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
         Filters: [
           {
             Name: 'association.subnet-id',
-            Values: [networkAclSubnet.getSchemaInstance().response.SubnetId],
+            Values: [networkAclSubnet.getSchemaInstanceInResourceAction().response.SubnetId],
           },
         ],
       }),
     );
     const association = defaultNACLOutput!.NetworkAcls![0].Associations!.find(
-      (a) => a.SubnetId === networkAclSubnet.getSchemaInstance().response.SubnetId,
+      (a) => a.SubnetId === networkAclSubnet.getSchemaInstanceInResourceAction().response.SubnetId,
     );
 
     // Create Network ACL.
     const naclOutput = await ec2Client.send(
       new CreateNetworkAclCommand({
-        VpcId: networkAclVpc.getSchemaInstance().response.VpcId,
+        VpcId: networkAclVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );
     await Promise.all(
@@ -102,7 +102,7 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
         return {
           NetworkAcls: [
             {
-              Associations: [{ SubnetId: networkAclSubnet.getSchemaInstance().response.SubnetId }],
+              Associations: [{ SubnetId: networkAclSubnet.getSchemaInstanceInResourceAction().response.SubnetId }],
               NetworkAclId: capture.defaultNetworkAclId,
             },
           ],

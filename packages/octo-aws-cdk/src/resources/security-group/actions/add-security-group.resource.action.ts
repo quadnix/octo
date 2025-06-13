@@ -40,7 +40,7 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
       new CreateSecurityGroupCommand({
         Description: securityGroup.resourceId,
         GroupName: securityGroup.resourceId,
-        VpcId: securityGroupVpc.getSchemaInstance().response.VpcId,
+        VpcId: securityGroupVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );
 
