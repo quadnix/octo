@@ -1,11 +1,13 @@
 import { AModule, type Account, type App, Module, type Service, type Subnet, SubnetType } from '@quadnix/octo';
+import { AlbEcsExecutionAnchor } from '../../../anchors/alb-ecs-execution/alb-ecs-execution.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsAlbServiceModuleSchema } from './index.schema.js';
 import { AwsAlbService } from './models/alb/index.js';
+import { AwsAlbEcsExecutionOverlay } from './overlays/alb-ecs-execution/index.js';
 
 @Module<AwsAlbServiceModule>('@octo', AwsAlbServiceModuleSchema)
 export class AwsAlbServiceModule extends AModule<AwsAlbServiceModuleSchema, AwsAlbService> {
-  async onInit(inputs: AwsAlbServiceModuleSchema): Promise<AwsAlbService> {
+  async onInit(inputs: AwsAlbServiceModuleSchema): Promise<[AwsAlbService, AwsAlbEcsExecutionOverlay]> {
     const region = inputs.region;
     const { app, subnets } = await this.registerMetadata(inputs);
 
@@ -30,7 +32,20 @@ export class AwsAlbServiceModule extends AModule<AwsAlbServiceModuleSchema, AwsA
     const service = new AwsAlbService(inputs.albName);
     app.addService(service);
 
-    return service;
+    // Add anchors.
+    const albEcsExecutionAnchor = new AlbEcsExecutionAnchor(
+      'AlbEcsExecutionAnchor',
+      { albName: inputs.albName },
+      service,
+    );
+    service.addAnchor(albEcsExecutionAnchor);
+
+    // Add overlay for alb and ecs execution.
+    const albEcsExecutionOverlay = new AwsAlbEcsExecutionOverlay(`alb-ecs-execution-overlay-${inputs.albName}`, {}, [
+      albEcsExecutionAnchor,
+    ]);
+
+    return [service, albEcsExecutionOverlay];
   }
 
   override async registerMetadata(inputs: AwsAlbServiceModuleSchema): Promise<{

@@ -157,6 +157,7 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
         awsAccountId,
         awsRegionId,
         desiredCount: ecsServiceAnchor.properties.desiredCount,
+        loadBalancers: [],
         serviceName: properties.executionId.replace(/\./g, '_'),
       },
       [
