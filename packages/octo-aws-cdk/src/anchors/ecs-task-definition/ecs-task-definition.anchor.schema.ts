@@ -2,35 +2,35 @@ import { BaseAnchorSchema, type Deployment, Schema, Validate } from '@quadnix/oc
 
 class EcsTaskDefinitionAnchorImagePortSchema {
   @Validate({ options: { minLength: 1 } })
-  containerPort: number;
+  containerPort = Schema<number>();
 
   @Validate({ options: { minLength: 1 } })
-  protocol: 'tcp' | 'udp';
+  protocol = Schema<'tcp' | 'udp'>();
 }
 
 class EcsTaskDefinitionAnchorImageSchema {
   @Validate({ options: { minLength: 1 } })
-  command: string;
+  command = Schema<string>();
 
   @Validate({
     destruct: (value: EcsTaskDefinitionAnchorImageSchema['ports']): EcsTaskDefinitionAnchorImagePortSchema[] => value,
     options: { isSchema: { schema: EcsTaskDefinitionAnchorImagePortSchema } },
   })
-  ports: EcsTaskDefinitionAnchorImagePortSchema[];
+  ports = Schema<EcsTaskDefinitionAnchorImagePortSchema[]>();
 
   @Validate({ options: { minLength: 1 } })
-  uri: string;
+  uri = Schema<string>();
 }
 
 export class EcsTaskDefinitionAnchorPropertiesSchema {
   @Validate({ options: { minLength: 1 } })
-  cpu: 256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384;
+  cpu = Schema<256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384>();
 
   @Validate({ options: { isSchema: { schema: EcsTaskDefinitionAnchorImageSchema } } })
-  image: EcsTaskDefinitionAnchorImageSchema;
+  image = Schema<EcsTaskDefinitionAnchorImageSchema>();
 
   @Validate({ options: { minLength: 1 } })
-  memory: number;
+  memory = Schema<number>();
 }
 
 export class EcsTaskDefinitionAnchorSchema extends BaseAnchorSchema {

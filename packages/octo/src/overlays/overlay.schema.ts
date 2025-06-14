@@ -1,9 +1,10 @@
+import { Schema } from '../functions/schema/schema.js';
 import type { BaseAnchorSchema } from './anchor.schema.js';
 
 export class BaseOverlaySchema {
-  anchors: BaseAnchorSchema[];
+  anchors = Schema<BaseAnchorSchema[]>();
 
-  overlayId: string;
+  overlayId = Schema<string>();
 
-  properties: { [key: string]: unknown };
+  properties = Schema<{ [key: string]: unknown }>();
 }

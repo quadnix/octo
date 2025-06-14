@@ -2,13 +2,13 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 export class EcsServiceLoadBalancerSchema {
   @Validate({ options: { minLength: 1 } })
-  containerName: string;
+  containerName = Schema<string>();
 
   @Validate({ options: { minLength: 1 } })
-  containerPort: number;
+  containerPort = Schema<number>();
 
   @Validate({ options: { minLength: 1 } })
-  targetGroupName: string;
+  targetGroupName = Schema<string>();
 }
 
 export class EcsServiceSchema extends BaseResourceSchema {

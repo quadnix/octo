@@ -2,38 +2,38 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 export class EcsTaskDefinitionEnvironmentVariableSchema {
   @Validate({ options: { minLength: 1 } })
-  name: string;
+  name = Schema<string>();
 
   @Validate({ options: { minLength: 1 } })
-  value: string;
+  value = Schema<string>();
 }
 
 export class EcsTaskDefinitionImagePortSchema {
   @Validate({ options: { minLength: 1 } })
-  containerPort: number;
+  containerPort = Schema<number>();
 
   @Validate({ options: { minLength: 1 } })
-  protocol: 'tcp' | 'udp';
+  protocol = Schema<'tcp' | 'udp'>();
 }
 
 export class EcsTaskDefinitionImageSchema {
   @Validate({ options: { minLength: 1 } })
-  command: string[];
+  command = Schema<string[]>();
 
   @Validate({ options: { minLength: 1 } })
-  essential: boolean;
+  essential = Schema<boolean>();
 
   @Validate({ options: { minLength: 1 } })
-  name: string;
+  name = Schema<string>();
 
   @Validate({
     destruct: (value: EcsTaskDefinitionImageSchema['ports']): EcsTaskDefinitionImagePortSchema[] => value,
     options: { isSchema: { schema: EcsTaskDefinitionImagePortSchema } },
   })
-  ports: EcsTaskDefinitionImagePortSchema[];
+  ports = Schema<EcsTaskDefinitionImagePortSchema[]>();
 
   @Validate({ options: { minLength: 1 } })
-  uri: string;
+  uri = Schema<string>();
 }
 
 export class EcsTaskDefinitionSchema extends BaseResourceSchema {

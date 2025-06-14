@@ -2,33 +2,31 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 export class AlbTargetGroupHealthCheckSchema {
   @Validate({ options: { maxLength: 60, minLength: 30 } })
-  HealthCheckIntervalSeconds: number;
+  HealthCheckIntervalSeconds = Schema<number>();
 
   @Validate({ options: { regex: /^\/([\w-]*)$/ } })
-  HealthCheckPath: string;
+  HealthCheckPath = Schema<string>();
 
   @Validate({ options: { maxLength: 65535, minLength: 0 } })
-  HealthCheckPort: number;
+  HealthCheckPort = Schema<number>();
 
   @Validate({ options: { regex: /^HTTP$/ } })
-  HealthCheckProtocol: 'HTTP';
+  HealthCheckProtocol = Schema<'HTTP'>();
 
   @Validate({ options: { maxLength: 5, minLength: 5 } })
-  HealthCheckTimeoutSeconds: number;
+  HealthCheckTimeoutSeconds = Schema<number>();
 
   @Validate({ options: { maxLength: 2, minLength: 2 } })
-  HealthyThresholdCount: number;
+  HealthyThresholdCount = Schema<number>();
 
   @Validate({
     destruct: (value: AlbTargetGroupHealthCheckSchema['Matcher']): number[] => [value.HttpCode],
     options: { maxLength: 299, minLength: 200 },
   })
-  Matcher: {
-    HttpCode: number;
-  };
+  Matcher = Schema<{ HttpCode: number }>();
 
   @Validate({ options: { maxLength: 2, minLength: 2 } })
-  UnhealthyThresholdCount: number;
+  UnhealthyThresholdCount = Schema<number>();
 }
 
 export class AlbTargetGroupSchema extends BaseResourceSchema {

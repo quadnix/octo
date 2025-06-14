@@ -2,16 +2,16 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 class S3StoragePermissionSchema {
   @Validate({ options: { minLength: 1 } })
-  allowRead: boolean;
+  allowRead = Schema<boolean>();
 
   @Validate({ options: { minLength: 1 } })
-  allowWrite: boolean;
+  allowWrite = Schema<boolean>();
 
   @Validate({ options: { minLength: 1 } })
-  principalResourceId: string;
+  principalResourceId = Schema<string>();
 
   @Validate({ options: { minLength: 1 } })
-  remoteDirectoryPath: string;
+  remoteDirectoryPath = Schema<string>();
 }
 
 export class PrincipalResourceSchema extends BaseResourceSchema {

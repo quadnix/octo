@@ -2,19 +2,19 @@ import { BaseAnchorSchema, type Execution, Schema, type Server, Validate } from 
 
 export class SecurityGroupAnchorRuleSchema {
   @Validate({ options: { minLength: 1 } })
-  CidrBlock: string;
+  CidrBlock = Schema<string>();
 
   @Validate({ options: { minLength: 1 } })
-  Egress: boolean;
+  Egress = Schema<boolean>();
 
   @Validate({ options: { maxLength: 65535, minLength: 0 } })
-  FromPort: number;
+  FromPort = Schema<number>();
 
   @Validate({ options: { minLength: 1 } })
-  IpProtocol: 'tcp' | 'udp';
+  IpProtocol = Schema<'tcp' | 'udp'>();
 
   @Validate({ options: { maxLength: 65535, minLength: 0 } })
-  ToPort: number;
+  ToPort = Schema<number>();
 }
 
 export class SecurityGroupAnchorSchema extends BaseAnchorSchema {

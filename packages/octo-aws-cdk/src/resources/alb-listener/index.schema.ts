@@ -17,13 +17,13 @@ export type IAlbListenerRuleTypes = {
 
 export class AlbListenerActionFixedResponseActionSchema {
   @Validate({ options: { minLength: 1 } })
-  ContentType: string;
+  ContentType = Schema<string>();
 
   @Validate({ options: { minLength: 1 } })
-  MessageBody: string;
+  MessageBody = Schema<string>();
 
   @Validate({ options: { maxLength: 599, minLength: 100 } })
-  StatusCode: number;
+  StatusCode = Schema<number>();
 }
 
 export class AlbListenerActionForwardConfigSchema {
@@ -34,26 +34,16 @@ export class AlbListenerActionForwardConfigSchema {
     {
       destruct: (value: AlbListenerActionForwardConfigSchema['TargetGroups']): string[] =>
         value.map((v) => v.targetGroupName),
-      options: { minLength: 1 },
+      options: { maxLength: 32, minLength: 1 },
     },
     {
       destruct: (value: AlbListenerActionForwardConfigSchema['TargetGroups']): number[] => value.map((v) => v.Weight),
       options: { maxLength: 999, minLength: 0 },
     },
   ])
-  TargetGroups: { targetGroupName: string; Weight: number }[];
+  TargetGroups = Schema<{ targetGroupName: string; Weight: number }[]>();
 
   @Validate<unknown>([
-    {
-      destruct: (value: AlbListenerActionForwardConfigSchema['TargetGroupStickinessConfig']): string[] => {
-        const subjects: string[] = [];
-        if (value) {
-          subjects.push(String(value.Enabled));
-        }
-        return subjects;
-      },
-      options: { minLength: 1 },
-    },
     {
       destruct: (value: AlbListenerActionForwardConfigSchema['TargetGroupStickinessConfig']): number[] => {
         const subjects: number[] = [];
@@ -64,31 +54,59 @@ export class AlbListenerActionForwardConfigSchema {
       },
       options: { maxLength: 604800, minLength: 1 },
     },
+    {
+      destruct: (value: AlbListenerActionForwardConfigSchema['TargetGroupStickinessConfig']): string[] => {
+        const subjects: string[] = [];
+        if (value) {
+          subjects.push(String(value.Enabled));
+        }
+        return subjects;
+      },
+      options: { minLength: 1 },
+    },
   ])
-  TargetGroupStickinessConfig?: {
+  TargetGroupStickinessConfig? = Schema<{
     DurationSeconds: number;
     Enabled: boolean;
-  };
+  } | null>(null);
 }
 
 export class AlbListenerActionRedirectActionSchema {
-  @Validate({ options: { minLength: 1 } })
-  Host?: string;
+  @Validate({
+    destruct: (value: AlbListenerActionRedirectActionSchema['Host']): string[] => (value ? [value] : []),
+    options: { minLength: 1 },
+  })
+  Host? = Schema<string | null>(null);
 
-  @Validate({ options: { minLength: 1 } })
-  Path?: string;
+  @Validate({
+    destruct: (value: AlbListenerActionRedirectActionSchema['Path']): string[] => (value ? [value] : []),
+    options: { minLength: 1 },
+  })
+  Path? = Schema<string | null>(null);
 
-  @Validate({ options: { maxLength: 65535, minLength: 0 } })
-  Port?: number;
+  @Validate({
+    destruct: (value: AlbListenerActionRedirectActionSchema['Port']): number[] => (value ? [value] : []),
+    options: { maxLength: 65535, minLength: 0 },
+  })
+  Port? = Schema<number | null>(null);
 
-  @Validate({ options: { minLength: 1 } })
-  Protocol?: 'HTTP' | 'HTTPS';
+  @Validate({
+    destruct: (value: AlbListenerActionRedirectActionSchema['Protocol']): string[] => (value ? [value] : []),
+    options: { minLength: 1 },
+  })
+  Protocol? = Schema<'HTTP' | 'HTTPS' | null>(null);
 
-  @Validate({ options: { minLength: 1 } })
-  Query?: string;
+  @Validate({
+    destruct: (value: AlbListenerActionRedirectActionSchema['Query']): string[] => (value ? [value] : []),
+    options: { minLength: 1 },
+  })
+  Query? = Schema<string | null>(null);
 
-  @Validate({ options: { maxLength: 302, minLength: 301 } })
-  StatusCode: 301 | 302;
+  @Validate({
+    destruct: (value: AlbListenerActionRedirectActionSchema['StatusCode']): number[] => (value ? [value] : []),
+    options: { maxLength: 302, minLength: 301 },
+  })
+  StatusCode = Schema<301 | 302 | null>(null);
 }
 
 export class AlbListenerRuleHostHeaderConditionSchema {
@@ -99,12 +117,12 @@ export class AlbListenerRuleHostHeaderConditionSchema {
       options: { maxLength: 128, minLength: 1 },
     },
   ])
-  Values: string[];
+  Values = Schema<string[]>();
 }
 
 export class AlbListenerRuleHttpHeaderConditionSchema {
   @Validate({ options: { maxLength: 40, minLength: 1 } })
-  HttpHeaderName: string;
+  HttpHeaderName = Schema<string>();
 
   @Validate([
     { options: { minLength: 1 } },
@@ -113,7 +131,7 @@ export class AlbListenerRuleHttpHeaderConditionSchema {
       options: { maxLength: 128, minLength: 1 },
     },
   ])
-  Values: string[];
+  Values = Schema<string[]>();
 }
 
 export class AlbListenerRuleHttpRequestMethodConditionSchema {
@@ -124,7 +142,7 @@ export class AlbListenerRuleHttpRequestMethodConditionSchema {
       options: { maxLength: 40, minLength: 1, regex: /^[A-Z-_]+$/ },
     },
   ])
-  Values: string[];
+  Values = Schema<string[]>();
 }
 
 export class AlbListenerRulePathPatternConditionSchema {
@@ -135,7 +153,7 @@ export class AlbListenerRulePathPatternConditionSchema {
       options: { maxLength: 128, minLength: 1 },
     },
   ])
-  Values: string[];
+  Values = Schema<string[]>();
 }
 
 export class AlbListenerRuleQueryStringConditionSchema {
@@ -150,7 +168,7 @@ export class AlbListenerRuleQueryStringConditionSchema {
       options: { maxLength: 128, minLength: 1 },
     },
   ])
-  Values: { Key: string; Value: string }[];
+  Values = Schema<{ Key: string; Value: string }[]>();
 }
 
 export class AlbListenerRuleSourceIpConditionSchema {
@@ -161,7 +179,7 @@ export class AlbListenerRuleSourceIpConditionSchema {
       options: { maxLength: 15, minLength: 7 },
     },
   ])
-  Values: string[];
+  Values = Schema<string[]>();
 }
 
 export class AlbListenerSchema extends BaseResourceSchema {

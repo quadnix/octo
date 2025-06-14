@@ -3,19 +3,19 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 class SecurityGroupRuleSchema {
   @Validate({ options: { minLength: 1 } })
-  CidrBlock: string;
+  CidrBlock = Schema<string>();
 
   @Validate({ options: { minLength: 1 } })
-  Egress: boolean;
+  Egress = Schema<boolean>();
+
+  @Validate({ options: { maxLength: 65535, minLength: -1 } })
+  FromPort = Schema<number>();
 
   @Validate({ options: { minLength: 1 } })
-  FromPort: number;
+  IpProtocol = Schema<string>();
 
-  @Validate({ options: { minLength: 1 } })
-  IpProtocol: string;
-
-  @Validate({ options: { minLength: 1 } })
-  ToPort: number;
+  @Validate({ options: { maxLength: 65535, minLength: -1 } })
+  ToPort = Schema<number>();
 }
 
 export class SecurityGroupSchema extends BaseResourceSchema {

@@ -2,25 +2,25 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 class NetworkAclEntrySchema {
   @Validate({ options: { minLength: 1 } })
-  CidrBlock: string;
+  CidrBlock = Schema<string>();
 
   @Validate({ options: { minLength: 1 } })
-  Egress: boolean;
+  Egress = Schema<boolean>();
 
   @Validate({
     destruct: (value: NetworkAclEntrySchema['PortRange']): number[] => [value.From, value.To],
     options: { maxLength: 65535, minLength: -1 },
   })
-  PortRange: { From: number; To: number };
+  PortRange = Schema<{ From: number; To: number }>();
 
   @Validate({ options: { minLength: 1 } })
-  Protocol: string;
+  Protocol = Schema<string>();
 
   @Validate({ options: { minLength: 1 } })
-  RuleAction: 'allow' | 'deny';
+  RuleAction = Schema<'allow' | 'deny'>();
 
   @Validate({ options: { minLength: 1 } })
-  RuleNumber: number;
+  RuleNumber = Schema<number>();
 }
 
 export class NetworkAclSchema extends BaseResourceSchema {

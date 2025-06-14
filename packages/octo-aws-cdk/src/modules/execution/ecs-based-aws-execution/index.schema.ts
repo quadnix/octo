@@ -53,7 +53,7 @@ export class AwsExecutionModuleDeploymentContainerPropertiesImageSchema {
 
 export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
   @Validate({ destruct: (value: number | null): number[] => (value ? [value] : []), options: { minLength: 1 } })
-  cpu?: (256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384) | null = Schema(null);
+  cpu? = Schema<(256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384) | null>(null);
 
   @Validate({
     options: { isSchema: { schema: AwsExecutionModuleDeploymentContainerPropertiesImageSchema } },
@@ -61,7 +61,7 @@ export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
   image = Schema<AwsExecutionModuleDeploymentContainerPropertiesImageSchema>();
 
   @Validate({ destruct: (value: number | null): number[] => (value ? [value] : []), options: { minLength: 1 } })
-  memory?: number | null = Schema(null);
+  memory? = Schema<number | null>(null);
 }
 
 export class AwsExecutionModuleSchema {

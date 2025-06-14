@@ -1,9 +1,10 @@
+import { Schema } from '../functions/schema/schema.js';
 import type { IModelReference } from '../models/model.interface.js';
 
 export class BaseAnchorSchema {
-  anchorId: string;
+  anchorId = Schema<string>();
 
-  parent: IModelReference;
+  parent = Schema<IModelReference>();
 
-  properties: { [key: string]: unknown };
+  properties = Schema<{ [key: string]: unknown }>();
 }

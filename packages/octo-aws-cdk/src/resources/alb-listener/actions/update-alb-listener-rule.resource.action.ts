@@ -98,12 +98,12 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
           return [
             {
               RedirectConfig: {
-                Host: action.action.Host,
-                Path: action.action.Path,
-                Port: String(action.action.Port),
-                Protocol: action.action.Protocol,
-                Query: action.action.Query,
-                StatusCode: `HTTP_${action.action.StatusCode}`,
+                Host: action.action.Host ?? undefined,
+                Path: action.action.Path ?? undefined,
+                Port: action.action.Port ? String(action.action.Port) : undefined,
+                Protocol: action.action.Protocol ?? undefined,
+                Query: action.action.Query ?? undefined,
+                StatusCode: action.action.StatusCode ? `HTTP_${action.action.StatusCode}` : undefined,
               },
               Type: 'redirect',
             },
