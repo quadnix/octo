@@ -456,7 +456,7 @@ describe('TransactionService UT', () => {
       it('should throw error if action does not resolve in time', async () => {
         (universalResourceActionWithTimeout.handle as jest.Mocked<any>).mockImplementationOnce(
           async (): Promise<void> => {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 200));
           },
         );
 
