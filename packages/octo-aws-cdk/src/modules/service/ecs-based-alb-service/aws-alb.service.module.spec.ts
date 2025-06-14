@@ -4,6 +4,7 @@ import { jest } from '@jest/globals';
 import {
   type Account,
   type App,
+  MatchingResource,
   type Region,
   type Subnet,
   SubnetType,
@@ -12,10 +13,16 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { AwsRegionAnchorSchema, VpcSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
-import type { SubnetSchema } from '../../../modules/subnet/simple-aws-subnet/index.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import type { EcsServiceAnchorSchema } from '../../../anchors/ecs-service/ecs-service.anchor.schema.js';
+import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
+// eslint-disable-next-line boundaries/element-types
+import { EcsService } from '../../../resources/ecs-service/index.js';
+import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
+import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
+import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
+import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { SecurityGroupSchema } from './index.schema.js';
 import { AwsAlbServiceModule } from './index.js';
 
 async function setup(
@@ -24,15 +31,30 @@ async function setup(
   const {
     account: [account],
     app: [app],
+    execution: [execution],
     region: [region],
     subnet: [subnet],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
     app: ['test-app'],
+    deployment: ['v1'],
+    environment: ['qa'],
+    execution: [':0:0:0'],
     region: ['region'],
+    server: ['backend'],
     subnet: ['public-subnet'],
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
+
+  execution.addAnchor(
+    testModuleContainer.createTestAnchor<EcsServiceAnchorSchema>(
+      'EcsServiceAnchorSchema',
+      {
+        desiredCount: 1,
+      },
+      execution,
+    ),
+  );
 
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
@@ -44,9 +66,17 @@ async function setup(
 
   subnet.subnetType = SubnetType.PUBLIC;
 
-  await testModuleContainer.createTestResources<[SubnetSchema, VpcSchema]>(
+  const testResources = await testModuleContainer.createTestResources<
+    [EcsClusterSchema, EcsTaskDefinitionSchema, SubnetSchema, VpcSchema]
+  >(
     'testModule',
     [
+      {
+        resourceContext: '@octo/ecs-cluster=ecs-cluster-region-qa',
+      },
+      {
+        resourceContext: '@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-public-subnet',
+      },
       {
         properties: {
           AvailabilityZone: 'us-east-1a',
@@ -72,6 +102,26 @@ async function setup(
     ],
     { save: true },
   );
+
+  const ecsService = new EcsService(
+    'ecs-service-backend-v1-region-qa-public-subnet',
+    {
+      assignPublicIp: 'ENABLED',
+      awsAccountId: '123',
+      awsRegionId: 'us-east-1',
+      desiredCount: 1,
+      loadBalancers: [],
+      serviceName: 'backend',
+    },
+    [
+      new MatchingResource(testResources['@octo/ecs-cluster=ecs-cluster-region-qa']),
+      new MatchingResource(
+        testResources['@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-public-subnet'],
+      ),
+      new MatchingResource(testResources['@octo/subnet=subnet-region-public-subnet']),
+    ],
+  );
+  await testModuleContainer.createResources('testModule', [ecsService], { save: true });
 
   return { account, app, region, subnet };
 }
@@ -135,8 +185,23 @@ describe('AwsAlbServiceModule UT', () => {
     await testModuleContainer.runModule<AwsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
+        listeners: [
+          {
+            DefaultActions: [
+              {
+                action: { ContentType: 'text/plain', MessageBody: 'Not Found!', StatusCode: 404 },
+                actionType: 'fixed-response',
+              },
+            ],
+            Port: 80,
+            rules: [],
+          },
+        ],
         region: stub('${{testModule.model.region}}'),
         subnets: [{ subnetCidrBlock: '10.0.0.0/24', subnetName: 'public-subnet' }],
+        targets: [
+          { containerName: 'test-container', containerPort: 80, execution: stub('${{testModule.model.execution}}') },
+        ],
       },
       moduleId: 'alb-module',
       type: AwsAlbServiceModule,
@@ -151,6 +216,9 @@ describe('AwsAlbServiceModule UT', () => {
        [
          "AddAlbServiceModelAction",
        ],
+       [
+         "AddTargetGroupOverlayAction",
+       ],
      ]
     `);
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
@@ -161,6 +229,12 @@ describe('AwsAlbServiceModule UT', () => {
        [
          "AddAlbResourceAction",
        ],
+       [
+         "AddAlbListenerResourceAction",
+       ],
+       [
+         "UpdateAlbListenerResourceAction",
+       ],
      ]
     `);
   });
@@ -170,6 +244,7 @@ describe('AwsAlbServiceModule UT', () => {
     await testModuleContainer.runModule<AwsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
+        listeners: [],
         region: stub('${{testModule.model.region}}'),
         subnets: [{ subnetCidrBlock: '10.0.0.0/24', subnetName: 'public-subnet' }],
       },

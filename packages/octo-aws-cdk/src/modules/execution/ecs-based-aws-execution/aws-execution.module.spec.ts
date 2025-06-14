@@ -15,29 +15,23 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { EcsTaskDefinitionAnchorSchema } from '../../../modules/deployment/ecs-based-aws-deployment/index.schema.js';
-import type {
-  EcsClusterAnchorSchema,
-  EcsClusterSchema,
-} from '../../../modules/environment/ecs-based-aws-environment/index.schema.js';
-import type {
-  EfsFilesystemAnchorSchema,
-  EfsSchema,
-} from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
-import type { AwsRegionAnchorSchema, VpcSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
-import type { IamRoleAnchorSchema, IamRoleSchema } from '../../../modules/server/ecs-based-aws-server/index.schema.js';
-import type {
-  EfsMountTargetSchema,
-  SubnetLocalFilesystemMountAnchorSchema,
-  SubnetSchema,
-} from '../../../modules/subnet/simple-aws-subnet/index.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import type { EcsClusterAnchorSchema } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.schema.js';
+import type { EcsTaskDefinitionAnchorSchema } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.schema.js';
+import type { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
+import type { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.schema.js';
+import type { SecurityGroupAnchorSchema } from '../../../anchors/security-group/security-group.anchor.schema.js';
+import type { SubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.schema.js';
+import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
+import type { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
+import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
+import type { EfsSchema } from '../../../resources/efs/index.schema.js';
+import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
+import type { IamRoleSchema } from '../../../resources/iam-role/index.schema.js';
+import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
+import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
+import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type {
-  EcsServiceSchema,
-  EcsTaskDefinitionSchema,
-  SecurityGroupAnchorSchema,
-  SecurityGroupSchema,
-} from './index.schema.js';
 import { AwsExecutionModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{

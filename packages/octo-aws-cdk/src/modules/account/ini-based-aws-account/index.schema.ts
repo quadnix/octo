@@ -1,7 +1,4 @@
 import { type App, AppSchema, Schema, Validate } from '@quadnix/octo';
-import { AwsAccountSchema } from './models/account/aws.account.schema.js';
-
-export { AwsAccountSchema };
 
 export class AwsAccountModuleSchema {
   @Validate({ options: { minLength: 1 } })

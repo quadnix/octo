@@ -9,8 +9,8 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { AwsRegionAnchorSchema } from '../../region/per-az-aws-region/index.schema.js';
-import type { EcsClusterSchema } from './index.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 import { AwsEnvironmentModule } from './index.js';
 
 async function setup(

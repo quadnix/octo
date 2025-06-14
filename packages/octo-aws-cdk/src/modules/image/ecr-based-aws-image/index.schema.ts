@@ -1,9 +1,5 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { EcrImageSchema } from '../../../resources/ecr/index.schema.js';
-import { AwsImageSchema } from './models/image/aws.image.schema.js';
-
-export { AwsImageSchema, EcrImageSchema };
 
 export class AwsImageModuleSchema {
   @Validate({ options: { minLength: 1 } })

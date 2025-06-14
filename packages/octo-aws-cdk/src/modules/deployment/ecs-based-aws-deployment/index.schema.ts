@@ -5,9 +5,6 @@ import {
   EcsTaskDefinitionAnchorSchema,
 } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.schema.js';
 import { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.schema.js';
-import { AwsDeploymentSchema } from './models/deployment/aws.deployment.schema.js';
-
-export { AwsDeploymentSchema, EcsTaskDefinitionAnchorPropertiesSchema, EcsTaskDefinitionAnchorSchema };
 
 export class AwsDeploymentModuleSchema {
   @Validate({ options: { isSchema: { schema: EcsTaskDefinitionAnchorPropertiesSchema } } })

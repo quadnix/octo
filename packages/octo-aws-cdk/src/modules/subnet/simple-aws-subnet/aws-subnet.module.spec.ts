@@ -14,23 +14,17 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type {
-  EfsFilesystemAnchorSchema,
-  EfsSchema,
-} from '../../../modules/filesystem/efs-based-aws-filesystem/index.schema.js';
-import type {
-  AwsRegionAnchorSchema,
-  InternetGatewaySchema,
-  VpcSchema,
-} from '../../../modules/region/per-az-aws-region/index.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import type { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
+import type { EfsSchema } from '../../../resources/efs/index.schema.js';
+import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
+import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
+import type { NetworkAclSchema } from '../../../resources/network-acl/index.schema.js';
+import type { RouteTableSchema } from '../../../resources/route-table/index.schema.js';
+import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
+import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
+import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type {
-  EfsMountTargetSchema,
-  NetworkAclSchema,
-  RouteTableSchema,
-  SecurityGroupSchema,
-  SubnetSchema,
-} from './index.schema.js';
 import { AwsSubnetModule } from './index.js';
 
 async function setup(

@@ -15,19 +15,19 @@ import {
   SubnetType,
   stub,
 } from '@quadnix/octo';
-import { AwsAccountModule } from '@quadnix/octo-aws-cdk/account/ini-based-aws-account';
-import { AppModule } from '@quadnix/octo-aws-cdk/app/simple-app';
-import { AwsDeploymentModule } from '@quadnix/octo-aws-cdk/deployment/ecs-based-aws-deployment';
-import { AwsEnvironmentModule } from '@quadnix/octo-aws-cdk/environment/ecs-based-aws-environment';
-import { AwsExecutionModule } from '@quadnix/octo-aws-cdk/execution/ecs-based-aws-execution';
-import { AwsFilesystemModule } from '@quadnix/octo-aws-cdk/filesystem/efs-based-aws-filesystem';
-import { AwsImageModule } from '@quadnix/octo-aws-cdk/image/ecr-based-aws-image';
-import { AwsRegionModule } from '@quadnix/octo-aws-cdk/region/per-az-aws-region';
-import { RegionId } from '@quadnix/octo-aws-cdk/region/per-az-aws-region/schema';
-import { AwsServerModule } from '@quadnix/octo-aws-cdk/server/ecs-based-aws-server';
-import { S3StorageAccess } from '@quadnix/octo-aws-cdk/server/ecs-based-aws-server/schema';
-import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/service/s3-storage-aws-service';
-import { AwsSubnetModule } from '@quadnix/octo-aws-cdk/subnet/simple-aws-subnet';
+import { AwsAccountModule } from '@quadnix/octo-aws-cdk/modules/account/ini-based-aws-account';
+import { AppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
+import { AwsDeploymentModule } from '@quadnix/octo-aws-cdk/modules/deployment/ecs-based-aws-deployment';
+import { AwsEnvironmentModule } from '@quadnix/octo-aws-cdk/modules/environment/ecs-based-aws-environment';
+import { AwsExecutionModule } from '@quadnix/octo-aws-cdk/modules/execution/ecs-based-aws-execution';
+import { AwsFilesystemModule } from '@quadnix/octo-aws-cdk/modules/filesystem/efs-based-aws-filesystem';
+import { AwsImageModule } from '@quadnix/octo-aws-cdk/modules/image/ecr-based-aws-image';
+import { AwsRegionModule } from '@quadnix/octo-aws-cdk/modules/region/per-az-aws-region';
+import { RegionId } from '@quadnix/octo-aws-cdk/modules/region/per-az-aws-region/schema';
+import { AwsServerModule } from '@quadnix/octo-aws-cdk/modules/server/ecs-based-aws-server';
+import { S3StorageAccess } from '@quadnix/octo-aws-cdk/modules/server/ecs-based-aws-server/schema';
+import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/modules/service/s3-storage-aws-service';
+import { AwsSubnetModule } from '@quadnix/octo-aws-cdk/modules/subnet/simple-aws-subnet';
 import { EventLoggerListener } from '@quadnix/octo-event-listeners';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

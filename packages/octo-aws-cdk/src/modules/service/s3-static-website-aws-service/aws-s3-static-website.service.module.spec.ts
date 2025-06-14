@@ -11,7 +11,7 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsS3StaticWebsiteServiceModule } from './index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

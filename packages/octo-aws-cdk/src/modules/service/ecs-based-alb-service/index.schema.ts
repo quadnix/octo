@@ -1,8 +1,6 @@
 import { type Execution, ExecutionSchema, type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
-import { AlbEcsExecutionAnchorSchema } from '../../../anchors/alb-ecs-execution/alb-ecs-execution.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { EcsServiceAnchorSchema } from '../../../anchors/ecs-service/ecs-service.anchor.schema.js';
-import { AlbSchema } from '../../../resources/alb/index.schema.js';
 import {
   AlbListenerActionFixedResponseActionSchema,
   AlbListenerActionForwardConfigSchema,
@@ -14,35 +12,11 @@ import {
   AlbListenerRuleQueryStringConditionSchema,
   AlbListenerRuleSourceIpConditionSchema,
   AlbListenerSchema,
-  type IAlbListenerActionTypes,
-  type IAlbListenerRuleTypes,
 } from '../../../resources/alb-listener/index.schema.js';
-import {
-  AlbTargetGroupHealthCheckSchema,
-  AlbTargetGroupSchema,
-} from '../../../resources/alb-target-group/index.schema.js';
-import { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
+import { AlbTargetGroupHealthCheckSchema } from '../../../resources/alb-target-group/index.schema.js';
+import { AwsAlbEcsExecutionSchema } from './overlays/alb-ecs-execution/aws-alb-ecs-execution.schema.js';
 
-export {
-  AlbEcsExecutionAnchorSchema,
-  AlbListenerActionFixedResponseActionSchema,
-  AlbListenerActionForwardConfigSchema,
-  AlbListenerActionRedirectActionSchema,
-  AlbListenerRuleHostHeaderConditionSchema,
-  AlbListenerRuleHttpHeaderConditionSchema,
-  AlbListenerRuleHttpRequestMethodConditionSchema,
-  AlbListenerRulePathPatternConditionSchema,
-  AlbListenerRuleQueryStringConditionSchema,
-  AlbListenerRuleSourceIpConditionSchema,
-  AlbListenerSchema,
-  AlbSchema,
-  AlbTargetGroupHealthCheckSchema,
-  AlbTargetGroupSchema,
-  EcsServiceAnchorSchema,
-  type IAlbListenerActionTypes,
-  type IAlbListenerRuleTypes,
-  SecurityGroupSchema,
-};
+export { AwsAlbEcsExecutionSchema };
 
 export class AwsAlbServiceModuleTargetGroupSchema {
   @Validate([

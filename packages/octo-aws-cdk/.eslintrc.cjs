@@ -86,6 +86,8 @@ module.exports = {
             allow: [
               ['module-index', { family: '${from.family}' }],
               ['module-schema-index', { family: '${from.family}' }],
+              'anchor-schema',
+              'resource-schema-index',
               'module-schema-index',
               'utilities',
             ],

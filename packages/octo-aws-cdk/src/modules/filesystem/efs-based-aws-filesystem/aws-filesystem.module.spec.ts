@@ -9,9 +9,9 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { AwsRegionAnchorSchema } from '../../../modules/region/per-az-aws-region/index.schema.js';
+import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { EfsSchema } from './index.schema.js';
 import { AwsFilesystemModule } from './index.js';
 
 async function setup(

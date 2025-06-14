@@ -9,25 +9,9 @@ import {
 } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
-import { SubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.schema.js';
-import { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
-import { NetworkAclSchema } from '../../../resources/network-acl/index.schema.js';
-import { RouteTableSchema } from '../../../resources/route-table/index.schema.js';
-import { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
-import { SubnetSchema } from '../../../resources/subnet/index.schema.js';
-import { AwsSubnetSchema } from './models/subnet/aws.subnet.schema.js';
 import { AwsSubnetLocalFilesystemMountSchema } from './overlays/subnet-local-filesystem-mount/aws-subnet-local-filesystem-mount.schema.js';
 
-export {
-  AwsSubnetLocalFilesystemMountSchema,
-  AwsSubnetSchema,
-  EfsMountTargetSchema,
-  NetworkAclSchema,
-  RouteTableSchema,
-  SecurityGroupSchema,
-  SubnetLocalFilesystemMountAnchorSchema,
-  SubnetSchema,
-};
+export { AwsSubnetLocalFilesystemMountSchema };
 
 export class AwsSubnetModuleSchema {
   @Validate({

@@ -1,11 +1,11 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { type Account, type App, LocalStateProvider, Octo, type Region, stub } from '@quadnix/octo';
-import { AwsAccountModule } from '@quadnix/octo-aws-cdk/account/ini-based-aws-account';
-import { AppModule } from '@quadnix/octo-aws-cdk/app/simple-app';
-import { AwsRegionModule } from '@quadnix/octo-aws-cdk/region/per-az-aws-region';
-import { RegionId } from '@quadnix/octo-aws-cdk/region/per-az-aws-region/schema';
-import { AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/service/s3-static-website-aws-service';
+import { AwsAccountModule } from '@quadnix/octo-aws-cdk/modules/account/ini-based-aws-account';
+import { AppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
+import { AwsRegionModule } from '@quadnix/octo-aws-cdk/modules/region/per-az-aws-region';
+import { RegionId } from '@quadnix/octo-aws-cdk/modules/region/per-az-aws-region/schema';
+import { AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/s3-static-website-aws-service';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const octoStatePath = join(__dirname, '.octo');

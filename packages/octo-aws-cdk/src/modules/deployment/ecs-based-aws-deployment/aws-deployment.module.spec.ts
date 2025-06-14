@@ -8,7 +8,8 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { EcsServerAnchorSchema, IamRoleAnchorSchema } from '../../server/ecs-based-aws-server/index.schema.js';
+import type { EcsServerAnchorSchema } from '../../../anchors/ecs-server/ecs-server.anchor.schema.js';
+import type { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.schema.js';
 import { AwsDeploymentModule } from './index.js';
 
 async function setup(
