@@ -185,7 +185,7 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     for (const currentRule of this.properties.rules) {
       if (!previous.properties.rules.find((r) => r.Priority === currentRule.Priority)) {
         const addRuleDiff: IAlbListenerAddRuleDiff = { action: 'add', rule: currentRule };
-        diffs.push(new Diff(this, DiffAction.ADD, 'properties', { Rule: addRuleDiff }));
+        diffs.push(new Diff(this, DiffAction.UPDATE, 'properties', { Rule: addRuleDiff }));
       }
     }
 

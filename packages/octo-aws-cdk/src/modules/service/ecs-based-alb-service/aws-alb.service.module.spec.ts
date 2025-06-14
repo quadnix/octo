@@ -1,4 +1,5 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
+import { ECSClient } from '@aws-sdk/client-ecs';
 import { ElasticLoadBalancingV2Client } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { jest } from '@jest/globals';
 import {
@@ -15,9 +16,11 @@ import {
 } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { EcsServiceAnchorSchema } from '../../../anchors/ecs-service/ecs-service.anchor.schema.js';
+import { type AlbListenerSchema } from '../../../resources/alb-listener/index.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 // eslint-disable-next-line boundaries/element-types
 import { EcsService } from '../../../resources/ecs-service/index.js';
+import type { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
 import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
 import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
@@ -72,10 +75,40 @@ async function setup(
     'testModule',
     [
       {
+        properties: {
+          awsAccountId: '123',
+          awsRegionId: 'us-east-1',
+          clusterName: 'region-qa',
+        },
         resourceContext: '@octo/ecs-cluster=ecs-cluster-region-qa',
+        response: {
+          clusterArn: 'clusterArn',
+        },
       },
       {
+        properties: {
+          awsAccountId: '123',
+          awsRegionId: 'us-east-1',
+          cpu: 256,
+          deploymentTag: 'v1',
+          environmentVariables: [],
+          family: 'backend',
+          images: [
+            {
+              command: [],
+              essential: true,
+              name: 'test-container',
+              ports: [{ containerPort: 80, protocol: 'tcp' }],
+              uri: '',
+            },
+          ],
+          memory: 512,
+        },
         resourceContext: '@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-public-subnet',
+        response: {
+          revision: 1,
+          taskDefinitionArn: 'taskDefinitionArn',
+        },
       },
       {
         properties: {
@@ -147,6 +180,15 @@ describe('AwsAlbServiceModule UT', () => {
           },
           {
             metadata: { package: '@octo' },
+            type: ECSClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
+          {
+            metadata: { package: '@octo' },
             type: ElasticLoadBalancingV2Client,
             value: {
               send: (): void => {
@@ -167,6 +209,19 @@ describe('AwsAlbServiceModule UT', () => {
     });
 
     // Register resource captures.
+    testModuleContainer.registerCapture<AlbListenerSchema>('@octo/alb-listener=alb-listener-test-alb', {
+      ListenerArn: 'ListenerArn',
+      Rules: [
+        { Priority: 1, RuleArn: 'RuleArn1' },
+        { Priority: 2, RuleArn: 'RuleArn2' },
+      ],
+    });
+    testModuleContainer.registerCapture<EcsServiceSchema>(
+      '@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet',
+      {
+        serviceArn: 'serviceArn',
+      },
+    );
     testModuleContainer.registerCapture<SecurityGroupSchema>('@octo/security-group=sec-grp-region-test-alb', {
       GroupId: 'GroupId',
       Rules: { egress: [], ingress: [] },
@@ -189,8 +244,10 @@ describe('AwsAlbServiceModule UT', () => {
           {
             DefaultActions: [
               {
-                action: { ContentType: 'text/plain', MessageBody: 'Not Found!', StatusCode: 404 },
-                actionType: 'fixed-response',
+                action: {
+                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                },
+                actionType: 'forward',
               },
             ],
             Port: 80,
@@ -200,7 +257,12 @@ describe('AwsAlbServiceModule UT', () => {
         region: stub('${{testModule.model.region}}'),
         subnets: [{ subnetCidrBlock: '10.0.0.0/24', subnetName: 'public-subnet' }],
         targets: [
-          { containerName: 'test-container', containerPort: 80, execution: stub('${{testModule.model.execution}}') },
+          {
+            containerName: 'test-container',
+            containerPort: 80,
+            execution: stub('${{testModule.model.execution}}'),
+            Name: 'test-container-80',
+          },
         ],
       },
       moduleId: 'alb-module',
@@ -225,6 +287,7 @@ describe('AwsAlbServiceModule UT', () => {
      [
        [
          "AddSecurityGroupResourceAction",
+         "AddAlbTargetGroupResourceAction",
        ],
        [
          "AddAlbResourceAction",
@@ -244,9 +307,30 @@ describe('AwsAlbServiceModule UT', () => {
     await testModuleContainer.runModule<AwsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
-        listeners: [],
+        listeners: [
+          {
+            DefaultActions: [
+              {
+                action: {
+                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                },
+                actionType: 'forward',
+              },
+            ],
+            Port: 80,
+            rules: [],
+          },
+        ],
         region: stub('${{testModule.model.region}}'),
         subnets: [{ subnetCidrBlock: '10.0.0.0/24', subnetName: 'public-subnet' }],
+        targets: [
+          {
+            containerName: 'test-container',
+            containerPort: 80,
+            execution: stub('${{testModule.model.execution}}'),
+            Name: 'test-container-80',
+          },
+        ],
       },
       moduleId: 'alb-module',
       type: AwsAlbServiceModule,
@@ -268,16 +352,256 @@ describe('AwsAlbServiceModule UT', () => {
            "node": "@octo/alb=alb-region-test-alb",
            "value": "@octo/alb=alb-region-test-alb",
          },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet",
+           "value": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/alb-listener=alb-listener-test-alb",
+           "value": "@octo/alb-listener=alb-listener-test-alb",
+         },
+         {
+           "action": "update",
+           "field": "properties",
+           "node": "@octo/alb-listener=alb-listener-test-alb",
+           "value": {
+             "DefaultActions": [],
+           },
+         },
+       ],
+       [
+         {
+           "action": "update",
+           "field": "resourceId",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet",
+           "value": "",
+         },
+       ],
+     ]
+    `);
+
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsAlbServiceModule>({
+      inputs: {
+        albName: 'test-alb',
+        listeners: [
+          {
+            DefaultActions: [
+              {
+                action: {
+                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                },
+                actionType: 'forward',
+              },
+            ],
+            Port: 80,
+            rules: [
+              {
+                actions: [
+                  {
+                    action: { ContentType: 'text/plain', MessageBody: 'Not implemented!', StatusCode: 404 },
+                    actionType: 'fixed-response',
+                  },
+                ],
+                conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
+                Priority: 1,
+              },
+            ],
+          },
+        ],
+        region: stub('${{testModule.model.region}}'),
+        subnets: [{ subnetCidrBlock: '10.0.0.0/24', subnetName: 'public-subnet' }],
+        targets: [
+          {
+            containerName: 'test-container',
+            containerPort: 80,
+            execution: stub('${{testModule.model.execution}}'),
+            Name: 'test-container-80',
+          },
+        ],
+      },
+      moduleId: 'alb-module',
+      type: AwsAlbServiceModule,
+    });
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "properties",
+           "node": "@octo/alb-listener=alb-listener-test-alb",
+           "value": {
+             "Rule": {
+               "action": "add",
+               "rule": {
+                 "Priority": 1,
+                 "actions": [
+                   {
+                     "action": {
+                       "ContentType": "text/plain",
+                       "MessageBody": "Not implemented!",
+                       "StatusCode": 404,
+                     },
+                     "actionType": "fixed-response",
+                   },
+                 ],
+                 "conditions": [
+                   {
+                     "condition": {
+                       "Values": [
+                         "/api",
+                       ],
+                     },
+                     "conditionType": "path-pattern",
+                   },
+                 ],
+               },
+             },
+           },
+         },
        ],
        [],
      ]
     `);
 
-    const { app: app2 } = await setup(testModuleContainer);
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsAlbServiceModule>({
+      inputs: {
+        albName: 'test-alb',
+        listeners: [
+          {
+            DefaultActions: [
+              {
+                action: {
+                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                },
+                actionType: 'forward',
+              },
+            ],
+            Port: 80,
+            rules: [
+              {
+                actions: [
+                  {
+                    action: { TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }] },
+                    actionType: 'forward',
+                  },
+                ],
+                conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
+                Priority: 2,
+              },
+            ],
+          },
+        ],
+        region: stub('${{testModule.model.region}}'),
+        subnets: [{ subnetCidrBlock: '10.0.0.0/24', subnetName: 'public-subnet' }],
+        targets: [
+          {
+            containerName: 'test-container',
+            containerPort: 80,
+            execution: stub('${{testModule.model.execution}}'),
+            Name: 'test-container-80',
+          },
+        ],
+      },
+      moduleId: 'alb-module',
+      type: AwsAlbServiceModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
+         {
+           "action": "update",
+           "field": "properties",
+           "node": "@octo/alb-listener=alb-listener-test-alb",
+           "value": {
+             "Rule": {
+               "RuleArn": "RuleArn1",
+               "action": "delete",
+               "rule": {
+                 "Priority": 1,
+                 "actions": [
+                   {
+                     "action": {
+                       "ContentType": "text/plain",
+                       "MessageBody": "Not implemented!",
+                       "StatusCode": 404,
+                     },
+                     "actionType": "fixed-response",
+                   },
+                 ],
+                 "conditions": [
+                   {
+                     "condition": {
+                       "Values": [
+                         "/api",
+                       ],
+                     },
+                     "conditionType": "path-pattern",
+                   },
+                 ],
+               },
+             },
+           },
+         },
+         {
+           "action": "update",
+           "field": "properties",
+           "node": "@octo/alb-listener=alb-listener-test-alb",
+           "value": {
+             "Rule": {
+               "action": "add",
+               "rule": {
+                 "Priority": 2,
+                 "actions": [
+                   {
+                     "action": {
+                       "TargetGroups": [
+                         {
+                           "Weight": 100,
+                           "targetGroupName": "test-container-80",
+                         },
+                       ],
+                     },
+                     "actionType": "forward",
+                   },
+                 ],
+                 "conditions": [
+                   {
+                     "condition": {
+                       "Values": [
+                         "/api",
+                       ],
+                     },
+                     "conditionType": "path-pattern",
+                   },
+                 ],
+               },
+             },
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app4 } = await setup(testModuleContainer);
+    const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
+    expect(result4.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "delete",
+           "field": "resourceId",
+           "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet",
+           "value": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet",
+         },
          {
            "action": "delete",
            "field": "resourceId",
@@ -285,10 +609,22 @@ describe('AwsAlbServiceModule UT', () => {
            "value": "@octo/security-group=sec-grp-region-test-alb",
          },
          {
+           "action": "update",
+           "field": "resourceId",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet",
+           "value": "",
+         },
+         {
            "action": "delete",
            "field": "resourceId",
            "node": "@octo/alb=alb-region-test-alb",
            "value": "@octo/alb=alb-region-test-alb",
+         },
+         {
+           "action": "delete",
+           "field": "resourceId",
+           "node": "@octo/alb-listener=alb-listener-test-alb",
+           "value": "@octo/alb-listener=alb-listener-test-alb",
          },
        ],
        [],
