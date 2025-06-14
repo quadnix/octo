@@ -19,6 +19,12 @@ import { AwsAlbEcsExecutionSchema } from './overlays/alb-ecs-execution/aws-alb-e
 export { AwsAlbEcsExecutionSchema };
 
 export class AwsAlbServiceModuleTargetGroupSchema {
+  @Validate({ options: { maxLength: 20, minLength: 1 } })
+  containerName = Schema<string>();
+
+  @Validate({ options: { maxLength: 65535, minLength: 0 } })
+  containerPort = Schema<number>();
+
   @Validate([
     {
       options: {
@@ -41,11 +47,8 @@ export class AwsAlbServiceModuleTargetGroupSchema {
   })
   healthCheck? = Schema<AlbTargetGroupHealthCheckSchema | null>(null);
 
-  @Validate({ options: { maxLength: 20, minLength: 1 } })
-  containerName = Schema<string>();
-
-  @Validate({ options: { maxLength: 65535, minLength: 0 } })
-  containerPort = Schema<number>();
+  @Validate({ options: { maxLength: 32, minLength: 1 } })
+  Name = Schema<string>();
 }
 
 export class AwsAlbServiceModuleSchema {

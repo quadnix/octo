@@ -15,7 +15,6 @@ import type { AlbTargetGroupSchema } from '../../../../../../resources/alb-targe
 import { EcsService } from '../../../../../../resources/ecs-service/index.js';
 import { EcsServiceSchema } from '../../../../../../resources/ecs-service/index.schema.js';
 import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
-import { CommonUtility } from '../../../../../../utilities/common/common.utility.js';
 import type { AwsAlbServiceModule } from '../../../aws-alb.service.module.js';
 import { AwsAlbEcsExecutionOverlay } from '../aws-alb-ecs-execution.overlay.js';
 
@@ -48,12 +47,6 @@ export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceMo
 
     const albTargetGroups: AlbTargetGroup[] = [];
     for (const target of actionInputs.inputs.targets!) {
-      const albTargetGroupName = [
-        target.containerName,
-        target.containerPort,
-        CommonUtility.hash(target.execution.executionId).substring(0, 5),
-      ].join('-');
-
       const albTargetGroup = new AlbTargetGroup(
         `alb-target-group-${target.execution.executionId}`,
         {
@@ -61,7 +54,7 @@ export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceMo
           awsRegionId,
           healthCheck: target.healthCheck || undefined,
           IpAddressType: 'ipv4',
-          Name: albTargetGroupName,
+          Name: target.Name,
           Port: target.containerPort,
           Protocol: 'HTTP',
           ProtocolVersion: 'HTTP1',
@@ -99,23 +92,6 @@ export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceMo
         `alb-${actionInputs.inputs.region.regionId}-${actionInputs.inputs.albName}`
       ] as Alb;
 
-      const forwardConfigActionTargetGroupNames = Array.from(
-        new Set([
-          ...listener.DefaultActions.filter((a) => a.actionType === 'forward')
-            .map((a) => a.action.TargetGroups.map((t) => t.targetGroupName))
-            .flat(),
-          ...listener.rules
-            .map((r) => r.actions)
-            .flat()
-            .filter((a) => a.actionType === 'forward')
-            .map((a) => a.action.TargetGroups.map((t) => t.targetGroupName))
-            .flat(),
-        ]),
-      );
-      const forwardConfigActionTargetGroups = albTargetGroups.filter((t) =>
-        forwardConfigActionTargetGroupNames.includes(t.properties.Name),
-      );
-
       const albListener = new AlbListener(
         `alb-listener-${actionInputs.inputs.albName}`,
         {
@@ -128,9 +104,7 @@ export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceMo
         },
         [
           new MatchingResource(alb),
-          ...(forwardConfigActionTargetGroups.map(
-            (t) => new MatchingResource(t),
-          ) as MatchingResource<AlbTargetGroupSchema>[]),
+          ...(albTargetGroups.map((t) => new MatchingResource(t)) as MatchingResource<AlbTargetGroupSchema>[]),
         ],
       );
       actionOutputs[albListener.resourceId] = albListener;

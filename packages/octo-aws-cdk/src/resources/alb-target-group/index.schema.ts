@@ -38,12 +38,15 @@ export class AlbTargetGroupSchema extends BaseResourceSchema {
         value.awsAccountId,
         value.awsRegionId,
         value.IpAddressType,
-        value.Name,
         value.Protocol,
         value.ProtocolVersion,
         value.TargetType,
       ],
       options: { minLength: 1 },
+    },
+    {
+      destruct: (value: AlbTargetGroupSchema['properties']): string[] => [value.Name],
+      options: { maxLength: 32, minLength: 1 },
     },
     {
       destruct: (value: AlbTargetGroupSchema['properties']): number[] => [value.Port],
