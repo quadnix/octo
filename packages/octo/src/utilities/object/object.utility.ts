@@ -17,7 +17,9 @@ export class ObjectUtility {
       if (this.isPlainObject(sourceValue) && this.isPlainObject(targetValue)) {
         this.deepMergeInPlace(targetValue, sourceValue);
       } else if (Array.isArray(sourceValue) && Array.isArray(targetValue)) {
-        target[key] = Array.from(new Set([...targetValue, ...sourceValue]));
+        target[key] = [...new Set([...targetValue, ...sourceValue].map((entry) => JSON.stringify(entry)))].map(
+          (entryString) => JSON.parse(entryString),
+        );
       } else {
         target[key] = sourceValue;
       }
