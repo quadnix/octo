@@ -74,6 +74,7 @@ Ipv
 ispec
 jsonc
 len
+localstack
 loglayer
 lstat
 matcher

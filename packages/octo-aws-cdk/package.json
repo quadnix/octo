@@ -37,6 +37,8 @@
     "./modules/account/credentials-based-aws-account/schema": "./dist/modules/account/credentials-based-aws-account/index.schema.js",
     "./modules/account/ini-based-aws-account": "./dist/modules/account/ini-based-aws-account/index.js",
     "./modules/account/ini-based-aws-account/schema": "./dist/modules/account/ini-based-aws-account/index.schema.js",
+    "./modules/account/localstack-based-aws-account": "./dist/modules/account/localstack-based-aws-account/index.js",
+    "./modules/account/localstack-based-aws-account/schema": "./dist/modules/account/localstack-based-aws-account/index.schema.js",
     "./modules/app/simple-app": "./dist/modules/app/simple-app/index.js",
     "./modules/app/simple-app/schema": "./dist/modules/app/simple-app/index.schema.js",
     "./modules/deployment/ecs-based-aws-deployment": "./dist/modules/deployment/ecs-based-aws-deployment/index.js",
