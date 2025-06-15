@@ -74,6 +74,7 @@ export {
   MatchingModel,
   MatchingResource,
   type ModuleSchema,
+  type ModuleSchemaInputs,
   type OverlaySchema,
   type ResourceSchema,
   stub,
