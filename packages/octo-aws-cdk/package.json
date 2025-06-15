@@ -33,6 +33,8 @@
     "./anchors/s3-storage/schema": "./dist/anchors/s3-storage/s3-storage.anchor.schema.js",
     "./anchors/security-group/schema": "./dist/anchors/security-group/security-group.anchor.schema.js",
     "./anchors/subnet-local-filesystem-mount/schema": "./dist/anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.schema.js",
+    "./modules/account/credentials-based-aws-account": "./dist/modules/account/credentials-based-aws-account/index.js",
+    "./modules/account/credentials-based-aws-account/schema": "./dist/modules/account/credentials-based-aws-account/index.schema.js",
     "./modules/account/ini-based-aws-account": "./dist/modules/account/ini-based-aws-account/index.js",
     "./modules/account/ini-based-aws-account/schema": "./dist/modules/account/ini-based-aws-account/index.schema.js",
     "./modules/app/simple-app": "./dist/modules/app/simple-app/index.js",
