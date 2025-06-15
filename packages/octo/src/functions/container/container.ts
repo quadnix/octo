@@ -106,6 +106,22 @@ export class Container {
     return this.instance;
   }
 
+  has<T>(
+    type: Constructable<T> | string,
+    options?: {
+      metadata?: { [key: string]: string };
+    },
+  ): boolean {
+    const metadata = options?.metadata || {};
+    const name = typeof type === 'string' ? type : type.name;
+
+    if (!(name in this.factories)) {
+      return false;
+    }
+
+    return this.factories[name].some((f) => DiffUtility.isObjectDeepEquals(f.metadata, metadata));
+  }
+
   /**
    * `Container.registerFactory()` allows to register a factory for a class.
    *

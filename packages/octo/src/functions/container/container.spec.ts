@@ -48,6 +48,18 @@ describe('Container UT', () => {
     });
   });
 
+  describe('has()', () => {
+    it('should return false when factory does not exist', () => {
+      expect(container.has(Test)).toBe(false);
+    });
+
+    it('should return true when factory exists', () => {
+      container.registerFactory(Test, TestFactory);
+
+      expect(container.has(Test)).toBe(true);
+    });
+  });
+
   describe('registerFactory()', () => {
     it('should be able to register a factory of type class', async () => {
       container.registerFactory(Test, TestFactory);
