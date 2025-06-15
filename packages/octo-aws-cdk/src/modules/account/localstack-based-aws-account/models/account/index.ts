@@ -1,3 +1,3 @@
-import './actions/add-account.model.action.js';
+import './actions/add-localstack-account.model.action.js';
 
-export { AwsAccount } from './aws.account.model.js';
+export { AwsLocalstackAccount } from './aws.localstack-account.model.js';

@@ -1,7 +1,7 @@
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
 import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
-import { AwsAccountModule } from './index.js';
+import { AwsIniAccountModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
   const {
@@ -10,7 +10,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: A
   return { app };
 }
 
-describe('AwsAccountModule UT', () => {
+describe('AwsIniAccountModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -53,13 +53,13 @@ describe('AwsAccountModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsAccountModule>({
+    await testModuleContainer.runModule<AwsIniAccountModule>({
       inputs: {
         accountId: '123',
         app: stub('${{testModule.model.app}}'),
       },
       moduleId: 'account',
-      type: AwsAccountModule,
+      type: AwsIniAccountModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -69,7 +69,7 @@ describe('AwsAccountModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAccountModelAction",
+         "AddIniAccountModelAction",
        ],
      ]
     `);
@@ -78,13 +78,13 @@ describe('AwsAccountModule UT', () => {
 
   it('should CUD', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsAccountModule>({
+    await testModuleContainer.runModule<AwsIniAccountModule>({
       inputs: {
         accountId: '123',
         app: stub('${{testModule.model.app}}'),
       },
       moduleId: 'account',
-      type: AwsAccountModule,
+      type: AwsIniAccountModule,
     });
 
     const result = await testModuleContainer.commit(app, { enableResourceCapture: true });

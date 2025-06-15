@@ -1,3 +1,3 @@
-import './actions/add-account.model.action.js';
+import './actions/add-ini-account.model.action.js';
 
-export { AwsAccount } from './aws.account.model.js';
+export { AwsIniAccount } from './aws.ini-account.model.js';

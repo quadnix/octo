@@ -1,6 +1,6 @@
 import { type App, AppSchema, Schema, Validate } from '@quadnix/octo';
 
-export class AwsAccountModuleSchema {
+export class AwsIniAccountModuleSchema {
   @Validate({ options: { minLength: 1 } })
   accountId = Schema<string>();
 

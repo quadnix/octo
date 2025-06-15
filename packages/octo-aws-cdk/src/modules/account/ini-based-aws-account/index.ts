@@ -1,1 +1,1 @@
-export { AwsAccountModule } from './aws-account.module.js';
+export { AwsIniAccountModule } from './aws-ini-account.module.js';

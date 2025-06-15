@@ -1,17 +1,17 @@
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { AModule, Container, Module } from '@quadnix/octo';
 import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
-import { AwsAccountModuleSchema } from './index.schema.js';
-import { AwsAccount } from './models/account/index.js';
+import { AwsIniAccountModuleSchema } from './index.schema.js';
+import { AwsIniAccount } from './models/account/index.js';
 
-@Module<AwsAccountModule>('@octo', AwsAccountModuleSchema)
-export class AwsAccountModule extends AModule<AwsAccountModuleSchema, AwsAccount> {
-  async onInit(inputs: AwsAccountModuleSchema): Promise<AwsAccount> {
+@Module<AwsIniAccountModule>('@octo', AwsIniAccountModuleSchema)
+export class AwsIniAccountModule extends AModule<AwsIniAccountModuleSchema, AwsIniAccount> {
+  async onInit(inputs: AwsIniAccountModuleSchema): Promise<AwsIniAccount> {
     const app = inputs.app;
     const container = Container.getInstance();
 
     // Create a new account.
-    const account = new AwsAccount(inputs.accountId, inputs.iniProfile!);
+    const account = new AwsIniAccount(inputs.accountId, inputs.iniProfile!);
     app.addAccount(account);
 
     // Register AWS credentials.

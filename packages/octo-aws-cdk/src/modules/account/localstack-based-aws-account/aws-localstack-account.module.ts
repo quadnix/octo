@@ -2,18 +2,18 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { AModule, Container, Module } from '@quadnix/octo';
 import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
-import { AwsAccountModuleSchema } from './index.schema.js';
-import { AwsAccount } from './models/account/index.js';
+import { AwsLocalstackAccountModuleSchema } from './index.schema.js';
+import { AwsLocalstackAccount } from './models/account/index.js';
 
-@Module<AwsAccountModule>('@octo', AwsAccountModuleSchema)
-export class AwsAccountModule extends AModule<AwsAccountModuleSchema, AwsAccount> {
-  async onInit(inputs: AwsAccountModuleSchema): Promise<AwsAccount> {
+@Module<AwsLocalstackAccountModule>('@octo', AwsLocalstackAccountModuleSchema)
+export class AwsLocalstackAccountModule extends AModule<AwsLocalstackAccountModuleSchema, AwsLocalstackAccount> {
+  async onInit(inputs: AwsLocalstackAccountModuleSchema): Promise<AwsLocalstackAccount> {
     const app = inputs.app;
     const container = Container.getInstance();
 
     // Create a new account.
     const accountId: string = '000000000000';
-    const account = new AwsAccount(accountId);
+    const account = new AwsLocalstackAccount(accountId);
     app.addAccount(account);
 
     // Register AWS credentials.
@@ -57,7 +57,7 @@ export class AwsAccountModule extends AModule<AwsAccountModuleSchema, AwsAccount
     });
     const data = await stsClient.send(new GetCallerIdentityCommand({}));
     if (data.Account !== accountId) {
-      throw new Error(`LocalStack Account ID must be "${accountId}"!`);
+      throw new Error(`Localstack Account ID must be "${accountId}"!`);
     }
 
     return account;

@@ -1,1 +1,1 @@
-export { AwsAccountModule } from './aws-account.module.js';
+export { AwsCredentialsAccountModule } from './aws-credentials-account.module.js';

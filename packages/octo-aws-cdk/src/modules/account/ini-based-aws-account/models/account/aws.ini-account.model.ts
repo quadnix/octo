@@ -1,10 +1,10 @@
 import { fromIni } from '@aws-sdk/credential-providers';
 import { Account, AccountType, Model } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
-import { AwsAccountSchema } from './aws.account.schema.js';
+import { AwsIniAccountSchema } from './aws.ini-account.schema.js';
 
-@Model<AwsAccount>('@octo', 'account', AwsAccountSchema)
-export class AwsAccount extends Account {
+@Model<AwsIniAccount>('@octo', 'account', AwsIniAccountSchema)
+export class AwsIniAccount extends Account {
   readonly iniProfile: string;
 
   constructor(accountId: string, iniProfile: string) {
@@ -17,7 +17,7 @@ export class AwsAccount extends Account {
     return fromIni({ profile: this.iniProfile });
   }
 
-  override synth(): AwsAccountSchema {
+  override synth(): AwsIniAccountSchema {
     return {
       accountId: this.accountId,
       accountType: this.accountType,
@@ -25,7 +25,7 @@ export class AwsAccount extends Account {
     };
   }
 
-  static override async unSynth(account: AwsAccountSchema): Promise<AwsAccount> {
-    return new AwsAccount(account.accountId, account.iniProfile);
+  static override async unSynth(account: AwsIniAccountSchema): Promise<AwsIniAccount> {
+    return new AwsIniAccount(account.accountId, account.iniProfile);
   }
 }

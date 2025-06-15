@@ -1,1 +1,1 @@
-export { AwsAccountModule } from './aws-account.module.js';
+export { AwsLocalstackAccountModule } from './aws-localstack-account.module.js';

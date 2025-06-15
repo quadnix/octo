@@ -1,3 +1,3 @@
-import './actions/add-account.model.action.js';
+import './actions/add-credentials-account.model.action.js';
 
-export { AwsAccount } from './aws.account.model.js';
+export { AwsCredentialsAccount } from './aws.credentials-account.model.js';
