@@ -362,6 +362,28 @@ export class TestModuleContainer {
     return (await this.octo.compose()) as { [key: string]: ModuleOutput<M> };
   }
 
+  async runModules<M extends UnknownModule>(modules: TestModule<M>[]): Promise<{ [key: string]: ModuleOutput<M> }> {
+    const moduleContainer = await Container.getInstance().get(ModuleContainer);
+
+    for (const module of modules) {
+      const moduleMetadataIndex = moduleContainer.getMetadataIndex(module.type);
+      if (moduleMetadataIndex === -1) {
+        moduleContainer.register(module.type, {
+          packageName: (module.type as unknown as typeof AModule).MODULE_PACKAGE,
+        });
+      }
+
+      const moduleMetadata = moduleContainer.getMetadata(module.type)!;
+      if (module.hidden === true) {
+        moduleContainer.unload(moduleMetadata.module);
+      } else {
+        moduleContainer.load(moduleMetadata.module, module.moduleId, module.inputs);
+      }
+    }
+
+    return (await this.octo.compose()) as { [key: string]: ModuleOutput<M> };
+  }
+
   async reset(): Promise<void> {
     const container = Container.getInstance();
 

@@ -73,10 +73,12 @@ export {
   MatchingAnchor,
   MatchingModel,
   MatchingResource,
+  type ModelSerializedOutput,
   type ModuleSchema,
   type ModuleSchemaInputs,
   type OverlaySchema,
   type ResourceSchema,
+  type ResourceSerializedOutput,
   stub,
 } from './app.type.js';
 
