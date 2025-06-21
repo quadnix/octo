@@ -18,6 +18,8 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
   readonly response: S['response'] = {};
 
+  readonly tags: S['tags'] = {};
+
   protected constructor(
     readonly resourceId: S['resourceId'],
     readonly properties: S['properties'],
@@ -137,6 +139,8 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     this.clonePropertiesInPlace(sourceResource);
     // Replace responses.
     this.cloneResponseInPlace(sourceResource);
+    // Replace tags.
+    this.cloneTagsInPlace(sourceResource);
   }
 
   cloneResponseInPlace(sourceResource: UnknownResource): void {
@@ -148,11 +152,23 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
   }
 
+  cloneTagsInPlace(sourceResource: UnknownResource): void {
+    for (const key of Object.keys(this.tags)) {
+      delete this.tags[key];
+    }
+    for (const key of Object.keys(sourceResource.tags) as (keyof S['tags'])[]) {
+      this.tags[key] = sourceResource.tags[key];
+    }
+  }
+
   override async diff(previous: T): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
     const propertyDiffs = await this.diffProperties(previous);
     diffs.push(...propertyDiffs);
+
+    const tagDiffs = await this.diffTags(previous);
+    diffs.push(...tagDiffs);
 
     // Parent diffs.
     const previousParents = Object.values((previous as unknown as UnknownResource).getParents())
@@ -220,6 +236,19 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
         return;
       }
+      case 'tags': {
+        if (diff.action === DiffAction.ADD || diff.action === DiffAction.UPDATE) {
+          const change = diff.value as { key: keyof S['tags']; value: any };
+          this.tags[change.key] = change.value;
+        } else if (diff.action === DiffAction.DELETE) {
+          const change = diff.value as { key: string; value: any };
+          delete this.properties[change.key];
+        } else {
+          throw new DiffInverseResourceError('Unknown action on "tags" field during diff inverse!', this, diff);
+        }
+
+        return;
+      }
       default: {
         throw new DiffInverseResourceError('Unknown field during diff inverse!', this, diff);
       }
@@ -228,6 +257,30 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
   override async diffProperties(previous: T): Promise<Diff[]> {
     return DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
+  }
+
+  async diffTags(previous: T): Promise<Diff[]> {
+    const tagsToAdd: { [key: string]: string } = {};
+    const tagsToDelete: string[] = [];
+    const tagsToUpdate: { [key: string]: string } = {};
+
+    for (const [key, value] of Object.entries(previous.tags)) {
+      if (!this.tags.hasOwnProperty(key)) {
+        tagsToDelete.push(key);
+      } else if (this.tags[key] !== value) {
+        tagsToUpdate[key] = this.tags[key];
+      }
+    }
+    for (const [key, value] of Object.entries(this.tags)) {
+      if (!previous.tags.hasOwnProperty(key)) {
+        tagsToAdd[key] = value;
+      }
+    }
+
+    if (Object.keys(tagsToAdd).length === 0 && tagsToDelete.length === 0 && Object.keys(tagsToUpdate).length === 0) {
+      return [];
+    }
+    return [new Diff(this, DiffAction.UPDATE, 'tags', { add: tagsToAdd, delete: tagsToDelete, update: tagsToUpdate })];
   }
 
   diffUnpack(diff: Diff): Diff[] {
@@ -240,6 +293,18 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     for (const d of dependencies) {
       const resource = d.to as UnknownResource;
       if (filters.every((c) => resource.properties[c.key] === c.value)) {
+        parents.push(resource);
+      }
+    }
+    return parents;
+  }
+
+  findParentsByTag(filters: { key: string; value: string }[]): UnknownResource[] {
+    const parents: UnknownResource[] = [];
+    const dependencies = Object.values(this.getParents()).flat();
+    for (const d of dependencies) {
+      const resource = d.to as UnknownResource;
+      if (filters.every((c) => resource.tags[c.key] === c.value)) {
         parents.push(resource);
       }
     }
@@ -297,6 +362,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
     ObjectUtility.deepMergeInPlace(previous.properties, this.properties);
     ObjectUtility.deepMergeInPlace(previous.response, this.response);
+    ObjectUtility.deepMergeInPlace(previous.tags, this.tags);
 
     const currentDependenciesNotInPreviousResource = currentDependencies.filter(
       (cd) => !previousDependencies.find((pd) => pd.isEqual(cd)),
@@ -346,7 +412,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   }
 
   override synth(): S {
-    return {
+    const resourceSynth: BaseResourceSchema = {
       parents: this.parents.map((p) => {
         const parentReference: IResourceReference = {
           context: p instanceof MatchingResource ? p.getActual().getContext() : p.getContext(),
@@ -361,7 +427,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       properties: JSON.parse(JSON.stringify(this.properties)),
       resourceId: this.resourceId,
       response: JSON.parse(JSON.stringify(this.response)),
-    } as S;
+      tags: JSON.parse(JSON.stringify(this.tags)),
+    };
+    return resourceSynth as S;
   }
 
   static override async unSynth<S extends BaseResourceSchema, T>(
@@ -384,6 +452,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     const newResource = new deserializationClass(resource.resourceId, resource.properties, resourceInlineParents);
     for (const key of Object.keys(resource.response)) {
       newResource.response[key] = resource.response[key];
+    }
+    for (const key of Object.keys(resource.tags)) {
+      newResource.tags[key] = resource.tags[key];
     }
     return newResource;
   }

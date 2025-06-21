@@ -79,9 +79,9 @@ export class MatchingResource<S extends BaseResourceSchema> {
   }
 
   getActual(): AResource<
-    Omit<BaseResourceSchema, 'properties' | 'response'> & { properties: Record<never, never> } & {
+    Omit<BaseResourceSchema, 'properties' | 'response' | 'tags'> & { properties: Record<never, never> } & {
       response: Record<never, never>;
-    },
+    } & { tags: Record<never, never> },
     any
   > {
     return this.actual;

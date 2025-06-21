@@ -9,4 +9,6 @@ export class BaseResourceSchema {
   resourceId = Schema<string>();
 
   response = Schema<{ [key: string]: unknown }>();
+
+  tags = Schema<{ [key: string]: string }>();
 }

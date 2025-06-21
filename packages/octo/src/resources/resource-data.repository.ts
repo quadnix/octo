@@ -30,7 +30,7 @@ export class ResourceDataRepository {
       throw new ResourceError('Adding non-resource node!', resource);
     }
 
-    // Insert or replace resources.
+    // Insert resource.
     const rIndex = this.actualResources.findIndex((r) => r.getContext() === resource.getContext());
     if (rIndex === -1) {
       this.actualResources.push(resource);
@@ -44,7 +44,7 @@ export class ResourceDataRepository {
       throw new ResourceError('Adding non-resource node!', resource);
     }
 
-    // Insert or replace resources.
+    // Insert resource.
     const rIndex = this.newResources.findIndex((r) => r.getContext() === resource.getContext());
     if (rIndex === -1) {
       this.newResources.push(resource);

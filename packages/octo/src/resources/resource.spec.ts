@@ -129,6 +129,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "tags": {},
        }
       `);
       expect(resource2Copy.getParents()['test-resource'].length).toBe(1);
@@ -175,6 +176,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "tags": {},
        }
       `);
       expect(resource3.getParents()['test-resource'].length).toBe(1);
@@ -225,6 +227,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "tags": {},
        }
       `);
       expect(resource4.getParents()['test-resource'].length).toBe(1);
@@ -276,6 +279,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "tags": {},
        }
       `);
       expect(resource4.getParents()['test-resource'].length).toBe(1);
@@ -578,6 +582,38 @@ describe('Resource UT', () => {
         ]);
 
       const parents = resource2.findParentsByProperty([{ key: 'key1', value: 'value1' }]);
+
+      expect(parents.length).toBe(1);
+      expect(parents[0]).toBe(resource1);
+    });
+  });
+
+  describe('findParentsByTag()', () => {
+    it('should return empty array when filters do not match', async () => {
+      const { '@octo/test-resource=resource-2': resource2 } = await createTestResources([
+        { resourceContext: '@octo/test-resource=resource-1', tags: { key1: 'value1' } },
+        {
+          parents: ['@octo/test-resource=resource-1'],
+          resourceContext: '@octo/test-resource=resource-2',
+        },
+      ]);
+
+      const parents = resource2.findParentsByTag([{ key: 'key1', value: 'value2' }]);
+
+      expect(parents).toEqual([]);
+    });
+
+    it('should return matching parents in array when filters match', async () => {
+      const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
+        await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1', tags: { key1: 'value1' } },
+          {
+            parents: ['@octo/test-resource=resource-1'],
+            resourceContext: '@octo/test-resource=resource-2',
+          },
+        ]);
+
+      const parents = resource2.findParentsByTag([{ key: 'key1', value: 'value1' }]);
 
       expect(parents.length).toBe(1);
       expect(parents[0]).toBe(resource1);
@@ -931,6 +967,7 @@ describe('Resource UT', () => {
          "response": {
            "key1": "value1",
          },
+         "tags": {},
        }
       `);
     });

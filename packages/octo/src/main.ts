@@ -1,5 +1,11 @@
 import { strict as assert } from 'assert';
-import type { Constructable, ModuleSchemaInputs, TransactionOptions, UnknownModule } from './app.type.js';
+import type {
+  Constructable,
+  ModuleSchemaInputs,
+  TransactionOptions,
+  UnknownModule,
+  UnknownResource,
+} from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
 import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
@@ -109,6 +115,10 @@ export class Octo {
     return this.inputService.getModule(...args);
   }
 
+  getModuleResources(...args: Parameters<InputService['getModuleResources']>): UnknownResource[] {
+    return this.inputService.getModuleResources(...args);
+  }
+
   async initialize(
     stateProvider: IStateProvider,
     initializeInContainer: {
@@ -181,6 +191,15 @@ export class Octo {
     ...args: Parameters<SchemaTranslationService['registerSchemaTranslation']>
   ): ReturnType<SchemaTranslationService['registerSchemaTranslation']> {
     return this.schemaTranslationService.registerSchemaTranslation(...args);
+  }
+
+  registerTags(
+    args: { scope: { moduleId?: string; resourceContext?: string }; tags: { [key: string]: string } }[],
+  ): void {
+    for (const { scope, tags } of args) {
+      const isGlobal = !scope.moduleId && !scope.resourceContext;
+      this.inputService.registerTag((isGlobal || scope) as Parameters<InputService['registerTag']>[0], tags);
+    }
   }
 
   private async retrieveResourceState(): Promise<void> {

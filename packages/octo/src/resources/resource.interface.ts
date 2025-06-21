@@ -14,9 +14,17 @@ export interface IResource<S extends BaseResourceSchema, T extends UnknownResour
 
   cloneResponseInPlace(sourceResource: T): void;
 
+  cloneTagsInPlace(sourceResource: T): void;
+
   diffInverse(diff: Diff, deReferenceResource: (context: string) => Promise<UnknownResource>): Promise<void>;
 
+  diffTags(previous: T): Promise<Diff[]>;
+
+  diffUnpack(diff: Diff): Diff[];
+
   findParentsByProperty(filters: { key: string; value: unknown }[]): UnknownResource[];
+
+  findParentsByTag(filters: { key: string; value: string }[]): UnknownResource[];
 
   isDeepEquals(other?: UnknownResource): boolean;
 

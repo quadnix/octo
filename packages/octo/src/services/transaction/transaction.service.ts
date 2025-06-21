@@ -125,6 +125,21 @@ export class TransactionService {
           // Apply all actions on the diff, then update diff metadata with inputs and outputs.
           const outputs = await a.handle(diffToProcess, inputs, {});
           for (const resource of Object.values(outputs)) {
+            let moduleId: string;
+            if (diffToProcess.node instanceof AOverlay) {
+              moduleId = this.inputService.getModuleIdFromOverlay(diffToProcess.node);
+            } else {
+              moduleId = this.inputService.getModuleIdFromModel(diffToProcess.node as UnknownModel);
+            }
+
+            // Set resource tags.
+            const resourceTags = this.inputService.resolve(`${moduleId}.tag.${resource.getContext()}`) as {
+              [key: string]: string;
+            };
+            for (const [key, value] of Object.entries(resourceTags)) {
+              resource.tags[key] = value;
+            }
+
             const previousResource = this.resourceDataRepository.getNewResourceByContext(resource.getContext());
             if (previousResource) {
               resource.merge(previousResource);
@@ -132,12 +147,6 @@ export class TransactionService {
               this.resourceDataRepository.addNewResource(resource);
             }
 
-            let moduleId: string;
-            if (diffToProcess.node instanceof AOverlay) {
-              moduleId = this.inputService.getModuleIdFromOverlay(diffToProcess.node);
-            } else {
-              moduleId = this.inputService.getModuleIdFromModel(diffToProcess.node as UnknownModel);
-            }
             try {
               this.inputService.registerResource(moduleId, resource);
             } catch (error) {

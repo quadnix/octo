@@ -20,6 +20,10 @@ export class InputService {
 
   private resources: { [key: string]: string } = {};
 
+  private tags: { [key: string]: { [key: string]: string | { [key: string]: string } } } = {
+    _global: {},
+  };
+
   constructor(
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
@@ -154,14 +158,58 @@ export class InputService {
     this.resources[resourceKey] = resource.getContext();
   }
 
+  registerTag(
+    scope: true | { moduleId: string } | { moduleId: string; resourceContext: string },
+    tags: { [key: string]: string },
+  ): void {
+    const hasResourceContext = (
+      scope: Parameters<typeof InputService.prototype.registerTag>[0],
+    ): scope is { moduleId: string; resourceContext: string } => {
+      return scope.hasOwnProperty('resourceContext');
+    };
+
+    const moduleId = scope === true ? '_global' : scope.moduleId;
+    if (!moduleId) {
+      throw new InputRegistrationError('Module not found!', 'undefined');
+    }
+    if (moduleId !== '_global' && !this.getModule(moduleId)) {
+      throw new InputRegistrationError('Module not found!', moduleId);
+    }
+    if (hasResourceContext(scope)) {
+      const moduleResourceContexts = this.getModuleResources(moduleId).map((r) => r.getContext());
+      if (!moduleResourceContexts.includes(scope.resourceContext)) {
+        throw new InputRegistrationError('Resource not found!', scope.resourceContext);
+      }
+    }
+
+    if (!this.tags.hasOwnProperty(moduleId)) {
+      this.tags[moduleId] = {};
+    }
+
+    let scopedTagContainer = this.tags[moduleId];
+    if (hasResourceContext(scope)) {
+      if (!scopedTagContainer.hasOwnProperty(scope.resourceContext)) {
+        scopedTagContainer[scope.resourceContext] = {};
+      }
+      scopedTagContainer = scopedTagContainer[scope.resourceContext] as { [key: string]: string };
+    }
+
+    for (const [key, value] of Object.entries(tags)) {
+      if (scopedTagContainer.hasOwnProperty(key)) {
+        throw new InputRegistrationError('Tag has already been registered!', key);
+      }
+      scopedTagContainer[key] = value;
+    }
+  }
+
   resolve(key: string): unknown | undefined {
-    if (key.split('.')[1] !== 'metadata') {
+    if (!['metadata', 'tag'].includes(key.split('.')[1])) {
       key = this.resolveInputKey(key);
     }
     const keyParts = key.split('.');
 
     switch (keyParts[1]) {
-      case 'input':
+      case 'input': {
         const input = this.inputs[key];
         if (typeof input === 'object' && input !== null) {
           ObjectUtility.onEveryNestedKey(input, (parent, currentKey, currentValue) => {
@@ -169,28 +217,63 @@ export class InputService {
           });
         }
         return input;
-      case 'metadata':
+      }
+      case 'metadata': {
         return this.metadata[key];
-      case 'model':
+      }
+      case 'model': {
         const model = this.models[keyParts.slice(0, 3).join('.')];
         if (!model) {
           return undefined;
         }
         return this.resolveObjectPath(model, keyParts.slice(3).join('.'));
-      case 'overlay':
+      }
+      case 'overlay': {
         const overlayContext = this.overlays[keyParts.slice(0, 3).join('.')];
         const overlay = this.overlayDataRepository.getByContext(overlayContext);
         if (!overlay) {
           return undefined;
         }
         return this.resolveObjectPath(overlay, keyParts.slice(3).join('.'));
-      case 'resource':
+      }
+      case 'resource': {
         const resourceContext = this.resources[keyParts.slice(0, 3).join('.')];
         const resource = this.resourceDataRepository.getNewResourceByContext(resourceContext);
         if (!resource) {
           return undefined;
         }
         return this.resolveObjectPath(resource, keyParts.slice(3).join('.'));
+      }
+      case 'tag': {
+        const moduleId = keyParts[0];
+        const resourceContext = keyParts[2];
+        const moduleTags = Object.keys(this.tags[moduleId] || {})
+          .filter((t) => typeof this.tags[moduleId][t] === 'string')
+          .reduce<{ [key: string]: string }>((accumulator, current) => {
+            accumulator[current] = this.tags[moduleId][current] as string;
+            return accumulator;
+          }, {});
+        const resourceTags =
+          resourceContext && typeof this.tags[moduleId]?.[resourceContext] === 'object'
+            ? this.tags[moduleId][resourceContext]
+            : {};
+        const resourceOverriddenTags = {
+          ...(this.tags['_global'] || {}),
+          ...moduleTags,
+          ...resourceTags,
+        };
+        ObjectUtility.onEveryNestedKey(resourceOverriddenTags, (parent, currentKey, currentValue) => {
+          parent[currentKey] = this.resolveInputValue(currentValue);
+        });
+        for (const [key, value] of Object.entries(resourceOverriddenTags)) {
+          if (value === undefined) {
+            throw new InputResolutionError('Tag value is undefined!', key);
+          } else if (typeof (value as unknown) !== 'string') {
+            throw new InputResolutionError('Tag value is not a string!', key);
+          }
+        }
+        return resourceOverriddenTags;
+      }
       default:
         return undefined;
     }
@@ -274,6 +357,9 @@ export class InputServiceFactory {
       this.instance['modules'] = {};
       this.instance['overlays'] = {};
       this.instance['resources'] = {};
+      this.instance['tags'] = {
+        _global: {},
+      };
     }
 
     return this.instance;

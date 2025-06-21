@@ -100,7 +100,7 @@ export async function createResources(
 
 export async function createTestResources<S extends BaseResourceSchema[]>(
   args: {
-    [K in keyof S]: Partial<Pick<S[K], 'properties' | 'response'>> & {
+    [K in keyof S]: Partial<Pick<S[K], 'properties' | 'response' | 'tags'>> & {
       parents?: string[] | UnknownResource[];
       resourceActions?: IUnknownResourceAction[];
       resourceContext: string;
@@ -123,7 +123,7 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
   };
 
   return args.reduce(async (accumulator: Promise<{ [key: string]: UnknownResource }>, arg) => {
-    const { parents, properties, resourceContext, response } = arg;
+    const { parents, properties, resourceContext, response, tags } = arg;
     const [resourceMeta, resourceId] = resourceContext.split('=');
     const [, NODE_NAME] = resourceMeta.split('/');
 
@@ -163,6 +163,11 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
     if (response) {
       for (const [key, value] of Object.entries(response)) {
         resource.response[key] = value;
+      }
+    }
+    if (tags) {
+      for (const [key, value] of Object.entries(tags)) {
+        resource.tags[key] = value;
       }
     }
     resourceDataRepository.addNewResource(resource);

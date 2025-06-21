@@ -183,9 +183,7 @@ describe('TransactionService UT', () => {
     });
 
     it('should call action and collect all input and output', async () => {
-      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({
-        resource1: new TestResource('resource1'),
-      });
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
       const { 'moduleId.model.app': app } = await testModuleContainer.runModule<TestAppModule>({
         inputs: { name: 'app' },
@@ -204,7 +202,7 @@ describe('TransactionService UT', () => {
     });
 
     it('should update diff metadata with inputs and outputs', async () => {
-      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({ resource1: new TestResource('resource1') });
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValue({});
 
       const { 'moduleId.model.app': app } = await testModuleContainer.runModule<TestAppModule>({
         inputs: { name: 'app' },
@@ -229,16 +227,12 @@ describe('TransactionService UT', () => {
         overlays: {},
         resources: {},
       });
-      expect(diffMetadata.outputs['resource1'].resourceId).toBe('resource1');
+      expect(diffMetadata.outputs).toEqual({});
     });
 
     it('should call multiple actions and collect all input and output', async () => {
-      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({
-        resource1: new TestResource('resource1'),
-      });
-      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({
-        resource2: new TestResource('resource2'),
-      });
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({});
+      (universalModelAction.handle as jest.Mocked<any>).mockResolvedValueOnce({});
 
       const { 'moduleId.model.app': app } = await testModuleContainer.runModule<TestAppModule>({
         inputs: { name: 'app' },

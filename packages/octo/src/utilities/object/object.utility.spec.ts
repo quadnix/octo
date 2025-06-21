@@ -52,11 +52,13 @@ describe('Object Utility Test', () => {
     it('should deep freeze class instances', () => {
       const subject1 = new TestResource('resource-1', { key1: { key2: 'value2' } });
       subject1.response['key3'] = 'value3';
+      subject1.tags['key4'] = 'value4';
       ObjectUtility.deepFreeze(subject1);
       expect(Object.isFrozen(subject1)).toBe(true);
       expect(Object.isFrozen(subject1.properties)).toBe(true);
       expect(Object.isFrozen(subject1.properties.key1)).toBe(true);
       expect(Object.isFrozen(subject1.response)).toBe(true);
+      expect(Object.isFrozen(subject1.tags)).toBe(true);
       expect(Object.isFrozen(subject1['anchors'])).toBe(true);
       expect(Object.isFrozen(subject1['dependencies'])).toBe(true);
     });

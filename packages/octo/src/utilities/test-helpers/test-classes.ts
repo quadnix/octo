@@ -93,18 +93,3 @@ export class TestResource extends AResource<BaseResourceSchema, TestResource> {
     super(resourceId, properties, parents);
   }
 }
-
-export class TestResourceWithDiffOverride extends AResource<BaseResourceSchema, TestResource> {
-  static override readonly NODE_NAME: string = 'test-resource';
-  static override readonly NODE_PACKAGE: string = '@octo';
-  static override readonly NODE_SCHEMA = {};
-  static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
-
-  constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
-    super(resourceId, properties, parents);
-  }
-
-  override async diff(): Promise<Diff[]> {
-    return [];
-  }
-}

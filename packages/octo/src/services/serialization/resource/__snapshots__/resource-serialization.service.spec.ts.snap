@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Resource Serialization Service UT deserialize() should deserialize a resource with complex properties 1`] = `
 [
@@ -17,6 +17,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a re
     "response": {
       "response1": "value1",
     },
+    "tags": {},
   },
 ]
 `;
@@ -33,6 +34,7 @@ exports[`Resource Serialization Service UT deserialize() should deserialize a si
     "response": {
       "response1": "value1",
     },
+    "tags": {},
   },
 ]
 `;
@@ -59,6 +61,7 @@ exports[`Resource Serialization Service UT serialize() should not serialize dele
         "response": {
           "response1": "value1",
         },
+        "tags": {},
       },
     },
   },
@@ -128,6 +131,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
         "response": {
           "response1": "value1",
         },
+        "tags": {},
       },
     },
     "@octo/test-resource=resource-2": {
@@ -145,23 +149,7 @@ exports[`Resource Serialization Service UT serialize() should serialize dependen
         "response": {
           "response2": "value2",
         },
-      },
-    },
-  },
-}
-`;
-
-exports[`Resource Serialization Service UT serialize() should serialize non-empty array 1`] = `
-{
-  "dependencies": [],
-  "resources": {
-    "@octo/test-resource=resource-1": {
-      "className": "@octo/test-resource",
-      "resource": {
-        "parents": [],
-        "properties": {},
-        "resourceId": "resource-1",
-        "response": {},
+        "tags": {},
       },
     },
   },
@@ -224,6 +212,7 @@ exports[`Resource Serialization Service UT serialize() should serialize multiple
         "response": {
           "response1": "value1",
         },
+        "tags": {},
       },
     },
     "@octo/test-resource=resource-2": {
@@ -241,6 +230,25 @@ exports[`Resource Serialization Service UT serialize() should serialize multiple
         "response": {
           "response2": "value2",
         },
+        "tags": {},
+      },
+    },
+  },
+}
+`;
+
+exports[`Resource Serialization Service UT serialize() should serialize non-empty array 1`] = `
+{
+  "dependencies": [],
+  "resources": {
+    "@octo/test-resource=resource-1": {
+      "className": "@octo/test-resource",
+      "resource": {
+        "parents": [],
+        "properties": {},
+        "resourceId": "resource-1",
+        "response": {},
+        "tags": {},
       },
     },
   },

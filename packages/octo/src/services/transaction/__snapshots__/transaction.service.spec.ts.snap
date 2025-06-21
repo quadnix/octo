@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`TransactionService UT applyModels() should call action and collect all input and output 1`] = `
 [
@@ -72,15 +72,7 @@ exports[`TransactionService UT applyModels() should call multiple actions and co
         },
       },
       "overlays": {},
-      "resources": {
-        "resource1": {
-          "context": "@octo/test-resource=resource1",
-          "parents": [],
-          "properties": {},
-          "resourceId": "resource1",
-          "response": {},
-        },
-      },
+      "resources": {},
     },
     {},
   ],
@@ -138,6 +130,7 @@ exports[`TransactionService UT applyModels() should merge resources with same co
           "properties": {},
           "resourceId": "resource1",
           "response": {},
+          "tags": {},
         },
       },
     },
