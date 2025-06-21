@@ -1,0 +1,7 @@
+services:
+  moto:
+    container_name: "moto-aws-ecs-server"
+    image: motoserver/moto:5.1.6
+    platform: linux/arm64
+    ports:
+      - "127.0.0.1:5000:5000"
