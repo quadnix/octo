@@ -57,7 +57,7 @@ export class AwsLocalstackAccountModule extends AModule<AwsLocalstackAccountModu
     });
     const data = await stsClient.send(new GetCallerIdentityCommand({}));
     if (data.Account !== accountId) {
-      throw new Error(`Localstack Account ID must be "${accountId}"!`);
+      throw new Error(`Localstack Account ID "${accountId}" does not match "${data.Account}"!`);
     }
 
     return account;
