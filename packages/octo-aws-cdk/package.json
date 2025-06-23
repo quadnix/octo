@@ -6,6 +6,7 @@
     "@aws-sdk/client-efs": "~3.743.0",
     "@aws-sdk/client-elastic-load-balancing-v2": "~3.743.0",
     "@aws-sdk/client-iam": "~3.743.0",
+    "@aws-sdk/client-resource-groups-tagging-api": "~3.743.0",
     "@aws-sdk/client-s3": "~3.743.0",
     "@aws-sdk/client-sts": "~3.743.0",
     "@aws-sdk/credential-providers": "~3.743.0",

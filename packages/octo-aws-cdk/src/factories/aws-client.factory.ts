@@ -4,6 +4,7 @@ import { ECSClient } from '@aws-sdk/client-ecs';
 import { EFSClient } from '@aws-sdk/client-efs';
 import { ElasticLoadBalancingV2Client } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { IAMClient } from '@aws-sdk/client-iam';
+import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
 import { Upload } from '@aws-sdk/lib-storage';
@@ -126,6 +127,21 @@ export class IAMClientFactory extends AwsClientFactory {
     endpointInputConfig: EndpointInputConfig = {},
   ): IAMClient {
     return new IAMClient({ ...credentials, ...endpointInputConfig });
+  }
+}
+
+@Factory<ResourceGroupsTaggingAPIClient>(ResourceGroupsTaggingAPIClient, { metadata: { package: '@octo' } })
+export class ResourceGroupsTaggingAPIClientFactory extends AwsClientFactory {
+  static override createInstance(
+    awsRegionId: string,
+    credentials: AwsCredentialIdentityProvider,
+    endpointInputConfig: EndpointInputConfig = {},
+  ): ResourceGroupsTaggingAPIClient {
+    return new ResourceGroupsTaggingAPIClient({
+      ...credentials,
+      ...endpointInputConfig,
+      region: awsRegionId,
+    });
   }
 }
 
