@@ -66,6 +66,19 @@ describe('Diff Utility UT', () => {
     it('should return true when primitives are equal', () => {
       expect(DiffUtility.isObjectDeepEquals('key', 'key')).toEqual(true);
     });
+
+    describe('when with exclude option', () => {
+      it('should return true when non-excluded objects are equal', () => {
+        expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, { a: 2, b: 2 }, ['a'])).toEqual(true);
+        expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, { a: 2, b: 2 }, ['b'])).toEqual(false);
+        expect(DiffUtility.isObjectDeepEquals({ deep: { a: 1, b: 2 } }, { deep: { a: 2, b: 2 } }, ['deep.a'])).toEqual(
+          true,
+        );
+        expect(DiffUtility.isObjectDeepEquals({ deep: { a: 1, b: 2 } }, { deep: { a: 2, b: 2 } }, ['deep.b'])).toEqual(
+          false,
+        );
+      });
+    });
   });
 
   describe('diffArray()', () => {

@@ -36,6 +36,7 @@ describe('Resource Serialization Service UT', () => {
               properties: {},
               resourceId: 'resource=resource-1',
               response: {},
+              tags: {},
             },
           },
         },

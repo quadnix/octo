@@ -22,23 +22,29 @@ export class DiffUtility {
   }
 
   // Source: https://stackoverflow.com/a/32922084/1834562
-  static isObjectDeepEquals(x: unknown, y: unknown): boolean {
+  static isObjectDeepEquals(x: unknown, y: unknown, excludePaths: string[] = [], currentPath: string[] = []): boolean {
+    if (x instanceof AAnchor && y instanceof AAnchor) {
+      return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
+    } else if (x instanceof ANode && y instanceof ANode) {
+      return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
+    } else if (x instanceof Dependency && y instanceof Dependency) {
+      return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
+    } else if (x instanceof Diff && y instanceof Diff) {
+      return this.isObjectDeepEquals(x.toJSON(), y.toJSON(), excludePaths, currentPath);
+    }
+
     const ok = Object.keys,
       tx = typeof x,
       ty = typeof y;
 
-    if (x instanceof AAnchor && y instanceof AAnchor) {
-      return this.isObjectDeepEquals(x.synth(), y.synth());
-    } else if (x instanceof ANode && y instanceof ANode) {
-      return this.isObjectDeepEquals(x.synth(), y.synth());
-    } else if (x instanceof Dependency && y instanceof Dependency) {
-      return this.isObjectDeepEquals(x.synth(), y.synth());
-    } else if (x instanceof Diff && y instanceof Diff) {
-      return this.isObjectDeepEquals(x.toJSON(), y.toJSON());
-    }
-
     return x && y && tx === 'object' && tx === ty
-      ? ok(x).length === ok(y).length && ok(x).every((key) => this.isObjectDeepEquals(x[key], y[key]))
+      ? ok(x).length === ok(y).length &&
+          ok(x).every((key) => {
+            if (excludePaths.includes([...currentPath, key].join('.'))) {
+              return true;
+            }
+            return this.isObjectDeepEquals(x[key], y[key], excludePaths, [...currentPath, key]);
+          })
       : x === y;
   }
 

@@ -173,10 +173,10 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     // Parent diffs.
     const previousParents = Object.values((previous as unknown as UnknownResource).getParents())
       .flat()
-      .map((d) => d.to);
+      .map((d) => d.to as UnknownResource);
     const currentParents = Object.values(this.getParents())
       .flat()
-      .map((d) => d.to);
+      .map((d) => d.to as UnknownResource);
     const deletedParents = previousParents.filter(
       (p) => currentParents.findIndex((c) => c.getContext() === p.getContext()) === -1,
     );
@@ -191,7 +191,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     }
     for (const currentParent of currentParents) {
       const previousParent = previousParents.find((p) => p.getContext() === currentParent.getContext());
-      if (previousParent && !DiffUtility.isObjectDeepEquals(currentParent, previousParent)) {
+      if (previousParent && !DiffUtility.isObjectDeepEquals(currentParent, previousParent, ['tags'])) {
         diffs.push(new Diff(this, DiffAction.UPDATE, 'parent', currentParent));
       }
     }
