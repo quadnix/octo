@@ -47,8 +47,10 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     );
 
     // Set response.
+    const natId = natGatewayOutput.NatGateway!.NatGatewayId!;
     response.AllocationId = elasticIpOutput.AllocationId!;
-    response.NatGatewayId = natGatewayOutput.NatGateway!.NatGatewayId!;
+    response.NatGatewayArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:natgateway/${natId}`;
+    response.NatGatewayId = natId;
   }
 
   async mock(diff: Diff, capture: Partial<NatGatewaySchema['response']>): Promise<void> {

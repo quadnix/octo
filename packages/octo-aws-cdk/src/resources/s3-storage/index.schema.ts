@@ -52,5 +52,17 @@ export class S3StorageSchema extends BaseResourceSchema {
     permissions: S3StoragePermissionSchema[];
   }>();
 
-  override response = Schema<Record<never, never>>();
+  @Validate({
+    destruct: (value: S3StorageSchema['response']): string[] => {
+      const subjects: string[] = [];
+      if (value.Arn) {
+        subjects.push(value.Arn);
+      }
+      return subjects;
+    },
+    options: { minLength: 1 },
+  })
+  override response = Schema<{
+    Arn?: string;
+  }>();
 }

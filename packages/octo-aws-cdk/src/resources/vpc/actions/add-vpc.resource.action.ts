@@ -55,6 +55,7 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
     );
 
     // Set response.
+    response.VpcArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:vpc/${vpcOutput.Vpc!.VpcId}`;
     response.VpcId = vpcOutput.Vpc!.VpcId!;
   }
 

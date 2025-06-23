@@ -22,6 +22,9 @@ export class SubnetSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: SubnetSchema['response']): string[] => {
       const subjects: string[] = [];
+      if (value.SubnetArn) {
+        subjects.push(value.SubnetArn);
+      }
       if (value.SubnetId) {
         subjects.push(value.SubnetId);
       }
@@ -30,6 +33,7 @@ export class SubnetSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
+    SubnetArn?: string;
     SubnetId?: string;
   }>();
 }

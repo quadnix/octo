@@ -90,6 +90,7 @@ export class AddS3WebsiteResourceAction implements IResourceAction<S3Website> {
     );
 
     // Set response.
+    response.Arn = `arn:aws:s3:::${properties.Bucket}`;
     response.awsRegionId = properties.awsRegionId;
   }
 

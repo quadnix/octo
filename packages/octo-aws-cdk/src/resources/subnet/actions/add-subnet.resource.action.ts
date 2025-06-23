@@ -40,7 +40,9 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
     );
 
     // Set response.
-    response.SubnetId = subnetOutput.Subnet!.SubnetId!;
+    const subnetId = subnetOutput.Subnet!.SubnetId!;
+    response.SubnetArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:subnet/${subnetId}`;
+    response.SubnetId = subnetId;
   }
 
   async mock(diff: Diff, capture: Partial<SubnetSchema['response']>): Promise<void> {

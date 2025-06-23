@@ -21,6 +21,9 @@ export class NatGatewaySchema extends BaseResourceSchema {
       if (value.AllocationId) {
         subjects.push(value.AllocationId);
       }
+      if (value.NatGatewayArn) {
+        subjects.push(value.NatGatewayArn);
+      }
       if (value.NatGatewayId) {
         subjects.push(value.NatGatewayId);
       }
@@ -30,6 +33,7 @@ export class NatGatewaySchema extends BaseResourceSchema {
   })
   override response = Schema<{
     AllocationId?: string;
+    NatGatewayArn?: string;
     NatGatewayId?: string;
   }>();
 }

@@ -91,7 +91,9 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
     ]);
 
     // Set response.
-    response.GroupId = securityGroupOutput.GroupId!;
+    const groupId = securityGroupOutput.GroupId!;
+    response.Arn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:security-group/${groupId}`;
+    response.GroupId = groupId;
     response.Rules = {
       egress: egressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
         SecurityGroupRuleId: r.SecurityGroupRuleId,

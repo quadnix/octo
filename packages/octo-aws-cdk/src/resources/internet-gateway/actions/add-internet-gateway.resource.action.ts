@@ -42,7 +42,10 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     );
 
     // Set response.
-    response.InternetGatewayId = internetGWOutput!.InternetGateway!.InternetGatewayId!;
+    const { awsAccountId, awsRegionId } = properties;
+    const igwId = internetGWOutput!.InternetGateway!.InternetGatewayId!;
+    response.InternetGatewayArn = `arn:aws:ec2:${awsRegionId}:${awsAccountId}:internet-gateway/${igwId}`;
+    response.InternetGatewayId = igwId;
   }
 
   async mock(diff: Diff, capture: Partial<InternetGatewaySchema['response']>): Promise<void> {

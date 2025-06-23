@@ -86,6 +86,7 @@ moto
 motoserver
 nacl
 nat
+natgateway
 nginx
 noreply
 octo

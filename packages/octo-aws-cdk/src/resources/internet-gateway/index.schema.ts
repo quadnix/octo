@@ -18,6 +18,9 @@ export class InternetGatewaySchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: InternetGatewaySchema['response']): string[] => {
       const subjects: string[] = [];
+      if (value.InternetGatewayArn) {
+        subjects.push(value.InternetGatewayArn);
+      }
       if (value.InternetGatewayId) {
         subjects.push(value.InternetGatewayId);
       }
@@ -26,6 +29,7 @@ export class InternetGatewaySchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
+    InternetGatewayArn?: string;
     InternetGatewayId?: string;
   }>();
 }

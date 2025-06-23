@@ -22,6 +22,9 @@ export class S3WebsiteSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: S3WebsiteSchema['response']): string[] => {
       const subjects: string[] = [];
+      if (value.Arn) {
+        subjects.push(value.Arn);
+      }
       if (value.awsRegionId) {
         subjects.push(value.awsRegionId);
       }
@@ -30,6 +33,7 @@ export class S3WebsiteSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
+    Arn?: string;
     awsRegionId?: string;
   }>();
 }

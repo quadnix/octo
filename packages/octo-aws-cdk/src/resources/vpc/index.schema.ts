@@ -22,6 +22,9 @@ export class VpcSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: VpcSchema['response']): string[] => {
       const subjects: string[] = [];
+      if (value.VpcArn) {
+        subjects.push(value.VpcArn);
+      }
       if (value.VpcId) {
         subjects.push(value.VpcId);
       }
@@ -30,6 +33,7 @@ export class VpcSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
+    VpcArn?: string;
     VpcId?: string;
   }>();
 }

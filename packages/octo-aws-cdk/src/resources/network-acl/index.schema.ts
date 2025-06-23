@@ -49,6 +49,9 @@ export class NetworkAclSchema extends BaseResourceSchema {
       if (value.defaultNetworkAclId) {
         subjects.push(value.defaultNetworkAclId);
       }
+      if (value.NetworkAclArn) {
+        subjects.push(value.NetworkAclArn);
+      }
       if (value.NetworkAclId) {
         subjects.push(value.NetworkAclId);
       }
@@ -59,6 +62,7 @@ export class NetworkAclSchema extends BaseResourceSchema {
   override response = Schema<{
     associationId?: string;
     defaultNetworkAclId?: string;
+    NetworkAclArn?: string;
     NetworkAclId?: string;
   }>();
 }

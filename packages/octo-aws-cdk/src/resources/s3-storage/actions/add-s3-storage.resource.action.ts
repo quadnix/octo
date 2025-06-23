@@ -20,6 +20,7 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
     // Get properties.
     const s3Storage = diff.node as S3Storage;
     const properties = s3Storage.properties;
+    const response = s3Storage.response;
 
     // Get instances.
     const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
@@ -33,6 +34,9 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
         Bucket: properties.Bucket,
       }),
     );
+
+    // Set response.
+    response.Arn = `arn:aws:s3:::${properties.Bucket}`;
   }
 
   async mock(diff: Diff): Promise<void> {

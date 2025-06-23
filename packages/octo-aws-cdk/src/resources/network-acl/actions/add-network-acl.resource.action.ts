@@ -83,9 +83,12 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     );
 
     // Set response.
+    const { awsAccountId, awsRegionId } = properties;
+    const networkAclId = naclOutput!.NetworkAcl!.NetworkAclId!;
     response.associationId = newAssociation.NewAssociationId!;
     response.defaultNetworkAclId = defaultNACLOutput!.NetworkAcls![0].NetworkAclId!;
-    response.NetworkAclId = naclOutput!.NetworkAcl!.NetworkAclId!;
+    response.NetworkAclArn = `arn:aws:ec2:${awsRegionId}:${awsAccountId}:network-acl/${networkAclId}`;
+    response.NetworkAclId = networkAclId;
   }
 
   async mock(diff: Diff, capture: Partial<NetworkAclSchema['response']>): Promise<void> {

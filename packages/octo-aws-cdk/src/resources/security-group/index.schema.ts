@@ -39,6 +39,9 @@ export class SecurityGroupSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: SecurityGroupSchema['response']): string[] => {
       const subjects: string[] = [];
+      if (value.Arn) {
+        subjects.push(value.Arn);
+      }
       if (value.GroupId) {
         subjects.push(value.GroupId);
       }
@@ -53,6 +56,7 @@ export class SecurityGroupSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
+    Arn?: string;
     GroupId?: string;
     Rules?: {
       egress: AuthorizeSecurityGroupEgressCommandOutput['SecurityGroupRules'];

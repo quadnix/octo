@@ -64,7 +64,9 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     ]);
 
     // Set response.
-    response.RouteTableId = routeTableOutput!.RouteTable!.RouteTableId!;
+    const rtId = routeTableOutput!.RouteTable!.RouteTableId!;
+    response.RouteTableArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:route-table/${rtId}`;
+    response.RouteTableId = rtId;
     response.subnetAssociationId = data[0].AssociationId!;
   }
 
