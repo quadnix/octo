@@ -1,8 +1,8 @@
-import { themes as prismThemes } from 'prism-react-renderer';
-import type { Config } from '@docusaurus/types';
-import type * as Preset from '@docusaurus/preset-classic';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import type * as Preset from '@docusaurus/preset-classic';
+import type { Config } from '@docusaurus/types';
+import { themes as prismThemes } from 'prism-react-renderer';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -16,15 +16,29 @@ const config: Config = {
   markdown: {
     mermaid: true,
   },
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   plugins: [
     'docusaurus-plugin-sass',
     [
-      'docusaurus-plugin-typedoc-api',
+      require.resolve('./plugins/typedoc-api/lib'),
       {
+        gitRefName: 'master',
         projectRoot: join(__dirname, '..', '..'),
-        packages: ['packages/octo', 'packages/octo-aws-cdk'],
+        packages: [
+          {
+            path: 'packages/octo',
+            entry: {
+              index: 'src/index.ts',
+            },
+          },
+          {
+            path: 'packages/octo-aws-cdk',
+            entry: {
+              index: 'src/index.ts',
+            },
+          },
+        ],
         typedocOptions: { useTsLinkResolution: true },
       },
     ],

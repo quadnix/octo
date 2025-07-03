@@ -12,26 +12,34 @@
     ]
   },
   "dependencies": {
-    "@docusaurus/core": "3.4.0",
-    "@docusaurus/preset-classic": "3.4.0",
-    "@docusaurus/theme-mermaid": "3.4.0",
+    "@docusaurus/core": "3.5.0",
+    "@docusaurus/plugin-content-docs": "3.5.0",
+    "@docusaurus/preset-classic": "3.5.0",
+    "@docusaurus/theme-mermaid": "3.5.0",
+    "@docusaurus/utils": "3.5.0",
     "@fortawesome/fontawesome-svg-core": "~6.6.0",
     "@fortawesome/free-solid-svg-icons": "~6.6.0",
     "@fortawesome/react-fontawesome": "~0.2.2",
     "@mdx-js/react": "^3.0.1",
+    "@vscode/codicons": "~0.0.36",
     "clsx": "^2.1.1",
     "docusaurus-plugin-sass": "~0.2.5",
+    "marked": "~9.1.6",
+    "marked-smartypants": "~1.1.10",
     "prism-react-renderer": "~2.3.1",
     "react": "~18.3.1",
     "react-dom": "~18.3.1",
-    "sass": "~1.77.8"
+    "sass": "~1.77.8",
+    "typedoc": "~0.28.6"
   },
   "description": "Octo-Docs is the one-stop static documentation website for everything Octo.",
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "3.4.0",
-    "@docusaurus/tsconfig": "3.4.0",
-    "@docusaurus/types": "3.4.0",
-    "docusaurus-plugin-typedoc-api": "~4.2.0"
+    "@docusaurus/module-type-aliases": "3.5.0",
+    "@docusaurus/tsconfig": "3.5.0",
+    "@docusaurus/types": "3.5.0",
+    "@types/marked": "~6.0.0",
+    "@types/react": "~18.3.1",
+    "typescript": "~5.8.3"
   },
   "engines": {
     "node": ">=18.0"
@@ -46,10 +54,12 @@
   "scripts": {
     "build": "docusaurus build",
     "clear": "docusaurus clear",
-    "docusaurus": "docusaurus",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
-    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint:fix": "eslint \"{src,plugins}/**/*.{ts,tsx}\" --fix",
+    "plugin:build": "tsc -p plugins/typedoc-api/tsconfig.json && cp plugins/typedoc-api/src/components/styles.css plugins/typedoc-api/lib/components/styles.css",
+    "plugin:post-script": "cd ../../packages/octo-aws-cdk && npm run generate-index -- --rm",
+    "plugin:pre-script": "cd ../../packages/octo-aws-cdk && npm run generate-index",
     "serve": "docusaurus serve",
     "start": "docusaurus start",
     "swizzle": "docusaurus swizzle",

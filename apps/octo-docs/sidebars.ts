@@ -4,108 +4,108 @@ const sidebars: SidebarsConfig = {
   // By default, Docusaurus generates a sidebar from the docs folder structure
   docsSidebar: [
     {
-      label: 'Introduction',
       id: 'introduction',
+      label: 'Introduction',
       type: 'doc',
     },
     {
-      label: 'Philosophy',
       id: 'philosophy',
+      label: 'Philosophy',
       type: 'doc',
     },
     {
+      items: [
+        {
+          id: 'getting-started/installation',
+          label: 'Installation',
+          type: 'doc',
+        },
+        {
+          id: 'getting-started/hello-world',
+          label: 'Hello World!',
+          type: 'doc',
+        },
+        {
+          id: 'getting-started/project-structure',
+          label: 'Project Structure',
+          type: 'doc',
+        },
+      ],
       label: 'Getting Started',
       link: {
         description: 'Installation & Setup.',
         type: 'generated-index',
       },
-      items: [
-        {
-          label: 'Installation',
-          id: 'getting-started/installation',
-          type: 'doc',
-        },
-        {
-          label: 'Hello World!',
-          id: 'getting-started/hello-world',
-          type: 'doc',
-        },
-        {
-          label: 'Project Structure',
-          id: 'getting-started/project-structure',
-          type: 'doc',
-        },
-      ],
       type: 'category',
     },
     {
+      items: [
+        {
+          id: 'fundamentals/models',
+          label: 'Models',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/aws-models',
+          label: 'AWS Models',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/resources',
+          label: 'Resources',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/the-big-picture-part-one',
+          label: 'The Big Picture, Part I',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/dependencies',
+          label: 'Dependencies',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/modules',
+          label: 'Modules',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/the-big-picture-part-two',
+          label: 'The Big Picture, Part II',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/actions',
+          label: 'Actions',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/overlay-and-anchor/index',
+          label: 'Overlay & Anchor',
+          type: 'doc',
+        },
+      ],
       label: 'Fundamentals',
       link: {
         description: 'Basic concepts.',
         type: 'generated-index',
       },
-      items: [
-        {
-          label: 'Models',
-          id: 'fundamentals/models',
-          type: 'doc',
-        },
-        {
-          label: 'AWS Models',
-          id: 'fundamentals/aws-models',
-          type: 'doc',
-        },
-        {
-          label: 'Resources',
-          id: 'fundamentals/resources',
-          type: 'doc',
-        },
-        {
-          label: 'The Big Picture, Part I',
-          id: 'fundamentals/the-big-picture-part-one',
-          type: 'doc',
-        },
-        {
-          label: 'Dependencies',
-          id: 'fundamentals/dependencies',
-          type: 'doc',
-        },
-        {
-          label: 'Modules',
-          id: 'fundamentals/modules',
-          type: 'doc',
-        },
-        {
-          label: 'The Big Picture, Part II',
-          id: 'fundamentals/the-big-picture-part-two',
-          type: 'doc',
-        },
-        {
-          label: 'Actions',
-          id: 'fundamentals/actions',
-          type: 'doc',
-        },
-        {
-          label: 'Overlay & Anchor',
-          id: 'fundamentals/overlay-and-anchor/index',
-          type: 'doc',
-        },
-      ],
       type: 'category',
     },
     {
+      items: [
+        {
+          id: 'techniques/testing',
+          label: 'Testing',
+          type: 'doc',
+        },
+      ],
       label: 'Techniques',
       link: {
         description: 'Techniques and run books.',
         type: 'generated-index',
       },
-      items: [
-        {
-          label: 'Testing',
-          id: 'techniques/testing',
-          type: 'doc',
-        },
-      ],
       type: 'category',
     },
   ],

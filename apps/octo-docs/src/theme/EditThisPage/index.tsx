@@ -1,9 +1,9 @@
-import IconExternalLink from '@theme/Icon/ExternalLink';
-import React from 'react';
+import Link from '@docusaurus/Link';
 import Translate from '@docusaurus/Translate';
 import { ThemeClassNames } from '@docusaurus/theme-common';
-import Link from '@docusaurus/Link';
 import type { Props } from '@theme/EditThisPage';
+import IconExternalLink from '@theme/Icon/ExternalLink';
+import React from 'react';
 
 /**
  * This is a swizzled version of the default EditThisPage button.

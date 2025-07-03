@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "esnext"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "lib",
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ESNext",
+    "types": ["@docusaurus/module-type-aliases", "@docusaurus/theme-classic", "node"]
+  },
+  "exclude": ["lib"],
+  "include": ["src/**/*"]
+}
