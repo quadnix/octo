@@ -1,4 +1,4 @@
 {
-  "exclude": ["**/*spec.ts", ".eslintrc.cjs", "coverage", "dist", "node_modules", "test"],
+  "exclude": ["**/*spec.ts", ".eslintrc.cjs", "coverage", "dist", "node_modules", "src/index.ts", "test"],
   "extends": "./tsconfig.json"
 }

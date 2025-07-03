@@ -3,7 +3,7 @@
     "baseUrl": "./",
     "outDir": "./dist"
   },
-  "exclude": ["coverage", "dist", "node_modules"],
+  "exclude": ["coverage", "dist", "node_modules", "src/index.ts"],
   "extends": "../../tsconfig.json",
   "include": [".eslintrc.cjs", "**/*.json", "**/*.ts"]
 }
