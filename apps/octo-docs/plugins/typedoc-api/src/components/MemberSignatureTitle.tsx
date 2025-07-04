@@ -1,11 +1,11 @@
 /* eslint-disable no-nested-ternary */
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/member.signature.title.hbs
 
-import { Fragment } from 'react';
-import type { TSDSignatureReflection } from '../types';
-import { escapeMdx } from '../utils/helpers';
-import { Type } from './Type';
-import { TypeParametersGeneric } from './TypeParametersGeneric';
+import { Fragment, type ReactElement } from 'react';
+import type { TSDSignatureReflection } from '../types.js';
+import { escapeMdx } from '../utils/helpers.js';
+import { Type } from './Type.js';
+import { TypeParametersGeneric } from './TypeParametersGeneric.js';
 
 export interface MemberSignatureTitleProps {
   useArrow?: boolean;
@@ -13,7 +13,7 @@ export interface MemberSignatureTitleProps {
   sig: TSDSignatureReflection;
 }
 
-export function MemberSignatureTitle({ useArrow, hideName, sig }: MemberSignatureTitleProps) {
+export function MemberSignatureTitle({ useArrow, hideName, sig }: MemberSignatureTitleProps): ReactElement {
   return (
     <>
       {!hideName && sig.name !== '__type' ? (

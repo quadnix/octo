@@ -1,16 +1,16 @@
 import Link from '@docusaurus/Link';
-import { Fragment } from 'react';
-import { useRequiredReflection } from '../hooks/useReflection';
-import type { TSDDeclarationReflection } from '../types';
-import { escapeMdx } from '../utils/helpers';
-import { AnchorLink } from './AnchorLink';
-import { Icon } from './Icon';
+import { Fragment, type ReactElement } from 'react';
+import { useRequiredReflection } from '../hooks/useReflection.js';
+import type { TSDDeclarationReflection } from '../types.js';
+import { escapeMdx } from '../utils/helpers.js';
+import { AnchorLink } from './AnchorLink.js';
+import { Icon } from './Icon.js';
 
 export interface IndexChildProps {
   id: number;
 }
 
-function IndexChild({ id }: IndexChildProps) {
+function IndexChild({ id }: IndexChildProps): ReactElement {
   const reflection = useRequiredReflection(id);
 
   return (
@@ -27,7 +27,7 @@ export interface IndexProps {
   reflection: TSDDeclarationReflection;
 }
 
-export function Index({ reflection }: IndexProps) {
+export function Index({ reflection }: IndexProps): ReactElement | null {
   if (reflection.categories && reflection.categories.length > 0) {
     return (
       <section className="tsd-panel-group tsd-index-group">

@@ -1,11 +1,12 @@
-import type { TSDDeclarationReflection, TSDSignatureReflection } from '../types';
-import { getKindIcon, getKindIconColor } from '../utils/icons';
+import type { ReactElement } from 'react';
+import type { TSDDeclarationReflection, TSDSignatureReflection } from '../types.js';
+import { getKindIcon, getKindIconColor } from '../utils/icons.js';
 
 export interface IconProps {
   reflection: TSDDeclarationReflection | TSDSignatureReflection;
 }
 
-export function Icon({ reflection }: IconProps) {
+export function Icon({ reflection }: IconProps): ReactElement | null {
   const icon = getKindIcon(reflection.kind, reflection.name);
 
   if (!icon) {
@@ -14,6 +15,5 @@ export function Icon({ reflection }: IconProps) {
 
   const color = getKindIconColor(reflection.kind);
 
-  // eslint-disable-next-line react-perf/jsx-no-new-object-as-prop
   return <i className={`codicon codicon-${icon}`} style={{ color }} />;
 }

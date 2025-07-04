@@ -1,7 +1,7 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/comment.hbs
-import { Fragment } from 'react';
+import { Fragment, type ReactElement } from 'react';
 import type { JSONOutput } from 'typedoc';
-import { Markdown } from './Markdown';
+import { Markdown } from './Markdown.js';
 
 export interface CommentProps {
   comment?: JSONOutput.Comment;
@@ -32,7 +32,7 @@ export function displayPartsToMarkdown(parts: JSONOutput.CommentDisplayPart[]): 
     .join('');
 }
 
-export function Comment({ comment, root, hideTags = [] }: CommentProps) {
+export function Comment({ comment, root, hideTags = [] }: CommentProps): ReactElement | null {
   if (!comment || !hasComment(comment)) {
     return null;
   }

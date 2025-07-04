@@ -1,9 +1,8 @@
-// https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/member.sources.hbs
+import type { ReactElement } from 'react';
+import type { TSDDeclarationReflection, TSDSignatureReflection } from '../types.js';
+import { TypeAndParent } from './TypeAndParent.js';
 
-import type { TSDDeclarationReflection, TSDSignatureReflection } from '../types';
-import { TypeAndParent } from './TypeAndParent';
-
-export function hasSources(reflection: TSDDeclarationReflection | TSDSignatureReflection) {
+export function hasSources(reflection: TSDDeclarationReflection | TSDSignatureReflection): boolean {
   return Boolean(reflection.implementationOf || reflection.inheritedFrom || reflection.overwrites);
 }
 
@@ -11,7 +10,7 @@ export interface MemberSourcesProps {
   reflection: TSDDeclarationReflection | TSDSignatureReflection;
 }
 
-export function MemberSources({ reflection }: MemberSourcesProps) {
+export function MemberSources({ reflection }: MemberSourcesProps): ReactElement | null {
   if (!hasSources(reflection)) {
     return null;
   }

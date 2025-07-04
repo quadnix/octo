@@ -5,9 +5,9 @@ import {
   useDocsVersion,
 } from '@docusaurus/plugin-content-docs/client';
 import { ThemeClassNames } from '@docusaurus/theme-common';
-import { useCallback } from 'react';
+import { type ReactElement, useCallback } from 'react';
 
-export function VersionBanner(): JSX.Element | null {
+export function VersionBanner(): ReactElement | null {
   const { banner, docs, pluginId, version } = useDocsVersion();
   const { latestVersionSuggestion: latestVersion } = useDocVersionSuggestions(pluginId);
   const { savePreferredVersionName } = useDocsPreferredVersion(pluginId);

@@ -1,8 +1,7 @@
-/* eslint-disable react-perf/jsx-no-new-object-as-prop */
-
+import type { ReactElement } from 'react';
 import type { JSONOutput } from 'typedoc';
-import { displayPartsToMarkdown } from './Comment';
-import { Type } from './Type';
+import { displayPartsToMarkdown } from './Comment.js';
+import { Type } from './Type.js';
 
 export interface DefaultValueProps {
   comment?: JSONOutput.Comment;
@@ -20,7 +19,7 @@ function extractDefaultTag(comment?: JSONOutput.Comment): string | null {
   return displayPartsToMarkdown(tag.content);
 }
 
-export function DefaultValue({ comment, value, type }: DefaultValueProps) {
+export function DefaultValue({ comment, value, type }: DefaultValueProps): ReactElement | null {
   if (!comment && !value) {
     return null;
   }

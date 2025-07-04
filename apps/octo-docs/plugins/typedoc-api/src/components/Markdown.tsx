@@ -1,14 +1,12 @@
-/* eslint-disable react/no-array-index-key */
-
 import { useDocsData, useDocsVersion } from '@docusaurus/plugin-content-docs/client';
 import CodeBlock from '@theme/CodeBlock';
 import MDX from '@theme/MDXComponents';
 import Mermaid from '@theme/Mermaid';
 import { type MarkedExtension, type Tokens, marked } from 'marked';
 import { markedSmartypants } from 'marked-smartypants';
-import { Fragment, useState } from 'react';
-import { useReflectionMap } from '../hooks/useReflectionMap';
-import { replaceLinkTokens } from '../utils/markdown';
+import React, { Fragment, type ReactElement, useState } from 'react';
+import { useReflectionMap } from '../hooks/useReflectionMap.js';
+import { replaceLinkTokens } from '../utils/markdown.js';
 
 interface Admonition {
   type: 'admonition';
@@ -54,12 +52,12 @@ marked.use(markedSmartypants() as MarkedExtension);
 marked.use({
   extensions: [
     {
-      name: 'admonition',
       level: 'block',
-      start(src) {
+      name: 'admonition',
+      start(src): number | undefined {
         return src.match(ADMONITION_START)?.index;
       },
-      tokenizer(src, tokens) {
+      tokenizer(src): Admonition | undefined {
         const match = ADMONITION_START.exec(src);
 
         if (match) {
@@ -71,12 +69,12 @@ marked.use({
           const endEndIndex = endIndex + 4;
 
           const token: Admonition = {
-            type: 'admonition',
+            keyword,
             raw: src.slice(startIndex, endEndIndex),
             text: src.slice(startEndIndex, endIndex),
             title,
-            keyword,
             tokens: [],
+            type: 'admonition',
           };
 
           this.lexer.blockTokens(token.text, token.tokens);
@@ -90,7 +88,7 @@ marked.use({
   ],
 });
 
-const TOKEN_TO_TAG: Record<string, keyof JSX.IntrinsicElements> = {
+const TOKEN_TO_TAG: Record<string, keyof React.JSX.IntrinsicElements> = {
   blockquote: 'blockquote',
   br: 'br',
   code: 'pre',
@@ -247,7 +245,7 @@ export interface MarkdownProps {
 }
 
 // Too bad we cant use `@mdx-js` here...
-export function Markdown({ content }: MarkdownProps) {
+export function Markdown({ content }: MarkdownProps): ReactElement | null {
   const reflections = useReflectionMap();
   const version = useDocsVersion();
   const docsData = useDocsData(version.pluginId);

@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { Options as MDXLoaderOptions } from '@docusaurus/mdx-loader';
-import type { PropVersionDocs, PropVersionMetadata } from '@docusaurus/plugin-content-docs';
+import type { PluginOptions, PropVersionDocs, PropVersionMetadata } from '@docusaurus/plugin-content-docs';
 import { CURRENT_VERSION_NAME } from '@docusaurus/plugin-content-docs/server';
 import type { LoadContext, Plugin, RouteConfig } from '@docusaurus/types';
 import { DEFAULT_PLUGIN_ID, normalizeUrl } from '@docusaurus/utils';
@@ -12,9 +12,9 @@ import {
   formatPackagesWithoutHostInfo,
   generateJson,
   loadPackageJsonAndDocs,
-} from './plugin/data';
-import { extractSidebar } from './plugin/sidebar';
-import { getVersionedDocsDirPath, readVersionsMetadata } from './plugin/version';
+} from './plugin/data.js';
+import { extractSidebar } from './plugin/sidebar.js';
+import { getVersionedDocsDirPath, readVersionsMetadata } from './plugin/version.js';
 import type {
   ApiOptions,
   DocusaurusPluginTypeDocApiOptions,
@@ -24,7 +24,7 @@ import type {
   ResolvedPackageConfig,
   TSDDeclarationReflection,
   VersionMetadata,
-} from './types';
+} from './types.js';
 
 const DEFAULT_OPTIONS: Required<DocusaurusPluginTypeDocApiOptions> = {
   banner: '',
@@ -86,7 +86,7 @@ export default function typedocApiPlugin(
     removeScopes,
   } = options;
   const isDefaultPluginId = pluginId === DEFAULT_PLUGIN_ID;
-  const versionsMetadata = readVersionsMetadata(context, options);
+  const versionsMetadata = readVersionsMetadata(context, options as PluginOptions & DocusaurusPluginTypeDocApiOptions);
   const versionsDocsDir = getVersionedDocsDirPath(context.siteDir, pluginId);
 
   // Determine entry points from configs
@@ -236,7 +236,6 @@ export default function typedocApiPlugin(
       const docs: PropVersionDocs = {};
 
       // Create an index of versions for quick lookup.
-      // This is hacky, but it works, so shrug.
       content.loadedVersions.forEach((loadedVersion) => {
         if (loadedVersion.versionName !== CURRENT_VERSION_NAME) {
           docs[loadedVersion.versionName] = {
@@ -384,7 +383,7 @@ export default function typedocApiPlugin(
       });
     },
 
-    configureWebpack(config, isServer, utils) {
+    configureWebpack(config, isServer, utils): any {
       if (!readmes && !changelogs) {
         return {};
       }

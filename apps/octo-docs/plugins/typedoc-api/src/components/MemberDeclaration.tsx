@@ -1,22 +1,23 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/member.declaration.hbs
 
-import { useMinimalLayout } from '../hooks/useMinimalLayout';
-import { useRequiredReflection } from '../hooks/useReflection';
-import { escapeMdx } from '../utils/helpers';
-import { Comment, hasComment } from './Comment';
-import { DefaultValue } from './DefaultValue';
-import { Icon } from './Icon';
-import { MemberSources } from './MemberSources';
-import { Parameter } from './Parameter';
-import { Type, extractDeclarationFromType } from './Type';
-import { TypeParameters } from './TypeParameters';
-import { TypeParametersGeneric } from './TypeParametersGeneric';
+import type { ReactElement } from 'react';
+import { useMinimalLayout } from '../hooks/useMinimalLayout.js';
+import { useRequiredReflection } from '../hooks/useReflection.js';
+import { escapeMdx } from '../utils/helpers.js';
+import { Comment, hasComment } from './Comment.js';
+import { DefaultValue } from './DefaultValue.js';
+import { Icon } from './Icon.js';
+import { MemberSources } from './MemberSources.js';
+import { Parameter } from './Parameter.js';
+import { Type, extractDeclarationFromType } from './Type.js';
+import { TypeParameters } from './TypeParameters.js';
+import { TypeParametersGeneric } from './TypeParametersGeneric.js';
 
 export interface MemberDeclarationProps {
   id: number;
 }
 
-export function MemberDeclaration({ id }: MemberDeclarationProps) {
+export function MemberDeclaration({ id }: MemberDeclarationProps): ReactElement {
   const reflection = useRequiredReflection(id);
   const minimal = useMinimalLayout();
   const showTypes = reflection.typeParameters && reflection.typeParameters.length > 0;

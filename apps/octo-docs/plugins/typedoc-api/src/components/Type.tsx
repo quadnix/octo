@@ -1,12 +1,9 @@
-/* eslint-disable react/no-array-index-key */
-
-// https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/type.hbs
 import Link from '@docusaurus/Link';
-import { Fragment } from 'react';
+import { Fragment, type ReactElement } from 'react';
 import type { JSONOutput } from 'typedoc';
-import { useReflectionMap } from '../hooks/useReflectionMap';
-import type { TSDDeclarationReflection } from '../types';
-import { MemberSignatureTitle } from './MemberSignatureTitle';
+import { useReflectionMap } from '../hooks/useReflectionMap.js';
+import type { TSDDeclarationReflection } from '../types.js';
+import { MemberSignatureTitle } from './MemberSignatureTitle.js';
 
 export function extractDeclarationFromType(
   type?: JSONOutput.Reflection | JSONOutput.SomeType,
@@ -18,7 +15,7 @@ export function extractDeclarationFromType(
   return (type as unknown as { declaration?: TSDDeclarationReflection })?.declaration;
 }
 
-function parens(element: JSX.Element, needsParens: boolean): JSX.Element {
+function parens(element: ReactElement, needsParens: boolean): ReactElement {
   if (!needsParens) {
     return element;
   }
@@ -38,14 +35,14 @@ export interface TypeProps {
 }
 
 // eslint-disable-next-line complexity
-export function Type({ needsParens = false, type: base }: TypeProps) {
+export function Type({ needsParens = false, type: base }: TypeProps): ReactElement | null {
   const reflections = useReflectionMap();
 
   if (!base) {
     return null;
   }
 
-  // Cast to string since `type` doesnt include all string values in the union.
+  // Cast to string since `type` doesn't include all string values in the union.
   // https://github.com/TypeStrong/typedoc/blob/master/src/lib/output/themes/default/partials/type.tsx
   switch (String(base.type)) {
     case 'array': {

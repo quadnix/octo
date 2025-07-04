@@ -1,13 +1,13 @@
 import Link from '@docusaurus/Link';
-import HomepageFeatures from '@site/src/components/HomepageFeatures';
 import Heading from '@theme/Heading';
 import Layout from '@theme/Layout';
 import clsx from 'clsx';
-import React from 'react';
+import React, { type ReactElement } from 'react';
 
 import styles from './styles.module.scss';
+import HomepageFeatures from '@site/src/components/HomepageFeatures';
 
-function HomepageHeader(): React.JSX.Element {
+function HomepageHeader(): ReactElement {
   return (
     <header className={clsx('hero', styles.heroBanner)}>
       <div className="container">
@@ -29,7 +29,7 @@ function HomepageHeader(): React.JSX.Element {
   );
 }
 
-export default function Home(): React.JSX.Element {
+export default function Home(): ReactElement {
   return (
     <Layout title={`Octo - Infrastructure Modeling`} description="Description will go into a meta tag in <head />">
       <HomepageHeader />

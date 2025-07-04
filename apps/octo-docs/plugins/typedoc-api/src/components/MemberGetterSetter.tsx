@@ -1,11 +1,12 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/member.getterSetter.hbs
 
-import { useMinimalLayout } from '../hooks/useMinimalLayout';
-import type { TSDDeclarationReflection } from '../types';
-import { escapeMdx } from '../utils/helpers';
-import { Icon } from './Icon';
-import { MemberSignatureBody, hasSigBody } from './MemberSignatureBody';
-import { MemberSignatureTitle } from './MemberSignatureTitle';
+import type { ReactElement } from 'react';
+import { useMinimalLayout } from '../hooks/useMinimalLayout.js';
+import type { TSDDeclarationReflection } from '../types.js';
+import { escapeMdx } from '../utils/helpers.js';
+import { Icon } from './Icon.js';
+import { MemberSignatureBody, hasSigBody } from './MemberSignatureBody.js';
+import { MemberSignatureTitle } from './MemberSignatureTitle.js';
 
 export interface MemberGetterSetterProps {
   inPanel?: boolean;
@@ -14,7 +15,7 @@ export interface MemberGetterSetterProps {
 }
 
 // eslint-disable-next-line complexity
-export function MemberGetterSetter({ inPanel, getter, setter }: MemberGetterSetterProps) {
+export function MemberGetterSetter({ inPanel, getter, setter }: MemberGetterSetterProps): ReactElement | null {
   const minimal = useMinimalLayout();
 
   if (!getter && !setter) {

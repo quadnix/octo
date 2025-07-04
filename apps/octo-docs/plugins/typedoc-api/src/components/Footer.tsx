@@ -1,4 +1,6 @@
-export function Footer() {
+import type { ReactElement } from 'react';
+
+export function Footer(): ReactElement {
   return (
     <footer className="tsd-footer">
       Powered by <a href="https://github.com/milesj/docusaurus-plugin-typedoc-api">docusaurus-plugin-typedoc-api</a> and{' '}

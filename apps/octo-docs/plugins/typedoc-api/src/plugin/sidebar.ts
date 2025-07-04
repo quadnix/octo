@@ -6,9 +6,9 @@ import type {
   SidebarItem,
   TSDDeclarationReflection,
   TSDDeclarationReflectionMap,
-} from '../types';
-import { removeScopes } from '../utils/links';
-import { createReflectionMap } from './data';
+} from '../types.js';
+import { removeScopes } from '../utils/links.js';
+import { createReflectionMap } from './data.js';
 
 export function groupSidebarItems(
   map: TSDDeclarationReflectionMap,

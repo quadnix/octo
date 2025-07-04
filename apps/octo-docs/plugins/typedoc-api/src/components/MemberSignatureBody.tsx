@@ -1,24 +1,28 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/member.signature.body.hbs
 
-import { Fragment } from 'react';
+import { Fragment, type ReactElement } from 'react';
 import type { JSONOutput, Models } from 'typedoc';
-import { useMinimalLayout } from '../hooks/useMinimalLayout';
-import type { TSDSignatureReflection } from '../types';
-import { Comment, hasComment } from './Comment';
-import { CommentBadges, isCommentWithModifiers } from './CommentBadges';
-import { DefaultValue } from './DefaultValue';
-import { Flags } from './Flags';
-import { MemberSources, hasSources } from './MemberSources';
-import { Parameter } from './Parameter';
-import { Type, extractDeclarationFromType } from './Type';
-import { TypeParameters } from './TypeParameters';
+import { useMinimalLayout } from '../hooks/useMinimalLayout.js';
+import type { TSDSignatureReflection } from '../types.js';
+import { Comment, hasComment } from './Comment.js';
+import { CommentBadges, isCommentWithModifiers } from './CommentBadges.js';
+import { DefaultValue } from './DefaultValue.js';
+import { Flags } from './Flags.js';
+import { MemberSources, hasSources } from './MemberSources.js';
+import { Parameter } from './Parameter.js';
+import { Type, extractDeclarationFromType } from './Type.js';
+import { TypeParameters } from './TypeParameters.js';
 
-export function hasSigBody(sig: TSDSignatureReflection | undefined, minimal: boolean, hideSources: boolean = false) {
+export function hasSigBody(
+  sig: TSDSignatureReflection | undefined,
+  minimal: boolean,
+  hideSources: boolean = false,
+): boolean {
   if (!sig) {
     return false;
   }
 
-  return (
+  return !!(
     (!hideSources && hasSources(sig)) ||
     hasComment(sig.comment) ||
     (sig.typeParameters && sig.typeParameters.length > 0) ||
@@ -51,7 +55,7 @@ function intoReturnComment(comment?: JSONOutput.Comment): JSONOutput.Comment | u
 const HIDE_TAGS = ['@returns', '@param'];
 
 // eslint-disable-next-line complexity
-export function MemberSignatureBody({ hideSources, sig }: MemberSignatureBodyProps) {
+export function MemberSignatureBody({ hideSources, sig }: MemberSignatureBodyProps): ReactElement {
   const minimal = useMinimalLayout();
   const showTypes = sig.typeParameters && sig.typeParameters.length > 0;
   const showParams = !minimal && sig.parameters && sig.parameters.length > 0;

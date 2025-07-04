@@ -12,11 +12,12 @@ import Heading from '@theme/Heading';
 import MDXContent from '@theme/MDXContent';
 import TOC from '@theme/TOC';
 import TOCCollapsible from '@theme/TOCCollapsible';
-import { useBreadcrumbs } from '../hooks/useBreadcrumbs';
-import type { TOCItem } from '../types';
-import ApiOptionsLayout from './ApiOptionsLayout';
-import { Footer } from './Footer';
-import { VersionBanner } from './VersionBanner';
+import React, { type ReactElement } from 'react';
+import { useBreadcrumbs } from '../hooks/useBreadcrumbs.js';
+import type { TOCItem } from '../types.js';
+import ApiOptionsLayout from './ApiOptionsLayout.js';
+import { Footer } from './Footer.js';
+import { VersionBanner } from './VersionBanner.js';
 
 export interface ApiItemLayoutProps extends Pick<DocItemProps, 'route'> {
   children: React.ReactNode;
@@ -26,7 +27,13 @@ export interface ApiItemLayoutProps extends Pick<DocItemProps, 'route'> {
   pagingMetadata?: PropNavigation;
 }
 
-export default function ApiItemLayout({ children, heading, pageMetadata, pagingMetadata, toc }: ApiItemLayoutProps) {
+export default function ApiItemLayout({
+  children,
+  heading,
+  pageMetadata,
+  pagingMetadata,
+  toc,
+}: ApiItemLayoutProps): ReactElement {
   const windowSize = useWindowSize();
   const breadcrumbs = useBreadcrumbs();
 

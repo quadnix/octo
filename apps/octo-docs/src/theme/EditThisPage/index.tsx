@@ -3,7 +3,7 @@ import Translate from '@docusaurus/Translate';
 import { ThemeClassNames } from '@docusaurus/theme-common';
 import type { Props } from '@theme/EditThisPage';
 import IconExternalLink from '@theme/Icon/ExternalLink';
-import React from 'react';
+import React, { type ReactElement } from 'react';
 
 /**
  * This is a swizzled version of the default EditThisPage button.
@@ -12,7 +12,7 @@ import React from 'react';
  * This component needs to be swizzled on every Docusaurus upgrade.
  * **Swizzle Command**: `npm run swizzle @docusaurus/theme-classic EditThisPage -- --eject`
  */
-export default function EditThisPage({ editUrl }: Props): JSX.Element {
+export default function EditThisPage({ editUrl }: Props): ReactElement {
   return (
     <>
       <br />

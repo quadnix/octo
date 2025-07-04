@@ -1,15 +1,16 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/breadcrumb.hbs
 
 import Link from '@docusaurus/Link';
-import { useReflection } from '../hooks/useReflection';
-import type { TSDReflection } from '../types';
+import React, { type ReactElement } from 'react';
+import { useReflection } from '../hooks/useReflection.js';
+import type { TSDReflection } from '../types.js';
 
 export interface BreadcrumbProps {
   reflection: TSDReflection;
   root?: boolean;
 }
 
-export function Breadcrumb({ reflection, root = true }: BreadcrumbProps) {
+export function Breadcrumb({ reflection, root = true }: BreadcrumbProps): ReactElement | null {
   const parent = useReflection(reflection.parentId);
   let content: React.ReactNode = null;
 

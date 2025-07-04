@@ -1,16 +1,15 @@
-// https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/members.group.hbs
-
+import type { ReactElement } from 'react';
 import type { JSONOutput } from 'typedoc';
-import { useReflectionMap } from '../hooks/useReflectionMap';
-import { hasOwnDocument } from '../utils/visibility';
-import { AnchorLink } from './AnchorLink';
-import { Member } from './Member';
+import { useReflectionMap } from '../hooks/useReflectionMap.js';
+import { hasOwnDocument } from '../utils/visibility.js';
+import { AnchorLink } from './AnchorLink.js';
+import { Member } from './Member.js';
 
 export interface MembersGroupProps {
   group: JSONOutput.ReflectionGroup;
 }
 
-export function MembersGroup({ group }: MembersGroupProps) {
+export function MembersGroup({ group }: MembersGroupProps): ReactElement {
   const reflections = useReflectionMap();
 
   if (group.categories && group.categories.length > 0) {

@@ -1,6 +1,7 @@
+import type { ReactElement } from 'react';
 import { type JSONOutput } from 'typedoc';
 
-function getModifierClassName(tag: string) {
+function getModifierClassName(tag: string): 'danger' | 'info' | 'warning' {
   switch (tag) {
     case '@beta':
     case '@experimental':
@@ -23,7 +24,7 @@ interface CommentBadgesProps {
   comment: CommentWithModifiers;
 }
 
-export function CommentBadges({ comment }: CommentBadgesProps) {
+export function CommentBadges({ comment }: CommentBadgesProps): ReactElement {
   const { modifierTags } = comment;
   return (
     <div className="badge-group">

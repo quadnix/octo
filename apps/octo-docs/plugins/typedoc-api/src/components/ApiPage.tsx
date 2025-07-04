@@ -1,28 +1,30 @@
-/* eslint-disable no-param-reassign */
-
 import '@vscode/codicons/dist/codicon.css';
 import './styles.css';
 import DocRoot, { type Props as DocRootProps } from '@theme/DocRoot';
-import { useMemo } from 'react';
+import { type ReactElement, useMemo } from 'react';
 import type {
   ApiOptions,
   PackageReflectionGroup,
   TSDDeclarationReflection,
   TSDDeclarationReflectionMap,
   TSDReflection,
-} from '../types';
-import { ApiDataContext } from './ApiDataContext';
+} from '../types.js';
+import { ApiDataContext } from './ApiDataContext.js';
 
 function isObject(value: unknown): value is TSDReflection {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function deepMapReflections(data: TSDReflection, map: TSDDeclarationReflectionMap, parent?: TSDReflection) {
+function deepMapReflections(
+  data: TSDReflection,
+  map: TSDDeclarationReflectionMap,
+  parent?: TSDReflection,
+): TSDDeclarationReflectionMap {
   Object.entries(data).forEach(([key, value]) => {
     if (key === 'id') {
       const hasType = 'type' in data;
 
-      // Dont overwrite with reference nodes
+      // Don't overwrite with reference nodes
       if (!hasType || (hasType && (data as unknown as { type: string }).type !== 'reference')) {
         map[Number(value)] = data as TSDDeclarationReflection;
 
@@ -61,7 +63,7 @@ export interface ApiPageProps extends DocRootProps {
   packages: PackageReflectionGroup[];
 }
 
-function ApiPage({ options, packages, ...props }: ApiPageProps) {
+function ApiPage({ options, packages, ...props }: ApiPageProps): ReactElement {
   const value = useMemo(() => ({ options, reflections: mapPackagesToReflection(packages) }), [options, packages]);
 
   return (

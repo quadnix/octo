@@ -1,24 +1,24 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/templates/reflection.hbs
 
-import { useMemo } from 'react';
-import type { TSDDeclarationReflection, TSDReflection, TSDSignatureReflection } from '../types';
-import { createHierarchy } from '../utils/hierarchy';
-import { Comment, hasComment } from './Comment';
-import { CommentBadges, isCommentWithModifiers } from './CommentBadges';
-import { Hierarchy } from './Hierarchy';
-import { Icon } from './Icon';
-import { Index } from './Index';
-import { MemberSignatures } from './MemberSignatures';
-import { Members } from './Members';
-import { Parameter } from './Parameter';
-import { Type, extractDeclarationFromType } from './Type';
-import { TypeParameters } from './TypeParameters';
+import { type ReactElement, useMemo } from 'react';
+import type { TSDDeclarationReflection, TSDReflection, TSDSignatureReflection } from '../types.js';
+import { createHierarchy } from '../utils/hierarchy.js';
+import { Comment, hasComment } from './Comment.js';
+import { CommentBadges, isCommentWithModifiers } from './CommentBadges.js';
+import { Hierarchy } from './Hierarchy.js';
+import { Icon } from './Icon.js';
+import { Index } from './Index.js';
+import { MemberSignatures } from './MemberSignatures.js';
+import { Members } from './Members.js';
+import { Parameter } from './Parameter.js';
+import { Type, extractDeclarationFromType } from './Type.js';
+import { TypeParameters } from './TypeParameters.js';
 
 export interface ReflectionProps {
   reflection: TSDDeclarationReflection | TSDReflection | TSDSignatureReflection;
 }
 // eslint-disable-next-line complexity
-export function Reflection({ reflection }: ReflectionProps) {
+export function Reflection({ reflection }: ReflectionProps): ReactElement {
   const hierarchy = useMemo(() => createHierarchy(reflection), [reflection]);
 
   return (

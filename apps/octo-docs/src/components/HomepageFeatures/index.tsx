@@ -1,13 +1,13 @@
 import Heading from '@theme/Heading';
 import clsx from 'clsx';
-import React from 'react';
+import React, { type ReactElement } from 'react';
 
 import styles from './styles.module.scss';
 
 type FeatureItem = {
   title: string;
   Svg: React.ComponentType<React.ComponentProps<'svg'>>;
-  description: React.JSX.Element;
+  description: ReactElement;
 };
 
 const FeatureList: FeatureItem[] = [
@@ -46,7 +46,7 @@ const FeatureList: FeatureItem[] = [
   },
 ];
 
-function Feature({ title, Svg, description }: FeatureItem): React.JSX.Element {
+function Feature({ title, Svg, description }: FeatureItem): ReactElement {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
@@ -60,7 +60,7 @@ function Feature({ title, Svg, description }: FeatureItem): React.JSX.Element {
   );
 }
 
-export default function HomepageFeatures(): React.JSX.Element {
+export default function HomepageFeatures(): ReactElement {
   return (
     <section className={styles.features}>
       <div className="container">

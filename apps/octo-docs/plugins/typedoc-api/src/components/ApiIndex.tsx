@@ -1,14 +1,13 @@
 import Link from '@docusaurus/Link';
 import type { PropVersionMetadata } from '@docusaurus/plugin-content-docs';
-import type { GlobalVersion } from '@docusaurus/plugin-content-docs/client';
-import { useDocsPreferredVersion, useDocsVersion } from '@docusaurus/plugin-content-docs/client';
+import { type GlobalVersion, useDocsPreferredVersion, useDocsVersion } from '@docusaurus/plugin-content-docs/client';
 import type { Props as DocItemProps } from '@theme/DocItem';
 import Heading from '@theme/Heading';
-import { useEffect } from 'react';
-import type { ApiOptions, PackageReflectionGroup } from '../types';
-import { removeScopes } from '../utils/links';
-import { Footer } from './Footer';
-import { VersionBanner } from './VersionBanner';
+import { type ReactElement, useEffect } from 'react';
+import type { ApiOptions, PackageReflectionGroup } from '../types.js';
+import { removeScopes } from '../utils/links.js';
+import { Footer } from './Footer.js';
+import { VersionBanner } from './VersionBanner.js';
 
 export interface ApiIndexProps extends Pick<DocItemProps, 'route'> {
   history: {
@@ -23,7 +22,7 @@ function addVersionToUrl(
   url: string,
   latestVersion: PropVersionMetadata,
   preferredVersion: GlobalVersion | null | undefined,
-) {
+): string {
   if (
     !url.match(/api\/([\d.]+)/) &&
     !url.includes('api/next') &&
@@ -42,7 +41,7 @@ function addVersionToUrl(
   return url;
 }
 
-export default function ApiIndex({ options, packages, history }: ApiIndexProps) {
+export default function ApiIndex({ options, packages, history }: ApiIndexProps): ReactElement {
   const latestVersion = useDocsVersion();
   const { preferredVersion } = useDocsPreferredVersion(latestVersion.pluginId);
 
@@ -64,7 +63,6 @@ export default function ApiIndex({ options, packages, history }: ApiIndexProps) 
       <div className="col apiItemCol">
         {options.banner && (
           <div className="alert alert--info margin-bottom--md" role="alert">
-            {/* eslint-disable-next-line react/no-danger, react-perf/jsx-no-new-object-as-prop */}
             <div dangerouslySetInnerHTML={{ __html: options.banner }} />
           </div>
         )}

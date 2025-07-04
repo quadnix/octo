@@ -1,17 +1,17 @@
 import { PageMetadata } from '@docusaurus/theme-common';
 import type { Props as DocItemProps } from '@theme/DocItem';
-import { useMemo, useState } from 'react';
-import { useReflection, useRequiredReflection } from '../hooks/useReflection';
-import { useReflectionMap } from '../hooks/useReflectionMap';
-import type { TOCItem, TSDDeclarationReflection, TSDDeclarationReflectionMap } from '../types';
-import { escapeMdx } from '../utils/helpers';
-import { getKindIconHtml } from '../utils/icons';
-import ApiItemLayout from './ApiItemLayout';
-import { ApiOptionsContext } from './ApiOptionsContext';
-import { displayPartsToMarkdown } from './Comment';
-import { Flags } from './Flags';
-import { Reflection } from './Reflection';
-import { TypeParametersGeneric } from './TypeParametersGeneric';
+import React, { type ReactElement, useMemo, useState } from 'react';
+import { useReflection, useRequiredReflection } from '../hooks/useReflection.js';
+import { useReflectionMap } from '../hooks/useReflectionMap.js';
+import type { TOCItem, TSDDeclarationReflection, TSDDeclarationReflectionMap } from '../types.js';
+import { escapeMdx } from '../utils/helpers.js';
+import { getKindIconHtml } from '../utils/icons.js';
+import ApiItemLayout from './ApiItemLayout.js';
+import { ApiOptionsContext } from './ApiOptionsContext.js';
+import { displayPartsToMarkdown } from './Comment.js';
+import { Flags } from './Flags.js';
+import { Reflection } from './Reflection.js';
+import { TypeParametersGeneric } from './TypeParametersGeneric.js';
 
 function extractTOC(
   item: TSDDeclarationReflection,
@@ -35,11 +35,9 @@ function extractTOC(
         const value = escapeMdx(child.name);
 
         toc.push({
-          // @ts-expect-error Not typed upstream
-          children: [],
           id: child.name,
-          value: iconHtml ? `${iconHtml} ${value}` : value,
           level: 1,
+          value: iconHtml ? `${iconHtml} ${value}` : value,
         });
 
         mapped.add(child.name);
@@ -54,7 +52,7 @@ export interface ApiItemProps extends Pick<DocItemProps, 'route'> {
   readme?: React.ComponentType;
 }
 
-export default function ApiItem({ readme: Readme, route }: ApiItemProps) {
+export default function ApiItem({ readme: Readme, route }: ApiItemProps): ReactElement {
   const [hideInherited, setHideInherited] = useState(false);
   const apiOptions = useMemo(
     () => ({

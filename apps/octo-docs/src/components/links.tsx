@@ -1,3 +1,5 @@
+import type { ReactElement } from 'react';
+
 const linkMapping: { [key: string]: { displayName: string; href: string } } = {
   blog: {
     displayName: 'Blog',
@@ -13,7 +15,7 @@ const linkMapping: { [key: string]: { displayName: string; href: string } } = {
   },
 };
 
-export function Link({ display, id, path = '' }): JSX.Element {
+export function Link({ display, id, path = '' }): ReactElement {
   const mapping = linkMapping[id];
   if (!mapping) {
     throw new Error('Invalid link!');

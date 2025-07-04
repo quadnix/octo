@@ -1,6 +1,6 @@
 import { useContext } from 'react';
-import { ApiDataContext } from '../components/ApiDataContext';
-import type { TSDDeclarationReflection } from '../types';
+import { ApiDataContext } from '../components/ApiDataContext.js';
+import type { TSDDeclarationReflection } from '../types.js';
 
 export function useReflection<T = TSDDeclarationReflection>(id?: number, required?: boolean): T | null {
   const { reflections } = useContext(ApiDataContext);

@@ -1,21 +1,22 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/members.hbs
 
-import { useReflectionMap } from '../hooks/useReflectionMap';
-import type { TSDDeclarationReflection } from '../types';
+import type { ReactElement } from 'react';
+import { useReflectionMap } from '../hooks/useReflectionMap.js';
+import type { TSDDeclarationReflection } from '../types.js';
 import {
   allCategoryChildrenHaveOwnDocument,
   allGroupChildrenHaveOwnDocument,
   hasOwnDocument,
-} from '../utils/visibility';
-import { AnchorLink } from './AnchorLink';
-import { Member } from './Member';
-import { MembersGroup } from './MembersGroup';
+} from '../utils/visibility.js';
+import { AnchorLink } from './AnchorLink.js';
+import { Member } from './Member.js';
+import { MembersGroup } from './MembersGroup.js';
 
 export interface MembersProps {
   reflection: TSDDeclarationReflection;
 }
 
-export function Members({ reflection }: MembersProps) {
+export function Members({ reflection }: MembersProps): ReactElement {
   const reflections = useReflectionMap();
 
   if (reflection.categories && reflection.categories.length > 0) {

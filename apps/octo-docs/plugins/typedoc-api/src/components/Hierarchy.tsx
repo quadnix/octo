@@ -1,13 +1,14 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/hierarchy.hbs
 
-import type { HierarchyNode } from '../utils/hierarchy';
-import { Type } from './Type';
+import type { ReactElement } from 'react';
+import type { HierarchyNode } from '../utils/hierarchy.js';
+import { Type } from './Type.js';
 
 export interface HierarchyProps {
   tree: HierarchyNode;
 }
 
-export function Hierarchy({ tree }: HierarchyProps) {
+export function Hierarchy({ tree }: HierarchyProps): ReactElement {
   return (
     <ul className="tsd-hierarchy">
       {tree.types.map((type, i) => (

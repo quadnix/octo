@@ -1,5 +1,5 @@
 import type { PropVersionMetadata } from '@docusaurus/plugin-content-docs';
-import type { TSDDeclarationReflection, TSDDeclarationReflectionMap } from '../types';
+import type { TSDDeclarationReflection, TSDDeclarationReflectionMap } from '../types.js';
 
 function splitLinkText(text: string): { caption: string; target: string } {
   let splitIndex = text.indexOf('|');

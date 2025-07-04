@@ -1,7 +1,8 @@
 import { PageMetadata } from '@docusaurus/theme-common';
 import type { Props as DocItemProps } from '@theme/DocItem';
-import type { TOCItem } from '../types';
-import ApiItemLayout from './ApiItemLayout';
+import type { ReactElement } from 'react';
+import type { TOCItem } from '../types.js';
+import ApiItemLayout from './ApiItemLayout.js';
 
 export interface ApiChangelogProps extends Pick<DocItemProps, 'route'> {
   changelog: DocItemProps['content'];
@@ -9,7 +10,7 @@ export interface ApiChangelogProps extends Pick<DocItemProps, 'route'> {
 
 const emptyToc: TOCItem[] = [];
 
-export default function ApiChangelog({ changelog: Changelog, route }: ApiChangelogProps) {
+export default function ApiChangelog({ changelog: Changelog, route }: ApiChangelogProps): ReactElement {
   return (
     <ApiItemLayout
       heading="Changelog"

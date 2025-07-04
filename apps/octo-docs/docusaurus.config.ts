@@ -23,22 +23,22 @@ const config: Config = {
     [
       require.resolve('./plugins/typedoc-api/lib'),
       {
-        gitRefName: 'master',
-        projectRoot: join(__dirname, '..', '..'),
+        gitRefName: 'main',
         packages: [
           {
-            path: 'packages/octo',
             entry: {
               index: 'src/index.ts',
             },
+            path: 'packages/octo',
           },
           {
-            path: 'packages/octo-aws-cdk',
             entry: {
               index: 'src/index.ts',
             },
+            path: 'packages/octo-aws-cdk',
           },
         ],
+        projectRoot: join(__dirname, '..', '..'),
         typedocOptions: { useTsLinkResolution: true },
       },
     ],

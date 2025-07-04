@@ -1,6 +1,6 @@
 module.exports = {
   extends: ['../../.eslintrc.cjs'],
-  ignorePatterns: ['.docusaurus', 'build', 'node_modules'],
+  ignorePatterns: ['.docusaurus', 'build', 'lib', 'node_modules'],
   parserOptions: {
     ecmaVersion: '2022',
     extraFileExtensions: ['.json'],
@@ -23,5 +23,15 @@ module.exports = {
       },
     ],
     'import/no-unresolved': ['error', { ignore: ['^@docusaurus', '^@site', '^@theme'] }],
+  },
+  settings: {
+    'import/resolver': {
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+      },
+      typescript: {
+        alwaysTryTypes: true,
+      },
+    },
   },
 };

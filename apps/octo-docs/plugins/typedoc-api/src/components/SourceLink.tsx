@@ -1,6 +1,7 @@
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import type { ReactElement } from 'react';
 import type { JSONOutput } from 'typedoc';
-import { useGitRefName } from '../hooks/useGitRefName';
+import { useGitRefName } from '../hooks/useGitRefName.js';
 
 function replaceWithSrc(url: string): string {
   // Always link the source file
@@ -11,7 +12,7 @@ export interface SourceLinkProps {
   sources?: JSONOutput.SourceReference[];
 }
 
-export function SourceLink({ sources = [] }: SourceLinkProps) {
+export function SourceLink({ sources = [] }: SourceLinkProps): ReactElement | null {
   const { siteConfig } = useDocusaurusContext();
   const gitRefName = useGitRefName();
 

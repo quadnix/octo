@@ -1,21 +1,19 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-// https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/Parameter.hbs
-
-import { useMinimalLayout } from '../hooks/useMinimalLayout';
-import type { TSDDeclarationReflection } from '../types';
-import { Comment } from './Comment';
-import { Flags } from './Flags';
-import { Icon } from './Icon';
-import { MemberSignatureBody, hasSigBody } from './MemberSignatureBody';
-import { MemberSignatureTitle } from './MemberSignatureTitle';
-import { MemberSignatures } from './MemberSignatures';
-import { Type, extractDeclarationFromType } from './Type';
+import type { ReactElement } from 'react';
+import { useMinimalLayout } from '../hooks/useMinimalLayout.js';
+import type { TSDDeclarationReflection } from '../types.js';
+import { Comment } from './Comment.js';
+import { Flags } from './Flags.js';
+import { Icon } from './Icon.js';
+import { MemberSignatureBody, hasSigBody } from './MemberSignatureBody.js';
+import { MemberSignatureTitle } from './MemberSignatureTitle.js';
+import { MemberSignatures } from './MemberSignatures.js';
+import { Type, extractDeclarationFromType } from './Type.js';
 
 export interface ParameterProps {
   param?: TSDDeclarationReflection;
 }
 
-function ParameterChild({ param }: ParameterProps) {
+function ParameterChild({ param }: ParameterProps): ReactElement | null {
   if (!param) {
     return null;
   }
@@ -100,7 +98,7 @@ function ParameterChild({ param }: ParameterProps) {
   );
 }
 
-export function Parameter({ param }: ParameterProps) {
+export function Parameter({ param }: ParameterProps): ReactElement | null {
   const minimal = useMinimalLayout();
 
   if (!param || minimal) {

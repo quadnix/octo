@@ -1,15 +1,16 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/member.reference.hbs
 
 import Link from '@docusaurus/Link';
+import type { ReactElement } from 'react';
 import type { JSONOutput } from 'typedoc';
-import { useReflection } from '../hooks/useReflection';
-import { escapeMdx } from '../utils/helpers';
+import { useReflection } from '../hooks/useReflection.js';
+import { escapeMdx } from '../utils/helpers.js';
 
 export interface MemberReferenceProps {
   reflection: JSONOutput.ReferenceReflection;
 }
 
-export function MemberReference({ reflection }: MemberReferenceProps) {
+export function MemberReference({ reflection }: MemberReferenceProps): ReactElement {
   const target = useReflection(reflection.target);
   let content: React.ReactNode = null;
 

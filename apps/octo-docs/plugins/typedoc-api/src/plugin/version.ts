@@ -11,9 +11,7 @@ import {
 } from '@docusaurus/plugin-content-docs/server';
 import type { LoadContext } from '@docusaurus/types';
 import { DEFAULT_PLUGIN_ID, normalizeUrl } from '@docusaurus/utils';
-import type { DocusaurusPluginTypeDocApiOptions, VersionMetadata } from '../types';
-
-type PluginOptions = DocusaurusPluginTypeDocApiOptions;
+import type { DocusaurusPluginTypeDocApiOptions, VersionMetadata } from '../types.js';
 
 export function getVersionedDocsDirPath(siteDir: string, pluginId: string): string {
   return path.join(siteDir, pluginId === DEFAULT_PLUGIN_ID ? VERSIONED_DOCS_DIR : `${pluginId}_${VERSIONED_DOCS_DIR}`);
@@ -38,7 +36,7 @@ function createVersionMetadata({
   versionNames: string[];
   lastVersionName: string;
   context: LoadContext;
-  options: PluginOptions;
+  options: DocusaurusNativePluginOptions & DocusaurusPluginTypeDocApiOptions;
 }): VersionMetadata {
   const isLast = versionName === lastVersionName;
   const versionOptions = options.versions[versionName] ?? {};
@@ -58,7 +56,6 @@ function createVersionMetadata({
     versionBanner: getDefaultVersionBanner({
       context,
       lastVersionName,
-      // @ts-expect-error Ignore internal options
       options,
       versionName,
       versionNames,
@@ -72,7 +69,7 @@ function createVersionMetadata({
 
 export async function readVersionsMetadata(
   context: LoadContext,
-  options: DocusaurusPluginTypeDocApiOptions,
+  options: DocusaurusNativePluginOptions & DocusaurusPluginTypeDocApiOptions,
 ): Promise<VersionMetadata[]> {
   // Docusaurus internals require *every* option, but the versioning
   // does not actually use them. We are casting the types here to

@@ -1,20 +1,16 @@
-/* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
-/* eslint-disable jsx-a11y/click-events-have-key-events */
-// https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/member.signatures.hbs
-
-import { useState } from 'react';
-import { useMinimalLayout } from '../hooks/useMinimalLayout';
-import type { TSDSignatureReflection } from '../types';
-import { Icon } from './Icon';
-import { MemberSignatureBody, hasSigBody } from './MemberSignatureBody';
-import { MemberSignatureTitle } from './MemberSignatureTitle';
+import { type ReactElement, useState } from 'react';
+import { useMinimalLayout } from '../hooks/useMinimalLayout.js';
+import type { TSDSignatureReflection } from '../types.js';
+import { Icon } from './Icon.js';
+import { MemberSignatureBody, hasSigBody } from './MemberSignatureBody.js';
+import { MemberSignatureTitle } from './MemberSignatureTitle.js';
 
 export interface MemberSignaturesProps {
   inPanel?: boolean;
   sigs: TSDSignatureReflection[];
 }
 
-export function MemberSignatures({ inPanel, sigs }: MemberSignaturesProps) {
+export function MemberSignatures({ inPanel, sigs }: MemberSignaturesProps): ReactElement {
   const [activeIndex, setActiveIndex] = useState(0);
   const minimal = useMinimalLayout();
   const hasMultiple = sigs.length > 1;
@@ -32,8 +28,7 @@ export function MemberSignatures({ inPanel, sigs }: MemberSignaturesProps) {
               } ${hasMultiple ? 'tsd-pressable' : ''}`}
               onClick={
                 hasMultiple
-                  ? // eslint-disable-next-line react-perf/jsx-no-new-function-as-prop
-                    () => {
+                  ? (): void => {
                       setActiveIndex(i);
                     }
                   : undefined

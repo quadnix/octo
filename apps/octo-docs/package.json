@@ -56,7 +56,7 @@
     "clear": "docusaurus clear",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
-    "lint:fix": "eslint \"{src,plugins}/**/*.{ts,tsx}\" --fix",
+    "lint:fix": "eslint . --fix",
     "plugin:build": "tsc -p plugins/typedoc-api/tsconfig.json && cp plugins/typedoc-api/src/components/styles.css plugins/typedoc-api/lib/components/styles.css",
     "plugin:post-script": "cd ../../packages/octo-aws-cdk && npm run generate-index -- --rm",
     "plugin:pre-script": "cd ../../packages/octo-aws-cdk && npm run generate-index",

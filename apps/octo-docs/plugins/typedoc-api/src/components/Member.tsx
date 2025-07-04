@@ -1,26 +1,26 @@
 // https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/members.hbs
 
-import { Fragment, useContext } from 'react';
+import React, { Fragment, type ReactElement, useContext } from 'react';
 import type { JSONOutput } from 'typedoc';
-import { useRequiredReflection } from '../hooks/useReflection';
-import { useReflectionMap } from '../hooks/useReflectionMap';
-import { escapeMdx } from '../utils/helpers';
-import { hasOwnDocument } from '../utils/visibility';
-import { AnchorLink } from './AnchorLink';
-import { ApiOptionsContext } from './ApiOptionsContext';
-import { CommentBadges, isCommentWithModifiers } from './CommentBadges';
-import { Flags } from './Flags';
-import { MemberDeclaration } from './MemberDeclaration';
-import { MemberGetterSetter } from './MemberGetterSetter';
-import { MemberReference } from './MemberReference';
-import { MemberSignatures } from './MemberSignatures';
-import { SourceLink } from './SourceLink';
+import { useRequiredReflection } from '../hooks/useReflection.js';
+import { useReflectionMap } from '../hooks/useReflectionMap.js';
+import { escapeMdx } from '../utils/helpers.js';
+import { hasOwnDocument } from '../utils/visibility.js';
+import { AnchorLink } from './AnchorLink.js';
+import { ApiOptionsContext } from './ApiOptionsContext.js';
+import { CommentBadges, isCommentWithModifiers } from './CommentBadges.js';
+import { Flags } from './Flags.js';
+import { MemberDeclaration } from './MemberDeclaration.js';
+import { MemberGetterSetter } from './MemberGetterSetter.js';
+import { MemberReference } from './MemberReference.js';
+import { MemberSignatures } from './MemberSignatures.js';
+import { SourceLink } from './SourceLink.js';
 
 export interface MemberProps {
   id: number;
 }
 
-export function Member({ id }: MemberProps) {
+export function Member({ id }: MemberProps): ReactElement | false {
   const reflections = useReflectionMap();
   const reflection = useRequiredReflection(id);
   const { comment } = reflection;

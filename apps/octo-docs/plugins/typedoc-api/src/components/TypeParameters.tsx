@@ -1,10 +1,8 @@
-// https://github.com/TypeStrong/typedoc-default-themes/blob/master/src/default/partials/typeParameters.hbs
-
 import type { ReactElement } from 'react';
 import type { JSONOutput } from 'typedoc';
-import { Comment } from './Comment';
-import { DefaultValue } from './DefaultValue';
-import { Type } from './Type';
+import { Comment } from './Comment.js';
+import { DefaultValue } from './DefaultValue.js';
+import { Type } from './Type.js';
 
 export interface TypeParametersProps {
   params?: JSONOutput.TypeParameterReflection[];

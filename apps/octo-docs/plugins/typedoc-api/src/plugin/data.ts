@@ -11,11 +11,11 @@ import type {
   ResolvedPackageConfig,
   TSDDeclarationReflection,
   TSDDeclarationReflectionMap,
-} from '../types';
-import { migrateToVersion0230 } from './structure/0.23';
-import { getKindSlug, getPackageSlug, joinUrl } from './url';
+} from '../types.js';
+import { migrateToVersion0230 } from './structure/0.23.js';
+import { getKindSlug, getPackageSlug, joinUrl } from './url.js';
 
-function shouldEmit(projectRoot: string, tsconfigPath: string) {
+function shouldEmit(projectRoot: string, tsconfigPath: string): 'docs' | 'none' {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { config, error } = ts.readConfigFile(tsconfigPath, (name) => fs.readFileSync(name, 'utf8'));
 
