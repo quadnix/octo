@@ -48,7 +48,7 @@ export async function generateJson(
 
   // Running the TypeDoc compiler is pretty slow...
   // We should only load on the 1st build, and use cache for subsequent reloads.
-  if (global.typedocBuild.count > 0 && fs.existsSync(outFile)) {
+  if (!options.typedocOptions?.watch && global.typedocBuild.count > 0 && fs.existsSync(outFile)) {
     return true;
   }
 
@@ -368,18 +368,22 @@ function extractReflectionModules(
 
 function buildSourceFileNameMap(
   project: JSONOutput.ProjectReflection,
+  packageConfigs: ResolvedPackageConfig[],
   modChildren: JSONOutput.DeclarationReflection[],
 ): Record<string, boolean> {
   const map: Record<string, boolean> = {};
-  const cwd = process.cwd();
 
   Object.values(project.symbolIdMap).forEach((symbol) => {
-    // absolute
-    if (symbol.packageName === '@quadnix/octo') {
-      map[path.normalize(path.join(cwd, '../../packages/octo', symbol.packagePath))] = true;
-    } else if (symbol.packageName === '@quadnix/octo-aws-cdk') {
-      map[path.normalize(path.join(cwd, '../../packages/octo-aws-cdk', symbol.packagePath))] = true;
-    }
+    const packageConfig = packageConfigs.find((p) => {
+      if (p.packageSlug === 'octo') {
+        return symbol.packageName === '@quadnix/octo';
+      } else if (p.packageSlug === 'octo-aws-cdk') {
+        return symbol.packageName === '@quadnix/octo-aws-cdk';
+      } else {
+        throw new Error(`"${p.packageSlug}" is an unknown package!`);
+      }
+    })!;
+    map[path.normalize(path.join(packageConfig.packageRoot, packageConfig.packagePath))] = true;
   });
 
   modChildren.forEach((child) => {
@@ -407,7 +411,7 @@ export function flattenAndGroupPackages(
   const packagesWithDeepImports: TSDDeclarationReflection[] = [];
 
   modules.forEach((mod) => {
-    const allSourceFiles = buildSourceFileNameMap(project, mod.children ?? []);
+    const allSourceFiles = buildSourceFileNameMap(project, packageConfigs, mod.children ?? []);
 
     packageConfigs.some((cfg) =>
       Object.entries(cfg.entryPoints).some(([importPath, entry]) => {

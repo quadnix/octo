@@ -383,7 +383,7 @@ export default function typedocApiPlugin(
       });
     },
 
-    configureWebpack(config, isServer, utils): any {
+    configureWebpack(_config, isServer, utils): any {
       if (!readmes && !changelogs) {
         return {};
       }
@@ -432,6 +432,12 @@ export default function typedocApiPlugin(
           ],
         },
       };
+    },
+
+    getPathsToWatch(): string[] {
+      return options.packages
+        .filter((pkg) => typeof pkg === 'object')
+        .map((pkg) => path.join(options.projectRoot, pkg.path, pkg.watchPattern || ''));
     },
   };
 }
