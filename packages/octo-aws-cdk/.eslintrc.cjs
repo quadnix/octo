@@ -1,6 +1,6 @@
 module.exports = {
   extends: ['../../.eslintrc.cjs'],
-  ignorePatterns: ['coverage', 'dist', 'node_modules'],
+  ignorePatterns: ['coverage', 'dist', 'node_modules', 'src/index.ts'],
   parserOptions: {
     ecmaVersion: '2022',
     extraFileExtensions: ['.json'],

@@ -28,7 +28,7 @@ if (shouldRemove) {
   const tsFiles = sync('**/*.ts', {
     absolute: false,
     cwd: baseDir,
-    ignore: ['**/*.d.ts', '**/*.spec.ts', '**/index.ts', '**/index.schema.ts'],
+    ignore: ['**/*.d.ts', '**/*.spec.ts', '**/index.ts'],
   });
 
   const exportLines = tsFiles.map((file) => {
