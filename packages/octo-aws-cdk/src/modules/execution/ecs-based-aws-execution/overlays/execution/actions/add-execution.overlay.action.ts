@@ -20,6 +20,9 @@ import { SubnetSchema } from '../../../../../../resources/subnet/index.schema.js
 import type { AwsExecutionModule } from '../../../aws-execution.module.js';
 import { AwsExecutionOverlay } from '../aws-execution.overlay.js';
 
+/**
+ * @internal
+ */
 @Action(AwsExecutionOverlay)
 export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModule> {
   filter(diff: Diff): boolean {
@@ -174,6 +177,9 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddExecutionOverlayAction>(AddExecutionOverlayAction)
 export class AddExecutionOverlayActionFactory {
   private static instance: AddExecutionOverlayAction;

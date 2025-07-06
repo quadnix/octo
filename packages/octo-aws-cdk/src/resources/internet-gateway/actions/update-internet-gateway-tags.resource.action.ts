@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
+/**
+ * @internal
+ */
 @Action(InternetGateway)
 export class UpdateInternetGatewayTagsResourceAction
   extends GenericResourceTaggingAction
@@ -33,6 +36,9 @@ export class UpdateInternetGatewayTagsResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateInternetGatewayTagsResourceAction>(UpdateInternetGatewayTagsResourceAction)
 export class UpdateInternetGatewayTagsResourceActionFactory {
   private static instance: UpdateInternetGatewayTagsResourceAction;

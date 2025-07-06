@@ -4,6 +4,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { VpcSchema } from '../index.schema.js';
 import { Vpc } from '../vpc.resource.js';
 
+/**
+ * @internal
+ */
 @Action(Vpc)
 export class AddVpcResourceAction implements IResourceAction<Vpc> {
   constructor(private readonly container: Container) {}
@@ -78,6 +81,9 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddVpcResourceAction>(AddVpcResourceAction)
 export class AddVpcResourceActionFactory {
   private static instance: AddVpcResourceAction;

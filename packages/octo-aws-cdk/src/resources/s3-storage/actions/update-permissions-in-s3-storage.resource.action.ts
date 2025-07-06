@@ -4,6 +4,9 @@ import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { S3Storage, type S3StorageManifestDiff } from '../s3-storage.resource.js';
 
+/**
+ * @internal
+ */
 @Action(S3Storage)
 export class UpdatePermissionsInS3StorageResourceAction implements IResourceAction<S3Storage> {
   constructor(private readonly container: Container) {}
@@ -117,6 +120,9 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdatePermissionsInS3StorageResourceAction>(UpdatePermissionsInS3StorageResourceAction)
 export class UpdatePermissionsInS3StorageResourceActionFactory {
   private static instance: UpdatePermissionsInS3StorageResourceAction;

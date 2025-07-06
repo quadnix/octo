@@ -3,6 +3,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
+/**
+ * @internal
+ */
 @Action(NetworkAcl)
 export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAcl> {
   constructor(private readonly container: Container) {}
@@ -62,6 +65,9 @@ export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAc
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteNetworkAclResourceAction>(DeleteNetworkAclResourceAction)
 export class DeleteNetworkAclResourceActionFactory {
   private static instance: DeleteNetworkAclResourceAction;

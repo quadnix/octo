@@ -3,6 +3,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { type IIamRolePolicyDiff, IamRole, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-role.resource.js';
 
+/**
+ * @internal
+ */
 @Action(IamRole)
 export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction<IamRole> {
   constructor(private readonly container: Container) {}
@@ -73,6 +76,9 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateIamRoleWithAwsPolicyResourceAction>(UpdateIamRoleWithAwsPolicyResourceAction)
 export class UpdateIamRoleWithAwsPolicyResourceActionFactory {
   private static instance: UpdateIamRoleWithAwsPolicyResourceAction;

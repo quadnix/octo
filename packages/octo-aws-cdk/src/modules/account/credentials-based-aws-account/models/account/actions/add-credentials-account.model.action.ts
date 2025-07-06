@@ -10,6 +10,9 @@ import {
 import type { AwsCredentialsAccountModule } from '../../../aws-credentials-account.module.js';
 import { AwsCredentialsAccount } from '../aws.credentials-account.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsCredentialsAccount)
 export class AddCredentialsAccountModelAction implements IModelAction<AwsCredentialsAccountModule> {
   filter(diff: Diff): boolean {
@@ -30,6 +33,9 @@ export class AddCredentialsAccountModelAction implements IModelAction<AwsCredent
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddCredentialsAccountModelAction>(AddCredentialsAccountModelAction)
 export class AddCredentialsAccountModelActionFactory {
   private static instance: AddCredentialsAccountModelAction;

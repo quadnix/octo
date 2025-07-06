@@ -10,6 +10,9 @@ import type { ECSClientFactory } from '../../../factories/aws-client.factory.js'
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 import type { EcsTaskDefinitionSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(EcsTaskDefinition)
 export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<EcsTaskDefinition> {
   constructor(private readonly container: Container) {}
@@ -119,6 +122,9 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateEcsTaskDefinitionResourceAction>(UpdateEcsTaskDefinitionResourceAction)
 export class UpdateEcsTaskDefinitionResourceActionFactory {
   private static instance: UpdateEcsTaskDefinitionResourceAction;

@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { RouteTable } from '../route-table.resource.js';
 
+/**
+ * @internal
+ */
 @Action(RouteTable)
 export class UpdateRouteTableTagsResourceAction
   extends GenericResourceTaggingAction
@@ -33,6 +36,9 @@ export class UpdateRouteTableTagsResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateRouteTableTagsResourceAction>(UpdateRouteTableTagsResourceAction)
 export class UpdateRouteTableTagsResourceActionFactory {
   private static instance: UpdateRouteTableTagsResourceAction;

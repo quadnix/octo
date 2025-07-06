@@ -1,6 +1,9 @@
 import { Action, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { S3Storage } from '../s3-storage.resource.js';
 
+/**
+ * @internal
+ */
 @Action(S3Storage)
 export class UpdateParentInS3StorageResourceAction implements IResourceAction<S3Storage> {
   filter(diff: Diff): boolean {
@@ -17,6 +20,9 @@ export class UpdateParentInS3StorageResourceAction implements IResourceAction<S3
   async mock(): Promise<void> {}
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateParentInS3StorageResourceAction>(UpdateParentInS3StorageResourceAction)
 export class UpdateParentInS3StorageResourceActionFactory {
   private static instance: UpdateParentInS3StorageResourceAction;

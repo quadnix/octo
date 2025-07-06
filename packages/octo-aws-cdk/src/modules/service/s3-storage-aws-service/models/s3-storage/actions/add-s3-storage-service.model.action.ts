@@ -11,6 +11,9 @@ import { S3Storage } from '../../../../../../resources/s3-storage/index.js';
 import type { AwsS3StorageServiceModule } from '../../../aws-s3-storage.service.module.js';
 import { AwsS3StorageService } from '../aws-s3-storage.service.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsS3StorageService)
 export class AddS3StorageServiceModelAction implements IModelAction<AwsS3StorageServiceModule> {
   filter(diff: Diff): boolean {
@@ -46,6 +49,9 @@ export class AddS3StorageServiceModelAction implements IModelAction<AwsS3Storage
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddS3StorageServiceModelAction>(AddS3StorageServiceModelAction)
 export class AddS3StorageServiceModelActionFactory {
   private static instance: AddS3StorageServiceModelAction;

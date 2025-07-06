@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { S3Website } from '../s3-website.resource.js';
 
+/**
+ * @internal
+ */
 @Action(S3Website)
 export class UpdateS3WebsiteTagsResourceAction
   extends GenericResourceTaggingAction
@@ -33,6 +36,9 @@ export class UpdateS3WebsiteTagsResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateS3WebsiteTagsResourceAction>(UpdateS3WebsiteTagsResourceAction)
 export class UpdateS3WebsiteTagsResourceActionFactory {
   private static instance: UpdateS3WebsiteTagsResourceAction;

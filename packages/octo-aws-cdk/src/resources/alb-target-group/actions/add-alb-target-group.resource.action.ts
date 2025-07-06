@@ -8,6 +8,9 @@ import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-clie
 import { AlbTargetGroup } from '../alb-target-group.resource.js';
 import type { AlbTargetGroupSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(AlbTargetGroup)
 export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTargetGroup> {
   constructor(private readonly container: Container) {}
@@ -96,6 +99,9 @@ export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTarge
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddAlbTargetGroupResourceAction>(AddAlbTargetGroupResourceAction)
 export class AddAlbTargetGroupResourceActionFactory {
   private static instance: AddAlbTargetGroupResourceAction;

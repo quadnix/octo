@@ -8,6 +8,9 @@ import { type ResourceGroupsTaggingAPIClientFactory } from '../../factories/aws-
 
 type TagDiffValue = { add: { [key: string]: string }; delete: string[]; update: { [key: string]: string } };
 
+/**
+ * @internal
+ */
 export class GenericResourceTaggingAction {
   constructor(private readonly container: Container) {}
 

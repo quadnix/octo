@@ -13,6 +13,9 @@ import { NetworkAclUtility } from '../../../utilities/network-acl/network-acl.ut
 import type { NetworkAclSchema } from '../index.schema.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
+/**
+ * @internal
+ */
 @Action(NetworkAcl)
 export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<NetworkAcl> {
   constructor(private readonly container: Container) {}
@@ -162,6 +165,9 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateNetworkAclEntriesResourceAction>(UpdateNetworkAclEntriesResourceAction)
 export class UpdateNetworkAclEntriesResourceActionFactory {
   private static instance: UpdateNetworkAclEntriesResourceAction;

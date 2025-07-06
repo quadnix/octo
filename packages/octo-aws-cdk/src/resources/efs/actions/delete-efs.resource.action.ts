@@ -18,6 +18,9 @@ import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { Efs } from '../efs.resource.js';
 import type { EfsSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(Efs)
 export class DeleteEfsResourceAction implements IResourceAction<Efs> {
   constructor(private readonly container: Container) {}
@@ -101,6 +104,9 @@ export class DeleteEfsResourceAction implements IResourceAction<Efs> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteEfsResourceAction>(DeleteEfsResourceAction)
 export class DeleteEfsResourceActionFactory {
   private static instance: DeleteEfsResourceAction;

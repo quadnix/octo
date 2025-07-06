@@ -4,6 +4,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { SubnetSchema } from '../index.schema.js';
 import { Subnet } from '../subnet.resource.js';
 
+/**
+ * @internal
+ */
 @Action(Subnet)
 export class AddSubnetResourceAction implements IResourceAction<Subnet> {
   constructor(private readonly container: Container) {}
@@ -62,6 +65,9 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddSubnetResourceAction>(AddSubnetResourceAction)
 export class AddSubnetResourceActionFactory {
   private static instance: AddSubnetResourceAction;

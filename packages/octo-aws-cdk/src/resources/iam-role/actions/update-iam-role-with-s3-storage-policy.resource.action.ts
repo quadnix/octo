@@ -11,6 +11,9 @@ import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { type IIamRolePolicyDiff, IamRole, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-role.resource.js';
 import type { IIamRoleS3BucketPolicy, IamRoleSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(IamRole)
 export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResourceAction<IamRole> {
   constructor(private readonly container: Container) {}
@@ -142,6 +145,9 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateIamRoleWithS3StoragePolicyResourceAction>(UpdateIamRoleWithS3StoragePolicyResourceAction)
 export class UpdateIamRoleWithS3StoragePolicyResourceActionFactory {
   private static instance: UpdateIamRoleWithS3StoragePolicyResourceAction;

@@ -4,6 +4,9 @@ import type { IAMClientFactory } from '../../../factories/aws-client.factory.js'
 import { IamRole } from '../iam-role.resource.js';
 import type { IIamRoleAssumeRolePolicy } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(IamRole)
 export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAction<IamRole> {
   constructor(private readonly container: Container) {}
@@ -71,6 +74,9 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateIamRoleAssumeRolePolicyResourceAction>(UpdateIamRoleAssumeRolePolicyResourceAction)
 export class UpdateIamRoleAssumeRolePolicyResourceActionFactory {
   private static instance: UpdateIamRoleAssumeRolePolicyResourceAction;

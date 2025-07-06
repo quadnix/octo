@@ -20,6 +20,9 @@ import { NetworkAclUtility } from '../../../../../../utilities/network-acl/netwo
 import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnet } from '../aws.subnet.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsSubnet)
 export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
   filter(diff: Diff): boolean {
@@ -196,6 +199,9 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddSubnetModelAction>(AddSubnetModelAction)
 export class AddSubnetModelActionFactory {
   private static instance: AddSubnetModelAction;

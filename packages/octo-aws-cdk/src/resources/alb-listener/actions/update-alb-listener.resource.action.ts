@@ -22,6 +22,9 @@ import {
 } from '../alb-listener.resource.js';
 import type { AlbListenerSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(AlbListener)
 export class UpdateAlbListenerResourceAction implements IResourceAction<AlbListener> {
   constructor(private readonly container: Container) {}
@@ -148,6 +151,9 @@ export class UpdateAlbListenerResourceAction implements IResourceAction<AlbListe
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateAlbListenerResourceAction>(UpdateAlbListenerResourceAction)
 export class UpdateAlbListenerResourceActionFactory {
   private static instance: UpdateAlbListenerResourceAction;

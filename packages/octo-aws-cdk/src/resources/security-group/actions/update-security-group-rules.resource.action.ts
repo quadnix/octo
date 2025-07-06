@@ -10,6 +10,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { SecurityGroupSchema } from '../index.schema.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
+/**
+ * @internal
+ */
 @Action(SecurityGroup)
 export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<SecurityGroup> {
   constructor(private readonly container: Container) {}
@@ -137,6 +140,9 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateSecurityGroupRulesResourceAction>(UpdateSecurityGroupRulesResourceAction)
 export class UpdateSecurityGroupRulesResourceActionFactory {
   private static instance: UpdateSecurityGroupRulesResourceAction;

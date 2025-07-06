@@ -3,6 +3,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcsCluster } from '../ecs-cluster.resource.js';
 
+/**
+ * @internal
+ */
 @Action(EcsCluster)
 export class DeleteEcsClusterResourceAction implements IResourceAction<EcsCluster> {
   constructor(private readonly container: Container) {}
@@ -51,6 +54,9 @@ export class DeleteEcsClusterResourceAction implements IResourceAction<EcsCluste
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteEcsClusterResourceAction>(DeleteEcsClusterResourceAction)
 export class DeleteEcsClusterResourceActionFactory {
   private static instance: DeleteEcsClusterResourceAction;

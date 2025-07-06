@@ -5,6 +5,9 @@ import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { IamUser } from '../iam-user.resource.js';
 import type { IamUserSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(IamUser)
 export class AddIamUserResourceAction implements IResourceAction<IamUser> {
   constructor(private readonly container: Container) {}
@@ -80,6 +83,9 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddIamUserResourceAction>(AddIamUserResourceAction)
 export class AddIamUserResourceActionFactory {
   private static instance: AddIamUserResourceAction;

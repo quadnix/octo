@@ -15,6 +15,9 @@ import { S3StorageSchema } from '../../../../../../resources/s3-storage/index.sc
 import type { AwsServerModule } from '../../../aws-server.module.js';
 import { AwsServerS3AccessOverlay } from '../aws-server-s3-access.overlay.js';
 
+/**
+ * @internal
+ */
 @Action(AwsServerS3AccessOverlay)
 export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServerModule> {
   filter(diff: Diff): boolean {
@@ -64,6 +67,9 @@ export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServer
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddAwsServerS3AccessOverlayAction>(AddAwsServerS3AccessOverlayAction)
 export class AddAwsServerS3AccessOverlayActionFactory {
   private static instance: AddAwsServerS3AccessOverlayAction;

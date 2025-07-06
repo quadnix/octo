@@ -13,6 +13,9 @@ import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
 import type { EfsMountTargetSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(EfsMountTarget)
 export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
   actionTimeoutInMs: number = 240000; // 4 minutes.
@@ -110,6 +113,9 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddEfsMountTargetResourceAction>(AddEfsMountTargetResourceAction)
 export class AddEfsMountTargetResourceActionFactory {
   private static instance: AddEfsMountTargetResourceAction;

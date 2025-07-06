@@ -15,6 +15,9 @@ import { RouteTable } from '../../../../../../resources/route-table/index.js';
 import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnet } from '../aws.subnet.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsSubnet)
 export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubnetModule> {
   filter(diff: Diff): boolean {
@@ -123,6 +126,9 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateSubnetAssociationModelAction>(UpdateSubnetAssociationModelAction)
 export class UpdateSubnetAssociationModelActionFactory {
   private static instance: UpdateSubnetAssociationModelAction;

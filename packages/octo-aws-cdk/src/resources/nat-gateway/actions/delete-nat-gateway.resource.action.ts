@@ -4,6 +4,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { NatGateway } from '../nat-gateway.resource.js';
 
+/**
+ * @internal
+ */
 @Action(NatGateway)
 export class DeleteNatGatewayResourceAction implements IResourceAction<NatGateway> {
   actionTimeoutInMs: number = 180000; // 3 minutes.
@@ -76,6 +79,9 @@ export class DeleteNatGatewayResourceAction implements IResourceAction<NatGatewa
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteNatGatewayResourceAction>(DeleteNatGatewayResourceAction)
 export class DeleteNatGatewayResourceActionFactory {
   private static instance: DeleteNatGatewayResourceAction;

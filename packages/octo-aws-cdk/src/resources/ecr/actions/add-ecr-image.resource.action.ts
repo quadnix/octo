@@ -4,6 +4,9 @@ import type { ECRClientFactory } from '../../../factories/aws-client.factory.js'
 import { EcrImage } from '../ecr-image.resource.js';
 import type { EcrImageSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(EcrImage)
 export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
   constructor(private readonly container: Container) {}
@@ -71,6 +74,9 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddEcrImageResourceAction>(AddEcrImageResourceAction)
 export class AddEcrImageResourceActionFactory {
   private static instance: AddEcrImageResourceAction;

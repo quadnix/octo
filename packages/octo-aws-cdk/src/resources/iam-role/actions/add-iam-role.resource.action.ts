@@ -5,6 +5,9 @@ import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { IamRole } from '../iam-role.resource.js';
 import type { IIamRoleAssumeRolePolicy, IamRoleSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(IamRole)
 export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
   constructor(private readonly container: Container) {}
@@ -99,6 +102,9 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddIamRoleResourceAction>(AddIamRoleResourceAction)
 export class AddIamRoleResourceActionFactory {
   private static instance: AddIamRoleResourceAction;

@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { IamUser } from '../iam-user.resource.js';
 
+/**
+ * @internal
+ */
 @Action(IamUser)
 export class UpdateIamUserTagsResourceAction extends GenericResourceTaggingAction implements IResourceAction<IamUser> {
   constructor(container: Container) {
@@ -32,6 +35,9 @@ export class UpdateIamUserTagsResourceAction extends GenericResourceTaggingActio
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateIamUserTagsResourceAction>(UpdateIamUserTagsResourceAction)
 export class UpdateIamUserTagsResourceActionFactory {
   private static instance: UpdateIamUserTagsResourceAction;

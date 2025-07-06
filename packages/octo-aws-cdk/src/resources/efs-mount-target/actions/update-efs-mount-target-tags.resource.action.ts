@@ -1,6 +1,9 @@
 import { Action, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
 
+/**
+ * @internal
+ */
 @Action(EfsMountTarget)
 export class UpdateEfsMountTargetTagsResourceAction implements IResourceAction<EfsMountTarget> {
   filter(diff: Diff): boolean {
@@ -17,6 +20,9 @@ export class UpdateEfsMountTargetTagsResourceAction implements IResourceAction<E
   async mock(): Promise<void> {}
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateEfsMountTargetTagsResourceAction>(UpdateEfsMountTargetTagsResourceAction)
 export class UpdateEfsMountTargetTagsResourceActionFactory {
   private static instance: UpdateEfsMountTargetTagsResourceAction;

@@ -10,6 +10,9 @@ import {
 import type { AwsMotoAccountModule } from '../../../aws-moto-account.module.js';
 import { AwsMotoAccount } from '../aws.moto-account.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsMotoAccount)
 export class AddMotoAccountModelAction implements IModelAction<AwsMotoAccountModule> {
   filter(diff: Diff): boolean {
@@ -30,6 +33,9 @@ export class AddMotoAccountModelAction implements IModelAction<AwsMotoAccountMod
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddMotoAccountModelAction>(AddMotoAccountModelAction)
 export class AddMotoAccountModelActionFactory {
   private static instance: AddMotoAccountModelAction;

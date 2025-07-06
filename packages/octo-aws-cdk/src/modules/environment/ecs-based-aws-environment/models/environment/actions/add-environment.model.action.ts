@@ -11,6 +11,9 @@ import { EcsCluster } from '../../../../../../resources/ecs-cluster/index.js';
 import type { AwsEnvironmentModule } from '../../../aws-environment.module.js';
 import { AwsEnvironment } from '../aws.environment.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsEnvironment)
 export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentModule> {
   filter(diff: Diff): boolean {
@@ -42,6 +45,9 @@ export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentMod
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddEnvironmentModelAction>(AddEnvironmentModelAction)
 export class AddEnvironmentModelActionFactory {
   private static instance: AddEnvironmentModelAction;

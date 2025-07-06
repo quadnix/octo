@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { Subnet } from '../subnet.resource.js';
 
+/**
+ * @internal
+ */
 @Action(Subnet)
 export class UpdateSubnetTagsResourceAction extends GenericResourceTaggingAction implements IResourceAction<Subnet> {
   constructor(container: Container) {
@@ -30,6 +33,9 @@ export class UpdateSubnetTagsResourceAction extends GenericResourceTaggingAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateSubnetTagsResourceAction>(UpdateSubnetTagsResourceAction)
 export class UpdateSubnetTagsResourceActionFactory {
   private static instance: UpdateSubnetTagsResourceAction;

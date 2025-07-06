@@ -15,6 +15,9 @@ import type { SecurityGroupSchema } from '../../security-group/index.schema.js';
 import { EcsService } from '../ecs-service.resource.js';
 import type { EcsServiceSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(EcsService)
 export class AddEcsServiceResourceAction implements IResourceAction<EcsService> {
   constructor(private readonly container: Container) {}
@@ -101,6 +104,9 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddEcsServiceResourceAction>(AddEcsServiceResourceAction)
 export class AddEcsServiceResourceActionFactory {
   private static instance: AddEcsServiceResourceAction;

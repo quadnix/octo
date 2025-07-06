@@ -13,6 +13,9 @@ import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
 import type { AwsExecutionModule } from '../../../aws-execution.module.js';
 import { ServerExecutionSecurityGroupOverlay } from '../server-execution-security-group.overlay.js';
 
+/**
+ * @internal
+ */
 @Action(ServerExecutionSecurityGroupOverlay)
 export class AddSecurityGroupOverlayAction implements IModelAction<AwsExecutionModule> {
   filter(diff: Diff): boolean {
@@ -68,6 +71,9 @@ export class AddSecurityGroupOverlayAction implements IModelAction<AwsExecutionM
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddSecurityGroupOverlayAction>(AddSecurityGroupOverlayAction)
 export class AddSecurityGroupOverlayActionFactory {
   private static instance: AddSecurityGroupOverlayAction;

@@ -13,6 +13,9 @@ import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { Efs } from '../efs.resource.js';
 import type { EfsSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(Efs)
 export class AddEfsResourceAction implements IResourceAction<Efs> {
   constructor(private readonly container: Container) {}
@@ -97,6 +100,9 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddEfsResourceAction>(AddEfsResourceAction)
 export class AddEfsResourceActionFactory {
   private static instance: AddEfsResourceAction;

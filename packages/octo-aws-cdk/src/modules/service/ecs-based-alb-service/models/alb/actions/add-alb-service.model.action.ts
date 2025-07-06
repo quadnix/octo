@@ -15,6 +15,9 @@ import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
 import type { AwsAlbServiceModule } from '../../../aws-alb.service.module.js';
 import { AwsAlbService } from '../aws-alb.service.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsAlbService)
 export class AddAlbServiceModelAction implements IModelAction<AwsAlbServiceModule> {
   filter(diff: Diff): boolean {
@@ -115,6 +118,9 @@ export class AddAlbServiceModelAction implements IModelAction<AwsAlbServiceModul
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddAlbServiceModelAction>(AddAlbServiceModelAction)
 export class AddAlbServiceModelActionFactory {
   private static instance: AddAlbServiceModelAction;

@@ -11,6 +11,9 @@ import { IamRole } from '../../../../../../resources/iam-role/index.js';
 import type { AwsServerModule } from '../../../aws-server.module.js';
 import { AwsServer } from '../aws.server.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsServer)
 export class AddServerModelAction implements IModelAction<AwsServerModule> {
   filter(diff: Diff): boolean {
@@ -52,6 +55,9 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddServerModelAction>(AddServerModelAction)
 export class AddServerModelActionFactory {
   private static instance: AddServerModelAction;

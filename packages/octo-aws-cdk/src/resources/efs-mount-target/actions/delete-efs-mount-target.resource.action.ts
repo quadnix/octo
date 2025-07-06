@@ -17,6 +17,9 @@ import type { EFSClientFactory } from '../../../factories/aws-client.factory.js'
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
 
+/**
+ * @internal
+ */
 @Action(EfsMountTarget)
 export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
   actionTimeoutInMs: number = 240000; // 4 minutes.
@@ -113,6 +116,9 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteEfsMountTargetResourceAction>(DeleteEfsMountTargetResourceAction)
 export class DeleteEfsMountTargetResourceActionFactory {
   private static instance: DeleteEfsMountTargetResourceAction;

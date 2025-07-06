@@ -3,6 +3,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { Subnet } from '../subnet.resource.js';
 
+/**
+ * @internal
+ */
 @Action(Subnet)
 export class DeleteSubnetResourceAction implements IResourceAction<Subnet> {
   constructor(private readonly container: Container) {}
@@ -53,6 +56,9 @@ export class DeleteSubnetResourceAction implements IResourceAction<Subnet> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteSubnetResourceAction>(DeleteSubnetResourceAction)
 export class DeleteSubnetResourceActionFactory {
   private static instance: DeleteSubnetResourceAction;

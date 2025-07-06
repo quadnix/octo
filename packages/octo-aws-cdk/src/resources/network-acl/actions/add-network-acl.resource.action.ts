@@ -10,6 +10,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { NetworkAclSchema } from '../index.schema.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
+/**
+ * @internal
+ */
 @Action(NetworkAcl)
 export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> {
   constructor(private readonly container: Container) {}
@@ -121,6 +124,9 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddNetworkAclResourceAction>(AddNetworkAclResourceAction)
 export class AddNetworkAclResourceActionFactory {
   private static instance: AddNetworkAclResourceAction;

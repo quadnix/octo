@@ -11,6 +11,9 @@ import type { S3Website } from '../../../../../../resources/s3-website/index.js'
 import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website.service.module.js';
 import { AwsS3StaticWebsiteService } from '../aws-s3-static-website.service.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsS3StaticWebsiteService)
 export class UpdateSourcePathsS3StaticWebsiteModelAction implements IModelAction<AwsS3StaticWebsiteServiceModule> {
   filter(diff: Diff): boolean {
@@ -37,6 +40,9 @@ export class UpdateSourcePathsS3StaticWebsiteModelAction implements IModelAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateSourcePathsS3StaticWebsiteModelAction>(UpdateSourcePathsS3StaticWebsiteModelAction)
 export class UpdateSourcePathsS3StaticWebsiteModelActionFactory {
   private static instance: UpdateSourcePathsS3StaticWebsiteModelAction;

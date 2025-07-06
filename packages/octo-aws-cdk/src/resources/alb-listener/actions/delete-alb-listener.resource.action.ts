@@ -3,6 +3,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import type { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { AlbListener } from '../alb-listener.resource.js';
 
+/**
+ * @internal
+ */
 @Action(AlbListener)
 export class DeleteAlbListenerResourceAction implements IResourceAction<AlbListener> {
   constructor(private readonly container: Container) {}
@@ -59,6 +62,9 @@ export class DeleteAlbListenerResourceAction implements IResourceAction<AlbListe
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteAlbListenerResourceAction>(DeleteAlbListenerResourceAction)
 export class DeleteAlbListenerResourceActionFactory {
   private static instance: DeleteAlbListenerResourceAction;

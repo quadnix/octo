@@ -11,6 +11,9 @@ import { Efs } from '../../../../../../resources/efs/index.js';
 import type { AwsFilesystemModule } from '../../../aws-filesystem.module.js';
 import { AwsFilesystem } from '../aws.filesystem.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsFilesystem)
 export class AddFilesystemModelAction implements IModelAction<AwsFilesystemModule> {
   filter(diff: Diff): boolean {
@@ -46,6 +49,9 @@ export class AddFilesystemModelAction implements IModelAction<AwsFilesystemModul
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddFilesystemModelAction>(AddFilesystemModelAction)
 export class AddFilesystemModelActionFactory {
   private static instance: AddFilesystemModelAction;

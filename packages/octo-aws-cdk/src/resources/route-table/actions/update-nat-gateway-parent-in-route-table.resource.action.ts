@@ -5,6 +5,9 @@ import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { NatGatewaySchema } from '../../nat-gateway/index.schema.js';
 import { RouteTable } from '../route-table.resource.js';
 
+/**
+ * @internal
+ */
 @Action(RouteTable)
 export class UpdateNatGatewayParentInRouteTableResourceAction implements IResourceAction<RouteTable> {
   constructor(private readonly container: Container) {}
@@ -81,6 +84,9 @@ export class UpdateNatGatewayParentInRouteTableResourceAction implements IResour
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateNatGatewayParentInRouteTableResourceAction>(UpdateNatGatewayParentInRouteTableResourceAction)
 export class UpdateNatGatewayParentInRouteTableResourceActionFactory {
   private static instance: UpdateNatGatewayParentInRouteTableResourceAction;

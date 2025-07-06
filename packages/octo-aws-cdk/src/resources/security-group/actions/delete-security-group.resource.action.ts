@@ -4,6 +4,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
+/**
+ * @internal
+ */
 @Action(SecurityGroup)
 export class DeleteSecurityGroupResourceAction implements IResourceAction<SecurityGroup> {
   constructor(private readonly container: Container) {}
@@ -66,6 +69,9 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction<Securi
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteSecurityGroupResourceAction>(DeleteSecurityGroupResourceAction)
 export class DeleteSecurityGroupResourceActionFactory {
   private static instance: DeleteSecurityGroupResourceAction;

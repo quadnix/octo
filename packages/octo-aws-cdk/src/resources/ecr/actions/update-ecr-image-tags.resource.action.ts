@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { EcrImage } from '../ecr-image.resource.js';
 
+/**
+ * @internal
+ */
 @Action(EcrImage)
 export class UpdateEcrImageTagsResourceAction
   extends GenericResourceTaggingAction
@@ -33,6 +36,9 @@ export class UpdateEcrImageTagsResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateEcrImageTagsResourceAction>(UpdateEcrImageTagsResourceAction)
 export class UpdateEcrImageTagsResourceActionFactory {
   private static instance: UpdateEcrImageTagsResourceAction;

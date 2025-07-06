@@ -10,6 +10,9 @@ import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { S3Website } from '../s3-website.resource.js';
 
+/**
+ * @internal
+ */
 @Action(S3Website)
 export class AddS3WebsiteResourceAction implements IResourceAction<S3Website> {
   constructor(private readonly container: Container) {}
@@ -117,6 +120,9 @@ export class AddS3WebsiteResourceAction implements IResourceAction<S3Website> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddS3WebsiteResourceAction>(AddS3WebsiteResourceAction)
 export class AddS3WebsiteResourceActionFactory {
   private static instance: AddS3WebsiteResourceAction;

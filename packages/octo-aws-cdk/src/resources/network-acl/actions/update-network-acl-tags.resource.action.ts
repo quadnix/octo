@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
+/**
+ * @internal
+ */
 @Action(NetworkAcl)
 export class UpdateNetworkAclTagsResourceAction
   extends GenericResourceTaggingAction
@@ -33,6 +36,9 @@ export class UpdateNetworkAclTagsResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateNetworkAclTagsResourceAction>(UpdateNetworkAclTagsResourceAction)
 export class UpdateNetworkAclTagsResourceActionFactory {
   private static instance: UpdateNetworkAclTagsResourceAction;

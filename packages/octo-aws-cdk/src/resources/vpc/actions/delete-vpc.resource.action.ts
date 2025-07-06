@@ -3,6 +3,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { Vpc } from '../vpc.resource.js';
 
+/**
+ * @internal
+ */
 @Action(Vpc)
 export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
   constructor(private readonly container: Container) {}
@@ -53,6 +56,9 @@ export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteVpcResourceAction>(DeleteVpcResourceAction)
 export class DeleteVpcResourceActionFactory {
   private static instance: DeleteVpcResourceAction;

@@ -4,6 +4,9 @@ import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-clie
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { Alb } from '../alb.resource.js';
 
+/**
+ * @internal
+ */
 @Action(Alb)
 export class DeleteAlbResourceAction implements IResourceAction<Alb> {
   constructor(private readonly container: Container) {}
@@ -71,6 +74,9 @@ export class DeleteAlbResourceAction implements IResourceAction<Alb> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteAlbResourceAction>(DeleteAlbResourceAction)
 export class DeleteAlbResourceActionFactory {
   private static instance: DeleteAlbResourceAction;

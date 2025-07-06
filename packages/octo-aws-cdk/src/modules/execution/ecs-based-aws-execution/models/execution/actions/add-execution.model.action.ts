@@ -10,6 +10,9 @@ import {
 import type { AwsExecutionModule } from '../../../aws-execution.module.js';
 import { AwsExecution } from '../aws.execution.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsExecution)
 export class AddExecutionModelAction implements IModelAction<AwsExecutionModule> {
   filter(diff: Diff): boolean {
@@ -30,6 +33,9 @@ export class AddExecutionModelAction implements IModelAction<AwsExecutionModule>
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddExecutionModelAction>(AddExecutionModelAction)
 export class AddExecutionModelActionFactory {
   private static instance: AddExecutionModelAction;

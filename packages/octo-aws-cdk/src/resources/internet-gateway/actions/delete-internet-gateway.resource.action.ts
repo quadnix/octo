@@ -4,6 +4,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
+/**
+ * @internal
+ */
 @Action(InternetGateway)
 export class DeleteInternetGatewayResourceAction implements IResourceAction<InternetGateway> {
   actionTimeoutInMs: number = 120000; // 2 minutes.
@@ -78,6 +81,9 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction<Inte
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteInternetGatewayResourceAction>(DeleteInternetGatewayResourceAction)
 export class DeleteInternetGatewayResourceActionFactory {
   private static instance: DeleteInternetGatewayResourceAction;

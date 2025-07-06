@@ -9,6 +9,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { RouteTableSchema } from '../index.schema.js';
 import { RouteTable } from '../route-table.resource.js';
 
+/**
+ * @internal
+ */
 @Action(RouteTable)
 export class AddRouteTableResourceAction implements IResourceAction<RouteTable> {
   constructor(private readonly container: Container) {}
@@ -91,6 +94,9 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddRouteTableResourceAction>(AddRouteTableResourceAction)
 export class AddRouteTableResourceActionFactory {
   private static instance: AddRouteTableResourceAction;

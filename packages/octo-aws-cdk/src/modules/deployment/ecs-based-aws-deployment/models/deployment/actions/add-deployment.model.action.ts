@@ -10,6 +10,9 @@ import {
 import type { AwsDeploymentModule } from '../../../aws-deployment.module.js';
 import { AwsDeployment } from '../aws.deployment.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsDeployment)
 export class AddDeploymentModelAction implements IModelAction<AwsDeploymentModule> {
   filter(diff: Diff): boolean {
@@ -30,6 +33,9 @@ export class AddDeploymentModelAction implements IModelAction<AwsDeploymentModul
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddDeploymentModelAction>(AddDeploymentModelAction)
 export class AddDeploymentModelActionFactory {
   private static instance: AddDeploymentModelAction;

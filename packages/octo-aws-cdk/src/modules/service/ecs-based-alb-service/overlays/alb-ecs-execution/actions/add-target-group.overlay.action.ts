@@ -18,6 +18,9 @@ import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
 import type { AwsAlbServiceModule } from '../../../aws-alb.service.module.js';
 import { AwsAlbEcsExecutionOverlay } from '../aws-alb-ecs-execution.overlay.js';
 
+/**
+ * @internal
+ */
 @Action(AwsAlbEcsExecutionOverlay)
 export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceModule> {
   filter(diff: Diff): boolean {
@@ -114,6 +117,9 @@ export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceMo
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddTargetGroupOverlayAction>(AddTargetGroupOverlayAction)
 export class AddTargetGroupOverlayActionFactory {
   private static instance: AddTargetGroupOverlayAction;

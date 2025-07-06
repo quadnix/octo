@@ -11,6 +11,9 @@ import { EcrImage } from '../../../../../../resources/ecr/index.js';
 import type { AwsImageModule } from '../../../aws-image.module.js';
 import { AwsImage } from '../aws.image.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsImage)
 export class AddImageModelAction implements IModelAction<AwsImageModule> {
   filter(diff: Diff): boolean {
@@ -48,6 +51,9 @@ export class AddImageModelAction implements IModelAction<AwsImageModule> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddImageModelAction>(AddImageModelAction)
 export class AddImageModelActionFactory {
   private static instance: AddImageModelAction;

@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { NatGateway } from '../nat-gateway.resource.js';
 
+/**
+ * @internal
+ */
 @Action(NatGateway)
 export class UpdateNatGatewayTagsResourceAction
   extends GenericResourceTaggingAction
@@ -33,6 +36,9 @@ export class UpdateNatGatewayTagsResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateNatGatewayTagsResourceAction>(UpdateNatGatewayTagsResourceAction)
 export class UpdateNatGatewayTagsResourceActionFactory {
   private static instance: UpdateNatGatewayTagsResourceAction;

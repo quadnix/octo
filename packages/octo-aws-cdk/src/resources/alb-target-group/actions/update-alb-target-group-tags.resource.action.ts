@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { AlbTargetGroup } from '../alb-target-group.resource.js';
 
+/**
+ * @internal
+ */
 @Action(AlbTargetGroup)
 export class UpdateAlbTargetGroupTagsResourceAction
   extends GenericResourceTaggingAction
@@ -33,6 +36,9 @@ export class UpdateAlbTargetGroupTagsResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateAlbTargetGroupTagsResourceAction>(UpdateAlbTargetGroupTagsResourceAction)
 export class UpdateAlbTargetGroupTagsResourceActionFactory {
   private static instance: UpdateAlbTargetGroupTagsResourceAction;

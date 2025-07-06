@@ -14,6 +14,9 @@ import { Vpc } from '../../../../../../resources/vpc/index.js';
 import type { AwsRegionModule } from '../../../aws-region.module.js';
 import { AwsRegion } from '../aws.region.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsRegion)
 export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
   filter(diff: Diff): boolean {
@@ -87,6 +90,9 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddRegionModelAction>(AddRegionModelAction)
 export class AddRegionModelActionFactory {
   private static instance: AddRegionModelAction;

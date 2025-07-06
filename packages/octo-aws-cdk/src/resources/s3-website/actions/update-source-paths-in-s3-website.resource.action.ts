@@ -6,6 +6,9 @@ import mime from 'mime';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { S3Website } from '../s3-website.resource.js';
 
+/**
+ * @internal
+ */
 @Action(S3Website)
 export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceAction<S3Website> {
   constructor(private readonly container: Container) {}
@@ -79,6 +82,9 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateSourcePathsInS3WebsiteResourceAction>(UpdateSourcePathsInS3WebsiteResourceAction)
 export class UpdateSourcePathsInS3WebsiteResourceActionFactory {
   private static instance: UpdateSourcePathsInS3WebsiteResourceAction;

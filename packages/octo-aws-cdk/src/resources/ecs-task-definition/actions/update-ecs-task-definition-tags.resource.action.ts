@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
+/**
+ * @internal
+ */
 @Action(EcsTaskDefinition)
 export class UpdateEcsTaskDefinitionTagsResourceAction
   extends GenericResourceTaggingAction
@@ -33,6 +36,9 @@ export class UpdateEcsTaskDefinitionTagsResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateEcsTaskDefinitionTagsResourceAction>(UpdateEcsTaskDefinitionTagsResourceAction)
 export class UpdateEcsTaskDefinitionTagsResourceActionFactory {
   private static instance: UpdateEcsTaskDefinitionTagsResourceAction;

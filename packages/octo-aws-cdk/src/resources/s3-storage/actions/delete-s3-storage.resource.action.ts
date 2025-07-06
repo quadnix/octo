@@ -9,6 +9,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { S3Storage } from '../s3-storage.resource.js';
 
+/**
+ * @internal
+ */
 @Action(S3Storage)
 export class DeleteS3StorageResourceAction implements IResourceAction<S3Storage> {
   constructor(private readonly container: Container) {}
@@ -90,6 +93,9 @@ export class DeleteS3StorageResourceAction implements IResourceAction<S3Storage>
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteS3StorageResourceAction>(DeleteS3StorageResourceAction)
 export class DeleteS3StorageResourceActionFactory {
   private static instance: DeleteS3StorageResourceAction;

@@ -10,6 +10,9 @@ import {
 import type { AwsIniAccountModule } from '../../../aws-ini-account.module.js';
 import { AwsIniAccount } from '../aws.ini-account.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsIniAccount)
 export class AddIniAccountModelAction implements IModelAction<AwsIniAccountModule> {
   filter(diff: Diff): boolean {
@@ -30,6 +33,9 @@ export class AddIniAccountModelAction implements IModelAction<AwsIniAccountModul
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddIniAccountModelAction>(AddIniAccountModelAction)
 export class AddIniAccountModelActionFactory {
   private static instance: AddIniAccountModelAction;

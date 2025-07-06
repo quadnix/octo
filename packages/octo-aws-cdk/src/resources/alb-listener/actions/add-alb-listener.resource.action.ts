@@ -4,6 +4,9 @@ import type { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws
 import { AlbListener } from '../alb-listener.resource.js';
 import type { AlbListenerSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(AlbListener)
 export class AddAlbListenerResourceAction implements IResourceAction<AlbListener> {
   constructor(private readonly container: Container) {}
@@ -83,6 +86,9 @@ export class AddAlbListenerResourceAction implements IResourceAction<AlbListener
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddAlbListenerResourceAction>(AddAlbListenerResourceAction)
 export class AddAlbListenerResourceActionFactory {
   private static instance: AddAlbListenerResourceAction;

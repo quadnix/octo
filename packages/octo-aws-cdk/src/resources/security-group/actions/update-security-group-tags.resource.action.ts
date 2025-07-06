@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
+/**
+ * @internal
+ */
 @Action(SecurityGroup)
 export class UpdateSecurityGroupTagsResourceAction
   extends GenericResourceTaggingAction
@@ -33,6 +36,9 @@ export class UpdateSecurityGroupTagsResourceAction
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateSecurityGroupTagsResourceAction>(UpdateSecurityGroupTagsResourceAction)
 export class UpdateSecurityGroupTagsResourceActionFactory {
   private static instance: UpdateSecurityGroupTagsResourceAction;

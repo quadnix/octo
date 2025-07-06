@@ -4,6 +4,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { NatGatewaySchema } from '../index.schema.js';
 import { NatGateway } from '../nat-gateway.resource.js';
 
+/**
+ * @internal
+ */
 @Action(NatGateway)
 export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> {
   constructor(private readonly container: Container) {}
@@ -72,6 +75,9 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddNatGatewayResourceAction>(AddNatGatewayResourceAction)
 export class AddNatGatewayResourceActionFactory {
   private static instance: AddNatGatewayResourceAction;

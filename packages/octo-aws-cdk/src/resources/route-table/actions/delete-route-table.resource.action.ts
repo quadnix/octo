@@ -3,6 +3,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RouteTable } from '../route-table.resource.js';
 
+/**
+ * @internal
+ */
 @Action(RouteTable)
 export class DeleteRouteTableResourceAction implements IResourceAction<RouteTable> {
   constructor(private readonly container: Container) {}
@@ -62,6 +65,9 @@ export class DeleteRouteTableResourceAction implements IResourceAction<RouteTabl
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteRouteTableResourceAction>(DeleteRouteTableResourceAction)
 export class DeleteRouteTableResourceActionFactory {
   private static instance: DeleteRouteTableResourceAction;

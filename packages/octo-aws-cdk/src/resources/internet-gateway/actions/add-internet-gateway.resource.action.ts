@@ -4,6 +4,9 @@ import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { InternetGatewaySchema } from '../index.schema.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
+/**
+ * @internal
+ */
 @Action(InternetGateway)
 export class AddInternetGatewayResourceAction implements IResourceAction<InternetGateway> {
   constructor(private readonly container: Container) {}
@@ -68,6 +71,9 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddInternetGatewayResourceAction>(AddInternetGatewayResourceAction)
 export class AddInternetGatewayResourceActionFactory {
   private static instance: AddInternetGatewayResourceAction;

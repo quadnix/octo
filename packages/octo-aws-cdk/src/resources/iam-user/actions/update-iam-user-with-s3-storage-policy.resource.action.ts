@@ -11,6 +11,9 @@ import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { type IIamUserPolicyDiff, IamUser, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-user.resource.js';
 import type { IIamUserS3BucketPolicy, IamUserSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(IamUser)
 export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResourceAction<IamUser> {
   constructor(private readonly container: Container) {}
@@ -142,6 +145,9 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateIamUserWithS3StoragePolicyResourceAction>(UpdateIamUserWithS3StoragePolicyResourceAction)
 export class UpdateIamUserWithS3StoragePolicyResourceActionFactory {
   private static instance: UpdateIamUserWithS3StoragePolicyResourceAction;

@@ -13,6 +13,9 @@ import type { SubnetSchema } from '../../subnet/index.schema.js';
 import { Alb } from '../alb.resource.js';
 import type { AlbSchema } from '../index.schema.js';
 
+/**
+ * @internal
+ */
 @Action(Alb)
 export class AddAlbResourceAction implements IResourceAction<Alb> {
   constructor(private readonly container: Container) {}
@@ -87,6 +90,9 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddAlbResourceAction>(AddAlbResourceAction)
 export class AddAlbResourceActionFactory {
   private static instance: AddAlbResourceAction;

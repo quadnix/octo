@@ -3,6 +3,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcrImage } from '../ecr-image.resource.js';
 
+/**
+ * @internal
+ */
 @Action(EcrImage)
 export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
   constructor(private readonly container: Container) {}
@@ -52,6 +55,9 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteEcrImageResourceAction>(DeleteEcrImageResourceAction)
 export class DeleteEcrImageResourceActionFactory {
   private static instance: DeleteEcrImageResourceAction;

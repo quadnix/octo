@@ -10,6 +10,9 @@ import {
 import type { AwsLocalstackAccountModule } from '../../../aws-localstack-account.module.js';
 import { AwsLocalstackAccount } from '../aws.localstack-account.model.js';
 
+/**
+ * @internal
+ */
 @Action(AwsLocalstackAccount)
 export class AddLocalstackAccountModelAction implements IModelAction<AwsLocalstackAccountModule> {
   filter(diff: Diff): boolean {
@@ -30,6 +33,9 @@ export class AddLocalstackAccountModelAction implements IModelAction<AwsLocalsta
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddLocalstackAccountModelAction>(AddLocalstackAccountModelAction)
 export class AddLocalstackAccountModelActionFactory {
   private static instance: AddLocalstackAccountModelAction;

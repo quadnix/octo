@@ -4,6 +4,9 @@ import type { ECSClientFactory } from '../../../factories/aws-client.factory.js'
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EcsService } from '../ecs-service.resource.js';
 
+/**
+ * @internal
+ */
 @Action(EcsService)
 export class DeleteEcsServiceResourceAction implements IResourceAction<EcsService> {
   actionTimeoutInMs: number = 240000; // 4 minutes.
@@ -103,6 +106,9 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteEcsServiceResourceAction>(DeleteEcsServiceResourceAction)
 export class DeleteEcsServiceResourceActionFactory {
   private static instance: DeleteEcsServiceResourceAction;

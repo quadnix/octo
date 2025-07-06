@@ -2,6 +2,9 @@ import { Action, Container, type Diff, Factory, type IResourceAction } from '@qu
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { Vpc } from '../vpc.resource.js';
 
+/**
+ * @internal
+ */
 @Action(Vpc)
 export class UpdateVpcTagsResourceAction extends GenericResourceTaggingAction implements IResourceAction<Vpc> {
   constructor(container: Container) {
@@ -30,6 +33,9 @@ export class UpdateVpcTagsResourceAction extends GenericResourceTaggingAction im
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<UpdateVpcTagsResourceAction>(UpdateVpcTagsResourceAction)
 export class UpdateVpcTagsResourceActionFactory {
   private static instance: UpdateVpcTagsResourceAction;

@@ -16,6 +16,9 @@ import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
 import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
 import { AwsSubnetLocalFilesystemMountOverlay } from '../aws-subnet-local-filesystem-mount.overlay.js';
 
+/**
+ * @internal
+ */
 @Action(AwsSubnetLocalFilesystemMountOverlay)
 export class AddSubnetLocalFilesystemMountOverlayAction implements IModelAction<AwsSubnetModule> {
   filter(diff: Diff): boolean {
@@ -84,6 +87,9 @@ export class AddSubnetLocalFilesystemMountOverlayAction implements IModelAction<
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddSubnetLocalFilesystemMountOverlayAction>(AddSubnetLocalFilesystemMountOverlayAction)
 export class AddSubnetLocalFilesystemMountOverlayActionFactory {
   private static instance: AddSubnetLocalFilesystemMountOverlayAction;

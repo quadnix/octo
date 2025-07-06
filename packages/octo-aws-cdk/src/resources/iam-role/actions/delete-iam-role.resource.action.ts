@@ -3,6 +3,9 @@ import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamRole } from '../iam-role.resource.js';
 
+/**
+ * @internal
+ */
 @Action(IamRole)
 export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
   constructor(private readonly container: Container) {}
@@ -52,6 +55,9 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<DeleteIamRoleResourceAction>(DeleteIamRoleResourceAction)
 export class DeleteIamRoleResourceActionFactory {
   private static instance: DeleteIamRoleResourceAction;
