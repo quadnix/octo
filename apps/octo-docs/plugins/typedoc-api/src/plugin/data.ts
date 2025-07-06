@@ -2,7 +2,13 @@ import fs from 'fs';
 import path from 'path';
 import { normalizeUrl } from '@docusaurus/utils';
 import * as TypeDoc from 'typedoc';
-import { type InlineTagDisplayPart, type JSONOutput, type ReflectionId, ReflectionKind } from 'typedoc';
+import {
+  type InlineTagDisplayPart,
+  type JSONOutput,
+  type ReflectionId,
+  ReflectionKind,
+  resetReflectionID,
+} from 'typedoc';
 import ts from 'typescript';
 import type {
   DocusaurusPluginTypeDocApiOptions,
@@ -52,6 +58,8 @@ export async function generateJson(
     return true;
   }
 
+  resetReflectionID();
+
   const tsconfig = path.join(projectRoot, options.tsconfigName ?? 'tsconfig.json');
 
   const app = await TypeDoc.Application.bootstrapWithPlugins(
@@ -86,6 +94,14 @@ export async function generateJson(
       exclude: options.exclude,
       // We use a fake category title so that we can fallback to the parent group
       defaultCategory: '__CATEGORY__',
+      projectDocuments: [
+        ...options.packages
+          .filter((pkg) => typeof pkg === 'object')
+          .filter((pkg) => pkg.includeProjectDocuments)
+          .map((pkg) => path.join(options.projectRoot, pkg.path, '**/*.md')),
+        ...(options.projectDocuments || []).map((doc) => path.join(options.projectRoot, doc)),
+      ],
+      watch: false,
     },
     [new TypeDoc.TSConfigReader(), new TypeDoc.TypeDocReader()],
   );
@@ -402,7 +418,11 @@ export function flattenAndGroupPackages(
   urlPrefix: string,
   options: DocusaurusPluginTypeDocApiOptions,
   versioned: boolean = false,
-): PackageReflectionGroup[] {
+): {
+  documents: JSONOutput.DocumentReflection[];
+  fileEntries: Record<string, string>;
+  packages: PackageReflectionGroup[];
+} {
   const isSinglePackage = packageConfigs.length === 1;
   const modules = extractReflectionModules(project, isSinglePackage);
 
@@ -492,9 +512,14 @@ export function flattenAndGroupPackages(
   sortReflectionGroups(packagesWithDeepImports);
 
   // Sort packages by name
-  return Object.values(packages).sort((a, b) => a.packageName.localeCompare(b.packageName));
+  return {
+    documents: project.documents || [],
+    fileEntries: project.files.entries,
+    packages: Object.values(packages).sort((a, b) => a.packageName.localeCompare(b.packageName)),
+  };
 }
 
 export function formatPackagesWithoutHostInfo(packages: PackageReflectionGroup[]): PackageReflectionGroup[] {
-  return packages.map(({ ...pkg }) => pkg);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return packages.map(({ changelogPath, readmePath, ...pkg }) => pkg);
 }

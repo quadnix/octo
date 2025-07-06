@@ -33,6 +33,7 @@ export interface DocusaurusPluginTypeDocApiOptions
   disableVersioning?: boolean;
   includeCurrentVersion?: boolean;
   routeBasePath?: string;
+  projectDocuments?: string[];
 }
 
 // CONFIG
@@ -43,8 +44,9 @@ export interface PackageEntryConfig {
 }
 
 export interface PackageConfig {
-  path: string; // Folder relative to project root
   entry?: Record<string, PackageEntryConfig | string> | string;
+  includeProjectDocuments?: boolean;
+  path: string; // Folder relative to project root
   slug?: string;
   watchPattern?: string;
 }
@@ -73,6 +75,8 @@ export interface VersionMetadata {
 
 export interface LoadedVersion extends VersionMetadata {
   // mainDocId: string;
+  documents: JSONOutput.DocumentReflection[];
+  fileEntries: Record<string, string>;
   packages: PackageReflectionGroup[];
   sidebars: SidebarItem[];
 }

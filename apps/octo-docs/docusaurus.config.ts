@@ -29,6 +29,7 @@ const config: Config = {
             entry: {
               index: 'src/index.ts',
             },
+            includeProjectDocuments: true,
             path: 'packages/octo',
             watchPattern: 'src/**/*.*',
           },
@@ -36,6 +37,7 @@ const config: Config = {
             entry: {
               index: 'src/index.ts',
             },
+            includeProjectDocuments: true,
             path: 'packages/octo-aws-cdk',
             watchPattern: 'src/**/*.*',
           },

@@ -7,6 +7,7 @@ import type { PluginOptions, PropVersionDocs, PropVersionMetadata } from '@docus
 import { CURRENT_VERSION_NAME } from '@docusaurus/plugin-content-docs/server';
 import type { LoadContext, Plugin, RouteConfig } from '@docusaurus/types';
 import { DEFAULT_PLUGIN_ID, normalizeUrl } from '@docusaurus/utils';
+import type { JSONOutput } from 'typedoc';
 import {
   flattenAndGroupPackages,
   formatPackagesWithoutHostInfo,
@@ -54,6 +55,7 @@ const DEFAULT_OPTIONS: Required<DocusaurusPluginTypeDocApiOptions> = {
   remarkPlugins: [],
   rehypePlugins: [],
   versions: {},
+  projectDocuments: [],
 };
 
 async function importFile<T>(file: string): Promise<T> {
@@ -175,7 +177,9 @@ export default function typedocApiPlugin(
       return {
         loadedVersions: await Promise.all(
           versionsMetadataList.map(async (metadata: VersionMetadata) => {
-            let packages: PackageReflectionGroup[] = [];
+            let documents: JSONOutput.DocumentReflection[];
+            let fileEntries: Record<string, string>;
+            let packages: PackageReflectionGroup[];
 
             // Current data needs to be generated on demand
             if (metadata.versionName === CURRENT_VERSION_NAME) {
@@ -183,24 +187,30 @@ export default function typedocApiPlugin(
 
               await generateJson(projectRoot, entryPoints, outFile, options);
 
-              packages = flattenAndGroupPackages(
+              const output = flattenAndGroupPackages(
                 packageConfigs,
                 await importFile(outFile),
                 metadata.versionPath,
                 options,
               );
+              documents = output.documents;
+              fileEntries = output.fileEntries;
+              packages = output.packages;
 
               // Versioned data is stored in the file system
             } else {
               const outDir = path.join(versionsDocsDir, `version-${metadata.versionName}`);
 
-              packages = flattenAndGroupPackages(
+              const output = flattenAndGroupPackages(
                 await importFile(path.join(outDir, 'api-packages.json')),
                 await importFile(path.join(outDir, 'api-typedoc.json')),
                 metadata.versionPath,
                 options,
                 true,
               );
+              documents = output.documents;
+              fileEntries = output.fileEntries;
+              packages = output.packages;
             }
 
             packages.sort((a, d) => options.sortPackages(a, d));
@@ -220,6 +230,8 @@ export default function typedocApiPlugin(
 
             return {
               ...metadata,
+              documents,
+              fileEntries,
               packages,
               sidebars,
             };
@@ -347,6 +359,47 @@ export default function typedocApiPlugin(
             });
           }
 
+          for (const document of loadedVersion.documents) {
+            if (!document.frontmatter?.path || !loadedVersion.fileEntries[document.id]) {
+              continue;
+            }
+            const documentSourcePath = path.resolve(loadedVersion.fileEntries[document.id]);
+            const documentDestinationDirectoryPath = path.join(
+              __dirname,
+              '../../../docs',
+              document.frontmatter.path as string,
+            );
+            const documentDestinationPath = path.join(
+              documentDestinationDirectoryPath,
+              path.basename(documentSourcePath),
+            );
+
+            const isDocumentExisting = async (): Promise<boolean> => {
+              try {
+                const existingDocumentSymlink = await fs.promises.lstat(documentDestinationPath);
+                return existingDocumentSymlink.isSymbolicLink();
+              } catch (error: any) {
+                if (error.code === 'ENOENT') {
+                  return false;
+                }
+                throw error;
+              }
+            };
+            const isDocumentExistingResult = await isDocumentExisting();
+            if (isDocumentExistingResult) {
+              await fs.promises.unlink(documentDestinationPath);
+            }
+
+            await fs.promises.mkdir(documentDestinationDirectoryPath, { recursive: true });
+            try {
+              await fs.promises.symlink(documentSourcePath, documentDestinationPath, 'file');
+            } catch (error: any) {
+              if (error.code !== 'EEXIST') {
+                throw error;
+              }
+            }
+          }
+
           // Wrap in the `DocVersionRoot` component:
           // https://github.com/facebook/docusaurus/blob/main/packages/docusaurus-plugin-content-docs/src/routes.ts#L192
           return {
@@ -385,7 +438,11 @@ export default function typedocApiPlugin(
 
     configureWebpack(_config, isServer, utils): any {
       if (!readmes && !changelogs) {
-        return {};
+        return {
+          resolve: {
+            symlinks: false,
+          },
+        };
       }
 
       // Whitelist the folders that this webpack rule applies to, otherwise we collide with the native
@@ -435,9 +492,12 @@ export default function typedocApiPlugin(
     },
 
     getPathsToWatch(): string[] {
-      return options.packages
-        .filter((pkg) => typeof pkg === 'object')
-        .map((pkg) => path.join(options.projectRoot, pkg.path, pkg.watchPattern || ''));
+      return [
+        ...options.packages
+          .filter((pkg) => typeof pkg === 'object')
+          .map((pkg) => path.join(options.projectRoot, pkg.path, pkg.watchPattern || '')),
+        ...options.projectDocuments.map((doc) => path.join(options.projectRoot, doc)),
+      ];
     },
   };
 }

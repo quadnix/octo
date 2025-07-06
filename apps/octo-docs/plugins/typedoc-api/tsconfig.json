@@ -8,6 +8,7 @@
     "outDir": "lib",
     "rootDir": "src",
     "skipLibCheck": true,
+    "sourceMap": true,
     "strict": true,
     "target": "ESNext",
     "types": ["@docusaurus/module-type-aliases", "@docusaurus/theme-classic", "node"]
