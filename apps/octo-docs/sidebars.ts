@@ -108,6 +108,24 @@ const sidebars: SidebarsConfig = {
       },
       type: 'category',
     },
+    {
+      items: [
+        {
+          id: 'contributions/nx.json/nx.contribution',
+          type: 'doc',
+        },
+        {
+          id: 'contributions/tsconfig.json/tsconfig.contribution',
+          type: 'doc',
+        },
+      ],
+      label: 'Contribution Guide',
+      link: {
+        description: 'Guide to contribute to Octo.',
+        type: 'generated-index',
+      },
+      type: 'category',
+    },
   ],
 };
 

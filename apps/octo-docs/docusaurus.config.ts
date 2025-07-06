@@ -42,6 +42,7 @@ const config: Config = {
             watchPattern: 'src/**/*.*',
           },
         ],
+        projectDocuments: ['docs/contributions/**/*.md'],
         projectRoot: join(__dirname, '..', '..'),
         typedocOptions: { useTsLinkResolution: true, watch: true },
       },
