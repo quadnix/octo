@@ -82,6 +82,7 @@ frontmatter
 fs
 gfm
 grp
+hideconstructor
 horiz
 hostnames
 href

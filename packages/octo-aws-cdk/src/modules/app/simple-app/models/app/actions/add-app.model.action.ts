@@ -10,6 +10,9 @@ import {
 } from '@quadnix/octo';
 import type { AppModule } from '../../../app.module.js';
 
+/**
+ * @internal
+ */
 @Action(App)
 export class AddAppModelAction implements IModelAction<AppModule> {
   filter(diff: Diff): boolean {
@@ -30,6 +33,9 @@ export class AddAppModelAction implements IModelAction<AppModule> {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<AddAppModelAction>(AddAppModelAction)
 export class AddAppModelActionFactory {
   private static instance: AddAppModelAction;
