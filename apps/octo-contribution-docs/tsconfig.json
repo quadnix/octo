@@ -1,8 +1,0 @@
-{
-  "compilerOptions": {
-    "baseUrl": "./"
-  },
-  "exclude": [".docusaurus", "build", "node_modules"],
-  "extends": "@docusaurus/tsconfig",
-  "include": [".eslintrc.cjs", "**/*.js", "**/*.json", "**/*.ts", "**/*.tsx"]
-}
