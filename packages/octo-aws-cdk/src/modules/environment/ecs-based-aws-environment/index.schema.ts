@@ -1,6 +1,9 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
+/**
+ * @group Modules/Environment/EcsBasedAwsEnvironment
+ */
 export class AwsEnvironmentModuleSchema {
   @Validate({ options: { minLength: 1 } })
   environmentName = Schema<string>();

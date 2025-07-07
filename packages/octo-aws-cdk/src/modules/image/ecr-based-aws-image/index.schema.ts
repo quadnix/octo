@@ -1,6 +1,9 @@
 import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
+/**
+ * @group Modules/Image/EcrBasedAwsImage
+ */
 export class AwsImageModuleSchema {
   @Validate({ options: { minLength: 1 } })
   imageFamily = Schema<string>();

@@ -5,6 +5,9 @@ import type { STSClientFactory } from '../../../factories/aws-client.factory.js'
 import { AwsLocalstackAccountModuleSchema } from './index.schema.js';
 import { AwsLocalstackAccount } from './models/account/index.js';
 
+/**
+ * @group Modules/Account/LocalstackBasedAwsAccount
+ */
 @Module<AwsLocalstackAccountModule>('@octo', AwsLocalstackAccountModuleSchema)
 export class AwsLocalstackAccountModule extends AModule<AwsLocalstackAccountModuleSchema, AwsLocalstackAccount> {
   async onInit(inputs: AwsLocalstackAccountModuleSchema): Promise<AwsLocalstackAccount> {

@@ -6,6 +6,9 @@ import { FileUtility } from '../../../utilities/file/file.utility.js';
 import { AwsImageModuleSchema } from './index.schema.js';
 import { AwsImage } from './models/image/index.js';
 
+/**
+ * @group Modules/Image/EcrBasedAwsImage
+ */
 @Module<AwsImageModule>('@octo', AwsImageModuleSchema)
 export class AwsImageModule extends AModule<AwsImageModuleSchema, AwsImage> {
   async getEcrRepositoryCommands(

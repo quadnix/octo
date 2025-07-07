@@ -3,6 +3,9 @@ import { RegionId } from './models/region/index.js';
 
 export { RegionId };
 
+/**
+ * @group Modules/Region/PerAzAwsRegion
+ */
 export class AwsRegionModuleSchema {
   @Validate({ options: { isSchema: { schema: AccountSchema } } })
   account = Schema<Account>();

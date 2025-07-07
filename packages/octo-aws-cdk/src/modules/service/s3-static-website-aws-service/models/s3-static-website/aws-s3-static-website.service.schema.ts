@@ -1,5 +1,8 @@
 import { Schema, ServiceSchema, Validate } from '@quadnix/octo';
 
+/**
+ * @internal
+ */
 export class AwsS3StaticWebsiteServiceSchema extends ServiceSchema {
   @Validate({ options: { minLength: 1 } })
   bucketName = Schema<string>();

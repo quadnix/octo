@@ -3,7 +3,7 @@ import { Schema, Validate } from '@quadnix/octo';
 /**
  * `AppModuleSchema` is the input schema for the `AppModule` module.
  *
- * @group Modules
+ * @group Modules/App/SimpleApp
  *
  * @hideconstructor
  *

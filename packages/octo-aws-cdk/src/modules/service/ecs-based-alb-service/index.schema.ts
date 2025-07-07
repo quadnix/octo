@@ -18,6 +18,9 @@ import { AwsAlbEcsExecutionSchema } from './overlays/alb-ecs-execution/aws-alb-e
 
 export { AwsAlbEcsExecutionSchema };
 
+/**
+ * @group Modules/Service/EcsBasedAlbService
+ */
 export class AwsAlbServiceModuleTargetGroupSchema {
   @Validate({ options: { maxLength: 20, minLength: 1 } })
   containerName = Schema<string>();
@@ -51,6 +54,9 @@ export class AwsAlbServiceModuleTargetGroupSchema {
   Name = Schema<string>();
 }
 
+/**
+ * @group Modules/Service/EcsBasedAlbService
+ */
 export class AwsAlbServiceModuleSchema {
   @Validate({ options: { minLength: 1 } })
   albName = Schema<string>();

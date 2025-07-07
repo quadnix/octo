@@ -9,6 +9,9 @@ import { AwsServerModuleSchema, S3StorageAccess } from './index.schema.js';
 import { AwsServer } from './models/server/index.js';
 import { AwsServerS3AccessOverlay } from './overlays/server-s3-access/index.js';
 
+/**
+ * @group Modules/Server/EcsBasedAwsServer
+ */
 @Module<AwsServerModule>('@octo', AwsServerModuleSchema)
 export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
   async onInit(inputs: AwsServerModuleSchema): Promise<(AwsServer | AwsServerS3AccessOverlay)[]> {

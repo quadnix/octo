@@ -4,6 +4,9 @@ import type { STSClientFactory } from '../../../factories/aws-client.factory.js'
 import { AwsMotoAccountModuleSchema } from './index.schema.js';
 import { AwsMotoAccount } from './models/account/index.js';
 
+/**
+ * @group Modules/Account/MotoBasedAwsAccount
+ */
 @Module<AwsMotoAccountModule>('@octo', AwsMotoAccountModuleSchema)
 export class AwsMotoAccountModule extends AModule<AwsMotoAccountModuleSchema, AwsMotoAccount> {
   async onInit(inputs: AwsMotoAccountModuleSchema): Promise<AwsMotoAccount> {

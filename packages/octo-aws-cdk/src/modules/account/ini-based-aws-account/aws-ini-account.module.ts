@@ -4,6 +4,9 @@ import type { STSClientFactory } from '../../../factories/aws-client.factory.js'
 import { AwsIniAccountModuleSchema } from './index.schema.js';
 import { AwsIniAccount } from './models/account/index.js';
 
+/**
+ * @group Modules/Account/IniBasedAwsAccount
+ */
 @Module<AwsIniAccountModule>('@octo', AwsIniAccountModuleSchema)
 export class AwsIniAccountModule extends AModule<AwsIniAccountModuleSchema, AwsIniAccount> {
   async onInit(inputs: AwsIniAccountModuleSchema): Promise<AwsIniAccount> {

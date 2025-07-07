@@ -13,6 +13,9 @@ import { AwsSubnetLocalFilesystemMountSchema } from './overlays/subnet-local-fil
 
 export { AwsSubnetLocalFilesystemMountSchema };
 
+/**
+ * @group Modules/Subnet/SimpleAwsSubnet
+ */
 export class AwsSubnetModuleSchema {
   @Validate({
     destruct: (value: AwsSubnetModuleSchema['localFilesystems']): Filesystem[] => value!,

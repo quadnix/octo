@@ -4,6 +4,9 @@ import { EcsClusterAnchor } from '../../../anchors/ecs-cluster/ecs-cluster.ancho
 import { AwsEnvironmentModuleSchema } from './index.schema.js';
 import { AwsEnvironment } from './models/environment/index.js';
 
+/**
+ * @group Modules/Environment/EcsBasedAwsEnvironment
+ */
 @Module<AwsEnvironmentModule>('@octo', AwsEnvironmentModuleSchema)
 export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, AwsEnvironment> {
   async onInit(inputs: AwsEnvironmentModuleSchema): Promise<AwsEnvironment> {

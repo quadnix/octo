@@ -5,6 +5,9 @@ import { AwsAlbServiceModuleSchema } from './index.schema.js';
 import { AwsAlbService } from './models/alb/index.js';
 import { AwsAlbEcsExecutionOverlay } from './overlays/alb-ecs-execution/index.js';
 
+/**
+ * @group Modules/Service/EcsBasedAlbService
+ */
 @Module<AwsAlbServiceModule>('@octo', AwsAlbServiceModuleSchema)
 export class AwsAlbServiceModule extends AModule<AwsAlbServiceModuleSchema, AwsAlbService> {
   async onInit(inputs: AwsAlbServiceModuleSchema): Promise<[AwsAlbService, AwsAlbEcsExecutionOverlay]> {

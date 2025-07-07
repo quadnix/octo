@@ -23,7 +23,7 @@ import { AppModuleSchema } from './index.schema.js';
  * octo.loadModule(AppModule, 'my-module', { name: 'test-app' });
  * ```
  *
- * @group Modules
+ * @group Modules/App/SimpleApp
  *
  * @see {@link AppModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.

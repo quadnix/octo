@@ -6,6 +6,9 @@ import { AwsSubnetModuleSchema } from './index.schema.js';
 import { AwsSubnet } from './models/subnet/index.js';
 import { AwsSubnetLocalFilesystemMountOverlay } from './overlays/subnet-local-filesystem-mount/index.js';
 
+/**
+ * @group Modules/Subnet/SimpleAwsSubnet
+ */
 @Module<AwsSubnetModule>('@octo', AwsSubnetModuleSchema)
 export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {
   async onInit(inputs: AwsSubnetModuleSchema): Promise<(AwsSubnet | AwsSubnetLocalFilesystemMountOverlay)[]> {

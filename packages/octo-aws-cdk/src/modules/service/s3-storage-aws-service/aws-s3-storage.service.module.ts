@@ -4,6 +4,9 @@ import { S3StorageAnchor } from '../../../anchors/s3-storage/s3-storage.anchor.j
 import { AwsS3StorageServiceModuleSchema } from './index.schema.js';
 import { AwsS3StorageService } from './models/s3-storage/index.js';
 
+/**
+ * @group Modules/Service/S3StorageAwsService
+ */
 @Module<AwsS3StorageServiceModule>('@octo', AwsS3StorageServiceModuleSchema)
 export class AwsS3StorageServiceModule extends AModule<AwsS3StorageServiceModuleSchema, AwsS3StorageService> {
   async onInit(inputs: AwsS3StorageServiceModuleSchema): Promise<AwsS3StorageService> {

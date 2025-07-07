@@ -14,6 +14,9 @@ import { AwsExecution } from './models/execution/index.js';
 import { AwsExecutionOverlay } from './overlays/execution/index.js';
 import { ServerExecutionSecurityGroupOverlay } from './overlays/server-execution-security-group/index.js';
 
+/**
+ * @group Modules/Execution/EcsBasedAwsExecution
+ */
 @Module<AwsExecutionModule>('@octo', AwsExecutionModuleSchema)
 export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExecution> {
   async onInit(

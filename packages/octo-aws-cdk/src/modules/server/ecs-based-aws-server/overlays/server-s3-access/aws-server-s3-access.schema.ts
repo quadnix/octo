@@ -1,5 +1,8 @@
 import { BaseOverlaySchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @internal
+ */
 export class AwsServerS3AccessSchema extends BaseOverlaySchema {
   @Validate({
     destruct: (value: AwsServerS3AccessSchema['properties']): string[] => [

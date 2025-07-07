@@ -4,6 +4,9 @@ import type { STSClientFactory } from '../../../factories/aws-client.factory.js'
 import { AwsCredentialsAccountModuleSchema } from './index.schema.js';
 import { AwsCredentialsAccount } from './models/account/index.js';
 
+/**
+ * @group Modules/Account/CredentialsBasedAwsAccount
+ */
 @Module<AwsCredentialsAccountModule>('@octo', AwsCredentialsAccountModuleSchema)
 export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountModuleSchema, AwsCredentialsAccount> {
   async onInit(inputs: AwsCredentialsAccountModuleSchema): Promise<AwsCredentialsAccount> {

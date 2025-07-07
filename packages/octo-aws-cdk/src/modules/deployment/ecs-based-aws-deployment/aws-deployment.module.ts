@@ -3,6 +3,9 @@ import { EcsTaskDefinitionAnchor } from '../../../anchors/ecs-task-definition/ec
 import { AwsDeploymentModuleSchema } from './index.schema.js';
 import { AwsDeployment } from './models/deployment/index.js';
 
+/**
+ * @group Modules/Deployment/EcsBasedAwsDeployment
+ */
 @Module<AwsDeploymentModule>('@octo', AwsDeploymentModuleSchema)
 export class AwsDeploymentModule extends AModule<AwsDeploymentModuleSchema, AwsDeployment> {
   async onInit(inputs: AwsDeploymentModuleSchema): Promise<AwsDeployment> {

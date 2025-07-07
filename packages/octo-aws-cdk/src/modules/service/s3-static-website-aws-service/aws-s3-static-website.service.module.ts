@@ -13,6 +13,9 @@ import { AddS3StaticWebsiteModelAction } from './models/s3-static-website/action
 import { UpdateSourcePathsS3StaticWebsiteModelAction } from './models/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
 import { AwsS3StaticWebsiteService } from './models/s3-static-website/index.js';
 
+/**
+ * @group Modules/Service/S3StaticWebsiteAwsService
+ */
 @Module<AwsS3StaticWebsiteServiceModule>('@octo', AwsS3StaticWebsiteServiceModuleSchema)
 export class AwsS3StaticWebsiteServiceModule extends AModule<
   AwsS3StaticWebsiteServiceModuleSchema,

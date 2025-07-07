@@ -3,6 +3,9 @@ import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.j
 import { AwsRegionModuleSchema } from './index.schema.js';
 import { AwsRegion } from './models/region/index.js';
 
+/**
+ * @group Modules/Region/PerAzAwsRegion
+ */
 @Module<AwsRegionModule>('@octo', AwsRegionModuleSchema)
 export class AwsRegionModule extends AModule<AwsRegionModuleSchema, AwsRegion> {
   async onInit(inputs: AwsRegionModuleSchema): Promise<AwsRegion> {

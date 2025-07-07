@@ -4,6 +4,9 @@ import { EfsFilesystemAnchor } from '../../../anchors/efs-filesystem/efs-filesys
 import { AwsFilesystemModuleSchema } from './index.schema.js';
 import { AwsFilesystem } from './models/filesystem/index.js';
 
+/**
+ * @group Modules/Filesystem/EfsBasedAwsFilesystem
+ */
 @Module<AwsFilesystemModule>('@octo', AwsFilesystemModuleSchema)
 export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, AwsFilesystem> {
   async onInit(inputs: AwsFilesystemModuleSchema): Promise<AwsFilesystem> {

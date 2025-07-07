@@ -11,6 +11,9 @@ export enum S3StorageAccess {
   WRITE = 'WRITE',
 }
 
+/**
+ * @group Modules/Server/EcsBasedAwsServer
+ */
 class S3StorageServiceDirectorySchema {
   @Validate({ options: { minLength: 1 } })
   access = Schema<S3StorageAccess>();
@@ -19,6 +22,9 @@ class S3StorageServiceDirectorySchema {
   remoteDirectoryPath = Schema<string>();
 }
 
+/**
+ * @group Modules/Server/EcsBasedAwsServer
+ */
 export class AwsServerModuleSchema {
   @Validate({ options: { isSchema: { schema: AccountSchema } } })
   account = Schema<Account>();

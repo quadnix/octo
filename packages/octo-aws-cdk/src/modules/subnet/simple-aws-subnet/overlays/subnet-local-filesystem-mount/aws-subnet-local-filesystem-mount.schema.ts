@@ -1,5 +1,8 @@
 import { BaseOverlaySchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @internal
+ */
 export class AwsSubnetLocalFilesystemMountSchema extends BaseOverlaySchema {
   @Validate({
     destruct: (value: AwsSubnetLocalFilesystemMountSchema['properties']): string[] => [

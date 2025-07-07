@@ -19,6 +19,9 @@ import { ServerExecutionSecurityGroupOverlaySchema } from './overlays/server-exe
 
 export { AwsExecutionOverlaySchema, ServerExecutionSecurityGroupOverlaySchema };
 
+/**
+ * @group Modules/Execution/EcsBasedAwsExecution
+ */
 export class AwsExecutionModuleDeploymentContainerPropertiesImageSchema {
   @Validate({
     destruct: (value: AwsExecutionModuleDeploymentContainerPropertiesImageSchema['command']): string[] =>
@@ -51,6 +54,9 @@ export class AwsExecutionModuleDeploymentContainerPropertiesImageSchema {
   >([]);
 }
 
+/**
+ * @group Modules/Execution/EcsBasedAwsExecution
+ */
 export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
   @Validate({ destruct: (value: number | null): number[] => (value ? [value] : []), options: { minLength: 1 } })
   cpu? = Schema<(256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384) | null>(null);
@@ -64,6 +70,9 @@ export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
   memory? = Schema<number | null>(null);
 }
 
+/**
+ * @group Modules/Execution/EcsBasedAwsExecution
+ */
 export class AwsExecutionModuleSchema {
   @Validate<unknown>([
     {

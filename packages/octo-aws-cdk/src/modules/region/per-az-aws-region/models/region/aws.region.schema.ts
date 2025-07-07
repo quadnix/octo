@@ -1,5 +1,8 @@
 import { RegionSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @internal
+ */
 export class AwsRegionSchema extends RegionSchema {
   @Validate({ destruct: (value: AwsRegionSchema['awsRegionAZs']): string[] => value, options: { minLength: 1 } })
   awsRegionAZs = Schema<string[]>();

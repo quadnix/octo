@@ -1,5 +1,8 @@
 import { AccountSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @internal
+ */
 export class AwsCredentialsAccountSchema extends AccountSchema {
   @Validate({
     destruct: (value: AwsCredentialsAccountSchema['credentials']): string[] => [

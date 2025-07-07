@@ -4,6 +4,9 @@ import {
   EcsTaskDefinitionSchema,
 } from '../../../../../resources/ecs-task-definition/index.schema.js';
 
+/**
+ * @internal
+ */
 export class AwsExecutionOverlaySchema extends BaseOverlaySchema {
   @Validate<unknown>([
     {

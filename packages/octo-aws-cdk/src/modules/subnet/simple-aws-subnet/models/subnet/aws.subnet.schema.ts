@@ -1,5 +1,8 @@
 import { Schema, SubnetSchema, Validate } from '@quadnix/octo';
 
+/**
+ * @internal
+ */
 export class AwsSubnetSchema extends SubnetSchema {
   @Validate({
     destruct: (value: AwsSubnetSchema['optionsExtension']): string[] => [String(value!.createNatGateway)],
