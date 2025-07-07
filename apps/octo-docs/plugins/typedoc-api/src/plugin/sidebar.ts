@@ -30,7 +30,8 @@ export function groupSidebarItems(
       return;
     }
 
-    items.push({
+    const parts = group.title.split('/');
+    const item: SidebarItem = {
       collapsed: true,
       collapsible: true,
       items: children.map((id, index) => {
@@ -55,9 +56,33 @@ export function groupSidebarItems(
           type: 'link',
         };
       }),
-      label: group.title,
+      label: parts[parts.length - 1],
       type: 'category',
-    });
+    };
+
+    let previousItem: SidebarItem = item;
+    let shouldInsertNewItem = true;
+    for (let i = parts.length - 2; i >= 0; i--) {
+      const label = parts[i];
+      const existingItem = items.findIndex((i) => (i as any).label === label);
+      if (existingItem > -1) {
+        (items[existingItem] as any).items.push(previousItem);
+        shouldInsertNewItem = false;
+        break;
+      } else {
+        previousItem = {
+          collapsed: true,
+          collapsible: true,
+          items: [previousItem],
+          label: parts[i],
+          type: 'category',
+        };
+      }
+    }
+
+    if (shouldInsertNewItem) {
+      items.push(previousItem);
+    }
   });
 
   return items;
