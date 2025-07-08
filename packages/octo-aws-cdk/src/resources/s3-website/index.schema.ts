@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/S3Website
+ *
+ * @hideconstructor
  */
 export class S3WebsiteSchema extends BaseResourceSchema {
   @Validate({

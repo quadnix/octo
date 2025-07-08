@@ -19,6 +19,8 @@ export class SecurityGroupAnchorRuleSchema {
 
 /**
  * @group Anchors/SecurityGroup
+ *
+ * @hideconstructor
  */
 export class SecurityGroupAnchorSchema extends BaseAnchorSchema {
   /**

@@ -31,6 +31,8 @@ export class AlbTargetGroupHealthCheckSchema {
 
 /**
  * @group Resources/AlbTargetGroup
+ *
+ * @hideconstructor
  */
 export class AlbTargetGroupSchema extends BaseResourceSchema {
   @Validate<unknown>([

@@ -16,6 +16,8 @@ class S3StoragePermissionSchema {
 
 /**
  * @group Resources/S3Storage
+ *
+ * @hideconstructor
  */
 export class PrincipalResourceSchema extends BaseResourceSchema {
   @Validate({
@@ -35,6 +37,7 @@ export class PrincipalResourceSchema extends BaseResourceSchema {
 
 /**
  * @group Resources/S3Storage
+ * @hideconstructor
  */
 export class S3StorageSchema extends BaseResourceSchema {
   @Validate<unknown>([

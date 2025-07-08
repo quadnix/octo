@@ -25,6 +25,8 @@ class NetworkAclEntrySchema {
 
 /**
  * @group Resources/NetworkAcl
+ *
+ * @hideconstructor
  */
 export class NetworkAclSchema extends BaseResourceSchema {
   @Validate<unknown>([

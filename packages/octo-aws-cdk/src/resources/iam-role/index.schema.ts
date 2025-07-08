@@ -17,6 +17,8 @@ export interface IIamRoleS3BucketPolicy {
 
 /**
  * @group Resources/IamRole
+ *
+ * @hideconstructor
  */
 export class IamRoleSchema extends BaseResourceSchema {
   // Source: https://stackoverflow.com/a/56837244/1834562

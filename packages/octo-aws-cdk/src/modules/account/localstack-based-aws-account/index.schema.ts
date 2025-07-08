@@ -2,6 +2,8 @@ import { type App, AppSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Modules/Account/LocalstackBasedAwsAccount
+ *
+ * @hideconstructor
  */
 export class AwsLocalstackAccountModuleSchema {
   @Validate({ options: { isSchema: { schema: AppSchema } } })

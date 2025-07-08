@@ -2,6 +2,8 @@ import { BaseAnchorSchema, Schema, type Service, Validate } from '@quadnix/octo'
 
 /**
  * @group Anchors/AlbEcsExecution
+ *
+ * @hideconstructor
  */
 export class AlbEcsExecutionAnchorSchema extends BaseAnchorSchema {
   /**

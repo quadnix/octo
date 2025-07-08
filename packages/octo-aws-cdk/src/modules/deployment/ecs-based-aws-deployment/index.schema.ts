@@ -8,6 +8,8 @@ import { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.s
 
 /**
  * @group Modules/Deployment/EcsBasedAwsDeployment
+ *
+ * @hideconstructor
  */
 export class AwsDeploymentModuleSchema {
   @Validate({ options: { isSchema: { schema: EcsTaskDefinitionAnchorPropertiesSchema } } })

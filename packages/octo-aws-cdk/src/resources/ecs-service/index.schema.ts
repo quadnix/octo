@@ -13,6 +13,8 @@ export class EcsServiceLoadBalancerSchema {
 
 /**
  * @group Resources/EcsService
+ *
+ * @hideconstructor
  */
 export class EcsServiceSchema extends BaseResourceSchema {
   @Validate<unknown>([

@@ -3,6 +3,8 @@ import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.an
 
 /**
  * @group Modules/Filesystem/EfsBasedAwsFilesystem
+ *
+ * @hideconstructor
  */
 export class AwsFilesystemModuleSchema {
   @Validate({ options: { minLength: 1 } })

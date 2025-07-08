@@ -3,6 +3,8 @@ import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.an
 
 /**
  * @group Modules/Service/S3StaticWebsiteAwsService
+ *
+ * @hideconstructor
  */
 export class AwsS3StaticWebsiteServiceModuleSchema {
   @Validate({ options: { minLength: 1 } })

@@ -21,6 +21,8 @@ export { AwsExecutionOverlaySchema, ServerExecutionSecurityGroupOverlaySchema };
 
 /**
  * @group Modules/Execution/EcsBasedAwsExecution
+ *
+ * @hideconstructor
  */
 export class AwsExecutionModuleDeploymentContainerPropertiesImageSchema {
   @Validate({
@@ -56,6 +58,7 @@ export class AwsExecutionModuleDeploymentContainerPropertiesImageSchema {
 
 /**
  * @group Modules/Execution/EcsBasedAwsExecution
+ * @hideconstructor
  */
 export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
   @Validate({ destruct: (value: number | null): number[] => (value ? [value] : []), options: { minLength: 1 } })
@@ -72,6 +75,7 @@ export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
 
 /**
  * @group Modules/Execution/EcsBasedAwsExecution
+ * @hideconstructor
  */
 export class AwsExecutionModuleSchema {
   @Validate<unknown>([

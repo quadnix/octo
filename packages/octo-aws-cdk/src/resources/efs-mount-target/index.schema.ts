@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/EfsMountTarget
+ *
+ * @hideconstructor
  */
 export class EfsMountTargetSchema extends BaseResourceSchema {
   @Validate({

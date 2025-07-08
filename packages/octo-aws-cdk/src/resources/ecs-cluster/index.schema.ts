@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/EcsCluster
+ *
+ * @hideconstructor
  */
 export class EcsClusterSchema extends BaseResourceSchema {
   @Validate({

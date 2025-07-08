@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/Alb
+ *
+ * @hideconstructor
  */
 export class AlbSchema extends BaseResourceSchema {
   @Validate({

@@ -35,6 +35,8 @@ export class EcsTaskDefinitionAnchorPropertiesSchema {
 
 /**
  * @group Anchors/EcsTaskDefinition
+ *
+ * @hideconstructor
  */
 export class EcsTaskDefinitionAnchorSchema extends BaseAnchorSchema {
   /**

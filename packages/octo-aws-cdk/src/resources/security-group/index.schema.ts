@@ -20,6 +20,8 @@ class SecurityGroupRuleSchema {
 
 /**
  * @group Resources/SecurityGroup
+ *
+ * @hideconstructor
  */
 export class SecurityGroupSchema extends BaseResourceSchema {
   @Validate<unknown>([

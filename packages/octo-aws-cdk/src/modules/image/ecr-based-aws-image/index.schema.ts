@@ -3,6 +3,8 @@ import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.an
 
 /**
  * @group Modules/Image/EcrBasedAwsImage
+ *
+ * @hideconstructor
  */
 export class AwsImageModuleSchema {
   @Validate({ options: { minLength: 1 } })

@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/Efs
+ *
+ * @hideconstructor
  */
 export class EfsSchema extends BaseResourceSchema {
   @Validate({

@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/NatGateway
+ *
+ * @hideconstructor
  */
 export class NatGatewaySchema extends BaseResourceSchema {
   @Validate({

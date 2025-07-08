@@ -20,6 +20,8 @@ export { AwsAlbEcsExecutionSchema };
 
 /**
  * @group Modules/Service/EcsBasedAlbService
+ *
+ * @hideconstructor
  */
 export class AwsAlbServiceModuleTargetGroupSchema {
   @Validate({ options: { maxLength: 20, minLength: 1 } })
@@ -56,6 +58,7 @@ export class AwsAlbServiceModuleTargetGroupSchema {
 
 /**
  * @group Modules/Service/EcsBasedAlbService
+ * @hideconstructor
  */
 export class AwsAlbServiceModuleSchema {
   @Validate({ options: { minLength: 1 } })

@@ -13,6 +13,8 @@ export interface IIamUserS3BucketPolicy {
 
 /**
  * @group Resources/IamUser
+ *
+ * @hideconstructor
  */
 export class IamUserSchema extends BaseResourceSchema {
   // Source: https://stackoverflow.com/a/56837244/1834562

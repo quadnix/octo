@@ -2,6 +2,8 @@ import { BaseAnchorSchema, type Environment, Schema, Validate } from '@quadnix/o
 
 /**
  * @group Anchors/EcsCluster
+ *
+ * @hideconstructor
  */
 export class EcsClusterAnchorSchema extends BaseAnchorSchema {
   /**

@@ -184,6 +184,8 @@ export class AlbListenerRuleSourceIpConditionSchema {
 
 /**
  * @group Resources/AlbListener
+ *
+ * @hideconstructor
  */
 export class AlbListenerSchema extends BaseResourceSchema {
   @Validate<unknown>([

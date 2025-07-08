@@ -2,6 +2,8 @@ import { type App, AppSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Modules/Account/IniBasedAwsAccount
+ *
+ * @hideconstructor
  */
 export class AwsIniAccountModuleSchema {
   @Validate({ options: { minLength: 1 } })

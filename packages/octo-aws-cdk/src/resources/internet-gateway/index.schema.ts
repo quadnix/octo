@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/InternetGateway
+ *
+ * @hideconstructor
  */
 export class InternetGatewaySchema extends BaseResourceSchema {
   @Validate({

@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/Ecr
+ *
+ * @hideconstructor
  */
 export class EcrImageSchema extends BaseResourceSchema {
   @Validate({

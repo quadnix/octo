@@ -13,6 +13,8 @@ export enum S3StorageAccess {
 
 /**
  * @group Modules/Server/EcsBasedAwsServer
+ *
+ * @hideconstructor
  */
 class S3StorageServiceDirectorySchema {
   @Validate({ options: { minLength: 1 } })
@@ -24,6 +26,7 @@ class S3StorageServiceDirectorySchema {
 
 /**
  * @group Modules/Server/EcsBasedAwsServer
+ * @hideconstructor
  */
 export class AwsServerModuleSchema {
   @Validate({ options: { isSchema: { schema: AccountSchema } } })

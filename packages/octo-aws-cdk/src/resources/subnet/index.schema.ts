@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/Subnet
+ *
+ * @hideconstructor
  */
 export class SubnetSchema extends BaseResourceSchema {
   @Validate({

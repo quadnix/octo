@@ -15,6 +15,8 @@ export { AwsSubnetLocalFilesystemMountSchema };
 
 /**
  * @group Modules/Subnet/SimpleAwsSubnet
+ *
+ * @hideconstructor
  */
 export class AwsSubnetModuleSchema {
   @Validate({

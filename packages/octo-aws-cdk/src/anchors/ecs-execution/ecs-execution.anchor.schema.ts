@@ -2,6 +2,8 @@ import { BaseAnchorSchema, type Execution, Schema, Validate } from '@quadnix/oct
 
 /**
  * @group Anchors/EcsExecution
+ *
+ * @hideconstructor
  */
 export class EcsExecutionAnchorSchema extends BaseAnchorSchema {
   /**

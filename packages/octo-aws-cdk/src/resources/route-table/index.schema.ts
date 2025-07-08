@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/RouteTable
+ *
+ * @hideconstructor
  */
 export class RouteTableSchema extends BaseResourceSchema {
   @Validate({

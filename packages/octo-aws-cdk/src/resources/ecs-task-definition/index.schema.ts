@@ -38,6 +38,8 @@ export class EcsTaskDefinitionImageSchema {
 
 /**
  * @group Resources/EcsTaskDefinition
+ *
+ * @hideconstructor
  */
 export class EcsTaskDefinitionSchema extends BaseResourceSchema {
   @Validate<unknown>([

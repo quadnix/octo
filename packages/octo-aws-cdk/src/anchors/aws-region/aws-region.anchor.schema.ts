@@ -2,6 +2,8 @@ import { BaseAnchorSchema, type Region, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Anchors/AwsRegion
+ *
+ * @hideconstructor
  */
 export class AwsRegionAnchorSchema extends BaseAnchorSchema {
   /**

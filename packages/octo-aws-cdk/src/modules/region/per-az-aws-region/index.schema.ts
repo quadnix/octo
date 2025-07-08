@@ -5,6 +5,8 @@ export { RegionId };
 
 /**
  * @group Modules/Region/PerAzAwsRegion
+ *
+ * @hideconstructor
  */
 export class AwsRegionModuleSchema {
   @Validate({ options: { isSchema: { schema: AccountSchema } } })

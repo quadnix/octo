@@ -2,6 +2,8 @@ import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**
  * @group Resources/Vpc
+ *
+ * @hideconstructor
  */
 export class VpcSchema extends BaseResourceSchema {
   @Validate({

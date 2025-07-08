@@ -2,6 +2,8 @@ import { BaseAnchorSchema, type Filesystem, Schema, Validate } from '@quadnix/oc
 
 /**
  * @group Anchors/EfsFilesystem
+ *
+ * @hideconstructor
  */
 export class EfsFilesystemAnchorSchema extends BaseAnchorSchema {
   /**

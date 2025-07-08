@@ -3,6 +3,8 @@ import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.an
 
 /**
  * @group Modules/Environment/EcsBasedAwsEnvironment
+ *
+ * @hideconstructor
  */
 export class AwsEnvironmentModuleSchema {
   @Validate({ options: { minLength: 1 } })
