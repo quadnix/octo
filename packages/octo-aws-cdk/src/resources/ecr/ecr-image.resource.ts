@@ -2,7 +2,7 @@ import { AResource, type Diff, Resource } from '@quadnix/octo';
 import { EcrImageSchema } from './index.schema.js';
 
 /**
- * @group Resources/Ecr
+ * @internal
  */
 @Resource<EcrImage>('@octo', 'ecr-image', EcrImageSchema)
 export class EcrImage extends AResource<EcrImageSchema, EcrImage> {

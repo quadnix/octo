@@ -1,10 +1,10 @@
 import { AAnchor, Anchor } from '@quadnix/octo';
 import type { EcsServiceAnchorSchema } from './ecs-service.anchor.schema.js';
 
-@Anchor('@octo')
 /**
  * @internal
  */
+@Anchor('@octo')
 export class EcsServiceAnchor extends AAnchor<EcsServiceAnchorSchema, EcsServiceAnchorSchema['parentInstance']> {
   declare properties: EcsServiceAnchorSchema['properties'];
 

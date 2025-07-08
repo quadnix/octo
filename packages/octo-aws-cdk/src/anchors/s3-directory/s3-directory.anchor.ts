@@ -1,10 +1,10 @@
 import { AAnchor, Anchor } from '@quadnix/octo';
 import type { S3DirectoryAnchorSchema } from './s3-directory.anchor.schema.js';
 
-@Anchor('@octo')
 /**
  * @internal
  */
+@Anchor('@octo')
 export class S3DirectoryAnchor extends AAnchor<S3DirectoryAnchorSchema, S3DirectoryAnchorSchema['parentInstance']> {
   declare properties: S3DirectoryAnchorSchema['properties'];
 

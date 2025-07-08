@@ -2,7 +2,7 @@ import { AResource, Resource } from '@quadnix/octo';
 import { EfsSchema } from './index.schema.js';
 
 /**
- * @group Resources/Efs
+ * @internal
  */
 @Resource<Efs>('@octo', 'efs', EfsSchema)
 export class Efs extends AResource<EfsSchema, Efs> {

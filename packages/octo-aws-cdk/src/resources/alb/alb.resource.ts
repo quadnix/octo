@@ -4,7 +4,7 @@ import type { SubnetSchema } from '../subnet/index.schema.js';
 import { AlbSchema } from './index.schema.js';
 
 /**
- * @group Resources/Alb
+ * @internal
  */
 @Resource<Alb>('@octo', 'alb', AlbSchema)
 export class Alb extends AResource<AlbSchema, Alb> {

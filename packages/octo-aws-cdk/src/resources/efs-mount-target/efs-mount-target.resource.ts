@@ -5,7 +5,7 @@ import type { SubnetSchema } from '../subnet/index.schema.js';
 import { EfsMountTargetSchema } from './index.schema.js';
 
 /**
- * @group Resources/EfsMountTarget
+ * @internal
  */
 @Resource<EfsMountTarget>('@octo', 'efs-mount-target', EfsMountTargetSchema)
 export class EfsMountTarget extends AResource<EfsMountTargetSchema, EfsMountTarget> {

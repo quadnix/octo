@@ -2,7 +2,7 @@ import { AResource, Resource } from '@quadnix/octo';
 import { VpcSchema } from './index.schema.js';
 
 /**
- * @group Resources/Vpc
+ * @internal
  */
 @Resource<Vpc>('@octo', 'vpc', VpcSchema)
 export class Vpc extends AResource<VpcSchema, Vpc> {

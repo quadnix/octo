@@ -19,7 +19,7 @@ export function isDeletePolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUs
 }
 
 /**
- * @group Resources/IamUser
+ * @internal
  */
 @Resource<IamUser>('@octo', 'iam-user', IamUserSchema)
 export class IamUser extends AResource<IamUserSchema, IamUser> {

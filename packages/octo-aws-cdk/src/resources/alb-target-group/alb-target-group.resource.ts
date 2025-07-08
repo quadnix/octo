@@ -3,7 +3,7 @@ import type { VpcSchema } from '../vpc/index.schema.js';
 import { AlbTargetGroupSchema } from './index.schema.js';
 
 /**
- * @group Resources/AlbTargetGroup
+ * @internal
  */
 @Resource<AlbTargetGroup>('@octo', 'alb-target-group', AlbTargetGroupSchema)
 export class AlbTargetGroup extends AResource<AlbTargetGroupSchema, AlbTargetGroup> {

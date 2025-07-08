@@ -3,7 +3,7 @@ import type { VpcSchema } from '../vpc/index.schema.js';
 import { InternetGatewaySchema } from './index.schema.js';
 
 /**
- * @group Resources/InternetGateway
+ * @internal
  */
 @Resource<InternetGateway>('@octo', 'internet-gateway', InternetGatewaySchema)
 export class InternetGateway extends AResource<InternetGatewaySchema, InternetGateway> {

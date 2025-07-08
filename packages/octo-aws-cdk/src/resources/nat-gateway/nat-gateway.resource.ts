@@ -5,7 +5,7 @@ import type { VpcSchema } from '../vpc/index.schema.js';
 import { NatGatewaySchema } from './index.schema.js';
 
 /**
- * @group Resources/NatGateway
+ * @internal
  */
 @Resource<NatGateway>('@octo', 'nat-gateway', NatGatewaySchema)
 export class NatGateway extends AResource<NatGatewaySchema, NatGateway> {

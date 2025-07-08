@@ -24,7 +24,7 @@ export function isDeletePolicyDiff(policy: IIamRolePolicyDiff): policy is IIamRo
 }
 
 /**
- * @group Resources/IamRole
+ * @internal
  */
 @Resource<IamRole>('@octo', 'iam-role', IamRoleSchema)
 export class IamRole extends AResource<IamRoleSchema, IamRole> {

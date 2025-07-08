@@ -8,7 +8,7 @@ export type S3StorageManifestDiff = {
 };
 
 /**
- * @group Resources/S3Storage
+ * @internal
  */
 @Resource<S3Storage>('@octo', 's3-storage', S3StorageSchema)
 export class S3Storage extends AResource<S3StorageSchema, S3Storage> {

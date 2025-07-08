@@ -1,10 +1,10 @@
 import { AAnchor, Anchor } from '@quadnix/octo';
 import type { EfsFilesystemAnchorSchema } from './efs-filesystem.anchor.schema.js';
 
-@Anchor('@octo')
 /**
  * @internal
  */
+@Anchor('@octo')
 export class EfsFilesystemAnchor extends AAnchor<
   EfsFilesystemAnchorSchema,
   EfsFilesystemAnchorSchema['parentInstance']

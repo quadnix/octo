@@ -5,7 +5,7 @@ import type { IamRoleSchema } from '../iam-role/index.schema.js';
 import { EcsTaskDefinitionSchema } from './index.schema.js';
 
 /**
- * @group Resources/EcsTaskDefinition
+ * @internal
  */
 @Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema)
 export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {

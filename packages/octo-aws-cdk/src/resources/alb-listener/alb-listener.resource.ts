@@ -49,7 +49,7 @@ export function isAlbListenerPropertiesRuleDiff(
 }
 
 /**
- * @group Resources/AlbListener
+ * @internal
  */
 @Resource<AlbListener>('@octo', 'alb-listener', AlbListenerSchema)
 export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {

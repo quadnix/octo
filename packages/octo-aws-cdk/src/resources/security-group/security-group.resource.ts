@@ -3,7 +3,7 @@ import type { VpcSchema } from '../vpc/index.schema.js';
 import { SecurityGroupSchema } from './index.schema.js';
 
 /**
- * @group Resources/SecurityGroup
+ * @internal
  */
 @Resource<SecurityGroup>('@octo', 'security-group', SecurityGroupSchema)
 export class SecurityGroup extends AResource<SecurityGroupSchema, SecurityGroup> {

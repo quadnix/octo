@@ -1,10 +1,10 @@
 import { AAnchor, Anchor } from '@quadnix/octo';
 import type { IamRoleAnchorSchema } from './iam-role.anchor.schema.js';
 
-@Anchor('@octo')
 /**
  * @internal
  */
+@Anchor('@octo')
 export class IamRoleAnchor extends AAnchor<IamRoleAnchorSchema, IamRoleAnchorSchema['parentInstance']> {
   declare properties: IamRoleAnchorSchema['properties'];
 

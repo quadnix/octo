@@ -5,7 +5,7 @@ import type { VpcSchema } from '../vpc/index.schema.js';
 import { NetworkAclSchema } from './index.schema.js';
 
 /**
- * @group Resources/NetworkAcl
+ * @internal
  */
 @Resource<NetworkAcl>('@octo', 'network-acl', NetworkAclSchema)
 export class NetworkAcl extends AResource<NetworkAclSchema, NetworkAcl> {

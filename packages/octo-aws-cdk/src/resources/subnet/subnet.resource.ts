@@ -3,7 +3,7 @@ import type { VpcSchema } from '../vpc/index.schema.js';
 import { SubnetSchema } from './index.schema.js';
 
 /**
- * @group Resources/Subnet
+ * @internal
  */
 @Resource<Subnet>('@octo', 'subnet', SubnetSchema)
 export class Subnet extends AResource<SubnetSchema, Subnet> {
