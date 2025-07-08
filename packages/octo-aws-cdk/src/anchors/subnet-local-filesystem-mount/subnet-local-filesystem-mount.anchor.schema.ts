@@ -1,6 +1,12 @@
 import { BaseAnchorSchema, Schema, type Subnet, Validate } from '@quadnix/octo';
 
+/**
+ * @group Anchors/SubnetLocalFilesystemMount
+ */
 export class SubnetLocalFilesystemMountAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Subnet;
 
   @Validate({

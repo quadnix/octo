@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/RouteTable
+ */
 export class RouteTableSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: RouteTableSchema['properties']): string[] => [

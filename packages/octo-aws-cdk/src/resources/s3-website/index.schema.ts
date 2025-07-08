@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/S3Website
+ */
 export class S3WebsiteSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: S3WebsiteSchema['properties']): string[] => [

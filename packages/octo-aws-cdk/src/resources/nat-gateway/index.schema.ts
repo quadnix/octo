@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/NatGateway
+ */
 export class NatGatewaySchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: NatGatewaySchema['properties']): string[] => [

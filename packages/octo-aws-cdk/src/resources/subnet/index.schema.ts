@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/Subnet
+ */
 export class SubnetSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: SubnetSchema['properties']): string[] => [

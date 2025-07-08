@@ -1,6 +1,12 @@
 import { BaseAnchorSchema, Schema, type Service, Validate } from '@quadnix/octo';
 
+/**
+ * @group Anchors/AlbEcsExecution
+ */
 export class AlbEcsExecutionAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Service;
 
   @Validate({

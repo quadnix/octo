@@ -4,6 +4,9 @@ import type { SecurityGroupSchema } from '../security-group/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
 import { EfsMountTargetSchema } from './index.schema.js';
 
+/**
+ * @group Resources/EfsMountTarget
+ */
 @Resource<EfsMountTarget>('@octo', 'efs-mount-target', EfsMountTargetSchema)
 export class EfsMountTarget extends AResource<EfsMountTargetSchema, EfsMountTarget> {
   declare parents: [MatchingResource<EfsSchema>, MatchingResource<SubnetSchema>, MatchingResource<SecurityGroupSchema>];

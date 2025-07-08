@@ -1,6 +1,12 @@
 import { BaseAnchorSchema, Schema, type Server, Validate } from '@quadnix/octo';
 
+/**
+ * @group Anchors/EcsServer
+ */
 export class EcsServerAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Server;
 
   @Validate([

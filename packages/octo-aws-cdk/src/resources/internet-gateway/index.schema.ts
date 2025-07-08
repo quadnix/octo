@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/InternetGateway
+ */
 export class InternetGatewaySchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: InternetGatewaySchema['properties']): string[] => [

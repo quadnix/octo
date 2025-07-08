@@ -1,6 +1,9 @@
 import { AResource, Resource } from '@quadnix/octo';
 import { EfsSchema } from './index.schema.js';
 
+/**
+ * @group Resources/Efs
+ */
 @Resource<Efs>('@octo', 'efs', EfsSchema)
 export class Efs extends AResource<EfsSchema, Efs> {
   declare properties: EfsSchema['properties'];

@@ -4,6 +4,9 @@ import type { SubnetSchema } from '../subnet/index.schema.js';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { NatGatewaySchema } from './index.schema.js';
 
+/**
+ * @group Resources/NatGateway
+ */
 @Resource<NatGateway>('@octo', 'nat-gateway', NatGatewaySchema)
 export class NatGateway extends AResource<NatGatewaySchema, NatGateway> {
   declare parents: [

@@ -1,6 +1,12 @@
 import { BaseAnchorSchema, type Environment, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Anchors/EcsCluster
+ */
 export class EcsClusterAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Environment;
 
   @Validate([

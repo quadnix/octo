@@ -3,6 +3,9 @@ import type { SecurityGroupSchema } from '../security-group/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
 import { AlbSchema } from './index.schema.js';
 
+/**
+ * @group Resources/Alb
+ */
 @Resource<Alb>('@octo', 'alb', AlbSchema)
 export class Alb extends AResource<AlbSchema, Alb> {
   declare parents: [MatchingResource<SecurityGroupSchema>, ...MatchingResource<SubnetSchema>[]];

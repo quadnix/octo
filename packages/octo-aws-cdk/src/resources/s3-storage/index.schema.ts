@@ -14,6 +14,9 @@ class S3StoragePermissionSchema {
   remoteDirectoryPath = Schema<string>();
 }
 
+/**
+ * @group Resources/S3Storage
+ */
 export class PrincipalResourceSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: PrincipalResourceSchema['response']): string[] => {
@@ -30,6 +33,9 @@ export class PrincipalResourceSchema extends BaseResourceSchema {
   }>();
 }
 
+/**
+ * @group Resources/S3Storage
+ */
 export class S3StorageSchema extends BaseResourceSchema {
   @Validate<unknown>([
     {

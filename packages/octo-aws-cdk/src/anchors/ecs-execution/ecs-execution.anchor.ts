@@ -2,6 +2,9 @@ import { AAnchor, Anchor } from '@quadnix/octo';
 import type { EcsExecutionAnchorSchema } from './ecs-execution.anchor.schema.js';
 
 @Anchor('@octo')
+/**
+ * @internal
+ */
 export class EcsExecutionAnchor extends AAnchor<EcsExecutionAnchorSchema, EcsExecutionAnchorSchema['parentInstance']> {
   declare properties: EcsExecutionAnchorSchema['properties'];
 

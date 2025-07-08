@@ -17,7 +17,13 @@ export class SecurityGroupAnchorRuleSchema {
   ToPort = Schema<number>();
 }
 
+/**
+ * @group Anchors/SecurityGroup
+ */
 export class SecurityGroupAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Execution | Server;
 
   @Validate<unknown>([

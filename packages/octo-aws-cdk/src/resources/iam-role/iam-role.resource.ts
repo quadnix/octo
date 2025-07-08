@@ -23,6 +23,9 @@ export function isDeletePolicyDiff(policy: IIamRolePolicyDiff): policy is IIamRo
   return policy.action === 'delete';
 }
 
+/**
+ * @group Resources/IamRole
+ */
 @Resource<IamRole>('@octo', 'iam-role', IamRoleSchema)
 export class IamRole extends AResource<IamRoleSchema, IamRole> {
   declare properties: IamRoleSchema['properties'];

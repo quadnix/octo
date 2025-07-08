@@ -2,6 +2,9 @@ import { AResource, MatchingResource, Resource } from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { SubnetSchema } from './index.schema.js';
 
+/**
+ * @group Resources/Subnet
+ */
 @Resource<Subnet>('@octo', 'subnet', SubnetSchema)
 export class Subnet extends AResource<SubnetSchema, Subnet> {
   declare parents: [MatchingResource<VpcSchema>];

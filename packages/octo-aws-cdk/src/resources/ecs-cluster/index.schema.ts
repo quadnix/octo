@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/EcsCluster
+ */
 export class EcsClusterSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: EcsClusterSchema['properties']): string[] => [

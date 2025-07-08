@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/Ecr
+ */
 export class EcrImageSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: EcrImageSchema['properties']): string[] => [value.awsAccountId, value.awsRegionId, value.imageId],

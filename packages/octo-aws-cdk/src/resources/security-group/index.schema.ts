@@ -18,6 +18,9 @@ class SecurityGroupRuleSchema {
   ToPort = Schema<number>();
 }
 
+/**
+ * @group Resources/SecurityGroup
+ */
 export class SecurityGroupSchema extends BaseResourceSchema {
   @Validate<unknown>([
     {

@@ -1,6 +1,12 @@
 import { BaseAnchorSchema, Schema, type Service, Validate } from '@quadnix/octo';
 
+/**
+ * @group Anchors/S3Directory
+ */
 export class S3DirectoryAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Service;
 
   @Validate({

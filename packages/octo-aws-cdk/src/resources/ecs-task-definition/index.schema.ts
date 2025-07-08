@@ -36,6 +36,9 @@ export class EcsTaskDefinitionImageSchema {
   uri = Schema<string>();
 }
 
+/**
+ * @group Resources/EcsTaskDefinition
+ */
 export class EcsTaskDefinitionSchema extends BaseResourceSchema {
   @Validate<unknown>([
     {

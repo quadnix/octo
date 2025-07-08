@@ -13,6 +13,9 @@ import type { SubnetSchema } from '../subnet/index.schema.js';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { RouteTableSchema } from './index.schema.js';
 
+/**
+ * @group Resources/RouteTable
+ */
 @Resource<RouteTable>('@octo', 'route-table', RouteTableSchema)
 export class RouteTable extends AResource<RouteTableSchema, RouteTable> {
   declare parents: [

@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/Efs
+ */
 export class EfsSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: EfsSchema['properties']): string[] => [

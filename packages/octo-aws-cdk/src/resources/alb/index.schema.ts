@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/Alb
+ */
 export class AlbSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: AlbSchema['properties']): string[] => [

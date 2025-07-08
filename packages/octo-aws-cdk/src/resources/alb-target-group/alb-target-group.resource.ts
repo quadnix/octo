@@ -2,6 +2,9 @@ import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resour
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { AlbTargetGroupSchema } from './index.schema.js';
 
+/**
+ * @group Resources/AlbTargetGroup
+ */
 @Resource<AlbTargetGroup>('@octo', 'alb-target-group', AlbTargetGroupSchema)
 export class AlbTargetGroup extends AResource<AlbTargetGroupSchema, AlbTargetGroup> {
   declare parents: [MatchingResource<VpcSchema>];

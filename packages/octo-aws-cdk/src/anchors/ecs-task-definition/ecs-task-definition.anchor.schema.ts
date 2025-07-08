@@ -33,7 +33,13 @@ export class EcsTaskDefinitionAnchorPropertiesSchema {
   memory = Schema<number>();
 }
 
+/**
+ * @group Anchors/EcsTaskDefinition
+ */
 export class EcsTaskDefinitionAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Deployment;
 
   @Validate({ options: { isSchema: { schema: EcsTaskDefinitionAnchorPropertiesSchema } } })

@@ -15,6 +15,9 @@ export interface IIamRoleS3BucketPolicy {
   remoteDirectoryPath: string;
 }
 
+/**
+ * @group Resources/IamRole
+ */
 export class IamRoleSchema extends BaseResourceSchema {
   // Source: https://stackoverflow.com/a/56837244/1834562
   @Validate({

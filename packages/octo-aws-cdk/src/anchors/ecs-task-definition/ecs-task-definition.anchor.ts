@@ -2,6 +2,9 @@ import { AAnchor, Anchor } from '@quadnix/octo';
 import type { EcsTaskDefinitionAnchorSchema } from './ecs-task-definition.anchor.schema.js';
 
 @Anchor('@octo')
+/**
+ * @internal
+ */
 export class EcsTaskDefinitionAnchor extends AAnchor<
   EcsTaskDefinitionAnchorSchema,
   EcsTaskDefinitionAnchorSchema['parentInstance']

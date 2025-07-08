@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/EfsMountTarget
+ */
 export class EfsMountTargetSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: EfsMountTargetSchema['properties']): string[] => [value.awsAccountId, value.awsRegionId],

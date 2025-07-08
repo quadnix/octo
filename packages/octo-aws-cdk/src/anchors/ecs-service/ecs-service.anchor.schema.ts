@@ -1,6 +1,12 @@
 import { BaseAnchorSchema, type Execution, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Anchors/EcsService
+ */
 export class EcsServiceAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Execution;
 
   @Validate({

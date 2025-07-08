@@ -11,6 +11,9 @@ export class EcsServiceLoadBalancerSchema {
   targetGroupName = Schema<string>();
 }
 
+/**
+ * @group Resources/EcsService
+ */
 export class EcsServiceSchema extends BaseResourceSchema {
   @Validate<unknown>([
     {

@@ -14,6 +14,9 @@ import type { SecurityGroupSchema } from '../security-group/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
 import { EcsServiceSchema } from './index.schema.js';
 
+/**
+ * @group Resources/EcsService
+ */
 @Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema)
 export class EcsService extends AResource<EcsServiceSchema, EcsService> {
   declare parents: [

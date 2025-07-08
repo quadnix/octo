@@ -18,6 +18,9 @@ export function isDeletePolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUs
   return policy.action === 'delete';
 }
 
+/**
+ * @group Resources/IamUser
+ */
 @Resource<IamUser>('@octo', 'iam-user', IamUserSchema)
 export class IamUser extends AResource<IamUserSchema, IamUser> {
   declare properties: IamUserSchema['properties'];

@@ -182,6 +182,9 @@ export class AlbListenerRuleSourceIpConditionSchema {
   Values = Schema<string[]>();
 }
 
+/**
+ * @group Resources/AlbListener
+ */
 export class AlbListenerSchema extends BaseResourceSchema {
   @Validate<unknown>([
     {

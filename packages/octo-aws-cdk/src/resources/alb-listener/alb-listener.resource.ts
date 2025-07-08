@@ -48,6 +48,9 @@ export function isAlbListenerPropertiesRuleDiff(
   return Object.keys(propertiesDiff).includes('Rule');
 }
 
+/**
+ * @group Resources/AlbListener
+ */
 @Resource<AlbListener>('@octo', 'alb-listener', AlbListenerSchema)
 export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
   declare parents: [MatchingResource<AlbSchema>, ...MatchingResource<AlbTargetGroupSchema>[]];

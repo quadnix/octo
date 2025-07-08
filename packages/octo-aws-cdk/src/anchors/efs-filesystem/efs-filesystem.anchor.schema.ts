@@ -1,6 +1,12 @@
 import { BaseAnchorSchema, type Filesystem, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Anchors/EfsFilesystem
+ */
 export class EfsFilesystemAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Filesystem;
 
   @Validate({

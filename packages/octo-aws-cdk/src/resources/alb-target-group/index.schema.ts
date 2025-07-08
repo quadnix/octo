@@ -29,6 +29,9 @@ export class AlbTargetGroupHealthCheckSchema {
   UnhealthyThresholdCount = Schema<number>();
 }
 
+/**
+ * @group Resources/AlbTargetGroup
+ */
 export class AlbTargetGroupSchema extends BaseResourceSchema {
   @Validate<unknown>([
     {

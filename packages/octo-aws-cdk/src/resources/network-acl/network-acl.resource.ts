@@ -4,6 +4,9 @@ import type { SubnetSchema } from '../subnet/index.schema.js';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { NetworkAclSchema } from './index.schema.js';
 
+/**
+ * @group Resources/NetworkAcl
+ */
 @Resource<NetworkAcl>('@octo', 'network-acl', NetworkAclSchema)
 export class NetworkAcl extends AResource<NetworkAclSchema, NetworkAcl> {
   declare parents: [MatchingResource<VpcSchema>, MatchingResource<SubnetSchema>];

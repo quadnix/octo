@@ -4,6 +4,9 @@ import type { EfsSchema } from '../efs/index.schema.js';
 import type { IamRoleSchema } from '../iam-role/index.schema.js';
 import { EcsTaskDefinitionSchema } from './index.schema.js';
 
+/**
+ * @group Resources/EcsTaskDefinition
+ */
 @Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema)
 export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
   declare parents: [MatchingResource<IamRoleSchema>, ...MatchingResource<EfsSchema>[]];

@@ -23,6 +23,9 @@ class NetworkAclEntrySchema {
   RuleNumber = Schema<number>();
 }
 
+/**
+ * @group Resources/NetworkAcl
+ */
 export class NetworkAclSchema extends BaseResourceSchema {
   @Validate<unknown>([
     {

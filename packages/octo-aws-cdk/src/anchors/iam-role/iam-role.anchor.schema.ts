@@ -1,6 +1,12 @@
 import { BaseAnchorSchema, Schema, type Server, Validate } from '@quadnix/octo';
 
+/**
+ * @group Anchors/IamRole
+ */
 export class IamRoleAnchorSchema extends BaseAnchorSchema {
+  /**
+   * @private
+   */
   parentInstance: Server;
 
   @Validate({

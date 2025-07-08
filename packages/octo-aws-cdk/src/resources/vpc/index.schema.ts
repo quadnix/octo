@@ -1,5 +1,8 @@
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
+/**
+ * @group Resources/Vpc
+ */
 export class VpcSchema extends BaseResourceSchema {
   @Validate({
     destruct: (value: VpcSchema['properties']): string[] => [
