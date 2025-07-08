@@ -10,11 +10,16 @@ import type {
 import { removeScopes } from '../utils/links.js';
 import { createReflectionMap } from './data.js';
 
+type SidebarItemWithProps = SidebarItem & {
+  items?: SidebarItemWithProps[];
+  label: string;
+};
+
 export function groupSidebarItems(
   map: TSDDeclarationReflectionMap,
   groups: JSONOutput.ReflectionGroup[],
 ): SidebarItem[] {
-  const items: SidebarItem[] = [];
+  const items: SidebarItemWithProps[] = [];
   const sortedGroups = groups.sort((a, b) => a.title.localeCompare(b.title));
 
   function getLastItemInGroup(index: number): ReflectionId | undefined {
@@ -31,57 +36,50 @@ export function groupSidebarItems(
     }
 
     const parts = group.title.split('/');
-    const item: SidebarItem = {
-      collapsed: true,
-      collapsible: true,
-      items: children.map((id, index) => {
-        const child = map[id];
+    let currentLevel = items;
 
-        // We map previous/next from here since the sidebar is grouped by type,
-        // and we only want to link based on this order.
-        const previousId = index === 0 ? getLastItemInGroup(groupIndex - 1) : children[index - 1];
-        const nextId = index === children.length - 1 ? groups[groupIndex + 1]?.children?.[0] : children[index + 1];
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      const isLeaf = i === parts.length - 1;
 
-        if (previousId) {
-          child.previousId = previousId;
-        }
-
-        if (nextId) {
-          child.nextId = nextId;
-        }
-
-        return {
-          href: child.permalink,
-          label: child.name,
-          type: 'link',
-        };
-      }),
-      label: parts[parts.length - 1],
-      type: 'category',
-    };
-
-    let previousItem: SidebarItem = item;
-    let shouldInsertNewItem = true;
-    for (let i = parts.length - 2; i >= 0; i--) {
-      const label = parts[i];
-      const existingItem = items.findIndex((i) => (i as any).label === label);
-      if (existingItem > -1) {
-        (items[existingItem] as any).items.push(previousItem);
-        shouldInsertNewItem = false;
-        break;
-      } else {
-        previousItem = {
+      let existingItem = currentLevel.find((item) => item.label === part);
+      if (!existingItem) {
+        existingItem = {
           collapsed: true,
           collapsible: true,
-          items: [previousItem],
-          label: parts[i],
+          items: [],
+          label: part,
           type: 'category',
         };
+        currentLevel.push(existingItem);
       }
-    }
 
-    if (shouldInsertNewItem) {
-      items.push(previousItem);
+      if (isLeaf) {
+        existingItem.items = children.map((id, index) => {
+          const child = map[id];
+
+          // We map previous/next from here since the sidebar is grouped by type,
+          // and we only want to link based on this order.
+          const previousId = index === 0 ? getLastItemInGroup(groupIndex - 1) : children[index - 1];
+          const nextId = index === children.length - 1 ? groups[groupIndex + 1]?.children?.[0] : children[index + 1];
+
+          if (previousId) {
+            child.previousId = previousId;
+          }
+
+          if (nextId) {
+            child.nextId = nextId;
+          }
+
+          return {
+            href: child.permalink,
+            label: child.name,
+            type: 'link',
+          };
+        });
+      }
+
+      currentLevel = existingItem.items!;
     }
   });
 
