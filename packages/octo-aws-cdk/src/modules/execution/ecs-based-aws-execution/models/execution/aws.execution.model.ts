@@ -1,6 +1,9 @@
 import { AModel, type Deployment, type Environment, Execution, Model, ModelError, type Subnet } from '@quadnix/octo';
 import { AwsExecutionSchema } from './aws.execution.schema.js';
 
+/**
+ * @internal
+ */
 @Model<AwsExecution>('@octo', 'execution', AwsExecutionSchema)
 export class AwsExecution extends Execution {
   readonly deployments: { main: Deployment; sidecars: Deployment[] };

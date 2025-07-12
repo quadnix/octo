@@ -3,6 +3,9 @@ import { S3DirectoryAnchor } from '../../../../../anchors/s3-directory/s3-direct
 import { CommonUtility } from '../../../../../utilities/common/common.utility.js';
 import { AwsS3StorageServiceSchema } from './aws-s3-storage.service.schema.js';
 
+/**
+ * @internal
+ */
 @Model<AwsS3StorageService>('@octo', 'service', AwsS3StorageServiceSchema)
 export class AwsS3StorageService extends Service {
   @Validate({ options: { maxLength: 128, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })

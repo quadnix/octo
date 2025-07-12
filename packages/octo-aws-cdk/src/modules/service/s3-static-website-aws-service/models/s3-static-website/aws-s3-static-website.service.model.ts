@@ -15,6 +15,9 @@ import { AwsS3StaticWebsiteServiceSchema } from './aws-s3-static-website.service
 
 type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
 
+/**
+ * @internal
+ */
 @Model<AwsS3StaticWebsiteService>('@octo', 'service', AwsS3StaticWebsiteServiceSchema)
 export class AwsS3StaticWebsiteService extends Service {
   @Validate({ options: { maxLength: 128, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })

@@ -3,6 +3,9 @@ import type { IamRoleAnchor } from '../../../../../anchors/iam-role/iam-role.anc
 import type { S3DirectoryAnchorSchema } from '../../../../../anchors/s3-directory/s3-directory.anchor.schema.js';
 import { AwsServerS3AccessSchema } from './aws-server-s3-access.schema.js';
 
+/**
+ * @internal
+ */
 @Overlay('@octo', 'server-s3-access-overlay', AwsServerS3AccessSchema)
 export class AwsServerS3AccessOverlay extends AOverlay<AwsServerS3AccessSchema, AwsServerS3AccessOverlay> {
   declare anchors: [IamRoleAnchor, MatchingAnchor<S3DirectoryAnchorSchema>];

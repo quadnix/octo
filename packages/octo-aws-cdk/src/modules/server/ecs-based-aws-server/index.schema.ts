@@ -5,6 +5,9 @@ import { AwsServerS3AccessSchema } from './overlays/server-s3-access/aws-server-
 
 export { AwsServerS3AccessSchema };
 
+/**
+ * @group Modules/Server/EcsBasedAwsServer
+ */
 export enum S3StorageAccess {
   READ = 'READ',
   READ_WRITE = 'READ_WRITE',

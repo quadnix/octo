@@ -3,6 +3,9 @@ import { Account, AccountType, Model } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsIniAccountSchema } from './aws.ini-account.schema.js';
 
+/**
+ * @internal
+ */
 @Model<AwsIniAccount>('@octo', 'account', AwsIniAccountSchema)
 export class AwsIniAccount extends Account {
   readonly iniProfile: string;

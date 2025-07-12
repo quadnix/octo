@@ -3,6 +3,9 @@ import type { EfsFilesystemAnchorSchema } from '../../../../../anchors/efs-files
 import type { SubnetLocalFilesystemMountAnchor } from '../../../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.js';
 import { AwsSubnetLocalFilesystemMountSchema } from './aws-subnet-local-filesystem-mount.schema.js';
 
+/**
+ * @internal
+ */
 @Overlay('@octo', 'subnet-local-filesystem-mount-overlay', AwsSubnetLocalFilesystemMountSchema)
 export class AwsSubnetLocalFilesystemMountOverlay extends AOverlay<
   AwsSubnetLocalFilesystemMountSchema,

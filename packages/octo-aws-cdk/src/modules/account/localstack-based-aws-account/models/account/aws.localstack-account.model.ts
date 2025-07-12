@@ -2,6 +2,9 @@ import { Account, AccountType, Model } from '@quadnix/octo';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsLocalstackAccountSchema } from './aws.localstack-account.schema.js';
 
+/**
+ * @internal
+ */
 @Model<AwsLocalstackAccount>('@octo', 'account', AwsLocalstackAccountSchema)
 export class AwsLocalstackAccount extends Account {
   constructor(accountId: string) {

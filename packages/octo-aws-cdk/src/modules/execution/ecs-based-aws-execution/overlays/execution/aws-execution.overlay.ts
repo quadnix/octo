@@ -7,6 +7,9 @@ import type { SecurityGroupAnchor } from '../../../../../anchors/security-group/
 import type { SubnetLocalFilesystemMountAnchorSchema } from '../../../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.schema.js';
 import { AwsExecutionOverlaySchema } from './aws-execution.schema.js';
 
+/**
+ * @internal
+ */
 @Overlay('@octo', 'execution-overlay', AwsExecutionOverlaySchema)
 export class AwsExecutionOverlay extends AOverlay<AwsExecutionOverlaySchema, AwsExecutionOverlay> {
   declare anchors: [

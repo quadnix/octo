@@ -1,6 +1,9 @@
 import { Model, Region, Subnet } from '@quadnix/octo';
 import { AwsSubnetSchema } from './aws.subnet.schema.js';
 
+/**
+ * @internal
+ */
 @Model<AwsSubnet>('@octo', 'subnet', AwsSubnetSchema)
 export class AwsSubnet extends Subnet {
   private optionsExtension: AwsSubnetSchema['optionsExtension'] = {

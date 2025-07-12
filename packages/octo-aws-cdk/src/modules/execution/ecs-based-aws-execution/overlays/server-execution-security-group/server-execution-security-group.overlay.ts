@@ -3,6 +3,9 @@ import type { SecurityGroupAnchor } from '../../../../../anchors/security-group/
 import type { SecurityGroupAnchorSchema } from '../../../../../anchors/security-group/security-group.anchor.schema.js';
 import { ServerExecutionSecurityGroupOverlaySchema } from './server-execution-security-group.overlay.schema.js';
 
+/**
+ * @internal
+ */
 @Overlay('@octo', 'server-execution-security-group-overlay', ServerExecutionSecurityGroupOverlaySchema)
 export class ServerExecutionSecurityGroupOverlay extends AOverlay<
   ServerExecutionSecurityGroupOverlaySchema,

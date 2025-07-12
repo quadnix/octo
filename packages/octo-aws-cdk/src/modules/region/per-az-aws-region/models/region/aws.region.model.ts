@@ -1,6 +1,9 @@
 import { Model, Region } from '@quadnix/octo';
 import { AwsRegionSchema } from './aws.region.schema.js';
 
+/**
+ * @group Modules/Region/PerAzAwsRegion
+ */
 export enum RegionId {
   AWS_AP_SOUTH_1A = 'aws-ap-south-1a',
   AWS_AP_SOUTH_1B = 'aws-ap-south-1b',
@@ -19,6 +22,9 @@ export enum RegionId {
   AWS_US_WEST_2D = 'aws-us-west-2d',
 }
 
+/**
+ * @internal
+ */
 @Model<AwsRegion>('@octo', 'region', AwsRegionSchema)
 export class AwsRegion extends Region {
   readonly awsRegionAZs: string[];

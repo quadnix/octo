@@ -6,16 +6,6 @@ import { AppModuleSchema } from './index.schema.js';
  * It creates the root node of your infrastructure's model graph, but does not create any resources.
  *
  * @example
- * YAML
- * ```yaml
- * modules:
- *   app:
- *     inputs:
- *       name: test-app
- *     moduleId: my-module
- *     module: AppModule
- * ```
- * @example
  * TypeScript
  * ```ts
  * import { AppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
