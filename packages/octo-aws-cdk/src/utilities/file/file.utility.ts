@@ -3,6 +3,9 @@ import { createReadStream } from 'fs';
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
 
+/**
+ * @internal
+ */
 export class FileUtility {
   static base64Decode(base64EncodedString: string): string {
     return Buffer.from(base64EncodedString, 'base64').toString('ascii');

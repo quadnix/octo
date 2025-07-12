@@ -1,6 +1,9 @@
 import { AResource, DependencyRelationship, Diff, DiffAction, MatchingResource, Resource } from '@quadnix/octo';
 import { type PrincipalResourceSchema, S3StorageSchema } from './index.schema.js';
 
+/**
+ * @internal
+ */
 export type S3StorageManifestDiff = {
   [key: string]: {
     [key: string]: 'addDirectoryPermissions' | 'deleteDirectoryPermissions' | 'updateDirectoryPermissions';

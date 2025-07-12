@@ -3,45 +3,75 @@ import type { AlbSchema } from '../alb/index.schema.js';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
 import { AlbListenerSchema } from './index.schema.js';
 
+/**
+ * @internal
+ */
 export type IAlbListenerAddRuleDiff = {
   action: 'add';
   rule: AlbListenerSchema['properties']['rules'][0];
 };
+/**
+ * @internal
+ */
 export type IAlbListenerDeleteRuleDiff = {
   action: 'delete';
   rule: AlbListenerSchema['properties']['rules'][0];
   RuleArn: string;
 };
+/**
+ * @internal
+ */
 export type IAlbListenerUpdateRuleDiff = {
   action: 'update';
   rule: AlbListenerSchema['properties']['rules'][0];
   RuleArn: string;
 };
+/**
+ * @internal
+ */
 export type IAlbListenerRuleDiff = IAlbListenerAddRuleDiff | IAlbListenerDeleteRuleDiff | IAlbListenerUpdateRuleDiff;
 
+/**
+ * @internal
+ */
 export function isAddRuleDiff(ruleDiff: IAlbListenerRuleDiff): ruleDiff is IAlbListenerAddRuleDiff {
   return ruleDiff.action === 'add';
 }
 
+/**
+ * @internal
+ */
 export function isDeleteRuleDiff(ruleDiff: IAlbListenerRuleDiff): ruleDiff is IAlbListenerDeleteRuleDiff {
   return ruleDiff.action === 'delete';
 }
 
+/**
+ * @internal
+ */
 export function isUpdateRuleDiff(ruleDiff: IAlbListenerRuleDiff): ruleDiff is IAlbListenerUpdateRuleDiff {
   return ruleDiff.action === 'update';
 }
 
+/**
+ * @internal
+ */
 export type IAlbListenerPropertiesDiff = {
   DefaultActions?: [];
   Rule?: IAlbListenerRuleDiff;
 };
 
+/**
+ * @internal
+ */
 export function isAlbListenerPropertiesDefaultActionsDiff(
   propertiesDiff: IAlbListenerPropertiesDiff,
 ): propertiesDiff is { DefaultActions: [] } {
   return Object.keys(propertiesDiff).includes('DefaultActions');
 }
 
+/**
+ * @internal
+ */
 export function isAlbListenerPropertiesRuleDiff(
   propertiesDiff: IAlbListenerPropertiesDiff,
 ): propertiesDiff is { Rule: IAlbListenerRuleDiff } {

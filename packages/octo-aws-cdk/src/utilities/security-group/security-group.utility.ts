@@ -1,5 +1,8 @@
 import type { SecurityGroupSchema } from '../../resources/security-group/index.schema.js';
 
+/**
+ * @internal
+ */
 export class SecurityGroupUtility {
   static isSecurityGroupRuleEqual(
     cr: SecurityGroupSchema['properties']['rules'][0],

@@ -2,6 +2,7 @@
 
 - Editor > Duplicates > JavaScript > Disable
 - Editor > Duplicates > TypeScript > Disable
+- Editor > General > Code Folding > Documentation comments
 - Editor > Natural Languages > Grammar and Style > Scope > Check in > - Comments
 
 - Languages & Frameworks > JavaScript > Code Quality Tools > Enable Automatic ESLint

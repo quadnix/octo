@@ -1,19 +1,34 @@
 import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
 import { type IIamUserPolicyTypes, type IIamUserS3BucketPolicy, IamUserSchema } from './index.schema.js';
 
+/**
+ * @internal
+ */
 export type IIamUserAddPolicyDiff = {
   action: 'add';
   policy: IIamUserPolicyTypes[keyof IIamUserPolicyTypes];
   policyId: string;
   policyType: keyof IIamUserPolicyTypes;
 };
+/**
+ * @internal
+ */
 export type IIamUserDeletePolicyDiff = { action: 'delete'; policyId: string; policyType: keyof IIamUserPolicyTypes };
+/**
+ * @internal
+ */
 export type IIamUserPolicyDiff = IIamUserAddPolicyDiff | IIamUserDeletePolicyDiff;
 
+/**
+ * @internal
+ */
 export function isAddPolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUserAddPolicyDiff {
   return policy.action === 'add';
 }
 
+/**
+ * @internal
+ */
 export function isDeletePolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUserDeletePolicyDiff {
   return policy.action === 'delete';
 }

@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export class TaskDefinitionUtility {
   static getIncrementsOf1024(till: number, startFrom = 1, multipleOf = 1): number[] {
     const increments: number[] = [];

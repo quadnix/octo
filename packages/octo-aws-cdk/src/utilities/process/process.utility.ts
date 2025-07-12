@@ -1,5 +1,8 @@
 import { type ChildProcessWithoutNullStreams, type SpawnOptionsWithoutStdio, spawn } from 'child_process';
 
+/**
+ * @internal
+ */
 export class ProcessUtility {
   static runDetachedProcess(
     command: string,

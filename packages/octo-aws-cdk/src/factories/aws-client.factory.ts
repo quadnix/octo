@@ -60,6 +60,9 @@ class AwsClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<EC2Client>(EC2Client, { metadata: { package: '@octo' } })
 export class EC2ClientFactory extends AwsClientFactory {
   static override createInstance(
@@ -71,6 +74,9 @@ export class EC2ClientFactory extends AwsClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<ECRClient>(ECRClient, { metadata: { package: '@octo' } })
 export class ECRClientFactory extends AwsClientFactory {
   static override createInstance(
@@ -82,6 +88,9 @@ export class ECRClientFactory extends AwsClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<ECSClient>(ECSClient, { metadata: { package: '@octo' } })
 export class ECSClientFactory extends AwsClientFactory {
   static override createInstance(
@@ -93,6 +102,9 @@ export class ECSClientFactory extends AwsClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<EFSClient>(EFSClient, { metadata: { package: '@octo' } })
 export class EFSClientFactory extends AwsClientFactory {
   static override createInstance(
@@ -104,6 +116,9 @@ export class EFSClientFactory extends AwsClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<ElasticLoadBalancingV2Client>(ElasticLoadBalancingV2Client, { metadata: { package: '@octo' } })
 export class ElasticLoadBalancingV2ClientFactory extends AwsClientFactory {
   static override createInstance(
@@ -115,6 +130,9 @@ export class ElasticLoadBalancingV2ClientFactory extends AwsClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<IAMClient>(IAMClient, { metadata: { package: '@octo' } })
 export class IAMClientFactory extends AwsClientFactory {
   static override async create(awsAccountId: string): Promise<IAMClient> {
@@ -130,6 +148,9 @@ export class IAMClientFactory extends AwsClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<ResourceGroupsTaggingAPIClient>(ResourceGroupsTaggingAPIClient, { metadata: { package: '@octo' } })
 export class ResourceGroupsTaggingAPIClientFactory extends AwsClientFactory {
   static override createInstance(
@@ -145,6 +166,9 @@ export class ResourceGroupsTaggingAPIClientFactory extends AwsClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<S3Client>(S3Client, { metadata: { package: '@octo' } })
 export class S3ClientFactory extends AwsClientFactory {
   static override createInstance(
@@ -160,6 +184,9 @@ export class S3ClientFactory extends AwsClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<typeof Upload>('Upload', { metadata: { package: '@octo' } })
 export class S3UploadClientFactory {
   static async create(): Promise<typeof Upload> {
@@ -167,6 +194,9 @@ export class S3UploadClientFactory {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<STSClient>(STSClient, { metadata: { package: '@octo' } })
 export class STSClientFactory extends AwsClientFactory {
   static override async create(awsAccountId: string): Promise<STSClient> {

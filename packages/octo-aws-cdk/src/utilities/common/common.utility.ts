@@ -1,5 +1,8 @@
 import { createHash } from 'crypto';
 
+/**
+ * @internal
+ */
 export class CommonUtility {
   static hash(...args: string[]): string {
     let hash = createHash('sha1');

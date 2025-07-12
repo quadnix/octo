@@ -6,6 +6,9 @@ interface IRetryOptions {
   throwOnError?: boolean;
 }
 
+/**
+ * @internal
+ */
 export class RetryUtility {
   private static DEFAULT_BACK_OFF_FACTOR = 1;
   private static DEFAULT_INITIAL_DELAY_IN_MS = 10000;

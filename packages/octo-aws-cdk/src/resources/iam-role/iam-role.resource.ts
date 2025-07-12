@@ -6,19 +6,34 @@ import {
   IamRoleSchema,
 } from './index.schema.js';
 
+/**
+ * @internal
+ */
 export type IIamRoleAddPolicyDiff = {
   action: 'add';
   policy: IIamRolePolicyTypes[keyof IIamRolePolicyTypes];
   policyId: string;
   policyType: keyof IIamRolePolicyTypes;
 };
+/**
+ * @internal
+ */
 export type IIamRoleDeletePolicyDiff = { action: 'delete'; policyId: string; policyType: keyof IIamRolePolicyTypes };
+/**
+ * @internal
+ */
 export type IIamRolePolicyDiff = IIamRoleAddPolicyDiff | IIamRoleDeletePolicyDiff;
 
+/**
+ * @internal
+ */
 export function isAddPolicyDiff(policy: IIamRolePolicyDiff): policy is IIamRoleAddPolicyDiff {
   return policy.action === 'add';
 }
 
+/**
+ * @internal
+ */
 export function isDeletePolicyDiff(policy: IIamRolePolicyDiff): policy is IIamRoleDeletePolicyDiff {
   return policy.action === 'delete';
 }
