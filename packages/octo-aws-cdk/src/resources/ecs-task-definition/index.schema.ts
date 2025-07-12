@@ -111,7 +111,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
    * Input properties.
    * * `properties.awsAccountId` - The AWS account ID.
    * * `properties.awsRegionId` - The AWS region ID.
-   * * `properties.cpu` - The number of CPU units to reserve for the container.
+   * * `properties.cpu` - The number of CPU units to reserve for the containers.
    * * `properties.deploymentTag` - The deployment tag, generally mapped to the deployment model deploymentTag property.
    * This is usually defined in conjunction with the `family` (server key).
    * Both the properties together specify the server and the code currently referenced in the task definition.
@@ -124,7 +124,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
    * E.g. family = backend indicates that this task definition is for the backend server.
    * * `properties.images` - The containers to run as part of the task definition.
    * See {@link EcsTaskDefinitionImageSchema} for options.
-   * * `properties.memory` - The amount of memory to reserve for the container.
+   * * `properties.memory` - The amount of memory to reserve for the containers.
    */
   @Validate<unknown>([
     {

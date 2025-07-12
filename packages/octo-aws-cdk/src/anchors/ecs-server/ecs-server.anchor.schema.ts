@@ -1,6 +1,9 @@
 import { BaseAnchorSchema, Schema, type Server, Validate } from '@quadnix/octo';
 
 /**
+ * This anchor is associated with a {@link Server} model representing a server, e.g. backend,
+ * running in an AWS ECS cluster.
+ *
  * @group Anchors/EcsServer
  *
  * @hideconstructor
@@ -11,6 +14,11 @@ export class EcsServerAnchorSchema extends BaseAnchorSchema {
    */
   parentInstance: Server;
 
+  /**
+   * Input properties.
+   * * `properties.deploymentType` - The deployment type. Possible values are `ecs`.
+   * * `properties.serverKey` - The server key.
+   */
   @Validate([
     {
       destruct: (value: EcsServerAnchorSchema['properties']): string[] => [value.deploymentType],

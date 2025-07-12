@@ -1,6 +1,8 @@
 import { BaseAnchorSchema, type Environment, Schema, Validate } from '@quadnix/octo';
 
 /**
+ * This anchor is associated with an {@link Environment} model representing an AWS ECS cluster.
+ *
  * @group Anchors/EcsCluster
  *
  * @hideconstructor
@@ -11,6 +13,12 @@ export class EcsClusterAnchorSchema extends BaseAnchorSchema {
    */
   parentInstance: Environment;
 
+  /**
+   * Input properties.
+   * * `properties.clusterName`: The name of the ECS cluster.
+   * * `properties.environmentVariables`: A set of environment variables to be passed
+   * to any execution running in this environment.
+   */
   @Validate([
     {
       destruct: (value: EcsClusterAnchorSchema['properties']): string[] => [value.clusterName],
