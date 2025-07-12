@@ -10,7 +10,44 @@ import { AwsServer } from './models/server/index.js';
 import { AwsServerS3AccessOverlay } from './overlays/server-s3-access/index.js';
 
 /**
+ * `AwsServerModule` is an ECS-based AWS server module that provides an implementation for the `Server` model.
+ * This module creates servers with ECS deployment capabilities,
+ * IAM roles, security groups, and optional S3 storage access.
+ * It manages the infrastructure foundation for hosting containerized applications.
+ *
+ * @example
+ * TypeScript
+ * ```ts
+ * import { AwsServerModule } from '@quadnix/octo-aws-cdk/modules/server/ecs-based-aws-server';
+ *
+ * octo.loadModule(AwsServerModule, 'my-server-module', {
+ *   account: myAccount,
+ *   s3: [{
+ *     directories: [{
+ *       access: S3StorageAccess.READ_WRITE,
+ *       remoteDirectoryPath: 'uploads',
+ *     }],
+ *     service: myS3Service,
+ *   }],
+ *   securityGroupRules: [{
+ *     CidrBlock: '0.0.0.0/0',
+ *     Egress: false,
+ *     FromPort: 443,
+ *     ToPort: 443,
+ *     IpProtocol: 'tcp'
+ *   }],
+ *   serverKey: 'backend-server',
+ * });
+ * ```
+ *
  * @group Modules/Server/EcsBasedAwsServer
+ *
+ * @reference Resources {@link IamRoleSchema}
+ * @reference Resources {@link S3StorageSchema}
+ *
+ * @see {@link AwsServerModuleSchema} for the input schema.
+ * @see {@link AModule} to learn more about modules.
+ * @see {@link Server} to learn more about the `Server` model.
  */
 @Module<AwsServerModule>('@octo', AwsServerModuleSchema)
 export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {

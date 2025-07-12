@@ -7,7 +7,47 @@ import { AwsSubnet } from './models/subnet/index.js';
 import { AwsSubnetLocalFilesystemMountOverlay } from './overlays/subnet-local-filesystem-mount/index.js';
 
 /**
+ * `AwsSubnetModule` is a simple AWS subnet module that provides an implementation for the `Subnet` model.
+ * This module creates VPC subnets with configurable network settings, NAT gateway support,
+ * and filesystem mounting capabilities.
+ * It manages network isolation and connectivity for containerized applications within AWS regions.
+ *
+ * @example
+ * TypeScript
+ * ```ts
+ * import { AwsSubnetModule } from '@quadnix/octo-aws-cdk/modules/subnet/simple-aws-subnet';
+ *
+ * octo.loadModule(AwsSubnetModule, 'my-subnet-module', {
+ *   localFilesystems: [myEfsFilesystem],
+ *   region: myRegion,
+ *   subnetAvailabilityZone: 'us-east-1a',
+ *   subnetCidrBlock: '10.0.1.0/24',
+ *   subnetName: 'private-subnet-1',
+ *   subnetOptions: {
+ *     createNatGateway: false,
+ *     disableSubnetIntraNetwork: false,
+ *     subnetType: SubnetType.PRIVATE,
+ *   },
+ *   subnetSiblings: [{
+ *     attachToNatGateway: true,
+ *     subnetCidrBlock: '10.0.0.0/24',
+ *     subnetName: 'public-subnet-1',
+ *   }],
+ * });
+ * ```
+ *
  * @group Modules/Subnet/SimpleAwsSubnet
+ *
+ * @reference Resources {@link EfsMountTargetSchema}
+ * @reference Resources {@link NatGatewaySchema}
+ * @reference Resources {@link NetworkAclSchema}
+ * @reference Resources {@link RouteTableSchema}
+ * @reference Resources {@link SecurityGroupSchema}
+ * @reference Resources {@link SubnetSchema}
+ *
+ * @see {@link AwsSubnetModuleSchema} for the input schema.
+ * @see {@link AModule} to learn more about modules.
+ * @see {@link Subnet} to learn more about the `Subnet` model.
  */
 @Module<AwsSubnetModule>('@octo', AwsSubnetModuleSchema)
 export class AwsSubnetModule extends AModule<AwsSubnetModuleSchema, AwsSubnet> {

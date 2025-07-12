@@ -5,7 +5,26 @@ import { AwsMotoAccountModuleSchema } from './index.schema.js';
 import { AwsMotoAccount } from './models/account/index.js';
 
 /**
+ * `AwsMotoAccountModule` is a Moto-based AWS account module that provides an implementation for the `Account` model.
+ * This module is specifically designed for testing environments using the Moto library,
+ * creating an AWS account with mock credentials and endpoints for unit testing.
+ *
+ * @example
+ * TypeScript
+ * ```ts
+ * import { AwsMotoAccountModule } from '@quadnix/octo-aws-cdk/modules/account/moto-based-aws-account';
+ *
+ * octo.loadModule(AwsMotoAccountModule, 'my-account-module', {
+ *   app: myApp,
+ *   endpoint: 'http://localhost:5000'
+ * });
+ * ```
+ *
  * @group Modules/Account/MotoBasedAwsAccount
+ *
+ * @see {@link AwsMotoAccountModuleSchema} for the input schema.
+ * @see {@link AModule} to learn more about modules.
+ * @see {@link Account} to learn more about the `Account` model.
  */
 @Module<AwsMotoAccountModule>('@octo', AwsMotoAccountModuleSchema)
 export class AwsMotoAccountModule extends AModule<AwsMotoAccountModuleSchema, AwsMotoAccount> {

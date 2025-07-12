@@ -6,7 +6,52 @@ import { AwsAlbService } from './models/alb/index.js';
 import { AwsAlbEcsExecutionOverlay } from './overlays/alb-ecs-execution/index.js';
 
 /**
+ * `AwsAlbServiceModule` is an ECS-based AWS ALB service module that provides an implementation for the `Service` model.
+ * This module creates Application Load Balancers (ALB)
+ * with comprehensive listener configurations, target groups, and routing rules.
+ * It manages load balancing for containerized applications running on ECS with support for complex routing scenarios.
+ *
+ * @example
+ * TypeScript
+ * ```ts
+ * import { AwsAlbServiceModule } from '@quadnix/octo-aws-cdk/modules/service/ecs-based-alb-service';
+ *
+ * octo.loadModule(AwsAlbServiceModule, 'my-alb-module', {
+ *   albName: 'my-load-balancer',
+ *   listeners: [{
+ *     DefaultActions: [{
+ *       action: {
+ *         targetGroups: [{ targetGroupName: 'my-target-group' }]
+ *       },
+ *       actionType: 'forward',
+ *     }],
+ *     Port: 443,
+ *     rules: []
+ *   }],
+ *   region: myRegion,
+ *   subnets: [
+ *     { subnetCidrBlock: '10.0.1.0/24', subnetName: 'public-subnet-1' },
+ *   ],
+ *   targets: [{
+ *     containerName: 'web',
+ *     containerPort: 3000,
+ *     execution: myExecution,
+ *     Name: 'my-target-group',
+ *   }]
+ * });
+ * ```
+ *
  * @group Modules/Service/EcsBasedAlbService
+ *
+ * @reference Resources {@link AlbListenerSchema}
+ * @reference Resources {@link AlbSchema}
+ * @reference Resources {@link AlbTargetGroupSchema}
+ * @reference Resources {@link EcsServiceSchema}
+ * @reference Resources {@link SecurityGroupSchema}
+ *
+ * @see {@link AwsAlbServiceModuleSchema} for the input schema.
+ * @see {@link AModule} to learn more about modules.
+ * @see {@link Service} to learn more about the `Service` model.
  */
 @Module<AwsAlbServiceModule>('@octo', AwsAlbServiceModuleSchema)
 export class AwsAlbServiceModule extends AModule<AwsAlbServiceModuleSchema, AwsAlbService> {

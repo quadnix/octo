@@ -7,7 +7,30 @@ import { AwsImageModuleSchema } from './index.schema.js';
 import { AwsImage } from './models/image/index.js';
 
 /**
+ * `AwsImageModule` is an ECR-based AWS image module that provides an implementation for the `Image` model.
+ * This module creates AWS ECR (Elastic Container Registry) repositories for storing and managing container images.
+ * It provides functionality to manage Docker images across multiple AWS regions
+ * and generate ECR authentication commands.
+ *
+ * @example
+ * TypeScript
+ * ```ts
+ * import { AwsImageModule } from '@quadnix/octo-aws-cdk/modules/image/ecr-based-aws-image';
+ *
+ * octo.loadModule(AwsImageModule, 'my-image-module', {
+ *   imageFamily: 'quadnix',
+ *   imageName: 'nginx',
+ *   regions: [myRegion1, myRegion2]
+ * });
+ * ```
+ *
  * @group Modules/Image/EcrBasedAwsImage
+ *
+ * @reference Resources {@link EcrImageSchema}
+ *
+ * @see {@link AwsImageModuleSchema} for the input schema.
+ * @see {@link AModule} to learn more about modules.
+ * @see {@link Image} to learn more about the `Image` model.
  */
 @Module<AwsImageModule>('@octo', AwsImageModuleSchema)
 export class AwsImageModule extends AModule<AwsImageModuleSchema, AwsImage> {

@@ -96,6 +96,7 @@ infima
 ini
 interop
 intra
+ip
 ipv
 ispec
 jsonc
@@ -152,6 +153,7 @@ rehype
 renderer
 rimraf
 rolename
+scalable
 schemas
 sdk
 sep

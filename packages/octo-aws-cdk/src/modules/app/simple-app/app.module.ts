@@ -10,7 +10,7 @@ import { AppModuleSchema } from './index.schema.js';
  * ```ts
  * import { AppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
  *
- * octo.loadModule(AppModule, 'my-module', { name: 'test-app' });
+ * octo.loadModule(AppModule, 'my-app-module', { name: 'test-app' });
  * ```
  *
  * @group Modules/App/SimpleApp

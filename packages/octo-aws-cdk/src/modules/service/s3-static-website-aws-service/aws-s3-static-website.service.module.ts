@@ -14,7 +14,36 @@ import { UpdateSourcePathsS3StaticWebsiteModelAction } from './models/s3-static-
 import { AwsS3StaticWebsiteService } from './models/s3-static-website/index.js';
 
 /**
+ * `AwsS3StaticWebsiteServiceModule` is an S3-based AWS static website service module
+ * that provides an implementation for the `Service` model.
+ * This module creates S3 buckets configured for static website hosting with support for local file synchronization,
+ * filtering, and transformation capabilities.
+ * It manages the deployment of static websites from local directories to S3.
+ *
+ * @example
+ * TypeScript
+ * ```ts
+ * import {
+ *   AwsS3StaticWebsiteServiceModule
+ * } from '@quadnix/octo-aws-cdk/modules/service/s3-static-website-aws-service';
+ *
+ * octo.loadModule(AwsS3StaticWebsiteServiceModule, 'my-website-module', {
+ *   bucketName: 'my-static-website',
+ *   directoryPath: join(__dirname, 'website'),
+ *   filter: (filePath) => !filePath.includes('.DS_Store'),
+ *   region: myRegion,
+ *   subDirectoryOrFilePath: 'public',
+ *   transform: (filePath) => `public/${filePath}`,
+ * });
+ * ```
+ *
  * @group Modules/Service/S3StaticWebsiteAwsService
+ *
+ * @reference Resources {@link S3WebsiteSchema}
+ *
+ * @see {@link AwsS3StaticWebsiteServiceModuleSchema} for the input schema.
+ * @see {@link AModule} to learn more about modules.
+ * @see {@link Service} to learn more about the `Service` model.
  */
 @Module<AwsS3StaticWebsiteServiceModule>('@octo', AwsS3StaticWebsiteServiceModuleSchema)
 export class AwsS3StaticWebsiteServiceModule extends AModule<

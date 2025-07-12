@@ -19,17 +19,34 @@ import { AwsAlbEcsExecutionSchema } from './overlays/alb-ecs-execution/aws-alb-e
 export { AwsAlbEcsExecutionSchema };
 
 /**
+ * Defines the target group configuration for ALB services.
+ * Target groups route requests to registered targets (such as ECS tasks)
+ * based on the configured health checks and routing rules.
+ * This schema specifies how the ALB will forward traffic to specific containers in ECS executions.
+ *
  * @group Modules/Service/EcsBasedAlbService
  *
  * @hideconstructor
  */
 export class AwsAlbServiceModuleTargetGroupSchema {
+  /**
+   * The name of the container within the ECS task that will receive traffic.
+   * This must match the container name defined in the task definition.
+   */
   @Validate({ options: { maxLength: 20, minLength: 1 } })
   containerName = Schema<string>();
 
+  /**
+   * The port number on the container where traffic will be forwarded.
+   * This should match the port that the application is listening on inside the container.
+   */
   @Validate({ options: { maxLength: 65535, minLength: 0 } })
   containerPort = Schema<number>();
 
+  /**
+   * The ECS execution that contains the target containers for this target group.
+   * The execution must have ECS service anchors configured to be eligible as an ALB target.
+   */
   @Validate([
     {
       options: {
@@ -45,6 +62,12 @@ export class AwsAlbServiceModuleTargetGroupSchema {
   ])
   execution = Schema<Execution>();
 
+  /**
+   * Optional health check configuration for the target group.
+   * Defines how the ALB determines whether targets are healthy and can receive traffic.
+   * If not specified, default health check settings will be used.
+   * See {@link AlbTargetGroupHealthCheckSchema} for options.
+   */
   @Validate({
     destruct: (value: AwsAlbServiceModuleTargetGroupSchema['healthCheck']): AlbTargetGroupHealthCheckSchema[] =>
       value ? [value] : [],
@@ -52,18 +75,48 @@ export class AwsAlbServiceModuleTargetGroupSchema {
   })
   healthCheck? = Schema<AlbTargetGroupHealthCheckSchema | null>(null);
 
+  /**
+   * The name of the target group.
+   * This name is used to identify the target group within the ALB configuration
+   * and must be unique within the load balancer.
+   */
   @Validate({ options: { maxLength: 32, minLength: 1 } })
   Name = Schema<string>();
 }
 
 /**
+ * `AwsAlbServiceModuleSchema` is the input schema for the `AwsAlbServiceModule` module.
+ * This schema defines the comprehensive configuration for Application Load Balancers including
+ * listener rules, target groups, routing conditions, and network placement.
+ *
  * @group Modules/Service/EcsBasedAlbService
+ *
  * @hideconstructor
+ *
+ * @see {@link AwsAlbServiceModule} to learn more about the `AwsAlbServiceModule` module.
  */
 export class AwsAlbServiceModuleSchema {
+  /**
+   * The name of the Application Load Balancer.
+   * This name must be unique within the region and will be used to identify the ALB resource.
+   */
   @Validate({ options: { minLength: 1 } })
   albName = Schema<string>();
 
+  /**
+   * The listener configuration for the ALB.
+   * Listeners check for connection requests on specified ports and protocols, and route traffic
+   * based on configured rules and actions. Each listener can have multiple rules for complex routing scenarios.
+   *
+   * The configuration includes:
+   * - Port: The port on which the listener accepts connections
+   * - DefaultActions: The default action when no rules match (exactly one action required)
+   * - rules: Array of routing rules with conditions and actions (can be empty)
+   *
+   * Supported action types: 'forward', 'redirect', 'fixed-response'
+   * Supported condition types: 'host-header', 'http-header', 'http-request-method',
+   * 'path-pattern', 'query-string', 'source-ip'
+   */
   @Validate<unknown>([
     {
       options: { minLength: 1 },
@@ -242,6 +295,10 @@ export class AwsAlbServiceModuleSchema {
   ])
   listeners = Schema<Pick<AlbListenerSchema['properties'], 'DefaultActions' | 'Port' | 'rules'>[]>();
 
+  /**
+   * The AWS region where the ALB will be created.
+   * The region must have AWS region anchors configured.
+   */
   @Validate({
     options: {
       isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
@@ -250,6 +307,11 @@ export class AwsAlbServiceModuleSchema {
   })
   region = Schema<Region>();
 
+  /**
+   * The subnets where the ALB will be deployed.
+   * ALBs require at least two subnets in different availability zones for high availability.
+   * All specified subnets must be public subnets to allow internet access to the load balancer.
+   */
   @Validate({
     destruct: (value: AwsAlbServiceModuleSchema['subnets']): string[] =>
       value.map((v) => [v.subnetCidrBlock, v.subnetName]).flat(),
@@ -257,6 +319,11 @@ export class AwsAlbServiceModuleSchema {
   })
   subnets = Schema<{ subnetCidrBlock: string; subnetName: string }[]>();
 
+  /**
+   * Optional target groups for the ALB.
+   * Target groups define how the ALB routes traffic to registered targets.
+   * Each target group specifies an execution, container, and port configuration.
+   */
   @Validate({
     destruct: (value: AwsAlbServiceModuleSchema['targets']): AwsAlbServiceModuleTargetGroupSchema[] => value!,
     options: { isSchema: { schema: AwsAlbServiceModuleTargetGroupSchema } },

@@ -1,4 +1,12 @@
-import { AModule, type Account, type MatchingAnchor, Module, type Region, type Server } from '@quadnix/octo';
+import {
+  AModule,
+  type Account,
+  type Execution,
+  type MatchingAnchor,
+  Module,
+  type Region,
+  type Server,
+} from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { EcsClusterAnchorSchema } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.schema.js';
 import { EcsExecutionAnchor } from '../../../anchors/ecs-execution/ecs-execution.anchor.js';
@@ -15,10 +23,62 @@ import { AwsExecutionOverlay } from './overlays/execution/index.js';
 import { ServerExecutionSecurityGroupOverlay } from './overlays/server-execution-security-group/index.js';
 
 /**
+ * `AwsExecutionModule` is an ECS-based AWS execution module that provides an implementation for the `Execution` model.
+ * This module creates executions that manage the runtime of containerized applications in ECS environments.
+ * It handles main and sidecar deployments, environment variables,
+ * security groups, filesystem mounts, and service orchestration.
+ *
+ * @example
+ * TypeScript
+ * ```ts
+ * import { AwsExecutionModule } from '@quadnix/octo-aws-cdk/modules/execution/ecs-based-aws-execution';
+ *
+ * octo.loadModule(AwsExecutionModule, 'my-execution-module', {
+ *   deployments: {
+ *     main: {
+ *       containerProperties: {
+ *         cpu: 512,
+ *         image: {
+ *           essential: true,
+ *           name: 'main-app',
+ *           ports: [{ containerPort: 3000, protocol: 'tcp' }]
+ *         },
+ *         memory: 1024,
+ *       },
+ *       deployment: myMainDeployment,
+ *     },
+ *     sidecars: []
+ *   },
+ *   desiredCount: 2,
+ *   environment: myEnvironment,
+ *   environmentVariables: {
+ *     LOG_LEVEL: 'info'
+ *   },
+ *   executionId: 'my-app-execution',
+ *   filesystems: [myFilesystem],
+ *   securityGroupRules: [{
+ *     CidrBlock: '0.0.0.0/0',
+ *     Egress: false,
+ *     FromPort: 3000,
+ *     IpProtocol: 'tcp',
+ *     ToPort: 3000,
+ *   }],
+ *   subnet: mySubnet,
+ * });
+ * ```
+ *
  * @group Modules/Execution/EcsBasedAwsExecution
+ *
+ * @reference Resources {@link EcsServiceSchema}
+ * @reference Resources {@link EcsTaskDefinitionSchema}
+ * @reference Resources {@link SecurityGroupSchema}
+ *
+ * @see {@link AwsExecutionModuleSchema} for the input schema.
+ * @see {@link AModule} to learn more about modules.
+ * @see {@link Execution} to learn more about the `Execution` model.
  */
 @Module<AwsExecutionModule>('@octo', AwsExecutionModuleSchema)
-export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, AwsExecution> {
+export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execution> {
   async onInit(
     inputs: AwsExecutionModuleSchema,
   ): Promise<(AwsExecution | AwsExecutionOverlay | ServerExecutionSecurityGroupOverlay)[]> {

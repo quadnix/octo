@@ -5,7 +5,30 @@ import { AwsS3StorageServiceModuleSchema } from './index.schema.js';
 import { AwsS3StorageService } from './models/s3-storage/index.js';
 
 /**
+ * `AwsS3StorageServiceModule` is an S3-based AWS storage service module
+ * that provides an implementation for the `Service` model.
+ * This module creates S3 buckets for object storage with support for directory organization and remote file management.
+ * It provides scalable, durable storage for applications with configurable directory structures.
+ *
+ * @example
+ * TypeScript
+ * ```ts
+ * import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/modules/service/s3-storage-aws-service';
+ *
+ * octo.loadModule(AwsS3StorageServiceModule, 'my-storage-module', {
+ *   bucketName: 'my-app-storage',
+ *   region: myRegion,
+ *   remoteDirectoryPaths: ['uploads', 'documents', 'images']
+ * });
+ * ```
+ *
  * @group Modules/Service/S3StorageAwsService
+ *
+ * @reference Resources {@link S3StorageSchema}
+ *
+ * @see {@link AwsS3StorageServiceModuleSchema} for the input schema.
+ * @see {@link AModule} to learn more about modules.
+ * @see {@link Service} to learn more about the `Service` model.
  */
 @Module<AwsS3StorageServiceModule>('@octo', AwsS3StorageServiceModuleSchema)
 export class AwsS3StorageServiceModule extends AModule<AwsS3StorageServiceModuleSchema, AwsS3StorageService> {

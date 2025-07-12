@@ -1,14 +1,40 @@
-import { AModule, type Account, Module } from '@quadnix/octo';
+import { AModule, type Account, type Environment, Module } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { EcsClusterAnchor } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.js';
 import { AwsEnvironmentModuleSchema } from './index.schema.js';
 import { AwsEnvironment } from './models/environment/index.js';
 
 /**
+ * `AwsEnvironmentModule` is an ECS-based AWS environment module
+ * that provides an implementation for the `Environment` model.
+ * This module creates environments within AWS regions, establishing ECS clusters and managing environment variables.
+ * It serves as the foundation for deploying containerized applications in specific environments.
+ *
+ * @example
+ * TypeScript
+ * ```ts
+ * import { AwsEnvironmentModule } from '@quadnix/octo-aws-cdk/modules/environment/ecs-based-aws-environment';
+ *
+ * octo.loadModule(AwsEnvironmentModule, 'my-environment-module', {
+ *   environmentName: 'production',
+ *   environmentVariables: {
+ *     NODE_ENV: 'production',
+ *     API_URL: 'https://api.example.com'
+ *   },
+ *   region: myRegion,
+ * });
+ * ```
+ *
  * @group Modules/Environment/EcsBasedAwsEnvironment
+ *
+ * @reference Resources {@link EcsClusterSchema}
+ *
+ * @see {@link AwsEnvironmentModuleSchema} for the input schema.
+ * @see {@link AModule} to learn more about modules.
+ * @see {@link Environment} to learn more about the `Environment` model.
  */
 @Module<AwsEnvironmentModule>('@octo', AwsEnvironmentModuleSchema)
-export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, AwsEnvironment> {
+export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Environment> {
   async onInit(inputs: AwsEnvironmentModuleSchema): Promise<AwsEnvironment> {
     const region = inputs.region;
     const { clusterName } = await this.registerMetadata(inputs);
