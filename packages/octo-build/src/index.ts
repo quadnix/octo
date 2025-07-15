@@ -10,7 +10,7 @@ import { Main } from './main.js';
 import type { IRunArguments } from './models/run-arguments.interface.js';
 import { BuildFileParser } from './parsers/build-file.parser.js';
 
-const PROGRAM_NAME = 'octob';
+const PROGRAM_NAME = 'octo';
 const USAGE =
   'Usage: $0 ' +
   '-b build.yml -s ~/path/to/my_project ' +
