@@ -1,4 +1,11 @@
-import { Action, Container, type Diff, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  type DiffValueTypeTagUpdate,
+  Factory,
+  type IResourceAction,
+} from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { EcrImage } from '../ecr-image.resource.js';
 
@@ -18,18 +25,18 @@ export class UpdateEcrImageTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff): Promise<void> {
+  override async handle(diff: Diff<EcrImage, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const ecr = diff.node as EcrImage;
+    const ecr = diff.node;
     const properties = ecr.properties;
     const response = ecr.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.repositoryArn! });
   }
 
-  override async mock(diff: Diff): Promise<void> {
+  override async mock(diff: Diff<EcrImage, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const ecr = diff.node as EcrImage;
+    const ecr = diff.node;
     const properties = ecr.properties;
 
     await super.mock(diff, properties);

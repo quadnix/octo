@@ -1,4 +1,11 @@
-import { Action, Container, type Diff, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  type DiffValueTypeTagUpdate,
+  Factory,
+  type IResourceAction,
+} from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 
@@ -18,18 +25,18 @@ export class UpdateEcsTaskDefinitionTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff): Promise<void> {
+  override async handle(diff: Diff<EcsTaskDefinition, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const ecsTaskDefinition = diff.node as EcsTaskDefinition;
+    const ecsTaskDefinition = diff.node;
     const properties = ecsTaskDefinition.properties;
     const response = ecsTaskDefinition.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.taskDefinitionArn! });
   }
 
-  override async mock(diff: Diff): Promise<void> {
+  override async mock(diff: Diff<EcsTaskDefinition, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const ecsTaskDefinition = diff.node as EcsTaskDefinition;
+    const ecsTaskDefinition = diff.node;
     const properties = ecsTaskDefinition.properties;
 
     await super.mock(diff, properties);

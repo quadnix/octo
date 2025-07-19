@@ -1,4 +1,11 @@
-import { Action, Container, type Diff, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  type DiffValueTypeTagUpdate,
+  Factory,
+  type IResourceAction,
+} from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { Efs } from '../efs.resource.js';
 
@@ -15,18 +22,18 @@ export class UpdateEfsTagsResourceAction extends GenericResourceTaggingAction im
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff): Promise<void> {
+  override async handle(diff: Diff<Efs, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const efs = diff.node as Efs;
+    const efs = diff.node;
     const properties = efs.properties;
     const response = efs.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.FileSystemArn! });
   }
 
-  override async mock(diff: Diff): Promise<void> {
+  override async mock(diff: Diff<Efs, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const efs = diff.node as Efs;
+    const efs = diff.node;
     const properties = efs.properties;
 
     await super.mock(diff, properties);

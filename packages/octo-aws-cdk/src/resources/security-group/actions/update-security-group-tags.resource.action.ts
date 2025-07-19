@@ -1,4 +1,11 @@
-import { Action, Container, type Diff, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  type DiffValueTypeTagUpdate,
+  Factory,
+  type IResourceAction,
+} from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
@@ -18,18 +25,18 @@ export class UpdateSecurityGroupTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff): Promise<void> {
+  override async handle(diff: Diff<SecurityGroup, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const securityGroup = diff.node as SecurityGroup;
+    const securityGroup = diff.node;
     const properties = securityGroup.properties;
     const response = securityGroup.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.Arn! });
   }
 
-  override async mock(diff: Diff): Promise<void> {
+  override async mock(diff: Diff<SecurityGroup, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const securityGroup = diff.node as SecurityGroup;
+    const securityGroup = diff.node;
     const properties = securityGroup.properties;
 
     await super.mock(diff, properties);

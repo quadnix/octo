@@ -3,10 +3,8 @@ import {
   TagResourcesCommand,
   UntagResourcesCommand,
 } from '@aws-sdk/client-resource-groups-tagging-api';
-import { type Container, type Diff, DiffAction } from '@quadnix/octo';
+import { type Container, type Diff, DiffAction, type DiffValueTypeTagUpdate } from '@quadnix/octo';
 import { type ResourceGroupsTaggingAPIClientFactory } from '../../factories/aws-client.factory.js';
-
-type TagDiffValue = { add: { [key: string]: string }; delete: string[]; update: { [key: string]: string } };
 
 /**
  * @internal
@@ -19,12 +17,9 @@ export class GenericResourceTaggingAction {
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<any, DiffValueTypeTagUpdate>,
     properties: { awsAccountId: string; awsRegionId: string; resourceArn: string },
   ): Promise<void> {
-    // Get properties.
-    const diffValue = diff.value as TagDiffValue;
-
     // Get instances.
     const resourceGroupsTaggingApiClient = await this.container.get<
       ResourceGroupsTaggingAPIClient,
@@ -34,20 +29,20 @@ export class GenericResourceTaggingAction {
       metadata: { package: '@octo' },
     });
 
-    if (diffValue.delete.length > 0) {
+    if (diff.value.delete.length > 0) {
       await resourceGroupsTaggingApiClient.send(
         new UntagResourcesCommand({
           ResourceARNList: [properties.resourceArn],
-          TagKeys: diffValue.delete,
+          TagKeys: diff.value.delete,
         }),
       );
     }
 
-    if (Object.keys(diffValue.add).length > 0 || Object.keys(diffValue.update).length > 0) {
+    if (Object.keys(diff.value.add).length > 0 || Object.keys(diff.value.update).length > 0) {
       await resourceGroupsTaggingApiClient.send(
         new TagResourcesCommand({
           ResourceARNList: [properties.resourceArn],
-          Tags: { ...diffValue.add, ...diffValue.update },
+          Tags: { ...diff.value.add, ...diff.value.update },
         }),
       );
     }

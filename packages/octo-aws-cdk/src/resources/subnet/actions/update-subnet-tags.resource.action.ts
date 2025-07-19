@@ -1,4 +1,11 @@
-import { Action, Container, type Diff, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  type DiffValueTypeTagUpdate,
+  Factory,
+  type IResourceAction,
+} from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { Subnet } from '../subnet.resource.js';
 
@@ -15,18 +22,18 @@ export class UpdateSubnetTagsResourceAction extends GenericResourceTaggingAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff): Promise<void> {
+  override async handle(diff: Diff<Subnet, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const subnet = diff.node as Subnet;
+    const subnet = diff.node;
     const properties = subnet.properties;
     const response = subnet.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.SubnetArn! });
   }
 
-  override async mock(diff: Diff): Promise<void> {
+  override async mock(diff: Diff<Subnet, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const subnet = diff.node as Subnet;
+    const subnet = diff.node;
     const properties = subnet.properties;
 
     await super.mock(diff, properties);

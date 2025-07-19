@@ -1,4 +1,11 @@
-import { Action, Container, type Diff, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  type DiffValueTypeTagUpdate,
+  Factory,
+  type IResourceAction,
+} from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
@@ -18,18 +25,18 @@ export class UpdateInternetGatewayTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff): Promise<void> {
+  override async handle(diff: Diff<InternetGateway, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const igw = diff.node as InternetGateway;
+    const igw = diff.node;
     const properties = igw.properties;
     const response = igw.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.InternetGatewayArn! });
   }
 
-  override async mock(diff: Diff): Promise<void> {
+  override async mock(diff: Diff<InternetGateway, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const igw = diff.node as InternetGateway;
+    const igw = diff.node;
     const properties = igw.properties;
 
     await super.mock(diff, properties);

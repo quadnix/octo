@@ -1,4 +1,11 @@
-import { Action, Container, type Diff, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  type DiffValueTypeTagUpdate,
+  Factory,
+  type IResourceAction,
+} from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { NatGateway } from '../nat-gateway.resource.js';
 
@@ -18,18 +25,18 @@ export class UpdateNatGatewayTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff): Promise<void> {
+  override async handle(diff: Diff<NatGateway, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const nat = diff.node as NatGateway;
+    const nat = diff.node;
     const properties = nat.properties;
     const response = nat.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.NatGatewayArn! });
   }
 
-  override async mock(diff: Diff): Promise<void> {
+  override async mock(diff: Diff<NatGateway, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const nat = diff.node as NatGateway;
+    const nat = diff.node;
     const properties = nat.properties;
 
     await super.mock(diff, properties);

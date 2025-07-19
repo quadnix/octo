@@ -1,4 +1,11 @@
-import { Action, Container, type Diff, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  type DiffValueTypeTagUpdate,
+  Factory,
+  type IResourceAction,
+} from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { IamRole } from '../iam-role.resource.js';
 
@@ -15,9 +22,9 @@ export class UpdateIamRoleTagsResourceAction extends GenericResourceTaggingActio
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff): Promise<void> {
+  override async handle(diff: Diff<IamRole, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const role = diff.node as IamRole;
+    const role = diff.node;
     const properties = role.properties;
     const response = role.response;
 
@@ -25,9 +32,9 @@ export class UpdateIamRoleTagsResourceAction extends GenericResourceTaggingActio
     await super.handle(diff, { ...properties, awsRegionId: 'us-east-1', resourceArn: response.Arn! });
   }
 
-  override async mock(diff: Diff): Promise<void> {
+  override async mock(diff: Diff<IamRole, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const role = diff.node as IamRole;
+    const role = diff.node;
     const properties = role.properties;
 
     // `us-east-1` is the recommended region for global resources.
