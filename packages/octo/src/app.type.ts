@@ -140,6 +140,16 @@ export type ClassOptionalProperties<T> = {
   [K in keyof T]: undefined extends T[K] ? K : never;
 }[keyof T];
 
+export type DiffValueTypePropertyUpdate = {
+  key: string;
+  value: unknown;
+};
+export type DiffValueTypeTagUpdate = {
+  add: { [key: string]: string };
+  delete: string[];
+  update: { [key: string]: string };
+};
+
 export type ObjectKeyValue<T> = { [K in keyof T]: { key: K; value: T[K] } }[keyof T];
 
 export type Constructable<T> = new (...args: any[]) => T;

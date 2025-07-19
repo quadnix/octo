@@ -1,4 +1,4 @@
-import { MatchingResource, type UnknownResource } from '../app.type.js';
+import { type DiffValueTypeTagUpdate, MatchingResource, type UnknownResource } from '../app.type.js';
 import { DiffInverseResourceError, RemoveResourceError, ResourceError } from '../errors/index.js';
 import { type Dependency, DependencyRelationship } from '../functions/dependency/dependency.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
@@ -259,7 +259,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return DiffUtility.diffObject(previous as unknown as UnknownResource, this, 'properties');
   }
 
-  async diffTags(previous: T): Promise<Diff[]> {
+  async diffTags(previous: T): Promise<Diff<UnknownResource, DiffValueTypeTagUpdate>[]> {
     const tagsToAdd: { [key: string]: string } = {};
     const tagsToDelete: string[] = [];
     const tagsToUpdate: { [key: string]: string } = {};

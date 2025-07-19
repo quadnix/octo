@@ -7,16 +7,16 @@ export enum DiffAction {
   UPDATE = 'update',
 }
 
-export class Diff {
+export class Diff<N extends UnknownNode = UnknownNode, V = unknown> {
   readonly action: DiffAction;
 
   readonly field: string;
 
-  readonly node: UnknownNode;
+  readonly node: N;
 
-  readonly value: unknown;
+  readonly value: V;
 
-  constructor(node: Diff['node'], action: Diff['action'], field: Diff['field'], value: Diff['value']) {
+  constructor(node: Diff<N, V>['node'], action: Diff['action'], field: Diff['field'], value: Diff<N, V>['value']) {
     this.node = node;
     this.action = action;
     this.field = field;
@@ -26,8 +26,8 @@ export class Diff {
   /**
    * Overrides JSON.serialize() to output a more succinct representation of diff.
    */
-  toJSON(): { action: string; field: string; node: string; value: unknown } {
-    let value = this.value;
+  toJSON(): { action: string; field: string; node: string; value: V | string } {
+    let value: V | string = this.value;
     if ((value as UnknownNode).getContext) {
       value = (value as UnknownNode).getContext();
     } else if ((value as UnknownAnchor).anchorId) {

@@ -69,6 +69,8 @@ export {
   type ActionOutputs,
   type AnchorSchema,
   type Constructable,
+  type DiffValueTypePropertyUpdate,
+  type DiffValueTypeTagUpdate,
   type EnhancedModuleSchema,
   MatchingAnchor,
   MatchingModel,
