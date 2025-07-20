@@ -81,6 +81,7 @@ export {
   type OverlaySchema,
   type ResourceSchema,
   type ResourceSerializedOutput,
+  hasNodeName,
   stub,
 } from './app.type.js';
 

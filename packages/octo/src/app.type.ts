@@ -24,7 +24,7 @@ export class MatchingAnchor<S extends BaseAnchorSchema> {
     return !!this.schemaTranslator;
   }
 
-  getActual(): AAnchor<Omit<BaseAnchorSchema, 'properties'> & { properties: Record<never, never> }, any> {
+  getActual(): AAnchor<Omit<S, 'properties'> & { properties: Record<never, never> }, any> {
     return this.actual;
   }
 
@@ -54,7 +54,7 @@ export class MatchingModel<S extends object> {
 
 export class MatchingResource<S extends BaseResourceSchema> {
   constructor(
-    private readonly actual: AResource<BaseResourceSchema, any>,
+    private readonly actual: AResource<S, any>,
     readonly schemaTranslator?: (synth: BaseResourceSchema) => S,
   ) {}
 
@@ -79,7 +79,7 @@ export class MatchingResource<S extends BaseResourceSchema> {
   }
 
   getActual(): AResource<
-    Omit<BaseResourceSchema, 'properties' | 'response' | 'tags'> & { properties: Record<never, never> } & {
+    Omit<S, 'properties' | 'response' | 'tags'> & { properties: Record<never, never> } & {
       response: Record<never, never>;
     } & { tags: Record<never, never> },
     any
@@ -114,10 +114,6 @@ export enum ValidationType {
   REGEX = 'regex',
 }
 
-export function stub<T>(value: string): T {
-  return value as T;
-}
-
 export type ValidationTypeOptions = {
   [ValidationType.CUSTOM]: Parameters<typeof ValidationUtility.validateCustom>[1];
   [ValidationType.IS_MODEL]: Parameters<typeof ValidationUtility.validateIsModel>[1];
@@ -128,6 +124,15 @@ export type ValidationTypeOptions = {
   [ValidationType.MIN_LENGTH]: Parameters<typeof ValidationUtility.validateMinLength>[1];
   [ValidationType.REGEX]: Parameters<typeof ValidationUtility.validateRegex>[1];
 };
+
+/* Functions */
+export function hasNodeName(node: UnknownNode, nodeName: string): boolean {
+  return (node.constructor as typeof ANode).NODE_NAME === nodeName;
+}
+
+export function stub<T>(value: string): T {
+  return value as T;
+}
 
 /* Types */
 export type ActionInputs = EnhancedModuleSchema<UnknownModule>;
