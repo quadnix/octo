@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import { EcrImage } from '../../../../../../resources/ecr/index.js';
 import type { AwsImageModule } from '../../../aws-image.module.js';
@@ -20,22 +21,20 @@ export class AddImageModelAction implements IModelAction<AwsImageModule> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsImage &&
-      (diff.node.constructor as typeof AwsImage).NODE_NAME === 'image' &&
+      hasNodeName(diff.node, 'image') &&
       diff.field === 'imageId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsImage>,
     actionInputs: EnhancedModuleSchema<AwsImageModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     // Get properties.
-    const image = diff.node as AwsImage;
+    const image = diff.node;
 
-    const { uniqueImageRepositories } = actionInputs.metadata as Awaited<
-      ReturnType<AwsImageModule['registerMetadata']>
-    >;
+    const { uniqueImageRepositories } = actionInputs.metadata;
 
     for (const { awsAccountId, awsRegionId } of uniqueImageRepositories) {
       // Create ECR.

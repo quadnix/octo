@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  hasNodeName,
 } from '@quadnix/octo';
 import { EfsSchema } from '../../../../../../resources/efs/index.schema.js';
 import { EfsMountTarget } from '../../../../../../resources/efs-mount-target/index.js';
@@ -25,23 +26,20 @@ export class AddSubnetLocalFilesystemMountOverlayAction implements IModelAction<
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsSubnetLocalFilesystemMountOverlay &&
-      (diff.node.constructor as typeof AwsSubnetLocalFilesystemMountOverlay).NODE_NAME ===
-        'subnet-local-filesystem-mount-overlay' &&
+      hasNodeName(diff.node, 'subnet-local-filesystem-mount-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsSubnetLocalFilesystemMountOverlay>,
     actionInputs: EnhancedModuleSchema<AwsSubnetModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const subnetLocalFilesystemMountOverlay = diff.node as AwsSubnetLocalFilesystemMountOverlay;
+    const subnetLocalFilesystemMountOverlay = diff.node;
     const properties = subnetLocalFilesystemMountOverlay.properties;
 
-    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
-      ReturnType<AwsSubnetModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     const [matchingEfsResource] = await subnetLocalFilesystemMountOverlay.getResourcesMatchingSchema(EfsSchema, [
       { key: 'filesystemName', value: properties.filesystemName },

@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import { EcsCluster } from '../../../../../../resources/ecs-cluster/index.js';
 import type { AwsEnvironmentModule } from '../../../aws-environment.module.js';
@@ -20,7 +21,7 @@ export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentMod
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsEnvironment &&
-      (diff.node.constructor as typeof AwsEnvironment).NODE_NAME === 'environment' &&
+      hasNodeName(diff.node, 'environment') &&
       diff.field === 'environmentName'
     );
   }
@@ -30,9 +31,7 @@ export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentMod
     actionInputs: EnhancedModuleSchema<AwsEnvironmentModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const { awsAccountId, awsRegionId, clusterName } = actionInputs.metadata as Awaited<
-      ReturnType<AwsEnvironmentModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsRegionId, clusterName } = actionInputs.metadata;
 
     const ecsCluster = new EcsCluster(`ecs-cluster-${clusterName}`, {
       awsAccountId,

@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  hasNodeName,
 } from '@quadnix/octo';
 import { Alb } from '../../../../../../resources/alb/index.js';
 import { AlbListener } from '../../../../../../resources/alb-listener/index.js';
@@ -27,21 +28,19 @@ export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceMo
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsAlbEcsExecutionOverlay &&
-      (diff.node.constructor as typeof AwsAlbEcsExecutionOverlay).NODE_NAME === 'alb-ecs-execution-overlay' &&
+      hasNodeName(diff.node, 'alb-ecs-execution-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsAlbEcsExecutionOverlay>,
     actionInputs: EnhancedModuleSchema<AwsAlbServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const albEcsExecutionOverlay = diff.node as AwsAlbEcsExecutionOverlay;
+    const albEcsExecutionOverlay = diff.node;
 
-    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
-      ReturnType<AwsAlbServiceModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     const [matchingVpcResource] = await albEcsExecutionOverlay.getResourcesMatchingSchema(VpcSchema, [
       { key: 'awsAccountId', value: awsAccountId },
@@ -68,7 +67,7 @@ export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceMo
       actionOutputs[albTargetGroup.resourceId] = albTargetGroup;
       albTargetGroups.push(albTargetGroup);
 
-      const [matchingEcsService] = (await target.execution.getResourcesMatchingSchema(
+      const [matchingEcsService] = await target.execution.getResourcesMatchingSchema(
         EcsServiceSchema,
         [
           { key: 'awsAccountId', value: awsAccountId },
@@ -78,7 +77,7 @@ export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceMo
         {
           searchBoundaryMembers: false,
         },
-      )) as MatchingResource<EcsServiceSchema>[];
+      );
       if (!matchingEcsService) {
         throw new Error(`No ecs service found for execution "${target.execution.executionId}"!`);
       }

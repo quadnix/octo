@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { AwsCredentialsAccountModule } from '../../../aws-credentials-account.module.js';
 import { AwsCredentialsAccount } from '../aws.credentials-account.model.js';
@@ -19,7 +20,7 @@ export class AddCredentialsAccountModelAction implements IModelAction<AwsCredent
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsCredentialsAccount &&
-      (diff.node.constructor as typeof AwsCredentialsAccount).NODE_NAME === 'account' &&
+      hasNodeName(diff.node, 'account') &&
       diff.field === 'accountId'
     );
   }

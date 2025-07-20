@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { AwsMotoAccountModule } from '../../../aws-moto-account.module.js';
 import { AwsMotoAccount } from '../aws.moto-account.model.js';
@@ -19,7 +20,7 @@ export class AddMotoAccountModelAction implements IModelAction<AwsMotoAccountMod
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsMotoAccount &&
-      (diff.node.constructor as typeof AwsMotoAccount).NODE_NAME === 'account' &&
+      hasNodeName(diff.node, 'account') &&
       diff.field === 'accountId'
     );
   }

@@ -50,7 +50,7 @@ export class AwsExecution extends Execution {
       return undefined;
     }
     return [
-      `${(this.constructor as typeof Execution).NODE_NAME}=${this.executionId}`,
+      `${Execution.NODE_NAME}=${this.executionId}`,
       deployment.getContext(),
       environment.getContext(),
       subnet.getContext(),

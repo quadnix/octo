@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { AwsLocalstackAccountModule } from '../../../aws-localstack-account.module.js';
 import { AwsLocalstackAccount } from '../aws.localstack-account.model.js';
@@ -19,7 +20,7 @@ export class AddLocalstackAccountModelAction implements IModelAction<AwsLocalsta
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsLocalstackAccount &&
-      (diff.node.constructor as typeof AwsLocalstackAccount).NODE_NAME === 'account' &&
+      hasNodeName(diff.node, 'account') &&
       diff.field === 'accountId'
     );
   }

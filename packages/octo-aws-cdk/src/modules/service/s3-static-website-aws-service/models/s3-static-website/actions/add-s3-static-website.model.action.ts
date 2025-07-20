@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import { S3Website } from '../../../../../../resources/s3-website/index.js';
 import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website.service.module.js';
@@ -20,21 +21,19 @@ export class AddS3StaticWebsiteModelAction implements IModelAction<AwsS3StaticWe
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsS3StaticWebsiteService &&
-      (diff.node.constructor as typeof AwsS3StaticWebsiteService).NODE_NAME === 'service' &&
+      hasNodeName(diff.node, 'service') &&
       diff.field === 'serviceId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsS3StaticWebsiteService>,
     actionInputs: EnhancedModuleSchema<AwsS3StaticWebsiteServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const { bucketName } = diff.node as AwsS3StaticWebsiteService;
+    const { bucketName } = diff.node;
 
-    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
-      ReturnType<AwsS3StaticWebsiteServiceModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     // Create S3 Website.
     const s3Website = new S3Website(`bucket-${bucketName}`, {

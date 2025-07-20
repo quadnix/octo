@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingAnchor,
+  hasNodeName,
 } from '@quadnix/octo';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
 import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
@@ -22,23 +23,20 @@ export class AddSecurityGroupOverlayAction implements IModelAction<AwsExecutionM
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof ServerExecutionSecurityGroupOverlay &&
-      (diff.node.constructor as typeof ServerExecutionSecurityGroupOverlay).NODE_NAME ===
-        'server-execution-security-group-overlay' &&
+      hasNodeName(diff.node, 'server-execution-security-group-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<ServerExecutionSecurityGroupOverlay>,
     actionInputs: EnhancedModuleSchema<AwsExecutionModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const securityGroupOverlay = diff.node as ServerExecutionSecurityGroupOverlay;
+    const securityGroupOverlay = diff.node;
     const anchors = securityGroupOverlay.anchors;
 
-    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
-      ReturnType<AwsExecutionModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     const [matchingVpcResource] = await securityGroupOverlay.getResourcesMatchingSchema(VpcSchema, [
       { key: 'awsAccountId', value: awsAccountId },

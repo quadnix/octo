@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { AwsExecutionModule } from '../../../aws-execution.module.js';
 import { AwsExecution } from '../aws.execution.model.js';
@@ -19,7 +20,7 @@ export class AddExecutionModelAction implements IModelAction<AwsExecutionModule>
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsExecution &&
-      (diff.node.constructor as typeof AwsExecution).NODE_NAME === 'execution' &&
+      hasNodeName(diff.node, 'execution') &&
       diff.field === 'executionId'
     );
   }

@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { AwsIniAccountModule } from '../../../aws-ini-account.module.js';
 import { AwsIniAccount } from '../aws.ini-account.model.js';
@@ -19,7 +20,7 @@ export class AddIniAccountModelAction implements IModelAction<AwsIniAccountModul
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsIniAccount &&
-      (diff.node.constructor as typeof AwsIniAccount).NODE_NAME === 'account' &&
+      hasNodeName(diff.node, 'account') &&
       diff.field === 'accountId'
     );
   }

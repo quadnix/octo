@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { AwsDeploymentModule } from '../../../aws-deployment.module.js';
 import { AwsDeployment } from '../aws.deployment.model.js';
@@ -19,7 +20,7 @@ export class AddDeploymentModelAction implements IModelAction<AwsDeploymentModul
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsDeployment &&
-      (diff.node.constructor as typeof AwsDeployment).NODE_NAME === 'deployment' &&
+      hasNodeName(diff.node, 'deployment') &&
       diff.field === 'deploymentTag'
     );
   }

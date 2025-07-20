@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import { IamRole } from '../../../../../../resources/iam-role/index.js';
 import type { AwsServerModule } from '../../../aws-server.module.js';
@@ -20,7 +21,7 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsServer &&
-      (diff.node.constructor as typeof AwsServer).NODE_NAME === 'server' &&
+      hasNodeName(diff.node, 'server') &&
       diff.field === 'serverKey'
     );
   }
@@ -30,7 +31,7 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
     actionInputs: EnhancedModuleSchema<AwsServerModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const { iamRoleName } = actionInputs.metadata as Awaited<ReturnType<AwsServerModule['registerMetadata']>>;
+    const { iamRoleName } = actionInputs.metadata;
 
     // Create IAM Role.
     const iamRole = new IamRole(`iam-role-${iamRoleName}`, {

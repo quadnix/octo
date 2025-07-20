@@ -7,6 +7,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { AppModule } from '../../../app.module.js';
 
@@ -19,7 +20,7 @@ export class AddAppModelAction implements IModelAction<AppModule> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof App &&
-      (diff.node.constructor as typeof App).NODE_NAME === 'app' &&
+      hasNodeName(diff.node, 'app') &&
       diff.field === 'name'
     );
   }

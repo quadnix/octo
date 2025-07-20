@@ -8,6 +8,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { IamRole } from '../../../../../../resources/iam-role/index.js';
 import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
@@ -24,17 +25,17 @@ export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServer
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsServerS3AccessOverlay &&
-      (diff.node.constructor as typeof AwsServerS3AccessOverlay).NODE_NAME === 'server-s3-access-overlay' &&
+      hasNodeName(diff.node, 'server-s3-access-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsServerS3AccessOverlay>,
     actionInputs: EnhancedModuleSchema<AwsServerModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const serverS3AccessOverlay = diff.node as AwsServerS3AccessOverlay;
+    const serverS3AccessOverlay = diff.node;
     const properties = serverS3AccessOverlay.properties;
 
     const iamRole = actionInputs.resources[`iam-role-${properties.iamRoleName}`] as IamRole;

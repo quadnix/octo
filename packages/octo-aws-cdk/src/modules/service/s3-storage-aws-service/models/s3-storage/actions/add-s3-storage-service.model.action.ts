@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import { S3Storage } from '../../../../../../resources/s3-storage/index.js';
 import type { AwsS3StorageServiceModule } from '../../../aws-s3-storage.service.module.js';
@@ -20,21 +21,19 @@ export class AddS3StorageServiceModelAction implements IModelAction<AwsS3Storage
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsS3StorageService &&
-      (diff.node.constructor as typeof AwsS3StorageService).NODE_NAME === 'service' &&
+      hasNodeName(diff.node, 'service') &&
       diff.field === 'serviceId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsS3StorageService>,
     actionInputs: EnhancedModuleSchema<AwsS3StorageServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const { bucketName } = diff.node as AwsS3StorageService;
+    const { bucketName } = diff.node;
 
-    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
-      ReturnType<AwsS3StorageServiceModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     // Create S3 Bucket.
     const s3Storage = new S3Storage(`bucket-${bucketName}`, {

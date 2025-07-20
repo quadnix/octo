@@ -9,6 +9,7 @@ import {
   type IModelAction,
   MatchingResource,
   SubnetType,
+  hasNodeName,
 } from '@quadnix/octo';
 import { EcsClusterSchema } from '../../../../../../resources/ecs-cluster/index.schema.js';
 import { EcsService } from '../../../../../../resources/ecs-service/index.js';
@@ -29,23 +30,21 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsExecutionOverlay &&
-      (diff.node.constructor as typeof AwsExecutionOverlay).NODE_NAME === 'execution-overlay' &&
+      hasNodeName(diff.node, 'execution-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsExecutionOverlay>,
     actionInputs: EnhancedModuleSchema<AwsExecutionModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const awsExecutionOverlay = diff.node as AwsExecutionOverlay;
+    const awsExecutionOverlay = diff.node;
     const properties = awsExecutionOverlay.properties;
 
     const subnet = actionInputs.inputs.subnet;
-    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
-      ReturnType<AwsExecutionModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     const [
       matchingMainIamRoleAnchor,

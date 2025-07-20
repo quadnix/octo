@@ -6,6 +6,7 @@ import {
   type EnhancedModuleSchema,
   Factory,
   type IModelAction,
+  hasNodeName,
 } from '@quadnix/octo';
 import { Efs } from '../../../../../../resources/efs/index.js';
 import type { AwsFilesystemModule } from '../../../aws-filesystem.module.js';
@@ -20,22 +21,20 @@ export class AddFilesystemModelAction implements IModelAction<AwsFilesystemModul
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsFilesystem &&
-      (diff.node.constructor as typeof AwsFilesystem).NODE_NAME === 'filesystem' &&
+      hasNodeName(diff.node, 'filesystem') &&
       diff.field === 'filesystemName'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsFilesystem>,
     actionInputs: EnhancedModuleSchema<AwsFilesystemModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const filesystem = diff.node as AwsFilesystem;
+    const filesystem = diff.node;
     const region = actionInputs.inputs.region;
 
-    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
-      ReturnType<AwsFilesystemModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     // Create EFS.
     const efs = new Efs(

@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   SubnetType,
+  hasNodeName,
 } from '@quadnix/octo';
 import { NatGatewaySchema } from '../../../../../../resources/nat-gateway/index.schema.js';
 import type { NetworkAcl } from '../../../../../../resources/network-acl/index.js';
@@ -24,18 +25,18 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsSubnet &&
-      (diff.node.constructor as typeof AwsSubnet).NODE_NAME === 'subnet' &&
+      hasNodeName(diff.node, 'subnet') &&
       diff.field === 'sibling'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsSubnet, AwsSubnet>,
     actionInputs: EnhancedModuleSchema<AwsSubnetModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const subnet = diff.node as AwsSubnet;
-    const siblingSubnet = diff.value as AwsSubnet;
+    const subnet = diff.node;
+    const siblingSubnet = diff.value;
 
     const siblingSubnetInputs = actionInputs.inputs.subnetSiblings || [];
     const siblingSubnetInput = siblingSubnetInputs.find((s) => s.subnetName === siblingSubnet.subnetName)!;

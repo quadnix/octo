@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  hasNodeName,
 } from '@quadnix/octo';
 import { InternetGateway } from '../../../../../../resources/internet-gateway/index.js';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
@@ -23,17 +24,17 @@ export class AddRegionModelAction implements IModelAction<AwsRegionModule> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsRegion &&
-      (diff.node.constructor as typeof AwsRegion).NODE_NAME === 'region' &&
+      hasNodeName(diff.node, 'region') &&
       diff.field === 'regionId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsRegion>,
     actionInputs: EnhancedModuleSchema<AwsRegionModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const awsRegion = diff.node as AwsRegion;
+    const awsRegion = diff.node;
     const regionId = awsRegion.regionId;
 
     const vpcCidrBlock = actionInputs.inputs.vpcCidrBlock;

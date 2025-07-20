@@ -8,6 +8,7 @@ import {
   type IModelAction,
   MatchingResource,
   SubnetType,
+  hasNodeName,
 } from '@quadnix/octo';
 import { InternetGatewaySchema } from '../../../../../../resources/internet-gateway/index.schema.js';
 import { NatGateway } from '../../../../../../resources/nat-gateway/index.js';
@@ -29,21 +30,19 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsSubnet &&
-      (diff.node.constructor as typeof AwsSubnet).NODE_NAME === 'subnet' &&
+      hasNodeName(diff.node, 'subnet') &&
       diff.field === 'subnetId'
     );
   }
 
   async handle(
-    diff: Diff,
+    diff: Diff<AwsSubnet>,
     actionInputs: EnhancedModuleSchema<AwsSubnetModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const subnet = diff.node as AwsSubnet;
+    const subnet = diff.node;
 
-    const { awsAccountId, awsRegionId } = actionInputs.metadata as Awaited<
-      ReturnType<AwsSubnetModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     const subnetCidrBlock = actionInputs.inputs.subnetCidrBlock;
     const [matchingVpcResource] = await subnet.getResourcesMatchingSchema(VpcSchema, [

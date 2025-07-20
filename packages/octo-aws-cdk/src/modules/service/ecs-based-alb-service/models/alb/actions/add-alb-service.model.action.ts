@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  hasNodeName,
 } from '@quadnix/octo';
 import { Alb } from '../../../../../../resources/alb/index.js';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
@@ -24,7 +25,7 @@ export class AddAlbServiceModelAction implements IModelAction<AwsAlbServiceModul
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AwsAlbService &&
-      (diff.node.constructor as typeof AwsAlbService).NODE_NAME === 'service' &&
+      hasNodeName(diff.node, 'service') &&
       diff.field === 'serviceId'
     );
   }
@@ -34,9 +35,7 @@ export class AddAlbServiceModelAction implements IModelAction<AwsAlbServiceModul
     actionInputs: EnhancedModuleSchema<AwsAlbServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const { awsAccountId, awsAvailabilityZones, awsRegionId, subnets } = actionInputs.metadata as Awaited<
-      ReturnType<AwsAlbServiceModule['registerMetadata']>
-    >;
+    const { awsAccountId, awsAvailabilityZones, awsRegionId, subnets } = actionInputs.metadata;
 
     const [matchingVpcResource] = await actionInputs.inputs.region.getResourcesMatchingSchema(
       VpcSchema,
