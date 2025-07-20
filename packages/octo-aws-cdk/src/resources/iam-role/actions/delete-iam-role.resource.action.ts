@@ -1,5 +1,5 @@
 import { DeleteRoleCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamRole } from '../iam-role.resource.js';
 
@@ -14,14 +14,14 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof IamRole &&
-      (diff.node.constructor as typeof IamRole).NODE_NAME === 'iam-role' &&
+      hasNodeName(diff.node, 'iam-role') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<IamRole>): Promise<void> {
     // Get properties.
-    const iamRole = diff.node as IamRole;
+    const iamRole = diff.node;
     const properties = iamRole.properties;
     const response = iamRole.response;
 
@@ -39,8 +39,9 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
     );
   }
 
-  async mock(diff: Diff): Promise<void> {
-    const iamRole = diff.node as IamRole;
+  async mock(diff: Diff<IamRole>): Promise<void> {
+    // Get properties.
+    const iamRole = diff.node;
     const properties = iamRole.properties;
 
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {

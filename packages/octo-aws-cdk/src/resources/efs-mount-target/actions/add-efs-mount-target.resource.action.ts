@@ -7,6 +7,7 @@ import {
   Factory,
   type IResourceAction,
   TransactionError,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { EFSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
@@ -26,14 +27,14 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof EfsMountTarget &&
-      (diff.node.constructor as typeof EfsMountTarget).NODE_NAME === 'efs-mount-target' &&
+      hasNodeName(diff.node, 'efs-mount-target') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<EfsMountTarget>): Promise<void> {
     // Get properties.
-    const efsMountTarget = diff.node as EfsMountTarget;
+    const efsMountTarget = diff.node;
     const properties = efsMountTarget.properties;
     const response = efsMountTarget.response;
     const efsMountTargetEfs = efsMountTarget.parents[0];
@@ -87,8 +88,9 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     response.NetworkInterfaceId = data.NetworkInterfaceId!;
   }
 
-  async mock(diff: Diff, capture: Partial<EfsMountTargetSchema['response']>): Promise<void> {
-    const efsMountTarget = diff.node as EfsMountTarget;
+  async mock(diff: Diff<EfsMountTarget>, capture: Partial<EfsMountTargetSchema['response']>): Promise<void> {
+    // Get properties.
+    const efsMountTarget = diff.node;
     const properties = efsMountTarget.properties;
     const efsMountTargetEfs = efsMountTarget.parents[0];
 

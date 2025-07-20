@@ -20,11 +20,11 @@ export class AlbTargetGroup extends AResource<AlbTargetGroupSchema, AlbTargetGro
   }
 
   override async diffInverse(
-    diff: Diff,
+    diff: Diff<AlbTargetGroup>,
     deReferenceResource: (resourceId: string) => Promise<AResource<VpcSchema, any>>,
   ): Promise<void> {
     if (diff.field === 'properties' && diff.action === DiffAction.UPDATE) {
-      this.clonePropertiesInPlace(diff.node as AlbTargetGroup);
+      this.clonePropertiesInPlace(diff.node);
     } else {
       await super.diffInverse(diff, deReferenceResource);
     }

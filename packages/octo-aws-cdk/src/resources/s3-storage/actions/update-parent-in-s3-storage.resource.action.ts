@@ -1,4 +1,4 @@
-import { Action, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { S3Storage } from '../s3-storage.resource.js';
 
 /**
@@ -10,7 +10,7 @@ export class UpdateParentInS3StorageResourceAction implements IResourceAction<S3
     return (
       (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE || diff.action === DiffAction.UPDATE) &&
       diff.node instanceof S3Storage &&
-      (diff.node.constructor as typeof S3Storage).NODE_NAME === 's3-storage' &&
+      hasNodeName(diff.node, 's3-storage') &&
       diff.field === 'parent'
     );
   }

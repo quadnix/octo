@@ -26,9 +26,7 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
   ) {
     super(resourceId, properties, parents || []);
 
-    this.updatePrincipalResourceDependencyBehaviors(
-      (parents || []).map((p) => p.getActual() as AResource<PrincipalResourceSchema, any>),
-    );
+    this.updatePrincipalResourceDependencyBehaviors((parents || []).map((p) => p.getActual()));
   }
 
   addPermission(
@@ -58,11 +56,14 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
     }
   }
 
-  override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
+  override async diffInverse(
+    diff: Diff<S3Storage>,
+    deReferenceResource: (resourceId: string) => Promise<never>,
+  ): Promise<void> {
     if (diff.field === 'update-permissions' && diff.action === DiffAction.UPDATE) {
       // All changes to properties.permissions is in this single diff, invoking one single action.
       // There is no need to individually clone properties. A single clone is enough.
-      this.clonePropertiesInPlace(diff.node as S3Storage);
+      this.clonePropertiesInPlace(diff.node);
     } else {
       await super.diffInverse(diff, deReferenceResource);
     }

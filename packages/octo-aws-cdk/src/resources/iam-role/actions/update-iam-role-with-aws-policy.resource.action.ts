@@ -1,5 +1,5 @@
 import { AttachRolePolicyCommand, DetachRolePolicyCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { type IIamRolePolicyDiff, IamRole, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-role.resource.js';
 
@@ -14,15 +14,15 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof IamRole &&
-      (diff.node.constructor as typeof IamRole).NODE_NAME === 'iam-role' &&
+      hasNodeName(diff.node, 'iam-role') &&
       diff.field === 'aws-policy'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<IamRole, IIamRolePolicyDiff>): Promise<void> {
     // Get properties.
-    const iamRole = diff.node as IamRole;
-    const iamRolePolicyDiff = diff.value as IIamRolePolicyDiff;
+    const iamRole = diff.node;
+    const iamRolePolicyDiff = diff.value;
     const properties = iamRole.properties;
     const response = iamRole.response;
 
@@ -58,8 +58,9 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
     }
   }
 
-  async mock(diff: Diff): Promise<void> {
-    const iamRole = diff.node as IamRole;
+  async mock(diff: Diff<IamRole>): Promise<void> {
+    // Get properties.
+    const iamRole = diff.node;
     const properties = iamRole.properties;
 
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {

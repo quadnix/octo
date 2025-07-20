@@ -1,5 +1,5 @@
 import { DeleteServiceCommand, DescribeServicesCommand, ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EcsService } from '../ecs-service.resource.js';
@@ -17,14 +17,14 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof EcsService &&
-      (diff.node.constructor as typeof EcsService).NODE_NAME === 'ecs-service' &&
+      hasNodeName(diff.node, 'ecs-service') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<EcsService>): Promise<void> {
     // Get properties.
-    const ecsService = diff.node as EcsService;
+    const ecsService = diff.node;
     const properties = ecsService.properties;
     const ecsServiceEcsCluster = ecsService.parents[0];
 
@@ -85,9 +85,9 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
     await new Promise((resolve) => setTimeout(resolve, 10000));
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<EcsService>): Promise<void> {
     // Get properties.
-    const ecsService = diff.node as EcsService;
+    const ecsService = diff.node;
     const properties = ecsService.properties;
 
     const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {

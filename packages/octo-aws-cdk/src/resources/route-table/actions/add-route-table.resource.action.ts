@@ -4,7 +4,7 @@ import {
   CreateRouteTableCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { RouteTableSchema } from '../index.schema.js';
 import { RouteTable } from '../route-table.resource.js';
@@ -20,14 +20,14 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof RouteTable &&
-      (diff.node.constructor as typeof RouteTable).NODE_NAME === 'route-table' &&
+      hasNodeName(diff.node, 'route-table') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<RouteTable>): Promise<void> {
     // Get properties.
-    const routeTable = diff.node as RouteTable;
+    const routeTable = diff.node;
     const properties = routeTable.properties;
     const response = routeTable.response;
     const routeTableVpc = routeTable.parents[0];
@@ -73,9 +73,9 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     response.subnetAssociationId = data[0].AssociationId!;
   }
 
-  async mock(diff: Diff, capture: Partial<RouteTableSchema['response']>): Promise<void> {
+  async mock(diff: Diff<RouteTable>, capture: Partial<RouteTableSchema['response']>): Promise<void> {
     // Get properties.
-    const routeTable = diff.node as RouteTable;
+    const routeTable = diff.node;
     const properties = routeTable.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

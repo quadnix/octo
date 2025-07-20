@@ -1,5 +1,5 @@
 import { AttachInternetGatewayCommand, CreateInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { InternetGatewaySchema } from '../index.schema.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
@@ -15,14 +15,14 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof InternetGateway &&
-      (diff.node.constructor as typeof InternetGateway).NODE_NAME === 'internet-gateway' &&
+      hasNodeName(diff.node, 'internet-gateway') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<InternetGateway>): Promise<void> {
     // Get properties.
-    const internetGateway = diff.node as InternetGateway;
+    const internetGateway = diff.node;
     const properties = internetGateway.properties;
     const response = internetGateway.response;
     const internetGatewayVpc = internetGateway.parents[0];
@@ -51,9 +51,9 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     response.InternetGatewayId = igwId;
   }
 
-  async mock(diff: Diff, capture: Partial<InternetGatewaySchema['response']>): Promise<void> {
+  async mock(diff: Diff<InternetGateway>, capture: Partial<InternetGatewaySchema['response']>): Promise<void> {
     // Get properties.
-    const internetGateway = diff.node as InternetGateway;
+    const internetGateway = diff.node;
     const properties = internetGateway.properties;
 
     // Get instances.

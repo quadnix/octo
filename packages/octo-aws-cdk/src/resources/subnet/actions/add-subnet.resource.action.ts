@@ -1,5 +1,5 @@
 import { CreateSubnetCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { SubnetSchema } from '../index.schema.js';
 import { Subnet } from '../subnet.resource.js';
@@ -15,14 +15,14 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof Subnet &&
-      (diff.node.constructor as typeof Subnet).NODE_NAME === 'subnet' &&
+      hasNodeName(diff.node, 'subnet') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<Subnet>): Promise<void> {
     // Get properties.
-    const subnet = diff.node as Subnet;
+    const subnet = diff.node;
     const properties = subnet.properties;
     const response = subnet.response;
     const subnetVpc = subnet.parents[0];
@@ -48,9 +48,9 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
     response.SubnetId = subnetId;
   }
 
-  async mock(diff: Diff, capture: Partial<SubnetSchema['response']>): Promise<void> {
+  async mock(diff: Diff<Subnet>, capture: Partial<SubnetSchema['response']>): Promise<void> {
     // Get properties.
-    const subnet = diff.node as Subnet;
+    const subnet = diff.node;
     const properties = subnet.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

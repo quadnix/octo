@@ -6,6 +6,7 @@ import {
   type MatchingResource,
   Resource,
   ResourceError,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
 import type { EcsClusterSchema } from '../ecs-cluster/index.schema.js';
@@ -40,17 +41,17 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
   ) {
     super(resourceId, properties, parents);
 
-    this.updateServiceTaskDefinition(parents[1].getActual() as AResource<EcsTaskDefinitionSchema, any>);
+    this.updateServiceTaskDefinition(parents[1].getActual());
     this.updateServiceAlbTargetGroups(
       parents
         .slice(3)
-        .filter((p) => (p.getActual().constructor as typeof AResource).NODE_NAME === 'alb-target-group')
+        .filter((p) => hasNodeName(p.getActual(), 'alb-target-group'))
         .map((p) => p.getActual() as AResource<AlbTargetGroupSchema, any>),
     );
     this.updateServiceSecurityGroups(
       parents
         .slice(3)
-        .filter((p) => (p.getActual().constructor as typeof AResource).NODE_NAME === 'security-group')
+        .filter((p) => hasNodeName(p.getActual(), 'security-group'))
         .map((p) => p.getActual() as AResource<SecurityGroupSchema, any>),
     );
   }
@@ -85,7 +86,7 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     });
 
     albTargetGroup.addChild('resourceId', this, 'resourceId');
-    this.updateServiceAlbTargetGroups([albTargetGroup.getActual() as AResource<AlbTargetGroupSchema, any>]);
+    this.updateServiceAlbTargetGroups([albTargetGroup.getActual()]);
   }
 
   override async diff(previous: EcsService): Promise<Diff[]> {
@@ -93,20 +94,20 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
 
     let shouldConsolidateDiffs = false;
     for (let i = diffs.length - 1; i >= 0; i--) {
-      if (diffs[i].field === 'parent' && this.isEcsServiceSecurityGroup(diffs[i].value as AResource<any, any>)) {
+      if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'security-group')) {
         // Consolidate all SecurityGroup parent updates into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
       } else if (
         diffs[i].field === 'parent' &&
-        this.isEcsServiceTaskDefinition(diffs[i].value as AResource<any, any>)
+        hasNodeName(diffs[i].value as AResource<any, any>, 'ecs-task-definition')
       ) {
         // Translate TaskDefinition parent update into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
       } else if (
         diffs[i].field === 'parent' &&
-        this.isEcsServiceAlbTargetGroup(diffs[i].value as AResource<any, any>)
+        hasNodeName(diffs[i].value as AResource<any, any>, 'alb-target-group')
       ) {
         // Consolidate all AlbTargetGroup parent updates into a single UPDATE diff.
         shouldConsolidateDiffs = true;
@@ -126,31 +127,21 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
   }
 
   override async diffInverse(
-    diff: Diff,
+    diff: Diff<EcsService>,
     deReferenceResource: (
       resourceId: string,
     ) => Promise<AResource<EcsTaskDefinitionSchema, any> | AResource<SecurityGroupSchema, any>>,
   ): Promise<void> {
     if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
-      await this.cloneResourceInPlace(diff.node as EcsService, deReferenceResource);
+      await this.cloneResourceInPlace(diff.node, deReferenceResource);
     } else {
       await super.diffInverse(diff, deReferenceResource);
     }
   }
 
-  private isEcsServiceAlbTargetGroup(resource: AResource<any, any>): boolean {
-    return (resource.constructor as typeof AResource).NODE_NAME === 'alb-target-group';
-  }
-
-  private isEcsServiceSecurityGroup(resource: AResource<any, any>): boolean {
-    return (resource.constructor as typeof AResource).NODE_NAME === 'security-group';
-  }
-
-  private isEcsServiceTaskDefinition(resource: AResource<any, any>): boolean {
-    return (resource.constructor as typeof AResource).NODE_NAME === 'ecs-task-definition';
-  }
-
-  private updateServiceAlbTargetGroups(albTargetGroupParents: AResource<AlbTargetGroupSchema, any>[]): void {
+  private updateServiceAlbTargetGroups(
+    albTargetGroupParents: ReturnType<MatchingResource<AlbTargetGroupSchema>['getActual']>[],
+  ): void {
     for (const albTargetGroupParent of albTargetGroupParents) {
       const ecsToAlbTargetGroupDep = this.getDependency(albTargetGroupParent, DependencyRelationship.CHILD)!;
       const albTargetGroupToEcsDep = albTargetGroupParent.getDependency(this, DependencyRelationship.PARENT)!;
@@ -162,7 +153,9 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     }
   }
 
-  private updateServiceSecurityGroups(securityGroupParents: AResource<SecurityGroupSchema, any>[]): void {
+  private updateServiceSecurityGroups(
+    securityGroupParents: ReturnType<MatchingResource<SecurityGroupSchema>['getActual']>[],
+  ): void {
     // Ensure there are no more than 5 security groups.
     if (securityGroupParents.length > 5) {
       throw new Error('Cannot have more than 5 security groups in ECS Service!');
@@ -179,7 +172,9 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     }
   }
 
-  private updateServiceTaskDefinition(taskDefinitionParent: AResource<EcsTaskDefinitionSchema, any>): void {
+  private updateServiceTaskDefinition(
+    taskDefinitionParent: ReturnType<MatchingResource<EcsTaskDefinitionSchema>['getActual']>,
+  ): void {
     const ecsToTdDep = this.getDependency(taskDefinitionParent, DependencyRelationship.CHILD)!;
 
     // Before updating ecs-service must add ecs-task-definition.

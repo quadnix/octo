@@ -1,5 +1,5 @@
 import { DeleteSecurityGroupCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { SecurityGroup } from '../security-group.resource.js';
@@ -15,14 +15,14 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction<Securi
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof SecurityGroup &&
-      (diff.node.constructor as typeof SecurityGroup).NODE_NAME === 'security-group' &&
+      hasNodeName(diff.node, 'security-group') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<SecurityGroup>): Promise<void> {
     // Get properties.
-    const securityGroup = diff.node as SecurityGroup;
+    const securityGroup = diff.node;
     const properties = securityGroup.properties;
     const response = securityGroup.response;
 
@@ -51,9 +51,9 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction<Securi
     );
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<SecurityGroup>): Promise<void> {
     // Get properties.
-    const securityGroup = diff.node as SecurityGroup;
+    const securityGroup = diff.node;
     const properties = securityGroup.properties;
 
     // Get instances.

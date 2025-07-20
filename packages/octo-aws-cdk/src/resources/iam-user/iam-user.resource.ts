@@ -81,27 +81,26 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
     }
   }
 
-  override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
+  override async diffInverse(
+    diff: Diff<IamUser, IIamUserPolicyDiff>,
+    deReferenceResource: (resourceId: string) => Promise<never>,
+  ): Promise<void> {
     if (diff.action === DiffAction.UPDATE) {
-      if (isAddPolicyDiff((diff.value as IIamUserPolicyDiff) || {})) {
-        const newPolicy = (diff.node as AResource<IamUserSchema, IamUser>).properties.policies.find(
-          (p) => p.policyId === (diff.value as IIamUserAddPolicyDiff).policyId,
-        );
+      if (isAddPolicyDiff(diff.value || {})) {
+        const newPolicy = diff.node.properties.policies.find((p) => p.policyId === diff.value.policyId);
         if (newPolicy) {
           this.properties.policies.push(newPolicy);
         }
-      } else if (isDeletePolicyDiff((diff.value as IIamUserPolicyDiff) || {})) {
-        const deletedPolicyIndex = this.properties.policies.findIndex(
-          (p) => p.policyId === (diff.value as IIamUserDeletePolicyDiff).policyId,
-        );
+      } else if (isDeletePolicyDiff(diff.value || {})) {
+        const deletedPolicyIndex = this.properties.policies.findIndex((p) => p.policyId === diff.value.policyId);
         if (deletedPolicyIndex > -1) {
           this.properties.policies.splice(deletedPolicyIndex, 1);
         }
       } else {
-        this.clonePropertiesInPlace(diff.node as IamUser);
+        this.clonePropertiesInPlace(diff.node);
       }
 
-      this.cloneResponseInPlace(diff.node as IamUser);
+      this.cloneResponseInPlace(diff.node);
     } else {
       await super.diffInverse(diff, deReferenceResource);
     }
@@ -135,11 +134,11 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
     return diffs;
   }
 
-  override diffUnpack(diff: Diff): Diff[] {
+  override diffUnpack(diff: Diff<IamUser>): Diff[] {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
 
-      for (const policy of (diff.node as IamUser).properties.policies) {
+      for (const policy of diff.node.properties.policies) {
         const addPolicyDiff: IIamUserAddPolicyDiff = {
           action: 'add',
           policy: policy.policy,
@@ -153,7 +152,7 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
     } else if (diff.action === DiffAction.DELETE && diff.field === 'resourceId') {
       const diffs: Diff[] = [];
 
-      for (const policy of (diff.node as IamUser).properties.policies) {
+      for (const policy of diff.node.properties.policies) {
         const updatePolicyDiff: IIamUserDeletePolicyDiff = {
           action: 'delete',
           policyId: policy.policyId,

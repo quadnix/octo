@@ -1,5 +1,12 @@
-import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, type DiffValueTypeTagUpdate, Resource } from '@quadnix/octo';
 import { S3WebsiteSchema } from './index.schema.js';
+
+/**
+ * @internal
+ */
+export type S3WebsiteManifestDiff = {
+  [key: string]: ['add' | 'delete' | 'update', string];
+};
 
 /**
  * @internal
@@ -9,7 +16,7 @@ export class S3Website extends AResource<S3WebsiteSchema, S3Website> {
   declare properties: S3WebsiteSchema['properties'];
   declare response: S3WebsiteSchema['response'];
 
-  private readonly manifestDiff: { [key: string]: ['add' | 'delete' | 'update', string] } = {};
+  private readonly manifestDiff: S3WebsiteManifestDiff = {};
 
   constructor(resourceId: string, properties: S3WebsiteSchema['properties']) {
     super(resourceId, properties, []);
@@ -45,13 +52,23 @@ export class S3Website extends AResource<S3WebsiteSchema, S3Website> {
         );
       }
 
+      if (this.tags && Object.keys(this.tags).length > 0) {
+        diffs.push(
+          new Diff<any, DiffValueTypeTagUpdate>(this, DiffAction.UPDATE, 'tags', {
+            add: JSON.parse(JSON.stringify(this.tags)),
+            delete: [],
+            update: {},
+          }),
+        );
+      }
+
       return diffs;
     } else {
       return [diff];
     }
   }
 
-  updateManifestDiff(manifestDiff: S3Website['manifestDiff']): void {
+  updateManifestDiff(manifestDiff: S3WebsiteManifestDiff): void {
     for (const key of Object.keys(manifestDiff)) {
       this.manifestDiff[key] = [...manifestDiff[key]];
     }

@@ -1,5 +1,5 @@
 import { CreateRepositoryCommand, ECRClient } from '@aws-sdk/client-ecr';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcrImage } from '../ecr-image.resource.js';
 import type { EcrImageSchema } from '../index.schema.js';
@@ -15,14 +15,14 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof EcrImage &&
-      (diff.node.constructor as typeof EcrImage).NODE_NAME === 'ecr-image' &&
+      hasNodeName(diff.node, 'ecr-image') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<EcrImage>): Promise<void> {
     // Get properties.
-    const ecrImage = diff.node as EcrImage;
+    const ecrImage = diff.node;
     const properties = ecrImage.properties;
     const response = ecrImage.response;
 
@@ -50,9 +50,9 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
     response.repositoryUri = data.repository!.repositoryUri!;
   }
 
-  async mock(diff: Diff, capture: Partial<EcrImageSchema['response']>): Promise<void> {
+  async mock(diff: Diff<EcrImage>, capture: Partial<EcrImageSchema['response']>): Promise<void> {
     // Get properties.
-    const ecrImage = diff.node as EcrImage;
+    const ecrImage = diff.node;
     const properties = ecrImage.properties;
 
     const ecrClient = await this.container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {

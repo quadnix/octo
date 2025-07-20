@@ -3,7 +3,7 @@ import {
   ModifyTargetGroupCommand,
   type ModifyTargetGroupInput,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { AlbTargetGroup } from '../alb-target-group.resource.js';
 
@@ -18,14 +18,14 @@ export class UpdateAlbTargetGroupResourceAction implements IResourceAction<AlbTa
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof AlbTargetGroup &&
-      (diff.node.constructor as typeof AlbTargetGroup).NODE_NAME === 'alb-target-group' &&
+      hasNodeName(diff.node, 'alb-target-group') &&
       diff.field === 'properties'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<AlbTargetGroup>): Promise<void> {
     // Get properties.
-    const albTargetGroup = diff.node as AlbTargetGroup;
+    const albTargetGroup = diff.node;
     const properties = albTargetGroup.properties;
     const response = albTargetGroup.response;
 
@@ -62,9 +62,9 @@ export class UpdateAlbTargetGroupResourceAction implements IResourceAction<AlbTa
     );
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<AlbTargetGroup>): Promise<void> {
     // Get properties.
-    const albTargetGroup = diff.node as AlbTargetGroup;
+    const albTargetGroup = diff.node;
     const properties = albTargetGroup.properties;
 
     const elbv2Client = await this.container.get<

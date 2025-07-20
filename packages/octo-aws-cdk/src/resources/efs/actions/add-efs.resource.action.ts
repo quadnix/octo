@@ -7,6 +7,7 @@ import {
   Factory,
   type IResourceAction,
   TransactionError,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { EFSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
@@ -24,14 +25,14 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof Efs &&
-      (diff.node.constructor as typeof Efs).NODE_NAME === 'efs' &&
+      hasNodeName(diff.node, 'efs') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<Efs>): Promise<void> {
     // Get properties.
-    const efs = diff.node as Efs;
+    const efs = diff.node;
     const properties = efs.properties;
     const response = efs.response;
 
@@ -81,9 +82,9 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
     response.FileSystemId = data.FileSystemId!;
   }
 
-  async mock(diff: Diff, capture: Partial<EfsSchema['response']>): Promise<void> {
+  async mock(diff: Diff<Efs>, capture: Partial<EfsSchema['response']>): Promise<void> {
     // Get properties.
-    const efs = diff.node as Efs;
+    const efs = diff.node;
     const properties = efs.properties;
 
     const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {

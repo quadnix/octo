@@ -1,5 +1,5 @@
 import { CreateUserCommand, GetUserCommand, IAMClient } from '@aws-sdk/client-iam';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { IamUser } from '../iam-user.resource.js';
@@ -16,14 +16,14 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof IamUser &&
-      (diff.node.constructor as typeof IamUser).NODE_NAME === 'iam-user' &&
+      hasNodeName(diff.node, 'iam-user') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<IamUser>): Promise<void> {
     // Get properties.
-    const iamUser = diff.node as IamUser;
+    const iamUser = diff.node;
     const properties = iamUser.properties;
     const response = iamUser.response;
 
@@ -65,8 +65,8 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     response.UserName = data.User!.UserName!;
   }
 
-  async mock(diff: Diff, capture: Partial<IamUserSchema['response']>): Promise<void> {
-    const iamUser = diff.node as IamUser;
+  async mock(diff: Diff<IamUser>, capture: Partial<IamUserSchema['response']>): Promise<void> {
+    const iamUser = diff.node;
     const properties = iamUser.properties;
 
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {

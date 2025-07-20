@@ -3,7 +3,7 @@ import {
   type CreateTargetGroupInput,
   ElasticLoadBalancingV2Client,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { AlbTargetGroup } from '../alb-target-group.resource.js';
 import type { AlbTargetGroupSchema } from '../index.schema.js';
@@ -19,14 +19,14 @@ export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTarge
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof AlbTargetGroup &&
-      (diff.node.constructor as typeof AlbTargetGroup).NODE_NAME === 'alb-target-group' &&
+      hasNodeName(diff.node, 'alb-target-group') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<AlbTargetGroup>): Promise<void> {
     // Get properties.
-    const albTargetGroup = diff.node as AlbTargetGroup;
+    const albTargetGroup = diff.node;
     const properties = albTargetGroup.properties;
     const response = albTargetGroup.response;
     const matchingAlbTargetGroupVpc = albTargetGroup.parents[0];
@@ -73,9 +73,9 @@ export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTarge
     response.TargetGroupArn = createTargetGroupOutput.TargetGroups![0].TargetGroupArn!;
   }
 
-  async mock(diff: Diff, capture: Partial<AlbTargetGroupSchema['response']>): Promise<void> {
+  async mock(diff: Diff<AlbTargetGroup>, capture: Partial<AlbTargetGroupSchema['response']>): Promise<void> {
     // Get properties.
-    const albTargetGroup = diff.node as AlbTargetGroup;
+    const albTargetGroup = diff.node;
     const properties = albTargetGroup.properties;
 
     const elbv2Client = await this.container.get<

@@ -5,7 +5,16 @@ import {
   RevokeSecurityGroupEgressCommand,
   RevokeSecurityGroupIngressCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  DiffAction,
+  type DiffValueTypePropertyUpdate,
+  Factory,
+  type IResourceAction,
+  hasNodeName,
+} from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { SecurityGroupSchema } from '../index.schema.js';
 import { SecurityGroup } from '../security-group.resource.js';
@@ -17,19 +26,19 @@ import { SecurityGroup } from '../security-group.resource.js';
 export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<SecurityGroup> {
   constructor(private readonly container: Container) {}
 
-  filter(diff: Diff): boolean {
+  filter(diff: Diff<any, DiffValueTypePropertyUpdate>): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof SecurityGroup &&
-      (diff.node.constructor as typeof SecurityGroup).NODE_NAME === 'security-group' &&
+      hasNodeName(diff.node, 'security-group') &&
       diff.field === 'properties' &&
-      (diff.value as { key: string }).key === 'rules'
+      diff.value.key === 'rules'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<SecurityGroup>): Promise<void> {
     // Get properties.
-    const securityGroup = diff.node as SecurityGroup;
+    const securityGroup = diff.node;
     const properties = securityGroup.properties;
     const response = securityGroup.response;
 
@@ -116,9 +125,9 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
     };
   }
 
-  async mock(diff: Diff, capture: Partial<SecurityGroupSchema['response']>): Promise<void> {
+  async mock(diff: Diff<SecurityGroup>, capture: Partial<SecurityGroupSchema['response']>): Promise<void> {
     // Get properties.
-    const securityGroup = diff.node as SecurityGroup;
+    const securityGroup = diff.node;
     const properties = securityGroup.properties;
 
     // Get instances.

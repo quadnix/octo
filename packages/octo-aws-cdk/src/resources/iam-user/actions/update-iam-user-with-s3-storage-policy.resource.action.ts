@@ -5,11 +5,11 @@ import {
   DetachUserPolicyCommand,
   IAMClient,
 } from '@aws-sdk/client-iam';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { type IIamUserPolicyDiff, IamUser, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-user.resource.js';
-import type { IIamUserS3BucketPolicy, IamUserSchema } from '../index.schema.js';
+import type { IamUserSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -22,15 +22,15 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof IamUser &&
-      (diff.node.constructor as typeof IamUser).NODE_NAME === 'iam-user' &&
+      hasNodeName(diff.node, 'iam-user') &&
       diff.field === 's3-storage-access-policy'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<IamUser, IIamUserPolicyDiff>): Promise<void> {
     // Get properties.
-    const iamUser = diff.node as IamUser;
-    const iamUserPolicyDiff = diff.value as IIamUserPolicyDiff;
+    const iamUser = diff.node;
+    const iamUserPolicyDiff = diff.value;
     const properties = iamUser.properties;
     const response = iamUser.response;
 
@@ -43,7 +43,7 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     // Attach policies to IAM User to read/write from bucket.
     if (isAddPolicyDiff(iamUserPolicyDiff)) {
       const policyDocument: { Action: string[]; Effect: 'Allow'; Resource: string[]; Sid: string }[] = [];
-      const policy = iamUserPolicyDiff.policy as IIamUserS3BucketPolicy;
+      const policy = iamUserPolicyDiff.policy;
 
       if (policy.allowRead) {
         policyDocument.push({
@@ -122,9 +122,10 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     }
   }
 
-  async mock(diff: Diff, capture: Partial<IamUserSchema['response']>): Promise<void> {
-    const iamUser = diff.node as IamUser;
-    const iamUserPolicyDiff = diff.value as IIamUserPolicyDiff;
+  async mock(diff: Diff<IamUser, IIamUserPolicyDiff>, capture: Partial<IamUserSchema['response']>): Promise<void> {
+    // Get properties.
+    const iamUser = diff.node;
+    const iamUserPolicyDiff = diff.value;
     const properties = iamUser.properties;
 
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {

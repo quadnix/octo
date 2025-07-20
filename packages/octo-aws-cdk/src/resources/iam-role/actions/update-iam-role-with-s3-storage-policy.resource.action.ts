@@ -5,7 +5,7 @@ import {
   DetachRolePolicyCommand,
   IAMClient,
 } from '@aws-sdk/client-iam';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { type IIamRolePolicyDiff, IamRole, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-role.resource.js';
@@ -22,15 +22,15 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof IamRole &&
-      (diff.node.constructor as typeof IamRole).NODE_NAME === 'iam-role' &&
+      hasNodeName(diff.node, 'iam-role') &&
       diff.field === 's3-storage-access-policy'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<IamRole, IIamRolePolicyDiff>): Promise<void> {
     // Get properties.
-    const iamRole = diff.node as IamRole;
-    const iamRolePolicyDiff = diff.value as IIamRolePolicyDiff;
+    const iamRole = diff.node;
+    const iamRolePolicyDiff = diff.value;
     const properties = iamRole.properties;
     const response = iamRole.response;
 
@@ -122,9 +122,10 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
     }
   }
 
-  async mock(diff: Diff, capture: Partial<IamRoleSchema['response']>): Promise<void> {
-    const iamRole = diff.node as IamRole;
-    const iamRolePolicyDiff = diff.value as IIamRolePolicyDiff;
+  async mock(diff: Diff<IamRole, IIamRolePolicyDiff>, capture: Partial<IamRoleSchema['response']>): Promise<void> {
+    // Get properties.
+    const iamRole = diff.node;
+    const iamRolePolicyDiff = diff.value;
     const properties = iamRole.properties;
 
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {

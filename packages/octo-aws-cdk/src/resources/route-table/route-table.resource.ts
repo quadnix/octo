@@ -6,6 +6,7 @@ import {
   type MatchingResource,
   Resource,
   ResourceError,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { InternetGatewaySchema } from '../internet-gateway/index.schema.js';
 import type { NatGatewaySchema } from '../nat-gateway/index.schema.js';
@@ -39,17 +40,13 @@ export class RouteTable extends AResource<RouteTableSchema, RouteTable> {
   ) {
     super(resourceId, properties, parents);
 
-    const natGatewayMatchingParents = parents.filter(
-      (p) => (p.getActual().constructor as typeof AResource).NODE_NAME === 'nat-gateway',
-    );
+    const natGatewayMatchingParents = parents.filter((p) => hasNodeName(p.getActual(), 'nat-gateway'));
     if (natGatewayMatchingParents.length > 1) {
       throw new ResourceError('Only one NAT Gateway is allowed per Route Table!', this);
     }
 
     if (natGatewayMatchingParents.length === 1) {
-      this.updateNatGatewayResourceDependencyBehaviors(
-        natGatewayMatchingParents[0].getActual() as AResource<NatGatewaySchema, any>,
-      );
+      this.updateNatGatewayResourceDependencyBehaviors(natGatewayMatchingParents[0].getActual());
     }
   }
 
@@ -85,7 +82,9 @@ export class RouteTable extends AResource<RouteTableSchema, RouteTable> {
     }
   }
 
-  private updateNatGatewayResourceDependencyBehaviors(natGatewayParent: AResource<NatGatewaySchema, any>): void {
+  private updateNatGatewayResourceDependencyBehaviors(
+    natGatewayParent: ReturnType<MatchingResource<NatGatewaySchema>['getActual']>,
+  ): void {
     const routeTableToNatGatewayDep = this.getDependency(natGatewayParent, DependencyRelationship.CHILD)!;
     const natGatewayToRouteTableDep = natGatewayParent.getDependency(this, DependencyRelationship.PARENT)!;
 

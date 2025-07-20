@@ -1,5 +1,14 @@
 import { CreateRouteCommand, DeleteRouteCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { type AResource, Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  type AResource,
+  Action,
+  Container,
+  type Diff,
+  DiffAction,
+  Factory,
+  type IResourceAction,
+  hasNodeName,
+} from '@quadnix/octo';
 import { type EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { NatGatewaySchema } from '../../nat-gateway/index.schema.js';
@@ -12,18 +21,19 @@ import { RouteTable } from '../route-table.resource.js';
 export class UpdateNatGatewayParentInRouteTableResourceAction implements IResourceAction<RouteTable> {
   constructor(private readonly container: Container) {}
 
-  filter(diff: Diff): boolean {
+  filter(diff: Diff<any, AResource<NatGatewaySchema, any>>): boolean {
     return (
       (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE || diff.action === DiffAction.UPDATE) &&
       diff.node instanceof RouteTable &&
-      (diff.node.constructor as typeof RouteTable).NODE_NAME === 'route-table' &&
-      diff.field === 'parent'
+      hasNodeName(diff.node, 'route-table') &&
+      diff.field === 'parent' &&
+      hasNodeName(diff.value, 'nat-gateway')
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<RouteTable, AResource<NatGatewaySchema, any>>): Promise<void> {
     // Get properties.
-    const routeTable = diff.node as RouteTable;
+    const routeTable = diff.node;
     const properties = routeTable.properties;
     const response = routeTable.response;
 
@@ -49,7 +59,7 @@ export class UpdateNatGatewayParentInRouteTableResourceAction implements IResour
           await ec2Client.send(
             new CreateRouteCommand({
               DestinationCidrBlock: '0.0.0.0/0',
-              NatGatewayId: (diff.value as AResource<NatGatewaySchema, any>).response.NatGatewayId,
+              NatGatewayId: diff.value.response.NatGatewayId,
               RouteTableId: response.RouteTableId,
             }),
           );
@@ -65,9 +75,9 @@ export class UpdateNatGatewayParentInRouteTableResourceAction implements IResour
     }
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<RouteTable>): Promise<void> {
     // Get properties.
-    const routeTable = diff.node as RouteTable;
+    const routeTable = diff.node;
     const properties = routeTable.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

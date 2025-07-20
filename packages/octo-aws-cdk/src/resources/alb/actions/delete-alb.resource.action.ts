@@ -1,5 +1,5 @@
 import { DeleteLoadBalancerCommand, ElasticLoadBalancingV2Client } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { Alb } from '../alb.resource.js';
@@ -15,14 +15,14 @@ export class DeleteAlbResourceAction implements IResourceAction<Alb> {
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof Alb &&
-      (diff.node.constructor as typeof Alb).NODE_NAME === 'alb' &&
+      hasNodeName(diff.node, 'alb') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<Alb>): Promise<void> {
     // Get properties.
-    const alb = diff.node as Alb;
+    const alb = diff.node;
     const properties = alb.properties;
     const response = alb.response;
 
@@ -54,9 +54,9 @@ export class DeleteAlbResourceAction implements IResourceAction<Alb> {
     );
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<Alb>): Promise<void> {
     // Get properties.
-    const alb = diff.node as Alb;
+    const alb = diff.node;
     const properties = alb.properties;
 
     const elbv2Client = await this.container.get<

@@ -1,6 +1,5 @@
 import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
 import {
-  AResource,
   Action,
   Container,
   type Diff,
@@ -8,6 +7,7 @@ import {
   Factory,
   type IResourceAction,
   type MatchingResource,
+  hasNodeName,
 } from '@quadnix/octo';
 import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import type { AlbTargetGroupSchema } from '../../alb-target-group/index.schema.js';
@@ -24,15 +24,13 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.UPDATE &&
-      diff.node instanceof EcsService &&
-      (diff.node.constructor as typeof EcsService).NODE_NAME === 'ecs-service'
+      diff.action === DiffAction.UPDATE && diff.node instanceof EcsService && hasNodeName(diff.node, 'ecs-service')
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<EcsService>): Promise<void> {
     // Get properties.
-    const ecsService = diff.node as EcsService;
+    const ecsService = diff.node;
     const properties = ecsService.properties;
     const response = ecsService.response;
     const ecsServiceEcsCluster = ecsService.parents[0];
@@ -40,14 +38,10 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
     const ecsServiceSubnet = ecsService.parents[2];
     const ecsServiceTargetGroupList = ecsService.parents
       .slice(3)
-      .filter(
-        (p) => (p.getActual().constructor as typeof AResource).NODE_NAME === 'alb-target-group',
-      ) as MatchingResource<AlbTargetGroupSchema>[];
+      .filter((p) => hasNodeName(p.getActual(), 'alb-target-group')) as MatchingResource<AlbTargetGroupSchema>[];
     const ecsServiceSecurityGroupList = ecsService.parents
       .slice(3)
-      .filter(
-        (p) => (p.getActual().constructor as typeof AResource).NODE_NAME === 'security-group',
-      ) as MatchingResource<SecurityGroupSchema>[];
+      .filter((p) => hasNodeName(p.getActual(), 'security-group')) as MatchingResource<SecurityGroupSchema>[];
 
     // Get instances.
     const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
@@ -85,9 +79,9 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
     response.serviceArn = data.service!.serviceArn!;
   }
 
-  async mock(diff: Diff, capture: Partial<EcsServiceSchema['response']>): Promise<void> {
+  async mock(diff: Diff<EcsService>, capture: Partial<EcsServiceSchema['response']>): Promise<void> {
     // Get properties.
-    const ecsService = diff.node as EcsService;
+    const ecsService = diff.node;
     const properties = ecsService.properties;
 
     const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {

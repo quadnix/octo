@@ -5,7 +5,7 @@ import {
   type PortMapping,
   RegisterTaskDefinitionCommand,
 } from '@aws-sdk/client-ecs';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
 import type { EcsTaskDefinitionSchema } from '../index.schema.js';
@@ -21,17 +21,16 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof EcsTaskDefinition &&
-      (diff.node.constructor as typeof EcsTaskDefinition).NODE_NAME === 'ecs-task-definition'
+      hasNodeName(diff.node, 'ecs-task-definition')
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<EcsTaskDefinition>): Promise<void> {
     // Get properties.
-    const ecsTaskDefinition = diff.node as EcsTaskDefinition;
+    const ecsTaskDefinition = diff.node;
     const properties = ecsTaskDefinition.properties;
     const response = ecsTaskDefinition.response;
-    const ecsTaskDefinitionIamRole = ecsTaskDefinition.parents[0];
-    const ecsTaskDefinitionEfsList = ecsTaskDefinition.parents.slice(1) as (typeof ecsTaskDefinition.parents)[1][];
+    const [matchingEcsTaskDefinitionIamRole, ...matchingEcsTaskDefinitionEfsList] = ecsTaskDefinition.parents;
 
     // Get instances.
     const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
@@ -47,7 +46,7 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
           environment: properties.environmentVariables,
           essential: image.essential,
           image: image.uri,
-          mountPoints: ecsTaskDefinitionEfsList.map((efs) => ({
+          mountPoints: matchingEcsTaskDefinitionEfsList.map((efs) => ({
             containerPath: `/mnt/${efs.getSchemaInstance().properties.filesystemName}`,
             readOnly: false,
             sourceVolume: efs.getSchemaInstance().properties.filesystemName,
@@ -66,8 +65,8 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
         memory: String(properties.memory),
         networkMode: 'awsvpc',
         requiresCompatibilities: ['FARGATE'],
-        taskRoleArn: ecsTaskDefinitionIamRole.getSchemaInstanceInResourceAction().response.Arn,
-        volumes: ecsTaskDefinitionEfsList.map((efs) => ({
+        taskRoleArn: matchingEcsTaskDefinitionIamRole.getSchemaInstanceInResourceAction().response.Arn,
+        volumes: matchingEcsTaskDefinitionEfsList.map((efs) => ({
           efsVolumeConfiguration: {
             fileSystemId: efs.getSchemaInstanceInResourceAction().response.FileSystemId,
           },
@@ -101,9 +100,9 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
     response.taskDefinitionArn = data.taskDefinition!.taskDefinitionArn!;
   }
 
-  async mock(diff: Diff, capture: Partial<EcsTaskDefinitionSchema['response']>): Promise<void> {
+  async mock(diff: Diff<EcsTaskDefinition>, capture: Partial<EcsTaskDefinitionSchema['response']>): Promise<void> {
     // Get properties.
-    const ecsTaskDefinition = diff.node as EcsTaskDefinition;
+    const ecsTaskDefinition = diff.node;
     const properties = ecsTaskDefinition.properties;
 
     const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {

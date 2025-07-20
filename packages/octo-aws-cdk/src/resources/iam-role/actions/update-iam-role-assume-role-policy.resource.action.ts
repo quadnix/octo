@@ -1,8 +1,7 @@
 import { IAMClient, UpdateAssumeRolePolicyCommand } from '@aws-sdk/client-iam';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamRole } from '../iam-role.resource.js';
-import type { IIamRoleAssumeRolePolicy } from '../index.schema.js';
 
 /**
  * @internal
@@ -15,14 +14,14 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof IamRole &&
-      (diff.node.constructor as typeof IamRole).NODE_NAME === 'iam-role' &&
+      hasNodeName(diff.node, 'iam-role') &&
       diff.field === 'assume-role-policy'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<IamRole>): Promise<void> {
     // Get properties.
-    const iamRole = diff.node as IamRole;
+    const iamRole = diff.node;
     const properties = iamRole.properties;
 
     // Get instances.
@@ -35,7 +34,7 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
 
     const assumeRolePolicies = properties.policies.filter((p) => p.policyType === 'assume-role-policy');
     for (const policy of assumeRolePolicies) {
-      if ((policy.policy as IIamRoleAssumeRolePolicy) === 'ecs-tasks.amazonaws.com') {
+      if (policy.policy === 'ecs-tasks.amazonaws.com') {
         policyDocument.push({
           Action: 'sts:AssumeRole',
           Effect: 'Allow',
@@ -58,8 +57,9 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
     );
   }
 
-  async mock(diff: Diff): Promise<void> {
-    const iamRole = diff.node as IamRole;
+  async mock(diff: Diff<IamRole>): Promise<void> {
+    // Get properties.
+    const iamRole = diff.node;
     const properties = iamRole.properties;
 
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {

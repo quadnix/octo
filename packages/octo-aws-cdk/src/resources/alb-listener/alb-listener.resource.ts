@@ -1,4 +1,4 @@
-import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resource, hasNodeName } from '@quadnix/octo';
 import type { AlbSchema } from '../alb/index.schema.js';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
 import { AlbListenerSchema } from './index.schema.js';
@@ -92,8 +92,8 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     properties: AlbListenerSchema['properties'],
     parents: [MatchingResource<AlbSchema>, ...MatchingResource<AlbTargetGroupSchema>[]],
   ) {
-    const albTargetGroupMatchingParents = parents.filter(
-      (p) => (p.getActual().constructor as typeof AResource).NODE_NAME === 'alb-target-group',
+    const albTargetGroupMatchingParents = parents.filter((p) =>
+      hasNodeName(p.getActual(), 'alb-target-group'),
     ) as MatchingResource<AlbTargetGroupSchema>[];
     const albTargetGroupParentNames = albTargetGroupMatchingParents
       .map((p) => p.getSchemaInstance().properties.Name)
@@ -137,7 +137,7 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
   }
 
   override async diffInverse(
-    diff: Diff,
+    diff: Diff<AlbListener>,
     deReferenceResource: (
       resourceId: string,
     ) => Promise<AResource<AlbSchema, any> | AResource<AlbTargetGroupSchema, any>>,
@@ -147,9 +147,7 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
       diff.field === 'properties' &&
       isAlbListenerPropertiesDefaultActionsDiff(diff.value as IAlbListenerPropertiesDiff)
     ) {
-      this.properties.DefaultActions = JSON.parse(
-        JSON.stringify((diff.node as AResource<AlbListenerSchema, any>).properties.DefaultActions),
-      );
+      this.properties.DefaultActions = JSON.parse(JSON.stringify(diff.node.properties.DefaultActions));
     } else if (
       diff.action === DiffAction.UPDATE &&
       diff.field === 'properties' &&
@@ -172,7 +170,7 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
         );
       }
 
-      this.cloneResponseInPlace(diff.node as AlbListener);
+      this.cloneResponseInPlace(diff.node);
     } else {
       return super.diffInverse(diff, deReferenceResource);
     }

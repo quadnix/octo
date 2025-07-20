@@ -112,31 +112,32 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
     }
   }
 
-  override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
+  override async diffInverse(
+    diff: Diff<IamRole, IIamRolePolicyDiff>,
+    deReferenceResource: (resourceId: string) => Promise<never>,
+  ): Promise<void> {
     if (diff.action === DiffAction.UPDATE) {
-      if (isAddPolicyDiff((diff.value as IIamRolePolicyDiff) || {})) {
-        const newPolicy = (diff.node as AResource<IamRoleSchema, IamRole>).properties.policies.find(
-          (p) => p.policyId === (diff.value as IIamRoleAddPolicyDiff).policyId,
-        );
+      if (isAddPolicyDiff(diff.value || {})) {
+        const newPolicy = diff.node.properties.policies.find((p) => p.policyId === diff.value.policyId);
         if (newPolicy && !this.properties.policies.find((p) => p.policyId === newPolicy.policyId)) {
           this.properties.policies.push(newPolicy);
         }
-      } else if (isDeletePolicyDiff((diff.value as IIamRolePolicyDiff) || {})) {
+      } else if (isDeletePolicyDiff(diff.value || {})) {
         const deletedPolicyIndex = this.properties.policies.findIndex((p) => {
-          if ((diff.value as IIamRoleDeletePolicyDiff).policyType === 'aws-policy') {
-            return p.policy === (diff.value as IIamRoleDeletePolicyDiff).policyId;
+          if (diff.value.policyType === 'aws-policy') {
+            return p.policy === diff.value.policyId;
           } else {
-            return p.policyId === (diff.value as IIamRoleDeletePolicyDiff).policyId;
+            return p.policyId === diff.value.policyId;
           }
         });
         if (deletedPolicyIndex > -1) {
           this.properties.policies.splice(deletedPolicyIndex, 1);
         }
       } else {
-        this.clonePropertiesInPlace(diff.node as IamRole);
+        this.clonePropertiesInPlace(diff.node);
       }
 
-      this.cloneResponseInPlace(diff.node as IamRole);
+      this.cloneResponseInPlace(diff.node);
     } else {
       await super.diffInverse(diff, deReferenceResource);
     }
@@ -174,11 +175,11 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
     return diffs;
   }
 
-  override diffUnpack(diff: Diff): Diff[] {
+  override diffUnpack(diff: Diff<IamRole>): Diff[] {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
 
-      for (const policy of (diff.node as IamRole).properties.policies) {
+      for (const policy of diff.node.properties.policies) {
         if (policy.policyType === 'assume-role-policy') {
           continue;
         }
@@ -196,7 +197,7 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
     } else if (diff.action === DiffAction.DELETE && diff.field === 'resourceId') {
       const diffs: Diff[] = [];
 
-      for (const policy of (diff.node as IamRole).properties.policies) {
+      for (const policy of diff.node.properties.policies) {
         if (policy.policyType === 'assume-role-policy') {
           continue;
         }

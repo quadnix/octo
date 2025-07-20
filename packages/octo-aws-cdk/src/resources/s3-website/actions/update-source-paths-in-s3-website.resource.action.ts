@@ -1,10 +1,10 @@
 import { createReadStream } from 'fs';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { Upload } from '@aws-sdk/lib-storage';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import mime from 'mime';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
-import { S3Website } from '../s3-website.resource.js';
+import { S3Website, type S3WebsiteManifestDiff } from '../s3-website.resource.js';
 
 /**
  * @internal
@@ -17,15 +17,15 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof S3Website &&
-      (diff.node.constructor as typeof S3Website).NODE_NAME === 's3-website' &&
+      hasNodeName(diff.node, 's3-website') &&
       diff.field === 'update-source-paths'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<S3Website, S3WebsiteManifestDiff>): Promise<void> {
     // Get properties.
-    const manifestDiff = diff.value as S3Website['manifestDiff'];
-    const s3Website = diff.node as S3Website;
+    const manifestDiff = diff.value;
+    const s3Website = diff.node;
     const properties = s3Website.properties;
 
     // Get instances.
@@ -65,9 +65,9 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     }
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<S3Website>): Promise<void> {
     // Get properties.
-    const s3Website = diff.node as S3Website;
+    const s3Website = diff.node;
     const properties = s3Website.properties;
 
     const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {

@@ -1,5 +1,5 @@
 import { AllocateAddressCommand, CreateNatGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { NatGatewaySchema } from '../index.schema.js';
 import { NatGateway } from '../nat-gateway.resource.js';
@@ -15,14 +15,14 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof NatGateway &&
-      (diff.node.constructor as typeof NatGateway).NODE_NAME === 'nat-gateway' &&
+      hasNodeName(diff.node, 'nat-gateway') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<NatGateway>): Promise<void> {
     // Get properties.
-    const natGateway = diff.node as NatGateway;
+    const natGateway = diff.node;
     const properties = natGateway.properties;
     const response = natGateway.response;
     const subnet = natGateway.parents[2];
@@ -56,9 +56,9 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     response.NatGatewayId = natId;
   }
 
-  async mock(diff: Diff, capture: Partial<NatGatewaySchema['response']>): Promise<void> {
+  async mock(diff: Diff<NatGateway>, capture: Partial<NatGatewaySchema['response']>): Promise<void> {
     // Get properties.
-    const natGateway = diff.node as NatGateway;
+    const natGateway = diff.node;
     const properties = natGateway.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

@@ -6,21 +6,11 @@ import {
   ModifyRuleCommand,
   type ModifyRuleCommandInput,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
-import {
-  Action,
-  Container,
-  type Diff,
-  DiffAction,
-  Factory,
-  type IResourceAction,
-  type MatchingResource,
-} from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
-import type { AlbTargetGroupSchema } from '../../alb-target-group/index.schema.js';
 import {
   AlbListener,
   type IAlbListenerPropertiesDiff,
-  type IAlbListenerRuleDiff,
   isAddRuleDiff,
   isAlbListenerPropertiesRuleDiff,
   isDeleteRuleDiff,
@@ -35,23 +25,23 @@ import type { AlbListenerSchema } from '../index.schema.js';
 export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbListener> {
   constructor(private readonly container: Container) {}
 
-  filter(diff: Diff): boolean {
+  filter(diff: Diff<any, IAlbListenerPropertiesDiff>): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof AlbListener &&
-      (diff.node.constructor as typeof AlbListener).NODE_NAME === 'alb-listener' &&
+      hasNodeName(diff.node, 'alb-listener') &&
       diff.field === 'properties' &&
-      isAlbListenerPropertiesRuleDiff(diff.value as IAlbListenerPropertiesDiff)
+      isAlbListenerPropertiesRuleDiff(diff.value)
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<AlbListener, IAlbListenerPropertiesDiff>): Promise<void> {
     // Get properties.
-    const albListener = diff.node as AlbListener;
+    const albListener = diff.node;
     const properties = albListener.properties;
     const response = albListener.response;
-    const matchingAlbTargetGroups = albListener.parents.slice(1) as MatchingResource<AlbTargetGroupSchema>[];
-    const ruleDiff = (diff.value as { Rule: IAlbListenerRuleDiff }).Rule;
+    const [, ...matchingAlbTargetGroups] = albListener.parents;
+    const ruleDiff = diff.value.Rule!;
 
     // Get instances.
     const elbv2Client = await this.container.get<
@@ -249,11 +239,14 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
     }
   }
 
-  async mock(diff: Diff, capture: Partial<AlbListenerSchema['response']>): Promise<void> {
+  async mock(
+    diff: Diff<AlbListener, IAlbListenerPropertiesDiff>,
+    capture: Partial<AlbListenerSchema['response']>,
+  ): Promise<void> {
     // Get properties.
-    const albListener = diff.node as AlbListener;
+    const albListener = diff.node;
     const properties = albListener.properties;
-    const ruleDiff = (diff.value as { Rule: IAlbListenerRuleDiff }).Rule;
+    const ruleDiff = diff.value.Rule!;
 
     const elbv2Client = await this.container.get<
       ElasticLoadBalancingV2Client,

@@ -5,7 +5,7 @@ import {
   EC2Client,
   ReplaceNetworkAclAssociationCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { NetworkAclSchema } from '../index.schema.js';
 import { NetworkAcl } from '../network-acl.resource.js';
@@ -21,14 +21,14 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof NetworkAcl &&
-      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl' &&
+      hasNodeName(diff.node, 'network-acl') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<NetworkAcl>): Promise<void> {
     // Get properties.
-    const networkAcl = diff.node as NetworkAcl;
+    const networkAcl = diff.node;
     const properties = networkAcl.properties;
     const response = networkAcl.response;
     const networkAclVpc = networkAcl.parents[0];
@@ -94,8 +94,9 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     response.NetworkAclId = networkAclId;
   }
 
-  async mock(diff: Diff, capture: Partial<NetworkAclSchema['response']>): Promise<void> {
-    const networkAcl = diff.node as NetworkAcl;
+  async mock(diff: Diff<NetworkAcl>, capture: Partial<NetworkAclSchema['response']>): Promise<void> {
+    // Get properties.
+    const networkAcl = diff.node;
     const properties = networkAcl.properties;
     const networkAclSubnet = networkAcl.parents[1];
 

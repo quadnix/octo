@@ -1,5 +1,5 @@
 import { DeleteNatGatewayCommand, EC2Client, ReleaseAddressCommand } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { NatGateway } from '../nat-gateway.resource.js';
@@ -17,14 +17,14 @@ export class DeleteNatGatewayResourceAction implements IResourceAction<NatGatewa
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof NatGateway &&
-      (diff.node.constructor as typeof NatGateway).NODE_NAME === 'nat-gateway' &&
+      hasNodeName(diff.node, 'nat-gateway') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<NatGateway>): Promise<void> {
     // Get properties.
-    const natGateway = diff.node as NatGateway;
+    const natGateway = diff.node;
     const properties = natGateway.properties;
     const response = natGateway.response;
 
@@ -60,9 +60,9 @@ export class DeleteNatGatewayResourceAction implements IResourceAction<NatGatewa
     );
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<NatGateway>): Promise<void> {
     // Get properties.
-    const natGateway = diff.node as NatGateway;
+    const natGateway = diff.node;
     const properties = natGateway.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

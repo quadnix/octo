@@ -1,15 +1,6 @@
 import { CreateLoadBalancerCommand, ElasticLoadBalancingV2Client } from '@aws-sdk/client-elastic-load-balancing-v2';
-import {
-  Action,
-  Container,
-  type Diff,
-  DiffAction,
-  Factory,
-  type IResourceAction,
-  type MatchingResource,
-} from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
-import type { SubnetSchema } from '../../subnet/index.schema.js';
 import { Alb } from '../alb.resource.js';
 import type { AlbSchema } from '../index.schema.js';
 
@@ -24,18 +15,18 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof Alb &&
-      (diff.node.constructor as typeof Alb).NODE_NAME === 'alb' &&
+      hasNodeName(diff.node, 'alb') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<Alb>): Promise<void> {
     // Get properties.
-    const alb = diff.node as Alb;
+    const alb = diff.node;
     const properties = alb.properties;
     const response = alb.response;
     const matchingAlbSecurityGroup = alb.parents[0];
-    const matchingAlbSubnets = alb.parents.slice(1) as MatchingResource<SubnetSchema>[];
+    const [, ...matchingAlbSubnets] = alb.parents;
 
     // Get instances.
     const elbv2Client = await this.container.get<
@@ -63,9 +54,9 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
     response.DNSName = createLoadBalancerOutput.LoadBalancers![0].DNSName!;
   }
 
-  async mock(diff: Diff, capture: Partial<AlbSchema['response']>): Promise<void> {
+  async mock(diff: Diff<Alb>, capture: Partial<AlbSchema['response']>): Promise<void> {
     // Get properties.
-    const alb = diff.node as Alb;
+    const alb = diff.node;
     const properties = alb.properties;
 
     const elbv2Client = await this.container.get<

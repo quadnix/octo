@@ -1,5 +1,5 @@
 import { DeleteBucketPolicyCommand, PutBucketPolicyCommand, S3Client } from '@aws-sdk/client-s3';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import { S3Storage, type S3StorageManifestDiff } from '../s3-storage.resource.js';
@@ -15,16 +15,16 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof S3Storage &&
-      (diff.node.constructor as typeof S3Storage).NODE_NAME === 's3-storage' &&
+      hasNodeName(diff.node, 's3-storage') &&
       diff.field === 'update-permissions'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<S3Storage, S3StorageManifestDiff>): Promise<void> {
     // Get properties.
-    const s3Storage = diff.node as S3Storage;
+    const s3Storage = diff.node;
     const properties = s3Storage.properties;
-    const manifestDiff = diff.value as S3StorageManifestDiff;
+    const manifestDiff = diff.value;
 
     // Get instances.
     const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
@@ -101,9 +101,9 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
     }
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<S3Storage>): Promise<void> {
     // Get properties.
-    const s3Storage = diff.node as S3Storage;
+    const s3Storage = diff.node;
     const properties = s3Storage.properties;
 
     const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {

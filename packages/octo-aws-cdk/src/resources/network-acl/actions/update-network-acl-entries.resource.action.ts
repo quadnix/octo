@@ -6,7 +6,16 @@ import {
   type NetworkAclEntry,
   ReplaceNetworkAclEntryCommand,
 } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import {
+  Action,
+  Container,
+  type Diff,
+  DiffAction,
+  type DiffValueTypePropertyUpdate,
+  Factory,
+  type IResourceAction,
+  hasNodeName,
+} from '@quadnix/octo';
 import pLimit from 'p-limit';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { NetworkAclUtility } from '../../../utilities/network-acl/network-acl.utility.js';
@@ -20,19 +29,19 @@ import { NetworkAcl } from '../network-acl.resource.js';
 export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<NetworkAcl> {
   constructor(private readonly container: Container) {}
 
-  filter(diff: Diff): boolean {
+  filter(diff: Diff<any, DiffValueTypePropertyUpdate>): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof NetworkAcl &&
-      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl' &&
+      hasNodeName(diff.node, 'network-acl') &&
       diff.field === 'properties' &&
-      (diff.value as { key: string; value: unknown }).key === 'entries'
+      diff.value.key === 'entries'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<NetworkAcl>): Promise<void> {
     // Get properties.
-    const networkAcl = diff.node as NetworkAcl;
+    const networkAcl = diff.node;
     const properties = networkAcl.properties;
     const response = networkAcl.response;
     const networkAclSubnet = networkAcl.parents[1];
@@ -141,8 +150,9 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
     ]);
   }
 
-  async mock(diff: Diff): Promise<void> {
-    const networkAcl = diff.node as NetworkAcl;
+  async mock(diff: Diff<NetworkAcl>): Promise<void> {
+    // Get properties.
+    const networkAcl = diff.node;
     const properties = networkAcl.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

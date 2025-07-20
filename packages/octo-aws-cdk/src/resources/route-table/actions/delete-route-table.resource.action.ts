@@ -1,5 +1,5 @@
 import { DeleteRouteTableCommand, DisassociateRouteTableCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RouteTable } from '../route-table.resource.js';
 
@@ -14,14 +14,14 @@ export class DeleteRouteTableResourceAction implements IResourceAction<RouteTabl
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof RouteTable &&
-      (diff.node.constructor as typeof RouteTable).NODE_NAME === 'route-table' &&
+      hasNodeName(diff.node, 'route-table') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<RouteTable>): Promise<void> {
     // Get properties.
-    const routeTable = diff.node as RouteTable;
+    const routeTable = diff.node;
     const properties = routeTable.properties;
     const response = routeTable.response;
 
@@ -46,9 +46,9 @@ export class DeleteRouteTableResourceAction implements IResourceAction<RouteTabl
     );
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<RouteTable>): Promise<void> {
     // Get properties.
-    const routeTable = diff.node as RouteTable;
+    const routeTable = diff.node;
     const properties = routeTable.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

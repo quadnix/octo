@@ -1,4 +1,4 @@
-import { Action, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
 
 /**
@@ -10,7 +10,7 @@ export class UpdateEfsMountTargetTagsResourceAction implements IResourceAction<E
     return (
       diff.action === DiffAction.UPDATE &&
       diff.node instanceof EfsMountTarget &&
-      (diff.node.constructor as typeof EfsMountTarget).NODE_NAME === 'efs-mount-target' &&
+      hasNodeName(diff.node, 'efs-mount-target') &&
       diff.field === 'tags'
     );
   }

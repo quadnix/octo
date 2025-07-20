@@ -1,5 +1,5 @@
 import { CreateVpcCommand, EC2Client, ModifyVpcAttributeCommand } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { VpcSchema } from '../index.schema.js';
 import { Vpc } from '../vpc.resource.js';
@@ -15,14 +15,14 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof Vpc &&
-      (diff.node.constructor as typeof Vpc).NODE_NAME === 'vpc' &&
+      hasNodeName(diff.node, 'vpc') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<Vpc>): Promise<void> {
     // Get properties.
-    const vpc = diff.node as Vpc;
+    const vpc = diff.node;
     const properties = vpc.properties;
     const response = vpc.response;
 
@@ -62,9 +62,9 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
     response.VpcId = vpcOutput.Vpc!.VpcId!;
   }
 
-  async mock(diff: Diff, capture: Partial<VpcSchema['response']>): Promise<void> {
+  async mock(diff: Diff<Vpc>, capture: Partial<VpcSchema['response']>): Promise<void> {
     // Get properties.
-    const vpc = diff.node as Vpc;
+    const vpc = diff.node;
     const properties = vpc.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

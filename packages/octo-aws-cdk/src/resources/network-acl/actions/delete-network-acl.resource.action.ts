@@ -1,5 +1,5 @@
 import { DeleteNetworkAclCommand, EC2Client, ReplaceNetworkAclAssociationCommand } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
@@ -14,14 +14,14 @@ export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAc
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof NetworkAcl &&
-      (diff.node.constructor as typeof NetworkAcl).NODE_NAME === 'network-acl' &&
+      hasNodeName(diff.node, 'network-acl') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<NetworkAcl>): Promise<void> {
     // Get properties.
-    const networkAcl = diff.node as NetworkAcl;
+    const networkAcl = diff.node;
     const properties = networkAcl.properties;
     const response = networkAcl.response;
 
@@ -47,8 +47,9 @@ export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAc
     );
   }
 
-  async mock(diff: Diff): Promise<void> {
-    const networkAcl = diff.node as NetworkAcl;
+  async mock(diff: Diff<NetworkAcl>): Promise<void> {
+    // Get properties.
+    const networkAcl = diff.node;
     const properties = networkAcl.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {

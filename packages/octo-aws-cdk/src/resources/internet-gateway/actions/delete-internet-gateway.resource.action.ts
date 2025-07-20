@@ -1,5 +1,5 @@
 import { DeleteInternetGatewayCommand, DetachInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction } from '@quadnix/octo';
+import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
@@ -17,14 +17,14 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction<Inte
     return (
       diff.action === DiffAction.DELETE &&
       diff.node instanceof InternetGateway &&
-      (diff.node.constructor as typeof InternetGateway).NODE_NAME === 'internet-gateway' &&
+      hasNodeName(diff.node, 'internet-gateway') &&
       diff.field === 'resourceId'
     );
   }
 
-  async handle(diff: Diff): Promise<void> {
+  async handle(diff: Diff<InternetGateway>): Promise<void> {
     // Get properties.
-    const internetGateway = diff.node as InternetGateway;
+    const internetGateway = diff.node;
     const properties = internetGateway.properties;
     const response = internetGateway.response;
     const internetGatewayVpc = internetGateway.parents[0];
@@ -62,9 +62,9 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction<Inte
     );
   }
 
-  async mock(diff: Diff): Promise<void> {
+  async mock(diff: Diff<InternetGateway>): Promise<void> {
     // Get properties.
-    const internetGateway = diff.node as InternetGateway;
+    const internetGateway = diff.node;
     const properties = internetGateway.properties;
 
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
