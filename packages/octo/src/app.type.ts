@@ -181,9 +181,9 @@ export type TransactionOptions = {
 export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
 
 export type AnchorSchema<T> = T extends AAnchor<infer S, any> ? S : never;
-export type EnhancedModuleSchema<T> = {
+export type EnhancedModuleSchema<T extends UnknownModule> = {
   inputs: { [K in keyof ModuleSchemaInputs<T>]: ModuleSchema<T>[K] };
-  metadata: Record<string, unknown>;
+  metadata: Awaited<ReturnType<T['registerMetadata']>>;
   models: Record<string, UnknownModel>;
   overlays: Record<string, UnknownOverlay>;
   resources: Record<string, UnknownResource>;
