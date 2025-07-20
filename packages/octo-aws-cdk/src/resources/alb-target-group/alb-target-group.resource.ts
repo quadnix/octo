@@ -34,7 +34,7 @@ export class AlbTargetGroup extends AResource<AlbTargetGroupSchema, AlbTargetGro
     const diffs: Diff[] = [];
 
     if (!DiffUtility.isObjectDeepEquals(previous.properties.healthCheck, this.properties.healthCheck)) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'properties', this.properties.healthCheck));
+      diffs.push(new Diff(this, DiffAction.UPDATE, 'properties', ''));
     }
 
     return diffs;

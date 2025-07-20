@@ -35,7 +35,12 @@ export class S3Website extends AResource<S3WebsiteSchema, S3Website> {
 
     if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {
       diffs.push(
-        new Diff(this, DiffAction.UPDATE, 'update-source-paths', JSON.parse(JSON.stringify(this.manifestDiff))),
+        new Diff<any, S3WebsiteManifestDiff>(
+          this,
+          DiffAction.UPDATE,
+          'update-source-paths',
+          JSON.parse(JSON.stringify(this.manifestDiff)),
+        ),
       );
     }
 
@@ -48,7 +53,12 @@ export class S3Website extends AResource<S3WebsiteSchema, S3Website> {
 
       if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {
         diffs.push(
-          new Diff(this, DiffAction.UPDATE, 'update-source-paths', JSON.parse(JSON.stringify(this.manifestDiff))),
+          new Diff<any, S3WebsiteManifestDiff>(
+            this,
+            DiffAction.UPDATE,
+            'update-source-paths',
+            JSON.parse(JSON.stringify(this.manifestDiff)),
+          ),
         );
       }
 

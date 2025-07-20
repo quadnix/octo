@@ -124,7 +124,14 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
     }
 
     if (Object.keys(manifestDiff).length > 0) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'update-permissions', JSON.parse(JSON.stringify(manifestDiff))));
+      diffs.push(
+        new Diff<any, S3StorageManifestDiff>(
+          this,
+          DiffAction.UPDATE,
+          'update-permissions',
+          JSON.parse(JSON.stringify(manifestDiff)),
+        ),
+      );
     }
 
     return diffs;
@@ -146,7 +153,14 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
       }
 
       if (Object.keys(manifestDiff).length > 0) {
-        diffs.push(new Diff(this, DiffAction.UPDATE, 'update-permissions', JSON.parse(JSON.stringify(manifestDiff))));
+        diffs.push(
+          new Diff<any, S3StorageManifestDiff>(
+            this,
+            DiffAction.UPDATE,
+            'update-permissions',
+            JSON.parse(JSON.stringify(manifestDiff)),
+          ),
+        );
       }
 
       return diffs;

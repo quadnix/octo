@@ -111,23 +111,25 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
 
     for (const policy of previous.properties.policies) {
       if (!this.properties.policies.find((p) => p.policyId === policy.policyId)) {
-        const deletePolicyDiff: IIamUserDeletePolicyDiff = {
-          action: 'delete',
-          policyId: policy.policyId,
-          policyType: policy.policyType,
-        };
-        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, deletePolicyDiff));
+        diffs.push(
+          new Diff<any, IIamUserDeletePolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'delete',
+            policyId: policy.policyId,
+            policyType: policy.policyType,
+          }),
+        );
       }
     }
     for (const policy of this.properties.policies) {
       if (!previous.properties.policies.find((p) => p.policyId === policy.policyId)) {
-        const addPolicyDiff: IIamUserAddPolicyDiff = {
-          action: 'add',
-          policy: policy.policy,
-          policyId: policy.policyId,
-          policyType: policy.policyType,
-        };
-        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, addPolicyDiff));
+        diffs.push(
+          new Diff<any, IIamUserAddPolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'add',
+            policy: policy.policy,
+            policyId: policy.policyId,
+            policyType: policy.policyType,
+          }),
+        );
       }
     }
 
@@ -139,13 +141,14 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
       const diffs: Diff[] = [diff];
 
       for (const policy of diff.node.properties.policies) {
-        const addPolicyDiff: IIamUserAddPolicyDiff = {
-          action: 'add',
-          policy: policy.policy,
-          policyId: policy.policyId,
-          policyType: policy.policyType,
-        };
-        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, addPolicyDiff));
+        diffs.push(
+          new Diff<any, IIamUserAddPolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'add',
+            policy: policy.policy,
+            policyId: policy.policyId,
+            policyType: policy.policyType,
+          }),
+        );
       }
 
       return diffs;
@@ -153,12 +156,13 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
       const diffs: Diff[] = [];
 
       for (const policy of diff.node.properties.policies) {
-        const updatePolicyDiff: IIamUserDeletePolicyDiff = {
-          action: 'delete',
-          policyId: policy.policyId,
-          policyType: policy.policyType,
-        };
-        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, updatePolicyDiff));
+        diffs.push(
+          new Diff<any, IIamUserDeletePolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'delete',
+            policyId: policy.policyId,
+            policyType: policy.policyType,
+          }),
+        );
       }
 
       diffs.push(diff);

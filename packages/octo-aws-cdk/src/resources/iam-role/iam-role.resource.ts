@@ -152,23 +152,25 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
 
     for (const policy of previous.properties.policies) {
       if (!this.properties.policies.find((p) => p.policyId === policy.policyId)) {
-        const deletePolicyDiff: IIamRoleDeletePolicyDiff = {
-          action: 'delete',
-          policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
-          policyType: policy.policyType,
-        };
-        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, deletePolicyDiff));
+        diffs.push(
+          new Diff<any, IIamRoleDeletePolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'delete',
+            policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
+            policyType: policy.policyType,
+          }),
+        );
       }
     }
     for (const policy of this.properties.policies) {
       if (!previous.properties.policies.find((p) => p.policyId === policy.policyId)) {
-        const addPolicyDiff: IIamRoleAddPolicyDiff = {
-          action: 'add',
-          policy: policy.policy,
-          policyId: policy.policyId,
-          policyType: policy.policyType,
-        };
-        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, addPolicyDiff));
+        diffs.push(
+          new Diff<any, IIamRoleAddPolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'add',
+            policy: policy.policy,
+            policyId: policy.policyId,
+            policyType: policy.policyType,
+          }),
+        );
       }
     }
 
@@ -184,13 +186,14 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
           continue;
         }
 
-        const addPolicyDiff: IIamRoleAddPolicyDiff = {
-          action: 'add',
-          policy: policy.policy,
-          policyId: policy.policyId,
-          policyType: policy.policyType,
-        };
-        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, addPolicyDiff));
+        diffs.push(
+          new Diff<any, IIamRoleAddPolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'add',
+            policy: policy.policy,
+            policyId: policy.policyId,
+            policyType: policy.policyType,
+          }),
+        );
       }
 
       return diffs;
@@ -202,12 +205,13 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
           continue;
         }
 
-        const deletePolicyDiff: IIamRoleDeletePolicyDiff = {
-          action: 'delete',
-          policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
-          policyType: policy.policyType,
-        };
-        diffs.push(new Diff(this, DiffAction.UPDATE, policy.policyType, deletePolicyDiff));
+        diffs.push(
+          new Diff<any, IIamRoleDeletePolicyDiff>(this, DiffAction.UPDATE, policy.policyType, {
+            action: 'delete',
+            policyId: policy.policyType === 'aws-policy' ? policy.policy : policy.policyId,
+            policyType: policy.policyType,
+          }),
+        );
       }
 
       diffs.push(diff);

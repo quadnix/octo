@@ -10,7 +10,7 @@ import {
 } from '@quadnix/octo';
 import type { S3Website } from '../../../../../../resources/s3-website/index.js';
 import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website.service.module.js';
-import { AwsS3StaticWebsiteService } from '../aws-s3-static-website.service.model.js';
+import { AwsS3StaticWebsiteService, type S3WebsiteManifestDiff } from '../aws-s3-static-website.service.model.js';
 
 /**
  * @internal
@@ -27,14 +27,14 @@ export class UpdateSourcePathsS3StaticWebsiteModelAction implements IModelAction
   }
 
   async handle(
-    diff: Diff<AwsS3StaticWebsiteService>,
+    diff: Diff<AwsS3StaticWebsiteService, S3WebsiteManifestDiff>,
     actionInputs: EnhancedModuleSchema<AwsS3StaticWebsiteServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const { bucketName } = diff.node;
 
     const s3Website = actionInputs.resources[`bucket-${bucketName}`] as S3Website;
-    s3Website.updateManifestDiff(diff.value as S3Website['manifestDiff']);
+    s3Website.updateManifestDiff(diff.value);
 
     actionOutputs[s3Website.resourceId] = s3Website;
     return actionOutputs;

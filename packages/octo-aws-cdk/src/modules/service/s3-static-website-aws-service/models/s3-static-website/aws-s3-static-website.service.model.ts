@@ -18,6 +18,13 @@ type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted
 /**
  * @internal
  */
+export type S3WebsiteManifestDiff = {
+  [key: string]: ['add' | 'delete' | 'update', string];
+};
+
+/**
+ * @internal
+ */
 @Model<AwsS3StaticWebsiteService>('@octo', 'service', AwsS3StaticWebsiteServiceSchema)
 export class AwsS3StaticWebsiteService extends Service {
   @Validate({ options: { maxLength: 128, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })
@@ -152,7 +159,7 @@ export class AwsS3StaticWebsiteService extends Service {
     }
 
     // Generate difference in old/new manifest.
-    const manifestDiff = {};
+    const manifestDiff: S3WebsiteManifestDiff = {};
     for (const remotePath in oldManifestData) {
       if (remotePath in newManifestData) {
         if (
@@ -174,7 +181,7 @@ export class AwsS3StaticWebsiteService extends Service {
     if (Object.keys(manifestDiff).length === 0) {
       return [];
     } else {
-      const diff = new Diff(this, DiffAction.UPDATE, 'sourcePaths', manifestDiff);
+      const diff = new Diff<any, S3WebsiteManifestDiff>(this, DiffAction.UPDATE, 'sourcePaths', manifestDiff);
       this.addFieldDependency([
         { forAction: DiffAction.ADD, onAction: DiffAction.UPDATE, onField: 'sourcePaths', toField: 'serviceId' },
         { forAction: DiffAction.UPDATE, onAction: DiffAction.UPDATE, onField: 'sourcePaths', toField: 'serviceId' },

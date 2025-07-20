@@ -181,7 +181,9 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
 
     // Diff DefaultActions.
     if (!DiffUtility.isObjectDeepEquals(previous.properties.DefaultActions, this.properties.DefaultActions)) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'properties', { DefaultActions: [] }));
+      diffs.push(
+        new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', { DefaultActions: [] }),
+      );
     }
 
     // Diff rules.
@@ -196,7 +198,7 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
           RuleArn: previousRuleResponse.RuleArn,
         };
         diffs.push(
-          new Diff(this, DiffAction.UPDATE, 'properties', {
+          new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', {
             Rule: deleteRuleDiff,
           }),
         );
@@ -207,7 +209,7 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
           RuleArn: previousRuleResponse.RuleArn,
         };
         diffs.push(
-          new Diff(this, DiffAction.UPDATE, 'properties', {
+          new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', {
             Rule: updateRuleDiff,
           }),
         );
@@ -216,7 +218,9 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     for (const currentRule of this.properties.rules) {
       if (!previous.properties.rules.find((r) => r.Priority === currentRule.Priority)) {
         const addRuleDiff: IAlbListenerAddRuleDiff = { action: 'add', rule: currentRule };
-        diffs.push(new Diff(this, DiffAction.UPDATE, 'properties', { Rule: addRuleDiff }));
+        diffs.push(
+          new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', { Rule: addRuleDiff }),
+        );
       }
     }
 
@@ -227,7 +231,9 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const diffs: Diff[] = [diff];
 
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'properties', { DefaultActions: [] }));
+      diffs.push(
+        new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', { DefaultActions: [] }),
+      );
 
       return diffs;
     } else {
