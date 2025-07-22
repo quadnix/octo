@@ -237,12 +237,23 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
         return;
       }
       case 'tags': {
-        if (diff.action === DiffAction.ADD || diff.action === DiffAction.UPDATE) {
-          const change = diff.value as { key: keyof S['tags']; value: any };
-          this.tags[change.key] = change.value;
-        } else if (diff.action === DiffAction.DELETE) {
-          const change = diff.value as { key: string; value: any };
-          delete this.properties[change.key];
+        if (diff.action === DiffAction.UPDATE) {
+          const diffValue = diff.value as DiffValueTypeTagUpdate;
+          if (diffValue.delete) {
+            for (const key of diffValue.delete) {
+              delete this.tags[key];
+            }
+          }
+          if (diffValue.add) {
+            for (const [key, value] of Object.entries(diffValue.add)) {
+              (this.tags as BaseResourceSchema['tags'])[key] = value;
+            }
+          }
+          if (diffValue.update) {
+            for (const [key, value] of Object.entries(diffValue.update)) {
+              (this.tags as BaseResourceSchema['tags'])[key] = value;
+            }
+          }
         } else {
           throw new DiffInverseResourceError('Unknown action on "tags" field during diff inverse!', this, diff);
         }
