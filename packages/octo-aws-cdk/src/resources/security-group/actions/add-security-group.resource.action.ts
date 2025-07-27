@@ -30,6 +30,7 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
     const securityGroup = diff.node;
     const properties = securityGroup.properties;
     const response = securityGroup.response;
+    const tags = securityGroup.tags;
     const securityGroupVpc = securityGroup.parents[0];
 
     // Get instances.
@@ -43,6 +44,12 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
       new CreateSecurityGroupCommand({
         Description: securityGroup.resourceId,
         GroupName: securityGroup.resourceId,
+        TagSpecifications: [
+          {
+            ResourceType: 'security-group',
+            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+          },
+        ],
         VpcId: securityGroupVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );

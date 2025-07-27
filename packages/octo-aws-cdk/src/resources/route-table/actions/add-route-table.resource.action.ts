@@ -30,6 +30,7 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     const routeTable = diff.node;
     const properties = routeTable.properties;
     const response = routeTable.response;
+    const tags = routeTable.tags;
     const routeTableVpc = routeTable.parents[0];
     const routeTableInternetGateway = routeTable.parents[1];
     const routeTableSubnet = routeTable.parents[2];
@@ -43,6 +44,12 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     // Create Route Table.
     const routeTableOutput = await ec2Client.send(
       new CreateRouteTableCommand({
+        TagSpecifications: [
+          {
+            ResourceType: 'route-table',
+            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+          },
+        ],
         VpcId: routeTableVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );

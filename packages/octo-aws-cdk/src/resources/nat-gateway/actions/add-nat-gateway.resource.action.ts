@@ -25,6 +25,7 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     const natGateway = diff.node;
     const properties = natGateway.properties;
     const response = natGateway.response;
+    const tags = natGateway.tags;
     const subnet = natGateway.parents[2];
 
     // Get instances.
@@ -37,6 +38,12 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     const elasticIpOutput = await ec2Client.send(
       new AllocateAddressCommand({
         Domain: 'vpc',
+        TagSpecifications: [
+          {
+            ResourceType: 'elastic-ip',
+            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+          },
+        ],
       }),
     );
 
@@ -46,6 +53,12 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
         AllocationId: elasticIpOutput.AllocationId,
         ConnectivityType: properties.ConnectivityType,
         SubnetId: subnet.getSchemaInstanceInResourceAction().response.SubnetId,
+        TagSpecifications: [
+          {
+            ResourceType: 'natgateway',
+            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+          },
+        ],
       }),
     );
 

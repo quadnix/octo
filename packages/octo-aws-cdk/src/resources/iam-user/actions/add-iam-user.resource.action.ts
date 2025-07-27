@@ -26,6 +26,7 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     const iamUser = diff.node;
     const properties = iamUser.properties;
     const response = iamUser.response;
+    const tags = iamUser.tags;
 
     // Get instances.
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
@@ -36,6 +37,7 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     // Create IAM user.
     const data = await iamClient.send(
       new CreateUserCommand({
+        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
         UserName: properties.username,
       }),
     );

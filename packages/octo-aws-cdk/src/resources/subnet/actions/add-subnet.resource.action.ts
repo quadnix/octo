@@ -25,6 +25,7 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
     const subnet = diff.node;
     const properties = subnet.properties;
     const response = subnet.response;
+    const tags = subnet.tags;
     const subnetVpc = subnet.parents[0];
 
     // Get instances.
@@ -38,6 +39,12 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
       new CreateSubnetCommand({
         AvailabilityZone: properties.AvailabilityZone,
         CidrBlock: properties.CidrBlock,
+        TagSpecifications: [
+          {
+            ResourceType: 'subnet',
+            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+          },
+        ],
         VpcId: subnetVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );

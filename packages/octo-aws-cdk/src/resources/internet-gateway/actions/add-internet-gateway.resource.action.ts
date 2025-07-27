@@ -25,6 +25,7 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     const internetGateway = diff.node;
     const properties = internetGateway.properties;
     const response = internetGateway.response;
+    const tags = internetGateway.tags;
     const internetGatewayVpc = internetGateway.parents[0];
 
     // Get instances.
@@ -34,7 +35,16 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     });
 
     // Create Internet Gateway.
-    const internetGWOutput = await ec2Client.send(new CreateInternetGatewayCommand({}));
+    const internetGWOutput = await ec2Client.send(
+      new CreateInternetGatewayCommand({
+        TagSpecifications: [
+          {
+            ResourceType: 'internet-gateway',
+            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+          },
+        ],
+      }),
+    );
 
     // Attach to VPC.
     await ec2Client.send(

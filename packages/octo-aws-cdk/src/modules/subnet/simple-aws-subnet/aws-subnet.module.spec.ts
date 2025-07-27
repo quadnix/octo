@@ -1,5 +1,6 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { EFSClient } from '@aws-sdk/client-efs';
+import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type AResource,
@@ -111,6 +112,15 @@ describe('AwsSubnetModule UT', () => {
           {
             metadata: { package: '@octo' },
             type: EFSClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
+          {
+            metadata: { package: '@octo' },
+            type: ResourceGroupsTaggingAPIClient,
             value: {
               send: (): void => {
                 throw new Error('Trying to execute real AWS resources in mock mode!');
@@ -1168,6 +1178,169 @@ describe('AwsSubnetModule UT', () => {
            "field": "resourceId",
            "node": "@octo/nat-gateway=nat-gateway-region-public-subnet",
            "value": "@octo/nat-gateway=nat-gateway-region-public-subnet",
+         },
+       ],
+       [],
+     ]
+    `);
+  });
+
+  it('should CUD tags', async () => {
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: app1 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+      },
+      moduleId: 'subnet',
+      type: AwsSubnetModule,
+    });
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/subnet=subnet-region-private-subnet",
+           "value": "@octo/subnet=subnet-region-private-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": "@octo/route-table=rt-region-private-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
+           "value": "@octo/network-acl=nacl-region-private-subnet",
+         },
+       ],
+       [],
+     ]
+    `);
+
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+      },
+      moduleId: 'subnet',
+      type: AwsSubnetModule,
+    });
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/subnet=subnet-region-private-subnet",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+      },
+      moduleId: 'subnet',
+      type: AwsSubnetModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/subnet=subnet-region-private-subnet",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/network-acl=nacl-region-private-subnet",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/route-table=rt-region-private-subnet",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
          },
        ],
        [],

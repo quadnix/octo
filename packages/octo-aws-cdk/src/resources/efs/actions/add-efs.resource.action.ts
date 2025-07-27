@@ -35,6 +35,7 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
     const efs = diff.node;
     const properties = efs.properties;
     const response = efs.response;
+    const tags = efs.tags;
 
     // Get instances.
     const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
@@ -48,6 +49,7 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
         Backup: false,
         Encrypted: false,
         PerformanceMode: 'generalPurpose',
+        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
         ThroughputMode: 'bursting',
       }),
     );

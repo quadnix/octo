@@ -25,6 +25,7 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
     const alb = diff.node;
     const properties = alb.properties;
     const response = alb.response;
+    const tags = alb.tags;
     const matchingAlbSecurityGroup = alb.parents[0];
     const [, ...matchingAlbSubnets] = alb.parents;
 
@@ -45,6 +46,7 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
         Scheme: properties.Scheme,
         SecurityGroups: [matchingAlbSecurityGroup.getSchemaInstanceInResourceAction().response.GroupId],
         Subnets: matchingAlbSubnets.map((s) => s.getSchemaInstanceInResourceAction().response.SubnetId),
+        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
         Type: properties.Type,
       }),
     );

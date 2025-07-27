@@ -25,6 +25,7 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
     const vpc = diff.node;
     const properties = vpc.properties;
     const response = vpc.response;
+    const tags = vpc.tags;
 
     // Get instances.
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
@@ -37,6 +38,9 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
       new CreateVpcCommand({
         CidrBlock: properties.CidrBlock,
         InstanceTenancy: properties.InstanceTenancy,
+        TagSpecifications: [
+          { ResourceType: 'vpc', Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })) },
+        ],
       }),
     );
 

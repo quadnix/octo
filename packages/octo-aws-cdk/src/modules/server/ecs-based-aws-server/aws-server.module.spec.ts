@@ -1,4 +1,5 @@
 import { IAMClient } from '@aws-sdk/client-iam';
+import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import {
@@ -72,6 +73,15 @@ describe('AwsServerModule UT', () => {
           {
             metadata: { package: '@octo' },
             type: IAMClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
+          {
+            metadata: { package: '@octo' },
+            type: ResourceGroupsTaggingAPIClient,
             value: {
               send: (): void => {
                 throw new Error('Trying to execute real AWS resources in mock mode!');
@@ -336,6 +346,108 @@ describe('AwsServerModule UT', () => {
            "field": "parent",
            "node": "@octo/s3-storage=bucket-test-bucket",
            "value": "@octo/iam-role=iam-role-ServerRole-backend",
+         },
+       ],
+       [],
+     ]
+    `);
+  });
+
+  it('should CUD tags', async () => {
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: app1 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsServerModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        serverKey: 'backend',
+      },
+      moduleId: 'server',
+      type: AwsServerModule,
+    });
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": "@octo/iam-role=iam-role-ServerRole-backend",
+         },
+         {
+           "action": "update",
+           "field": "aws-policy",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "action": "add",
+             "policy": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+             "policyId": "AmazonECSTaskExecutionRolePolicy",
+             "policyType": "aws-policy",
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsServerModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        serverKey: 'backend',
+      },
+      moduleId: 'server',
+      type: AwsServerModule,
+    });
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsServerModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        serverKey: 'backend',
+      },
+      moduleId: 'server',
+      type: AwsServerModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/iam-role=iam-role-ServerRole-backend",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
          },
        ],
        [],

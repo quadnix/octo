@@ -1,4 +1,12 @@
-import { AResource, DependencyRelationship, Diff, DiffAction, MatchingResource, Resource } from '@quadnix/octo';
+import {
+  AResource,
+  DependencyRelationship,
+  Diff,
+  DiffAction,
+  type DiffValueTypeTagUpdate,
+  MatchingResource,
+  Resource,
+} from '@quadnix/octo';
 import { type PrincipalResourceSchema, S3StorageSchema } from './index.schema.js';
 
 /**
@@ -160,6 +168,16 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
             'update-permissions',
             JSON.parse(JSON.stringify(manifestDiff)),
           ),
+        );
+      }
+
+      if (this.tags && Object.keys(this.tags).length > 0) {
+        diffs.push(
+          new Diff<any, DiffValueTypeTagUpdate>(this, DiffAction.UPDATE, 'tags', {
+            add: JSON.parse(JSON.stringify(this.tags)),
+            delete: [],
+            update: {},
+          }),
         );
       }
 

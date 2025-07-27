@@ -25,6 +25,7 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
     const ecrImage = diff.node;
     const properties = ecrImage.properties;
     const response = ecrImage.response;
+    const tags = ecrImage.tags;
 
     // Get instances.
     const ecrClient = await this.container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
@@ -40,6 +41,7 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
         },
         imageTagMutability: 'IMMUTABLE',
         repositoryName: properties.imageId,
+        tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
       }),
     );
 

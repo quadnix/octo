@@ -1,4 +1,5 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
+import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import { type Account, type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
@@ -30,6 +31,15 @@ describe('AwsRegionModule UT', () => {
           {
             metadata: { package: '@octo' },
             type: EC2Client,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
+          {
+            metadata: { package: '@octo' },
+            type: ResourceGroupsTaggingAPIClient,
             value: {
               send: (): void => {
                 throw new Error('Trying to execute real AWS resources in mock mode!');
@@ -167,6 +177,166 @@ describe('AwsRegionModule UT', () => {
            "field": "resourceId",
            "node": "@octo/security-group=sec-grp-aws-us-east-1a-access",
            "value": "@octo/security-group=sec-grp-aws-us-east-1a-access",
+         },
+       ],
+       [],
+     ]
+    `);
+  });
+
+  it('should CUD tags', async () => {
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: app1 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsRegionModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        regionId: RegionId.AWS_US_EAST_1A,
+        vpcCidrBlock: '10.0.0.0/8',
+      },
+      moduleId: 'region',
+      type: AwsRegionModule,
+    });
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/vpc=vpc-aws-us-east-1a",
+           "value": "@octo/vpc=vpc-aws-us-east-1a",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/internet-gateway=igw-aws-us-east-1a",
+           "value": "@octo/internet-gateway=igw-aws-us-east-1a",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/security-group=sec-grp-aws-us-east-1a-access",
+           "value": "@octo/security-group=sec-grp-aws-us-east-1a-access",
+         },
+       ],
+       [],
+     ]
+    `);
+
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsRegionModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        regionId: RegionId.AWS_US_EAST_1A,
+        vpcCidrBlock: '10.0.0.0/8',
+      },
+      moduleId: 'region',
+      type: AwsRegionModule,
+    });
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/vpc=vpc-aws-us-east-1a",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/internet-gateway=igw-aws-us-east-1a",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/security-group=sec-grp-aws-us-east-1a-access",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsRegionModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        regionId: RegionId.AWS_US_EAST_1A,
+        vpcCidrBlock: '10.0.0.0/8',
+      },
+      moduleId: 'region',
+      type: AwsRegionModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/vpc=vpc-aws-us-east-1a",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/internet-gateway=igw-aws-us-east-1a",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/security-group=sec-grp-aws-us-east-1a-access",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
          },
        ],
        [],

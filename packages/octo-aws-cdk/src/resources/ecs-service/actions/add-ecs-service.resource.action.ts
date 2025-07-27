@@ -36,6 +36,7 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
     const ecsService = diff.node;
     const properties = ecsService.properties;
     const response = ecsService.response;
+    const tags = ecsService.tags;
     const ecsServiceEcsCluster = ecsService.parents[0];
     const ecsServiceTaskDefinition = ecsService.parents[1];
     const ecsServiceSubnet = ecsService.parents[2];
@@ -75,6 +76,7 @@ export class AddEcsServiceResourceAction implements IResourceAction<EcsService> 
           },
         },
         serviceName: properties.serviceName,
+        tags: Object.entries(tags).map(([key, value]) => ({ key, value })),
         taskDefinition: ecsServiceTaskDefinition.getSchemaInstanceInResourceAction().response.taskDefinitionArn,
       }),
     );

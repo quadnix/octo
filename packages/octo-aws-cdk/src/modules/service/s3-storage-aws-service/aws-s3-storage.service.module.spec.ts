@@ -1,3 +1,4 @@
+import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import {
@@ -44,6 +45,15 @@ describe('AwsS3StorageServiceModule UT', () => {
     await TestContainer.create(
       {
         mocks: [
+          {
+            metadata: { package: '@octo' },
+            type: ResourceGroupsTaggingAPIClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
           {
             metadata: { package: '@octo' },
             type: S3Client,
@@ -153,6 +163,112 @@ describe('AwsS3StorageServiceModule UT', () => {
            "field": "resourceId",
            "node": "@octo/s3-storage=bucket-test-bucket",
            "value": "@octo/s3-storage=bucket-test-bucket",
+         },
+       ],
+       [],
+     ]
+    `);
+  });
+
+  it('should CUD tags', async () => {
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: app1 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StorageServiceModule>({
+      inputs: {
+        bucketName: 'test-bucket',
+        region: stub('${{testModule.model.region}}'),
+        remoteDirectoryPaths: ['uploads'],
+      },
+      moduleId: 'service',
+      type: AwsS3StorageServiceModule,
+    });
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/s3-storage=bucket-test-bucket",
+           "value": "@octo/s3-storage=bucket-test-bucket",
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/s3-storage=bucket-test-bucket",
+           "value": {
+             "add": {
+               "tag1": "value1",
+             },
+             "delete": [],
+             "update": {},
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StorageServiceModule>({
+      inputs: {
+        bucketName: 'test-bucket',
+        region: stub('${{testModule.model.region}}'),
+        remoteDirectoryPaths: ['uploads'],
+      },
+      moduleId: 'service',
+      type: AwsS3StorageServiceModule,
+    });
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/s3-storage=bucket-test-bucket",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StorageServiceModule>({
+      inputs: {
+        bucketName: 'test-bucket',
+        region: stub('${{testModule.model.region}}'),
+        remoteDirectoryPaths: ['uploads'],
+      },
+      moduleId: 'service',
+      type: AwsS3StorageServiceModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/s3-storage=bucket-test-bucket",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
          },
        ],
        [],

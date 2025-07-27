@@ -25,6 +25,7 @@ export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> 
     const ecsCluster = diff.node;
     const properties = ecsCluster.properties;
     const response = ecsCluster.response;
+    const tags = ecsCluster.tags;
 
     // Get instances.
     const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
@@ -36,6 +37,7 @@ export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> 
     const data = await ecsClient.send(
       new CreateClusterCommand({
         clusterName: properties.clusterName,
+        tags: Object.entries(tags).map(([key, value]) => ({ key, value })),
       }),
     );
 

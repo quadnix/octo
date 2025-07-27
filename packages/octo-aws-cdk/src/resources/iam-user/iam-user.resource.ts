@@ -85,7 +85,9 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
     diff: Diff<IamUser, IIamUserPolicyDiff>,
     deReferenceResource: (resourceId: string) => Promise<never>,
   ): Promise<void> {
-    if (diff.action === DiffAction.UPDATE) {
+    if (diff.action === DiffAction.UPDATE && diff.field === 'tags') {
+      await super.diffInverse(diff, deReferenceResource);
+    } else if (diff.action === DiffAction.UPDATE) {
       if (isAddPolicyDiff(diff.value || {})) {
         const newPolicy = diff.node.properties.policies.find((p) => p.policyId === diff.value.policyId);
         if (newPolicy) {

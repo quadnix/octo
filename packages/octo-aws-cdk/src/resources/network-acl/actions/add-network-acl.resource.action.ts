@@ -31,6 +31,7 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     const networkAcl = diff.node;
     const properties = networkAcl.properties;
     const response = networkAcl.response;
+    const tags = networkAcl.tags;
     const networkAclVpc = networkAcl.parents[0];
     const networkAclSubnet = networkAcl.parents[1];
 
@@ -58,6 +59,12 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     // Create Network ACL.
     const naclOutput = await ec2Client.send(
       new CreateNetworkAclCommand({
+        TagSpecifications: [
+          {
+            ResourceType: 'network-acl',
+            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+          },
+        ],
         VpcId: networkAclVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );

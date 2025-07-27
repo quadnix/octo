@@ -29,6 +29,7 @@ export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTarge
     const albTargetGroup = diff.node;
     const properties = albTargetGroup.properties;
     const response = albTargetGroup.response;
+    const tags = albTargetGroup.tags;
     const matchingAlbTargetGroupVpc = albTargetGroup.parents[0];
 
     // Get instances.
@@ -63,6 +64,7 @@ export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTarge
         Port: properties.Port,
         Protocol: properties.Protocol,
         ProtocolVersion: properties.ProtocolVersion,
+        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
         TargetType: properties.TargetType,
         VpcId: matchingAlbTargetGroupVpc.getSchemaInstanceInResourceAction().response.VpcId,
         ...(Object.keys(targetGroupHealthCheck).length > 0 ? targetGroupHealthCheck : { HealthCheckEnabled: false }),

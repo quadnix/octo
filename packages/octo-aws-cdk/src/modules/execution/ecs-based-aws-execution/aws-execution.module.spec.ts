@@ -1,5 +1,6 @@
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { ECSClient } from '@aws-sdk/client-ecs';
+import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type Account,
@@ -212,6 +213,15 @@ describe('AwsExecutionModule UT', () => {
           {
             metadata: { package: '@octo' },
             type: ECSClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
+          {
+            metadata: { package: '@octo' },
+            type: ResourceGroupsTaggingAPIClient,
             value: {
               send: (): void => {
                 throw new Error('Trying to execute real AWS resources in mock mode!');
@@ -642,6 +652,238 @@ describe('AwsExecutionModule UT', () => {
            "field": "resourceId",
            "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
            "value": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+         },
+       ],
+       [],
+     ]
+    `);
+  });
+
+  it('should CUD tags', async () => {
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: app1 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsExecutionModule>({
+      inputs: {
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
+        desiredCount: 1,
+        environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
+        subnet: stub('${{testModule.model.subnet}}'),
+      },
+      moduleId: 'execution',
+      type: AwsExecutionModule,
+    });
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/security-group=sec-grp-SecurityGroup-backend",
+           "value": "@octo/security-group=sec-grp-SecurityGroup-backend",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+           "value": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+           "value": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+           "value": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+         },
+       ],
+       [],
+     ]
+    `);
+
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsExecutionModule>({
+      inputs: {
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
+        desiredCount: 1,
+        environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
+        subnet: stub('${{testModule.model.subnet}}'),
+      },
+      moduleId: 'execution',
+      type: AwsExecutionModule,
+    });
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/security-group=sec-grp-SecurityGroup-backend",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsExecutionModule>({
+      inputs: {
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
+        desiredCount: 1,
+        environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
+        subnet: stub('${{testModule.model.subnet}}'),
+      },
+      moduleId: 'execution',
+      type: AwsExecutionModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/security-group=sec-grp-SecurityGroup-backend",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
          },
        ],
        [],

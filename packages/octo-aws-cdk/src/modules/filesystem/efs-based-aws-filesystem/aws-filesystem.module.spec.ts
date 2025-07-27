@@ -1,4 +1,5 @@
 import { EFSClient } from '@aws-sdk/client-efs';
+import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type Account,
@@ -52,6 +53,15 @@ describe('AwsFilesystemModule UT', () => {
           {
             metadata: { package: '@octo' },
             type: EFSClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
+          {
+            metadata: { package: '@octo' },
+            type: ResourceGroupsTaggingAPIClient,
             value: {
               send: (): void => {
                 throw new Error('Trying to execute real AWS resources in mock mode!');
@@ -152,6 +162,97 @@ describe('AwsFilesystemModule UT', () => {
            "field": "resourceId",
            "node": "@octo/efs=efs-region-test-filesystem",
            "value": "@octo/efs=efs-region-test-filesystem",
+         },
+       ],
+       [],
+     ]
+    `);
+  });
+
+  it('should CUD tags', async () => {
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: app1 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsFilesystemModule>({
+      inputs: {
+        filesystemName: 'test-filesystem',
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'filesystem',
+      type: AwsFilesystemModule,
+    });
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/efs=efs-region-test-filesystem",
+           "value": "@octo/efs=efs-region-test-filesystem",
+         },
+       ],
+       [],
+     ]
+    `);
+
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsFilesystemModule>({
+      inputs: {
+        filesystemName: 'test-filesystem',
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'filesystem',
+      type: AwsFilesystemModule,
+    });
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/efs=efs-region-test-filesystem",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsFilesystemModule>({
+      inputs: {
+        filesystemName: 'test-filesystem',
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'filesystem',
+      type: AwsFilesystemModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/efs=efs-region-test-filesystem",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
          },
        ],
        [],

@@ -1,5 +1,6 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import {
@@ -50,6 +51,15 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     await TestContainer.create(
       {
         mocks: [
+          {
+            metadata: { package: '@octo' },
+            type: ResourceGroupsTaggingAPIClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
           {
             metadata: { package: '@octo' },
             type: S3Client,
@@ -193,6 +203,131 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
            "field": "resourceId",
            "node": "@octo/s3-website=bucket-test-bucket",
            "value": "@octo/s3-website=bucket-test-bucket",
+         },
+       ],
+       [],
+     ]
+    `);
+  });
+
+  it('should CUD tags', async () => {
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: app1 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
+      inputs: {
+        bucketName: 'test-bucket',
+        directoryPath: websiteSourcePath,
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'service',
+      type: AwsS3StaticWebsiteServiceModule,
+    });
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/s3-website=bucket-test-bucket",
+           "value": "@octo/s3-website=bucket-test-bucket",
+         },
+         {
+           "action": "update",
+           "field": "update-source-paths",
+           "node": "@octo/s3-website=bucket-test-bucket",
+           "value": {
+             "error.html": [
+               "add",
+               "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html",
+             ],
+             "index.html": [
+               "add",
+               "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html",
+             ],
+             "page-1.html": [
+               "add",
+               "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html",
+             ],
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/s3-website=bucket-test-bucket",
+           "value": {
+             "add": {
+               "tag1": "value1",
+             },
+             "delete": [],
+             "update": {},
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: app2 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
+      inputs: {
+        bucketName: 'test-bucket',
+        directoryPath: websiteSourcePath,
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'service',
+      type: AwsS3StaticWebsiteServiceModule,
+    });
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/s3-website=bucket-test-bucket",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: app3 } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
+      inputs: {
+        bucketName: 'test-bucket',
+        directoryPath: websiteSourcePath,
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'service',
+      type: AwsS3StaticWebsiteServiceModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/s3-website=bucket-test-bucket",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
          },
        ],
        [],

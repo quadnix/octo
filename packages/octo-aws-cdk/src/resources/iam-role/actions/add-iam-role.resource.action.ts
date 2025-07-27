@@ -26,6 +26,7 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
     const iamRole = diff.node;
     const properties = iamRole.properties;
     const response = iamRole.response;
+    const tags = iamRole.tags;
 
     // Get instances.
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
@@ -56,6 +57,7 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
           Version: '2012-10-17',
         }),
         RoleName: properties.rolename,
+        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
       }),
     );
 

@@ -25,6 +25,7 @@ export class AddAlbListenerResourceAction implements IResourceAction<AlbListener
     const albListener = diff.node;
     const properties = albListener.properties;
     const response = albListener.response;
+    const tags = albListener.tags;
     const matchingAlb = albListener.parents[0];
 
     // Get instances.
@@ -52,6 +53,7 @@ export class AddAlbListenerResourceAction implements IResourceAction<AlbListener
         LoadBalancerArn: matchingAlb.getSchemaInstanceInResourceAction().response.LoadBalancerArn,
         Port: properties.Port,
         Protocol: properties.Protocol,
+        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
       }),
     );
 
