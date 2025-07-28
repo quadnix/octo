@@ -60,7 +60,7 @@ export class ModuleDefinitions {
       vpcCidrBlock: '10.0.0.0/16',
     });
     this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
-      bucketName: 'octo-test', // Fix me: S3 bucket name.
+      bucketName: 'octo-test-aws-s3-website', // Fix me: S3 bucket name.
       directoryPath: websiteSourcePath,
       region: stub<Region>('${{region-module.model.region}}'),
     });

@@ -82,8 +82,8 @@ describe('Main IT', () => {
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/s3-website=bucket-octo-test",
-           "value": "@octo/s3-website=bucket-octo-test",
+           "node": "@octo/s3-website=bucket-${bucketName}",
+           "value": "@octo/s3-website=bucket-${bucketName}",
          },
          {
            "action": "add",
@@ -96,7 +96,7 @@ describe('Main IT', () => {
          {
            "action": "update",
            "field": "update-source-paths",
-           "node": "@octo/s3-website=bucket-octo-test",
+           "node": "@octo/s3-website=bucket-${bucketName}",
            "value": {
              "error.html": [
                "add",
@@ -134,7 +134,7 @@ describe('Main IT', () => {
        "resource": {
          "parents": [],
          "properties": {
-           "Bucket": "octo-test",
+           "Bucket": "${bucketName}",
            "ErrorDocument": "error.html",
            "IndexDocument": "index.html",
            "awsAccountId": "000000000000",
