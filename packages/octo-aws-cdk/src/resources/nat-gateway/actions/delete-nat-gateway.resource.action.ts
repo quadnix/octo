@@ -1,4 +1,9 @@
-import { DeleteNatGatewayCommand, EC2Client, ReleaseAddressCommand } from '@aws-sdk/client-ec2';
+import {
+  DeleteNatGatewayCommand,
+  DescribeNatGatewaysCommand,
+  EC2Client,
+  ReleaseAddressCommand,
+} from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
@@ -37,8 +42,27 @@ export class DeleteNatGatewayResourceAction implements IResourceAction<NatGatewa
     // Delete NAT Gateway.
     await ec2Client.send(
       new DeleteNatGatewayCommand({
-        NatGatewayId: response.NatGatewayId,
+        NatGatewayId: response.NatGatewayId!,
       }),
+    );
+
+    // Wait for NAT Gateway to be deleted.
+    await RetryUtility.retryPromise(
+      async (): Promise<boolean> => {
+        const result = await ec2Client.send(
+          new DescribeNatGatewaysCommand({
+            NatGatewayIds: [response.NatGatewayId!],
+          }),
+        );
+        const natGateway = result.NatGateways?.[0];
+        return !natGateway || natGateway.State === 'deleted';
+      },
+      {
+        initialDelayInMs: 0,
+        maxRetries: 10,
+        retryDelayInMs: 20000,
+        throwOnError: false,
+      },
     );
 
     // Delete Elastic IP.
@@ -72,6 +96,8 @@ export class DeleteNatGatewayResourceAction implements IResourceAction<NatGatewa
     ec2Client.send = async (instance: unknown): Promise<unknown> => {
       if (instance instanceof DeleteNatGatewayCommand) {
         return;
+      } else if (instance instanceof DescribeNatGatewaysCommand) {
+        return { NatGateways: [] };
       } else if (instance instanceof ReleaseAddressCommand) {
         return;
       }
