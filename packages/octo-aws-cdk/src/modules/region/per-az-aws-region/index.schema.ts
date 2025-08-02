@@ -1,4 +1,5 @@
 import { type Account, AccountSchema, Schema, Validate } from '@quadnix/octo';
+import { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { RegionId } from './models/region/index.js';
 
 export { RegionId };
@@ -19,7 +20,12 @@ export class AwsRegionModuleSchema {
    * The AWS account that this region will be associated with.
    * Only AWS account types are supported for this module.
    */
-  @Validate({ options: { isSchema: { schema: AccountSchema } } })
+  @Validate({
+    options: {
+      isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
+      isSchema: { schema: AccountSchema },
+    },
+  })
   account = Schema<Account>();
 
   /**

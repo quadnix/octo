@@ -1,4 +1,5 @@
 import { type Account, AccountSchema, Schema, type Service, ServiceSchema, Validate } from '@quadnix/octo';
+import { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { S3StorageAnchorSchema } from '../../../anchors/s3-storage/s3-storage.anchor.schema.js';
 import { SecurityGroupAnchorRuleSchema } from '../../../anchors/security-group/security-group.anchor.schema.js';
 import { AwsServerS3AccessSchema } from './overlays/server-s3-access/aws-server-s3-access.schema.js';
@@ -62,7 +63,12 @@ export class AwsServerModuleSchema {
    * The AWS account where the server will be created.
    * This establishes the account context for the server infrastructure.
    */
-  @Validate({ options: { isSchema: { schema: AccountSchema } } })
+  @Validate({
+    options: {
+      isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
+      isSchema: { schema: AccountSchema },
+    },
+  })
   account = Schema<Account>();
 
   /**

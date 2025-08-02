@@ -1,5 +1,6 @@
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { AModule, Container, Module } from '@quadnix/octo';
+import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
 import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsIniAccountModuleSchema } from './index.schema.js';
 import { AwsIniAccount } from './models/account/index.js';
@@ -37,6 +38,9 @@ export class AwsIniAccountModule extends AModule<AwsIniAccountModuleSchema, AwsI
     // Create a new account.
     const account = new AwsIniAccount(inputs.accountId, inputs.iniProfile!);
     app.addAccount(account);
+
+    // Add anchors.
+    account.addAnchor(new AwsAccountAnchor('AwsAccountAnchor', { awsAccountId: inputs.accountId }, account));
 
     // Register AWS credentials.
     const credentials = account.getCredentials();

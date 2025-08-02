@@ -1,6 +1,7 @@
 import { S3Client } from '@aws-sdk/client-s3';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { AModule, Container, Module } from '@quadnix/octo';
+import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
 import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsLocalstackAccountModuleSchema } from './index.schema.js';
 import { AwsLocalstackAccount } from './models/account/index.js';
@@ -39,6 +40,9 @@ export class AwsLocalstackAccountModule extends AModule<AwsLocalstackAccountModu
     const accountId: string = '000000000000';
     const account = new AwsLocalstackAccount(accountId);
     app.addAccount(account);
+
+    // Add anchors.
+    account.addAnchor(new AwsAccountAnchor('AwsAccountAnchor', { awsAccountId: accountId }, account));
 
     // Register AWS credentials.
     const credentials = account.getCredentials();

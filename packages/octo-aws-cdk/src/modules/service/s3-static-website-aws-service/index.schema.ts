@@ -1,5 +1,5 @@
-import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
-import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { type Account, AccountSchema, Schema, Validate } from '@quadnix/octo';
+import { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 
 /**
  * `AwsS3StaticWebsiteServiceModuleSchema` is the input schema for the `AwsS3StaticWebsiteServiceModule` module.
@@ -13,6 +13,24 @@ import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.an
  * @see {@link AwsS3StaticWebsiteServiceModule} to learn more about the `AwsS3StaticWebsiteServiceModule` module.
  */
 export class AwsS3StaticWebsiteServiceModuleSchema {
+  /**
+   * The AWS account that this service will be associated with.
+   * Only AWS account types are supported for this module.
+   */
+  @Validate({
+    options: {
+      isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
+      isSchema: { schema: AccountSchema },
+    },
+  })
+  account = Schema<Account>();
+
+  /**
+   * The AWS region that this service will be associated with.
+   */
+  @Validate({ options: { minLength: 1 } })
+  awsRegionId = Schema<string>();
+
   /**
    * The name of the S3 bucket to create for the static website.
    * This name must be globally unique across all AWS accounts and regions.
@@ -46,18 +64,6 @@ export class AwsS3StaticWebsiteServiceModuleSchema {
     },
   })
   filter? = Schema<((filePath: string) => boolean) | null>(null);
-
-  /**
-   * The AWS region where the S3 bucket will be created.
-   * The region must have AWS region anchors configured.
-   */
-  @Validate({
-    options: {
-      isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
-      isSchema: { schema: RegionSchema },
-    },
-  })
-  region = Schema<Region>();
 
   /**
    * Optional subdirectory or specific file path within the source directory.

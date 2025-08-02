@@ -11,6 +11,7 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import type { S3DirectoryAnchorSchema } from '../../../anchors/s3-directory/s3-directory.anchor.schema.js';
 import type { S3StorageAnchorSchema } from '../../../anchors/s3-storage/s3-storage.anchor.schema.js';
 import type { IamRoleSchema } from '../../../resources/iam-role/index.schema.js';
@@ -33,6 +34,10 @@ async function setup(
     service: [['test-bucket', { bucketName: 'test-bucket' }]],
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
+
+  account.addAnchor(
+    testModuleContainer.createTestAnchor<AwsAccountAnchorSchema>('AwsAccountAnchor', { awsAccountId: '123' }, account),
+  );
 
   service.addAnchor(
     testModuleContainer.createTestAnchor<S3DirectoryAnchorSchema>(

@@ -2,6 +2,7 @@ import { EC2Client } from '@aws-sdk/client-ec2';
 import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import { type Account, type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
+import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
 import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
@@ -15,6 +16,11 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     app: [app],
   } = await testModuleContainer.createTestModels('testModule', { account: ['aws,123'], app: ['test-app'] });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
+
+  account.addAnchor(
+    testModuleContainer.createTestAnchor<AwsAccountAnchorSchema>('AwsAccountAnchor', { awsAccountId: '123' }, account),
+  );
+
   return { account, app };
 }
 

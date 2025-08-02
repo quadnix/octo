@@ -1,13 +1,4 @@
-import {
-  AModule,
-  type Account,
-  type App,
-  type Diff,
-  type DiffMetadata,
-  type IModelAction,
-  Module,
-} from '@quadnix/octo';
-import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { AModule, type App, type Diff, type DiffMetadata, type IModelAction, Module } from '@quadnix/octo';
 import { AwsS3StaticWebsiteServiceModuleSchema } from './index.schema.js';
 import { AddS3StaticWebsiteModelAction } from './models/s3-static-website/actions/add-s3-static-website.model.action.js';
 import { UpdateSourcePathsS3StaticWebsiteModelAction } from './models/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
@@ -107,20 +98,13 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
   override async registerMetadata(
     inputs: AwsS3StaticWebsiteServiceModuleSchema,
   ): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {
-    const region = inputs.region;
-    const account = region.getParents()['account'][0].to as Account;
+    const account = inputs.account;
     const app = account.getParents()['app'][0].to as App;
-
-    // Get AWS Region ID.
-    const [matchingAnchor] = await region.getAnchorsMatchingSchema(AwsRegionAnchorSchema, [], {
-      searchBoundaryMembers: false,
-    });
-    const awsRegionId = matchingAnchor.getSchemaInstance().properties.awsRegionId;
 
     return {
       app,
       awsAccountId: account.accountId,
-      awsRegionId,
+      awsRegionId: inputs.awsRegionId,
     };
   }
 }

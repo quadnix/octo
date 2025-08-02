@@ -1,5 +1,6 @@
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { AModule, Container, Module } from '@quadnix/octo';
+import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
 import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsMotoAccountModuleSchema } from './index.schema.js';
 import { AwsMotoAccount } from './models/account/index.js';
@@ -36,6 +37,9 @@ export class AwsMotoAccountModule extends AModule<AwsMotoAccountModuleSchema, Aw
     const accountId: string = '123456789012';
     const account = new AwsMotoAccount(accountId);
     app.addAccount(account);
+
+    // Add anchors.
+    account.addAnchor(new AwsAccountAnchor('AwsAccountAnchor', { awsAccountId: accountId }, account));
 
     // Register AWS credentials.
     const credentials = account.getCredentials();

@@ -3,45 +3,29 @@ import { fileURLToPath } from 'url';
 import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
-import {
-  type Account,
-  type App,
-  type Region,
-  TestContainer,
-  TestModuleContainer,
-  TestStateProvider,
-  stub,
-} from '@quadnix/octo';
-import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { type Account, type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
+import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsS3StaticWebsiteServiceModule } from './index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const resourcesPath = join(__dirname, '../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; region: Region }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
   const {
     account: [account],
     app: [app],
-    region: [region],
   } = await testModuleContainer.createTestModels('testModule', {
     account: ['aws,123'],
     app: ['test-app'],
-    region: ['region'],
   });
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
-  region.addAnchor(
-    testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
-      'AwsRegionAnchor',
-      { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
-      region,
-    ),
+  account.addAnchor(
+    testModuleContainer.createTestAnchor<AwsAccountAnchorSchema>('AwsAccountAnchor', { awsAccountId: '123' }, account),
   );
 
-  return { account, app, region };
+  return { account, app };
 }
 
 describe('AwsS3StaticWebsiteServiceModule UT', () => {
@@ -96,9 +80,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
       inputs: {
+        account: stub('${{testModule.model.account}}'),
+        awsRegionId: 'us-east-1',
         bucketName: 'test-bucket',
         directoryPath: websiteSourcePath,
-        region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
@@ -134,9 +119,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const { app: app1 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
       inputs: {
+        account: stub('${{testModule.model.account}}'),
+        awsRegionId: 'us-east-1',
         bucketName: 'test-bucket',
         directoryPath: websiteSourcePath,
-        region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
@@ -178,9 +164,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const { app: app2 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
       inputs: {
+        account: stub('${{testModule.model.account}}'),
+        awsRegionId: 'us-east-1',
         bucketName: 'test-bucket',
         directoryPath: websiteSourcePath,
-        region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
@@ -215,9 +202,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const { app: app1 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
       inputs: {
+        account: stub('${{testModule.model.account}}'),
+        awsRegionId: 'us-east-1',
         bucketName: 'test-bucket',
         directoryPath: websiteSourcePath,
-        region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
@@ -272,9 +260,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const { app: app2 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
       inputs: {
+        account: stub('${{testModule.model.account}}'),
+        awsRegionId: 'us-east-1',
         bucketName: 'test-bucket',
         directoryPath: websiteSourcePath,
-        region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
@@ -305,9 +294,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const { app: app3 } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
       inputs: {
+        account: stub('${{testModule.model.account}}'),
+        awsRegionId: 'us-east-1',
         bucketName: 'test-bucket',
         directoryPath: websiteSourcePath,
-        region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
