@@ -31,17 +31,17 @@ export class AwsSingleAzRegion extends Region {
 
   readonly awsRegionId: string;
 
-  override readonly regionId: AwsSingleAzRegionId;
+  override readonly regionId: string;
 
-  constructor(regionId: AwsSingleAzRegionId) {
-    super(regionId);
+  constructor(name: string, regionId: AwsSingleAzRegionId) {
+    super(name);
 
     // Derive AWS regionId and AZ.
     const regionIdParts = AwsSingleAzRegion.getRegionIdParts(regionId);
     this.awsRegionAZs = [regionIdParts.awsRegionAZ];
     this.awsRegionId = regionIdParts.awsRegionId;
 
-    this.regionId = regionId;
+    this.regionId = name;
   }
 
   private static getRegionIdParts(regionId: AwsSingleAzRegionId): { awsRegionAZ: string; awsRegionId: string } {
@@ -61,6 +61,6 @@ export class AwsSingleAzRegion extends Region {
   }
 
   static override async unSynth(awsRegion: AwsSingleAzRegionSchema): Promise<AwsSingleAzRegion> {
-    return new AwsSingleAzRegion(awsRegion.regionId as AwsSingleAzRegionId);
+    return new AwsSingleAzRegion(awsRegion.regionId, awsRegion.regionId as AwsSingleAzRegionId);
   }
 }

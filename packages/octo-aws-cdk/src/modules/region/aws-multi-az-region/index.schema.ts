@@ -1,21 +1,20 @@
 import { type Account, AccountSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
-import { AwsSingleAzRegionId } from './models/region/index.js';
+import { AwsMultiAzRegionId } from './models/region/index.js';
 
-export { AwsSingleAzRegionId };
+export { AwsMultiAzRegionId };
 
 /**
- * `AwsSingleAzRegionModuleSchema` is the input schema for the `AwsSingleAzRegionModule` module.
- * This schema defines the required inputs for creating AWS regions within a single availability zone.
- * Having all resources within a single availability zone ensures maximum network speed.
+ * `AwsMultiAzRegionModuleSchema` is the input schema for the `AwsMultiAzRegionModule` module.
+ * This schema defines the required inputs for creating AWS regions with multiple availability zones.
  *
- * @group Modules/Region/AwsSingleAzRegion
+ * @group Modules/Region/AwsMultiAzRegion
  *
  * @hideconstructor
  *
- * @see {@link AwsSingleAzRegionModule} to learn more about the `AwsSingleAzRegionModule` module.
+ * @see {@link AwsMultiAzRegionModule} to learn more about the `AwsMultiAzRegionModule` module.
  */
-export class AwsSingleAzRegionModuleSchema {
+export class AwsMultiAzRegionModuleSchema {
   /**
    * The AWS account that this region will be associated with.
    */
@@ -34,11 +33,19 @@ export class AwsSingleAzRegionModuleSchema {
   name = Schema<string>();
 
   /**
-   * The availability zone for the AWS region.
-   * The region will be created in this availability zone.
+   * The availability zones for the AWS region.
+   * The region will be created in these availability zones.
    */
-  @Validate({ options: { minLength: 1 } })
-  regionId = Schema<AwsSingleAzRegionId>();
+  @Validate([
+    {
+      options: { minLength: 1 },
+    },
+    {
+      destruct: (value: AwsMultiAzRegionModuleSchema['regionIds']): AwsMultiAzRegionId[] => value,
+      options: { minLength: 1 },
+    },
+  ])
+  regionIds = Schema<AwsMultiAzRegionId[]>();
 
   /**
    * The CIDR block for the VPC in this region.

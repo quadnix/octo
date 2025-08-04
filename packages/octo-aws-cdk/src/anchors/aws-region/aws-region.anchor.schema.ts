@@ -18,12 +18,14 @@ export class AwsRegionAnchorSchema extends BaseAnchorSchema {
    * * `properties.awsRegionAZs` - List of availability zones in the region.
    * * `properties.awsRegionId` - The AWS ID of the region.
    * * `properties.regionId` - The logical ID of the region.
+   * * `properties.vpcCidrBlock` - The CIDR block for the VPC in this region.
    */
   @Validate({
     destruct: (value: AwsRegionAnchorSchema['properties']): string[] => [
       ...value.awsRegionAZs,
       value.awsRegionId,
       value.regionId,
+      value.vpcCidrBlock,
     ],
     options: { minLength: 1 },
   })
@@ -31,5 +33,6 @@ export class AwsRegionAnchorSchema extends BaseAnchorSchema {
     awsRegionAZs: string[];
     awsRegionId: string;
     regionId: string;
+    vpcCidrBlock: string;
   }>();
 }

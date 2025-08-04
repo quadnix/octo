@@ -7,8 +7,8 @@ import type { InternetGatewaySchema } from '../../../resources/internet-gateway/
 import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsSingleAzRegionId } from './index.schema.js';
-import { AwsSingleAzRegionModule } from './index.js';
+import { AwsMultiAzRegionId } from './index.schema.js';
+import { AwsMultiAzRegionModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
   const {
@@ -24,7 +24,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
   return { account, app };
 }
 
-describe('AwsSingleAzRegionModule UT', () => {
+describe('AwsMultiAzRegionModule UT', () => {
   const originalRetryPromise = RetryUtility.retryPromise;
 
   let retryPromiseSpy: jest.Spied<any>;
@@ -87,15 +87,15 @@ describe('AwsSingleAzRegionModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+    await testModuleContainer.runModule<AwsMultiAzRegionModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+        regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
         vpcCidrBlock: '10.0.0.0/8',
       },
       moduleId: 'region',
-      type: AwsSingleAzRegionModule,
+      type: AwsMultiAzRegionModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -105,7 +105,7 @@ describe('AwsSingleAzRegionModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAwsSingleAzRegionModelAction",
+         "AddAwsMultiAzRegionModelAction",
        ],
      ]
     `);
@@ -123,15 +123,15 @@ describe('AwsSingleAzRegionModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+    await testModuleContainer.runModule<AwsMultiAzRegionModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+        regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
         vpcCidrBlock: '10.0.0.0/8',
       },
       moduleId: 'region',
-      type: AwsSingleAzRegionModule,
+      type: AwsMultiAzRegionModule,
     });
 
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
@@ -182,15 +182,15 @@ describe('AwsSingleAzRegionModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+    await testModuleContainer.runModule<AwsMultiAzRegionModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+        regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
         vpcCidrBlock: '10.0.0.0/8',
       },
       moduleId: 'region',
-      type: AwsSingleAzRegionModule,
+      type: AwsMultiAzRegionModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -215,15 +215,15 @@ describe('AwsSingleAzRegionModule UT', () => {
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+    await testModuleContainer.runModule<AwsMultiAzRegionModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+        regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
         vpcCidrBlock: '10.0.0.0/8',
       },
       moduleId: 'region',
-      type: AwsSingleAzRegionModule,
+      type: AwsMultiAzRegionModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -263,15 +263,15 @@ describe('AwsSingleAzRegionModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+    await testModuleContainer.runModule<AwsMultiAzRegionModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+        regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
         vpcCidrBlock: '10.0.0.0/8',
       },
       moduleId: 'region',
-      type: AwsSingleAzRegionModule,
+      type: AwsMultiAzRegionModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`
@@ -307,5 +307,51 @@ describe('AwsSingleAzRegionModule UT', () => {
        [],
      ]
     `);
+  });
+
+  describe('validation', () => {
+    it('should validate minimum regionIds', async () => {
+      await setup(testModuleContainer);
+
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region',
+            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A],
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region1',
+          type: AwsMultiAzRegionModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"At least 2 regionIds are required!"`);
+    });
+
+    it('should validate overlapping CIDR blocks', async () => {
+      await setup(testModuleContainer);
+
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region',
+            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region1',
+          type: AwsMultiAzRegionModule,
+        });
+        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region',
+            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region2',
+          type: AwsMultiAzRegionModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
+    });
   });
 });

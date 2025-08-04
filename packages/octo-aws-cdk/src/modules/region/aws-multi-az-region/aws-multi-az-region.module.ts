@@ -2,41 +2,46 @@ import { AModule, AccountType, Module, type Region } from '@quadnix/octo';
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { CidrUtility } from '../../../utilities/cidr/cidr.utility.js';
-import { AwsSingleAzRegionModuleSchema } from './index.schema.js';
-import { AwsSingleAzRegion } from './models/region/index.js';
+import { AwsMultiAzRegionModuleSchema } from './index.schema.js';
+import { AwsMultiAzRegion } from './models/region/index.js';
 
 /**
- * `AwsSingleAzRegionModule` is a per-AZ AWS region module that provides an implementation for the `Region` model.
- * This module creates AWS regions within a single availability zone.
- * It establishes the regional foundation for deploying AWS resources within this single availability zone.
+ * `AwsMultiAzRegionModule` is a multi-AZ AWS region module that provides an implementation for the `Region` model.
+ * This module creates AWS regions within multiple availability zones.
+ * It establishes the regional foundation for deploying AWS resources within multiple availability zones.
  *
  * @example
  * TypeScript
  * ```ts
- * import { AwsSingleAzRegionModule } from '@quadnix/octo-aws-cdk/modules/region/aws-single-az-region';
+ * import { AwsMultiAzRegionModule } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region';
  *
- * octo.loadModule(AwsSingleAzRegionModule, 'my-region-module', {
+ * octo.loadModule(AwsMultiAzRegionModule, 'my-region-module', {
  *   account: myAccount,
- *   regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+ *   regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
  *   vpcCidrBlock: '10.0.0.0/16'
  * });
  * ```
  *
- * @group Modules/Region/AwsSingleAzRegion
+ * @group Modules/Region/AwsMultiAzRegion
  *
  * @reference Resources {@link InternetGatewaySchema}
  * @reference Resources {@link VpcSchema}
  *
- * @see {@link AwsSingleAzRegionModuleSchema} for the input schema.
+ * @see {@link AwsMultiAzRegionModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
  * @see {@link Region} to learn more about the `Region` model.
  */
-@Module<AwsSingleAzRegionModule>('@octo', AwsSingleAzRegionModuleSchema)
-export class AwsSingleAzRegionModule extends AModule<AwsSingleAzRegionModuleSchema, AwsSingleAzRegion> {
-  async onInit(inputs: AwsSingleAzRegionModuleSchema): Promise<AwsSingleAzRegion> {
+@Module<AwsMultiAzRegionModule>('@octo', AwsMultiAzRegionModuleSchema)
+export class AwsMultiAzRegionModule extends AModule<AwsMultiAzRegionModuleSchema, AwsMultiAzRegion> {
+  async onInit(inputs: AwsMultiAzRegionModuleSchema): Promise<AwsMultiAzRegion> {
     const account = inputs.account;
     if (account.accountType !== AccountType.AWS) {
       throw new Error('Only AWS accounts are supported in this module!');
+    }
+
+    // Check for minimum regionIds.
+    if (inputs.regionIds.length < 2) {
+      throw new Error('At least 2 regionIds are required!');
     }
 
     // Check for overlapping cidr regions. This ensures correctness in VPC peering.
@@ -62,7 +67,7 @@ export class AwsSingleAzRegionModule extends AModule<AwsSingleAzRegionModuleSche
     }
 
     // Create a new region.
-    const region = new AwsSingleAzRegion(`${this.moduleId}-${inputs.name}`, inputs.regionId);
+    const region = new AwsMultiAzRegion(`${this.moduleId}-${inputs.name}`, inputs.regionIds);
     account.addRegion(region);
 
     // Add anchors.
