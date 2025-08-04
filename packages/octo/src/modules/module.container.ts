@@ -71,7 +71,7 @@ export class ModuleContainer {
         }
 
         // Create new module instance.
-        const instance = new module();
+        const instance = new module(i.moduleId);
         // Register module hooks.
         this.registerHooks(instance.registerHooks());
         // Register module metadata.

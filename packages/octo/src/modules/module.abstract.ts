@@ -10,6 +10,12 @@ export abstract class AModule<S, T extends UnknownModel> implements IModule<S, T
 
   static readonly MODULE_SCHEMA: ModuleSchema<AModule<any, any>>;
 
+  readonly moduleId: string;
+
+  constructor(moduleId: string) {
+    this.moduleId = moduleId;
+  }
+
   abstract onInit(inputs: S): Promise<T | UnknownModel[]>;
 
   registerHooks(): {
