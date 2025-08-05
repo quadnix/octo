@@ -1,11 +1,11 @@
 import { AModule, type Account, type Environment, Module } from '@quadnix/octo';
+import { AwsEcsClusterAnchor } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { EcsClusterAnchor } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.js';
-import { AwsEnvironmentModuleSchema } from './index.schema.js';
-import { AwsEnvironment } from './models/environment/index.js';
+import { AwsEcsEnvironmentModuleSchema } from './index.schema.js';
+import { AwsEcsEnvironment } from './models/environment/index.js';
 
 /**
- * `AwsEnvironmentModule` is an ECS-based AWS environment module
+ * `AwsEcsEnvironmentModule` is an ECS-based AWS environment module
  * that provides an implementation for the `Environment` model.
  * This module creates environments within AWS regions, establishing ECS clusters and managing environment variables.
  * It serves as the foundation for deploying containerized applications in specific environments.
@@ -13,9 +13,9 @@ import { AwsEnvironment } from './models/environment/index.js';
  * @example
  * TypeScript
  * ```ts
- * import { AwsEnvironmentModule } from '@quadnix/octo-aws-cdk/modules/environment/ecs-based-aws-environment';
+ * import { AwsEcsEnvironmentModule } from '@quadnix/octo-aws-cdk/modules/environment/aws-ecs-environment';
  *
- * octo.loadModule(AwsEnvironmentModule, 'my-environment-module', {
+ * octo.loadModule(AwsEcsEnvironmentModule, 'my-environment-module', {
  *   environmentName: 'production',
  *   environmentVariables: {
  *     NODE_ENV: 'production',
@@ -25,30 +25,30 @@ import { AwsEnvironment } from './models/environment/index.js';
  * });
  * ```
  *
- * @group Modules/Environment/EcsBasedAwsEnvironment
+ * @group Modules/Environment/AwsEcsEnvironment
  *
  * @reference Resources {@link EcsClusterSchema}
  *
- * @see {@link AwsEnvironmentModuleSchema} for the input schema.
+ * @see {@link AwsEcsEnvironmentModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
  * @see {@link Environment} to learn more about the `Environment` model.
  */
-@Module<AwsEnvironmentModule>('@octo', AwsEnvironmentModuleSchema)
-export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, Environment> {
-  async onInit(inputs: AwsEnvironmentModuleSchema): Promise<AwsEnvironment> {
+@Module<AwsEcsEnvironmentModule>('@octo', AwsEcsEnvironmentModuleSchema)
+export class AwsEcsEnvironmentModule extends AModule<AwsEcsEnvironmentModuleSchema, Environment> {
+  async onInit(inputs: AwsEcsEnvironmentModuleSchema): Promise<AwsEcsEnvironment> {
     const region = inputs.region;
     const { clusterName } = await this.registerMetadata(inputs);
 
     // Create a new environment.
-    const environment = new AwsEnvironment(inputs.environmentName);
+    const environment = new AwsEcsEnvironment(inputs.environmentName);
     for (const [key, value] of Object.entries(inputs.environmentVariables || {})) {
       environment.environmentVariables.set(key, value);
     }
     region.addEnvironment(environment);
 
     // Add anchors.
-    const clusterAnchor = new EcsClusterAnchor(
-      'EcsClusterAnchor',
+    const clusterAnchor = new AwsEcsClusterAnchor(
+      'AwsEcsClusterAnchor',
       {
         clusterName,
         environmentVariables: Object.fromEntries(environment.environmentVariables.entries()),
@@ -60,7 +60,7 @@ export class AwsEnvironmentModule extends AModule<AwsEnvironmentModuleSchema, En
     return environment;
   }
 
-  override async registerMetadata(inputs: AwsEnvironmentModuleSchema): Promise<{
+  override async registerMetadata(inputs: AwsEcsEnvironmentModuleSchema): Promise<{
     awsAccountId: string;
     awsRegionId: string;
     clusterName: string;

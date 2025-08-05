@@ -12,7 +12,7 @@ import {
 } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
-import { AwsEnvironmentModule } from './index.js';
+import { AwsEcsEnvironmentModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -31,7 +31,12 @@ async function setup(
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
-      { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
+      {
+        awsRegionAZs: ['us-east-1a'],
+        awsRegionId: 'us-east-1',
+        regionId: 'aws-us-east-1a',
+        vpcCidrBlock: '10.0.0.0/16',
+      },
       region,
     ),
   );
@@ -39,7 +44,7 @@ async function setup(
   return { account, app, region };
 }
 
-describe('AwsEnvironmentModule UT', () => {
+describe('AwsEcsEnvironmentModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -85,14 +90,14 @@ describe('AwsEnvironmentModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEnvironmentModule>({
+    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
       inputs: {
         environmentName: 'qa',
         environmentVariables: { ENV_NAME: 'qa' },
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'environment',
-      type: AwsEnvironmentModule,
+      type: AwsEcsEnvironmentModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -102,7 +107,7 @@ describe('AwsEnvironmentModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddEnvironmentModelAction",
+         "AddAwsEcsEnvironmentModelAction",
        ],
      ]
     `);
@@ -117,13 +122,13 @@ describe('AwsEnvironmentModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEnvironmentModule>({
+    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
       inputs: {
         environmentName: 'qa',
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'environment',
-      type: AwsEnvironmentModule,
+      type: AwsEcsEnvironmentModule,
     });
 
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
@@ -162,14 +167,14 @@ describe('AwsEnvironmentModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEnvironmentModule>({
+    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
       inputs: {
         environmentName: 'qa',
         environmentVariables: { ENV_NAME: 'qa' },
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'environment',
-      type: AwsEnvironmentModule,
+      type: AwsEcsEnvironmentModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -188,14 +193,14 @@ describe('AwsEnvironmentModule UT', () => {
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEnvironmentModule>({
+    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
       inputs: {
         environmentName: 'qa',
         environmentVariables: { ENV_NAME: 'qa' },
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'environment',
-      type: AwsEnvironmentModule,
+      type: AwsEcsEnvironmentModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -221,14 +226,14 @@ describe('AwsEnvironmentModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsEnvironmentModule>({
+    await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
       inputs: {
         environmentName: 'qa',
         environmentVariables: { ENV_NAME: 'qa' },
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'environment',
-      type: AwsEnvironmentModule,
+      type: AwsEcsEnvironmentModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`

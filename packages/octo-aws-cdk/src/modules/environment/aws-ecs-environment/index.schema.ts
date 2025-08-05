@@ -2,17 +2,17 @@ import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
 /**
- * `AwsEnvironmentModuleSchema` is the input schema for the `AwsEnvironmentModule` module.
+ * `AwsEcsEnvironmentModuleSchema` is the input schema for the `AwsEcsEnvironmentModule` module.
  * This schema defines the required and optional inputs for creating ECS-based environments,
  * including environment naming, variables, and region association.
  *
- * @group Modules/Environment/EcsBasedAwsEnvironment
+ * @group Modules/Environment/AwsEcsEnvironment
  *
  * @hideconstructor
  *
- * @see {@link AwsEnvironmentModule} to learn more about the `AwsEnvironmentModule` module.
+ * @see {@link AwsEcsEnvironmentModule} to learn more about the `AwsEcsEnvironmentModule` module.
  */
-export class AwsEnvironmentModuleSchema {
+export class AwsEcsEnvironmentModuleSchema {
   /**
    * The name of the environment (e.g., 'development', 'staging', 'production').
    * This name is used to identify the environment and forms part of the ECS cluster name.

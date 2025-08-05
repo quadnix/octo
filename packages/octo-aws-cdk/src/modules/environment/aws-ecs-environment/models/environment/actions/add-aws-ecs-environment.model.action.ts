@@ -9,18 +9,18 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { EcsCluster } from '../../../../../../resources/ecs-cluster/index.js';
-import type { AwsEnvironmentModule } from '../../../aws-environment.module.js';
-import { AwsEnvironment } from '../aws.environment.model.js';
+import type { AwsEcsEnvironmentModule } from '../../../aws-ecs-environment.module.js';
+import { AwsEcsEnvironment } from '../aws-ecs-environment.model.js';
 
 /**
  * @internal
  */
-@Action(AwsEnvironment)
-export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentModule> {
+@Action(AwsEcsEnvironment)
+export class AddAwsEcsEnvironmentModelAction implements IModelAction<AwsEcsEnvironmentModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsEnvironment &&
+      diff.node instanceof AwsEcsEnvironment &&
       hasNodeName(diff.node, 'environment') &&
       diff.field === 'environmentName'
     );
@@ -28,7 +28,7 @@ export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentMod
 
   async handle(
     _diff: Diff,
-    actionInputs: EnhancedModuleSchema<AwsEnvironmentModule>,
+    actionInputs: EnhancedModuleSchema<AwsEcsEnvironmentModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const { awsAccountId, awsRegionId, clusterName } = actionInputs.metadata;
@@ -47,13 +47,13 @@ export class AddEnvironmentModelAction implements IModelAction<AwsEnvironmentMod
 /**
  * @internal
  */
-@Factory<AddEnvironmentModelAction>(AddEnvironmentModelAction)
-export class AddEnvironmentModelActionFactory {
-  private static instance: AddEnvironmentModelAction;
+@Factory<AddAwsEcsEnvironmentModelAction>(AddAwsEcsEnvironmentModelAction)
+export class AddAwsEcsEnvironmentModelActionFactory {
+  private static instance: AddAwsEcsEnvironmentModelAction;
 
-  static async create(): Promise<AddEnvironmentModelAction> {
+  static async create(): Promise<AddAwsEcsEnvironmentModelAction> {
     if (!this.instance) {
-      this.instance = new AddEnvironmentModelAction();
+      this.instance = new AddAwsEcsEnvironmentModelAction();
     }
     return this.instance;
   }
