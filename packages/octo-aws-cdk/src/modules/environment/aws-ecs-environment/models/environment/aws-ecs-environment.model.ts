@@ -6,10 +6,10 @@ import { AwsEcsEnvironmentSchema } from './aws-ecs-environment.schema.js';
  */
 @Model<AwsEcsEnvironment>('@octo', 'environment', AwsEcsEnvironmentSchema)
 export class AwsEcsEnvironment extends Environment {
-  static override async unSynth(awsEnvironment: AwsEcsEnvironmentSchema): Promise<AwsEcsEnvironment> {
-    const newEnvironment = new AwsEcsEnvironment(awsEnvironment.environmentName);
+  static override async unSynth(environment: AwsEcsEnvironmentSchema): Promise<AwsEcsEnvironment> {
+    const newEnvironment = new AwsEcsEnvironment(environment.environmentName);
 
-    for (const [key, value] of Object.entries(awsEnvironment.environmentVariables)) {
+    for (const [key, value] of Object.entries(environment.environmentVariables)) {
       newEnvironment.environmentVariables.set(key, value);
     }
 

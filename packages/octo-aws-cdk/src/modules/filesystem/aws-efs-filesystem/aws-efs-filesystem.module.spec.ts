@@ -13,7 +13,7 @@ import {
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsFilesystemModule } from './index.js';
+import { AwsEfsFilesystemModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -32,7 +32,12 @@ async function setup(
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
-      { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
+      {
+        awsRegionAZs: ['us-east-1a'],
+        awsRegionId: 'us-east-1',
+        regionId: 'aws-us-east-1a',
+        vpcCidrBlock: '10.0.0.0/16',
+      },
       region,
     ),
   );
@@ -40,7 +45,7 @@ async function setup(
   return { account, app, region };
 }
 
-describe('AwsFilesystemModule UT', () => {
+describe('AwsEfsFilesystemModule UT', () => {
   const originalRetryPromise = RetryUtility.retryPromise;
 
   let retryPromiseSpy: jest.Spied<any>;
@@ -96,13 +101,13 @@ describe('AwsFilesystemModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsFilesystemModule>({
+    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
       inputs: {
         filesystemName: 'test-filesystem',
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'filesystem',
-      type: AwsFilesystemModule,
+      type: AwsEfsFilesystemModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -112,7 +117,7 @@ describe('AwsFilesystemModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddFilesystemModelAction",
+         "AddAwsEfsFilesystemModelAction",
        ],
      ]
     `);
@@ -127,13 +132,13 @@ describe('AwsFilesystemModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsFilesystemModule>({
+    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
       inputs: {
         filesystemName: 'test-filesystem',
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'filesystem',
-      type: AwsFilesystemModule,
+      type: AwsEfsFilesystemModule,
     });
 
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
@@ -172,13 +177,13 @@ describe('AwsFilesystemModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsFilesystemModule>({
+    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
       inputs: {
         filesystemName: 'test-filesystem',
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'filesystem',
-      type: AwsFilesystemModule,
+      type: AwsEfsFilesystemModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -197,13 +202,13 @@ describe('AwsFilesystemModule UT', () => {
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsFilesystemModule>({
+    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
       inputs: {
         filesystemName: 'test-filesystem',
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'filesystem',
-      type: AwsFilesystemModule,
+      type: AwsEfsFilesystemModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -229,13 +234,13 @@ describe('AwsFilesystemModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsFilesystemModule>({
+    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
       inputs: {
         filesystemName: 'test-filesystem',
         region: stub('${{testModule.model.region}}'),
       },
       moduleId: 'filesystem',
-      type: AwsFilesystemModule,
+      type: AwsEfsFilesystemModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`

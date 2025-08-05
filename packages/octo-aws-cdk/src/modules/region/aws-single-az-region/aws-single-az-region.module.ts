@@ -66,17 +66,18 @@ export class AwsSingleAzRegionModule extends AModule<AwsSingleAzRegionModuleSche
     account.addRegion(region);
 
     // Add anchors.
-    const awsRegionAnchor = new AwsRegionAnchor(
-      'AwsRegionAnchor',
-      {
-        awsRegionAZs: region.awsRegionAZs,
-        awsRegionId: region.awsRegionId,
-        regionId: region.regionId,
-        vpcCidrBlock: inputs.vpcCidrBlock,
-      },
-      region,
+    region.addAnchor(
+      new AwsRegionAnchor(
+        'AwsRegionAnchor',
+        {
+          awsRegionAZs: region.awsRegionAZs,
+          awsRegionId: region.awsRegionId,
+          regionId: region.regionId,
+          vpcCidrBlock: inputs.vpcCidrBlock,
+        },
+        region,
+      ),
     );
-    region.addAnchor(awsRegionAnchor);
 
     return region;
   }

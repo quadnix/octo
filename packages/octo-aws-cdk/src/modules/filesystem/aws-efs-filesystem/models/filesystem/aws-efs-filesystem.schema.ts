@@ -3,4 +3,4 @@ import { FilesystemSchema } from '@quadnix/octo';
 /**
  * @internal
  */
-export class AwsFilesystemSchema extends FilesystemSchema {}
+export class AwsEfsFilesystemSchema extends FilesystemSchema {}

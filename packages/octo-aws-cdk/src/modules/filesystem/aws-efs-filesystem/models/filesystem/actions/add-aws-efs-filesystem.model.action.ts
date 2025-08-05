@@ -9,26 +9,26 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { Efs } from '../../../../../../resources/efs/index.js';
-import type { AwsFilesystemModule } from '../../../aws-filesystem.module.js';
-import { AwsFilesystem } from '../aws.filesystem.model.js';
+import type { AwsEfsFilesystemModule } from '../../../aws-efs-filesystem.module.js';
+import { AwsEfsFilesystem } from '../aws-efs-filesystem.model.js';
 
 /**
  * @internal
  */
-@Action(AwsFilesystem)
-export class AddFilesystemModelAction implements IModelAction<AwsFilesystemModule> {
+@Action(AwsEfsFilesystem)
+export class AddAwsEfsFilesystemModelAction implements IModelAction<AwsEfsFilesystemModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsFilesystem &&
+      diff.node instanceof AwsEfsFilesystem &&
       hasNodeName(diff.node, 'filesystem') &&
       diff.field === 'filesystemName'
     );
   }
 
   async handle(
-    diff: Diff<AwsFilesystem>,
-    actionInputs: EnhancedModuleSchema<AwsFilesystemModule>,
+    diff: Diff<AwsEfsFilesystem>,
+    actionInputs: EnhancedModuleSchema<AwsEfsFilesystemModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const filesystem = diff.node;
@@ -51,13 +51,13 @@ export class AddFilesystemModelAction implements IModelAction<AwsFilesystemModul
 /**
  * @internal
  */
-@Factory<AddFilesystemModelAction>(AddFilesystemModelAction)
-export class AddFilesystemModelActionFactory {
-  private static instance: AddFilesystemModelAction;
+@Factory<AddAwsEfsFilesystemModelAction>(AddAwsEfsFilesystemModelAction)
+export class AddAwsEfsFilesystemModelActionFactory {
+  private static instance: AddAwsEfsFilesystemModelAction;
 
-  static async create(): Promise<AddFilesystemModelAction> {
+  static async create(): Promise<AddAwsEfsFilesystemModelAction> {
     if (!this.instance) {
-      this.instance = new AddFilesystemModelAction();
+      this.instance = new AddAwsEfsFilesystemModelAction();
     }
     return this.instance;
   }

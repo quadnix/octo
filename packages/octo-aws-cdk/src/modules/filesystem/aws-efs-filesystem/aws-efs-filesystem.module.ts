@@ -1,11 +1,11 @@
 import { AModule, type Account, type Filesystem, Module } from '@quadnix/octo';
+import { AwsEfsAnchor } from '../../../anchors/aws-efs/aws-efs.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { EfsFilesystemAnchor } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.js';
-import { AwsFilesystemModuleSchema } from './index.schema.js';
-import { AwsFilesystem } from './models/filesystem/index.js';
+import { AwsEfsFilesystemModuleSchema } from './index.schema.js';
+import { AwsEfsFilesystem } from './models/filesystem/index.js';
 
 /**
- * `AwsFilesystemModule` is an EFS-based AWS filesystem module
+ * `AwsEfsFilesystemModule` is an EFS-based AWS filesystem module
  * that provides an implementation for the `Filesystem` model.
  * This module creates AWS EFS (Elastic File System) filesystems
  * that can be mounted and shared across multiple containers and services.
@@ -14,44 +14,39 @@ import { AwsFilesystem } from './models/filesystem/index.js';
  * @example
  * TypeScript
  * ```ts
- * import { AwsFilesystemModule } from '@quadnix/octo-aws-cdk/modules/filesystem/efs-based-aws-filesystem';
+ * import { AwsEfsFilesystemModule } from '@quadnix/octo-aws-cdk/modules/filesystem/aws-efs-filesystem';
  *
- * octo.loadModule(AwsFilesystemModule, 'my-filesystem-module', {
+ * octo.loadModule(AwsEfsFilesystemModule, 'my-filesystem-module', {
  *   filesystemName: 'shared-data',
  *   region: myRegion
  * });
  * ```
  *
- * @group Modules/Filesystem/EfsBasedAwsFilesystem
+ * @group Modules/Filesystem/AwsEfsFilesystem
  *
  * @reference Resources {@link EfsSchema}
  *
- * @see {@link AwsFilesystemModuleSchema} for the input schema.
+ * @see {@link AwsEfsFilesystemModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
  * @see {@link Filesystem} to learn more about the `Filesystem` model.
  */
-@Module<AwsFilesystemModule>('@octo', AwsFilesystemModuleSchema)
-export class AwsFilesystemModule extends AModule<AwsFilesystemModuleSchema, Filesystem> {
-  async onInit(inputs: AwsFilesystemModuleSchema): Promise<AwsFilesystem> {
+@Module<AwsEfsFilesystemModule>('@octo', AwsEfsFilesystemModuleSchema)
+export class AwsEfsFilesystemModule extends AModule<AwsEfsFilesystemModuleSchema, Filesystem> {
+  async onInit(inputs: AwsEfsFilesystemModuleSchema): Promise<AwsEfsFilesystem> {
     const region = inputs.region;
 
     // Create a new filesystem.
-    const filesystem = new AwsFilesystem(inputs.filesystemName);
+    const filesystem = new AwsEfsFilesystem(inputs.filesystemName);
     region.addFilesystem(filesystem);
 
     // Add anchors.
-    const efsFilesystemAnchor = new EfsFilesystemAnchor(
-      'EfsFilesystemAnchor',
-      { filesystemName: inputs.filesystemName },
-      filesystem,
-    );
-    filesystem.addAnchor(efsFilesystemAnchor);
+    filesystem.addAnchor(new AwsEfsAnchor('AwsEfsAnchor', { filesystemName: inputs.filesystemName }, filesystem));
 
     return filesystem;
   }
 
   override async registerMetadata(
-    inputs: AwsFilesystemModuleSchema,
+    inputs: AwsEfsFilesystemModuleSchema,
   ): Promise<{ awsAccountId: string; awsRegionId: string }> {
     const region = inputs.region;
     const account = region.getParents()['account'][0].to as Account;

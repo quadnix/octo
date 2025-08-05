@@ -47,15 +47,16 @@ export class AwsEcsEnvironmentModule extends AModule<AwsEcsEnvironmentModuleSche
     region.addEnvironment(environment);
 
     // Add anchors.
-    const clusterAnchor = new AwsEcsClusterAnchor(
-      'AwsEcsClusterAnchor',
-      {
-        clusterName,
-        environmentVariables: Object.fromEntries(environment.environmentVariables.entries()),
-      },
-      environment,
+    environment.addAnchor(
+      new AwsEcsClusterAnchor(
+        'AwsEcsClusterAnchor',
+        {
+          clusterName,
+          environmentVariables: Object.fromEntries(environment.environmentVariables.entries()),
+        },
+        environment,
+      ),
     );
-    environment.addAnchor(clusterAnchor);
 
     return environment;
   }

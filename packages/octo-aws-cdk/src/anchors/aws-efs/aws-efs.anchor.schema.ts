@@ -3,11 +3,11 @@ import { BaseAnchorSchema, type Filesystem, Schema, Validate } from '@quadnix/oc
 /**
  * This anchor is associated with a {@link Filesystem} model representing an AWS EFS filesystem.
  *
- * @group Anchors/EfsFilesystem
+ * @group Anchors/AwsEfs
  *
  * @hideconstructor
  */
-export class EfsFilesystemAnchorSchema extends BaseAnchorSchema {
+export class AwsEfsAnchorSchema extends BaseAnchorSchema {
   /**
    * @private
    */
@@ -18,7 +18,7 @@ export class EfsFilesystemAnchorSchema extends BaseAnchorSchema {
    * * `properties.filesystemName`: The name of the EFS filesystem.
    */
   @Validate({
-    destruct: (value: EfsFilesystemAnchorSchema['properties']): string[] => [value.filesystemName],
+    destruct: (value: AwsEfsAnchorSchema['properties']): string[] => [value.filesystemName],
     options: { minLength: 1 },
   })
   override properties = Schema<{

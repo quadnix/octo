@@ -60,7 +60,7 @@ export class AwsSingleAzRegion extends Region {
     };
   }
 
-  static override async unSynth(awsRegion: AwsSingleAzRegionSchema): Promise<AwsSingleAzRegion> {
-    return new AwsSingleAzRegion(awsRegion.regionId, awsRegion.regionId as AwsSingleAzRegionId);
+  static override async unSynth(region: AwsSingleAzRegionSchema): Promise<AwsSingleAzRegion> {
+    return new AwsSingleAzRegion(region.regionId, region.regionId as AwsSingleAzRegionId);
   }
 }
