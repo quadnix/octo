@@ -1,8 +1,8 @@
 import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
-import { AppModule } from './index.js';
+import { SimpleAppModule } from './index.js';
 
-describe('AppModule UT', () => {
+describe('SimpleAppModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -33,10 +33,10 @@ describe('AppModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { 'app.model.app': app } = await testModuleContainer.runModule<AppModule>({
+    const { 'app.model.app': app } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
-      type: AppModule,
+      type: SimpleAppModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -46,7 +46,7 @@ describe('AppModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddAppModelAction",
+         "AddSimpleAppModelAction",
        ],
      ]
     `);
@@ -54,10 +54,10 @@ describe('AppModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { 'app.model.app': app } = await testModuleContainer.runModule<AppModule>({
+    const { 'app.model.app': app } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
-      type: AppModule,
+      type: SimpleAppModule,
     });
 
     const result = await testModuleContainer.commit(app, { enableResourceCapture: true });
@@ -71,10 +71,10 @@ describe('AppModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { 'app.model.app': app1 } = await testModuleContainer.runModule<AppModule>({
+    const { 'app.model.app': app1 } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
-      type: AppModule,
+      type: SimpleAppModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -85,10 +85,10 @@ describe('AppModule UT', () => {
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { 'app.model.app': app2 } = await testModuleContainer.runModule<AppModule>({
+    const { 'app.model.app': app2 } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
-      type: AppModule,
+      type: SimpleAppModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -98,10 +98,10 @@ describe('AppModule UT', () => {
      ]
     `);
 
-    const { 'app.model.app': app3 } = await testModuleContainer.runModule<AppModule>({
+    const { 'app.model.app': app3 } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
-      type: AppModule,
+      type: SimpleAppModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`

@@ -9,13 +9,13 @@ import {
   type IModelAction,
   hasNodeName,
 } from '@quadnix/octo';
-import type { AppModule } from '../../../app.module.js';
+import type { SimpleAppModule } from '../../../simple-app.module.js';
 
 /**
  * @internal
  */
 @Action(App)
-export class AddAppModelAction implements IModelAction<AppModule> {
+export class AddSimpleAppModelAction implements IModelAction<SimpleAppModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -27,7 +27,7 @@ export class AddAppModelAction implements IModelAction<AppModule> {
 
   async handle(
     _diff: Diff,
-    _actionInputs: EnhancedModuleSchema<AppModule>,
+    _actionInputs: EnhancedModuleSchema<SimpleAppModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     return actionOutputs;
@@ -37,13 +37,13 @@ export class AddAppModelAction implements IModelAction<AppModule> {
 /**
  * @internal
  */
-@Factory<AddAppModelAction>(AddAppModelAction)
-export class AddAppModelActionFactory {
-  private static instance: AddAppModelAction;
+@Factory<AddSimpleAppModelAction>(AddSimpleAppModelAction)
+export class AddSimpleAppModelActionFactory {
+  private static instance: AddSimpleAppModelAction;
 
-  static async create(): Promise<AddAppModelAction> {
+  static async create(): Promise<AddSimpleAppModelAction> {
     if (!this.instance) {
-      this.instance = new AddAppModelAction();
+      this.instance = new AddSimpleAppModelAction();
     }
     return this.instance;
   }

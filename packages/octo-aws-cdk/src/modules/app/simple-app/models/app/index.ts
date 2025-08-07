@@ -1,1 +1,1 @@
-import './actions/add-app.model.action.js';
+import './actions/add-simple-app.model.action.js';

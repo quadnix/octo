@@ -1,15 +1,15 @@
 import { Schema, Validate } from '@quadnix/octo';
 
 /**
- * `AppModuleSchema` is the input schema for the `AppModule` module.
+ * `SimpleAppModuleSchema` is the input schema for the `SimpleAppModule` module.
  *
  * @group Modules/App/SimpleApp
  *
  * @hideconstructor
  *
- * @see {@link AppModule} to learn more about the `AppModule` module.
+ * @see {@link SimpleAppModule} to learn more about the `SimpleAppModule` module.
  */
-export class AppModuleSchema {
+export class SimpleAppModuleSchema {
   /**
    * When naming the app, it is essential to consider the project for which you are developing the infrastructure.
    * If the project encompasses multiple services, such as in a monorepo setup,
