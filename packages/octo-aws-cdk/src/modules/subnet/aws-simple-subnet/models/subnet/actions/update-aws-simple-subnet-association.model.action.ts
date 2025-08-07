@@ -13,46 +13,51 @@ import { NatGatewaySchema } from '../../../../../../resources/nat-gateway/index.
 import type { NetworkAcl } from '../../../../../../resources/network-acl/index.js';
 import { NetworkAclSchema } from '../../../../../../resources/network-acl/index.schema.js';
 import { RouteTable } from '../../../../../../resources/route-table/index.js';
-import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
-import { AwsSubnet } from '../aws.subnet.model.js';
+import { SubnetSchema } from '../../../../../../resources/subnet/index.schema.js';
+import type { AwsSimpleSubnetModule } from '../../../aws-simple-subnet.module.js';
+import { AwsSimpleSubnet } from '../aws-simple-subnet.model.js';
 
 /**
  * @internal
  */
-@Action(AwsSubnet)
-export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubnetModule> {
+@Action(AwsSimpleSubnet)
+export class UpdateAwsSimpleSubnetAssociationModelAction implements IModelAction<AwsSimpleSubnetModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsSubnet &&
+      diff.node instanceof AwsSimpleSubnet &&
       hasNodeName(diff.node, 'subnet') &&
       diff.field === 'sibling'
     );
   }
 
   async handle(
-    diff: Diff<AwsSubnet, AwsSubnet>,
-    actionInputs: EnhancedModuleSchema<AwsSubnetModule>,
+    diff: Diff<AwsSimpleSubnet, AwsSimpleSubnet>,
+    actionInputs: EnhancedModuleSchema<AwsSimpleSubnetModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const subnet = diff.node;
-    const siblingSubnet = diff.value;
-
-    const siblingSubnetInputs = actionInputs.inputs.subnetSiblings || [];
-    const siblingSubnetInput = siblingSubnetInputs.find((s) => s.subnetName === siblingSubnet.subnetName)!;
     const subnetRouteTable = actionInputs.resources[`rt-${subnet.subnetId}`] as RouteTable;
     const subnetNAcl = actionInputs.resources[`nacl-${subnet.subnetId}`] as NetworkAcl;
+
+    const siblingSubnet = diff.value;
+    const siblingSubnetInputs = actionInputs.inputs.subnetSiblings || [];
+    const siblingSubnetInput = siblingSubnetInputs.find((s) => s.subnet.subnetId === siblingSubnet.subnetId)!;
     const [matchingSiblingSubnetNatGateway] = await siblingSubnet.getResourcesMatchingSchema(NatGatewaySchema, [], [], {
       searchBoundaryMembers: false,
     });
     const [matchingSiblingSubnetNAcl] = await siblingSubnet.getResourcesMatchingSchema(NetworkAclSchema, [], [], {
       searchBoundaryMembers: false,
     });
+    const [matchingSiblingSubnetSubnet] = await siblingSubnet.getResourcesMatchingSchema(SubnetSchema, [], [], {
+      searchBoundaryMembers: false,
+    });
+    const siblingSubnetCidrBlock = matchingSiblingSubnetSubnet.getSchemaInstance().properties.CidrBlock;
 
     // Create Network ACL entries on subnet NAcl.
     const subnetNAclEntries: NetworkAclSchema['properties']['entries'] = [];
     subnetNAclEntries.push({
-      CidrBlock: siblingSubnetInput.subnetCidrBlock,
+      CidrBlock: siblingSubnetCidrBlock,
       Egress: false,
       PortRange: { From: -1, To: -1 },
       Protocol: '-1', // All.
@@ -60,7 +65,7 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
       RuleNumber: -1,
     });
     subnetNAclEntries.push({
-      CidrBlock: siblingSubnetInput.subnetCidrBlock,
+      CidrBlock: siblingSubnetCidrBlock,
       Egress: true,
       PortRange: { From: -1, To: -1 },
       Protocol: '-1', // All.
@@ -130,13 +135,13 @@ export class UpdateSubnetAssociationModelAction implements IModelAction<AwsSubne
 /**
  * @internal
  */
-@Factory<UpdateSubnetAssociationModelAction>(UpdateSubnetAssociationModelAction)
-export class UpdateSubnetAssociationModelActionFactory {
-  private static instance: UpdateSubnetAssociationModelAction;
+@Factory<UpdateAwsSimpleSubnetAssociationModelAction>(UpdateAwsSimpleSubnetAssociationModelAction)
+export class UpdateAwsSimpleSubnetAssociationModelActionFactory {
+  private static instance: UpdateAwsSimpleSubnetAssociationModelAction;
 
-  static async create(): Promise<UpdateSubnetAssociationModelAction> {
+  static async create(): Promise<UpdateAwsSimpleSubnetAssociationModelAction> {
     if (!this.instance) {
-      this.instance = new UpdateSubnetAssociationModelAction();
+      this.instance = new UpdateAwsSimpleSubnetAssociationModelAction();
     }
     return this.instance;
   }

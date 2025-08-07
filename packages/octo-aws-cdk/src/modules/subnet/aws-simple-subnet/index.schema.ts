@@ -4,35 +4,38 @@ import {
   type Region,
   RegionSchema,
   Schema,
+  type Subnet,
+  SubnetSchema,
   SubnetType,
   Validate,
 } from '@quadnix/octo';
+import { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
-import { AwsSubnetLocalFilesystemMountSchema } from './overlays/subnet-local-filesystem-mount/aws-subnet-local-filesystem-mount.schema.js';
+import { AwsSubnetAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet.anchor.schema.js';
+import { AwsSimpleSubnetLocalFilesystemMountOverlaySchema } from './overlays/aws-simple-subnet-local-filesystem-mount/aws-simple-subnet-local-filesystem-mount.schema.js';
 
-export { AwsSubnetLocalFilesystemMountSchema };
+export { AwsSimpleSubnetLocalFilesystemMountOverlaySchema };
 
 /**
- * `AwsSubnetModuleSchema` is the input schema for the `AwsSubnetModule` module.
+ * `AwsSimpleSubnetModuleSchema` is the input schema for the `AwsSimpleSubnetModule` module.
  * This schema defines the configuration for AWS subnets including networking settings,
- * availability zone placement, sibling relationships, and filesystem mounting.
+ * availability zone placement, sibling relationships, nat gateway, and filesystem mounting.
  *
- * @group Modules/Subnet/SimpleAwsSubnet
+ * @group Modules/Subnet/AwsSimpleSubnet
  *
  * @hideconstructor
  *
- * @see {@link AwsSubnetModule} to learn more about the `AwsSubnetModule` module.
+ * @see {@link AwsSimpleSubnetModule} to learn more about the `AwsSimpleSubnetModule` module.
  */
-export class AwsSubnetModuleSchema {
+export class AwsSimpleSubnetModuleSchema {
   /**
    * Optional array of EFS filesystems to mount in this subnet.
    * These filesystems provide shared persistent storage accessible from containers running in the subnet.
    */
   @Validate({
-    destruct: (value: AwsSubnetModuleSchema['localFilesystems']): Filesystem[] => value!,
+    destruct: (value: AwsSimpleSubnetModuleSchema['localFilesystems']): Filesystem[] => value!,
     options: {
-      isModel: { anchors: [{ schema: EfsFilesystemAnchorSchema }], NODE_NAME: 'filesystem' },
+      isModel: { anchors: [{ schema: AwsEfsAnchorSchema }], NODE_NAME: 'filesystem' },
       isSchema: { schema: FilesystemSchema },
     },
   })
@@ -82,7 +85,7 @@ export class AwsSubnetModuleSchema {
    * * `subnetOptions.subnetType` - The type of subnet to create. See {@link SubnetType} for options.
    */
   @Validate({
-    destruct: (value: AwsSubnetModuleSchema['subnetOptions']): string[] => [
+    destruct: (value: AwsSimpleSubnetModuleSchema['subnetOptions']): string[] => [
       String(value!.createNatGateway),
       String(value!.disableSubnetIntraNetwork),
       value!.subnetType,
@@ -99,10 +102,25 @@ export class AwsSubnetModuleSchema {
    * Optional array of sibling subnets to establish network relationships with.
    * Sibling subnets allow NAcl rules to allow traffic between the two subnets.
    */
-  @Validate({
-    destruct: (value: AwsSubnetModuleSchema['subnetSiblings']): string[] =>
-      value!.map((v) => [String(v.attachToNatGateway), v.subnetCidrBlock, v.subnetName]).flat(),
-    options: { minLength: 1 },
-  })
-  subnetSiblings? = Schema<{ attachToNatGateway: boolean; subnetCidrBlock: string; subnetName: string }[]>([]);
+  @Validate<unknown>([
+    {
+      destruct: (value: AwsSimpleSubnetModuleSchema['subnetSiblings']): string[] =>
+        value!.map((v) => String(v.attachToNatGateway)),
+      options: { minLength: 1 },
+    },
+    {
+      destruct: (value: AwsSimpleSubnetModuleSchema['subnetSiblings']): Subnet[] => value!.map((v) => v.subnet),
+      options: {
+        isModel: { anchors: [{ schema: AwsSubnetAnchorSchema }], NODE_NAME: 'subnet' },
+      },
+    },
+    {
+      destruct: (value: AwsSimpleSubnetModuleSchema['subnetSiblings']): SubnetSchema[] =>
+        value!.map((v) => v.subnet.synth()),
+      options: {
+        isSchema: { schema: SubnetSchema },
+      },
+    },
+  ])
+  subnetSiblings? = Schema<{ attachToNatGateway: boolean; subnet: Subnet }[]>([]);
 }

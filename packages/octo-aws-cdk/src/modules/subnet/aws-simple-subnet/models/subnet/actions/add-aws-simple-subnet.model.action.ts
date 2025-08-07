@@ -18,26 +18,26 @@ import { RouteTable } from '../../../../../../resources/route-table/index.js';
 import { Subnet } from '../../../../../../resources/subnet/index.js';
 import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
 import { NetworkAclUtility } from '../../../../../../utilities/network-acl/network-acl.utility.js';
-import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
-import { AwsSubnet } from '../aws.subnet.model.js';
+import type { AwsSimpleSubnetModule } from '../../../aws-simple-subnet.module.js';
+import { AwsSimpleSubnet } from '../aws-simple-subnet.model.js';
 
 /**
  * @internal
  */
-@Action(AwsSubnet)
-export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
+@Action(AwsSimpleSubnet)
+export class AddAwsSimpleSubnetModelAction implements IModelAction<AwsSimpleSubnetModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsSubnet &&
+      diff.node instanceof AwsSimpleSubnet &&
       hasNodeName(diff.node, 'subnet') &&
       diff.field === 'subnetId'
     );
   }
 
   async handle(
-    diff: Diff<AwsSubnet>,
-    actionInputs: EnhancedModuleSchema<AwsSubnetModule>,
+    diff: Diff<AwsSimpleSubnet>,
+    actionInputs: EnhancedModuleSchema<AwsSimpleSubnetModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const subnet = diff.node;
@@ -156,6 +156,7 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
     } else {
       for (let i = subnetNAclEntries.length - 1; i >= 0; i--) {
         const entry = subnetNAclEntries[i];
+        // Remove Network ACL entries - public network.
         if (
           NetworkAclUtility.isNAclEntryEqual(entry, {
             CidrBlock: '0.0.0.0/0',
@@ -201,13 +202,13 @@ export class AddSubnetModelAction implements IModelAction<AwsSubnetModule> {
 /**
  * @internal
  */
-@Factory<AddSubnetModelAction>(AddSubnetModelAction)
-export class AddSubnetModelActionFactory {
-  private static instance: AddSubnetModelAction;
+@Factory<AddAwsSimpleSubnetModelAction>(AddAwsSimpleSubnetModelAction)
+export class AddAwsSimpleSubnetModelActionFactory {
+  private static instance: AddAwsSimpleSubnetModelAction;
 
-  static async create(): Promise<AddSubnetModelAction> {
+  static async create(): Promise<AddAwsSimpleSubnetModelAction> {
     if (!this.instance) {
-      this.instance = new AddSubnetModelAction();
+      this.instance = new AddAwsSimpleSubnetModelAction();
     }
     return this.instance;
   }

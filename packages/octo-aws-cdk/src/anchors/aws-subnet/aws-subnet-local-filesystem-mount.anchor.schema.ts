@@ -3,11 +3,11 @@ import { BaseAnchorSchema, Schema, type Subnet, Validate } from '@quadnix/octo';
 /**
  * This anchor is associated with a {@link Subnet} model representing a filesystem mount in an AWS subnet.
  *
- * @group Anchors/SubnetLocalFilesystemMount
+ * @group Anchors/AwsSubnet
  *
  * @hideconstructor
  */
-export class SubnetLocalFilesystemMountAnchorSchema extends BaseAnchorSchema {
+export class AwsSubnetLocalFilesystemMountAnchorSchema extends BaseAnchorSchema {
   /**
    * @private
    */
@@ -21,7 +21,7 @@ export class SubnetLocalFilesystemMountAnchorSchema extends BaseAnchorSchema {
    * * `properties.subnetName`: Name of the subnet.
    */
   @Validate({
-    destruct: (value: SubnetLocalFilesystemMountAnchorSchema['properties']): string[] => [
+    destruct: (value: AwsSubnetLocalFilesystemMountAnchorSchema['properties']): string[] => [
       value.awsAccountId,
       value.awsRegionId,
       value.filesystemName,

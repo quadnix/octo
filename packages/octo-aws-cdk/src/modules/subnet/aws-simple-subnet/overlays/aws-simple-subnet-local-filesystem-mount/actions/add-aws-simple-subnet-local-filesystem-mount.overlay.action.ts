@@ -14,26 +14,26 @@ import { EfsMountTarget } from '../../../../../../resources/efs-mount-target/ind
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
 import type { Subnet } from '../../../../../../resources/subnet/index.js';
 import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
-import type { AwsSubnetModule } from '../../../aws-subnet.module.js';
-import { AwsSubnetLocalFilesystemMountOverlay } from '../aws-subnet-local-filesystem-mount.overlay.js';
+import type { AwsSimpleSubnetModule } from '../../../aws-simple-subnet.module.js';
+import { AwsSimpleSubnetLocalFilesystemMountOverlay } from '../aws-simple-subnet-local-filesystem-mount.overlay.js';
 
 /**
  * @internal
  */
-@Action(AwsSubnetLocalFilesystemMountOverlay)
-export class AddSubnetLocalFilesystemMountOverlayAction implements IModelAction<AwsSubnetModule> {
+@Action(AwsSimpleSubnetLocalFilesystemMountOverlay)
+export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IModelAction<AwsSimpleSubnetModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsSubnetLocalFilesystemMountOverlay &&
-      hasNodeName(diff.node, 'subnet-local-filesystem-mount-overlay') &&
+      diff.node instanceof AwsSimpleSubnetLocalFilesystemMountOverlay &&
+      hasNodeName(diff.node, 'aws-simple-subnet-local-filesystem-mount-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff<AwsSubnetLocalFilesystemMountOverlay>,
-    actionInputs: EnhancedModuleSchema<AwsSubnetModule>,
+    diff: Diff<AwsSimpleSubnetLocalFilesystemMountOverlay>,
+    actionInputs: EnhancedModuleSchema<AwsSimpleSubnetModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const subnetLocalFilesystemMountOverlay = diff.node;
@@ -88,13 +88,13 @@ export class AddSubnetLocalFilesystemMountOverlayAction implements IModelAction<
 /**
  * @internal
  */
-@Factory<AddSubnetLocalFilesystemMountOverlayAction>(AddSubnetLocalFilesystemMountOverlayAction)
-export class AddSubnetLocalFilesystemMountOverlayActionFactory {
-  private static instance: AddSubnetLocalFilesystemMountOverlayAction;
+@Factory<AddAwsSimpleSubnetLocalFilesystemMountOverlayAction>(AddAwsSimpleSubnetLocalFilesystemMountOverlayAction)
+export class AddAwsSimpleSubnetLocalFilesystemMountOverlayActionFactory {
+  private static instance: AddAwsSimpleSubnetLocalFilesystemMountOverlayAction;
 
-  static async create(): Promise<AddSubnetLocalFilesystemMountOverlayAction> {
+  static async create(): Promise<AddAwsSimpleSubnetLocalFilesystemMountOverlayAction> {
     if (!this.instance) {
-      this.instance = new AddSubnetLocalFilesystemMountOverlayAction();
+      this.instance = new AddAwsSimpleSubnetLocalFilesystemMountOverlayAction();
     }
     return this.instance;
   }

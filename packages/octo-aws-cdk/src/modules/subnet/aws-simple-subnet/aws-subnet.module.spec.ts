@@ -15,8 +15,8 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import type { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
@@ -26,7 +26,7 @@ import type { SecurityGroupSchema } from '../../../resources/security-group/inde
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsSubnetModule } from './index.js';
+import { AwsSimpleSubnetModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -45,8 +45,8 @@ async function setup(
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   filesystem.addAnchor(
-    testModuleContainer.createTestAnchor<EfsFilesystemAnchorSchema>(
-      'EfsFilesystemAnchor',
+    testModuleContainer.createTestAnchor<AwsEfsAnchorSchema>(
+      'AwsEfsAnchor',
       { filesystemName: 'test-filesystem' },
       filesystem,
     ),
@@ -54,7 +54,12 @@ async function setup(
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
-      { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
+      {
+        awsRegionAZs: ['us-east-1a'],
+        awsRegionId: 'us-east-1',
+        regionId: 'aws-us-east-1a',
+        vpcCidrBlock: '10.0.0.0/16',
+      },
       region,
     ),
   );
@@ -90,7 +95,7 @@ async function setup(
   return { account, app, filesystem, region };
 }
 
-describe('AwsSubnetModule UT', () => {
+describe('AwsSimpleSubnetModule UT', () => {
   const originalRetryPromise = RetryUtility.retryPromise;
 
   let retryPromiseSpy: jest.Spied<any>;
@@ -189,7 +194,7 @@ describe('AwsSubnetModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         localFilesystems: [stub('${{testModule.model.filesystem}}')],
         region: stub('${{testModule.model.region}}'),
@@ -198,7 +203,7 @@ describe('AwsSubnetModule UT', () => {
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -208,10 +213,10 @@ describe('AwsSubnetModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddSubnetModelAction",
+         "AddAwsSimpleSubnetModelAction",
        ],
        [
-         "AddSubnetLocalFilesystemMountOverlayAction",
+         "AddAwsSimpleSubnetLocalFilesystemMountOverlayAction",
        ],
      ]
     `);
@@ -232,7 +237,7 @@ describe('AwsSubnetModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -240,7 +245,7 @@ describe('AwsSubnetModule UT', () => {
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
 
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
@@ -302,7 +307,7 @@ describe('AwsSubnetModule UT', () => {
     `);
 
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -315,7 +320,7 @@ describe('AwsSubnetModule UT', () => {
         },
       },
       moduleId: 'subnet',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
 
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
@@ -360,7 +365,7 @@ describe('AwsSubnetModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         localFilesystems: [stub('${{testModule.model.filesystem}}')],
         region: stub('${{testModule.model.region}}'),
@@ -374,7 +379,7 @@ describe('AwsSubnetModule UT', () => {
         },
       },
       moduleId: 'subnet',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`
@@ -440,7 +445,7 @@ describe('AwsSubnetModule UT', () => {
 
   it('should associate and disassociate subnet with siblings', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -448,9 +453,9 @@ describe('AwsSubnetModule UT', () => {
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet1',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -464,13 +469,12 @@ describe('AwsSubnetModule UT', () => {
         subnetSiblings: [
           {
             attachToNatGateway: false,
-            subnetCidrBlock: stub('${{subnet1.input.subnetCidrBlock}}'),
-            subnetName: stub('${{subnet1.input.subnetName}}'),
+            subnet: stub('${{subnet1.model.subnet}}'),
           },
         ],
       },
       moduleId: 'subnet2',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
 
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
@@ -647,7 +651,7 @@ describe('AwsSubnetModule UT', () => {
     `);
 
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -655,9 +659,9 @@ describe('AwsSubnetModule UT', () => {
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet1',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -671,7 +675,7 @@ describe('AwsSubnetModule UT', () => {
         subnetSiblings: [],
       },
       moduleId: 'subnet2',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
 
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
@@ -772,7 +776,7 @@ describe('AwsSubnetModule UT', () => {
 
   it('should associate and disassociate private subnet with public subnet with a NAT Gateway', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -785,9 +789,9 @@ describe('AwsSubnetModule UT', () => {
         },
       },
       moduleId: 'subnet1',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -796,13 +800,12 @@ describe('AwsSubnetModule UT', () => {
         subnetSiblings: [
           {
             attachToNatGateway: true,
-            subnetCidrBlock: stub('${{subnet1.input.subnetCidrBlock}}'),
-            subnetName: stub('${{subnet1.input.subnetName}}'),
+            subnet: stub('${{subnet1.model.subnet}}'),
           },
         ],
       },
       moduleId: 'subnet2',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
 
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
@@ -1013,7 +1016,7 @@ describe('AwsSubnetModule UT', () => {
     `);
 
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -1026,9 +1029,9 @@ describe('AwsSubnetModule UT', () => {
         },
       },
       moduleId: 'subnet1',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -1037,7 +1040,7 @@ describe('AwsSubnetModule UT', () => {
         subnetSiblings: [],
       },
       moduleId: 'subnet2',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
 
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
@@ -1142,7 +1145,7 @@ describe('AwsSubnetModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -1155,9 +1158,9 @@ describe('AwsSubnetModule UT', () => {
         },
       },
       moduleId: 'subnet1',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -1166,7 +1169,7 @@ describe('AwsSubnetModule UT', () => {
         subnetSiblings: [],
       },
       moduleId: 'subnet2',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
 
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
@@ -1188,7 +1191,7 @@ describe('AwsSubnetModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -1196,7 +1199,7 @@ describe('AwsSubnetModule UT', () => {
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -1227,7 +1230,7 @@ describe('AwsSubnetModule UT', () => {
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -1235,7 +1238,7 @@ describe('AwsSubnetModule UT', () => {
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -1289,7 +1292,7 @@ describe('AwsSubnetModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSubnetModule>({
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
         subnetAvailabilityZone: 'us-east-1a',
@@ -1297,7 +1300,7 @@ describe('AwsSubnetModule UT', () => {
         subnetName: 'private-subnet',
       },
       moduleId: 'subnet',
-      type: AwsSubnetModule,
+      type: AwsSimpleSubnetModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`
