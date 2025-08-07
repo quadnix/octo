@@ -10,13 +10,15 @@ import {
 } from '@quadnix/octo';
 import type { S3Website } from '../../../../../../resources/s3-website/index.js';
 import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website.service.module.js';
-import { AwsS3StaticWebsiteService, type S3WebsiteManifestDiff } from '../aws-s3-static-website.service.model.js';
+import { AwsS3StaticWebsiteService, type S3WebsiteManifestDiff } from '../aws-s3-static-website-service.model.js';
 
 /**
  * @internal
  */
 @Action(AwsS3StaticWebsiteService)
-export class UpdateSourcePathsS3StaticWebsiteModelAction implements IModelAction<AwsS3StaticWebsiteServiceModule> {
+export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction
+  implements IModelAction<AwsS3StaticWebsiteServiceModule>
+{
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.UPDATE &&
@@ -44,13 +46,13 @@ export class UpdateSourcePathsS3StaticWebsiteModelAction implements IModelAction
 /**
  * @internal
  */
-@Factory<UpdateSourcePathsS3StaticWebsiteModelAction>(UpdateSourcePathsS3StaticWebsiteModelAction)
-export class UpdateSourcePathsS3StaticWebsiteModelActionFactory {
-  private static instance: UpdateSourcePathsS3StaticWebsiteModelAction;
+@Factory<UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction>(UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction)
+export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelActionFactory {
+  private static instance: UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction;
 
-  static async create(): Promise<UpdateSourcePathsS3StaticWebsiteModelAction> {
+  static async create(): Promise<UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction> {
     if (!this.instance) {
-      this.instance = new UpdateSourcePathsS3StaticWebsiteModelAction();
+      this.instance = new UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction();
     }
     return this.instance;
   }

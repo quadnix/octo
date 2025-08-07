@@ -1,6 +1,6 @@
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { AwsS3StaticWebsiteService } from './aws-s3-static-website.service.model.js';
+import { AwsS3StaticWebsiteService } from './aws-s3-static-website-service.model.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const resourcesPath = join(__dirname, '../../../../../../resources');

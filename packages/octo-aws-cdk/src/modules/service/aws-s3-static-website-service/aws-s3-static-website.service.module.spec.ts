@@ -96,10 +96,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddS3StaticWebsiteModelAction",
+         "AddAwsS3StaticWebsiteServiceModelAction",
        ],
        [
-         "UpdateSourcePathsS3StaticWebsiteModelAction",
+         "UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction",
        ],
      ]
     `);

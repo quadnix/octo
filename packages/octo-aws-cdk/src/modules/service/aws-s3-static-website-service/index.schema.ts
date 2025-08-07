@@ -6,7 +6,7 @@ import { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account
  * This schema defines the configuration for S3-based static website services including bucket naming,
  * source directory management, and file processing options.
  *
- * @group Modules/Service/S3StaticWebsiteAwsService
+ * @group Modules/Service/AwsS3StaticWebsiteService
  *
  * @hideconstructor
  *

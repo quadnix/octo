@@ -10,13 +10,13 @@ import {
 } from '@quadnix/octo';
 import { S3Website } from '../../../../../../resources/s3-website/index.js';
 import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website.service.module.js';
-import { AwsS3StaticWebsiteService } from '../aws-s3-static-website.service.model.js';
+import { AwsS3StaticWebsiteService } from '../aws-s3-static-website-service.model.js';
 
 /**
  * @internal
  */
 @Action(AwsS3StaticWebsiteService)
-export class AddS3StaticWebsiteModelAction implements IModelAction<AwsS3StaticWebsiteServiceModule> {
+export class AddAwsS3StaticWebsiteServiceModelAction implements IModelAction<AwsS3StaticWebsiteServiceModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -52,13 +52,13 @@ export class AddS3StaticWebsiteModelAction implements IModelAction<AwsS3StaticWe
 /**
  * @internal
  */
-@Factory<AddS3StaticWebsiteModelAction>(AddS3StaticWebsiteModelAction)
-export class AddS3StaticWebsiteModelActionFactory {
-  private static instance: AddS3StaticWebsiteModelAction;
+@Factory<AddAwsS3StaticWebsiteServiceModelAction>(AddAwsS3StaticWebsiteServiceModelAction)
+export class AddAwsS3StaticWebsiteServiceModelActionFactory {
+  private static instance: AddAwsS3StaticWebsiteServiceModelAction;
 
-  static async create(): Promise<AddS3StaticWebsiteModelAction> {
+  static async create(): Promise<AddAwsS3StaticWebsiteServiceModelAction> {
     if (!this.instance) {
-      this.instance = new AddS3StaticWebsiteModelAction();
+      this.instance = new AddAwsS3StaticWebsiteServiceModelAction();
     }
     return this.instance;
   }

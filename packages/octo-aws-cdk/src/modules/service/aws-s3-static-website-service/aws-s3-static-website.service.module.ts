@@ -1,8 +1,8 @@
 import { AModule, type App, type Diff, type DiffMetadata, type IModelAction, Module } from '@quadnix/octo';
 import { AwsS3StaticWebsiteServiceModuleSchema } from './index.schema.js';
-import { AddS3StaticWebsiteModelAction } from './models/s3-static-website/actions/add-s3-static-website.model.action.js';
-import { UpdateSourcePathsS3StaticWebsiteModelAction } from './models/s3-static-website/actions/update-source-paths-s3-static-website.model.action.js';
-import { AwsS3StaticWebsiteService } from './models/s3-static-website/index.js';
+import { AddAwsS3StaticWebsiteServiceModelAction } from './models/service/actions/add-aws-s3-static-website-service.model.action.js';
+import { UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction } from './models/service/actions/update-aws-s3-static-website-service-source-paths.model.action.js';
+import { AwsS3StaticWebsiteService } from './models/service/index.js';
 
 /**
  * `AwsS3StaticWebsiteServiceModule` is an S3-based AWS static website service module
@@ -16,19 +16,19 @@ import { AwsS3StaticWebsiteService } from './models/s3-static-website/index.js';
  * ```ts
  * import {
  *   AwsS3StaticWebsiteServiceModule
- * } from '@quadnix/octo-aws-cdk/modules/service/s3-static-website-aws-service';
+ * } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
  *
  * octo.loadModule(AwsS3StaticWebsiteServiceModule, 'my-website-module', {
  *   bucketName: 'my-static-website',
  *   directoryPath: join(__dirname, 'website'),
  *   filter: (filePath) => !filePath.includes('.DS_Store'),
- *   region: myRegion,
+ *   region: 'us-east-1',
  *   subDirectoryOrFilePath: 'public',
  *   transform: (filePath) => `public/${filePath}`,
  * });
  * ```
  *
- * @group Modules/Service/S3StaticWebsiteAwsService
+ * @group Modules/Service/AwsS3StaticWebsiteService
  *
  * @reference Resources {@link S3WebsiteSchema}
  *
@@ -74,9 +74,10 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
               for (const d of diffsProcessedInSameLevel) {
                 for (const a of d.actions as IModelAction<any>[]) {
                   if (
-                    [AddS3StaticWebsiteModelAction.name, UpdateSourcePathsS3StaticWebsiteModelAction.name].includes(
-                      a.constructor.name,
-                    )
+                    [
+                      AddAwsS3StaticWebsiteServiceModelAction.name,
+                      UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction.name,
+                    ].includes(a.constructor.name)
                   ) {
                     shouldSaveS3WebsiteSourceManifest = d.diff;
                     break loop1;

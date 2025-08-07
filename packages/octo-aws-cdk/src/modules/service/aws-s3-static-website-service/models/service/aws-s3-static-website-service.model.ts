@@ -11,7 +11,7 @@ import {
   Validate,
 } from '@quadnix/octo';
 import { FileUtility } from '../../../../../utilities/file/file.utility.js';
-import { AwsS3StaticWebsiteServiceSchema } from './aws-s3-static-website.service.schema.js';
+import { AwsS3StaticWebsiteServiceSchema } from './aws-s3-static-website-service.schema.js';
 
 type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
 
@@ -209,10 +209,10 @@ export class AwsS3StaticWebsiteService extends Service {
     };
   }
 
-  static override async unSynth(s3StaticWebsite: AwsS3StaticWebsiteServiceSchema): Promise<AwsS3StaticWebsiteService> {
-    const service = new AwsS3StaticWebsiteService(s3StaticWebsite.bucketName);
-    service.excludePaths.push(...s3StaticWebsite.excludePaths!);
-    service.sourcePaths.push(...s3StaticWebsite.sourcePaths!);
-    return service;
+  static override async unSynth(service: AwsS3StaticWebsiteServiceSchema): Promise<AwsS3StaticWebsiteService> {
+    const newService = new AwsS3StaticWebsiteService(service.bucketName);
+    newService.excludePaths.push(...service.excludePaths!);
+    newService.sourcePaths.push(...service.sourcePaths!);
+    return newService;
   }
 }
