@@ -1,6 +1,59 @@
 import { CidrUtility } from './cidr.utility.js';
 
 describe('CidrUtility UT', () => {
+  describe('contains()', () => {
+    it('should return true if the first range contains the second', () => {
+      const cidrRange1 = ['10.0.0.0/8'];
+      const cidrRange2 = ['10.1.1.0/24'];
+      expect(CidrUtility.contains(cidrRange1, cidrRange2)).toBe(true);
+    });
+
+    it('should return true for identical ranges', () => {
+      const cidrRange1 = ['10.0.0.0/24'];
+      const cidrRange2 = ['10.0.0.0/24'];
+      expect(CidrUtility.contains(cidrRange1, cidrRange2)).toBe(true);
+    });
+
+    it('should return false if the first range does not contain the second', () => {
+      const cidrRange1 = ['10.0.0.0/24'];
+      const cidrRange2 = ['192.168.1.0/24'];
+      expect(CidrUtility.contains(cidrRange1, cidrRange2)).toBe(false);
+    });
+
+    it('should return true if any of the first ranges contains any of the second', () => {
+      const cidrRange1 = ['10.0.0.0/24', '192.168.1.0/24'];
+      const cidrRange2 = ['192.168.1.42/32'];
+      expect(CidrUtility.contains(cidrRange1, cidrRange2)).toBe(true);
+    });
+
+    it('should return false if none of the first ranges contains any of the second', () => {
+      const cidrRange1 = ['10.0.0.0/24', '192.168.1.0/24'];
+      const cidrRange2 = ['172.16.0.0/16'];
+      expect(CidrUtility.contains(cidrRange1, cidrRange2)).toBe(false);
+    });
+
+    it('should return true for empty arrays', () => {
+      expect(CidrUtility.contains([], [])).toBe(true);
+    });
+
+    it('should return false if only one array is empty', () => {
+      expect(CidrUtility.contains(['10.0.0.0/24'], [])).toBe(true);
+      expect(CidrUtility.contains([], ['10.0.0.0/24'])).toBe(false);
+    });
+
+    it('should return true for /32 containing itself', () => {
+      expect(CidrUtility.contains(['10.0.0.1/32'], ['10.0.0.1/32'])).toBe(true);
+    });
+
+    it('should return false for /32 not containing a different /32', () => {
+      expect(CidrUtility.contains(['10.0.0.1/32'], ['10.0.0.2/32'])).toBe(false);
+    });
+
+    it('should return true for large block containing smaller', () => {
+      expect(CidrUtility.contains(['0.0.0.0/0'], ['192.168.1.0/24'])).toBe(true);
+    });
+  });
+
   describe('hasOverlap()', () => {
     it('should return false for non-overlapping CIDR ranges', () => {
       const cidrRange1 = ['10.0.0.0/24'];
