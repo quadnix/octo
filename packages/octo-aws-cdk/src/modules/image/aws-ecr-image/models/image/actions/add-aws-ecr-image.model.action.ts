@@ -9,26 +9,26 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { EcrImage } from '../../../../../../resources/ecr/index.js';
-import type { AwsImageModule } from '../../../aws-image.module.js';
-import { AwsImage } from '../aws.image.model.js';
+import type { AwsEcrImageModule } from '../../../aws-ecr-image.module.js';
+import { AwsEcrImage } from '../aws-ecr-image.model.js';
 
 /**
  * @internal
  */
-@Action(AwsImage)
-export class AddImageModelAction implements IModelAction<AwsImageModule> {
+@Action(AwsEcrImage)
+export class AddAwsEcrImageModelAction implements IModelAction<AwsEcrImageModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsImage &&
+      diff.node instanceof AwsEcrImage &&
       hasNodeName(diff.node, 'image') &&
       diff.field === 'imageId'
     );
   }
 
   async handle(
-    diff: Diff<AwsImage>,
-    actionInputs: EnhancedModuleSchema<AwsImageModule>,
+    diff: Diff<AwsEcrImage>,
+    actionInputs: EnhancedModuleSchema<AwsEcrImageModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     // Get properties.
@@ -53,13 +53,13 @@ export class AddImageModelAction implements IModelAction<AwsImageModule> {
 /**
  * @internal
  */
-@Factory<AddImageModelAction>(AddImageModelAction)
-export class AddImageModelActionFactory {
-  private static instance: AddImageModelAction;
+@Factory<AddAwsEcrImageModelAction>(AddAwsEcrImageModelAction)
+export class AddAwsEcrImageModelActionFactory {
+  private static instance: AddAwsEcrImageModelAction;
 
-  static async create(): Promise<AddImageModelAction> {
+  static async create(): Promise<AddAwsEcrImageModelAction> {
     if (!this.instance) {
-      this.instance = new AddImageModelAction();
+      this.instance = new AddAwsEcrImageModelAction();
     }
     return this.instance;
   }

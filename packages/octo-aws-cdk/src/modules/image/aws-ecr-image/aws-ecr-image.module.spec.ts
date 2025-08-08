@@ -14,7 +14,7 @@ import {
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import type { EcrImageSchema } from '../../../resources/ecr/index.schema.js';
-import { AwsImageModule } from './index.js';
+import { AwsEcrImageModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -33,7 +33,12 @@ async function setup(
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
-      { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
+      {
+        awsRegionAZs: ['us-east-1a'],
+        awsRegionId: 'us-east-1',
+        regionId: 'aws-us-east-1a',
+        vpcCidrBlock: '10.0.0.0/16',
+      },
       region,
     ),
   );
@@ -41,7 +46,7 @@ async function setup(
   return { account, app, region };
 }
 
-describe('AwsImageModule UT', () => {
+describe('AwsEcrImageModule UT', () => {
   let container: Container;
   let testModuleContainer: TestModuleContainer;
 
@@ -92,14 +97,14 @@ describe('AwsImageModule UT', () => {
   describe('getEcrRepositoryAuthorizationToken()', () => {
     it('should return repository commands', async () => {
       await setup(testModuleContainer);
-      await testModuleContainer.runModule<AwsImageModule>({
+      await testModuleContainer.runModule<AwsEcrImageModule>({
         inputs: {
           imageFamily: 'family',
           imageName: 'image',
           regions: [stub('${{testModule.model.region}}')],
         },
         moduleId: 'image',
-        type: AwsImageModule,
+        type: AwsEcrImageModule,
       });
 
       const ecrClient = await container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
@@ -120,7 +125,7 @@ describe('AwsImageModule UT', () => {
         }
       };
 
-      const awsImageModule = testModuleContainer.octo.getModule<AwsImageModule>('image')!;
+      const awsImageModule = testModuleContainer.octo.getModule<AwsEcrImageModule>('image')!;
       const ecrRepositoryCommands = await awsImageModule.getEcrRepositoryCommands('family', 'image', 'v1', {
         awsAccountId: '123',
         awsRegionId: 'us-east-1',
@@ -137,14 +142,14 @@ describe('AwsImageModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsImageModule>({
+    await testModuleContainer.runModule<AwsEcrImageModule>({
       inputs: {
         imageFamily: 'family',
         imageName: 'image',
         regions: [stub('${{testModule.model.region}}')],
       },
       moduleId: 'image',
-      type: AwsImageModule,
+      type: AwsEcrImageModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -154,7 +159,7 @@ describe('AwsImageModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddImageModelAction",
+         "AddAwsEcrImageModelAction",
        ],
      ]
     `);
@@ -169,14 +174,14 @@ describe('AwsImageModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsImageModule>({
+    await testModuleContainer.runModule<AwsEcrImageModule>({
       inputs: {
         imageFamily: 'family',
         imageName: 'image',
         regions: [stub('${{testModule.model.region}}')],
       },
       moduleId: 'image',
-      type: AwsImageModule,
+      type: AwsEcrImageModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -213,14 +218,14 @@ describe('AwsImageModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsImageModule>({
+    await testModuleContainer.runModule<AwsEcrImageModule>({
       inputs: {
         imageFamily: 'family',
         imageName: 'image',
         regions: [stub('${{testModule.model.region}}')],
       },
       moduleId: 'image',
-      type: AwsImageModule,
+      type: AwsEcrImageModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -239,14 +244,14 @@ describe('AwsImageModule UT', () => {
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsImageModule>({
+    await testModuleContainer.runModule<AwsEcrImageModule>({
       inputs: {
         imageFamily: 'family',
         imageName: 'image',
         regions: [stub('${{testModule.model.region}}')],
       },
       moduleId: 'image',
-      type: AwsImageModule,
+      type: AwsEcrImageModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -272,14 +277,14 @@ describe('AwsImageModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsImageModule>({
+    await testModuleContainer.runModule<AwsEcrImageModule>({
       inputs: {
         imageFamily: 'family',
         imageName: 'image',
         regions: [stub('${{testModule.model.region}}')],
       },
       moduleId: 'image',
-      type: AwsImageModule,
+      type: AwsEcrImageModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`

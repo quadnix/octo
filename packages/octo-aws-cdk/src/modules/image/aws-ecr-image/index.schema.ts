@@ -2,17 +2,17 @@ import { type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 
 /**
- * `AwsImageModuleSchema` is the input schema for the `AwsImageModule` module.
+ * `AwsEcrImageModuleSchema` is the input schema for the `AwsEcrImageModule` module.
  * This schema defines the required inputs for creating ECR-based container images,
  * including naming and regional replication settings.
  *
- * @group Modules/Image/EcrBasedAwsImage
+ * @group Modules/Image/AwsEcrImage
  *
  * @hideconstructor
  *
- * @see {@link AwsImageModule} to learn more about the `AwsImageModule` module.
+ * @see {@link AwsEcrImageModule} to learn more about the `AwsEcrImageModule` module.
  */
-export class AwsImageModuleSchema {
+export class AwsEcrImageModuleSchema {
   /**
    * The family name for the image.
    * This is used to group related images together in the ECR repository structure.
@@ -37,7 +37,7 @@ export class AwsImageModuleSchema {
       options: { minLength: 1 },
     },
     {
-      destruct: (value: AwsImageModuleSchema['regions']): Region[] => value,
+      destruct: (value: AwsEcrImageModuleSchema['regions']): Region[] => value,
       options: {
         isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
         isSchema: { schema: RegionSchema },
