@@ -9,7 +9,7 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import type { S3Website } from '../../../../../../resources/s3-website/index.js';
-import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website.service.module.js';
+import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website-service.module.js';
 import { AwsS3StaticWebsiteService, type S3WebsiteManifestDiff } from '../aws-s3-static-website-service.model.js';
 
 /**
