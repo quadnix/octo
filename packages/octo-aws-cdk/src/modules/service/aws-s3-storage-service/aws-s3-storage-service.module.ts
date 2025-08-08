@@ -1,8 +1,8 @@
 import { AModule, type Account, type App, Module } from '@quadnix/octo';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { S3StorageAnchor } from '../../../anchors/s3-storage/s3-storage.anchor.js';
+import { AwsS3StorageServiceAnchor } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.js';
 import { AwsS3StorageServiceModuleSchema } from './index.schema.js';
-import { AwsS3StorageService } from './models/s3-storage/index.js';
+import { AwsS3StorageService } from './models/service/index.js';
 
 /**
  * `AwsS3StorageServiceModule` is an S3-based AWS storage service module
@@ -13,7 +13,7 @@ import { AwsS3StorageService } from './models/s3-storage/index.js';
  * @example
  * TypeScript
  * ```ts
- * import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/modules/service/s3-storage-aws-service';
+ * import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-storage-service';
  *
  * octo.loadModule(AwsS3StorageServiceModule, 'my-storage-module', {
  *   bucketName: 'my-app-storage',
@@ -22,7 +22,7 @@ import { AwsS3StorageService } from './models/s3-storage/index.js';
  * });
  * ```
  *
- * @group Modules/Service/S3StorageAwsService
+ * @group Modules/Service/AwsS3StorageService
  *
  * @reference Resources {@link S3StorageSchema}
  *
@@ -35,17 +35,18 @@ export class AwsS3StorageServiceModule extends AModule<AwsS3StorageServiceModule
   async onInit(inputs: AwsS3StorageServiceModuleSchema): Promise<AwsS3StorageService> {
     const { app, awsAccountId, awsRegionId } = await this.registerMetadata(inputs);
 
-    // Create a new s3-storage service.
+    // Create a new service service.
     const s3StorageService = new AwsS3StorageService(inputs.bucketName);
     app.addService(s3StorageService);
 
     // Add anchors.
-    const s3StorageAnchor = new S3StorageAnchor(
-      'S3StorageAnchor',
-      { awsAccountId, awsRegionId, bucketName: inputs.bucketName },
-      s3StorageService,
+    s3StorageService.addAnchor(
+      new AwsS3StorageServiceAnchor(
+        'AwsS3StorageServiceAnchor',
+        { awsAccountId, awsRegionId, bucketName: inputs.bucketName },
+        s3StorageService,
+      ),
     );
-    s3StorageService.addAnchor(s3StorageAnchor);
     // Add S3 directories.
     for (const remoteDirectoryPath of inputs.remoteDirectoryPaths || []) {
       s3StorageService.addDirectory(remoteDirectoryPath);

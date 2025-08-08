@@ -1,7 +1,7 @@
 import { Model, ModelError, Service, Validate } from '@quadnix/octo';
-import { S3DirectoryAnchor } from '../../../../../anchors/s3-directory/s3-directory.anchor.js';
+import { AwsS3StorageServiceDirectoryAnchor } from '../../../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.js';
 import { CommonUtility } from '../../../../../utilities/common/common.utility.js';
-import { AwsS3StorageServiceSchema } from './aws-s3-storage.service.schema.js';
+import { AwsS3StorageServiceSchema } from './aws-s3-storage-service.schema.js';
 
 /**
  * @internal
@@ -24,16 +24,18 @@ export class AwsS3StorageService extends Service {
       throw new ModelError('Remote directory already added in S3 bucket!', this);
     }
 
-    const directoryAnchorName = `S3DirectoryAnchor-${CommonUtility.hash(remoteDirectoryPath).substring(0, 12)}`;
-    const directoryAnchor = new S3DirectoryAnchor(
-      directoryAnchorName,
-      {
-        bucketName: this.bucketName,
-        remoteDirectoryPath,
-      },
-      this,
+    const remoteDirectoryPathHash = CommonUtility.hash(remoteDirectoryPath).substring(0, 12);
+    const directoryAnchorName = `AwsS3StorageServiceDirectoryAnchor-${remoteDirectoryPathHash}`;
+    this.addAnchor(
+      new AwsS3StorageServiceDirectoryAnchor(
+        directoryAnchorName,
+        {
+          bucketName: this.bucketName,
+          remoteDirectoryPath,
+        },
+        this,
+      ),
     );
-    this.addAnchor(directoryAnchor);
 
     this.directories.push({ directoryAnchorName, remoteDirectoryPath });
   }
@@ -46,9 +48,9 @@ export class AwsS3StorageService extends Service {
     };
   }
 
-  static override async unSynth(s3Storage: AwsS3StorageServiceSchema): Promise<AwsS3StorageService> {
-    const service = new AwsS3StorageService(s3Storage.bucketName);
-    service.directories.push(...(s3Storage.directories || []));
-    return service;
+  static override async unSynth(service: AwsS3StorageServiceSchema): Promise<AwsS3StorageService> {
+    const newService = new AwsS3StorageService(service.bucketName);
+    newService.directories.push(...(service.directories || []));
+    return newService;
   }
 }

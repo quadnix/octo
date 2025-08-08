@@ -6,7 +6,7 @@ import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.an
  * This schema defines the configuration for S3-based storage services including bucket naming,
  * region placement, and directory organization.
  *
- * @group Modules/Service/S3StorageAwsService
+ * @group Modules/Service/AwsS3StorageService
  *
  * @hideconstructor
  *

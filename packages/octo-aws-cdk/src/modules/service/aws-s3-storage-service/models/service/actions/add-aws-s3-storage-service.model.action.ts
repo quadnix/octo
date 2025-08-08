@@ -9,14 +9,14 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { S3Storage } from '../../../../../../resources/s3-storage/index.js';
-import type { AwsS3StorageServiceModule } from '../../../aws-s3-storage.service.module.js';
-import { AwsS3StorageService } from '../aws-s3-storage.service.model.js';
+import type { AwsS3StorageServiceModule } from '../../../aws-s3-storage-service.module.js';
+import { AwsS3StorageService } from '../aws-s3-storage-service.model.js';
 
 /**
  * @internal
  */
 @Action(AwsS3StorageService)
-export class AddS3StorageServiceModelAction implements IModelAction<AwsS3StorageServiceModule> {
+export class AddAwsS3StorageServiceModelAction implements IModelAction<AwsS3StorageServiceModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
@@ -51,13 +51,13 @@ export class AddS3StorageServiceModelAction implements IModelAction<AwsS3Storage
 /**
  * @internal
  */
-@Factory<AddS3StorageServiceModelAction>(AddS3StorageServiceModelAction)
-export class AddS3StorageServiceModelActionFactory {
-  private static instance: AddS3StorageServiceModelAction;
+@Factory<AddAwsS3StorageServiceModelAction>(AddAwsS3StorageServiceModelAction)
+export class AddAwsS3StorageServiceModelActionFactory {
+  private static instance: AddAwsS3StorageServiceModelAction;
 
-  static async create(): Promise<AddS3StorageServiceModelAction> {
+  static async create(): Promise<AddAwsS3StorageServiceModelAction> {
     if (!this.instance) {
-      this.instance = new AddS3StorageServiceModelAction();
+      this.instance = new AddAwsS3StorageServiceModelAction();
     }
     return this.instance;
   }

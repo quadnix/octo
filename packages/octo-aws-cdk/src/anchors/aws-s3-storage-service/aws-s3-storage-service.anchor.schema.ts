@@ -3,11 +3,11 @@ import { BaseAnchorSchema, Schema, type Service, Validate } from '@quadnix/octo'
 /**
  * This anchor is associated with a {@link Service} model representing an AWS S3 bucket.
  *
- * @group Anchors/S3Storage
+ * @group Anchors/AwsS3StorageService
  *
  * @hideconstructor
  */
-export class S3StorageAnchorSchema extends BaseAnchorSchema {
+export class AwsS3StorageServiceAnchorSchema extends BaseAnchorSchema {
   /**
    * @private
    */
@@ -20,7 +20,7 @@ export class S3StorageAnchorSchema extends BaseAnchorSchema {
    * * `properties.bucketName` - S3 bucket name.
    */
   @Validate({
-    destruct: (value: S3StorageAnchorSchema['properties']): string[] => [
+    destruct: (value: AwsS3StorageServiceAnchorSchema['properties']): string[] => [
       value.awsAccountId,
       value.awsRegionId,
       value.bucketName,
