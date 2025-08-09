@@ -7,15 +7,15 @@ import {
 /**
  * @internal
  */
-export class AwsExecutionOverlaySchema extends BaseOverlaySchema {
+export class AwsEcsExecutionOverlaySchema extends BaseOverlaySchema {
   @Validate<unknown>([
     {
-      destruct: (value: AwsExecutionOverlaySchema['properties']): EcsTaskDefinitionImageSchema[] =>
+      destruct: (value: AwsEcsExecutionOverlaySchema['properties']): EcsTaskDefinitionImageSchema[] =>
         value.deploymentContainerProperties.images,
       options: { isSchema: { schema: EcsTaskDefinitionImageSchema } },
     },
     {
-      destruct: (value: AwsExecutionOverlaySchema['properties']): string[] => [
+      destruct: (value: AwsEcsExecutionOverlaySchema['properties']): string[] => [
         String(value.deploymentContainerProperties.cpu),
         String(value.deploymentContainerProperties.memory),
         value.deploymentTag,

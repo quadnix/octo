@@ -3,7 +3,7 @@ import { ExecutionSchema, type IModelReference, Schema, Validate } from '@quadni
 /**
  * @internal
  */
-export class AwsExecutionSchema extends ExecutionSchema {
+export class AwsEcsExecutionSchema extends ExecutionSchema {
   @Validate({ options: { minLength: 1 } })
   executionId = Schema<string>();
 

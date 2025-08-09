@@ -1,11 +1,11 @@
 import { AModel, type Deployment, type Environment, Execution, Model, ModelError, type Subnet } from '@quadnix/octo';
-import { AwsExecutionSchema } from './aws.execution.schema.js';
+import { AwsEcsExecutionSchema } from './aws-ecs-execution.schema.js';
 
 /**
  * @internal
  */
-@Model<AwsExecution>('@octo', 'execution', AwsExecutionSchema)
-export class AwsExecution extends Execution {
+@Model<AwsEcsExecution>('@octo', 'execution', AwsEcsExecutionSchema)
+export class AwsEcsExecution extends Execution {
   readonly deployments: { main: Deployment; sidecars: Deployment[] };
   readonly customExecutionId: string;
 
@@ -19,10 +19,10 @@ export class AwsExecution extends Execution {
 
     // Check total number of deployments.
     if (deployments.sidecars.length > 2) {
-      throw new ModelError('No more than 2 sidecar deployments are allowed per execution!', this);
+      throw new ModelError('No more than 2 sidecar deployments are allowed per aws-ecs-execution!', this);
     }
 
-    // In order for this execution to properly have defined its parent-child relationship, all parents
+    // In order for this aws-ecs-execution to properly have defined its parent-child relationship, all parents
     // must claim it as their child. Doing it here, prevents the confusion.
     for (const deployment of deployments.sidecars) {
       deployment.addChild('deploymentTag', this, 'executionId');
@@ -57,7 +57,7 @@ export class AwsExecution extends Execution {
     ].join(',');
   }
 
-  override synth(): AwsExecutionSchema {
+  override synth(): AwsEcsExecutionSchema {
     const parents = this.getParents();
     const deployment = parents['deployment'].find(
       (d) => (d.to as Deployment).deploymentTag === this.deployments.main.deploymentTag,
@@ -76,27 +76,25 @@ export class AwsExecution extends Execution {
   }
 
   static override async unSynth(
-    awsExecution: AwsExecutionSchema,
+    execution: AwsEcsExecutionSchema,
     deReferenceContext: (context: string) => Promise<AModel<any, any>>,
-  ): Promise<AwsExecution> {
+  ): Promise<AwsEcsExecution> {
     const [deployment, environment, subnet] = (await Promise.all([
-      deReferenceContext(awsExecution.deployment.context),
-      deReferenceContext(awsExecution.environment.context),
-      deReferenceContext(awsExecution.subnet.context),
+      deReferenceContext(execution.deployment.context),
+      deReferenceContext(execution.environment.context),
+      deReferenceContext(execution.subnet.context),
     ])) as [Deployment, Environment, Subnet];
 
-    const sidecars = (await Promise.all(
-      awsExecution.sidecars.map((d) => deReferenceContext(d.context)),
-    )) as Deployment[];
+    const sidecars = (await Promise.all(execution.sidecars.map((d) => deReferenceContext(d.context)))) as Deployment[];
 
-    const newExecution = new AwsExecution(
-      awsExecution.executionId,
+    const newExecution = new AwsEcsExecution(
+      execution.executionId,
       { main: deployment, sidecars },
       environment,
       subnet,
     );
 
-    for (const [key, value] of Object.entries(awsExecution.environmentVariables)) {
+    for (const [key, value] of Object.entries(execution.environmentVariables)) {
       newExecution.environmentVariables.set(key, value);
     }
 

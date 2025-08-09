@@ -3,6 +3,6 @@ import { BaseOverlaySchema, Schema } from '@quadnix/octo';
 /**
  * @internal
  */
-export class ServerExecutionSecurityGroupOverlaySchema extends BaseOverlaySchema {
+export class AwsEcsExecutionServerSecurityGroupOverlaySchema extends BaseOverlaySchema {
   override properties = Schema<Record<never, never>>();
 }

@@ -10,30 +10,30 @@ import {
   SubnetSchema,
   Validate,
 } from '@quadnix/octo';
-import { EcsClusterAnchorSchema } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.schema.js';
-import { EcsTaskDefinitionAnchorSchema } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.schema.js';
-import { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
-import { SecurityGroupAnchorRuleSchema } from '../../../anchors/security-group/security-group.anchor.schema.js';
-import { AwsExecutionOverlaySchema } from './overlays/execution/aws-execution.schema.js';
-import { ServerExecutionSecurityGroupOverlaySchema } from './overlays/server-execution-security-group/server-execution-security-group.overlay.schema.js';
+import { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
+import { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
+import { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
+import { AwsSecurityGroupAnchorRuleSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
+import { AwsEcsExecutionOverlaySchema } from './overlays/aws-ecs-execution/aws-ecs-execution.schema.js';
+import { AwsEcsExecutionServerSecurityGroupOverlaySchema } from './overlays/aws-ecs-execution-server-security-group/aws-ecs-execution-server-security-group.overlay.schema.js';
 
-export { AwsExecutionOverlaySchema, ServerExecutionSecurityGroupOverlaySchema };
+export { AwsEcsExecutionOverlaySchema, AwsEcsExecutionServerSecurityGroupOverlaySchema };
 
 /**
  * Defines the container image properties for execution deployments.
  * This schema configures the container image settings including commands, networking, and runtime characteristics.
  *
- * @group Modules/Execution/EcsBasedAwsExecution
+ * @group Modules/Execution/AwsEcsExecution
  *
  * @hideconstructor
  */
-export class AwsExecutionModuleDeploymentContainerPropertiesImageSchema {
+export class AwsEcsExecutionModuleDeploymentContainerPropertiesImageSchema {
   /**
    * The command to run when the container starts.
    * This overrides the default command specified in the Docker image.
    */
   @Validate({
-    destruct: (value: AwsExecutionModuleDeploymentContainerPropertiesImageSchema['command']): string[] =>
+    destruct: (value: AwsEcsExecutionModuleDeploymentContainerPropertiesImageSchema['command']): string[] =>
       value ? [value] : [],
     options: { minLength: 1 },
   })
@@ -58,7 +58,7 @@ export class AwsExecutionModuleDeploymentContainerPropertiesImageSchema {
    * These define which container ports are exposed and on which protocols.
    */
   @Validate({
-    destruct: (value: AwsExecutionModuleDeploymentContainerPropertiesImageSchema['ports']): string[] => {
+    destruct: (value: AwsEcsExecutionModuleDeploymentContainerPropertiesImageSchema['ports']): string[] => {
       const values: string[] = [];
       for (const portMapping of value!) {
         values.push(String(portMapping.containerPort), portMapping.protocol);
@@ -79,11 +79,11 @@ export class AwsExecutionModuleDeploymentContainerPropertiesImageSchema {
  * Defines the container properties for execution deployments.
  * This schema configures the CPU, memory, and image settings for containers in the execution.
  *
- * @group Modules/Execution/EcsBasedAwsExecution
+ * @group Modules/Execution/AwsEcsExecution
  *
  * @hideconstructor
  */
-export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
+export class AwsEcsExecutionModuleDeploymentContainerPropertiesSchema {
   /**
    * The CPU units to allocate to the container.
    * This is measured in CPU units where 1024 units = 1 vCPU.
@@ -94,12 +94,12 @@ export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
   /**
    * The image configuration for the container.
    * This defines the container image settings and runtime properties.
-   * See {@link AwsExecutionModuleDeploymentContainerPropertiesImageSchema} for options.
+   * See {@link AwsEcsExecutionModuleDeploymentContainerPropertiesImageSchema} for options.
    */
   @Validate({
-    options: { isSchema: { schema: AwsExecutionModuleDeploymentContainerPropertiesImageSchema } },
+    options: { isSchema: { schema: AwsEcsExecutionModuleDeploymentContainerPropertiesImageSchema } },
   })
-  image = Schema<AwsExecutionModuleDeploymentContainerPropertiesImageSchema>();
+  image = Schema<AwsEcsExecutionModuleDeploymentContainerPropertiesImageSchema>();
 
   /**
    * The memory limit in MiB to allocate to the container.
@@ -110,49 +110,49 @@ export class AwsExecutionModuleDeploymentContainerPropertiesSchema {
 }
 
 /**
- * `AwsExecutionModuleSchema` is the input schema for the `AwsExecutionModule` module.
+ * `AwsEcsExecutionModuleSchema` is the input schema for the `AwsEcsExecutionModule` module.
  * This schema defines the comprehensive configuration for ECS-based executions,
  * including deployment orchestration, environment settings, networking, and security.
  *
- * @group Modules/Execution/EcsBasedAwsExecution
+ * @group Modules/Execution/AwsEcsExecution
  *
  * @hideconstructor
  *
- * @see {@link AwsExecutionModule} to learn more about the `AwsExecutionModule` module.
+ * @see {@link AwsEcsExecutionModule} to learn more about the `AwsEcsExecutionModule` module.
  */
-export class AwsExecutionModuleSchema {
+export class AwsEcsExecutionModuleSchema {
   /**
    * The deployment configuration including main and sidecar containers.
    * The main deployment is the primary application container, while sidecars provide supporting functionality.
    */
   @Validate<unknown>([
     {
-      destruct: (value: AwsExecutionModuleSchema['deployments']): Deployment[] => [
+      destruct: (value: AwsEcsExecutionModuleSchema['deployments']): Deployment[] => [
         value.main.deployment,
         ...value.sidecars.map((d) => d.deployment),
       ],
       options: {
-        isModel: { anchors: [{ schema: EcsTaskDefinitionAnchorSchema }], NODE_NAME: 'deployment' },
+        isModel: { anchors: [{ schema: AwsEcsTaskDefinitionAnchorSchema }], NODE_NAME: 'deployment' },
         isSchema: { schema: DeploymentSchema },
       },
     },
     {
       destruct: (
-        value: AwsExecutionModuleSchema['deployments'],
-      ): AwsExecutionModuleDeploymentContainerPropertiesSchema[] => [
+        value: AwsEcsExecutionModuleSchema['deployments'],
+      ): AwsEcsExecutionModuleDeploymentContainerPropertiesSchema[] => [
         value.main.containerProperties,
         ...value.sidecars.map((d) => d.containerProperties),
       ],
-      options: { isSchema: { schema: AwsExecutionModuleDeploymentContainerPropertiesSchema } },
+      options: { isSchema: { schema: AwsEcsExecutionModuleDeploymentContainerPropertiesSchema } },
     },
   ])
   deployments = Schema<{
     main: {
-      containerProperties: AwsExecutionModuleDeploymentContainerPropertiesSchema;
+      containerProperties: AwsEcsExecutionModuleDeploymentContainerPropertiesSchema;
       deployment: Deployment;
     };
     sidecars: {
-      containerProperties: Pick<AwsExecutionModuleDeploymentContainerPropertiesSchema, 'image'>;
+      containerProperties: Pick<AwsEcsExecutionModuleDeploymentContainerPropertiesSchema, 'image'>;
       deployment: Deployment;
     }[];
   }>();
@@ -170,7 +170,7 @@ export class AwsExecutionModuleSchema {
    */
   @Validate({
     options: {
-      isModel: { anchors: [{ schema: EcsClusterAnchorSchema }], NODE_NAME: 'environment' },
+      isModel: { anchors: [{ schema: AwsEcsClusterAnchorSchema }], NODE_NAME: 'environment' },
       isSchema: { schema: EnvironmentSchema },
     },
   })
@@ -205,9 +205,9 @@ export class AwsExecutionModuleSchema {
    * These provide persistent storage for the containers.
    */
   @Validate({
-    destruct: (value: AwsExecutionModuleSchema['filesystems']): Filesystem[] => value!,
+    destruct: (value: AwsEcsExecutionModuleSchema['filesystems']): Filesystem[] => value!,
     options: {
-      isModel: { anchors: [{ schema: EfsFilesystemAnchorSchema }], NODE_NAME: 'filesystem' },
+      isModel: { anchors: [{ schema: AwsEfsAnchorSchema }], NODE_NAME: 'filesystem' },
       isSchema: { schema: FilesystemSchema },
     },
   })
@@ -218,10 +218,10 @@ export class AwsExecutionModuleSchema {
    * These define the network traffic rules for the containers.
    */
   @Validate({
-    destruct: (value: AwsExecutionModuleSchema['securityGroupRules']): SecurityGroupAnchorRuleSchema[] => value!,
-    options: { isSchema: { schema: SecurityGroupAnchorRuleSchema } },
+    destruct: (value: AwsEcsExecutionModuleSchema['securityGroupRules']): AwsSecurityGroupAnchorRuleSchema[] => value!,
+    options: { isSchema: { schema: AwsSecurityGroupAnchorRuleSchema } },
   })
-  securityGroupRules? = Schema<SecurityGroupAnchorRuleSchema[]>([]);
+  securityGroupRules? = Schema<AwsSecurityGroupAnchorRuleSchema[]>([]);
 
   /**
    * The subnet where the execution will run.
@@ -234,7 +234,7 @@ export class AwsExecutionModuleSchema {
       },
     },
     {
-      destruct: (value: AwsExecutionModuleSchema['subnet']): SubnetSchema[] => [value.synth()],
+      destruct: (value: AwsEcsExecutionModuleSchema['subnet']): SubnetSchema[] => [value.synth()],
       options: {
         isSchema: { schema: SubnetSchema },
       },

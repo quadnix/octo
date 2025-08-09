@@ -18,26 +18,26 @@ import { EfsSchema } from '../../../../../../resources/efs/index.schema.js';
 import { IamRoleSchema } from '../../../../../../resources/iam-role/index.schema.js';
 import { SecurityGroupSchema } from '../../../../../../resources/security-group/index.schema.js';
 import { SubnetSchema } from '../../../../../../resources/subnet/index.schema.js';
-import type { AwsExecutionModule } from '../../../aws-execution.module.js';
-import { AwsExecutionOverlay } from '../aws-execution.overlay.js';
+import type { AwsEcsExecutionModule } from '../../../aws-ecs-execution.module.js';
+import { AwsEcsExecutionOverlay } from '../aws-ecs-execution.overlay.js';
 
 /**
  * @internal
  */
-@Action(AwsExecutionOverlay)
-export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModule> {
+@Action(AwsEcsExecutionOverlay)
+export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecutionModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsExecutionOverlay &&
-      hasNodeName(diff.node, 'execution-overlay') &&
+      diff.node instanceof AwsEcsExecutionOverlay &&
+      hasNodeName(diff.node, 'aws-ecs-execution-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff<AwsExecutionOverlay>,
-    actionInputs: EnhancedModuleSchema<AwsExecutionModule>,
+    diff: Diff<AwsEcsExecutionOverlay>,
+    actionInputs: EnhancedModuleSchema<AwsEcsExecutionModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const awsExecutionOverlay = diff.node;
@@ -48,7 +48,6 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
 
     const [
       matchingMainIamRoleAnchor,
-      ecsServiceAnchor,
       ecsExecutionAnchor,
       matchingEcsClusterAnchor,
       securityGroupAnchor,
@@ -158,7 +157,7 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
         assignPublicIp: properties.subnetType === SubnetType.PUBLIC ? 'ENABLED' : 'DISABLED',
         awsAccountId,
         awsRegionId,
-        desiredCount: ecsServiceAnchor.properties.desiredCount,
+        desiredCount: ecsExecutionAnchor.properties.desiredCount,
         loadBalancers: [],
         serviceName: properties.executionId.replace(/\./g, '_'),
       },
@@ -179,13 +178,13 @@ export class AddExecutionOverlayAction implements IModelAction<AwsExecutionModul
 /**
  * @internal
  */
-@Factory<AddExecutionOverlayAction>(AddExecutionOverlayAction)
-export class AddExecutionOverlayActionFactory {
-  private static instance: AddExecutionOverlayAction;
+@Factory<AddAwsEcsExecutionOverlayAction>(AddAwsEcsExecutionOverlayAction)
+export class AddAwsEcsExecutionOverlayActionFactory {
+  private static instance: AddAwsEcsExecutionOverlayAction;
 
-  static async create(): Promise<AddExecutionOverlayAction> {
+  static async create(): Promise<AddAwsEcsExecutionOverlayAction> {
     if (!this.instance) {
-      this.instance = new AddExecutionOverlayAction();
+      this.instance = new AddAwsEcsExecutionOverlayAction();
     }
     return this.instance;
   }

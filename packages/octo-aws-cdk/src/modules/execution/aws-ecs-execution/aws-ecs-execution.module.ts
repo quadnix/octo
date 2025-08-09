@@ -7,31 +7,31 @@ import {
   type Region,
   type Server,
 } from '@quadnix/octo';
+import { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
+import { AwsEcsExecutionAnchor } from '../../../anchors/aws-ecs/aws-ecs-execution.anchor.js';
+import { AwsEcsServiceAnchor } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.js';
+import { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
+import { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-role.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { EcsClusterAnchorSchema } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.schema.js';
-import { EcsExecutionAnchor } from '../../../anchors/ecs-execution/ecs-execution.anchor.js';
-import { EcsServiceAnchor } from '../../../anchors/ecs-service/ecs-service.anchor.js';
-import { EcsTaskDefinitionAnchorSchema } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.schema.js';
-import { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.schema.js';
-import { SecurityGroupAnchor } from '../../../anchors/security-group/security-group.anchor.js';
-import { SecurityGroupAnchorSchema } from '../../../anchors/security-group/security-group.anchor.schema.js';
-import { SubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.schema.js';
-import { AwsSubnetLocalFilesystemMountSchema } from '../../subnet/simple-aws-subnet/index.schema.js';
-import { AwsExecutionModuleSchema } from './index.schema.js';
-import { AwsExecution } from './models/execution/index.js';
-import { AwsExecutionOverlay } from './overlays/execution/index.js';
-import { ServerExecutionSecurityGroupOverlay } from './overlays/server-execution-security-group/index.js';
+import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
+import { AwsSecurityGroupAnchorSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
+import { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
+import { AwsSimpleSubnetLocalFilesystemMountOverlaySchema } from '../../subnet/aws-simple-subnet/index.schema.js';
+import { AwsEcsExecutionModuleSchema } from './index.schema.js';
+import { AwsEcsExecution } from './models/execution/index.js';
+import { AwsEcsExecutionOverlay } from './overlays/aws-ecs-execution/index.js';
+import { AwsEcsExecutionServerSecurityGroupOverlay } from './overlays/aws-ecs-execution-server-security-group/index.js';
 
 /**
- * `AwsExecutionModule` is an ECS-based AWS execution module that provides an implementation for the `Execution` model.
- * This module creates executions that manage the runtime of containerized applications in ECS environments.
- * It handles main and sidecar deployments, environment variables,
+ * `AwsEcsExecutionModule` is an ECS-based AWS execution module that provides an implementation for
+ * the `Execution` model. This module creates executions that manage the runtime of containerized applications
+ * in ECS environments. It handles main and sidecar deployments, environment variables,
  * security groups, filesystem mounts, and service orchestration.
  *
  * @example
  * TypeScript
  * ```ts
- * import { AwsExecutionModule } from '@quadnix/octo-aws-cdk/modules/execution/ecs-based-aws-execution';
+ * import { AwsEcsExecutionModule } from '@quadnix/octo-aws-cdk/modules/aws-ecs-execution';
  *
  * octo.loadModule(AwsExecutionModule, 'my-execution-module', {
  *   deployments: {
@@ -67,21 +67,21 @@ import { ServerExecutionSecurityGroupOverlay } from './overlays/server-execution
  * });
  * ```
  *
- * @group Modules/Execution/EcsBasedAwsExecution
+ * @group Modules/Execution/AwsEcsExecution
  *
  * @reference Resources {@link EcsServiceSchema}
  * @reference Resources {@link EcsTaskDefinitionSchema}
  * @reference Resources {@link SecurityGroupSchema}
  *
- * @see {@link AwsExecutionModuleSchema} for the input schema.
+ * @see {@link AwsEcsExecutionModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
  * @see {@link Execution} to learn more about the `Execution` model.
  */
-@Module<AwsExecutionModule>('@octo', AwsExecutionModuleSchema)
-export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execution> {
+@Module<AwsEcsExecutionModule>('@octo', AwsEcsExecutionModuleSchema)
+export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, Execution> {
   async onInit(
-    inputs: AwsExecutionModuleSchema,
-  ): Promise<(AwsExecution | AwsExecutionOverlay | ServerExecutionSecurityGroupOverlay)[]> {
+    inputs: AwsEcsExecutionModuleSchema,
+  ): Promise<(AwsEcsExecution | AwsEcsExecutionOverlay | AwsEcsExecutionServerSecurityGroupOverlay)[]> {
     const { deployments, environment, subnet } = inputs;
     const { region } = await this.registerMetadata(inputs);
 
@@ -90,7 +90,7 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
     }
 
     // Create a new execution.
-    const execution = new AwsExecution(
+    const execution = new AwsEcsExecution(
       inputs.executionId,
       { main: deployments.main.deployment, sidecars: deployments.sidecars.map((d) => d.deployment) },
       environment,
@@ -100,19 +100,22 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
       execution.environmentVariables.set(key, value);
     }
 
-    const models: (AwsExecution | AwsExecutionOverlay | ServerExecutionSecurityGroupOverlay)[] = [execution];
+    const models: (AwsEcsExecution | AwsEcsExecutionOverlay | AwsEcsExecutionServerSecurityGroupOverlay)[] = [
+      execution,
+    ];
 
     // Add anchors.
-    const ecsServiceAnchor = new EcsServiceAnchor('EcsServiceAnchor', { desiredCount: inputs.desiredCount }, execution);
-    execution.addAnchor(ecsServiceAnchor);
-    const ecsExecutionAnchor = new EcsExecutionAnchor(
-      'EcsExecutionAnchor',
-      { environmentVariables: Object.fromEntries(execution.environmentVariables.entries()) },
+    const ecsExecutionAnchor = new AwsEcsExecutionAnchor(
+      'AwsEcsExecutionAnchor',
+      {
+        desiredCount: inputs.desiredCount,
+        environmentVariables: Object.fromEntries(execution.environmentVariables.entries()),
+      },
       execution,
     );
     execution.addAnchor(ecsExecutionAnchor);
-    const securityGroupAnchor = new SecurityGroupAnchor(
-      'SecurityGroupAnchor',
+    const securityGroupAnchor = new AwsSecurityGroupAnchor(
+      'AwsSecurityGroupAnchor',
       {
         rules: [],
         securityGroupName: `SecurityGroup-${execution.executionId}`,
@@ -138,22 +141,26 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
 
     // Get main deployment server's anchors.
     const mainServer = deployments.main.deployment.getParents()['server'][0].to as Server;
-    const [matchingMainIamRoleAnchor] = await mainServer.getAnchorsMatchingSchema(IamRoleAnchorSchema, [], {
+    const [matchingMainIamRoleAnchor] = await mainServer.getAnchorsMatchingSchema(AwsIamRoleAnchorSchema, [], {
       searchBoundaryMembers: false,
     });
-    const [matchingMainSecurityGroupAnchor] = await mainServer.getAnchorsMatchingSchema(SecurityGroupAnchorSchema, [], {
-      searchBoundaryMembers: false,
-    });
+    const [matchingMainSecurityGroupAnchor] = await mainServer.getAnchorsMatchingSchema(
+      AwsSecurityGroupAnchorSchema,
+      [],
+      {
+        searchBoundaryMembers: false,
+      },
+    );
     if (!matchingMainIamRoleAnchor || !matchingMainSecurityGroupAnchor) {
       throw new Error(`Server "${mainServer.serverKey}" does not have compatible anchors!`);
     }
 
     // Get sidecar deployment server's anchors.
     const sidecarServers = deployments.sidecars.map((d) => d.deployment.getParents()['server'][0].to as Server);
-    const matchingSidecarSecurityGroupAnchors: MatchingAnchor<SecurityGroupAnchorSchema>[] = [];
+    const matchingSidecarSecurityGroupAnchors: MatchingAnchor<AwsSecurityGroupAnchorSchema>[] = [];
     for (const server of sidecarServers) {
       const [matchingSidecarSecurityGroupAnchor] = await server.getAnchorsMatchingSchema(
-        SecurityGroupAnchorSchema,
+        AwsSecurityGroupAnchorSchema,
         [],
         {
           searchBoundaryMembers: false,
@@ -167,7 +174,7 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
 
     // Get main deployment anchors.
     const [matchingMainTaskDefinitionAnchor] = await deployments.main.deployment.getAnchorsMatchingSchema(
-      EcsTaskDefinitionAnchorSchema,
+      AwsEcsTaskDefinitionAnchorSchema,
       [],
       {
         searchBoundaryMembers: false,
@@ -175,10 +182,10 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
     );
 
     // Get sidecar deployment anchors.
-    const matchingSidecarTaskDefinitionAnchors: MatchingAnchor<EcsTaskDefinitionAnchorSchema>[] = [];
+    const matchingSidecarTaskDefinitionAnchors: MatchingAnchor<AwsEcsTaskDefinitionAnchorSchema>[] = [];
     for (const deployment of deployments.sidecars) {
       const [matchingSidecarTaskDefinitionAnchor] = await deployment.deployment.getAnchorsMatchingSchema(
-        EcsTaskDefinitionAnchorSchema,
+        AwsEcsTaskDefinitionAnchorSchema,
         [],
         {
           searchBoundaryMembers: false,
@@ -188,15 +195,15 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
     }
 
     // Get environment anchors.
-    const [matchingEcsClusterAnchor] = await environment.getAnchorsMatchingSchema(EcsClusterAnchorSchema, [], {
+    const [matchingEcsClusterAnchor] = await environment.getAnchorsMatchingSchema(AwsEcsClusterAnchorSchema, [], {
       searchBoundaryMembers: false,
     });
 
     // Get filesystem anchors.
-    const matchingSubnetLocalFilesystemMountAnchors: MatchingAnchor<SubnetLocalFilesystemMountAnchorSchema>[] = [];
+    const matchingSubnetLocalFilesystemMountAnchors: MatchingAnchor<AwsSubnetLocalFilesystemMountAnchorSchema>[] = [];
     for (const filesystem of inputs.filesystems || []) {
       const [matchingSubnetLocalFilesystemMountAnchor] = await subnet.getAnchorsMatchingSchema(
-        SubnetLocalFilesystemMountAnchorSchema,
+        AwsSubnetLocalFilesystemMountAnchorSchema,
         [{ key: 'filesystemName', value: filesystem.filesystemName }],
         { searchBoundaryMembers: false },
       );
@@ -206,9 +213,9 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
       matchingSubnetLocalFilesystemMountAnchors.push(matchingSubnetLocalFilesystemMountAnchor);
     }
 
-    // Add execution overlay for container lifecycle.
-    const executionOverlayId = `execution-overlay-${execution.executionId}`;
-    const executionOverlay = new AwsExecutionOverlay(
+    // Add aws-ecs-execution overlay for container lifecycle.
+    const executionOverlayId = `aws-ecs-execution-overlay-${execution.executionId}`;
+    const executionOverlay = new AwsEcsExecutionOverlay(
       executionOverlayId,
       {
         deploymentContainerProperties: {
@@ -269,20 +276,25 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
       },
       [
         matchingMainIamRoleAnchor,
-        ecsServiceAnchor,
         ecsExecutionAnchor,
         matchingEcsClusterAnchor,
         securityGroupAnchor,
         ...matchingSubnetLocalFilesystemMountAnchors,
       ],
     );
+    const ecsServiceAnchor = new AwsEcsServiceAnchor(
+      'AwsEcsServiceAnchor',
+      { executionId: execution.executionId },
+      executionOverlay,
+    );
+    execution.addAnchor(ecsServiceAnchor);
     models.push(executionOverlay);
 
     // Enforce relationship between filesystem overlay and execution,
     // so that execution overlay always executes after filesystem overlay.
     for (const matchingSubnetLocalFilesystemMountAnchor of matchingSubnetLocalFilesystemMountAnchors) {
       const [subnetLocalFilesystemMountOverlay] = await subnet.getOverlaysMatchingSchema(
-        AwsSubnetLocalFilesystemMountSchema,
+        AwsSimpleSubnetLocalFilesystemMountOverlaySchema,
         [
           {
             key: 'filesystemName',
@@ -294,8 +306,8 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
     }
 
     // Add SecurityGroupOverlay for security group lifecycle.
-    const securityGroupOverlay = new ServerExecutionSecurityGroupOverlay(
-      `server-execution-security-group-overlay-${execution.executionId}`,
+    const securityGroupOverlay = new AwsEcsExecutionServerSecurityGroupOverlay(
+      `aws-ecs-execution-server-security-group-overlay-${execution.executionId}`,
       {},
       [matchingMainSecurityGroupAnchor, ...matchingSidecarSecurityGroupAnchors, securityGroupAnchor],
     );
@@ -309,7 +321,7 @@ export class AwsExecutionModule extends AModule<AwsExecutionModuleSchema, Execut
   }
 
   override async registerMetadata(
-    inputs: AwsExecutionModuleSchema,
+    inputs: AwsEcsExecutionModuleSchema,
   ): Promise<{ awsAccountId: string; awsRegionId: string; region: Region }> {
     const { environment } = inputs;
     const region = environment.getParents()['region'][0].to as Region;

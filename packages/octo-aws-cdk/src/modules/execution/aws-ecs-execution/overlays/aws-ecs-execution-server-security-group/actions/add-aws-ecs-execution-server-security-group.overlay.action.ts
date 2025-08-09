@@ -11,26 +11,26 @@ import {
 } from '@quadnix/octo';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
 import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
-import type { AwsExecutionModule } from '../../../aws-execution.module.js';
-import { ServerExecutionSecurityGroupOverlay } from '../server-execution-security-group.overlay.js';
+import type { AwsEcsExecutionModule } from '../../../aws-ecs-execution.module.js';
+import { AwsEcsExecutionServerSecurityGroupOverlay } from '../aws-ecs-execution-server-security-group.overlay.js';
 
 /**
  * @internal
  */
-@Action(ServerExecutionSecurityGroupOverlay)
-export class AddSecurityGroupOverlayAction implements IModelAction<AwsExecutionModule> {
+@Action(AwsEcsExecutionServerSecurityGroupOverlay)
+export class AddAwsEcsExecutionServerSecurityGroupOverlayAction implements IModelAction<AwsEcsExecutionModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof ServerExecutionSecurityGroupOverlay &&
-      hasNodeName(diff.node, 'server-execution-security-group-overlay') &&
+      diff.node instanceof AwsEcsExecutionServerSecurityGroupOverlay &&
+      hasNodeName(diff.node, 'aws-ecs-execution-server-security-group-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff<ServerExecutionSecurityGroupOverlay>,
-    actionInputs: EnhancedModuleSchema<AwsExecutionModule>,
+    diff: Diff<AwsEcsExecutionServerSecurityGroupOverlay>,
+    actionInputs: EnhancedModuleSchema<AwsEcsExecutionModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const securityGroupOverlay = diff.node;
@@ -72,13 +72,13 @@ export class AddSecurityGroupOverlayAction implements IModelAction<AwsExecutionM
 /**
  * @internal
  */
-@Factory<AddSecurityGroupOverlayAction>(AddSecurityGroupOverlayAction)
-export class AddSecurityGroupOverlayActionFactory {
-  private static instance: AddSecurityGroupOverlayAction;
+@Factory<AddAwsEcsExecutionServerSecurityGroupOverlayAction>(AddAwsEcsExecutionServerSecurityGroupOverlayAction)
+export class AddAwsEcsExecutionServerSecurityGroupOverlayActionFactory {
+  private static instance: AddAwsEcsExecutionServerSecurityGroupOverlayAction;
 
-  static async create(): Promise<AddSecurityGroupOverlayAction> {
+  static async create(): Promise<AddAwsEcsExecutionServerSecurityGroupOverlayAction> {
     if (!this.instance) {
-      this.instance = new AddSecurityGroupOverlayAction();
+      this.instance = new AddAwsEcsExecutionServerSecurityGroupOverlayAction();
     }
     return this.instance;
   }

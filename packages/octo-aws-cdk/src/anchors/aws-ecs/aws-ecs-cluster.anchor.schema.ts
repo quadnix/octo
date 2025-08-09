@@ -17,7 +17,7 @@ export class AwsEcsClusterAnchorSchema extends BaseAnchorSchema {
    * Input properties.
    * * `properties.clusterName`: The name of the ECS cluster.
    * * `properties.environmentVariables`: A set of environment variables to be passed
-   * to any execution running in this environment.
+   * to any aws-ecs-execution running in this environment.
    */
   @Validate([
     {

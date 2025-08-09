@@ -16,13 +16,13 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import type { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
+import type { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
+import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
+import type { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-role.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import type { EcsClusterAnchorSchema } from '../../../anchors/ecs-cluster/ecs-cluster.anchor.schema.js';
-import type { EcsTaskDefinitionAnchorSchema } from '../../../anchors/ecs-task-definition/ecs-task-definition.anchor.schema.js';
-import type { EfsFilesystemAnchorSchema } from '../../../anchors/efs-filesystem/efs-filesystem.anchor.schema.js';
-import type { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.schema.js';
-import type { SecurityGroupAnchorSchema } from '../../../anchors/security-group/security-group.anchor.schema.js';
-import type { SubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/subnet-local-filesystem-mount/subnet-local-filesystem-mount.anchor.schema.js';
+import type { AwsSecurityGroupAnchorSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
+import type { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 import type { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
 import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
@@ -33,7 +33,7 @@ import type { SecurityGroupSchema } from '../../../resources/security-group/inde
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { AwsExecutionModule } from './index.js';
+import { AwsEcsExecutionModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{
   account: Account;
@@ -67,8 +67,8 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   deployment.addAnchor(
-    testModuleContainer.createTestAnchor<EcsTaskDefinitionAnchorSchema>(
-      'EcsTaskDefinitionAnchor',
+    testModuleContainer.createTestAnchor<AwsEcsTaskDefinitionAnchorSchema>(
+      'AwsEcsTaskDefinitionAnchor',
       {
         cpu: 256,
         image: { command: '/bin/sh', ports: [{ containerPort: 8080, protocol: 'tcp' }], uri: 'docker.io' },
@@ -78,14 +78,14 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     ),
   );
   environment.addAnchor(
-    testModuleContainer.createTestAnchor<EcsClusterAnchorSchema>(
-      'EcsClusterAnchor',
+    testModuleContainer.createTestAnchor<AwsEcsClusterAnchorSchema>(
+      'AwsEcsClusterAnchor',
       { clusterName: 'region-qa', environmentVariables: { NODE_ENV: 'qa' } },
       environment,
     ),
   );
-  const efsFilesystemAnchor = testModuleContainer.createTestAnchor<EfsFilesystemAnchorSchema>(
-    'EfsFilesystemAnchor',
+  const efsFilesystemAnchor = testModuleContainer.createTestAnchor<AwsEfsAnchorSchema>(
+    'AwsEfsAnchor',
     { filesystemName: 'test-filesystem' },
     filesystem,
   );
@@ -93,34 +93,40 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
-      { awsRegionAZs: ['us-east-1a'], awsRegionId: 'us-east-1', regionId: 'aws-us-east-1a' },
+      {
+        awsRegionAZs: ['us-east-1a'],
+        awsRegionId: 'us-east-1',
+        regionId: 'aws-us-east-1a',
+        vpcCidrBlock: '10.0.0.0/16',
+      },
       region,
     ),
   );
   server.addAnchor(
-    testModuleContainer.createTestAnchor<IamRoleAnchorSchema>(
-      'IamRoleAnchor',
+    testModuleContainer.createTestAnchor<AwsIamRoleAnchorSchema>(
+      'AwsIamRoleAnchor',
       { iamRoleName: 'iam-role-ServerRole-backend' },
       server,
     ),
   );
   server.addAnchor(
-    testModuleContainer.createTestAnchor<SecurityGroupAnchorSchema>(
-      'SecurityGroupAnchor',
+    testModuleContainer.createTestAnchor<AwsSecurityGroupAnchorSchema>(
+      'AwsSecurityGroupAnchor',
       { rules: [], securityGroupName: 'SecurityGroup-backend' },
       server,
     ),
   );
-  const subnetLocalFilesystemMountAnchor = testModuleContainer.createTestAnchor<SubnetLocalFilesystemMountAnchorSchema>(
-    `SubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
-    {
-      awsAccountId: '123',
-      awsRegionId: 'us-east-1',
-      filesystemName: filesystem.filesystemName,
-      subnetName: 'private-subnet',
-    },
-    subnet,
-  );
+  const subnetLocalFilesystemMountAnchor =
+    testModuleContainer.createTestAnchor<AwsSubnetLocalFilesystemMountAnchorSchema>(
+      `AwsSubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
+      {
+        awsAccountId: '123',
+        awsRegionId: 'us-east-1',
+        filesystemName: filesystem.filesystemName,
+        subnetName: 'private-subnet',
+      },
+      subnet,
+    );
   subnet.addAnchor(subnetLocalFilesystemMountAnchor);
 
   await testModuleContainer.createTestOverlays('testModule', [
@@ -191,7 +197,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
   return { account, app, deployment, environment, filesystem, region, server, subnet };
 }
 
-describe('AwsExecutionModule UT', () => {
+describe('AwsEcsExecutionModule UT', () => {
   const originalRetryPromise = RetryUtility.retryPromise;
 
   let retryPromiseSpy: jest.Spied<any>;
@@ -276,7 +282,7 @@ describe('AwsExecutionModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -296,7 +302,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -306,13 +312,13 @@ describe('AwsExecutionModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddExecutionModelAction",
+         "AddAwsEcsExecutionModelAction",
        ],
        [
-         "AddSecurityGroupOverlayAction",
+         "AddAwsEcsExecutionServerSecurityGroupOverlayAction",
        ],
        [
-         "AddExecutionOverlayAction",
+         "AddAwsEcsExecutionOverlayAction",
        ],
      ]
     `);
@@ -332,7 +338,7 @@ describe('AwsExecutionModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -352,7 +358,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -388,7 +394,7 @@ describe('AwsExecutionModule UT', () => {
     `);
 
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -409,7 +415,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -433,7 +439,7 @@ describe('AwsExecutionModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -453,7 +459,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`
@@ -477,7 +483,7 @@ describe('AwsExecutionModule UT', () => {
     `);
 
     const { app: app4 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -497,7 +503,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
     const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
     expect(result4.resourceDiffs).toMatchInlineSnapshot(`
@@ -515,7 +521,7 @@ describe('AwsExecutionModule UT', () => {
     `);
 
     const { app: app5 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -536,7 +542,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
     const result5 = await testModuleContainer.commit(app5, { enableResourceCapture: true });
     expect(result5.resourceDiffs).toMatchInlineSnapshot(`
@@ -560,7 +566,7 @@ describe('AwsExecutionModule UT', () => {
     `);
 
     const { app: app6 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -590,7 +596,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
     const result6 = await testModuleContainer.commit(app6, { enableResourceCapture: true });
     expect(result6.resourceDiffs).toMatchInlineSnapshot(`
@@ -662,7 +668,7 @@ describe('AwsExecutionModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -682,7 +688,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -719,7 +725,7 @@ describe('AwsExecutionModule UT', () => {
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -739,7 +745,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -807,7 +813,7 @@ describe('AwsExecutionModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsExecutionModule>({
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
           main: {
@@ -827,7 +833,7 @@ describe('AwsExecutionModule UT', () => {
         subnet: stub('${{testModule.model.subnet}}'),
       },
       moduleId: 'execution',
-      type: AwsExecutionModule,
+      type: AwsEcsExecutionModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`
