@@ -9,9 +9,9 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import type { EcsServerAnchorSchema } from '../../../anchors/ecs-server/ecs-server.anchor.schema.js';
-import type { IamRoleAnchorSchema } from '../../../anchors/iam-role/iam-role.anchor.schema.js';
-import { AwsDeploymentModule } from './index.js';
+import type { AwsEcsServerAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
+import type { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-role.anchor.schema.js';
+import { AwsEcsDeploymentModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -28,20 +28,24 @@ async function setup(
   jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   server.addAnchor(
-    testModuleContainer.createTestAnchor<EcsServerAnchorSchema>(
-      'EcsServerAnchor',
+    testModuleContainer.createTestAnchor<AwsEcsServerAnchorSchema>(
+      'AwsEcsServerAnchor',
       { deploymentType: 'ecs', serverKey: 'backend' },
       server,
     ),
   );
   server.addAnchor(
-    testModuleContainer.createTestAnchor<IamRoleAnchorSchema>('IamRoleAnchor', { iamRoleName: 'iamRoleName' }, server),
+    testModuleContainer.createTestAnchor<AwsIamRoleAnchorSchema>(
+      'AwsIamRoleAnchor',
+      { iamRoleName: 'iamRoleName' },
+      server,
+    ),
   );
 
   return { account, app, server };
 }
 
-describe('AwsDeploymentModule UT', () => {
+describe('AwsEcsDeploymentModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
@@ -73,7 +77,7 @@ describe('AwsDeploymentModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsDeploymentModule>({
+    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
       inputs: {
         deploymentContainerProperties: {
           cpu: 256,
@@ -88,7 +92,7 @@ describe('AwsDeploymentModule UT', () => {
         server: stub('${{testModule.model.server}}'),
       },
       moduleId: 'deployment',
-      type: AwsDeploymentModule,
+      type: AwsEcsDeploymentModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -98,7 +102,7 @@ describe('AwsDeploymentModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddDeploymentModelAction",
+         "AddAwsEcsDeploymentModelAction",
        ],
      ]
     `);
@@ -107,7 +111,7 @@ describe('AwsDeploymentModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsDeploymentModule>({
+    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
       inputs: {
         deploymentContainerProperties: {
           cpu: 256,
@@ -122,7 +126,7 @@ describe('AwsDeploymentModule UT', () => {
         server: stub('${{testModule.model.server}}'),
       },
       moduleId: 'deployment',
-      type: AwsDeploymentModule,
+      type: AwsEcsDeploymentModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -145,7 +149,7 @@ describe('AwsDeploymentModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsDeploymentModule>({
+    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
       inputs: {
         deploymentContainerProperties: {
           cpu: 256,
@@ -160,7 +164,7 @@ describe('AwsDeploymentModule UT', () => {
         server: stub('${{testModule.model.server}}'),
       },
       moduleId: 'deployment',
-      type: AwsDeploymentModule,
+      type: AwsEcsDeploymentModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -172,7 +176,7 @@ describe('AwsDeploymentModule UT', () => {
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsDeploymentModule>({
+    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
       inputs: {
         deploymentContainerProperties: {
           cpu: 256,
@@ -187,7 +191,7 @@ describe('AwsDeploymentModule UT', () => {
         server: stub('${{testModule.model.server}}'),
       },
       moduleId: 'deployment',
-      type: AwsDeploymentModule,
+      type: AwsEcsDeploymentModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -198,7 +202,7 @@ describe('AwsDeploymentModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsDeploymentModule>({
+    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
       inputs: {
         deploymentContainerProperties: {
           cpu: 256,
@@ -213,7 +217,7 @@ describe('AwsDeploymentModule UT', () => {
         server: stub('${{testModule.model.server}}'),
       },
       moduleId: 'deployment',
-      type: AwsDeploymentModule,
+      type: AwsEcsDeploymentModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`

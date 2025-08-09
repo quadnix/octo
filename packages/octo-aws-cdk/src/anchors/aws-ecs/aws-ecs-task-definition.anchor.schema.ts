@@ -3,11 +3,11 @@ import { BaseAnchorSchema, type Deployment, Schema, Validate } from '@quadnix/oc
 /**
  * Defines the port mapping to use on the container in the task definition.
  *
- * @group Anchors/EcsTaskDefinition
+ * @group Anchors/AwsEcs
  *
  * @hideconstructor
  */
-export class EcsTaskDefinitionAnchorImagePortSchema {
+export class AwsEcsTaskDefinitionAnchorImagePortSchema {
   /**
    * The port number that the container is listening on.
    */
@@ -24,11 +24,11 @@ export class EcsTaskDefinitionAnchorImagePortSchema {
 /**
  * Defines the container image and its properties.
  *
- * @group Anchors/EcsTaskDefinition
+ * @group Anchors/AwsEcs
  *
  * @hideconstructor
  */
-export class EcsTaskDefinitionAnchorImageSchema {
+export class AwsEcsTaskDefinitionAnchorImageSchema {
   /**
    * The command to run in the container.
    */
@@ -37,13 +37,14 @@ export class EcsTaskDefinitionAnchorImageSchema {
 
   /**
    * The ports exposed by the container.
-   * See {@link EcsTaskDefinitionAnchorImagePortSchema} for options.
+   * See {@link AwsEcsTaskDefinitionAnchorImagePortSchema} for options.
    */
   @Validate({
-    destruct: (value: EcsTaskDefinitionAnchorImageSchema['ports']): EcsTaskDefinitionAnchorImagePortSchema[] => value,
-    options: { isSchema: { schema: EcsTaskDefinitionAnchorImagePortSchema } },
+    destruct: (value: AwsEcsTaskDefinitionAnchorImageSchema['ports']): AwsEcsTaskDefinitionAnchorImagePortSchema[] =>
+      value,
+    options: { isSchema: { schema: AwsEcsTaskDefinitionAnchorImagePortSchema } },
   })
-  ports = Schema<EcsTaskDefinitionAnchorImagePortSchema[]>();
+  ports = Schema<AwsEcsTaskDefinitionAnchorImagePortSchema[]>();
 
   /**
    * The URI of the image.
@@ -56,11 +57,11 @@ export class EcsTaskDefinitionAnchorImageSchema {
 /**
  * Defines the shape of an AWS ECS task definition.
  *
- * @group Anchors/EcsTaskDefinition
+ * @group Anchors/AwsEcs
  *
  * @hideconstructor
  */
-export class EcsTaskDefinitionAnchorPropertiesSchema {
+export class AwsEcsTaskDefinitionAnchorPropertiesSchema {
   /**
    * The number of CPU units to reserve for the containers.
    */
@@ -69,10 +70,10 @@ export class EcsTaskDefinitionAnchorPropertiesSchema {
 
   /**
    * Defines The containers to run as part of the task definition.
-   * See {@link EcsTaskDefinitionAnchorImageSchema} for options.
+   * See {@link AwsEcsTaskDefinitionAnchorImageSchema} for options.
    */
-  @Validate({ options: { isSchema: { schema: EcsTaskDefinitionAnchorImageSchema } } })
-  image = Schema<EcsTaskDefinitionAnchorImageSchema>();
+  @Validate({ options: { isSchema: { schema: AwsEcsTaskDefinitionAnchorImageSchema } } })
+  image = Schema<AwsEcsTaskDefinitionAnchorImageSchema>();
 
   /**
    * The amount of memory to reserve for the containers.
@@ -84,11 +85,11 @@ export class EcsTaskDefinitionAnchorPropertiesSchema {
 /**
  * This anchor is associated with a {@link Deployment} model representing an AWS ECS task definition.
  *
- * @group Anchors/EcsTaskDefinition
+ * @group Anchors/AwsEcs
  *
  * @hideconstructor
  */
-export class EcsTaskDefinitionAnchorSchema extends BaseAnchorSchema {
+export class AwsEcsTaskDefinitionAnchorSchema extends BaseAnchorSchema {
   /**
    * @private
    */
@@ -96,9 +97,10 @@ export class EcsTaskDefinitionAnchorSchema extends BaseAnchorSchema {
 
   /**
    * Input properties.
-   * See {@link EcsTaskDefinitionAnchorPropertiesSchema} for options.
+   * See {@link AwsEcsTaskDefinitionAnchorPropertiesSchema} for options.
    */
-  @Validate({ options: { isSchema: { schema: EcsTaskDefinitionAnchorPropertiesSchema } } })
-  override properties =
-    Schema<{ [K in keyof EcsTaskDefinitionAnchorPropertiesSchema]: EcsTaskDefinitionAnchorPropertiesSchema[K] }>();
+  @Validate({ options: { isSchema: { schema: AwsEcsTaskDefinitionAnchorPropertiesSchema } } })
+  override properties = Schema<{
+    [K in keyof AwsEcsTaskDefinitionAnchorPropertiesSchema]: AwsEcsTaskDefinitionAnchorPropertiesSchema[K];
+  }>();
 }
