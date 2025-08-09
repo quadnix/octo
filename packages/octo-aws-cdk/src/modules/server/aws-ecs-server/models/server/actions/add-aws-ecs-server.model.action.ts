@@ -9,18 +9,18 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { IamRole } from '../../../../../../resources/iam-role/index.js';
-import type { AwsServerModule } from '../../../aws-server.module.js';
-import { AwsServer } from '../aws.server.model.js';
+import type { AwsEcsServerModule } from '../../../aws-ecs-server.module.js';
+import { AwsEcsServer } from '../aws-ecs-server.model.js';
 
 /**
  * @internal
  */
-@Action(AwsServer)
-export class AddServerModelAction implements IModelAction<AwsServerModule> {
+@Action(AwsEcsServer)
+export class AddAwsEcsServerModelAction implements IModelAction<AwsEcsServerModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsServer &&
+      diff.node instanceof AwsEcsServer &&
       hasNodeName(diff.node, 'server') &&
       diff.field === 'serverKey'
     );
@@ -28,7 +28,7 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
 
   async handle(
     _diff: Diff,
-    actionInputs: EnhancedModuleSchema<AwsServerModule>,
+    actionInputs: EnhancedModuleSchema<AwsEcsServerModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const { iamRoleName } = actionInputs.metadata;
@@ -59,13 +59,13 @@ export class AddServerModelAction implements IModelAction<AwsServerModule> {
 /**
  * @internal
  */
-@Factory<AddServerModelAction>(AddServerModelAction)
-export class AddServerModelActionFactory {
-  private static instance: AddServerModelAction;
+@Factory<AddAwsEcsServerModelAction>(AddAwsEcsServerModelAction)
+export class AddAwsEcsServerModelActionFactory {
+  private static instance: AddAwsEcsServerModelAction;
 
-  static async create(): Promise<AddServerModelAction> {
+  static async create(): Promise<AddAwsEcsServerModelAction> {
     if (!this.instance) {
-      this.instance = new AddServerModelAction();
+      this.instance = new AddAwsEcsServerModelAction();
     }
     return this.instance;
   }

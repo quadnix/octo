@@ -13,26 +13,26 @@ import {
 import type { IamRole } from '../../../../../../resources/iam-role/index.js';
 import type { S3Storage } from '../../../../../../resources/s3-storage/index.js';
 import { S3StorageSchema } from '../../../../../../resources/s3-storage/index.schema.js';
-import type { AwsServerModule } from '../../../aws-server.module.js';
-import { AwsServerS3AccessOverlay } from '../aws-server-s3-access.overlay.js';
+import type { AwsEcsServerModule } from '../../../aws-ecs-server.module.js';
+import { AwsEcsServerS3AccessOverlay } from '../aws-ecs-server-s3-access.overlay.js';
 
 /**
  * @internal
  */
-@Action(AwsServerS3AccessOverlay)
-export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServerModule> {
+@Action(AwsEcsServerS3AccessOverlay)
+export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcsServerModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsServerS3AccessOverlay &&
-      hasNodeName(diff.node, 'server-s3-access-overlay') &&
+      diff.node instanceof AwsEcsServerS3AccessOverlay &&
+      hasNodeName(diff.node, 'aws-ecs-server-s3-access-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff<AwsServerS3AccessOverlay>,
-    actionInputs: EnhancedModuleSchema<AwsServerModule>,
+    diff: Diff<AwsEcsServerS3AccessOverlay>,
+    actionInputs: EnhancedModuleSchema<AwsEcsServerModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const serverS3AccessOverlay = diff.node;
@@ -71,13 +71,13 @@ export class AddAwsServerS3AccessOverlayAction implements IModelAction<AwsServer
 /**
  * @internal
  */
-@Factory<AddAwsServerS3AccessOverlayAction>(AddAwsServerS3AccessOverlayAction)
-export class AddAwsServerS3AccessOverlayActionFactory {
-  private static instance: AddAwsServerS3AccessOverlayAction;
+@Factory<AddAwsEcsServerS3AccessOverlayAction>(AddAwsEcsServerS3AccessOverlayAction)
+export class AddAwsEcsServerS3AccessOverlayActionFactory {
+  private static instance: AddAwsEcsServerS3AccessOverlayAction;
 
-  static async create(): Promise<AddAwsServerS3AccessOverlayAction> {
+  static async create(): Promise<AddAwsEcsServerS3AccessOverlayAction> {
     if (!this.instance) {
-      this.instance = new AddAwsServerS3AccessOverlayAction();
+      this.instance = new AddAwsEcsServerS3AccessOverlayAction();
     }
     return this.instance;
   }

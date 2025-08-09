@@ -3,4 +3,4 @@ import { ServerSchema } from '@quadnix/octo';
 /**
  * @internal
  */
-export class AwsServerSchema extends ServerSchema {}
+export class AwsEcsServerSchema extends ServerSchema {}

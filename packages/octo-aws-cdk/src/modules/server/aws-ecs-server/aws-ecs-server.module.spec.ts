@@ -12,14 +12,14 @@ import {
   stub,
 } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
-import type { S3DirectoryAnchorSchema } from '../../../anchors/s3-directory/s3-directory.anchor.schema.js';
-import type { S3StorageAnchorSchema } from '../../../anchors/s3-storage/s3-storage.anchor.schema.js';
+import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
+import type { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import type { IamRoleSchema } from '../../../resources/iam-role/index.schema.js';
 // eslint-disable-next-line boundaries/element-types
 import { S3Storage } from '../../../resources/s3-storage/index.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import { S3StorageAccess } from './index.schema.js';
-import { AwsServerModule } from './index.js';
+import { AwsEcsServerS3AccessDirectoryPermission } from './index.schema.js';
+import { AwsEcsServerModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -40,15 +40,15 @@ async function setup(
   );
 
   service.addAnchor(
-    testModuleContainer.createTestAnchor<S3DirectoryAnchorSchema>(
-      'S3DirectoryAnchor-1234',
+    testModuleContainer.createTestAnchor<AwsS3StorageServiceDirectoryAnchorSchema>(
+      'AwsS3StorageServiceDirectoryAnchor-1234',
       { bucketName: 'test-bucket', remoteDirectoryPath: 'uploads' },
       service,
     ),
   );
   service.addAnchor(
-    testModuleContainer.createTestAnchor<S3StorageAnchorSchema>(
-      'S3StorageAnchor',
+    testModuleContainer.createTestAnchor<AwsS3StorageServiceAnchorSchema>(
+      'AwsS3StorageServiceAnchor',
       { awsAccountId: '123', awsRegionId: 'us-east-1', bucketName: 'test-bucket' },
       service,
     ),
@@ -65,7 +65,7 @@ async function setup(
   return { account, app, service };
 }
 
-describe('AwsServerModule UT', () => {
+describe('AwsEcsServerModule UT', () => {
   const originalRetryPromise = RetryUtility.retryPromise;
 
   let retryPromiseSpy: jest.Spied<any>;
@@ -118,7 +118,7 @@ describe('AwsServerModule UT', () => {
     testModuleContainer.registerCapture<IamRoleSchema>('@octo/iam-role=iam-role-ServerRole-backend', {
       Arn: 'Arn',
       policies: {
-        'server-s3-access-overlay-56043e0e95bf': ['server-s3-access-arn'],
+        'aws-ecs-server-s3-access-overlay-e9dc96db328e': ['server-s3-access-arn'],
       },
       RoleId: 'RoleId',
       RoleName: 'RoleName',
@@ -134,19 +134,19 @@ describe('AwsServerModule UT', () => {
 
   it('should call correct actions', async () => {
     const { app } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsServerModule>({
+    await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         s3: [
           {
-            directories: [{ access: S3StorageAccess.READ, remoteDirectoryPath: 'uploads' }],
+            directories: [{ access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' }],
             service: stub('${{testModule.model.service}}'),
           },
         ],
         serverKey: 'backend',
       },
       moduleId: 'server',
-      type: AwsServerModule,
+      type: AwsEcsServerModule,
     });
 
     const result = await testModuleContainer.commit(app, {
@@ -156,10 +156,10 @@ describe('AwsServerModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddServerModelAction",
+         "AddAwsEcsServerModelAction",
        ],
        [
-         "AddAwsServerS3AccessOverlayAction",
+         "AddAwsEcsServerS3AccessOverlayAction",
        ],
      ]
     `);
@@ -178,13 +178,13 @@ describe('AwsServerModule UT', () => {
 
   it('should CUD', async () => {
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsServerModule>({
+    await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         serverKey: 'backend',
       },
       moduleId: 'server',
-      type: AwsServerModule,
+      type: AwsEcsServerModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -214,7 +214,7 @@ describe('AwsServerModule UT', () => {
 
     // Adding security groups should have no effect as they are not created until execution.
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsServerModule>({
+    await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         securityGroupRules: [
@@ -229,7 +229,7 @@ describe('AwsServerModule UT', () => {
         serverKey: 'backend',
       },
       moduleId: 'server',
-      type: AwsServerModule,
+      type: AwsEcsServerModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -241,12 +241,12 @@ describe('AwsServerModule UT', () => {
 
     // Add S3 Storage.
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsServerModule>({
+    await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         s3: [
           {
-            directories: [{ access: S3StorageAccess.READ, remoteDirectoryPath: 'uploads' }],
+            directories: [{ access: AwsEcsServerS3AccessDirectoryPermission.READ, remoteDirectoryPath: 'uploads' }],
             service: stub('${{testModule.model.service}}'),
           },
         ],
@@ -262,7 +262,7 @@ describe('AwsServerModule UT', () => {
         serverKey: 'backend',
       },
       moduleId: 'server',
-      type: AwsServerModule,
+      type: AwsEcsServerModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`
@@ -280,7 +280,7 @@ describe('AwsServerModule UT', () => {
                "bucketName": "test-bucket",
                "remoteDirectoryPath": "uploads",
              },
-             "policyId": "server-s3-access-overlay-56043e0e95bf",
+             "policyId": "aws-ecs-server-s3-access-overlay-e9dc96db328e",
              "policyType": "s3-storage-access-policy",
            },
          },
@@ -326,7 +326,7 @@ describe('AwsServerModule UT', () => {
            "node": "@octo/iam-role=iam-role-ServerRole-backend",
            "value": {
              "action": "delete",
-             "policyId": "server-s3-access-overlay-56043e0e95bf",
+             "policyId": "aws-ecs-server-s3-access-overlay-e9dc96db328e",
              "policyType": "s3-storage-access-policy",
            },
          },
@@ -361,13 +361,13 @@ describe('AwsServerModule UT', () => {
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: app1 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsServerModule>({
+    await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         serverKey: 'backend',
       },
       moduleId: 'server',
-      type: AwsServerModule,
+      type: AwsEcsServerModule,
     });
     const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
     expect(result1.resourceDiffs).toMatchInlineSnapshot(`
@@ -397,13 +397,13 @@ describe('AwsServerModule UT', () => {
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: app2 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsServerModule>({
+    await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         serverKey: 'backend',
       },
       moduleId: 'server',
-      type: AwsServerModule,
+      type: AwsEcsServerModule,
     });
     const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
     expect(result2.resourceDiffs).toMatchInlineSnapshot(`
@@ -429,13 +429,13 @@ describe('AwsServerModule UT', () => {
     `);
 
     const { app: app3 } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsServerModule>({
+    await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
         serverKey: 'backend',
       },
       moduleId: 'server',
-      type: AwsServerModule,
+      type: AwsEcsServerModule,
     });
     const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
     expect(result3.resourceDiffs).toMatchInlineSnapshot(`

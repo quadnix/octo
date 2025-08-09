@@ -5,11 +5,11 @@ import { BaseAnchorSchema, type Execution, Schema, type Server, Validate } from 
  * These values are mapped from the official EC2 authorize security group egress/ingress document.
  * Please refer to the AWS documentation for more information.
  *
- * @group Anchors/SecurityGroup
+ * @group Anchors/AwsSecurityGroup
  *
  * @hideconstructor
  */
-export class SecurityGroupAnchorRuleSchema {
+export class AwsSecurityGroupAnchorRuleSchema {
   /**
    * The IpV4 network range to allow or deny, in CIDR notation.
    */
@@ -42,11 +42,15 @@ export class SecurityGroupAnchorRuleSchema {
 }
 
 /**
- * @group Anchors/SecurityGroup
+ * This anchor is associated with models where a security group is present.
+ * It can be used to access and update the security group rules of the model.
+ * It is typically associated with an {@link Execution} or {@link Server}.
+ *
+ * @group Anchors/AwsSecurityGroup
  *
  * @hideconstructor
  */
-export class SecurityGroupAnchorSchema extends BaseAnchorSchema {
+export class AwsSecurityGroupAnchorSchema extends BaseAnchorSchema {
   /**
    * @private
    */
@@ -54,21 +58,21 @@ export class SecurityGroupAnchorSchema extends BaseAnchorSchema {
 
   /**
    * Input properties.
-   * * `properties.rules` - A list of security group rules. See {@link SecurityGroupAnchorRuleSchema} for options.
+   * * `properties.rules` - A list of security group rules. See {@link AwsSecurityGroupAnchorRuleSchema} for options.
    * * `properties.securityGroupName` - The name of the security group.
    */
   @Validate<unknown>([
     {
-      destruct: (value: SecurityGroupAnchorSchema['properties']): SecurityGroupAnchorRuleSchema[] => value.rules,
-      options: { isSchema: { schema: SecurityGroupAnchorRuleSchema } },
+      destruct: (value: AwsSecurityGroupAnchorSchema['properties']): AwsSecurityGroupAnchorRuleSchema[] => value.rules,
+      options: { isSchema: { schema: AwsSecurityGroupAnchorRuleSchema } },
     },
     {
-      destruct: (value: SecurityGroupAnchorSchema['properties']): string[] => [value.securityGroupName],
+      destruct: (value: AwsSecurityGroupAnchorSchema['properties']): string[] => [value.securityGroupName],
       options: { minLength: 1 },
     },
   ])
   override properties = Schema<{
-    rules: SecurityGroupAnchorRuleSchema[];
+    rules: AwsSecurityGroupAnchorRuleSchema[];
     securityGroupName: string;
   }>();
 }

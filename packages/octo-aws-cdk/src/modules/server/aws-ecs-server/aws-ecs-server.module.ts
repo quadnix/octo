@@ -1,16 +1,16 @@
 import { AModule, type Account, AccountType, type App, Module } from '@quadnix/octo';
-import { EcsServerAnchor } from '../../../anchors/ecs-server/ecs-server.anchor.js';
-import { IamRoleAnchor } from '../../../anchors/iam-role/iam-role.anchor.js';
-import { S3DirectoryAnchorSchema } from '../../../anchors/s3-directory/s3-directory.anchor.schema.js';
-import { S3StorageAnchorSchema } from '../../../anchors/s3-storage/s3-storage.anchor.schema.js';
-import { SecurityGroupAnchor } from '../../../anchors/security-group/security-group.anchor.js';
+import { AwsEcsServerAnchor } from '../../../anchors/aws-ecs/aws-ecs-server.anchor.js';
+import { AwsIamRoleAnchor } from '../../../anchors/aws-iam/aws-iam-role.anchor.js';
+import { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
+import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
+import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import { CommonUtility } from '../../../utilities/common/common.utility.js';
-import { AwsServerModuleSchema, S3StorageAccess } from './index.schema.js';
-import { AwsServer } from './models/server/index.js';
-import { AwsServerS3AccessOverlay } from './overlays/server-s3-access/index.js';
+import { AwsEcsServerModuleSchema, AwsEcsServerS3AccessDirectoryPermission } from './index.schema.js';
+import { AwsEcsServer } from './models/server/index.js';
+import { AwsEcsServerS3AccessOverlay } from './overlays/aws-ecs-server-s3-access/index.js';
 
 /**
- * `AwsServerModule` is an ECS-based AWS server module that provides an implementation for the `Server` model.
+ * `AwsEcsServerModule` is an ECS-based AWS server module that provides an implementation for the `Server` model.
  * This module creates servers with ECS deployment capabilities,
  * IAM roles, security groups, and optional S3 storage access.
  * It manages the infrastructure foundation for hosting containerized applications.
@@ -18,9 +18,9 @@ import { AwsServerS3AccessOverlay } from './overlays/server-s3-access/index.js';
  * @example
  * TypeScript
  * ```ts
- * import { AwsServerModule } from '@quadnix/octo-aws-cdk/modules/server/ecs-based-aws-server';
+ * import { AwsEcsServerModule } from '@quadnix/octo-aws-cdk/modules/server/aws-ecs-server';
  *
- * octo.loadModule(AwsServerModule, 'my-server-module', {
+ * octo.loadModule(AwsEcsServerModule, 'my-server-module', {
  *   account: myAccount,
  *   s3: [{
  *     directories: [{
@@ -40,43 +40,40 @@ import { AwsServerS3AccessOverlay } from './overlays/server-s3-access/index.js';
  * });
  * ```
  *
- * @group Modules/Server/EcsBasedAwsServer
+ * @group Modules/Server/AwsEcsServer
  *
  * @reference Resources {@link IamRoleSchema}
  * @reference Resources {@link S3StorageSchema}
  *
- * @see {@link AwsServerModuleSchema} for the input schema.
+ * @see {@link AwsEcsServerModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
  * @see {@link Server} to learn more about the `Server` model.
  */
-@Module<AwsServerModule>('@octo', AwsServerModuleSchema)
-export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
-  async onInit(inputs: AwsServerModuleSchema): Promise<(AwsServer | AwsServerS3AccessOverlay)[]> {
-    const models: (AwsServer | AwsServerS3AccessOverlay)[] = [];
+@Module<AwsEcsServerModule>('@octo', AwsEcsServerModuleSchema)
+export class AwsEcsServerModule extends AModule<AwsEcsServerModuleSchema, AwsEcsServer> {
+  async onInit(inputs: AwsEcsServerModuleSchema): Promise<(AwsEcsServer | AwsEcsServerS3AccessOverlay)[]> {
+    const models: (AwsEcsServer | AwsEcsServerS3AccessOverlay)[] = [];
     const { account, app, iamRoleName } = await this.registerMetadata(inputs);
 
     // Create a new server.
-    const server = new AwsServer(inputs.serverKey);
+    const server = new AwsEcsServer(inputs.serverKey);
     app.addServer(server);
     models.push(server);
 
-    // Add server anchors.
-    const ecsServerAnchor = new EcsServerAnchor(
-      'EcsServerAnchor',
-      { deploymentType: 'ecs', serverKey: server.serverKey },
-      server,
+    // Add anchors.
+    server.addAnchor(
+      new AwsEcsServerAnchor('AwsEcsServerAnchor', { deploymentType: 'ecs', serverKey: server.serverKey }, server),
     );
-    server.addAnchor(ecsServerAnchor);
-    const iamRoleAnchor = new IamRoleAnchor('IamRoleAnchor', { iamRoleName }, server);
+    const iamRoleAnchor = new AwsIamRoleAnchor('AwsIamRoleAnchor', { iamRoleName }, server);
     server.addAnchor(iamRoleAnchor);
-    const securityGroupAnchor = new SecurityGroupAnchor(
-      'SecurityGroupAnchor',
+    const securityGroupAnchor = new AwsSecurityGroupAnchor(
+      'AwsSecurityGroupAnchor',
       { rules: [], securityGroupName: `SecurityGroup-${inputs.serverKey}` },
       server,
     );
     server.addAnchor(securityGroupAnchor);
 
-    // Add security-group rules.
+    // Add aws-security-group rules.
     for (const rule of inputs.securityGroupRules || []) {
       const existingRule = securityGroupAnchor.properties.rules.find(
         (r) =>
@@ -95,7 +92,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
     if (inputs.s3) {
       for (const s3 of inputs.s3 || []) {
         const service = s3.service;
-        const [matchingS3StorageAnchor] = await service.getAnchorsMatchingSchema(S3StorageAnchorSchema, [], {
+        const [matchingS3StorageAnchor] = await service.getAnchorsMatchingSchema(AwsS3StorageServiceAnchorSchema, [], {
           searchBoundaryMembers: false,
         });
 
@@ -110,15 +107,17 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
 
         for (const directory of s3.directories) {
           const allowRead =
-            directory.access === S3StorageAccess.READ || directory.access === S3StorageAccess.READ_WRITE;
+            directory.access === AwsEcsServerS3AccessDirectoryPermission.READ ||
+            directory.access === AwsEcsServerS3AccessDirectoryPermission.READ_WRITE;
           const allowWrite =
-            directory.access === S3StorageAccess.WRITE || directory.access === S3StorageAccess.READ_WRITE;
+            directory.access === AwsEcsServerS3AccessDirectoryPermission.WRITE ||
+            directory.access === AwsEcsServerS3AccessDirectoryPermission.READ_WRITE;
           if (!allowRead && !allowWrite) {
             continue;
           }
 
           const matchingAnchors = await service.getAnchorsMatchingSchema(
-            S3DirectoryAnchorSchema,
+            AwsS3StorageServiceDirectoryAnchorSchema,
             [{ key: 'remoteDirectoryPath', value: directory.remoteDirectoryPath }],
             { searchBoundaryMembers: false },
           );
@@ -132,8 +131,8 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
             directory.remoteDirectoryPath,
             directory.access,
           ).substring(0, 12);
-          const overlayId = `server-s3-access-overlay-${overlayIdSuffix}`;
-          const serverS3AccessOverlay = new AwsServerS3AccessOverlay(
+          const overlayId = `aws-ecs-server-s3-access-overlay-${overlayIdSuffix}`;
+          const serverS3AccessOverlay = new AwsEcsServerS3AccessOverlay(
             overlayId,
             {
               allowRead,
@@ -154,7 +153,7 @@ export class AwsServerModule extends AModule<AwsServerModuleSchema, AwsServer> {
   }
 
   override async registerMetadata(
-    inputs: AwsServerModuleSchema,
+    inputs: AwsEcsServerModuleSchema,
   ): Promise<{ account: Account; app: App; iamRoleName: string }> {
     const account = inputs.account;
     if (account.accountType !== AccountType.AWS) {
