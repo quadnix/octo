@@ -185,7 +185,14 @@ export class TestModuleContainer {
 
     const result = create(args);
     for (const models of Object.values(result)) {
+      // Check if the model has already been registered.
+      // If no error thrown, the model has already been registered.
       for (const model of models) {
+        try {
+          inputService.getModuleIdFromModel(model);
+          continue;
+        } catch (error) {}
+
         inputService.registerModel(moduleId, model);
 
         const universalAction = new UniversalModelAction();

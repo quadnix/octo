@@ -46,18 +46,18 @@ export function create({
   service = [],
   subnet = [],
 }: {
-  account?: (string | undefined)[];
-  app?: (string | undefined)[];
-  deployment?: (string | undefined)[];
-  environment?: (string | undefined)[];
-  execution?: (string | undefined)[];
-  filesystem?: (string | undefined)[];
-  image?: (string | undefined)[];
-  pipeline?: (string | undefined)[];
-  region?: (string | undefined)[];
-  server?: (string | undefined)[];
-  service?: ([string, Record<string, unknown>?] | undefined)[];
-  subnet?: (string | undefined)[];
+  account?: (string | Account)[];
+  app?: (string | App)[];
+  deployment?: (string | Deployment)[];
+  environment?: (string | Environment)[];
+  execution?: (string | Execution)[];
+  filesystem?: (string | Filesystem)[];
+  image?: (string | Image)[];
+  pipeline?: (string | Pipeline)[];
+  region?: (string | Region)[];
+  server?: (string | Server)[];
+  service?: ([string, Record<string, unknown>?] | Service)[];
+  subnet?: (string | Subnet)[];
 }): {
   account: Account[];
   app: App[];
@@ -87,19 +87,21 @@ export function create({
     subnet: [],
   };
 
-  for (const entry of app) {
-    if (entry === undefined) {
+  for (const [index, entry] of app.entries()) {
+    if (typeof entry !== 'string') {
+      result.app[index] = entry;
       continue;
     }
 
     const app = new App(entry);
 
     getSchemaInstance(AppSchema, app.synth());
-    result.app.push(app);
+    result.app[index] = app;
   }
 
   for (const [index, entry] of account.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.account[index] = entry;
       continue;
     }
     const [args, i] = splitEntry(entry, index);
@@ -114,11 +116,12 @@ export function create({
     app.addAccount(account);
 
     getSchemaInstance(AccountSchema, account.synth());
-    result.account.push(account);
+    result.account[index] = account;
   }
 
   for (const [index, entry] of image.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.image[index] = entry;
       continue;
     }
     const [id, i] = splitEntry(entry, index);
@@ -131,11 +134,12 @@ export function create({
     app.addImage(image);
 
     getSchemaInstance(ImageSchema, image.synth());
-    result.image.push(image);
+    result.image[index] = image;
   }
 
   for (const [index, entry] of pipeline.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.pipeline[index] = entry;
       continue;
     }
     const [id, i] = splitEntry(entry, index);
@@ -145,11 +149,12 @@ export function create({
     app.addPipeline(pipeline);
 
     getSchemaInstance(PipelineSchema, pipeline.synth());
-    result.pipeline.push(pipeline);
+    result.pipeline[index] = pipeline;
   }
 
   for (const [index, entry] of region.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.region[index] = entry;
       continue;
     }
     const [id, i] = splitEntry(entry, index);
@@ -159,11 +164,12 @@ export function create({
     account.addRegion(region);
 
     getSchemaInstance(RegionSchema, region.synth());
-    result.region.push(region);
+    result.region[index] = region;
   }
 
   for (const [index, entry] of environment.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.environment[index] = entry;
       continue;
     }
     const [id, i] = splitEntry(entry, index);
@@ -173,11 +179,12 @@ export function create({
     region.addEnvironment(environment);
 
     getSchemaInstance(EnvironmentSchema, environment.synth());
-    result.environment.push(environment);
+    result.environment[index] = environment;
   }
 
   for (const [index, entry] of filesystem.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.filesystem[index] = entry;
       continue;
     }
     const [id, i] = splitEntry(entry, index);
@@ -187,11 +194,12 @@ export function create({
     region.addFilesystem(filesystem);
 
     getSchemaInstance(FilesystemSchema, filesystem.synth());
-    result.filesystem.push(filesystem);
+    result.filesystem[index] = filesystem;
   }
 
   for (const [index, entry] of subnet.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.subnet[index] = entry;
       continue;
     }
     const [id, i] = splitEntry(entry, index);
@@ -201,11 +209,12 @@ export function create({
     region.addSubnet(subnet);
 
     getSchemaInstance(SubnetSchema, subnet.synth());
-    result.subnet.push(subnet);
+    result.subnet[index] = subnet;
   }
 
   for (const [index, entry] of server.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.server[index] = entry;
       continue;
     }
     const [id, i] = splitEntry(entry, index);
@@ -215,11 +224,12 @@ export function create({
     app.addServer(server);
 
     getSchemaInstance(ServerSchema, server.synth());
-    result.server.push(server);
+    result.server[index] = server;
   }
 
   for (const [index, entry] of deployment.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.deployment[index] = entry;
       continue;
     }
     const [id, i] = splitEntry(entry, index);
@@ -229,11 +239,12 @@ export function create({
     server.addDeployment(deployment);
 
     getSchemaInstance(DeploymentSchema, deployment.synth());
-    result.deployment.push(deployment);
+    result.deployment[index] = deployment;
   }
 
   for (const [index, serviceEntry] of service.entries()) {
-    if (serviceEntry === undefined) {
+    if (!Array.isArray(serviceEntry)) {
+      result.service[index] = serviceEntry;
       continue;
     }
     const [entry, serviceProperties] = serviceEntry;
@@ -245,11 +256,12 @@ export function create({
     app.addService(service);
 
     getSchemaInstance(ServiceSchema, service.synth());
-    result.service.push(service);
+    result.service[index] = service;
   }
 
   for (const [index, entry] of execution.entries()) {
-    if (entry === undefined) {
+    if (typeof entry !== 'string') {
+      result.execution[index] = entry;
       continue;
     }
     const [, i1, i2, i3] = splitEntry(entry, index);
@@ -257,7 +269,7 @@ export function create({
     const execution = new Execution(result.deployment[i1], result.environment[i2], result.subnet[i3]);
 
     getSchemaInstance(ExecutionSchema, execution.synth());
-    result.execution.push(execution);
+    result.execution[index] = execution;
   }
 
   return result;
