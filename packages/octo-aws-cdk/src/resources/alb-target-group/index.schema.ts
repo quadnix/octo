@@ -42,7 +42,7 @@ export class AlbTargetGroupHealthCheckSchema {
   /**
    * The number of consecutive health checks successes required before considering the target healthy.
    */
-  @Validate({ options: { maxLength: 2, minLength: 2 } })
+  @Validate({ options: { maxLength: 10, minLength: 2 } })
   HealthyThresholdCount = Schema<number>();
 
   /**
@@ -57,7 +57,7 @@ export class AlbTargetGroupHealthCheckSchema {
   /**
    * The number of consecutive health check failures required before considering the target unhealthy.
    */
-  @Validate({ options: { maxLength: 2, minLength: 2 } })
+  @Validate({ options: { maxLength: 10, minLength: 2 } })
   UnhealthyThresholdCount = Schema<number>();
 }
 
