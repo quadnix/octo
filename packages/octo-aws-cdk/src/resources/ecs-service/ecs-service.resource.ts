@@ -8,6 +8,7 @@ import {
   ResourceError,
   hasNodeName,
 } from '@quadnix/octo';
+import type { AlbListenerSchema } from '../alb-listener/index.schema.js';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
 import type { EcsClusterSchema } from '../ecs-cluster/index.schema.js';
 import type { EcsTaskDefinitionSchema } from '../ecs-task-definition/index.schema.js';
@@ -56,7 +57,11 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     );
   }
 
-  addAlbTargetGroup(albTargetGroup: MatchingResource<AlbTargetGroupSchema>, containerName: string): void {
+  addAlbTargetGroup(
+    albTargetGroup: MatchingResource<AlbTargetGroupSchema>,
+    albListeners: MatchingResource<AlbListenerSchema>[],
+    containerName: string,
+  ): void {
     const { Name: targetGroupName, Port: containerPort } = albTargetGroup.getSchemaInstance().properties;
     const existingAlbTargetGroupParentDependencies = this.getParents('alb-target-group')['alb-target-group'];
     const existingTaskDefinitionParent = this.getParents('ecs-task-definition')['ecs-task-definition'][0]
@@ -66,7 +71,7 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
       throw new ResourceError(`Target group "${targetGroupName}" is already registered with this service!`, this);
     }
     if (existingAlbTargetGroupParentDependencies?.length > 0) {
-      throw new ResourceError(`Target group "${targetGroupName}" is already registered with this service!`, this);
+      throw new ResourceError('A Target group has already registered with this service!', this);
     }
     if (
       !existingTaskDefinitionParent.properties.images.find(
@@ -87,6 +92,16 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
 
     albTargetGroup.addChild('resourceId', this, 'resourceId');
     this.updateServiceAlbTargetGroups([albTargetGroup.getActual()]);
+
+    for (const albListener of albListeners) {
+      const { childToParentDependency, parentToChildDependency } = albListener.addChild(
+        'resourceId',
+        this,
+        'resourceId',
+      );
+      childToParentDependency.addBehavior('resourceId', DiffAction.ADD, 'properties', DiffAction.UPDATE);
+      parentToChildDependency.addBehavior('properties', DiffAction.UPDATE, 'resourceId', DiffAction.DELETE);
+    }
   }
 
   override async diff(previous: EcsService): Promise<Diff[]> {
@@ -111,6 +126,9 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
       ) {
         // Consolidate all AlbTargetGroup parent updates into a single UPDATE diff.
         shouldConsolidateDiffs = true;
+        diffs.splice(i, 1);
+      } else if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'alb-listener')) {
+        // Remove the diff since we don't care when the listener is updated.
         diffs.splice(i, 1);
       } else if (diffs[i].field === 'properties' && diffs[i].action === DiffAction.UPDATE) {
         // Consolidate property diffs - desiredCount.

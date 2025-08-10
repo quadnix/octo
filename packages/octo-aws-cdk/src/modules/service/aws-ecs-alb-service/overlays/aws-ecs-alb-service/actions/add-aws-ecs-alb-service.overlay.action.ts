@@ -66,29 +66,9 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
       );
       actionOutputs[albTargetGroup.resourceId] = albTargetGroup;
       albTargetGroups.push(albTargetGroup);
-
-      const [matchingEcsService] = await target.execution.getResourcesMatchingSchema(
-        EcsServiceSchema,
-        [
-          { key: 'awsAccountId', value: awsAccountId },
-          { key: 'awsRegionId', value: awsRegionId },
-        ],
-        [],
-        {
-          searchBoundaryMembers: false,
-        },
-      );
-      if (!matchingEcsService) {
-        throw new Error(`No ecs service found for execution "${target.execution.executionId}"!`);
-      }
-
-      (matchingEcsService.getActual() as EcsService).addAlbTargetGroup(
-        new MatchingResource(albTargetGroup),
-        target.containerName,
-      );
-      actionOutputs[matchingEcsService.getActual().resourceId] = matchingEcsService.getActual();
     }
 
+    const albListeners: AlbListener[] = [];
     for (const listener of actionInputs.inputs.listeners) {
       const alb = actionInputs.resources[
         `alb-${actionInputs.inputs.region.regionId}-${actionInputs.inputs.albName}`
@@ -110,6 +90,31 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
         ],
       );
       actionOutputs[albListener.resourceId] = albListener;
+      albListeners.push(albListener);
+    }
+
+    for (const target of actionInputs.inputs.targets!) {
+      const [matchingEcsService] = await target.execution.getResourcesMatchingSchema(
+        EcsServiceSchema,
+        [
+          { key: 'awsAccountId', value: awsAccountId },
+          { key: 'awsRegionId', value: awsRegionId },
+        ],
+        [],
+        {
+          searchBoundaryMembers: false,
+        },
+      );
+      if (!matchingEcsService) {
+        throw new Error(`No ecs service found for execution "${target.execution.executionId}"!`);
+      }
+
+      (matchingEcsService.getActual() as EcsService).addAlbTargetGroup(
+        new MatchingResource(albTargetGroups.find((t) => t.properties.Name === target.Name)!),
+        albListeners.map((l) => new MatchingResource(l)),
+        target.containerName,
+      );
+      actionOutputs[matchingEcsService.getActual().resourceId] = matchingEcsService.getActual();
     }
 
     return actionOutputs;

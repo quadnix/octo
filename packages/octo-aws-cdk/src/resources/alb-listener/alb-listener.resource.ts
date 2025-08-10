@@ -156,7 +156,9 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
       const rule = (diff.value as { Rule: IAlbListenerRuleDiff }).Rule;
 
       if (isAddRuleDiff(rule)) {
-        this.properties.rules.push(JSON.parse(JSON.stringify(rule.rule)));
+        if (this.properties.rules.findIndex((r) => r.Priority === rule.rule.Priority) === -1) {
+          this.properties.rules.push(JSON.parse(JSON.stringify(rule.rule)));
+        }
       } else if (isDeleteRuleDiff(rule)) {
         this.properties.rules.splice(
           this.properties.rules.findIndex((r) => r.Priority === rule.rule.Priority),
@@ -234,6 +236,13 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
       diffs.push(
         new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', { DefaultActions: [] }),
       );
+
+      for (const rule of this.properties.rules) {
+        const addRuleDiff: IAlbListenerAddRuleDiff = { action: 'add', rule };
+        diffs.push(
+          new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', { Rule: addRuleDiff }),
+        );
+      }
 
       return diffs;
     } else {

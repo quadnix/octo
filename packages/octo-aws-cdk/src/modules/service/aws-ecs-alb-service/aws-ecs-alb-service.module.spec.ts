@@ -335,7 +335,25 @@ describe('AwsEcsAlbServiceModule UT', () => {
               },
             ],
             Port: 80,
-            rules: [],
+            rules: [
+              {
+                actions: [
+                  {
+                    action: {
+                      TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                    },
+                    actionType: 'forward',
+                  },
+                ],
+                conditions: [
+                  {
+                    condition: { Values: ['/api'] },
+                    conditionType: 'path-pattern',
+                  },
+                ],
+                Priority: 1,
+              },
+            ],
           },
         ],
         region: stub('${{testModule.model.region}}'),
@@ -391,6 +409,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        ],
        [
          "UpdateAlbListenerResourceAction",
+         "UpdateAlbListenerRuleResourceAction",
        ],
      ]
     `);
@@ -733,12 +752,6 @@ describe('AwsEcsAlbServiceModule UT', () => {
            "value": "@octo/security-group=sec-grp-region-test-alb",
          },
          {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-           "value": "",
-         },
-         {
            "action": "delete",
            "field": "resourceId",
            "node": "@octo/alb=alb-region-test-alb",
@@ -749,6 +762,12 @@ describe('AwsEcsAlbServiceModule UT', () => {
            "field": "resourceId",
            "node": "@octo/alb-listener=alb-listener-test-alb",
            "value": "@octo/alb-listener=alb-listener-test-alb",
+         },
+         {
+           "action": "update",
+           "field": "resourceId",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+           "value": "",
          },
        ],
        [],
@@ -938,20 +957,6 @@ describe('AwsEcsAlbServiceModule UT', () => {
          {
            "action": "update",
            "field": "tags",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
            "node": "@octo/alb=alb-region-test-alb",
            "value": {
              "add": {
@@ -967,6 +972,20 @@ describe('AwsEcsAlbServiceModule UT', () => {
            "action": "update",
            "field": "tags",
            "node": "@octo/alb-listener=alb-listener-test-alb",
+           "value": {
+             "add": {
+               "tag2": "value2",
+             },
+             "delete": [],
+             "update": {
+               "tag1": "value1_1",
+             },
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
            "value": {
              "add": {
                "tag2": "value2",
@@ -1057,19 +1076,6 @@ describe('AwsEcsAlbServiceModule UT', () => {
          {
            "action": "update",
            "field": "tags",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
            "node": "@octo/alb=alb-region-test-alb",
            "value": {
              "add": {},
@@ -1084,6 +1090,19 @@ describe('AwsEcsAlbServiceModule UT', () => {
            "action": "update",
            "field": "tags",
            "node": "@octo/alb-listener=alb-listener-test-alb",
+           "value": {
+             "add": {},
+             "delete": [
+               "tag1",
+               "tag2",
+             ],
+             "update": {},
+           },
+         },
+         {
+           "action": "update",
+           "field": "tags",
+           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
            "value": {
              "add": {},
              "delete": [
