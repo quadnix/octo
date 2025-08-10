@@ -16,7 +16,6 @@ import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.an
 import { AwsSecurityGroupAnchor } from '../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import { AwsSecurityGroupAnchorSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
 import { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
-import { AwsSimpleSubnetLocalFilesystemMountOverlaySchema } from '../../subnet/aws-simple-subnet/index.schema.js';
 import { AwsEcsExecutionModuleSchema } from './index.schema.js';
 import { AwsEcsExecution } from './models/execution/index.js';
 import { AwsEcsExecutionOverlay } from './overlays/aws-ecs-execution/index.js';
@@ -282,28 +281,10 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
         ...matchingSubnetLocalFilesystemMountAnchors,
       ],
     );
-    const ecsServiceAnchor = new AwsEcsServiceAnchor(
-      'AwsEcsServiceAnchor',
-      { executionId: execution.executionId },
-      executionOverlay,
+    execution.addAnchor(
+      new AwsEcsServiceAnchor('AwsEcsServiceAnchor', { executionId: execution.executionId }, executionOverlay),
     );
-    execution.addAnchor(ecsServiceAnchor);
     models.push(executionOverlay);
-
-    // Enforce relationship between filesystem overlay and execution,
-    // so that execution overlay always executes after filesystem overlay.
-    for (const matchingSubnetLocalFilesystemMountAnchor of matchingSubnetLocalFilesystemMountAnchors) {
-      const [subnetLocalFilesystemMountOverlay] = await subnet.getOverlaysMatchingSchema(
-        AwsSimpleSubnetLocalFilesystemMountOverlaySchema,
-        [
-          {
-            key: 'filesystemName',
-            value: matchingSubnetLocalFilesystemMountAnchor.getSchemaInstance().properties.filesystemName,
-          },
-        ],
-      );
-      subnetLocalFilesystemMountOverlay.getActual().addChild('overlayId', executionOverlay, 'overlayId');
-    }
 
     // Add SecurityGroupOverlay for security group lifecycle.
     const securityGroupOverlay = new AwsEcsExecutionServerSecurityGroupOverlay(

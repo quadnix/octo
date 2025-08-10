@@ -14,10 +14,6 @@ import { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-clus
 import { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
 import { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import { AwsSecurityGroupAnchorRuleSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
-import { AwsEcsExecutionOverlaySchema } from './overlays/aws-ecs-execution/aws-ecs-execution.schema.js';
-import { AwsEcsExecutionServerSecurityGroupOverlaySchema } from './overlays/aws-ecs-execution-server-security-group/aws-ecs-execution-server-security-group.schema.js';
-
-export { AwsEcsExecutionOverlaySchema, AwsEcsExecutionServerSecurityGroupOverlaySchema };
 
 /**
  * Defines the container image properties for execution deployments.

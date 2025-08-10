@@ -23,9 +23,6 @@ import {
   AlbListenerSchema,
 } from '../../../resources/alb-listener/index.schema.js';
 import { AlbTargetGroupHealthCheckSchema } from '../../../resources/alb-target-group/index.schema.js';
-import { AwsEcsAlbServiceOverlaySchema } from './overlays/aws-ecs-alb-service/aws-ecs-alb-service.schema.js';
-
-export { AwsEcsAlbServiceOverlaySchema };
 
 /**
  * Defines the target group configuration for ALB services.

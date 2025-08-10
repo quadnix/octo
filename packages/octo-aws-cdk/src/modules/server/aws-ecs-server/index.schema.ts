@@ -2,9 +2,6 @@ import { type Account, AccountSchema, Schema, type Service, ServiceSchema, Valid
 import { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
 import { AwsSecurityGroupAnchorRuleSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
-import { AwsEcsServerS3AccessOverlaySchema } from './overlays/aws-ecs-server-s3-access/aws-ecs-server-s3-access.schema.js';
-
-export { AwsEcsServerS3AccessOverlaySchema };
 
 /**
  * S3 directory access permissions for server modules.

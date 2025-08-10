@@ -1,6 +1,6 @@
 import { AOverlay, type Diff, type MatchingAnchor, Overlay } from '@quadnix/octo';
 import type { AwsEfsAnchorSchema } from '../../../../../anchors/aws-efs/aws-efs.anchor.schema.js';
-import type { AwsSubnetLocalFilesystemMountAnchor } from '../../../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.js';
+import type { AwsSubnetAnchor } from '../../../../../anchors/aws-subnet/aws-subnet.anchor.js';
 import { AwsSimpleSubnetLocalFilesystemMountOverlaySchema } from './aws-simple-subnet-local-filesystem-mount.schema.js';
 
 /**
@@ -16,7 +16,7 @@ export class AwsSimpleSubnetLocalFilesystemMountOverlay extends AOverlay<
   constructor(
     overlayId: string,
     properties: AwsSimpleSubnetLocalFilesystemMountOverlaySchema['properties'],
-    anchors: [MatchingAnchor<AwsEfsAnchorSchema>, AwsSubnetLocalFilesystemMountAnchor],
+    anchors: [MatchingAnchor<AwsEfsAnchorSchema>, AwsSubnetAnchor],
   ) {
     super(overlayId, properties, anchors);
   }

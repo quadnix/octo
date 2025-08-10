@@ -82,19 +82,18 @@ export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, 
     region.addSubnet(subnet);
 
     // Add anchors.
-    subnet.addAnchor(
-      new AwsSubnetAnchor(
-        'AwsSubnetAnchor',
-        {
-          AvailabilityZone: inputs.subnetAvailabilityZone,
-          awsAccountId,
-          awsRegionId,
-          CidrBlock: inputs.subnetCidrBlock,
-          subnetName: subnet.subnetName,
-        },
-        subnet,
-      ),
+    const awsSubnetAnchor = new AwsSubnetAnchor(
+      'AwsSubnetAnchor',
+      {
+        AvailabilityZone: inputs.subnetAvailabilityZone,
+        awsAccountId,
+        awsRegionId,
+        CidrBlock: inputs.subnetCidrBlock,
+        subnetName: subnet.subnetName,
+      },
+      subnet,
     );
+    subnet.addAnchor(awsSubnetAnchor);
 
     const models: (AwsSimpleSubnet | AwsSimpleSubnetLocalFilesystemMountOverlay)[] = [subnet];
 
@@ -118,14 +117,6 @@ export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, 
         throw new Error(`Filesystem "${filesystem.filesystemName}" not found within the same region!`);
       }
 
-      // Add anchors.
-      const awsSubnetLocalFilesystemMountAnchor = new AwsSubnetLocalFilesystemMountAnchor(
-        `AwsSubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
-        { awsAccountId, awsRegionId, filesystemName: filesystem.filesystemName, subnetName: inputs.subnetName },
-        subnet,
-      );
-      subnet.addAnchor(awsSubnetLocalFilesystemMountAnchor);
-
       const awsSimpleSubnetLocalFilesystemMountOverlay = new AwsSimpleSubnetLocalFilesystemMountOverlay(
         `aws-simple-subnet-local-filesystem-mount-overlay-${subnet.subnetName}-${filesystem.filesystemName}`,
         {
@@ -134,7 +125,14 @@ export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, 
           subnetId: subnet.subnetId,
           subnetName: subnet.subnetName,
         },
-        [matchingAwsEfsAnchor, awsSubnetLocalFilesystemMountAnchor],
+        [matchingAwsEfsAnchor, awsSubnetAnchor],
+      );
+      subnet.addAnchor(
+        new AwsSubnetLocalFilesystemMountAnchor(
+          `AwsSubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
+          { awsAccountId, awsRegionId, filesystemName: filesystem.filesystemName, subnetName: inputs.subnetName },
+          awsSimpleSubnetLocalFilesystemMountOverlay,
+        ),
       );
       models.push(awsSimpleSubnetLocalFilesystemMountOverlay);
     }

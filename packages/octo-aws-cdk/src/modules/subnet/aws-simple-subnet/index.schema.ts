@@ -12,9 +12,6 @@ import {
 import { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsSubnetAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet.anchor.schema.js';
-import { AwsSimpleSubnetLocalFilesystemMountOverlaySchema } from './overlays/aws-simple-subnet-local-filesystem-mount/aws-simple-subnet-local-filesystem-mount.schema.js';
-
-export { AwsSimpleSubnetLocalFilesystemMountOverlaySchema };
 
 /**
  * `AwsSimpleSubnetModuleSchema` is the input schema for the `AwsSimpleSubnetModule` module.

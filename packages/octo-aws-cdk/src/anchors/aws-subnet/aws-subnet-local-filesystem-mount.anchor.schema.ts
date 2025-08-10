@@ -1,7 +1,7 @@
-import { BaseAnchorSchema, Schema, type Subnet, Validate } from '@quadnix/octo';
+import { type AOverlay, BaseAnchorSchema, type BaseOverlaySchema, Schema, Validate } from '@quadnix/octo';
 
 /**
- * This anchor is associated with a {@link Subnet} model representing a filesystem mount in an AWS subnet.
+ * This anchor is associated with an {@link AOverlay} overlay representing a filesystem mount in an AWS subnet.
  *
  * @group Anchors/AwsSubnet
  *
@@ -11,7 +11,7 @@ export class AwsSubnetLocalFilesystemMountAnchorSchema extends BaseAnchorSchema 
   /**
    * @private
    */
-  parentInstance: Subnet;
+  parentInstance: AOverlay<BaseOverlaySchema, any>;
 
   /**
    * Input properties.

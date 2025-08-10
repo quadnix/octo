@@ -23,6 +23,7 @@ import type { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-ro
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { AwsSecurityGroupAnchorSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
 import type { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
+import type { AwsSubnetAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet.anchor.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 import type { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
 import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
@@ -77,6 +78,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
       deployment,
     ),
   );
+
   environment.addAnchor(
     testModuleContainer.createTestAnchor<AwsEcsClusterAnchorSchema>(
       'AwsEcsClusterAnchor',
@@ -84,12 +86,14 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
       environment,
     ),
   );
+
   const efsFilesystemAnchor = testModuleContainer.createTestAnchor<AwsEfsAnchorSchema>(
     'AwsEfsAnchor',
     { filesystemName: 'test-filesystem' },
     filesystem,
   );
   filesystem.addAnchor(efsFilesystemAnchor);
+
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
@@ -102,6 +106,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
       region,
     ),
   );
+
   server.addAnchor(
     testModuleContainer.createTestAnchor<AwsIamRoleAnchorSchema>(
       'AwsIamRoleAnchor',
@@ -116,24 +121,29 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
       server,
     ),
   );
-  const subnetLocalFilesystemMountAnchor =
-    testModuleContainer.createTestAnchor<AwsSubnetLocalFilesystemMountAnchorSchema>(
-      `AwsSubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
-      {
-        awsAccountId: '123',
-        awsRegionId: 'us-east-1',
-        filesystemName: filesystem.filesystemName,
-        subnetName: 'private-subnet',
-      },
-      subnet,
-    );
-  subnet.addAnchor(subnetLocalFilesystemMountAnchor);
 
-  await testModuleContainer.createTestOverlays('testModule', [
+  const subnetAnchor = testModuleContainer.createTestAnchor<AwsSubnetAnchorSchema>(
+    'AwsSubnetAnchor',
     {
-      anchors: [efsFilesystemAnchor, subnetLocalFilesystemMountAnchor],
-      // eslint-disable-next-line max-len
-      context: `@octo/subnet-local-filesystem-mount-overlay=subnet-local-filesystem-mount-overlay-${subnet.subnetName}-${filesystem.filesystemName}`,
+      AvailabilityZone: 'us-east-1a',
+      awsAccountId: '123',
+      awsRegionId: 'us-east-1',
+      CidrBlock: '10.0.0.0/8',
+      subnetName: 'private-subnet',
+    },
+    subnet,
+  );
+  subnet.addAnchor(subnetAnchor);
+
+  const subnetLocalFilesystemMountOverlayContext = [
+    '@octo/subnet-local-filesystem-mount-overlay=subnet-local-filesystem-mount-overlay',
+    subnet.subnetName,
+    filesystem.filesystemName,
+  ].join('-');
+  const testOverlays = await testModuleContainer.createTestOverlays('testModule', [
+    {
+      anchors: [efsFilesystemAnchor, subnetAnchor],
+      context: subnetLocalFilesystemMountOverlayContext,
       properties: {
         filesystemName: filesystem.filesystemName,
         regionId: region.regionId,
@@ -142,6 +152,19 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
       },
     },
   ]);
+  const subnetLocalFilesystemMountOverlay = testOverlays[subnetLocalFilesystemMountOverlayContext];
+  subnet.addAnchor(
+    testModuleContainer.createTestAnchor<AwsSubnetLocalFilesystemMountAnchorSchema>(
+      `AwsSubnetLocalFilesystemMountAnchor-${filesystem.filesystemName}`,
+      {
+        awsAccountId: '123',
+        awsRegionId: 'us-east-1',
+        filesystemName: filesystem.filesystemName,
+        subnetName: 'private-subnet',
+      },
+      subnetLocalFilesystemMountOverlay,
+    ),
+  );
 
   await testModuleContainer.createTestResources<
     [EcsClusterSchema, EfsSchema, EfsMountTargetSchema, IamRoleSchema, SubnetSchema, VpcSchema]

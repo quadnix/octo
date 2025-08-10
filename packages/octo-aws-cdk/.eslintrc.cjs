@@ -77,7 +77,6 @@ module.exports = {
               ['module-schema-index', { family: '${from.family}' }],
               'anchor-anchor',
               'anchor-schema',
-              'module-schema-index',
               'utilities',
             ],
             from: ['module-module'],
