@@ -80,7 +80,7 @@ export class ModuleDefinitions {
         cpu: 256,
         image: {
           command: 'node webserver',
-          ports: [{ containerPort: 3000, protocol: 'tcp' }],
+          ports: [{ containerPort: 80, protocol: 'tcp' }],
           // eslint-disable-next-line spellcheck/spell-checker
           uri: 'docker.io/ealen/echo-server:0.9.2',
         },
@@ -162,7 +162,7 @@ export class ModuleDefinitions {
           Egress: false,
           FromPort: 80,
           IpProtocol: 'tcp',
-          ToPort: 3000,
+          ToPort: 80,
         },
       ],
       subnet: stub<Subnet>('${{private-subnet-module.model.subnet}}'),
@@ -173,9 +173,9 @@ export class ModuleDefinitions {
       listeners: [
         {
           DefaultActions: [
-            { action: { TargetGroups: [{ targetGroupName: 'backend-v1-3000', Weight: 100 }] }, actionType: 'forward' },
+            { action: { TargetGroups: [{ targetGroupName: 'backend-v1-80', Weight: 100 }] }, actionType: 'forward' },
           ],
-          Port: 3000,
+          Port: 80,
           rules: [],
         },
       ],
@@ -187,19 +187,19 @@ export class ModuleDefinitions {
       targets: [
         {
           containerName: 'backend-v1',
-          containerPort: 3000,
+          containerPort: 80,
           execution: stub<Execution>('${{backend-v1-qa-execution-module.model.execution}}'),
           healthCheck: {
             HealthCheckIntervalSeconds: 30,
             HealthCheckPath: '/',
-            HealthCheckPort: 3000,
+            HealthCheckPort: 80,
             HealthCheckProtocol: 'HTTP',
             HealthCheckTimeoutSeconds: 5,
             HealthyThresholdCount: 2,
             Matcher: { HttpCode: 200 },
             UnhealthyThresholdCount: 2,
           },
-          Name: 'backend-v1-3000',
+          Name: 'backend-v1-80',
         },
       ],
     });

@@ -13,6 +13,7 @@
     "@typescript-eslint/eslint-plugin": "~7.18.0",
     "@typescript-eslint/parser": "~7.18.0",
     "axios": "~1.7.9",
+    "axios-retry": "~4.5.0",
     "dpdm": "~3.14.0",
     "eslint": "~8.57.1",
     "eslint-config-prettier": "~9.1.0",

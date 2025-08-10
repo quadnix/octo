@@ -1,8 +1,18 @@
 import { GetResourcesCommand, ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
-import { type AModule, type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import {
+  type AModule,
+  type AResource,
+  type Container,
+  TestContainer,
+  TestModuleContainer,
+  TestStateProvider,
+} from '@quadnix/octo';
 import { type AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
 import { type SimpleAppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
+import type { AlbSchema } from '@quadnix/octo-aws-cdk/resources/alb/schema';
 import { EventLoggerListener } from '@quadnix/octo-event-listeners';
+import axios from 'axios';
+import axiosRetry from 'axios-retry';
 import { ModuleDefinitions } from './module-definitions.js';
 
 describe('Main E2E', () => {
@@ -41,12 +51,24 @@ describe('Main E2E', () => {
         type: md.module,
       })),
     );
-    await testModuleContainer.commit(app);
+    const result = await testModuleContainer.commit(app);
+    const albResource = result.resourceTransaction
+      .flat()
+      .find((t) => (t.node.constructor as typeof AResource).NODE_NAME === 'alb')!.node as AResource<AlbSchema, any>;
+    const albDnsName = albResource.response.DNSName;
 
-    expect(true).toBe(true);
-  }, 60_000);
+    const axiosClient = axios.create({ baseURL: `http://${albDnsName}` });
+    // Retry for 3 minutes.
+    axiosRetry(axiosClient, {
+      retries: 18,
+      retryCondition: (error) => error.response?.status !== 200,
+      retryDelay: () => 10000,
+    });
+    const albResponse = await axiosClient.get(`/`);
+    expect(albResponse.status).toBe(200);
+  }, 300_000);
 
-  it.skip('should have no resources left after teardown', async () => {
+  it('should have no resources left after teardown', async () => {
     const appModule = moduleDefinitions.get<SimpleAppModule>('app-module')!;
     const accountModule = moduleDefinitions.get<AwsIniAccountModule>('account-module')!;
 
