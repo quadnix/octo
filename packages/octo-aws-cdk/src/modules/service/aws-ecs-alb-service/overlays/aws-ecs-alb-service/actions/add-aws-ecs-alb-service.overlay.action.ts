@@ -16,26 +16,26 @@ import type { AlbTargetGroupSchema } from '../../../../../../resources/alb-targe
 import { EcsService } from '../../../../../../resources/ecs-service/index.js';
 import { EcsServiceSchema } from '../../../../../../resources/ecs-service/index.schema.js';
 import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
-import type { AwsAlbServiceModule } from '../../../aws-alb.service.module.js';
-import { AwsAlbEcsExecutionOverlay } from '../aws-alb-ecs-execution.overlay.js';
+import type { AwsEcsAlbServiceModule } from '../../../aws-ecs-alb-service.module.js';
+import { AwsEcsAlbServiceOverlay } from '../aws-ecs-alb-service.overlay.js';
 
 /**
  * @internal
  */
-@Action(AwsAlbEcsExecutionOverlay)
-export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceModule> {
+@Action(AwsEcsAlbServiceOverlay)
+export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbServiceModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsAlbEcsExecutionOverlay &&
-      hasNodeName(diff.node, 'alb-ecs-execution-overlay') &&
+      diff.node instanceof AwsEcsAlbServiceOverlay &&
+      hasNodeName(diff.node, 'aws-ecs-alb-service-overlay') &&
       diff.field === 'overlayId'
     );
   }
 
   async handle(
-    diff: Diff<AwsAlbEcsExecutionOverlay>,
-    actionInputs: EnhancedModuleSchema<AwsAlbServiceModule>,
+    diff: Diff<AwsEcsAlbServiceOverlay>,
+    actionInputs: EnhancedModuleSchema<AwsEcsAlbServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const albEcsExecutionOverlay = diff.node;
@@ -119,13 +119,13 @@ export class AddTargetGroupOverlayAction implements IModelAction<AwsAlbServiceMo
 /**
  * @internal
  */
-@Factory<AddTargetGroupOverlayAction>(AddTargetGroupOverlayAction)
-export class AddTargetGroupOverlayActionFactory {
-  private static instance: AddTargetGroupOverlayAction;
+@Factory<AddAwsEcsAlbServiceOverlayAction>(AddAwsEcsAlbServiceOverlayAction)
+export class AddAwsEcsAlbServiceOverlayActionFactory {
+  private static instance: AddAwsEcsAlbServiceOverlayAction;
 
-  static async create(): Promise<AddTargetGroupOverlayAction> {
+  static async create(): Promise<AddAwsEcsAlbServiceOverlayAction> {
     if (!this.instance) {
-      this.instance = new AddTargetGroupOverlayAction();
+      this.instance = new AddAwsEcsAlbServiceOverlayAction();
     }
     return this.instance;
   }

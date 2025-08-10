@@ -1,6 +1,15 @@
-import { type Execution, ExecutionSchema, type Region, RegionSchema, Schema, Validate } from '@quadnix/octo';
+import {
+  type Execution,
+  ExecutionSchema,
+  type Region,
+  RegionSchema,
+  Schema,
+  type Subnet,
+  SubnetSchema,
+  Validate,
+} from '@quadnix/octo';
+import { AwsEcsServiceAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { EcsServiceAnchorSchema } from '../../../anchors/ecs-service/ecs-service.anchor.schema.js';
 import {
   AlbListenerActionFixedResponseActionSchema,
   AlbListenerActionForwardConfigSchema,
@@ -14,9 +23,9 @@ import {
   AlbListenerSchema,
 } from '../../../resources/alb-listener/index.schema.js';
 import { AlbTargetGroupHealthCheckSchema } from '../../../resources/alb-target-group/index.schema.js';
-import { AwsAlbEcsExecutionSchema } from './overlays/alb-ecs-execution/aws-alb-ecs-execution.schema.js';
+import { AwsEcsAlbServiceOverlaySchema } from './overlays/aws-ecs-alb-service/aws-ecs-alb-service.schema.js';
 
-export { AwsAlbEcsExecutionSchema };
+export { AwsEcsAlbServiceOverlaySchema };
 
 /**
  * Defines the target group configuration for ALB services.
@@ -24,11 +33,11 @@ export { AwsAlbEcsExecutionSchema };
  * based on the configured health checks and routing rules.
  * This schema specifies how the ALB will forward traffic to specific containers in ECS executions.
  *
- * @group Modules/Service/EcsBasedAlbService
+ * @group Modules/Service/AwsEcsAlbService
  *
  * @hideconstructor
  */
-export class AwsAlbServiceModuleTargetGroupSchema {
+export class AwsEcsAlbServiceModuleTargetGroupSchema {
   /**
    * The name of the container within the ECS task that will receive traffic.
    * This must match the container name defined in the task definition.
@@ -50,11 +59,11 @@ export class AwsAlbServiceModuleTargetGroupSchema {
   @Validate([
     {
       options: {
-        isModel: { anchors: [{ schema: EcsServiceAnchorSchema }], NODE_NAME: 'execution' },
+        isModel: { anchors: [{ schema: AwsEcsServiceAnchorSchema }], NODE_NAME: 'execution' },
       },
     },
     {
-      destruct: (value: AwsAlbServiceModuleTargetGroupSchema['execution']): ExecutionSchema[] => [value.synth()],
+      destruct: (value: AwsEcsAlbServiceModuleTargetGroupSchema['execution']): ExecutionSchema[] => [value.synth()],
       options: {
         isSchema: { schema: ExecutionSchema },
       },
@@ -63,17 +72,15 @@ export class AwsAlbServiceModuleTargetGroupSchema {
   execution = Schema<Execution>();
 
   /**
-   * Optional health check configuration for the target group.
+   * Health check configuration for the target group.
    * Defines how the ALB determines whether targets are healthy and can receive traffic.
    * If not specified, default health check settings will be used.
    * See {@link AlbTargetGroupHealthCheckSchema} for options.
    */
   @Validate({
-    destruct: (value: AwsAlbServiceModuleTargetGroupSchema['healthCheck']): AlbTargetGroupHealthCheckSchema[] =>
-      value ? [value] : [],
     options: { isSchema: { schema: AlbTargetGroupHealthCheckSchema } },
   })
-  healthCheck? = Schema<AlbTargetGroupHealthCheckSchema | null>(null);
+  healthCheck = Schema<AlbTargetGroupHealthCheckSchema>();
 
   /**
    * The name of the target group.
@@ -85,17 +92,17 @@ export class AwsAlbServiceModuleTargetGroupSchema {
 }
 
 /**
- * `AwsAlbServiceModuleSchema` is the input schema for the `AwsAlbServiceModule` module.
+ * `AwsEcsAlbServiceModuleSchema` is the input schema for the `AwsEcsAlbServiceModule` module.
  * This schema defines the comprehensive configuration for Application Load Balancers including
  * listener rules, target groups, routing conditions, and network placement.
  *
- * @group Modules/Service/EcsBasedAlbService
+ * @group Modules/Service/AwsEcsAlbService
  *
  * @hideconstructor
  *
- * @see {@link AwsAlbServiceModule} to learn more about the `AwsAlbServiceModule` module.
+ * @see {@link AwsEcsAlbServiceModule} to learn more about the `AwsEcsAlbServiceModule` module.
  */
-export class AwsAlbServiceModuleSchema {
+export class AwsEcsAlbServiceModuleSchema {
   /**
    * The name of the Application Load Balancer.
    * This name must be unique within the region and will be used to identify the ALB resource.
@@ -122,34 +129,34 @@ export class AwsAlbServiceModuleSchema {
       options: { minLength: 1 },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): number[] => value.map((v) => v.Port),
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): number[] => value.map((v) => v.Port),
       options: { maxLength: 65535, minLength: 1 },
     },
     {
       // DefaultActions array must be of length 1.
       destruct: (
-        value: AwsAlbServiceModuleSchema['listeners'],
+        value: AwsEcsAlbServiceModuleSchema['listeners'],
       ): [AlbListenerSchema['properties']['DefaultActions']] => [value.map((v) => v.DefaultActions).flat()],
       options: { maxLength: 1, minLength: 1 },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerActionFixedResponseActionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerActionFixedResponseActionSchema[] =>
         value.map((v) => v.DefaultActions.filter((a) => a.actionType === 'fixed-response').map((a) => a.action)).flat(),
       options: { isSchema: { schema: AlbListenerActionFixedResponseActionSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerActionForwardConfigSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerActionForwardConfigSchema[] =>
         value.map((v) => v.DefaultActions.filter((a) => a.actionType === 'forward').map((a) => a.action)).flat(),
       options: { isSchema: { schema: AlbListenerActionForwardConfigSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerActionRedirectActionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerActionRedirectActionSchema[] =>
         value.map((v) => v.DefaultActions.filter((a) => a.actionType === 'redirect').map((a) => a.action)).flat(),
       options: { isSchema: { schema: AlbListenerActionRedirectActionSchema } },
     },
     {
       // rules array can be empty.
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): [AlbListenerSchema['properties']['rules']] => [
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): [AlbListenerSchema['properties']['rules']] => [
         value.map((v) => v.rules).flat(),
       ],
       options: { minLength: 0 },
@@ -157,13 +164,13 @@ export class AwsAlbServiceModuleSchema {
     {
       // Each rule must have at least one action.
       destruct: (
-        value: AwsAlbServiceModuleSchema['listeners'],
+        value: AwsEcsAlbServiceModuleSchema['listeners'],
       ): AlbListenerSchema['properties']['rules'][0]['actions'][] =>
         value.map((v) => v.rules.map((r) => r.actions)).flat(),
       options: { minLength: 1 },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerActionFixedResponseActionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerActionFixedResponseActionSchema[] =>
         value
           .map((v) =>
             v.rules
@@ -176,7 +183,7 @@ export class AwsAlbServiceModuleSchema {
       options: { isSchema: { schema: AlbListenerActionFixedResponseActionSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerActionForwardConfigSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerActionForwardConfigSchema[] =>
         value
           .map((v) =>
             v.rules
@@ -189,7 +196,7 @@ export class AwsAlbServiceModuleSchema {
       options: { isSchema: { schema: AlbListenerActionForwardConfigSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerActionRedirectActionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerActionRedirectActionSchema[] =>
         value
           .map((v) =>
             v.rules
@@ -204,13 +211,13 @@ export class AwsAlbServiceModuleSchema {
     {
       // Each rule must have at least one condition.
       destruct: (
-        value: AwsAlbServiceModuleSchema['listeners'],
+        value: AwsEcsAlbServiceModuleSchema['listeners'],
       ): AlbListenerSchema['properties']['rules'][0]['conditions'][] =>
         value.map((v) => v.rules.map((r) => r.conditions)).flat(),
       options: { minLength: 1 },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerRuleHostHeaderConditionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerRuleHostHeaderConditionSchema[] =>
         value
           .map((v) =>
             v.rules
@@ -223,7 +230,7 @@ export class AwsAlbServiceModuleSchema {
       options: { isSchema: { schema: AlbListenerRuleHostHeaderConditionSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerRuleHttpHeaderConditionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerRuleHttpHeaderConditionSchema[] =>
         value
           .map((v) =>
             v.rules
@@ -236,7 +243,7 @@ export class AwsAlbServiceModuleSchema {
       options: { isSchema: { schema: AlbListenerRuleHttpHeaderConditionSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerRuleHttpRequestMethodConditionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerRuleHttpRequestMethodConditionSchema[] =>
         value
           .map((v) =>
             v.rules
@@ -249,7 +256,7 @@ export class AwsAlbServiceModuleSchema {
       options: { isSchema: { schema: AlbListenerRuleHttpRequestMethodConditionSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerRulePathPatternConditionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerRulePathPatternConditionSchema[] =>
         value
           .map((v) =>
             v.rules
@@ -262,7 +269,7 @@ export class AwsAlbServiceModuleSchema {
       options: { isSchema: { schema: AlbListenerRulePathPatternConditionSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerRuleQueryStringConditionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerRuleQueryStringConditionSchema[] =>
         value
           .map((v) =>
             v.rules
@@ -275,7 +282,7 @@ export class AwsAlbServiceModuleSchema {
       options: { isSchema: { schema: AlbListenerRuleQueryStringConditionSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): AlbListenerRuleSourceIpConditionSchema[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): AlbListenerRuleSourceIpConditionSchema[] =>
         value
           .map((v) =>
             v.rules
@@ -288,7 +295,7 @@ export class AwsAlbServiceModuleSchema {
       options: { isSchema: { schema: AlbListenerRuleSourceIpConditionSchema } },
     },
     {
-      destruct: (value: AwsAlbServiceModuleSchema['listeners']): number[] =>
+      destruct: (value: AwsEcsAlbServiceModuleSchema['listeners']): number[] =>
         value.map((v) => v.rules.map((r) => r.Priority)).flat(),
       options: { maxLength: 999, minLength: 1 },
     },
@@ -299,12 +306,19 @@ export class AwsAlbServiceModuleSchema {
    * The AWS region where the ALB will be created.
    * The region must have AWS region anchors configured.
    */
-  @Validate({
-    options: {
-      isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
-      isSchema: { schema: RegionSchema },
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsEcsAlbServiceModuleSchema['region']): RegionSchema[] => [value!.synth()],
+      options: {
+        isSchema: { schema: RegionSchema },
+      },
+    },
+  ])
   region = Schema<Region>();
 
   /**
@@ -312,12 +326,21 @@ export class AwsAlbServiceModuleSchema {
    * ALBs require at least two subnets in different availability zones for high availability.
    * All specified subnets must be public subnets to allow internet access to the load balancer.
    */
-  @Validate({
-    destruct: (value: AwsAlbServiceModuleSchema['subnets']): string[] =>
-      value.map((v) => [v.subnetCidrBlock, v.subnetName]).flat(),
-    options: { minLength: 1 },
-  })
-  subnets = Schema<{ subnetCidrBlock: string; subnetName: string }[]>();
+  @Validate<unknown>([
+    {
+      destruct: (value: AwsEcsAlbServiceModuleSchema['subnets']): Subnet[] => value!,
+      options: {
+        isModel: { NODE_NAME: 'subnet' },
+      },
+    },
+    {
+      destruct: (value: AwsEcsAlbServiceModuleSchema['subnets']): SubnetSchema[] => value!.map((v) => v.synth()),
+      options: {
+        isSchema: { schema: SubnetSchema },
+      },
+    },
+  ])
+  subnets = Schema<Subnet[]>();
 
   /**
    * Optional target groups for the ALB.
@@ -325,8 +348,8 @@ export class AwsAlbServiceModuleSchema {
    * Each target group specifies an execution, container, and port configuration.
    */
   @Validate({
-    destruct: (value: AwsAlbServiceModuleSchema['targets']): AwsAlbServiceModuleTargetGroupSchema[] => value!,
-    options: { isSchema: { schema: AwsAlbServiceModuleTargetGroupSchema } },
+    destruct: (value: AwsEcsAlbServiceModuleSchema['targets']): AwsEcsAlbServiceModuleTargetGroupSchema[] => value!,
+    options: { isSchema: { schema: AwsEcsAlbServiceModuleTargetGroupSchema } },
   })
-  targets? = Schema<AwsAlbServiceModuleTargetGroupSchema[]>([]);
+  targets? = Schema<AwsEcsAlbServiceModuleTargetGroupSchema[]>([]);
 }

@@ -1,22 +1,23 @@
-import { AModule, type Account, type App, Module, type Service, type Subnet, SubnetType } from '@quadnix/octo';
-import { AlbEcsExecutionAnchor } from '../../../anchors/alb-ecs-execution/alb-ecs-execution.anchor.js';
+import { AModule, type Account, type App, type MatchingAnchor, Module, type Subnet, SubnetType } from '@quadnix/octo';
+import { AwsEcsAlbAnchor } from '../../../anchors/aws-ecs/aws-ecs-alb.anchor.js';
+import { AwsEcsServiceAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { AwsAlbServiceModuleSchema } from './index.schema.js';
-import { AwsAlbService } from './models/alb/index.js';
-import { AwsAlbEcsExecutionOverlay } from './overlays/alb-ecs-execution/index.js';
+import { AwsEcsAlbServiceModuleSchema } from './index.schema.js';
+import { AwsEcsAlbService } from './models/service/index.js';
+import { AwsEcsAlbServiceOverlay } from './overlays/aws-ecs-alb-service/index.js';
 
 /**
- * `AwsAlbServiceModule` is an ECS-based AWS ALB service module that provides an implementation for the `Service` model.
- * This module creates Application Load Balancers (ALB)
+ * `AwsEcsAlbServiceModule` is an ECS-based AWS ALB service module that provides an implementation for
+ * the `Service` model. This module creates Application Load Balancers (ALB)
  * with comprehensive listener configurations, target groups, and routing rules.
  * It manages load balancing for containerized applications running on ECS with support for complex routing scenarios.
  *
  * @example
  * TypeScript
  * ```ts
- * import { AwsAlbServiceModule } from '@quadnix/octo-aws-cdk/modules/service/ecs-based-alb-service';
+ * import { AwsEcsAlbServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-ecs-alb-service';
  *
- * octo.loadModule(AwsAlbServiceModule, 'my-alb-module', {
+ * octo.loadModule(AwsEcsAlbServiceModule, 'my-alb-module', {
  *   albName: 'my-load-balancer',
  *   listeners: [{
  *     DefaultActions: [{
@@ -36,12 +37,13 @@ import { AwsAlbEcsExecutionOverlay } from './overlays/alb-ecs-execution/index.js
  *     containerName: 'web',
  *     containerPort: 3000,
  *     execution: myExecution,
+ *     healthCheck: { ... },
  *     Name: 'my-target-group',
  *   }]
  * });
  * ```
  *
- * @group Modules/Service/EcsBasedAlbService
+ * @group Modules/Service/AwsEcsAlbService
  *
  * @reference Resources {@link AlbListenerSchema}
  * @reference Resources {@link AlbSchema}
@@ -49,23 +51,18 @@ import { AwsAlbEcsExecutionOverlay } from './overlays/alb-ecs-execution/index.js
  * @reference Resources {@link EcsServiceSchema}
  * @reference Resources {@link SecurityGroupSchema}
  *
- * @see {@link AwsAlbServiceModuleSchema} for the input schema.
+ * @see {@link AwsEcsAlbServiceModuleSchema} for the input schema.
  * @see {@link AModule} to learn more about modules.
  * @see {@link Service} to learn more about the `Service` model.
  */
-@Module<AwsAlbServiceModule>('@octo', AwsAlbServiceModuleSchema)
-export class AwsAlbServiceModule extends AModule<AwsAlbServiceModuleSchema, AwsAlbService> {
-  async onInit(inputs: AwsAlbServiceModuleSchema): Promise<[AwsAlbService, AwsAlbEcsExecutionOverlay]> {
+@Module<AwsEcsAlbServiceModule>('@octo', AwsEcsAlbServiceModuleSchema)
+export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema, AwsEcsAlbService> {
+  async onInit(inputs: AwsEcsAlbServiceModuleSchema): Promise<[AwsEcsAlbService, AwsEcsAlbServiceOverlay]> {
     const region = inputs.region;
     const { app, subnets } = await this.registerMetadata(inputs);
 
-    // Validate ALB name.
-    const services = (app.getChildren('service')['service'] || []).map((d) => d.to as Service);
-    if (services.find((s) => s.serviceId === `${inputs.albName}-alb`)) {
-      throw new Error(`ALB "${inputs.albName}" already exists!`);
-    }
-
     // Validate subnet.
+    const associatedPublicSubnets: Subnet[] = [];
     for (const { subnetName } of inputs.subnets || []) {
       const regionSubnet = subnets.find((s) => s.subnetName === subnetName);
       if (!regionSubnet) {
@@ -74,29 +71,43 @@ export class AwsAlbServiceModule extends AModule<AwsAlbServiceModuleSchema, AwsA
       if (regionSubnet.subnetType !== SubnetType.PUBLIC) {
         throw new Error(`Subnet "${subnetName}" is not public!`);
       }
+      associatedPublicSubnets.push(regionSubnet);
+    }
+    if (associatedPublicSubnets.length < 2) {
+      throw new Error('At least two public subnets are required!');
     }
 
     // Create a new ALB.
-    const service = new AwsAlbService(inputs.albName);
+    const service = new AwsEcsAlbService(inputs.albName, associatedPublicSubnets);
     app.addService(service);
 
     // Add anchors.
-    const albEcsExecutionAnchor = new AlbEcsExecutionAnchor(
-      'AlbEcsExecutionAnchor',
-      { albName: inputs.albName },
-      service,
-    );
-    service.addAnchor(albEcsExecutionAnchor);
+    const ecsAlbAnchor = new AwsEcsAlbAnchor('AwsEcsAlbAnchor', { albName: inputs.albName }, service);
+    service.addAnchor(ecsAlbAnchor);
+
+    // Get matching ecs service anchors for each target.
+    const matchingEcsServiceAnchors: MatchingAnchor<AwsEcsServiceAnchorSchema>[] = [];
+    for (const target of inputs.targets || []) {
+      const [matchingEcsServiceAnchor] = await target.execution.getAnchorsMatchingSchema(
+        AwsEcsServiceAnchorSchema,
+        [],
+        {
+          searchBoundaryMembers: false,
+        },
+      );
+      matchingEcsServiceAnchors.push(matchingEcsServiceAnchor);
+    }
 
     // Add overlay for alb and ecs execution.
-    const albEcsExecutionOverlay = new AwsAlbEcsExecutionOverlay(`alb-ecs-execution-overlay-${inputs.albName}`, {}, [
-      albEcsExecutionAnchor,
+    const ecsAlbServiceOverlay = new AwsEcsAlbServiceOverlay(`aws-ecs-alb-service-overlay-${inputs.albName}`, {}, [
+      ecsAlbAnchor,
+      ...matchingEcsServiceAnchors,
     ]);
 
-    return [service, albEcsExecutionOverlay];
+    return [service, ecsAlbServiceOverlay];
   }
 
-  override async registerMetadata(inputs: AwsAlbServiceModuleSchema): Promise<{
+  override async registerMetadata(inputs: AwsEcsAlbServiceModuleSchema): Promise<{
     app: App;
     awsAccountId: string;
     awsAvailabilityZones: string[];

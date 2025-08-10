@@ -13,18 +13,18 @@ import { Alb } from '../../../../../../resources/alb/index.js';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
 import { SubnetSchema } from '../../../../../../resources/subnet/index.schema.js';
 import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
-import type { AwsAlbServiceModule } from '../../../aws-alb.service.module.js';
-import { AwsAlbService } from '../aws-alb.service.model.js';
+import type { AwsEcsAlbServiceModule } from '../../../aws-ecs-alb-service.module.js';
+import { AwsEcsAlbService } from '../aws-ecs-alb-service.model.js';
 
 /**
  * @internal
  */
-@Action(AwsAlbService)
-export class AddAlbServiceModelAction implements IModelAction<AwsAlbServiceModule> {
+@Action(AwsEcsAlbService)
+export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbServiceModule> {
   filter(diff: Diff): boolean {
     return (
       diff.action === DiffAction.ADD &&
-      diff.node instanceof AwsAlbService &&
+      diff.node instanceof AwsEcsAlbService &&
       hasNodeName(diff.node, 'service') &&
       diff.field === 'serviceId'
     );
@@ -32,10 +32,10 @@ export class AddAlbServiceModelAction implements IModelAction<AwsAlbServiceModul
 
   async handle(
     _diff: Diff,
-    actionInputs: EnhancedModuleSchema<AwsAlbServiceModule>,
+    actionInputs: EnhancedModuleSchema<AwsEcsAlbServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const { awsAccountId, awsAvailabilityZones, awsRegionId, subnets } = actionInputs.metadata;
+    const { awsAccountId, awsAvailabilityZones, awsRegionId } = actionInputs.metadata;
 
     const [matchingVpcResource] = await actionInputs.inputs.region.getResourcesMatchingSchema(
       VpcSchema,
@@ -48,16 +48,13 @@ export class AddAlbServiceModelAction implements IModelAction<AwsAlbServiceModul
     );
 
     const matchingSubnetResources: MatchingResource<SubnetSchema>[] = [];
-    for (const subnetInput of actionInputs.inputs.subnets) {
-      const { subnetCidrBlock, subnetName } = subnetInput;
-      const subnet = subnets.find((s) => s.subnetName === subnetName)!;
+    for (const subnet of actionInputs.inputs.subnets) {
       const [matchingSubnetResource] = await subnet.getResourcesMatchingSchema(
         SubnetSchema,
         [
           { key: 'awsAccountId', value: awsAccountId },
           { key: 'awsRegionId', value: awsRegionId },
-          { key: 'CidrBlock', value: subnetCidrBlock },
-          { key: 'subnetName', value: subnetName },
+          { key: 'subnetName', value: subnet.subnetName },
         ],
         [],
         { searchBoundaryMembers: false },
@@ -120,13 +117,13 @@ export class AddAlbServiceModelAction implements IModelAction<AwsAlbServiceModul
 /**
  * @internal
  */
-@Factory<AddAlbServiceModelAction>(AddAlbServiceModelAction)
-export class AddAlbServiceModelActionFactory {
-  private static instance: AddAlbServiceModelAction;
+@Factory<AddAwsEcsAlbServiceModelAction>(AddAwsEcsAlbServiceModelAction)
+export class AddAwsEcsAlbServiceModelActionFactory {
+  private static instance: AddAwsEcsAlbServiceModelAction;
 
-  static async create(): Promise<AddAlbServiceModelAction> {
+  static async create(): Promise<AddAwsEcsAlbServiceModelAction> {
     if (!this.instance) {
-      this.instance = new AddAlbServiceModelAction();
+      this.instance = new AddAwsEcsAlbServiceModelAction();
     }
     return this.instance;
   }

@@ -3,11 +3,11 @@ import { BaseAnchorSchema, Schema, type Service, Validate } from '@quadnix/octo'
 /**
  * This anchor is associated with a {@link Service} model representing an AWS ALB.
  *
- * @group Anchors/AlbEcsExecution
+ * @group Anchors/AwsEcs
  *
  * @hideconstructor
  */
-export class AlbEcsExecutionAnchorSchema extends BaseAnchorSchema {
+export class AwsEcsAlbAnchorSchema extends BaseAnchorSchema {
   /**
    * @private
    */
@@ -18,7 +18,7 @@ export class AlbEcsExecutionAnchorSchema extends BaseAnchorSchema {
    * * `properties.albName`: The name of the ALB.
    */
   @Validate({
-    destruct: (value: AlbEcsExecutionAnchorSchema['properties']): string[] => [value.albName],
+    destruct: (value: AwsEcsAlbAnchorSchema['properties']): string[] => [value.albName],
     options: { minLength: 1 },
   })
   override properties = Schema<{
