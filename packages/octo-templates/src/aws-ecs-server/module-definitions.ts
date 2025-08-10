@@ -5,29 +5,26 @@ import {
   type Constructable,
   type Deployment,
   type Environment,
+  Execution,
   Factory,
-  type Filesystem,
   type ModuleSchemaInputs,
   type Region,
   type Server,
-  type Service,
   type Subnet,
   SubnetType,
   stub,
 } from '@quadnix/octo';
-import { AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/ini-based-aws-account';
-import { AppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
-import { AwsDeploymentModule } from '@quadnix/octo-aws-cdk/modules/deployment/ecs-based-aws-deployment';
-import { AwsEnvironmentModule } from '@quadnix/octo-aws-cdk/modules/environment/ecs-based-aws-environment';
-import { AwsExecutionModule } from '@quadnix/octo-aws-cdk/modules/execution/ecs-based-aws-execution';
-import { AwsFilesystemModule } from '@quadnix/octo-aws-cdk/modules/filesystem/efs-based-aws-filesystem';
-import { AwsImageModule } from '@quadnix/octo-aws-cdk/modules/image/ecr-based-aws-image';
-import { AwsRegionModule } from '@quadnix/octo-aws-cdk/modules/region/per-az-aws-region';
-import { RegionId } from '@quadnix/octo-aws-cdk/modules/region/per-az-aws-region/schema';
-import { AwsServerModule } from '@quadnix/octo-aws-cdk/modules/server/ecs-based-aws-server';
-import { S3StorageAccess } from '@quadnix/octo-aws-cdk/modules/server/ecs-based-aws-server/schema';
-import { AwsS3StorageServiceModule } from '@quadnix/octo-aws-cdk/modules/service/s3-storage-aws-service';
-import { AwsSubnetModule } from '@quadnix/octo-aws-cdk/modules/subnet/simple-aws-subnet';
+import { AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
+import { SimpleAppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
+import { AwsEcsDeploymentModule } from '@quadnix/octo-aws-cdk/modules/deployment/aws-ecs-deployment';
+import { AwsEcsEnvironmentModule } from '@quadnix/octo-aws-cdk/modules/environment/aws-ecs-environment';
+import { AwsEcsExecutionModule } from '@quadnix/octo-aws-cdk/modules/execution/aws-ecs-execution';
+import { AwsMultiAzRegionModule } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region';
+import { AwsMultiAzRegionId } from '@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region/schema';
+import { AwsEcsServerModule } from '@quadnix/octo-aws-cdk/modules/server/aws-ecs-server';
+import { AwsEcsAlbServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-ecs-alb-service';
+import { AwsSimpleSubnetModule } from '@quadnix/octo-aws-cdk/modules/subnet/aws-simple-subnet';
+import { config } from './app.config.js';
 
 type ModuleDefinition<T extends AModule<unknown, any>> = {
   module: Constructable<T>;
@@ -59,32 +56,47 @@ export class ModuleDefinitions {
   }
 
   private init(): void {
-    this.add(AppModule, 'app-module', { name: 'aws-ecs-server' });
+    this.add(SimpleAppModule, 'app-module', { name: 'aws-ecs-server' });
+
     this.add(AwsIniAccountModule, 'account-module', {
-      accountId: '099051346528', // Fix me: AWS account ID.
+      accountId: config.AWS_ACCOUNT_ID,
       app: stub<App>('${{app-module.model.app}}'),
     });
-    this.add(AwsRegionModule, 'region-module', {
+
+    this.add(AwsMultiAzRegionModule, 'region-module', {
       account: stub<Account>('${{account-module.model.account}}'),
-      regionId: RegionId.AWS_US_EAST_1A,
+      name: 'app-region-east',
+      regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
       vpcCidrBlock: '10.0.0.0/16',
     });
-    this.add(AwsImageModule, 'image-module', {
-      imageFamily: 'quadnix',
-      imageName: 'test',
-      regions: [stub<Region>('${{region-module.model.region}}')],
+
+    this.add(AwsEcsServerModule, 'backend-server-module', {
+      account: stub<Account>('${{account-module.model.account}}'),
+      serverKey: 'backend',
     });
-    this.add(AwsFilesystemModule, 'region-filesystem-module', {
-      filesystemName: 'region-filesystem',
-      region: stub<Region>('${{region-module.model.region}}'),
+
+    this.add(AwsEcsDeploymentModule, 'backend-deployment-v1-module', {
+      deploymentContainerProperties: {
+        cpu: 256,
+        image: {
+          command: 'node webserver',
+          ports: [{ containerPort: 3000, protocol: 'tcp' }],
+          // eslint-disable-next-line spellcheck/spell-checker
+          uri: 'docker.io/ealen/echo-server:0.9.2',
+        },
+        memory: 512,
+      },
+      deploymentTag: 'v1',
+      server: stub<Server>('${{backend-server-module.model.server}}'),
     });
-    this.add(AwsEnvironmentModule, 'qa-environment-module', {
+
+    this.add(AwsEcsEnvironmentModule, 'qa-environment-module', {
       environmentName: 'qa',
-      environmentVariables: { NODE_ENV: 'qa', REGION: RegionId.AWS_US_EAST_1A },
+      environmentVariables: { NODE_ENV: 'qa' },
       region: stub<Region>('${{region-module.model.region}}'),
     });
-    this.add(AwsSubnetModule, 'public-subnet-module', {
-      localFilesystems: [stub<Filesystem>('${{region-filesystem-module.model.filesystem}}')],
+
+    this.add(AwsSimpleSubnetModule, 'public-subnet-module', {
       region: stub<Region>('${{region-module.model.region}}'),
       subnetAvailabilityZone: 'us-east-1a',
       subnetCidrBlock: '10.0.0.0/24',
@@ -95,10 +107,21 @@ export class ModuleDefinitions {
         subnetType: SubnetType.PUBLIC,
       },
     });
-    this.add(AwsSubnetModule, 'private-subnet-module', {
+    this.add(AwsSimpleSubnetModule, 'public-backup-subnet-module', {
+      region: stub<Region>('${{region-module.model.region}}'),
+      subnetAvailabilityZone: 'us-east-1b',
+      subnetCidrBlock: '10.0.1.0/24',
+      subnetName: 'public-backup-subnet',
+      subnetOptions: {
+        createNatGateway: false,
+        disableSubnetIntraNetwork: false,
+        subnetType: SubnetType.PUBLIC,
+      },
+    });
+    this.add(AwsSimpleSubnetModule, 'private-subnet-module', {
       region: stub<Region>('${{region-module.model.region}}'),
       subnetAvailabilityZone: 'us-east-1a',
-      subnetCidrBlock: '10.0.1.0/24',
+      subnetCidrBlock: '10.0.2.0/24',
       subnetName: 'private-subnet',
       subnetOptions: {
         createNatGateway: false,
@@ -108,41 +131,16 @@ export class ModuleDefinitions {
       subnetSiblings: [
         {
           attachToNatGateway: true,
-          subnetCidrBlock: stub<string>('${{public-subnet-module.input.subnetCidrBlock}}'),
-          subnetName: 'public-subnet',
+          subnet: stub<Subnet>('${{public-subnet-module.model.subnet}}'),
         },
-      ],
-    });
-    this.add(AwsS3StorageServiceModule, 's3-storage-module', {
-      bucketName: 'ecs-server-storage',
-      region: stub<Region>('${{region-module.model.region}}'),
-      remoteDirectoryPaths: ['backend'],
-    });
-    this.add(AwsServerModule, 'backend-server-module', {
-      account: stub<Account>('${{account-module.model.account}}'),
-      s3: [
         {
-          directories: [{ access: S3StorageAccess.READ_WRITE, remoteDirectoryPath: 'backend' }],
-          service: stub<Service>('${{s3-storage-module.model.service}}'),
+          attachToNatGateway: false,
+          subnet: stub<Subnet>('${{public-backup-subnet-module.model.subnet}}'),
         },
       ],
-      serverKey: 'backend',
     });
-    this.add(AwsDeploymentModule, 'backend-deployment-v1-module', {
-      deploymentContainerProperties: {
-        cpu: 256,
-        image: {
-          command: 'node webserver',
-          ports: [{ containerPort: 3000, protocol: 'tcp' }],
-          // eslint-disable-next-line spellcheck/spell-checker
-          uri: 'docker.io/ealen/echo-server:0.9.2', // Fix me: Docker image URI.
-        },
-        memory: 512,
-      },
-      deploymentTag: 'v1',
-      server: stub<Server>('${{backend-server-module.model.server}}'),
-    });
-    this.add(AwsExecutionModule, 'backend-v1-public-execution-module', {
+
+    this.add(AwsEcsExecutionModule, 'backend-v1-qa-execution-module', {
       deployments: {
         main: {
           containerProperties: {
@@ -157,45 +155,53 @@ export class ModuleDefinitions {
       },
       desiredCount: 1,
       environment: stub<Environment>('${{qa-environment-module.model.environment}}'),
-      executionId: 'backend-v1-aws-us-east-1a-qa-public-subnet',
-      filesystems: [stub<Filesystem>('${{region-filesystem-module.model.filesystem}}')],
+      executionId: 'backend-v1-qa-execution',
       securityGroupRules: [
         {
           CidrBlock: '0.0.0.0/0',
           Egress: false,
           FromPort: 80,
           IpProtocol: 'tcp',
-          ToPort: 80,
-        },
-      ],
-      subnet: stub<Subnet>('${{public-subnet-module.model.subnet}}'),
-    });
-    this.add(AwsExecutionModule, 'backend-v1-private-execution-module', {
-      deployments: {
-        main: {
-          containerProperties: {
-            image: {
-              essential: true,
-              name: 'backend-v1',
-            },
-          },
-          deployment: stub<Deployment>('${{backend-deployment-v1-module.model.deployment}}'),
-        },
-        sidecars: [],
-      },
-      desiredCount: 1,
-      environment: stub<Environment>('${{qa-environment-module.model.environment}}'),
-      executionId: 'backend-v1-aws-us-east-1a-qa-private-subnet',
-      securityGroupRules: [
-        {
-          CidrBlock: '0.0.0.0/0',
-          Egress: false,
-          FromPort: 80,
-          IpProtocol: 'tcp',
-          ToPort: 80,
+          ToPort: 3000,
         },
       ],
       subnet: stub<Subnet>('${{private-subnet-module.model.subnet}}'),
+    });
+
+    this.add(AwsEcsAlbServiceModule, 'qa-api-alb-module', {
+      albName: 'qa-api-alb',
+      listeners: [
+        {
+          DefaultActions: [
+            { action: { TargetGroups: [{ targetGroupName: 'backend-v1-3000', Weight: 100 }] }, actionType: 'forward' },
+          ],
+          Port: 3000,
+          rules: [],
+        },
+      ],
+      region: stub<Region>('${{region-module.model.region}}'),
+      subnets: [
+        stub<Subnet>('${{public-subnet-module.model.subnet}}'),
+        stub<Subnet>('${{public-backup-subnet-module.model.subnet}}'),
+      ],
+      targets: [
+        {
+          containerName: 'backend-v1',
+          containerPort: 3000,
+          execution: stub<Execution>('${{backend-v1-qa-execution-module.model.execution}}'),
+          healthCheck: {
+            HealthCheckIntervalSeconds: 30,
+            HealthCheckPath: '/',
+            HealthCheckPort: 3000,
+            HealthCheckProtocol: 'HTTP',
+            HealthCheckTimeoutSeconds: 5,
+            HealthyThresholdCount: 2,
+            Matcher: { HttpCode: 200 },
+            UnhealthyThresholdCount: 2,
+          },
+          Name: 'backend-v1-3000',
+        },
+      ],
     });
   }
 
