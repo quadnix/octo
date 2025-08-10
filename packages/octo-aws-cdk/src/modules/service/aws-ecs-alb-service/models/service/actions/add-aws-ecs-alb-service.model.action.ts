@@ -100,7 +100,7 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
       {
         awsAccountId,
         awsRegionId,
-        IpAddressType: 'dualstack',
+        IpAddressType: 'ipv4',
         Name: actionInputs.inputs.albName,
         Scheme: 'internet-facing',
         Type: 'application',

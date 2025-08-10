@@ -23,7 +23,7 @@ export class AlbSchema extends BaseResourceSchema {
    * Input properties.
    * * `properties.awsAccountId` - The AWS account id.
    * * `properties.awsRegionId` - The AWS region id.
-   * * `properties.IpAddressType` - The IP address type. Possible values are `dualstack`.
+   * * `properties.IpAddressType` - The IP address type. Possible values are `ipv4`.
    * * `properties.Name` - The name of the ALB.
    * * `properties.Scheme` - The scheme of the ALB. Possible values are `internet-facing`.
    * * `properties.Type` - The type of the ALB. Possible values are `application`.
@@ -42,7 +42,7 @@ export class AlbSchema extends BaseResourceSchema {
   override properties = Schema<{
     awsAccountId: string;
     awsRegionId: string;
-    IpAddressType: 'dualstack';
+    IpAddressType: 'ipv4';
     Name: string;
     Scheme: 'internet-facing';
     Type: 'application';
