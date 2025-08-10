@@ -36,14 +36,21 @@ export class AwsEcsDeploymentModuleSchema {
    * The ECS server that this deployment will be associated with.
    * The server must have ECS server anchors and IAM role anchors configured.
    */
-  @Validate({
-    options: {
-      isModel: {
-        anchors: [{ schema: AwsEcsServerAnchorSchema }, { schema: AwsIamRoleAnchorSchema }],
-        NODE_NAME: 'server',
+  @Validate([
+    {
+      options: {
+        isModel: {
+          anchors: [{ schema: AwsEcsServerAnchorSchema }, { schema: AwsIamRoleAnchorSchema }],
+          NODE_NAME: 'server',
+        },
       },
-      isSchema: { schema: ServerSchema },
     },
-  })
+    {
+      destruct: (value: AwsEcsDeploymentModuleSchema['server']): [ServerSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: ServerSchema },
+      },
+    },
+  ])
   server = Schema<Server>();
 }

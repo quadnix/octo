@@ -129,6 +129,14 @@ export class AwsEcsExecutionModuleSchema {
       ],
       options: {
         isModel: { anchors: [{ schema: AwsEcsTaskDefinitionAnchorSchema }], NODE_NAME: 'deployment' },
+      },
+    },
+    {
+      destruct: (value: AwsEcsExecutionModuleSchema['deployments']): DeploymentSchema[] => [
+        value.main.deployment.synth(),
+        ...value.sidecars.map((d) => d.deployment.synth()),
+      ],
+      options: {
         isSchema: { schema: DeploymentSchema },
       },
     },
@@ -164,12 +172,19 @@ export class AwsEcsExecutionModuleSchema {
    * The environment where this execution will run.
    * The environment must have ECS cluster anchors configured.
    */
-  @Validate({
-    options: {
-      isModel: { anchors: [{ schema: AwsEcsClusterAnchorSchema }], NODE_NAME: 'environment' },
-      isSchema: { schema: EnvironmentSchema },
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsEcsClusterAnchorSchema }], NODE_NAME: 'environment' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsEcsExecutionModuleSchema['environment']): [EnvironmentSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: EnvironmentSchema },
+      },
+    },
+  ])
   environment = Schema<Environment>();
 
   /**
@@ -200,13 +215,20 @@ export class AwsEcsExecutionModuleSchema {
    * The filesystems to mount in the execution.
    * These provide persistent storage for the containers.
    */
-  @Validate({
-    destruct: (value: AwsEcsExecutionModuleSchema['filesystems']): Filesystem[] => value!,
-    options: {
-      isModel: { anchors: [{ schema: AwsEfsAnchorSchema }], NODE_NAME: 'filesystem' },
-      isSchema: { schema: FilesystemSchema },
+  @Validate([
+    {
+      destruct: (value: AwsEcsExecutionModuleSchema['filesystems']): Filesystem[] => value!,
+      options: {
+        isModel: { anchors: [{ schema: AwsEfsAnchorSchema }], NODE_NAME: 'filesystem' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsEcsExecutionModuleSchema['filesystems']): FilesystemSchema[] => value!.map((v) => v.synth()),
+      options: {
+        isSchema: { schema: FilesystemSchema },
+      },
+    },
+  ])
   filesystems? = Schema<Filesystem[]>([]);
 
   /**

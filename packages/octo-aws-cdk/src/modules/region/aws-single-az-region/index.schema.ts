@@ -19,12 +19,19 @@ export class AwsSingleAzRegionModuleSchema {
   /**
    * The AWS account that this region will be associated with.
    */
-  @Validate({
-    options: {
-      isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
-      isSchema: { schema: AccountSchema },
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsSingleAzRegionModuleSchema['account']): [AccountSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: AccountSchema },
+      },
+    },
+  ])
   account = Schema<Account>();
 
   /**

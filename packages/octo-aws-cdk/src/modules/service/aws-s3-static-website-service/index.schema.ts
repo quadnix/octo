@@ -17,12 +17,19 @@ export class AwsS3StaticWebsiteServiceModuleSchema {
    * The AWS account that this service will be associated with.
    * Only AWS account types are supported for this module.
    */
-  @Validate({
-    options: {
-      isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
-      isSchema: { schema: AccountSchema },
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsS3StaticWebsiteServiceModuleSchema['account']): [AccountSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: AccountSchema },
+      },
+    },
+  ])
   account = Schema<Account>();
 
   /**

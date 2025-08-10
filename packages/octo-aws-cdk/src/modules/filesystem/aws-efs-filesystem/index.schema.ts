@@ -24,11 +24,18 @@ export class AwsEfsFilesystemModuleSchema {
    * The AWS region where the filesystem will be created.
    * The region must have AWS region anchors configured.
    */
-  @Validate({
-    options: {
-      isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
-      isSchema: { schema: RegionSchema },
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsEfsFilesystemModuleSchema['region']): [RegionSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: RegionSchema },
+      },
+    },
+  ])
   region = Schema<Region>();
 }

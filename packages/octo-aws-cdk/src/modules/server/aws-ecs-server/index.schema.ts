@@ -61,12 +61,19 @@ export class AwsEcsServerModuleSchema {
    * The AWS account where the server will be created.
    * This establishes the account context for the server infrastructure.
    */
-  @Validate({
-    options: {
-      isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
-      isSchema: { schema: AccountSchema },
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsAccountAnchorSchema }], NODE_NAME: 'account' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsEcsServerModuleSchema['account']): [AccountSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: AccountSchema },
+      },
+    },
+  ])
   account = Schema<Account>();
 
   /**
@@ -86,6 +93,11 @@ export class AwsEcsServerModuleSchema {
       destruct: (value: AwsEcsServerModuleSchema['s3']): Service[] => value!.map((v) => v.service),
       options: {
         isModel: { anchors: [{ schema: AwsS3StorageServiceAnchorSchema }], NODE_NAME: 'service' },
+      },
+    },
+    {
+      destruct: (value: AwsEcsServerModuleSchema['s3']): ServiceSchema[] => value!.map((v) => v.service.synth()),
+      options: {
         isSchema: { schema: ServiceSchema },
       },
     },

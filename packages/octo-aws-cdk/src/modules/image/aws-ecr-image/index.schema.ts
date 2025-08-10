@@ -40,6 +40,11 @@ export class AwsEcrImageModuleSchema {
       destruct: (value: AwsEcrImageModuleSchema['regions']): Region[] => value,
       options: {
         isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
+      },
+    },
+    {
+      destruct: (value: AwsEcrImageModuleSchema['regions']): RegionSchema[] => value.map((v) => v.synth()),
+      options: {
         isSchema: { schema: RegionSchema },
       },
     },

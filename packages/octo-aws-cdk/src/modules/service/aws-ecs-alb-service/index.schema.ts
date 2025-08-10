@@ -310,7 +310,7 @@ export class AwsEcsAlbServiceModuleSchema {
       },
     },
     {
-      destruct: (value: AwsEcsAlbServiceModuleSchema['region']): RegionSchema[] => [value!.synth()],
+      destruct: (value: AwsEcsAlbServiceModuleSchema['region']): RegionSchema[] => [value.synth()],
       options: {
         isSchema: { schema: RegionSchema },
       },
@@ -331,7 +331,7 @@ export class AwsEcsAlbServiceModuleSchema {
       },
     },
     {
-      destruct: (value: AwsEcsAlbServiceModuleSchema['subnets']): SubnetSchema[] => value!.map((v) => v.synth()),
+      destruct: (value: AwsEcsAlbServiceModuleSchema['subnets']): SubnetSchema[] => value.map((v) => v.synth()),
       options: {
         isSchema: { schema: SubnetSchema },
       },

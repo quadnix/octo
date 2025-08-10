@@ -29,25 +29,40 @@ export class AwsSimpleSubnetModuleSchema {
    * Optional array of EFS filesystems to mount in this subnet.
    * These filesystems provide shared persistent storage accessible from containers running in the subnet.
    */
-  @Validate({
-    destruct: (value: AwsSimpleSubnetModuleSchema['localFilesystems']): Filesystem[] => value!,
-    options: {
-      isModel: { anchors: [{ schema: AwsEfsAnchorSchema }], NODE_NAME: 'filesystem' },
-      isSchema: { schema: FilesystemSchema },
+  @Validate([
+    {
+      destruct: (value: AwsSimpleSubnetModuleSchema['localFilesystems']): Filesystem[] => value!,
+      options: {
+        isModel: { anchors: [{ schema: AwsEfsAnchorSchema }], NODE_NAME: 'filesystem' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsSimpleSubnetModuleSchema['localFilesystems']): FilesystemSchema[] =>
+        value!.map((v) => v.synth()),
+      options: {
+        isSchema: { schema: FilesystemSchema },
+      },
+    },
+  ])
   localFilesystems? = Schema<Filesystem[]>([]);
 
   /**
    * The AWS region where this subnet will be created.
    * The region must have AWS region anchors configured.
    */
-  @Validate({
-    options: {
-      isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
-      isSchema: { schema: RegionSchema },
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsSimpleSubnetModuleSchema['region']): [RegionSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: RegionSchema },
+      },
+    },
+  ])
   region = Schema<Region>();
 
   /**

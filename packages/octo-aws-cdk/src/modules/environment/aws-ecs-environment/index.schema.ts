@@ -41,11 +41,18 @@ export class AwsEcsEnvironmentModuleSchema {
    * The AWS region where this environment will be created.
    * The region must have AWS region anchors configured.
    */
-  @Validate({
-    options: {
-      isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
-      isSchema: { schema: RegionSchema },
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
+      },
     },
-  })
+    {
+      destruct: (value: AwsEcsEnvironmentModuleSchema['region']): [RegionSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: RegionSchema },
+      },
+    },
+  ])
   region = Schema<Region>();
 }
