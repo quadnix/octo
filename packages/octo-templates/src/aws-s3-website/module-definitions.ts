@@ -12,6 +12,7 @@ import {
 import { AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
 import { SimpleAppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
 import { AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
+import { config } from './app.config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const websiteSourcePath = join(__dirname, 'website');
@@ -47,14 +48,16 @@ export class ModuleDefinitions {
 
   private init(): void {
     this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
+
     this.add(AwsIniAccountModule, 'account-module', {
-      accountId: '099051346528', // Fix me: AWS account ID.
+      accountId: config.AWS_ACCOUNT_ID,
       app: stub<App>('${{app-module.model.app}}'),
     });
+
     this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
       account: stub<Account>('${{account-module.model.account}}'),
       awsRegionId: 'us-east-1',
-      bucketName: 'octo-test-aws-s3-website', // Fix me: S3 bucket name.
+      bucketName: config.AWS_S3_WEBSITE_BUCKET_NAME,
       directoryPath: websiteSourcePath,
     });
   }
