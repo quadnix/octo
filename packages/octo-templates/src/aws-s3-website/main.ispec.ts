@@ -9,8 +9,8 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
-import { AwsLocalstackAccountModule } from '@quadnix/octo-aws-cdk/modules/account/localstack-based-aws-account';
-import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/s3-static-website-aws-service';
+import { AwsLocalstackAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-localstack-account';
+import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
 import { DockerComposeEnvironment, type StartedDockerComposeEnvironment, Wait } from 'testcontainers';
 import { ModuleDefinitions } from './module-definitions.js';
 
@@ -85,12 +85,6 @@ describe('Main IT', () => {
            "node": "@octo/s3-website=bucket-${bucketName}",
            "value": "@octo/s3-website=bucket-${bucketName}",
          },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/vpc=vpc-aws-us-east-1a",
-           "value": "@octo/vpc=vpc-aws-us-east-1a",
-         },
        ],
        [
          {
@@ -107,18 +101,6 @@ describe('Main IT', () => {
                "${websiteSourcePath}/index.html",
              ],
            },
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-aws-us-east-1a",
-           "value": "@octo/internet-gateway=igw-aws-us-east-1a",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-aws-us-east-1a-access",
-           "value": "@octo/security-group=sec-grp-aws-us-east-1a-access",
          },
        ],
      ]
@@ -142,8 +124,10 @@ describe('Main IT', () => {
          },
          "resourceId": "bucket-${bucketName}",
          "response": {
+           "Arn": "arn:aws:s3:::octo-test-aws-s3-website",
            "awsRegionId": "us-east-1",
          },
+         "tags": {},
        },
      }
     `);

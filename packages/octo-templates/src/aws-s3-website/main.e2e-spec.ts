@@ -3,9 +3,9 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { GetResourcesCommand, ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
 import { type AModule, type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
-import { type AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/ini-based-aws-account';
-import { type AppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
-import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/s3-static-website-aws-service';
+import { type AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
+import { type SimpleAppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
+import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
 import { EventLoggerListener } from '@quadnix/octo-event-listeners';
 import axios from 'axios';
 import { ModuleDefinitions } from './module-definitions.js';
@@ -85,7 +85,7 @@ describe('Main E2E', () => {
   }, 60_000);
 
   it('should have no resources left after teardown', async () => {
-    const appModule = moduleDefinitions.get<AppModule>('app-module')!;
+    const appModule = moduleDefinitions.get<SimpleAppModule>('app-module')!;
     const accountModule = moduleDefinitions.get<AwsIniAccountModule>('account-module')!;
 
     await testModuleContainer.orderModules([appModule.module, accountModule.module]);
