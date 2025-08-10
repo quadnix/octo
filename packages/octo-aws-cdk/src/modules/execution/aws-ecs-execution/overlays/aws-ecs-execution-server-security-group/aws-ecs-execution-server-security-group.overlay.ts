@@ -1,7 +1,7 @@
 import { AOverlay, type Diff, type MatchingAnchor, Overlay } from '@quadnix/octo';
 import type { AwsSecurityGroupAnchor } from '../../../../../anchors/aws-security-group/aws-security-group.anchor.js';
 import type { AwsSecurityGroupAnchorSchema } from '../../../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
-import { AwsEcsExecutionServerSecurityGroupOverlaySchema } from './aws-ecs-execution-server-security-group.overlay.schema.js';
+import { AwsEcsExecutionServerSecurityGroupOverlaySchema } from './aws-ecs-execution-server-security-group.schema.js';
 
 /**
  * @internal
