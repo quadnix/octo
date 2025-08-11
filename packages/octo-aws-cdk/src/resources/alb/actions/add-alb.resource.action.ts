@@ -26,8 +26,8 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
     const properties = alb.properties;
     const response = alb.response;
     const tags = alb.tags;
-    const matchingAlbSecurityGroup = alb.parents[0];
-    const [, ...matchingAlbSubnets] = alb.parents;
+    const matchingAlbSecurityGroup = alb.parents[1];
+    const [, , ...matchingAlbSubnets] = alb.parents;
 
     // Get instances.
     const elbv2Client = await this.container.get<

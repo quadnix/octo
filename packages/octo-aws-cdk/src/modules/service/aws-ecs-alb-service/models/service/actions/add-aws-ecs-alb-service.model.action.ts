@@ -10,6 +10,7 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { Alb } from '../../../../../../resources/alb/index.js';
+import { InternetGatewaySchema } from '../../../../../../resources/internet-gateway/index.schema.js';
 import { SecurityGroup } from '../../../../../../resources/security-group/index.js';
 import { SubnetSchema } from '../../../../../../resources/subnet/index.schema.js';
 import { VpcSchema } from '../../../../../../resources/vpc/index.schema.js';
@@ -39,6 +40,16 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
 
     const [matchingVpcResource] = await actionInputs.inputs.region.getResourcesMatchingSchema(
       VpcSchema,
+      [
+        { key: 'awsAccountId', value: awsAccountId },
+        { key: 'awsRegionId', value: awsRegionId },
+      ],
+      [],
+      { searchBoundaryMembers: false },
+    );
+
+    const [matchingInternetGatewayResource] = await actionInputs.inputs.region.getResourcesMatchingSchema(
+      InternetGatewaySchema,
       [
         { key: 'awsAccountId', value: awsAccountId },
         { key: 'awsRegionId', value: awsRegionId },
@@ -105,7 +116,7 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
         Scheme: 'internet-facing',
         Type: 'application',
       },
-      [new MatchingResource(albSG), ...matchingSubnetResources],
+      [matchingInternetGatewayResource, new MatchingResource(albSG), ...matchingSubnetResources],
     );
 
     actionOutputs[albSG.resourceId] = albSG;

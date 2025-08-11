@@ -23,6 +23,7 @@ import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.sche
 import { EcsService } from '../../../resources/ecs-service/index.js';
 import type { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
 import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
+import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
 import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
@@ -115,7 +116,9 @@ async function setup(
     ),
   );
 
-  const testModuleResources = await testModuleContainer.createTestResources<[EcsClusterSchema, VpcSchema]>(
+  const testModuleResources = await testModuleContainer.createTestResources<
+    [EcsClusterSchema, InternetGatewaySchema, VpcSchema]
+  >(
     'testModule',
     [
       {
@@ -128,6 +131,15 @@ async function setup(
         response: {
           clusterArn: 'clusterArn',
         },
+      },
+      {
+        properties: {
+          awsAccountId: '123',
+          awsRegionId: 'us-east-1',
+          internetGatewayName: 'default',
+        },
+        resourceContext: '@octo/internet-gateway=igw-region',
+        response: { InternetGatewayId: 'InternetGatewayId' },
       },
       {
         properties: {
