@@ -238,7 +238,7 @@ export class TransactionService {
                     (actionTimeoutId = setTimeout(() => {
                       reject(
                         new ResourceActionTimeoutTransactionError(
-                          `Resource action timed out after ${a.actionTimeoutInMs || 60000}ms!`,
+                          `Resource action ${a.constructor.name} timed out after ${a.actionTimeoutInMs || 90000}ms!`,
                           diffToProcess,
                           a.constructor.name,
                         ),

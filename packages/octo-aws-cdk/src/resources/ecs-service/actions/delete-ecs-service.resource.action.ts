@@ -9,7 +9,7 @@ import { EcsService } from '../ecs-service.resource.js';
  */
 @Action(EcsService)
 export class DeleteEcsServiceResourceAction implements IResourceAction<EcsService> {
-  actionTimeoutInMs: number = 240000; // 4 minutes.
+  actionTimeoutInMs: number = 900000; // 15 minutes.
 
   constructor(private readonly container: Container) {}
 
@@ -80,9 +80,29 @@ export class DeleteEcsServiceResourceAction implements IResourceAction<EcsServic
       }),
     );
 
+    // Wait for service to be Inactive.
+    await RetryUtility.retryPromise(
+      async (): Promise<boolean> => {
+        const result = await ecsClient.send(
+          new DescribeServicesCommand({
+            cluster: ecsServiceEcsCluster.getSchemaInstance().properties.clusterName,
+            services: [properties.serviceName],
+          }),
+        );
+
+        if (!result.services || result.services.length === 0) {
+          return true;
+        }
+        return result.services?.length === 1 && result.services[0].status!.toUpperCase() === 'INACTIVE';
+      },
+      {
+        maxRetries: 20,
+        retryDelayInMs: 30000,
+      },
+    );
+
     // Wait for ENIs used by the tasks to be deleted.
-    // Wait for ECS service to drain.
-    await new Promise((resolve) => setTimeout(resolve, 10000));
+    await new Promise((resolve) => setTimeout(resolve, 60000));
   }
 
   async mock(diff: Diff<EcsService>): Promise<void> {

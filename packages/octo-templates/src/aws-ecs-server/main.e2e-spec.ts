@@ -101,5 +101,5 @@ describe('Main E2E', () => {
     );
 
     expect(response.ResourceTagMappingList!.map((r) => r.ResourceARN)).toEqual([]);
-  }, 300_000);
+  }, 1_200_000);
 });
