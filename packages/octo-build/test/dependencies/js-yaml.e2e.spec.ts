@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { load } from 'js-yaml';
-import { BuildFileParser } from '../../src/parsers/build-file.parser.js';
+import { BuildFileParser } from '../../src/commands/build/parsers/build-file.parser.js';
 
 describe('js-yaml E2E', () => {
   it('should throw error reading non-existent file', () => {

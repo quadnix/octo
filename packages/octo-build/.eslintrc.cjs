@@ -22,8 +22,44 @@ module.exports = {
         ],
       },
     ],
+    'boundaries/element-types': [
+      'error',
+      {
+        default: 'disallow',
+        rules: [
+          // Command rules.
+          {
+            allow: [['commands', { family: '${from.family}' }], 'utilities'],
+            from: 'commands',
+          },
+
+          // Utility rules.
+          {
+            allow: [],
+            from: 'utilities',
+          },
+        ],
+      },
+    ],
+    'boundaries/external': ['off'],
   },
   settings: {
+    'boundaries/dependency-nodes': ['export', 'import'],
+    'boundaries/elements': [
+      // Command patterns.
+      {
+        capture: ['family'],
+        mode: 'folder',
+        pattern: 'src/commands/*',
+        type: 'commands',
+      },
+
+      // Utility patterns.
+      {
+        pattern: 'src/utilities',
+        type: 'utilities',
+      },
+    ],
     'import/resolver': {
       typescript: {
         alwaysTryTypes: true,
