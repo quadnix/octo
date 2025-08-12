@@ -1,3 +1,4 @@
+export * from './action.event.js';
 export * from './event.model.js';
 export * from './hook/index.js';
 export * from './module.event.js';

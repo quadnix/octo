@@ -1,4 +1,5 @@
 import {
+  ActionEvent,
   ActualResourceSerializedEvent,
   AnchorRegistrationEvent,
   Container,
@@ -36,6 +37,15 @@ import { OctoEventLogger } from './logger.factory.js';
 
 export class EventLoggerListener {
   constructor(private readonly logger: OctoEventLogger) {}
+
+  @OnEvent(ActionEvent)
+  onAction(event: ActionEvent): void {
+    if (event instanceof ActionEvent) {
+      this.logger.log
+        .withMetadata({ name: event.name, payload: event.payload?.metadata || {}, timestamp: event.header.timestamp })
+        .debug(event.payload?.message || 'Action event.');
+    }
+  }
 
   @OnEvent(HookEvent)
   onHook(event: HookEvent): void {
