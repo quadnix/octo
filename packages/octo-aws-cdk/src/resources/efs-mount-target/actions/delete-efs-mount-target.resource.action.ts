@@ -5,8 +5,8 @@ import {
   EFSClient,
 } from '@aws-sdk/client-efs';
 import {
+  ANodeAction,
   Action,
-  Container,
   type Diff,
   DiffAction,
   Factory,
@@ -22,10 +22,12 @@ import { EfsMountTarget } from '../efs-mount-target.resource.js';
  * @internal
  */
 @Action(EfsMountTarget)
-export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
+export class DeleteEfsMountTargetResourceAction extends ANodeAction implements IResourceAction<EfsMountTarget> {
   actionTimeoutInMs: number = 240000; // 4 minutes.
 
-  constructor(private readonly container: Container) {}
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -56,6 +58,8 @@ export class DeleteEfsMountTargetResourceAction implements IResourceAction<EfsMo
     await RetryUtility.retryPromise(
       async (): Promise<boolean> => {
         let result: DescribeMountTargetsCommandOutput;
+
+        this.log('Waiting for EFS MountTarget to be deleted.');
 
         try {
           result = await efsClient.send(
@@ -127,8 +131,7 @@ export class DeleteEfsMountTargetResourceActionFactory {
 
   static async create(): Promise<DeleteEfsMountTargetResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new DeleteEfsMountTargetResourceAction(container);
+      this.instance = new DeleteEfsMountTargetResourceAction();
     }
     return this.instance;
   }

@@ -1,7 +1,7 @@
 import { CreateMountTargetCommand, DescribeMountTargetsCommand, EFSClient } from '@aws-sdk/client-efs';
 import {
+  ANodeAction,
   Action,
-  Container,
   type Diff,
   DiffAction,
   Factory,
@@ -18,10 +18,12 @@ import type { EfsMountTargetSchema } from '../index.schema.js';
  * @internal
  */
 @Action(EfsMountTarget)
-export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMountTarget> {
+export class AddEfsMountTargetResourceAction extends ANodeAction implements IResourceAction<EfsMountTarget> {
   actionTimeoutInMs: number = 240000; // 4 minutes.
 
-  constructor(private readonly container: Container) {}
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -59,6 +61,8 @@ export class AddEfsMountTargetResourceAction implements IResourceAction<EfsMount
     // Wait for EFS MountTarget to be available.
     await RetryUtility.retryPromise(
       async (): Promise<boolean> => {
+        this.log('Waiting for EFS MountTarget to be available.');
+
         const result = await efsClient.send(
           new DescribeMountTargetsCommand({
             MountTargetId: data.MountTargetId,
@@ -124,8 +128,7 @@ export class AddEfsMountTargetResourceActionFactory {
 
   static async create(): Promise<AddEfsMountTargetResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new AddEfsMountTargetResourceAction(container);
+      this.instance = new AddEfsMountTargetResourceAction();
     }
     return this.instance;
   }

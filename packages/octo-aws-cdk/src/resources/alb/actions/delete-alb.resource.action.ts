@@ -3,7 +3,7 @@ import {
   DescribeLoadBalancersCommand,
   ElasticLoadBalancingV2Client,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { Alb } from '../alb.resource.js';
@@ -12,10 +12,12 @@ import { Alb } from '../alb.resource.js';
  * @internal
  */
 @Action(Alb)
-export class DeleteAlbResourceAction implements IResourceAction<Alb> {
+export class DeleteAlbResourceAction extends ANodeAction implements IResourceAction<Alb> {
   actionTimeoutInMs: number = 180000; // 3 minutes.
 
-  constructor(private readonly container: Container) {}
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -44,6 +46,8 @@ export class DeleteAlbResourceAction implements IResourceAction<Alb> {
     // Delete ALB with retry
     await RetryUtility.retryPromise(
       async (): Promise<boolean> => {
+        this.log('Attempting to delete ALB.');
+
         await elbv2Client.send(
           new DeleteLoadBalancerCommand({
             LoadBalancerArn: response.LoadBalancerArn,
@@ -62,6 +66,8 @@ export class DeleteAlbResourceAction implements IResourceAction<Alb> {
     // Wait for ALB to be deleted.
     await RetryUtility.retryPromise(
       async (): Promise<boolean> => {
+        this.log('Waiting for ALB to be deleted.');
+
         try {
           const result = await elbv2Client.send(
             new DescribeLoadBalancersCommand({
@@ -118,8 +124,7 @@ export class DeleteAlbResourceActionFactory {
 
   static async create(): Promise<DeleteAlbResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new DeleteAlbResourceAction(container);
+      this.instance = new DeleteAlbResourceAction();
     }
     return this.instance;
   }

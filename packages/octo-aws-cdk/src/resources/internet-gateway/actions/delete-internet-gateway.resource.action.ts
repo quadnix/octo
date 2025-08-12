@@ -1,5 +1,5 @@
 import { DeleteInternetGatewayCommand, DetachInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
@@ -8,10 +8,12 @@ import { InternetGateway } from '../internet-gateway.resource.js';
  * @internal
  */
 @Action(InternetGateway)
-export class DeleteInternetGatewayResourceAction implements IResourceAction<InternetGateway> {
+export class DeleteInternetGatewayResourceAction extends ANodeAction implements IResourceAction<InternetGateway> {
   actionTimeoutInMs: number = 120000; // 2 minutes.
 
-  constructor(private readonly container: Container) {}
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -38,6 +40,8 @@ export class DeleteInternetGatewayResourceAction implements IResourceAction<Inte
     // Detach from VPC.
     await RetryUtility.retryPromise(
       async (): Promise<boolean> => {
+        this.log('Attempting to detach Internet Gateway from VPC.');
+
         await ec2Client.send(
           new DetachInternetGatewayCommand({
             InternetGatewayId: response.InternetGatewayId,
@@ -90,8 +94,7 @@ export class DeleteInternetGatewayResourceActionFactory {
 
   static async create(): Promise<DeleteInternetGatewayResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new DeleteInternetGatewayResourceAction(container);
+      this.instance = new DeleteInternetGatewayResourceAction();
     }
     return this.instance;
   }
