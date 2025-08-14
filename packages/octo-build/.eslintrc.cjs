@@ -60,7 +60,11 @@ module.exports = {
         type: 'utilities',
       },
     ],
+    'import/ignore': ['node_modules', '../../node_modules'],
     'import/resolver': {
+      node: {
+        moduleDirectory: ['node_modules', '../../node_modules'],
+      },
       typescript: {
         alwaysTryTypes: true,
       },
