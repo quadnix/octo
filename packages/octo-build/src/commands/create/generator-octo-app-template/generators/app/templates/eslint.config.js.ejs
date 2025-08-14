@@ -1,0 +1,130 @@
+import js from '@eslint/js';
+import configPrettier from 'eslint-config-prettier';
+import importPlugin from 'eslint-plugin-import';
+import jsoncPlugin from 'eslint-plugin-jsonc';
+import prettier from 'eslint-plugin-prettier';
+import jsoncParser from 'jsonc-eslint-parser';
+import tseslint from 'typescript-eslint';
+
+export default tseslint.config(
+  // Base configurations
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+
+  // TypeScript files configuration
+  {
+    files: ['**/*.ts', '**/*.tsx'],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaVersion: 2022,
+        extraFileExtensions: ['.json'],
+        project: './tsconfig.json',
+        sourceType: 'module',
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+      import: importPlugin,
+      prettier: prettier,
+    },
+    rules: {
+      '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
+      '@typescript-eslint/explicit-function-return-type': 'error',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/interface-name-prefix': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-inferrable-types': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unused-vars': 'error',
+      'import/order': [
+        'error',
+        {
+          alphabetize: { caseInsensitive: false, order: 'asc', orderImportKind: 'asc' },
+          named: { enabled: true, types: 'mixed' },
+        },
+      ],
+      'max-len': ['error', { code: 120, ignoreStrings: true }],
+      'no-duplicate-imports': ['error', { includeExports: true }],
+      'prettier/prettier': 'error',
+      'sort-imports': [
+        'error',
+        {
+          allowSeparatedGroups: true,
+          ignoreCase: false,
+          ignoreDeclarationSort: true,
+          ignoreMemberSort: false,
+          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
+        },
+      ],
+      'sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
+    },
+    settings: {
+      'import/resolver': {
+        typescript: {
+          alwaysTryTypes: true,
+        },
+      },
+    },
+  },
+
+  // JSON/JSONC files configuration
+  {
+    files: ['**/*.json', '**/*.jsonc'],
+    languageOptions: {
+      parser: jsoncParser,
+    },
+    plugins: {
+      jsonc: jsoncPlugin,
+    },
+    rules: {
+      ...jsoncPlugin.configs['recommended-with-jsonc'].rules,
+      'jsonc/sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
+    },
+  },
+
+  // JavaScript files configuration
+  {
+    files: ['**/*.js', '**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+    },
+    plugins: {
+      import: importPlugin,
+      prettier: prettier,
+    },
+    rules: {
+      'import/order': [
+        'error',
+        {
+          alphabetize: { caseInsensitive: false, order: 'asc', orderImportKind: 'asc' },
+          named: { enabled: true, types: 'mixed' },
+        },
+      ],
+      'max-len': ['error', { code: 120, ignoreStrings: true }],
+      'no-duplicate-imports': ['error', { includeExports: true }],
+      'prettier/prettier': 'error',
+      'sort-imports': [
+        'error',
+        {
+          allowSeparatedGroups: true,
+          ignoreCase: false,
+          ignoreDeclarationSort: true,
+          ignoreMemberSort: false,
+          memberSyntaxSortOrder: ['none', 'all', 'multiple', 'single'],
+        },
+      ],
+      'sort-keys': ['error', 'asc', { caseSensitive: false, minKeys: 2, natural: false }],
+    },
+  },
+
+  // Global ignores
+  {
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', '*.min.js', 'package-lock.json'],
+  },
+
+  // Prettier config to disable conflicting rules
+  configPrettier,
+);

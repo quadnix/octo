@@ -1,0 +1,54 @@
+{
+  "dependencies": {},
+  "description": "<%= description %>",
+  "devDependencies": {},
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "jest": {
+    "coverageDirectory": "./coverage",
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "moduleNameMapper": {
+      "(.+)\\.js": "$1"
+    },
+    "preset": "ts-jest/presets/default-esm",
+    "rootDir": ".",
+    "testEnvironment": "node",
+    "testRegex": ".*spec\\.ts$",
+    "transform": {
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
+    }
+  },
+  "keywords": [
+    "cdk",
+    "infrastructure",
+    "octo",
+    "typescript"
+  ],
+  "main": "dist/index.js",
+  "name": "<%= name %>",
+  "private": true,
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "eslint .",
+    "start": "node dist/main.js",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",
+    "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.e2e-spec.ts$\""
+  },
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "version": "<%= version %>"
+}

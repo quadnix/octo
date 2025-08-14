@@ -85,6 +85,7 @@ frontend
 frontmatter
 fs
 gfm
+gitignore
 grp
 hideconstructor
 horiz
