@@ -1,5 +1,10 @@
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import chalk from 'chalk';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
+import { createEnv } from 'yeoman-environment';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const createCommand = {
   builder: (yargs: Argv): Argv => {
@@ -30,6 +35,15 @@ export const createCommand = {
     const { template } = argv;
 
     console.log(chalk.blue(`Creating app with template "${template}"...`));
+
+    const env = createEnv();
+    env.register(resolve(__dirname, 'generator-octo-app-template/generators/app/index.js'), {
+      namespace: 'generator-octo-app-template:app',
+    });
+    await env.run(['generator-octo-app-template:app', 'hello'], {
+      skipCache: true,
+      skipInstall: true,
+    });
 
     try {
       console.log(chalk.green(`Successfully created app!`));

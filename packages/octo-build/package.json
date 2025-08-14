@@ -6,7 +6,9 @@
     "chalk": "~5.5.0",
     "js-yaml": "~4.1.0",
     "p-limit": "~6.2.0",
-    "yargs": "~18.0.0"
+    "yargs": "~18.0.0",
+    "yeoman-environment": "~4.4.3",
+    "yeoman-generator": "~7.5.1"
   },
   "description": "Octo-Build is a CLI tool to build Octo projects.",
   "devDependencies": {
@@ -58,8 +60,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json && chmod +x ./dist/index.js",
+    "build": "rimraf dist && tsc -p tsconfig.build.json && npm run copy-assets && chmod +x ./dist/index.js",
     "check:circular-dependency": "dpdm --no-tree --exit-code circular:1 --no-warning ./dist/index.js",
+    "copy-assets": "copyfiles -u 1 \"src/**/*.ejs\" dist/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

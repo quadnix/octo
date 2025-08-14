@@ -42,6 +42,7 @@ codicons
 commonjs
 compatibilities
 constructable
+copyfiles
 cov
 cpu
 cpus
@@ -64,6 +65,7 @@ ecr
 ecs
 efs
 eip
+ejs
 elbv
 enum
 eslintrc
