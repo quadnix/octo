@@ -41,7 +41,8 @@
   "name": "<%= name %>",
   "private": true,
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "build": "rimraf dist && tsc -p tsconfig.build.json && npm run copy-assets",
+    "copy-assets": "copyfiles -u 1 -a <%- copyGlobs %> dist/",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint .",
     "start": "node dist/main.js",

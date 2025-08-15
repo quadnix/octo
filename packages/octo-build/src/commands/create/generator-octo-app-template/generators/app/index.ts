@@ -16,6 +16,17 @@ export default class extends Generator {
     this.appTemplate = args[2];
   }
 
+  private getCopyScriptGlobs(): string[] {
+    switch (this.appTemplate) {
+      case 'aws-ecs-server':
+        return ['src/.env', 'src/.octo/**/*'];
+      case 'aws-s3-website':
+        return ['src/.env', 'src/.octo/**/*', 'src/website/**/*'];
+      default:
+        throw new Error(`Unsupported app template: ${this.appTemplate}`);
+    }
+  }
+
   async initializing(): Promise<void> {
     const targetPath = resolve(join(this.appPath, this.appName));
 
@@ -50,19 +61,23 @@ export default class extends Generator {
 
     // Create package.json
     this.fs.copyTpl(this.templatePath('package.json.ejs'), this.destinationPath('package.json'), {
+      copyGlobs: this.getCopyScriptGlobs()
+        .map((g) => `\\"${g}\\"`)
+        .join(' '),
       description: `Infrastructure definition using Octo for ${this.appName}`,
       name: this.appName,
       version: '0.0.1',
     });
     await this.addDependencies({
-      '@quadnix/octo': '^0.0.22',
-      '@quadnix/octo-aws-cdk': '^0.0.11',
-      '@quadnix/octo-event-listeners': '^0.0.1',
+      '@quadnix/octo': '0.0.x',
+      '@quadnix/octo-aws-cdk': '0.0.x',
+      '@quadnix/octo-event-listeners': '0.0.x',
       'env-smart': '^2.3.2',
     });
     await this.addDevDependencies({
       '@types/jest': '^30.0.0',
       '@types/node': '^20.0.0',
+      copyfiles: '^2.4.1',
       eslint: '^9.0.0',
       'eslint-config-prettier': '^10.1.8',
       'eslint-import-resolver-typescript': '^4.4.4',
