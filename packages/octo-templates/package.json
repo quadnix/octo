@@ -6,7 +6,7 @@
     "@quadnix/octo-event-listeners": "~0.0.2",
     "env-smart": "~2.3.2"
   },
-  "description": "Octo-Templates are examples of end-to-end infrastructure.",
+  "description": "Octo-Templates are examples of end-to-end infrastructures.",
   "devDependencies": {},
   "engines": {
     "node": ">=16"
