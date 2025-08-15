@@ -41,11 +41,13 @@
   "name": "<%= name %>",
   "private": true,
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json && npm run copy-assets",
-    "copy-assets": "copyfiles -u 1 -a <%- copyGlobs %> dist/",
+    "build": "rimraf dist && tsc -p tsconfig.build.json && npm run copy-assets-dist",
+    "copy-assets-dist": "copyfiles -u 1 -a <%- copyGlobs %> dist/",
+    "copy-assets-src": "copyfiles -u 1 -a \"dist/.octo/**/*\" src/",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint .",
     "start": "node dist/main.js",
+    "start:dev": "npm start && npm run copy-assets-src",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",
     "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.e2e-spec.ts$\""
   },

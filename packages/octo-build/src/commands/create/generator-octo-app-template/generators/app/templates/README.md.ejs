@@ -1,6 +1,9 @@
 # <%= name %>
 <%= description %>
 
+## Octo Documentation
+[Official Docs](http://octo.quadnix.com/)
+
 ## Installation
 ```bash
 npm install
@@ -12,9 +15,70 @@ Before running the app, ensure,
 
 ## Development
 ```bash
-# Build app
+# Build app. This will compile your TypeScript code, and copy necessary static assets into the dist directory.
 npm run build
 
 # Run app. This will create the infrastructure defined in your app.
-npm start
+# It will also move the generated static assets back into the src directory.
+npm run start:dev
 ```
+
+## Destroy
+### Step 1
+In `module-definitions.ts`, comment out all modules except the `app` and `account` modules.
+The app and account modules load AWS credentials to call AWS APIs, hence they remain uncommented.
+
+By deleting the `s3-website-service-module` module below,
+you are safely deleting the s3-website resources created by this module.
+
+```typescript
+// Example for 'aws-s3-website' template.
+private init(): void {
+  this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
+
+  this.add(AwsIniAccountModule, 'account-module', {
+    accountId: config.AWS_ACCOUNT_ID,
+    app: stub<App>('${{app-module.model.app}}'),
+  });
+
+  // this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
+  //   account: stub<Account>('${{account-module.model.account}}'),
+  //   awsRegionId: 'us-east-1',
+  //   bucketName: config.AWS_S3_WEBSITE_BUCKET_NAME,
+  //   directoryPath: websiteSourcePath,
+  // });
+}
+```
+
+### Step 2
+Then, simply re-build and run your app again.
+
+```bash
+npm run build
+npm run start:dev
+```
+
+## Note
+### Managing Octo State
+Octo works by managing the state of your infrastructure.
+To keep track of the state, octo will use a `StateProvider`.
+
+By default, octo uses the `LocalStateProvider` as defined in your `main.ts` file.
+This state provider will write the state into the `.octo` directory,
+whose location is also defined in your `main.ts` file.
+
+Since your app is in TypeScript, it needs to be compiled into the `dist` directory before it can run.
+During the build process, we copy the existing state from `src/.octo` into the `dist/.octo` directory.
+This allows Octo to load the before state while processing your infrastructure changes.
+
+If the state was not copied over, the Octo will attempt to re-create the same infrastructure again, and might fail.
+E.g. in case of 'aws-s3-website' template, the same S3 bucket will attempt to be created, and might throw errors.
+
+Once the app is run using `npm run start:dev`, the state is generated in the `dist` directory,
+and after the run, we copy the new state back to the `src` directory.
+This way, the next run will use the new state, and not attempt to re-create the same infrastructure again.
+
+### Managing Octo State in Production
+The `LocalStateProvider` is not suitable for production because of all the file management involved.
+In production, we recommend using a different `StateProvider` that stores the state outside of your codebase.
+To get more information on other state providers, please reference [Octo Docs](http://octo.quadnix.com/).
