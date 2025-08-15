@@ -40,11 +40,9 @@ export class EventLoggerListener {
 
   @OnEvent(ActionEvent)
   onAction(event: ActionEvent): void {
-    if (event instanceof ActionEvent) {
-      this.logger.log
-        .withMetadata({ name: event.name, payload: event.payload?.metadata || {}, timestamp: event.header.timestamp })
-        .debug(event.payload?.message || 'Action event.');
-    }
+    this.logger.log
+      .withMetadata({ name: event.name, payload: event.payload?.metadata || {}, timestamp: event.header.timestamp })
+      .debug(event.payload?.message || 'Action event.');
   }
 
   @OnEvent(HookEvent)

@@ -68,6 +68,7 @@ eip
 ejs
 elbv
 enum
+eslintcache
 eslintrc
 esm
 esnext
@@ -193,6 +194,7 @@ tsbuildinfo
 tsc
 tsconfig
 tsd
+tseslint
 tsx
 typecheck
 typedoc

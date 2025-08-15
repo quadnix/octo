@@ -4,13 +4,25 @@ import { Container } from '../container/container.js';
 
 export abstract class ANodeAction {
   readonly container: Container;
+  private readonly eventService: Promise<EventService>;
 
   protected constructor() {
     this.container = Container.getInstance();
+    this.eventService = this.container.get(EventService);
   }
 
-  async log(message: string, metadata: Record<string, unknown> = {}): Promise<void> {
-    const eventService = await this.container.get(EventService);
-    eventService.emit(new ActionEvent(this.constructor.name, { message, metadata }));
+  log(message: string, metadata: Record<string, unknown> = {}): void {
+    this.eventService
+      .then((eventService) =>
+        eventService.emit(
+          new ActionEvent(this.constructor.name, {
+            message,
+            metadata,
+          }),
+        ),
+      )
+      .catch((error) => {
+        console.error(`Unable to log action "${this.constructor.name}" with message "${message}"`, error);
+      });
   }
 }
