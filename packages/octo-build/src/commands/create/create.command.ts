@@ -32,7 +32,7 @@ export const createCommand = {
   command: 'create',
   describe: 'Create a new Octo app from a template.',
   handler: async (argv: ArgumentsCamelCase<{ template: string; name: string; path: string }>): Promise<void> => {
-    const { template, name, path } = argv;
+    const { name, path, template } = argv;
 
     console.log(chalk.blue(`Creating app with template "${template}"...`));
 
@@ -42,7 +42,7 @@ export const createCommand = {
     });
 
     try {
-      await env.run(['generator-octo-app-template:app', name, path], {
+      await env.run(['generator-octo-app-template:app', name, path, template], {
         skipCache: true,
         skipInstall: false,
       });

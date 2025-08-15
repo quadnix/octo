@@ -4,18 +4,20 @@ import { join, resolve } from 'path';
 import Generator, { type BaseOptions } from 'yeoman-generator';
 
 export default class extends Generator {
-  private readonly projectName: string;
-  private readonly projectPath: string;
+  private readonly appName: string;
+  private readonly appPath: string;
+  private readonly appTemplate: string;
 
   constructor(args: string[], opts: BaseOptions) {
     super(args, opts);
 
-    this.projectName = args[0];
-    this.projectPath = args[1];
+    this.appName = args[0];
+    this.appPath = args[1];
+    this.appTemplate = args[2];
   }
 
   async initializing(): Promise<void> {
-    const targetPath = resolve(join(this.projectPath, this.projectName));
+    const targetPath = resolve(join(this.appPath, this.appName));
 
     // Check if directory already exists and is not empty.
     let targetPathStat: Stats | undefined;
@@ -35,7 +37,7 @@ export default class extends Generator {
       }
     }
 
-    // Set the destination root to the project directory.
+    // Set the destination root to the app directory.
     this.destinationRoot(targetPath);
   }
 
@@ -48,8 +50,8 @@ export default class extends Generator {
 
     // Create package.json
     this.fs.copyTpl(this.templatePath('package.json.ejs'), this.destinationPath('package.json'), {
-      description: `Infrastructure definition using Octo for ${this.projectName}`,
-      name: this.projectName,
+      description: `Infrastructure definition using Octo for ${this.appName}`,
+      name: this.appName,
       version: '0.0.1',
     });
     await this.addDependencies({
@@ -84,8 +86,8 @@ export default class extends Generator {
 
     // Create README.md
     this.fs.copyTpl(this.templatePath('README.md.ejs'), this.destinationPath('README.md'), {
-      description: `Infrastructure definition using Octo for ${this.projectName}`,
-      name: this.projectName,
+      description: `Infrastructure definition using Octo for ${this.appName}`,
+      name: this.appName,
     });
 
     // Create tsconfig.json and tsconfig.build.json
@@ -93,20 +95,46 @@ export default class extends Generator {
     this.fs.copyTpl(this.templatePath('tsconfig.build.json.ejs'), this.destinationPath('tsconfig.build.json'));
 
     // Create src directory and main files
-    this.fs.copyTpl(this.templatePath('src/index.ts.ejs'), this.destinationPath('src/index.ts'), {
-      name: this.projectName,
-    });
-    // Create test file
-    this.fs.copyTpl(this.templatePath('src/index.test.ts.ejs'), this.destinationPath('src/index.test.ts'), {
-      name: this.projectName,
-    });
+    if (this.appTemplate === 'aws-s3-website') {
+      const templatePath = `src/${this.appTemplate}`;
+      this.fs.copyTpl(
+        this.templatePath(`${templatePath}/octo/gitkeep.ejs`),
+        this.destinationPath('src/.octo/.gitkeep'),
+      );
+      this.fs.copyTpl(
+        this.templatePath(`${templatePath}/website/error.html.ejs`),
+        this.destinationPath('src/website/error.html'),
+        {
+          name: this.appName,
+        },
+      );
+      this.fs.copyTpl(
+        this.templatePath(`${templatePath}/website/index.html.ejs`),
+        this.destinationPath('src/website/index.html'),
+        {
+          name: this.appName,
+        },
+      );
+      this.fs.copyTpl(
+        this.templatePath(`${templatePath}/app.config.ts.ejs`),
+        this.destinationPath('src/app.config.ts'),
+      );
+      this.fs.copyTpl(this.templatePath(`${templatePath}/env.ejs`), this.destinationPath('src/.env'));
+      this.fs.copyTpl(this.templatePath(`${templatePath}/main.ts.ejs`), this.destinationPath('src/main.ts'));
+      this.fs.copyTpl(
+        this.templatePath(`${templatePath}/module-definitions.ts.ejs`),
+        this.destinationPath('src/module-definitions.ts'),
+      );
+    } else {
+      throw new Error(`Unsupported app template: ${this.appTemplate}`);
+    }
   }
 
   end(): void {
-    const targetPath = resolve(join(this.projectPath, this.projectName));
+    const targetPath = resolve(join(this.appPath, this.appName));
 
-    this.log('✅ TypeScript project has been generated successfully!');
-    this.log(`📁 Project created at: ${targetPath}`);
+    this.log('✅ Your TypeScript app has been generated successfully!');
+    this.log(`📁 App created at: ${targetPath}`);
     this.log('📦 Next steps:');
     this.log(`   cd ${targetPath}`);
     this.log('   npm install');
