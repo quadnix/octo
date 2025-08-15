@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@loglayer/transport-pino": "~2.2.0",
-    "@quadnix/octo": "~0.0.22",
+    "@quadnix/octo": "~0.0.23",
     "loglayer": "~6.4.0",
     "pino": "~9.6.0",
     "pino-pretty": "~13.0.0"
@@ -68,5 +68,5 @@
   },
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "0.0.1"
+  "version": "0.0.2"
 }
