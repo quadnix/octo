@@ -95,7 +95,23 @@ export default class extends Generator {
     this.fs.copyTpl(this.templatePath('tsconfig.build.json.ejs'), this.destinationPath('tsconfig.build.json'));
 
     // Create src directory and main files
-    if (this.appTemplate === 'aws-s3-website') {
+    if (this.appTemplate === 'aws-ecs-server') {
+      const templatePath = `src/${this.appTemplate}`;
+      this.fs.copyTpl(
+        this.templatePath(`${templatePath}/octo/gitkeep.ejs`),
+        this.destinationPath('src/.octo/.gitkeep'),
+      );
+      this.fs.copyTpl(
+        this.templatePath(`${templatePath}/app.config.ts.ejs`),
+        this.destinationPath('src/app.config.ts'),
+      );
+      this.fs.copyTpl(this.templatePath(`${templatePath}/env.ejs`), this.destinationPath('src/.env'));
+      this.fs.copyTpl(this.templatePath(`${templatePath}/main.ts.ejs`), this.destinationPath('src/main.ts'));
+      this.fs.copyTpl(
+        this.templatePath(`${templatePath}/module-definitions.ts.ejs`),
+        this.destinationPath('src/module-definitions.ts'),
+      );
+    } else if (this.appTemplate === 'aws-s3-website') {
       const templatePath = `src/${this.appTemplate}`;
       this.fs.copyTpl(
         this.templatePath(`${templatePath}/octo/gitkeep.ejs`),
