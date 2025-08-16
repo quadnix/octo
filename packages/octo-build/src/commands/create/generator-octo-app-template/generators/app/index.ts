@@ -39,7 +39,7 @@ export default class extends Generator {
         throw error;
       }
     }
-    if (targetPathStat && targetPathStat.isDirectory()) {
+    if (targetPathStat?.isDirectory()) {
       const files = await readdir(targetPath);
       if (files.length > 0) {
         throw new Error(
