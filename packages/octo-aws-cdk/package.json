@@ -19,7 +19,7 @@
   "description": "Octo-AWS-CDK is an AWS specific implementation of the Octo interface.",
   "devDependencies": {},
   "engines": {
-    "node": ">=16"
+    "node": ">=18.18.0"
   },
   "exports": {
     "./anchors/aws-account/schema": "./dist/anchors/aws-account/aws-account.anchor.schema.js",

@@ -99,10 +99,10 @@ export class SecurityGroupSchema extends BaseResourceSchema {
       if (value.GroupId) {
         subjects.push(value.GroupId);
       }
-      if (value.Rules && value.Rules.egress) {
+      if (value.Rules?.egress) {
         subjects.push(...value.Rules.egress.map((r) => r.SecurityGroupRuleId!).flat());
       }
-      if (value.Rules && value.Rules.ingress) {
+      if (value.Rules?.ingress) {
         subjects.push(...value.Rules.ingress.map((r) => r.SecurityGroupRuleId!).flat());
       }
       return subjects;
