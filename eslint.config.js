@@ -72,6 +72,17 @@ export default [
         },
       ],
     },
+    settings: {
+      'import/resolver': {
+        node: {
+          extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        },
+        typescript: {
+          alwaysTryTypes: true,
+          project: './tsconfig.json',
+        },
+      },
+    },
   },
 
   // TypeScript files.
@@ -113,11 +124,6 @@ export default [
             type: 'src',
           },
         ],
-      },
-      'import/resolver': {
-        typescript: {
-          alwaysTryTypes: true,
-        },
       },
     },
   },
