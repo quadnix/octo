@@ -79,6 +79,7 @@ favicons
 filesystem
 filesystems
 firefox
+fixup
 fontawesome
 fortawesome
 frameborder
@@ -88,6 +89,7 @@ fs
 gfm
 gitignore
 gitkeep
+globals
 grp
 hideconstructor
 horiz
@@ -132,6 +134,7 @@ nginx
 noreferrer
 noreply
 nullable
+nullish
 octo
 octo's
 octob
@@ -195,6 +198,7 @@ tsc
 tsconfig
 tsd
 tseslint
+tsparser
 tsx
 typecheck
 typedoc
