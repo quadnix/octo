@@ -151,6 +151,5 @@ export interface TSDSignatureReflection extends JSONOutput.SignatureReflection {
 }
 
 declare global {
-  // eslint-disable-next-line no-var, vars-on-top
   var typedocBuild: { count: number };
 }

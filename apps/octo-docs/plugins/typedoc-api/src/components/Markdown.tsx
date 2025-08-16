@@ -110,7 +110,6 @@ function convertAstToElements(ast: TokensList): React.ReactNode[] | undefined {
   const elements: React.ReactNode[] = [];
   let counter = 0;
 
-  // eslint-disable-next-line complexity
   ast.forEach((token) => {
     // Nested tokens aren't typed for some reason...
     const children = (token as unknown as { tokens: TokensList }).tokens ?? [];

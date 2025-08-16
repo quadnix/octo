@@ -54,7 +54,6 @@ function intoReturnComment(comment?: JSONOutput.Comment): JSONOutput.Comment | u
 
 const HIDE_TAGS = ['@returns', '@param'];
 
-// eslint-disable-next-line complexity
 export function MemberSignatureBody({ hideSources, sig }: MemberSignatureBodyProps): ReactElement {
   const minimal = useMinimalLayout();
   const showTypes = sig.typeParameters && sig.typeParameters.length > 0;

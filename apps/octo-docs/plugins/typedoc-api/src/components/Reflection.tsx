@@ -17,7 +17,7 @@ import { TypeParameters } from './TypeParameters.js';
 export interface ReflectionProps {
   reflection: TSDDeclarationReflection | TSDReflection | TSDSignatureReflection;
 }
-// eslint-disable-next-line complexity
+
 export function Reflection({ reflection }: ReflectionProps): ReactElement {
   const hierarchy = useMemo(() => createHierarchy(reflection), [reflection]);
 

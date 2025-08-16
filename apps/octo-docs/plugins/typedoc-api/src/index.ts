@@ -1,5 +1,3 @@
-/* eslint-disable no-console, sort-keys */
-
 import fs from 'fs';
 import path from 'path';
 import type { Options as MDXLoaderOptions } from '@docusaurus/mdx-loader';
@@ -43,19 +41,19 @@ const DEFAULT_OPTIONS: Required<DocusaurusPluginTypeDocApiOptions> = {
   onlyIncludeVersions: [],
   packageJsonName: 'package.json',
   packages: [],
+  projectDocuments: [],
   projectRoot: '.',
-  sortPackages: (a, d) => a.packageName.localeCompare(d.packageName),
-  sortSidebar: (a, d) => a.localeCompare(d),
   readmeName: 'README.md',
   readmes: false,
+  rehypePlugins: [],
+  remarkPlugins: [],
   removeScopes: [],
   routeBasePath: 'api',
+  sortPackages: (a, d) => a.packageName.localeCompare(d.packageName),
+  sortSidebar: (a, d) => a.localeCompare(d),
   tsconfigName: 'tsconfig.json',
   typedocOptions: {},
-  remarkPlugins: [],
-  rehypePlugins: [],
   versions: {},
-  projectDocuments: [],
 };
 
 async function importFile<T>(file: string): Promise<T> {
@@ -120,17 +118,265 @@ export default function typedocApiPlugin(
 
     return {
       entryPoints: entries,
-      packageRoot: path.normalize(path.join(projectRoot, pkgConfig.path || '.')),
-      packagePath: pkgConfig.path || '.',
-      packageSlug: pkgConfig.slug ?? path.basename(pkgConfig.path),
-      // Load later on
       packageName: '',
+      packagePath: pkgConfig.path || '.',
+      packageRoot: path.normalize(path.join(projectRoot, pkgConfig.path || '.')),
+      packageSlug: pkgConfig.slug ?? path.basename(pkgConfig.path),
       packageVersion: '',
     };
   });
 
   return {
-    name: 'docusaurus-plugin-typedoc-api',
+    configureWebpack(_config, isServer, utils): any {
+      if (!readmes && !changelogs) {
+        return {
+          resolve: {
+            symlinks: false,
+          },
+        };
+      }
+
+      // Whitelist the folders that this webpack rule applies to, otherwise we collide with the native
+      // docs/blog plugins. We need to include the specific files only, as in polyrepo mode, the `cfg.packagePath`
+      // can be project root (where the regular docs are too).
+      const include = packageConfigs.flatMap((cfg) => {
+        const list: string[] = [];
+        if (readmes) {
+          list.push(path.join(options.projectRoot, cfg.packagePath, options.readmeName));
+        }
+        if (changelogs) {
+          list.push(path.join(options.projectRoot, cfg.packagePath, options.changelogName));
+        }
+        return list;
+      });
+
+      return {
+        module: {
+          rules: [
+            {
+              include,
+              test: /\.mdx?$/,
+              use: [
+                utils.getJSLoader({ isServer }),
+                {
+                  loader: require.resolve('@docusaurus/mdx-loader'),
+                  options: {
+                    admonitions: true,
+                    // Since this isn't a doc/blog page, we can get
+                    // away with it being a partial!
+                    isMDXPartial: () => true,
+                    markdownConfig: context.siteConfig.markdown,
+                    rehypePlugins: options.rehypePlugins,
+                    remarkPlugins: options.remarkPlugins,
+                    siteDir: context.siteDir,
+                    staticDirs: [...context.siteConfig.staticDirectories, path.join(context.siteDir, 'static')],
+                  } satisfies MDXLoaderOptions,
+                },
+                {
+                  loader: path.resolve(__dirname, './markdownLoader.js'),
+                },
+              ],
+            },
+          ],
+        },
+      };
+    },
+
+    async contentLoaded({ content, actions }): Promise<void> {
+      if (!content) {
+        return;
+      }
+
+      const docs: PropVersionDocs = {};
+
+      // Create an index of versions for quick lookup.
+      content.loadedVersions.forEach((loadedVersion) => {
+        if (loadedVersion.versionName !== CURRENT_VERSION_NAME) {
+          docs[loadedVersion.versionName] = {
+            description: loadedVersion.versionLabel,
+            id: loadedVersion.versionPath,
+            title: loadedVersion.versionLabel,
+          };
+        }
+      });
+
+      const rootRoutes = await Promise.all(
+        content.loadedVersions.map(async (loadedVersion) => {
+          const version = loadedVersion.versionName;
+
+          // Define version metadata for all pages. We need to use the same structure as
+          // "docs" so that we can utilize the same React components.
+          const versionMetadata = await actions.createData(
+            `version-${version}.json`,
+            JSON.stringify({
+              badge: loadedVersion.versionBadge,
+              banner: loadedVersion.versionBanner,
+              className: loadedVersion.versionClassName,
+              docs,
+              docsSidebars: { api: loadedVersion.sidebars },
+              isLast: loadedVersion.isLast,
+              label: loadedVersion.versionLabel,
+              noIndex: false,
+              pluginId,
+              version: loadedVersion.versionName,
+            } satisfies PropVersionMetadata),
+          );
+
+          const packagesData = await actions.createData(
+            `packages-${version}.json`,
+            JSON.stringify(formatPackagesWithoutHostInfo(loadedVersion.packages)),
+          );
+
+          const optionsData = await actions.createData(
+            'options.json',
+            JSON.stringify({
+              banner,
+              breadcrumbs,
+              gitRefName,
+              minimal,
+              pluginId,
+              scopes: removeScopes,
+            } satisfies ApiOptions),
+          );
+
+          function createRoute(info: TSDDeclarationReflection, modules?: Record<string, string>): RouteConfig {
+            return {
+              component: path.join(__dirname, './components/ApiItem.js'),
+              exact: true,
+              // Map the ID here instead of creating a JSON data file,
+              // otherwise this will create thousands of files!
+              id: info.id,
+              modules,
+              path: info.permalink,
+              sidebar: 'api',
+            };
+          }
+
+          const routes: RouteConfig[] = [];
+
+          loadedVersion.packages.forEach((pkg) => {
+            pkg.entryPoints.forEach((entry) => {
+              const children = entry.reflection.children?.filter((child) => !child.permalink?.includes('#')) ?? [];
+
+              // Map a route for every declaration in the package (the exported APIs)
+              const subRoutes = children.map((child) => createRoute(child));
+
+              // Map a top-level package route, otherwise `DocRoot` shows a page not found
+              subRoutes.push(
+                createRoute(
+                  entry.reflection,
+                  entry.index && readmes && pkg.readmePath ? { readme: pkg.readmePath } : undefined,
+                ),
+              );
+
+              if (entry.index && changelogs && pkg.changelogPath) {
+                subRoutes.push({
+                  component: path.join(__dirname, './components/ApiChangelog.js'),
+                  exact: true,
+                  modules: { changelog: pkg.changelogPath },
+                  path: normalizeUrl([entry.reflection.permalink, 'changelog']),
+                  sidebar: 'api',
+                });
+              }
+
+              routes.push(...subRoutes);
+            });
+          });
+
+          const indexPermalink = normalizeUrl([loadedVersion.versionPath]);
+
+          if (loadedVersion.packages.length > 1) {
+            // Only write out the ApiIndex only when we have multiple packages
+            // otherwise we will have 2 top-level entries in the route entries
+            routes.push({
+              component: path.join(__dirname, './components/ApiIndex.js'),
+              exact: true,
+              modules: {
+                options: optionsData,
+                packages: packagesData,
+                versionMetadata,
+              },
+              path: indexPermalink,
+              sidebar: 'api',
+            });
+          }
+
+          for (const document of loadedVersion.documents) {
+            if (!document.frontmatter?.path || !loadedVersion.fileEntries[document.id]) {
+              continue;
+            }
+            const documentSourcePath = path.resolve(loadedVersion.fileEntries[document.id]);
+            const documentDestinationDirectoryPath = path.join(
+              __dirname,
+              '../../../docs',
+              document.frontmatter.path as string,
+            );
+            const documentDestinationPath = path.join(
+              documentDestinationDirectoryPath,
+              path.basename(documentSourcePath),
+            );
+
+            const isDocumentExisting = async (): Promise<boolean> => {
+              try {
+                const existingDocumentSymlink = await fs.promises.lstat(documentDestinationPath);
+                return existingDocumentSymlink.isSymbolicLink();
+              } catch (error: any) {
+                if (error.code === 'ENOENT') {
+                  return false;
+                }
+                throw error;
+              }
+            };
+            const isDocumentExistingResult = await isDocumentExisting();
+            if (isDocumentExistingResult) {
+              await fs.promises.unlink(documentDestinationPath);
+            }
+
+            await fs.promises.mkdir(documentDestinationDirectoryPath, { recursive: true });
+            try {
+              await fs.promises.symlink(documentSourcePath, documentDestinationPath, 'file');
+            } catch (error: any) {
+              if (error.code !== 'EEXIST') {
+                throw error;
+              }
+            }
+          }
+
+          // Wrap in the `DocVersionRoot` component:
+          // https://github.com/facebook/docusaurus/blob/main/packages/docusaurus-plugin-content-docs/src/routes.ts#L192
+          return {
+            component: '@theme/DocVersionRoot',
+            exact: false,
+            modules: {
+              version: versionMetadata,
+            },
+            path: indexPermalink,
+            priority: loadedVersion.routePriority,
+            routes: [
+              {
+                component: path.join(__dirname, './components/ApiPage.js'),
+                exact: false,
+                modules: {
+                  options: optionsData,
+                  packages: packagesData,
+                },
+                path: indexPermalink,
+                routes,
+              },
+            ],
+          };
+        }),
+      );
+
+      // Wrap in the `DocsRoot` component:
+      // https://github.com/facebook/docusaurus/blob/main/packages/docusaurus-plugin-content-docs/src/routes.ts#L232
+      actions.addRoute({
+        component: '@theme/DocsRoot',
+        exact: false,
+        path: normalizeUrl([context.baseUrl, options.routeBasePath ?? 'api']),
+        routes: rootRoutes,
+      });
+    },
 
     extendCli(cli): void {
       const command = isDefaultPluginId ? 'api:version' : `api:version:${pluginId}`;
@@ -159,9 +405,7 @@ export default function typedocApiPlugin(
               options.changelogName,
             );
 
-            // eslint-disable-next-line no-param-reassign
             cfg.packageName = packageJson.name;
-            // eslint-disable-next-line no-param-reassign
             cfg.packageVersion = packageJson.version;
           });
 
@@ -169,6 +413,15 @@ export default function typedocApiPlugin(
 
           console.log(`[${prefix}]:`, `version ${version} created!`);
         });
+    },
+
+    getPathsToWatch(): string[] {
+      return [
+        ...options.packages
+          .filter((pkg) => typeof pkg === 'object')
+          .map((pkg) => path.join(options.projectRoot, pkg.path, pkg.watchPattern || '')),
+        ...options.projectDocuments.map((doc) => path.join(options.projectRoot, doc)),
+      ];
     },
 
     async loadContent(): Promise<LoadedContent> {
@@ -240,264 +493,6 @@ export default function typedocApiPlugin(
       };
     },
 
-    async contentLoaded({ content, actions }): Promise<void> {
-      if (!content) {
-        return;
-      }
-
-      const docs: PropVersionDocs = {};
-
-      // Create an index of versions for quick lookup.
-      content.loadedVersions.forEach((loadedVersion) => {
-        if (loadedVersion.versionName !== CURRENT_VERSION_NAME) {
-          docs[loadedVersion.versionName] = {
-            id: loadedVersion.versionPath,
-            title: loadedVersion.versionLabel,
-            description: loadedVersion.versionLabel,
-          };
-        }
-      });
-
-      const rootRoutes = await Promise.all(
-        content.loadedVersions.map(async (loadedVersion) => {
-          const version = loadedVersion.versionName;
-
-          // Define version metadata for all pages. We need to use the same structure as
-          // "docs" so that we can utilize the same React components.
-          const versionMetadata = await actions.createData(
-            `version-${version}.json`,
-            JSON.stringify({
-              badge: loadedVersion.versionBadge,
-              banner: loadedVersion.versionBanner,
-              className: loadedVersion.versionClassName,
-              docs,
-              docsSidebars: { api: loadedVersion.sidebars },
-              isLast: loadedVersion.isLast,
-              label: loadedVersion.versionLabel,
-              noIndex: false,
-              pluginId,
-              version: loadedVersion.versionName,
-            } satisfies PropVersionMetadata),
-          );
-
-          const packagesData = await actions.createData(
-            `packages-${version}.json`,
-            JSON.stringify(formatPackagesWithoutHostInfo(loadedVersion.packages)),
-          );
-
-          const optionsData = await actions.createData(
-            'options.json',
-            JSON.stringify({
-              banner,
-              breadcrumbs,
-              gitRefName,
-              minimal,
-              pluginId,
-              scopes: removeScopes,
-            } satisfies ApiOptions),
-          );
-
-          function createRoute(info: TSDDeclarationReflection, modules?: Record<string, string>): RouteConfig {
-            return {
-              path: info.permalink,
-              exact: true,
-              component: path.join(__dirname, './components/ApiItem.js'),
-              modules,
-              sidebar: 'api',
-              // Map the ID here instead of creating a JSON data file,
-              // otherwise this will create thousands of files!
-              id: info.id,
-            };
-          }
-
-          const routes: RouteConfig[] = [];
-
-          loadedVersion.packages.forEach((pkg) => {
-            pkg.entryPoints.forEach((entry) => {
-              const children = entry.reflection.children?.filter((child) => !child.permalink?.includes('#')) ?? [];
-
-              // Map a route for every declaration in the package (the exported APIs)
-              const subRoutes = children.map((child) => createRoute(child));
-
-              // Map a top-level package route, otherwise `DocRoot` shows a page not found
-              subRoutes.push(
-                createRoute(
-                  entry.reflection,
-                  entry.index && readmes && pkg.readmePath ? { readme: pkg.readmePath } : undefined,
-                ),
-              );
-
-              if (entry.index && changelogs && pkg.changelogPath) {
-                subRoutes.push({
-                  path: normalizeUrl([entry.reflection.permalink, 'changelog']),
-                  exact: true,
-                  component: path.join(__dirname, './components/ApiChangelog.js'),
-                  modules: { changelog: pkg.changelogPath },
-                  sidebar: 'api',
-                });
-              }
-
-              routes.push(...subRoutes);
-            });
-          });
-
-          const indexPermalink = normalizeUrl([loadedVersion.versionPath]);
-
-          if (loadedVersion.packages.length > 1) {
-            // Only write out the ApiIndex only when we have multiple packages
-            // otherwise we will have 2 top-level entries in the route entries
-            routes.push({
-              path: indexPermalink,
-              exact: true,
-              component: path.join(__dirname, './components/ApiIndex.js'),
-              modules: {
-                options: optionsData,
-                packages: packagesData,
-                versionMetadata,
-              },
-              sidebar: 'api',
-            });
-          }
-
-          for (const document of loadedVersion.documents) {
-            if (!document.frontmatter?.path || !loadedVersion.fileEntries[document.id]) {
-              continue;
-            }
-            const documentSourcePath = path.resolve(loadedVersion.fileEntries[document.id]);
-            const documentDestinationDirectoryPath = path.join(
-              __dirname,
-              '../../../docs',
-              document.frontmatter.path as string,
-            );
-            const documentDestinationPath = path.join(
-              documentDestinationDirectoryPath,
-              path.basename(documentSourcePath),
-            );
-
-            const isDocumentExisting = async (): Promise<boolean> => {
-              try {
-                const existingDocumentSymlink = await fs.promises.lstat(documentDestinationPath);
-                return existingDocumentSymlink.isSymbolicLink();
-              } catch (error: any) {
-                if (error.code === 'ENOENT') {
-                  return false;
-                }
-                throw error;
-              }
-            };
-            const isDocumentExistingResult = await isDocumentExisting();
-            if (isDocumentExistingResult) {
-              await fs.promises.unlink(documentDestinationPath);
-            }
-
-            await fs.promises.mkdir(documentDestinationDirectoryPath, { recursive: true });
-            try {
-              await fs.promises.symlink(documentSourcePath, documentDestinationPath, 'file');
-            } catch (error: any) {
-              if (error.code !== 'EEXIST') {
-                throw error;
-              }
-            }
-          }
-
-          // Wrap in the `DocVersionRoot` component:
-          // https://github.com/facebook/docusaurus/blob/main/packages/docusaurus-plugin-content-docs/src/routes.ts#L192
-          return {
-            path: indexPermalink,
-            exact: false,
-            component: '@theme/DocVersionRoot',
-            routes: [
-              {
-                path: indexPermalink,
-                exact: false,
-                component: path.join(__dirname, './components/ApiPage.js'),
-                routes,
-                modules: {
-                  options: optionsData,
-                  packages: packagesData,
-                },
-              },
-            ],
-            modules: {
-              version: versionMetadata,
-            },
-            priority: loadedVersion.routePriority,
-          };
-        }),
-      );
-
-      // Wrap in the `DocsRoot` component:
-      // https://github.com/facebook/docusaurus/blob/main/packages/docusaurus-plugin-content-docs/src/routes.ts#L232
-      actions.addRoute({
-        path: normalizeUrl([context.baseUrl, options.routeBasePath ?? 'api']),
-        exact: false,
-        component: '@theme/DocsRoot',
-        routes: rootRoutes,
-      });
-    },
-
-    configureWebpack(_config, isServer, utils): any {
-      if (!readmes && !changelogs) {
-        return {
-          resolve: {
-            symlinks: false,
-          },
-        };
-      }
-
-      // Whitelist the folders that this webpack rule applies to, otherwise we collide with the native
-      // docs/blog plugins. We need to include the specific files only, as in polyrepo mode, the `cfg.packagePath`
-      // can be project root (where the regular docs are too).
-      const include = packageConfigs.flatMap((cfg) => {
-        const list: string[] = [];
-        if (readmes) {
-          list.push(path.join(options.projectRoot, cfg.packagePath, options.readmeName));
-        }
-        if (changelogs) {
-          list.push(path.join(options.projectRoot, cfg.packagePath, options.changelogName));
-        }
-        return list;
-      });
-
-      return {
-        module: {
-          rules: [
-            {
-              test: /\.mdx?$/,
-              include,
-              use: [
-                utils.getJSLoader({ isServer }),
-                {
-                  loader: require.resolve('@docusaurus/mdx-loader'),
-                  options: {
-                    admonitions: true,
-                    remarkPlugins: options.remarkPlugins,
-                    rehypePlugins: options.rehypePlugins,
-                    siteDir: context.siteDir,
-                    staticDirs: [...context.siteConfig.staticDirectories, path.join(context.siteDir, 'static')],
-                    // Since this isn't a doc/blog page, we can get
-                    // away with it being a partial!
-                    isMDXPartial: () => true,
-                    markdownConfig: context.siteConfig.markdown,
-                  } satisfies MDXLoaderOptions,
-                },
-                {
-                  loader: path.resolve(__dirname, './markdownLoader.js'),
-                },
-              ],
-            },
-          ],
-        },
-      };
-    },
-
-    getPathsToWatch(): string[] {
-      return [
-        ...options.packages
-          .filter((pkg) => typeof pkg === 'object')
-          .map((pkg) => path.join(options.projectRoot, pkg.path, pkg.watchPattern || '')),
-        ...options.projectDocuments.map((doc) => path.join(options.projectRoot, doc)),
-      ];
-    },
+    name: 'docusaurus-plugin-typedoc-api',
   };
 }

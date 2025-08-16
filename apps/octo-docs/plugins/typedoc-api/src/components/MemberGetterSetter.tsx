@@ -14,7 +14,6 @@ export interface MemberGetterSetterProps {
   setter?: TSDDeclarationReflection['setSignature'];
 }
 
-// eslint-disable-next-line complexity
 export function MemberGetterSetter({ inPanel, getter, setter }: MemberGetterSetterProps): ReactElement | null {
   const minimal = useMinimalLayout();
 

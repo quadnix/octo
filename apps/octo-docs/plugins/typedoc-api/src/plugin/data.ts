@@ -22,7 +22,6 @@ import { migrateToVersion0230 } from './structure/0.23.js';
 import { getKindSlug, getPackageSlug, joinUrl } from './url.js';
 
 function shouldEmit(projectRoot: string, tsconfigPath: string): 'docs' | 'none' {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const { config, error } = ts.readConfigFile(tsconfigPath, (name) => fs.readFileSync(name, 'utf8'));
 
   if (error) {
@@ -122,7 +121,6 @@ export async function generateJson(
 export function createReflectionMap(items: TSDDeclarationReflection[] = []): TSDDeclarationReflectionMap {
   const map: TSDDeclarationReflectionMap = {};
 
-  // eslint-disable-next-line complexity
   items.forEach((item) => {
     // Add @reference categories to reflection.
     const referenceCategories: Record<string, { title: string; children: ReflectionId[] }> = {};
@@ -202,7 +200,6 @@ export function addMetadataToReflections(
   const permalink = `/${joinUrl(urlPrefix, packageSlug)}`;
 
   if (project.children) {
-    // eslint-disable-next-line no-param-reassign
     project.children = project.children.map((child) => {
       migrateToVersion0230(child);
 
@@ -212,7 +209,6 @@ export function addMetadataToReflections(
 
       // We need to go another level deeper and only use fragments
       if (child.kind === ReflectionKind.Namespace && child.children) {
-        // eslint-disable-next-line no-param-reassign
         child.children = child.children.map((grandChild) => ({
           ...grandChild,
           permalink: normalizeUrl([`${childPermalink}#${grandChild.name}`]),
@@ -250,7 +246,6 @@ function mergeReflections(base: TSDDeclarationReflection, next: TSDDeclarationRe
     });
 
     // We can remove refs since were merging all reflections into one
-    // eslint-disable-next-line no-param-reassign
     base.groups = base.groups.filter((group) => group.title !== 'References');
   }
 }
@@ -466,9 +461,7 @@ export function flattenAndGroupPackages(
             changelogPath,
           };
 
-          // eslint-disable-next-line no-param-reassign
           cfg.packageName = packages[cfg.packagePath].packageName;
-          // eslint-disable-next-line no-param-reassign
           cfg.packageVersion = packages[cfg.packagePath].packageVersion;
         }
 
@@ -481,7 +474,6 @@ export function flattenAndGroupPackages(
           if (isUsingDeepImports) {
             mergeReflections(existingEntry.reflection, reflection);
           } else {
-            // eslint-disable-next-line no-console
             console.error(`Entry point ${urlSlug} already defined. How did you get here?`);
           }
         } else {
@@ -520,6 +512,5 @@ export function flattenAndGroupPackages(
 }
 
 export function formatPackagesWithoutHostInfo(packages: PackageReflectionGroup[]): PackageReflectionGroup[] {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   return packages.map(({ changelogPath, readmePath, ...pkg }) => pkg);
 }
