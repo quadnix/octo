@@ -276,14 +276,14 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     const tagsToUpdate: { [key: string]: string } = {};
 
     for (const [key, value] of Object.entries(previous.tags)) {
-      if (!this.tags.hasOwnProperty(key)) {
+      if (!Object.prototype.hasOwnProperty.call(this.tags, key)) {
         tagsToDelete.push(key);
       } else if (this.tags[key] !== value) {
         tagsToUpdate[key] = this.tags[key];
       }
     }
     for (const [key, value] of Object.entries(this.tags)) {
-      if (!previous.tags.hasOwnProperty(key)) {
+      if (!Object.prototype.hasOwnProperty.call(previous.tags, key)) {
         tagsToAdd[key] = value;
       }
     }

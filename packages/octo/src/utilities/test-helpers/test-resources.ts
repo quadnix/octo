@@ -132,7 +132,7 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
         if (typeof p === 'string') {
           const parentResource = resourceDataRepository.getNewResourceByContext(p);
           if (!parentResource) {
-            if (!resources.hasOwnProperty(p)) {
+            if (!Object.prototype.hasOwnProperty.call(resources, p)) {
               let promiseResolve: (value: UnknownResource) => UnknownResource;
               const promise = new Promise<UnknownResource>((resolve) => {
                 promiseResolve = resolve as (value: UnknownResource) => UnknownResource;

@@ -11,6 +11,6 @@ export class ImageSchema {
    */
   imageId = Schema<string>();
 
-  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z@][\w\-\/]*[a-zA-Z0-9]$/ } })
+  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z@][\w\-/]*[a-zA-Z0-9]$/ } })
   imageName = Schema<string>();
 }

@@ -469,7 +469,7 @@ describe('TransactionService UT', () => {
 
         await expect(async () => {
           await applyResources([diffMetadata2, diffMetadata1]);
-        }).rejects.toThrowErrorMatchingInlineSnapshot(`"Resource action timed out after 100ms!"`);
+        }).rejects.toThrowErrorMatchingInlineSnapshot(`"Resource action Object timed out after 100ms!"`);
 
         expect(universalResourceAction.handle).toHaveBeenCalledTimes(0);
       });

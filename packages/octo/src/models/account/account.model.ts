@@ -41,7 +41,10 @@ export class Account extends AModel<AccountSchema, Account> {
   }
 
   isAwsCredentials(credentials: ReturnType<Account['getCredentials']>): credentials is AwsCredentials {
-    return credentials.hasOwnProperty('accessKeyId') && credentials.hasOwnProperty('secretAccessKey');
+    return (
+      Object.prototype.hasOwnProperty.call(credentials, 'accessKeyId') &&
+      Object.prototype.hasOwnProperty.call(credentials, 'secretAccessKey')
+    );
   }
 
   getCredentials(): object {

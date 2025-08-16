@@ -33,7 +33,7 @@ export class ObjectUtility {
   static onEveryNestedKey(object: object, callback: (parent: object, key: string, value: unknown) => void): void {
     const keys = object instanceof ANode ? Object.keys(object.synth()) : Object.keys(object);
     for (const key of keys) {
-      if (object.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(object, key)) {
         const value = object[key];
 
         if (typeof value === 'object' && value !== null) {

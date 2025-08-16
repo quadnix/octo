@@ -11,7 +11,7 @@ export function getSchemaInstance<S extends object>(schemaClass: Constructable<S
 
   for (const key of getSchemaKeys<S>(schemaClass)) {
     try {
-      if (value.hasOwnProperty(key) && value[key] !== undefined) {
+      if (Object.prototype.hasOwnProperty.call(value, key) && value[key] !== undefined) {
         t[key] = value[key];
         instance[key] = t[key];
       } else {

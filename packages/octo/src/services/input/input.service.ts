@@ -100,7 +100,7 @@ export class InputService {
    */
   registerInput(moduleId: string, key: string, value: unknown): void {
     const inputKey = `${moduleId}.input.${key}`;
-    if (this.inputs.hasOwnProperty(inputKey)) {
+    if (Object.prototype.hasOwnProperty.call(this.inputs, inputKey)) {
       throw new InputRegistrationError('Input has already been registered!', inputKey);
     }
     this.inputs[inputKey] = value;
@@ -108,7 +108,7 @@ export class InputService {
 
   registerMetadata(moduleId: string, key: string, value: unknown): void {
     const metadataKey = `${moduleId}.metadata.${key}`;
-    if (this.metadata.hasOwnProperty(metadataKey)) {
+    if (Object.prototype.hasOwnProperty.call(this.metadata, metadataKey)) {
       throw new InputRegistrationError('Metadata has already been registered!', metadataKey);
     }
     this.metadata[metadataKey] = value;
@@ -120,7 +120,7 @@ export class InputService {
    */
   registerModel(moduleId: string, model: UnknownModel): void {
     const modelKey = `${moduleId}.model.${(model.constructor as typeof ANode).NODE_NAME}`;
-    if (this.models.hasOwnProperty(modelKey)) {
+    if (Object.prototype.hasOwnProperty.call(this.models, modelKey)) {
       throw new InputRegistrationError('Model has already been registered!', modelKey);
     }
     this.models[modelKey] = model;
@@ -128,7 +128,7 @@ export class InputService {
 
   registerModule(moduleId: string, module: UnknownModule): void {
     const moduleKey = `${moduleId}.module`;
-    if (this.modules.hasOwnProperty(moduleKey)) {
+    if (Object.prototype.hasOwnProperty.call(this.modules, moduleKey)) {
       throw new InputRegistrationError('Module has already been registered!', moduleKey);
     }
     this.modules[moduleKey] = module;
@@ -140,7 +140,7 @@ export class InputService {
    */
   registerOverlay(moduleId: string, overlay: UnknownOverlay): void {
     const overlayKey = `${moduleId}.overlay.${overlay.overlayId}`;
-    if (this.overlays.hasOwnProperty(overlayKey)) {
+    if (Object.prototype.hasOwnProperty.call(this.overlays, overlayKey)) {
       throw new InputRegistrationError('Overlay has already been registered!', overlayKey);
     }
     this.overlays[overlayKey] = overlay.getContext();
@@ -152,7 +152,7 @@ export class InputService {
    */
   registerResource(moduleId: string, resource: UnknownResource): void {
     const resourceKey = `${moduleId}.resource.${resource.resourceId}`;
-    if (this.resources.hasOwnProperty(resourceKey)) {
+    if (Object.prototype.hasOwnProperty.call(this.resources, resourceKey)) {
       throw new InputRegistrationError('Resource has already been registered!', resourceKey);
     }
     this.resources[resourceKey] = resource.getContext();
@@ -165,7 +165,7 @@ export class InputService {
     const hasResourceContext = (
       scope: Parameters<typeof InputService.prototype.registerTag>[0],
     ): scope is { moduleId: string; resourceContext: string } => {
-      return scope.hasOwnProperty('resourceContext');
+      return Object.prototype.hasOwnProperty.call(scope, 'resourceContext');
     };
 
     const moduleId = scope === true ? '_global' : scope.moduleId;
@@ -182,20 +182,20 @@ export class InputService {
       }
     }
 
-    if (!this.tags.hasOwnProperty(moduleId)) {
+    if (!Object.prototype.hasOwnProperty.call(this.tags, moduleId)) {
       this.tags[moduleId] = {};
     }
 
     let scopedTagContainer = this.tags[moduleId];
     if (hasResourceContext(scope)) {
-      if (!scopedTagContainer.hasOwnProperty(scope.resourceContext)) {
+      if (!Object.prototype.hasOwnProperty.call(scopedTagContainer, scope.resourceContext)) {
         scopedTagContainer[scope.resourceContext] = {};
       }
       scopedTagContainer = scopedTagContainer[scope.resourceContext] as { [key: string]: string };
     }
 
     for (const [key, value] of Object.entries(tags)) {
-      if (scopedTagContainer.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(scopedTagContainer, key)) {
         throw new InputRegistrationError('Tag has already been registered!', key);
       }
       scopedTagContainer[key] = value;
@@ -334,7 +334,7 @@ export class InputService {
       return subject;
     }
 
-    return path.split('.').reduce((obj, key) => obj && obj[key], subject);
+    return path.split('.').reduce((obj, key) => obj?.[key], subject);
   }
 }
 

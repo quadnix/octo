@@ -191,7 +191,9 @@ export class TestModuleContainer {
         try {
           inputService.getModuleIdFromModel(model);
           continue;
-        } catch (error) {}
+        } catch (error) {
+          /* do nothing. */
+        }
 
         inputService.registerModel(moduleId, model);
 

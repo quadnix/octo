@@ -3,7 +3,7 @@
   "description": "Octo is an opinionated interface of a cloud infrastructure.",
   "devDependencies": {},
   "engines": {
-    "node": ">=16"
+    "node": ">=18.18.0"
   },
   "exports": "./dist/index.js",
   "files": [

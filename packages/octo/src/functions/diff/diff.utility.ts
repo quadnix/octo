@@ -191,7 +191,7 @@ export class DiffUtility {
     // Iterate fields of previous (a). If found in latest (b), consider it an UPDATE.
     // If not found in latest (b), consider it a DELETE.
     for (const [key, value] of Object.entries(a[field])) {
-      if (b[field].hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(b[field], key)) {
         if (typeof b[field][key] === 'object') {
           if (!DiffUtility.isObjectDeepEquals(b[field][key], value)) {
             diff.push(new Diff(b, DiffAction.UPDATE, field, { key, value: b[field][key] }));
@@ -208,7 +208,7 @@ export class DiffUtility {
 
     // Iterate fields of latest (b). If not found in previous (a), consider it an ADD.
     for (const [key, value] of Object.entries(b[field])) {
-      if (!a[field].hasOwnProperty(key)) {
+      if (!Object.prototype.hasOwnProperty.call(a[field], key)) {
         diff.push(new Diff(b, DiffAction.ADD, field, { key, value }));
       }
     }
