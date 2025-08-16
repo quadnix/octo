@@ -158,6 +158,7 @@ const config: Config = {
       title: 'Octo',
     },
     prism: {
+      additionalLanguages: ['bash'],
       darkTheme: prismThemes.oneDark,
       theme: prismThemes.oneDark,
     },
