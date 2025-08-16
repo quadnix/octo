@@ -9,7 +9,7 @@
   "description": "Octo-Event-Listeners is an extension of the Octo library that provides common event listeners.",
   "devDependencies": {},
   "engines": {
-    "node": ">=16"
+    "node": ">=18.18.0"
   },
   "exports": "./dist/index.js",
   "files": [
