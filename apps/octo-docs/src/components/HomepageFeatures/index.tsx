@@ -4,6 +4,10 @@ import React, { type ReactElement } from 'react';
 
 import styles from './styles.module.scss';
 
+import UnDrawDocusaurusMountainImage from '@site/static/img/undraw_docusaurus_mountain.svg';
+import UnDrawDocusaurusReactImage from '@site/static/img/undraw_docusaurus_react.svg';
+import UnDrawDocusaurusTreeImage from '@site/static/img/undraw_docusaurus_tree.svg';
+
 type FeatureItem = {
   title: string;
   Svg: React.ComponentType<React.ComponentProps<'svg'>>;
@@ -14,23 +18,21 @@ const FeatureList: FeatureItem[] = [
   {
     description: (
       <>
-        Octo CDK is designed to be simple for developers and DevOps alike. Its model allows clear separation of concerns
-        while offering ample opportunities for extension and remodeling by DevOps teams.
+        Octo CDK is designed to be simple for developers and DevOps alike. Its models allows clear separation of
+        concerns while offering ample opportunities for extension for the DevOps teams.
       </>
     ),
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    Svg: UnDrawDocusaurusMountainImage,
     title: 'Simple for devs, flexible for DevOps',
   },
   {
     description: (
       <>
         Octo analyzes infrastructure diffs at both model and resource levels, offering detailed insights. It supports
-        transactions for individual changes with rollback capability for errors.
+        transactions for individual changes and handles errors gracefully.
       </>
     ),
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    Svg: UnDrawDocusaurusTreeImage,
     title: 'Diffs & Transaction Support',
   },
   {
@@ -40,8 +42,7 @@ const FeatureList: FeatureItem[] = [
         leverages TS benefits, such as robust testing frameworks and the familiarity of a widely-used language.
       </>
     ),
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    Svg: UnDrawDocusaurusReactImage,
     title: 'Powered by Graphs & TypeScript',
   },
 ];

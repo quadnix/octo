@@ -12,8 +12,11 @@ one that has an entirely different set of opinions and beliefs.
     We share this common belief, with every IaC provider, tool, and engineer,
     and materialize it with our abstractions and encapsulations of infrastructure.
 
-    We must be confident in modifying our infrastructure, and for that we must embrace failures.
-    Octo is very transparent in reporting failures, and provides techniques to safely get out of a weird situation.
+    Without an abstraction layer, developers are exposed to the underlying resources,
+    which are too many, and too detailed to keep track of.
+    Valid changes to one resource can lead to cascading failures in many others.
+
+    With graphs, resources and its dependencies behave in a more predictable manner.
   </p>
 </details>
 
@@ -23,10 +26,11 @@ one that has an entirely different set of opinions and beliefs.
     Developers are not DevOps, and vice-versa. Their job descriptions and domains differ.
     Their responsibilities differ. And yet, they must operate together.
 
-    DevOps job should not be to make every infrastructure change for developers, or even to review every change.
-    Likewise, developers cannot be expected to have deep understanding of infrastructure and self serve themselves.
+    DevOps job should not be to make or review every infrastructure change for developers.
+    Likewise, developers cannot be expected to have a deep understanding of infrastructure and self serve themselves,
+    especially when they didn't create it, nor do they work on it in a daily basis.
 
-    Octo provides that interface where these two mights can come together to collaborate,
+    Octo provides that interface where these two factions can come together to collaborate,
     without interfering each other's work.
   </p>
 </details>
@@ -34,15 +38,15 @@ one that has an entirely different set of opinions and beliefs.
 <details>
   <summary>3. If you cannot be shielded from infrastructure, might as well embrace it.</summary>
   <p>
-    No IaC tools, nor AI based products, can really shield you completely from your infrastructure.
+    No IaC tools, nor any AI based products, can really shield you completely from your infrastructure.
     It's the hard truth!
-    Think of all website generators that give you a nice UI to build a website.<br/>
-    Sure, you can generate one magically, but when things are running in Production, and something goes wrong,
+    For example, think of a website generator that gives you a nice UI to build a website.<br/>
+    Sure, you can generate one magically, but when things are running in Production and something goes wrong,
     most often than not, you are on your own, and you need to understand the code in order to get out of that situation.
 
     Infrastructure is the same way. You must understand what you are building.<br/>
     Octo is not magic. Its also not AI.
-    It simply helps DevOps to create sane encapsulations that developers then try on.
+    It simply helps DevOps create sane encapsulations that developers then try on.
 
     While other IaC tools forces you to deal with raw and overwhelming details of infrastructure at once,
     Octo bolsters your understanding of infrastructure layer by layer; shielding you from the deeper parts.
@@ -54,7 +58,7 @@ one that has an entirely different set of opinions and beliefs.
 <details>
   <summary>4. Infrastructure is meant to be shared.</summary>
   <p>
-    Why is it that almost all infrastructure is built the same way - load balancing looks the same,
+    Almost all infrastructure is built the same way - load balancing looks the same,
     caching looks the same, autoscaling policies look the same; and yet everyone has to build their own,
     and go through the same painstaking process.
 
@@ -63,8 +67,6 @@ one that has an entirely different set of opinions and beliefs.
 
     Infrastructure should be shared, i.e. once you define a module,
     you should be able to reuse, or import someone else's, or even replace one module with another.
-    Sure, the exact inputs to the module might change, but the essence of that module won't change,
-    and that essence is what Octo allows to be defined.
   </p>
 </details>
 
@@ -76,24 +78,26 @@ one that has an entirely different set of opinions and beliefs.
     Testing if a stack or construct will be created is just re-testing the IaC tool.
     Testing the infrastructure needs to be at a much higher level than testing individual resources and their values.
 
-    - What security rules my service will inherit?
+    Here are some questions your IaC tools might not be answering for you,
+    - Will my service be able to talk to the internet?
     - What environment variables will it start with?
     - What subnet and environments will it be placed in?
     - When running in QA which S3 buckets will it use?
     - Which other services can it talk to?
 
-    With Octo you write similar assertions that tests your very understanding of the infrastructure.
+    With Octo you can make assertions on the the end results
+    rather than focusing on the properties of individual resources.
   </p>
 </details>
 
-## Monolith vs Monorepo
-Octo only supports monolith infrastructure repository by design.
+## Monorepo vs Polyrepo
+Octo only supports monorepo infrastructure repository by design.
 Having worked several years with large infrastructure code bases for several companies,
-we realized monorepo doesn't bring the benefits when it comes to infrastructure, but rather makes it difficult.
+we realized polyrepo doesn't bring the benefits when it comes to infrastructure, but rather makes it difficult.
 
-Consider this monorepo layout, where every repository implements a part of the infrastructure.
+Consider this polyrepo layout, where every repository implements a part of the infrastructure.
 But by nature, they are all part of the same ecosystem, and they must depend on each other.<br/>
-As higher repositories update their code base, it might lead to a dependency hell as all the children update themselves
+As higher repositories update their code base, it might lead to dependency hell as all the children update themselves
 to the latest version.
 ```mermaid
 graph TD;
@@ -107,11 +111,10 @@ graph TD;
   repoB --> repoD;
 ```
 
-While monorepo designs have the benefit of isolation, i.e. failures and changes in Repo A
-won't affect Repo B until they are committed,
-the inter-dependency it creates can lead to more manual effort and leaves you open to errors.
+While polyrepo designs have the benefit of isolation,
+the interdependency it creates can lead to more manual effort and leaves you open to errors.
 
-Alternatively, consider the monolith design of infrastructure,
+Alternatively, consider this monorepo design of infrastructure,
 ```mermaid
 graph TD;
   app((App))
@@ -119,14 +122,14 @@ graph TD;
   regionB((Region B))
   environmentA((Environment A))
 
-  subgraph Octo Monolith Repo
+  subgraph Octo Monorepo
     app --> regionA
     app --> regionB
     regionA --> environmentA
   end
 ```
 
-Having the entire infrastructure in one repository is less manual work, less error prone, less dispersed changes,
+Having the entire infrastructure in one repository is less manual work, less error-prone, less dispersed changes,
 single source of truth, and promotes common understanding of the infrastructure.<br/>
 There are of course disadvantages to this approach too - mainly the possibility of blocking future pull requests
 when the previous changes have failed to apply. But, Octo has a special way to deal with such situations,
@@ -137,7 +140,7 @@ Unlike other IaC stacks, Octo recognizes the two factions of engineers - develop
 The former excels in program and business logic, vs the latter in infrastructure details.
 With current IaC tools, both are treated the same,
 - or worse, developers are subjected to make changes on infrastructure resources that they don't fully understand,
-which leads to half baked knowledge and mindless copy pasting of existing code,<br/>
+which leads to half-baked knowledge and mindless copying and pasting of existing code,<br/>
 - or even more appalling option, where developers rely on devops for every infrastructure change,
 which creates an unnecessary dependency.
 
@@ -145,18 +148,18 @@ Octo separates the two groups into their own spaces, where DevOps are tasked to 
 such as definition of models, modules, resources, and such,
 while Developers interface with these high level encapsulated constructs to create the final infrastructure.
 
-## Monorepo in Octo
-*Octo doesn't support monorepo* - at least not in the traditional sense.
+## Polyrepo in Octo
+*Octo doesn't support polyrepo* - at least not in the traditional sense.
 
 Octo can have multiple definition repositories created by DevOps,
 but only a single infrastructure repository.<br/>
 Definitions are created by DevOps, vs the infrastructure repository is where developers operate.
 ```mermaid
 graph TD;
-  repoA[Definitions \n of Models \n and Modules]
+  repoA[Definitions <br> of Models <br> and Modules]
   repoB[More definitions]
   repoC[Even more definitions]
-  infraRepo[Infrastructure \n Monolith \n Repo]
+  infraRepo[Infrastructure <br> Monorepo]
 
   repoA --> repoC;
   repoA --> infraRepo;
@@ -174,3 +177,8 @@ We will try to be as unbiased as possible 😉
   - The more familiar, the more advanced tools you can use, since you understand everything.
 - Are you okay to write and test your infrastructure in TypeScript?
   - We have currently no plans to support another language unfortunately, and so TypeScript is our only offering.
+- Are you looking to set up your infrastructure in a cloud provider other than AWS?
+  - Octo currently only supports AWS, but we are planning to support more cloud providers in the future.
+  - Even for AWS, we have written a limited number of modules, which only covers a small subnet of AWS features.
+If you are not willing to write new modules for your specific use case, Octo might be a little immature for you.
+We however, are open to contribute new modules.
