@@ -1,0 +1,59 @@
+import {
+  Action,
+  type ActionOutputs,
+  App,
+  type Diff,
+  DiffAction,
+  type EnhancedModuleSchema,
+  Factory,
+  type IModelAction,
+  hasNodeName,
+} from '@quadnix/octo';
+import { HttpFetch } from '../../../../../../resources/http-fetch/index.js';
+import type { DummyAppModule } from '../../../dummy-app.module.js';
+
+/**
+ * This dummy app model action executes when a new `App` model is added.
+ * It adds a new `HttpFetch` resource.
+ */
+@Action(App)
+export class AddDummyAppModelAction implements IModelAction<DummyAppModule> {
+  filter(diff: Diff): boolean {
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof App &&
+      hasNodeName(diff.node, 'app') &&
+      diff.field === 'name'
+    );
+  }
+
+  async handle(
+    _diff: Diff,
+    actionInputs: EnhancedModuleSchema<DummyAppModule>,
+    actionOutputs: ActionOutputs,
+  ): Promise<ActionOutputs> {
+    const { name } = actionInputs.inputs;
+    const httpFetch = new HttpFetch(
+      `http-fetch-${name}`,
+      {
+        url: 'https://dummy.com/echo/get/json',
+      },
+      [],
+    );
+
+    actionOutputs[httpFetch.resourceId] = httpFetch;
+    return actionOutputs;
+  }
+}
+
+@Factory<AddDummyAppModelAction>(AddDummyAppModelAction)
+export class AddDummyAppModelActionFactory {
+  private static instance: AddDummyAppModelAction;
+
+  static async create(): Promise<AddDummyAppModelAction> {
+    if (!this.instance) {
+      this.instance = new AddDummyAppModelAction();
+    }
+    return this.instance;
+  }
+}

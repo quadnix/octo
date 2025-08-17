@@ -1,0 +1,10 @@
+import { Schema, Validate } from '@quadnix/octo';
+
+/**
+ * This is a dummy app module schema to demonstrate how to create a custom module schema.
+ * In this case, the `name` property is required and must be at least 1 character long.
+ */
+export class DummyAppModuleSchema {
+  @Validate({ options: { minLength: 1 } })
+  name = Schema<string>();
+}

@@ -1,0 +1,11 @@
+/**
+ * This is a dummy utility exposing some dummy methods.
+ */
+export class DummyUtility {
+  static async httpGet(url: string, credentials: { username: string; password: string }): Promise<object> {
+    return {
+      credentials: { password: credentials.password, username: credentials.username },
+      data: { success: true, url },
+    };
+  }
+}

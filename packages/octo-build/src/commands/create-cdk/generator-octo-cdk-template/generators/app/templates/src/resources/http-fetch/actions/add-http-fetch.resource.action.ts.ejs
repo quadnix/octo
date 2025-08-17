@@ -1,0 +1,55 @@
+import { ANodeAction, Action, Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import { DummyCredentials } from '../../../factories/dummy-credentials.factory.js';
+import { DummyUtility } from '../../../utilities/dummy/dummy.utility.js';
+import { HttpFetch } from '../http-fetch.resource.js';
+
+/**
+ * This action is executed when a new `HttpFetch` resource is added.
+ * It fetches content from a URL and sets the response.
+ */
+@Action(HttpFetch)
+export class AddHttpFetchResourceAction extends ANodeAction implements IResourceAction<HttpFetch> {
+  constructor() {
+    super();
+  }
+
+  filter(diff: Diff): boolean {
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof HttpFetch &&
+      hasNodeName(diff.node, 'http-fetch') &&
+      diff.field === 'resourceId'
+    );
+  }
+
+  async handle(diff: Diff<HttpFetch>): Promise<void> {
+    // Get properties.
+    const httpFetch = diff.node;
+    const properties = httpFetch.properties;
+    const response = httpFetch.response;
+
+    // Get instances.
+    const dummyCredentials = await this.container.get(DummyCredentials, { metadata: { package: '@<%= name %>' } });
+
+    // Fetch content and set response.
+    response.urlContent = await DummyUtility.httpGet(properties.url, dummyCredentials);
+  }
+
+  async mock(_diff: Diff<HttpFetch>, capture: Partial<HttpFetch['response']>): Promise<void> {
+    DummyUtility.httpGet = async (): Promise<object> => {
+      return capture.urlContent ?? {};
+    };
+  }
+}
+
+@Factory<AddHttpFetchResourceAction>(AddHttpFetchResourceAction)
+export class AddHttpFetchResourceActionFactory {
+  private static instance: AddHttpFetchResourceAction;
+
+  static async create(): Promise<AddHttpFetchResourceAction> {
+    if (!this.instance) {
+      this.instance = new AddHttpFetchResourceAction();
+    }
+    return this.instance;
+  }
+}

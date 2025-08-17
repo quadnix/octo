@@ -1,0 +1,35 @@
+import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
+
+/**
+ * This is an example resource schema to demonstrate how to create a custom resource schema.
+ * This resource is for the `HttpFetch` resource, and exposes a `url` property.
+ * Validation for the property is also included using the `@Validate` decorator.
+ * In this case, the `url` property is required and must be at least 1 character long.
+ *
+ * Once the resource is run, the resource actions will fetch the content of the URL
+ * and store it in the `urlContent` property.
+ * The content validation can be done here as well, and it automatically validates when the response is set
+ * in the resource actions.
+ */
+export class HttpFetchSchema extends BaseResourceSchema {
+  @Validate({
+    destruct: (value: HttpFetchSchema['properties']): string[] => [value.url],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    url: string;
+  }>();
+
+  @Validate({
+    destruct: (value: HttpFetchSchema['response']): string[] => {
+      if (value.urlContent) {
+        return [JSON.stringify(value.urlContent)];
+      }
+      return [];
+    },
+    options: { minLength: 1 },
+  })
+  override response = Schema<{
+    urlContent?: object;
+  }>();
+}

@@ -1,0 +1,17 @@
+import { AAnchor, Anchor } from '@quadnix/octo';
+import type { AppAnchorSchema } from './app.anchor.schema.js';
+
+/**
+ * This is an example anchor to demonstrate how to create a custom anchor.
+ * It uses the `@Anchor` decorator to create an anchor for the `App` model,
+ * and it must extend the `AAnchor` class.
+ * The `AppAnchorSchema` type is used to define the properties of the anchor.
+ */
+@Anchor('@<%= name %>')
+export class AppAnchor extends AAnchor<AppAnchorSchema, AppAnchorSchema['parentInstance']> {
+  declare properties: AppAnchorSchema['properties'];
+
+  constructor(anchorId: string, properties: AppAnchorSchema['properties'], parent: AppAnchorSchema['parentInstance']) {
+    super(anchorId, properties, parent);
+  }
+}

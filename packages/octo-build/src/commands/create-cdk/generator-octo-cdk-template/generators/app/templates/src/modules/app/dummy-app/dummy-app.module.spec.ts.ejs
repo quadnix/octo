@@ -1,0 +1,90 @@
+import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { DummyAppModule } from './index.js';
+
+describe('DummyAppModule UT', () => {
+  let testModuleContainer: TestModuleContainer;
+
+  beforeEach(async () => {
+    await TestContainer.create(
+      {
+        mocks: [],
+      },
+      { factoryTimeoutInMs: 500 },
+    );
+
+    testModuleContainer = new TestModuleContainer();
+    await testModuleContainer.initialize(new TestStateProvider());
+  });
+
+  afterEach(async () => {
+    await testModuleContainer.reset();
+    await TestContainer.reset();
+  });
+
+  it('should call correct actions', async () => {
+    const { 'app-module.model.app': app } = await testModuleContainer.runModule<DummyAppModule>({
+      inputs: { name: '<%= name %>' },
+      moduleId: 'app-module',
+      type: DummyAppModule,
+    });
+
+    const result = await testModuleContainer.commit(app, {
+      enableResourceCapture: false,
+      filterByModuleIds: ['app-module'],
+    });
+
+    // Correct actions are called.
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddDummyAppModelAction",
+       ],
+     ]
+    `);
+    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddHttpFetchResourceAction",
+       ],
+     ]
+    `);
+
+    // Correct resources are added.
+    expect(result.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@<%= name %>/http-fetch=http-fetch-<%= name %>",
+           "value": "@<%= name %>/http-fetch=http-fetch-<%= name %>",
+         },
+       ],
+     ]
+    `);
+
+    // Resource action executed.
+    expect(result.resourceDiffs[0][0].node.synth()).toMatchInlineSnapshot(`
+     {
+       "parents": [],
+       "properties": {
+         "url": "https://dummy.com/echo/get/json",
+       },
+       "resourceId": "http-fetch-<%= name %>",
+       "response": {
+         "urlContent": {
+           "credentials": {
+             "password": "dummy",
+             "username": "dummy",
+           },
+           "data": {
+             "success": true,
+             "url": "https://dummy.com/echo/get/json",
+           },
+         },
+       },
+       "tags": {},
+     }
+    `);
+  });
+});

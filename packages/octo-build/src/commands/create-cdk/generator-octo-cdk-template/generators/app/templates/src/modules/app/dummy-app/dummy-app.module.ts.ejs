@@ -1,0 +1,16 @@
+import { AModule, App, Module } from '@quadnix/octo';
+import { AppAnchor } from '../../../anchors/app/app.anchor.js';
+import { DummyAppModuleSchema } from './index.schema.js';
+
+/**
+ * This is a dummy app module that creates a new `App` model.
+ * It also creates an anchor for the `App` model.
+ */
+@Module<DummyAppModule>('@<%= name %>', DummyAppModuleSchema)
+export class DummyAppModule extends AModule<DummyAppModuleSchema, App> {
+  async onInit(inputs: DummyAppModuleSchema): Promise<App> {
+    const app = new App(inputs.name);
+    app.addAnchor(new AppAnchor('AppAnchor', { name: inputs.name }, app));
+    return app;
+  }
+}

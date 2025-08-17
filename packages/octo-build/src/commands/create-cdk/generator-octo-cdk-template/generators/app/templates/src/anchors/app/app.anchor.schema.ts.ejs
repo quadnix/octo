@@ -1,0 +1,19 @@
+import { App, BaseAnchorSchema, Schema, Validate } from '@quadnix/octo';
+
+/**
+ * This is an example anchor schema to demonstrate how to create a custom anchor schema.
+ * This anchor is for the `App` model, and exposes a `name` property.
+ * Validation for the property is also included using the `@Validate` decorator.
+ * In this case, the `name` property is required and must be at least 1 character long.
+ */
+export class AppAnchorSchema extends BaseAnchorSchema {
+  parentInstance: App;
+
+  @Validate({
+    destruct: (value: AppAnchorSchema['properties']): string[] => [value.name],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    name: string;
+  }>();
+}
