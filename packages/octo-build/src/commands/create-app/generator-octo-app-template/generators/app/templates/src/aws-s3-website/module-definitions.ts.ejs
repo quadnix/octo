@@ -7,7 +7,7 @@ import { AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/s
 import { config } from './app.config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const websiteSourcePath = join(__dirname, 'website');
+const websiteSourcePath = join(__dirname, '..', website');
 
 type ModuleDefinition<T extends AModule<unknown, any>> = {
   module: Constructable<T>;

@@ -16,17 +16,6 @@ export default class extends Generator {
     this.appTemplate = args[2];
   }
 
-  private getCopyScriptGlobs(): string[] {
-    switch (this.appTemplate) {
-      case 'aws-ecs-server':
-        return ['src/.env', 'src/.octo/**/*'];
-      case 'aws-s3-website':
-        return ['src/.env', 'src/.octo/**/*', 'src/website/**/*'];
-      default:
-        throw new Error(`Unsupported app template: ${this.appTemplate}`);
-    }
-  }
-
   async initializing(): Promise<void> {
     const targetPath = resolve(join(this.appPath, this.appName));
 
@@ -61,9 +50,6 @@ export default class extends Generator {
 
     // Create package.json
     this.fs.copyTpl(this.templatePath('package.json.ejs'), this.destinationPath('package.json'), {
-      copyGlobs: this.getCopyScriptGlobs()
-        .map((g) => `\\"${g}\\"`)
-        .join(' '),
       description: `Infrastructure definition using Octo for ${this.appName}`,
       name: this.appName,
       version: '0.0.1',
@@ -75,25 +61,27 @@ export default class extends Generator {
       'env-smart': '^2.3.2',
     });
     await this.addDevDependencies({
+      '@eslint/js': '^9.33.0',
       '@types/jest': '^30.0.0',
-      '@types/node': '^20.0.0',
-      copyfiles: '^2.4.1',
-      eslint: '^9.0.0',
+      '@types/node': '^24.3.0',
+      '@typescript-eslint/eslint-plugin': '^8.39.1',
+      '@typescript-eslint/parser': '^8.39.1',
+      eslint: '^9.33.0',
       'eslint-config-prettier': '^10.1.8',
       'eslint-import-resolver-typescript': '^4.4.4',
       'eslint-plugin-import': '^2.32.0',
       'eslint-plugin-jsonc': '^2.20.1',
       'eslint-plugin-prettier': '^5.5.4',
-      jest: '^30.0.0',
-      'jsonc-eslint-parser': '^2.4.0',
+      globals: '^16.3.0',
+      jest: '^30.0.5',
       prettier: '^3.6.2',
-      rimraf: '^6.0.0',
+      rimraf: '^6.0.1',
       'source-map-support': '^0.5.21',
-      'ts-jest': '^29.0.0',
+      'ts-jest': '^29.4.1',
+      'ts-loader': '^9.5.2',
       'ts-node': '^10.9.2',
       'tsconfig-paths': '^4.2.0',
-      typescript: '^5.0.0',
-      'typescript-eslint': '^8.0.0',
+      typescript: '^5.9.2',
     });
 
     // Create .prettierrc
@@ -109,18 +97,17 @@ export default class extends Generator {
     this.fs.copyTpl(this.templatePath('tsconfig.json.ejs'), this.destinationPath('tsconfig.json'));
     this.fs.copyTpl(this.templatePath('tsconfig.build.json.ejs'), this.destinationPath('tsconfig.build.json'));
 
+    // Create .octo directory
+    this.fs.copyTpl(this.templatePath(`gitkeep.ejs`), this.destinationPath('.octo/.gitkeep'));
+
     // Create src directory and main files
     if (this.appTemplate === 'aws-ecs-server') {
       const templatePath = `src/${this.appTemplate}`;
       this.fs.copyTpl(
-        this.templatePath(`${templatePath}/octo/gitkeep.ejs`),
-        this.destinationPath('src/.octo/.gitkeep'),
-      );
-      this.fs.copyTpl(
         this.templatePath(`${templatePath}/app.config.ts.ejs`),
         this.destinationPath('src/app.config.ts'),
       );
-      this.fs.copyTpl(this.templatePath(`${templatePath}/env.ejs`), this.destinationPath('src/.env'));
+      this.fs.copyTpl(this.templatePath(`${templatePath}/env.ejs`), this.destinationPath('.env'));
       this.fs.copyTpl(this.templatePath(`${templatePath}/main.ts.ejs`), this.destinationPath('src/main.ts'));
       this.fs.copyTpl(
         this.templatePath(`${templatePath}/module-definitions.ts.ejs`),
@@ -129,19 +116,15 @@ export default class extends Generator {
     } else if (this.appTemplate === 'aws-s3-website') {
       const templatePath = `src/${this.appTemplate}`;
       this.fs.copyTpl(
-        this.templatePath(`${templatePath}/octo/gitkeep.ejs`),
-        this.destinationPath('src/.octo/.gitkeep'),
-      );
-      this.fs.copyTpl(
         this.templatePath(`${templatePath}/website/error.html.ejs`),
-        this.destinationPath('src/website/error.html'),
+        this.destinationPath('website/error.html'),
         {
           name: this.appName,
         },
       );
       this.fs.copyTpl(
         this.templatePath(`${templatePath}/website/index.html.ejs`),
-        this.destinationPath('src/website/index.html'),
+        this.destinationPath('website/index.html'),
         {
           name: this.appName,
         },
@@ -150,7 +133,7 @@ export default class extends Generator {
         this.templatePath(`${templatePath}/app.config.ts.ejs`),
         this.destinationPath('src/app.config.ts'),
       );
-      this.fs.copyTpl(this.templatePath(`${templatePath}/env.ejs`), this.destinationPath('src/.env'));
+      this.fs.copyTpl(this.templatePath(`${templatePath}/env.ejs`), this.destinationPath('.env'));
       this.fs.copyTpl(this.templatePath(`${templatePath}/main.ts.ejs`), this.destinationPath('src/main.ts'));
       this.fs.copyTpl(
         this.templatePath(`${templatePath}/module-definitions.ts.ejs`),

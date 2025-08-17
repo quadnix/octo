@@ -73,7 +73,6 @@ export default class extends Generator {
       'eslint-plugin-import': '^2.32.0',
       'eslint-plugin-jsonc': '^2.20.1',
       'eslint-plugin-prettier': '^5.5.4',
-      'eslint-plugin-spellcheck': '^0.0.20',
       globals: '^16.3.0',
       jest: '^30.0.5',
       prettier: '^3.6.2',

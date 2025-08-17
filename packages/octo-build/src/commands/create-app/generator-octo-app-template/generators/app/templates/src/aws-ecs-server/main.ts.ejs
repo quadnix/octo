@@ -5,7 +5,7 @@ import { EventLoggerListener } from '@quadnix/octo-event-listeners';
 import { ModuleDefinitions } from './module-definitions.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const octoStatePath = join(__dirname, '.octo');
+const octoStatePath = join(__dirname, '..', '.octo');
 
 const octo = new Octo();
 const stateProvider = new LocalStateProvider(octoStatePath);
