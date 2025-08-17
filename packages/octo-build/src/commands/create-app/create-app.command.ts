@@ -6,7 +6,7 @@ import { createEnv } from 'yeoman-environment';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export const createCommand = {
+export const createAppCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs
       .option('template', {
@@ -29,7 +29,7 @@ export const createCommand = {
         type: 'string',
       });
   },
-  command: 'create',
+  command: 'create-app',
   describe: 'Create a new Octo app from a template.',
   handler: async (argv: ArgumentsCamelCase<{ template: string; name: string; path: string }>): Promise<void> => {
     const { name, path, template } = argv;

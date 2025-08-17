@@ -4,7 +4,7 @@ import * as process from 'process';
 import chalk from 'chalk';
 import yargs from 'yargs/yargs';
 import { buildCommand } from './commands/build/index.js';
-import { createCommand } from './commands/create/index.js';
+import { createAppCommand } from './commands/create-app/index.js';
 
 const PROGRAM_NAME = 'octo';
 
@@ -17,7 +17,7 @@ const parser = yargs(process.argv.slice(2))
   .version()
   .alias('v', 'version');
 
-parser.command(createCommand);
+parser.command(createAppCommand);
 parser.command(buildCommand);
 
 await parser.argv;
