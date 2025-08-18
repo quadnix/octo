@@ -5,38 +5,78 @@ title: Project Structure
 ## Introduction
 A solid project structure is crucial for a successful and intuitive infrastructure.
 While project structuring can vary based on personal preference and organization,
-we highly recommend following our recommended project structure.
+we highly recommend following our recommended patterns.
 
-```
-my-app
-├── dist/
-├── node_modules/
-├── src/
-│   │   ├── anchors/
-│   │   ├── factories/
-│   │   │   ├── aws/
-│   │   │   └── ...
-│   │   ├── models/
-│   │   │   ├── app/
-│   │   │   ├── deployment/
-│   │   │   └── ...
-│   │   ├── modules/
-│   │   ├── overlays/
-│   │   └── resources/
-│   │       ├── ecs/
-│   │       ├── iam/
-│   │       ├── vpc/
-│   │       └── ...
-│   ├── app.module.ts
-│   └── main.ts
-├── .gitignore
-├── package.json
-├── README.md
-└── tsconfig.json
-```
+:::tip
+At first the project structure may look unfamiliar, and overwhelming.
+However, as you grasp the fundamentals in the next sections, all this should gradually make more sense.
+:::
 
 :::info
-Under the src directory, you may encounter many unfamiliar terms initially.
-However, as you grasp the fundamentals, the project structure should gradually become clearer.
-The remaining files consist of standard NodeJS/TypeScript boilerplate code.
+Most files here are to set up TypeScript. If you are familiar with TypeScript projects,
+you might be able to recognize some of the boilerplate code.
 :::
+
+### Octo App Structure
+An Octo app is an infrastructure implementation project in TypeScript.
+This is where you apply templates, or import modules to define your overall infrastructure.
+
+A typical Octo app, generated using the `create-app` command, will yield the following project structure.
+```bash
+npx @quadnix/octo-build create-app -t aws-s3-website -n test-app -p .
+```
+```
+test-app                      # Root directory.
+├── .env                      # Environment variables file.
+├── .gitignore                # Git ignore file.
+├── .octo                     # Octo state directory. This is where Octo will save the state of your infrastructure.
+│   ├── .gitkeep              # Git keep file as a placeholder to keep the directory non-empty.
+│   ├── models.json           # Serialized output of Models.
+│   ├── resources-actual.json # Serialized output of actual Resources.
+│   └── resources-old.json    # Serialized output of old Resources.
+├── .prettierrc               # Prettier configuration file.
+├── eslint.config.js          # ESLint configuration file.
+├── package-lock.json         # Package lock file.
+├── package.json              # Package configuration file.
+├── README.md                 # README file.
+├── src                       # Source directory.
+│   ├── app.config.ts         # Application configuration file. Loads environment variables from .env file.
+│   ├── main.ts               # Main entry point of the app.
+│   └── module-definitions.ts # Module definitions file. Loads Octo modules.
+├── tsconfig.build.json       # TypeScript build configuration file.
+├── tsconfig.json             # TypeScript configuration file.
+└── website                   # Website directory containing HTML files.
+    ├── error.html            # Error page HTML file.
+    └── index.html            # Index page HTML file.
+```
+
+### Octo CDK Structure
+An Octo CDK project is a TypeScript project to define custom Octo components.
+This is where you develop new templates, modules, models, and resources for others to consume.
+
+A typical Octo CDK, generated using the `create-cdk` command, will yield the following project structure.
+```bash
+npx @quadnix/octo-build create-cdk -n test-cdk -p . -o withExamples=false
+```
+```
+test-cdk                      # Root directory.
+├── .gitignore                # Git ignore file.
+├── .prettierrc               # Prettier configuration file.
+├── eslint.config.js          # ESLint configuration file.
+├── package-lock.json         # Package lock file.
+├── package.json              # Package configuration file.
+├── README.md                 # README file.
+├── src                       # Source directory.
+│   ├── anchors               # Anchor directory.
+│   │   └── .gitkeep
+│   ├── factories             # Factory directory.
+│   │   └── .gitkeep
+│   ├── modules               # Module directory.
+│   │   └── .gitkeep
+│   ├── resources             # Resource directory.
+│   │   └── .gitkeep
+│   └── utilities             # Utility directory.
+│       └── .gitkeep
+├── tsconfig.build.json       # TypeScript build configuration file.
+└── tsconfig.json             # TypeScript configuration file.
+```

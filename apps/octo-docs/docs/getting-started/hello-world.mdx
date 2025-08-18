@@ -11,8 +11,7 @@ Let's dive in and create the simplest possible infrastructure in Octo - a static
 
 ### Create a new App
 Octo supports Templates - pre-configured and pre-tested infrastructure to help you get started fast.
-You can start with one of the many templates provided by Octo and customize it accordingly,
-or create a new one from scratch.
+You can start and customize one of the many templates provided by Octo, or create a new one from scratch.
 
 ```bash
 # Create a new directory "test-app" in current directory,
@@ -24,34 +23,6 @@ cd test-app
 
 # Initialize the Octo app.
 npm install
-```
-
-### Directory structure
-Above command generates the following directory structure.
-If you have worked with TypeScript projects before, this should be very familiar to you.
-
-All non-src files are to set up TypeScript, and you can customize them as per your needs.
-
-```
-test-app/                     # Root directory.
-|── .gitignore                # Git ignore file.
-|── .prettierrc               # Prettier configuration file.
-├── eslint.config.js          # ESLint configuration file.
-├── package-lock.json         # Package lock file.
-├── package.json              # Package configuration file.
-├── README.md                 # README file.
-├── src                       # Source directory.
-│   ├── .env                  # Environment variables file.
-│   ├── .octo                 # Octo state directory. This is where Octo will save the state of your infrastructure.
-│       ├── .gitkeep          # Git keep file as a placeholder to keep the directory non-empty.
-│   ├── app.config.ts         # App configuration file. Loads environment variables from .env file.
-│   ├── main.ts               # Main entry point of the app.
-│   ├── module-definitions.ts # Module definitions file. Loads Octo modules.
-│   └── website               # Website directory containing HTML files.
-│       ├── error.html        # Error page HTML file.
-│       └── index.html        # Index page HTML file.
-├── tsconfig.build.json       # TypeScript build configuration file.
-└── tsconfig.json             # TypeScript configuration file.
 ```
 
 ### Customizing the App
@@ -75,7 +46,7 @@ You will first need to modify below files before you can run the app.
 npm run build
 
 # Run the app.
-npm run start:dev
+npm start
 ```
 
 ### Testing the App
@@ -102,7 +73,7 @@ resources.json
 <my-bucket-name>-manifest.json
 ```
 
-:::note
+:::tip
 If you run the app again, it would use the state files to detect that the website already exists,
 and won't do anything.
 If you were to edit the HTML files and re-run the app, Octo would detect these changes based on the state files,
@@ -111,7 +82,7 @@ and will re-upload the changed files to the S3 bucket.
 
 Hopefully, this example demonstrated you the benefits of Octo!
 You were able to accomplish your infrastructure needs using Octo's abstracted components,
-without having the need to understand or implement the low level details of the resources involved.
+without having the need to implement the low level resources.
 You can inspect the state files and logs to understand the cloud resources created by Octo.
 
 ### Cleaning Up (Optional)
@@ -147,7 +118,7 @@ private init(): void {
 Then, simply re-build and run your app again.
 ```bash
 npm run build
-npm run start:dev
+npm start
 ```
 
 Now you can just delete the Octo directory and all the code in it.
