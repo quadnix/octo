@@ -1,4 +1,5 @@
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
+import type { DiffAction } from '../functions/diff/diff.js';
 import { Event } from './event.model.js';
 
 /**
@@ -49,6 +50,13 @@ export class ResourceActionCompletedTransactionEvent extends TransactionEvent<st
  * @returns The Event instance.
  */
 export class ResourceActionInitiatedTransactionEvent extends TransactionEvent<string> {}
+
+export class ResourceActionSummaryTransactionEvent extends TransactionEvent<{
+  diffAction: DiffAction;
+  diffField: string;
+  resourceId: string;
+  values: { current: unknown; previous: unknown };
+}> {}
 
 /**
  * This event is emitted when transaction prepares a resource diff.

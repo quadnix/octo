@@ -26,6 +26,7 @@ import {
   ResourceActionCompletedTransactionEvent,
   ResourceActionInitiatedTransactionEvent,
   ResourceActionRegistrationEvent,
+  ResourceActionSummaryTransactionEvent,
   ResourceDiffsTransactionEvent,
   ResourceTransactionTransactionEvent,
 } from '../../events/index.js';
@@ -263,8 +264,25 @@ export class TransactionService {
           if (!actualResource) {
             actualResource = await AResource.cloneResource(diffToProcess.node as UnknownResource, deReferenceResource);
             this.resourceDataRepository.addActualResource(actualResource);
+            this.eventService.emit(
+              new ResourceActionSummaryTransactionEvent(a.constructor.name, {
+                diffAction: diffToProcess.action,
+                diffField: diffToProcess.field,
+                resourceId: actualResource.resourceId,
+                values: { current: actualResource.synth(), previous: {} },
+              }),
+            );
           } else {
+            const previousSynth = actualResource.synth();
             await actualResource.diffInverse(diffToProcess, deReferenceResource);
+            this.eventService.emit(
+              new ResourceActionSummaryTransactionEvent(a.constructor.name, {
+                diffAction: diffToProcess.action,
+                diffField: diffToProcess.field,
+                resourceId: actualResource.resourceId,
+                values: { current: actualResource.synth(), previous: previousSynth },
+              }),
+            );
           }
 
           this.eventService.emit(

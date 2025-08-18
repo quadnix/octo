@@ -3,6 +3,7 @@ import {
   ActualResourceSerializedEvent,
   AnchorRegistrationEvent,
   Container,
+  DiffAction,
   Factory,
   HookEvent,
   ModelActionRegistrationEvent,
@@ -26,6 +27,7 @@ import {
   ResourceActionCompletedTransactionEvent,
   ResourceActionInitiatedTransactionEvent,
   ResourceActionRegistrationEvent,
+  ResourceActionSummaryTransactionEvent,
   ResourceDeserializedEvent,
   ResourceDiffsTransactionEvent,
   ResourceRegistrationEvent,
@@ -33,9 +35,16 @@ import {
   SerializationEvent,
   TransactionEvent,
 } from '@quadnix/octo';
+import { Table } from 'console-table-printer';
+import { diffString } from 'json-diff';
 import { OctoEventLogger } from './logger.factory.js';
 
 export class EventLoggerListener {
+  private readonly resourceSummaries = new Map<
+    string,
+    Exclude<ResourceActionSummaryTransactionEvent['payload'], undefined>[]
+  >();
+
   constructor(private readonly logger: OctoEventLogger) {}
 
   @OnEvent(ActionEvent)
@@ -133,6 +142,12 @@ export class EventLoggerListener {
       this.logger.log
         .withMetadata({ name: event.name, payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource action execution initiated.');
+    } else if (event instanceof ResourceActionSummaryTransactionEvent) {
+      if (this.resourceSummaries.has(event.name!)) {
+        this.resourceSummaries.get(event.name!)!.push(event.payload!);
+      } else {
+        this.resourceSummaries.set(event.name!, [event.payload!]);
+      }
     } else if (event instanceof ResourceDiffsTransactionEvent) {
       this.logger.log
         .withMetadata({ payload: event.payload, timestamp: event.header.timestamp })
@@ -141,7 +156,53 @@ export class EventLoggerListener {
       this.logger.log
         .withMetadata({ payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource transactions executed.');
+
+      this.printResourceSummary();
     }
+  }
+
+  private printColor(diffAction: DiffAction): 'blue' | 'green' | 'red' | 'yellow' {
+    switch (diffAction) {
+      case DiffAction.ADD:
+        return 'green';
+      case DiffAction.DELETE:
+        return 'red';
+      case DiffAction.REPLACE:
+        return 'yellow';
+      default:
+        return 'blue';
+    }
+  }
+
+  private printResourceSummary(): void {
+    const summary = new Table({
+      columns: [
+        { name: 'Action' },
+        { name: 'ResourceId' },
+        { name: 'DiffAction' },
+        { name: 'DiffField' },
+        { alignment: 'left', maxLen: 100, name: 'Changes' },
+      ],
+      title: 'Resource Summary',
+    });
+
+    for (const [resourceActionClass, resourceSummaries] of this.resourceSummaries.entries()) {
+      for (const resourceSummary of resourceSummaries) {
+        summary.addRow(
+          {
+            Action: resourceActionClass,
+            Changes: diffString(resourceSummary.values.previous, resourceSummary.values.current),
+            DiffAction: resourceSummary.diffAction,
+            DiffField: resourceSummary.diffField,
+            ResourceId: resourceSummary.resourceId,
+          },
+          { color: this.printColor(resourceSummary.diffAction) },
+        );
+      }
+    }
+
+    summary.printTable();
+    this.resourceSummaries.clear();
   }
 }
 
