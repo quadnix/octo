@@ -1,6 +1,5 @@
 import type { Constructable } from '../app.type.js';
 import type { Event } from '../events/index.js';
-import { Container } from '../functions/container/container.js';
 import { EventService } from '../services/event/event.service.js';
 
 /**
@@ -23,12 +22,7 @@ import { EventService } from '../services/event/event.service.js';
 export function OnEvent(
   ofType: Constructable<Event<unknown>>,
 ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
-  const container = Container.getInstance();
-
   return function (target: any, _propertyKey: string, descriptor: PropertyDescriptor) {
-    const promise = container.get(EventService).then((eventService) => {
-      eventService.registerListeners(ofType, target, descriptor);
-    });
-    container.registerStartupUnhandledPromise(promise);
+    EventService.getInstance().registerListeners(ofType, target, descriptor);
   };
 }
