@@ -1,5 +1,4 @@
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
-import type { DiffAction } from '../functions/diff/diff.js';
 import { Event } from './event.model.js';
 
 /**
@@ -52,9 +51,7 @@ export class ResourceActionCompletedTransactionEvent extends TransactionEvent<Di
 export class ResourceActionInitiatedTransactionEvent extends TransactionEvent<DiffMetadata> {}
 
 export class ResourceActionSummaryTransactionEvent extends TransactionEvent<{
-  diffAction: DiffAction;
-  diffField: string;
-  resourceId: string;
+  diff: DiffMetadata;
   values: { current: unknown; previous: unknown };
 }> {}
 

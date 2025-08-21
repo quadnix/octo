@@ -264,9 +264,7 @@ export class TransactionService {
             this.resourceDataRepository.addActualResource(actualResource);
             this.eventService.emit(
               new ResourceActionSummaryTransactionEvent(a.constructor.name, {
-                diffAction: diffToProcess.action,
-                diffField: diffToProcess.field,
-                resourceId: actualResource.resourceId,
+                diff,
                 values: { current: actualResource.synth(), previous: {} },
               }),
             );
@@ -275,9 +273,7 @@ export class TransactionService {
             await actualResource.diffInverse(diffToProcess, deReferenceResource);
             this.eventService.emit(
               new ResourceActionSummaryTransactionEvent(a.constructor.name, {
-                diffAction: diffToProcess.action,
-                diffField: diffToProcess.field,
-                resourceId: actualResource.resourceId,
+                diff,
                 values: { current: actualResource.synth(), previous: previousSynth },
               }),
             );
