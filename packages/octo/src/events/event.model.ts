@@ -13,21 +13,21 @@ import type { EventService } from '../services/event/event.service.js';
  * @group Events
  * @returns The Event instance.
  */
-export class Event<T> {
+export class Event<T = undefined> {
   readonly header: {
     timestamp: number;
   };
 
-  readonly name: string | undefined;
+  readonly name: string;
 
-  readonly payload: T | undefined;
+  readonly payload: T;
 
   constructor(name?: string, payload?: T) {
     this.header = {
       timestamp: Date.now(),
     };
-    this.name = name;
-    this.payload = payload;
+    this.name = name || '';
+    this.payload = payload as T;
   }
 
   /**

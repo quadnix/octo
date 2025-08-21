@@ -41,7 +41,7 @@ export class ModelTransactionTransactionEvent extends TransactionEvent<DiffMetad
  * @group Events
  * @returns The Event instance.
  */
-export class ResourceActionCompletedTransactionEvent extends TransactionEvent<string> {}
+export class ResourceActionCompletedTransactionEvent extends TransactionEvent<DiffMetadata> {}
 
 /**
  * This event is emitted when a resource action in a transaction begins executing.
@@ -49,7 +49,7 @@ export class ResourceActionCompletedTransactionEvent extends TransactionEvent<st
  * @group Events
  * @returns The Event instance.
  */
-export class ResourceActionInitiatedTransactionEvent extends TransactionEvent<string> {}
+export class ResourceActionInitiatedTransactionEvent extends TransactionEvent<DiffMetadata> {}
 
 export class ResourceActionSummaryTransactionEvent extends TransactionEvent<{
   diffAction: DiffAction;
