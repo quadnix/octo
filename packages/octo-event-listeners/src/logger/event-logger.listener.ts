@@ -1,8 +1,10 @@
 import {
+  AResource,
   ActionEvent,
   ActualResourceSerializedEvent,
   AnchorRegistrationEvent,
   Container,
+  type DiffMetadata,
   Factory,
   HookEvent,
   ModelActionRegistrationEvent,
@@ -34,18 +36,28 @@ import {
   SerializationEvent,
   TransactionEvent,
 } from '@quadnix/octo';
-import { HtmlReporter, type IResourceActionSummaryEvent } from '../reporters/html/html.reporter.js';
+import {
+  HtmlReporter,
+  type IResourceActionSummaryEvent,
+  type IResourceTransactionPlan,
+} from '../reporters/html/html.reporter.js';
 import { OctoEventLogger } from './logger.factory.js';
 
 export class EventLoggerListener {
-  private readonly resourceActionSummaries: IResourceActionSummaryEvent[] = [];
+  private readonly resourceActionSummaryEvents: IResourceActionSummaryEvent[] = [];
+  private readonly resourceTransactionPlan: IResourceTransactionPlan = { dirtyResources: [], goodResources: [] };
+  private readonly resourceStatuses: Map<string, IResourceTransactionPlan['goodResources'][0]> = new Map();
 
   constructor(private readonly logger: OctoEventLogger) {}
+
+  private createUniqueTransactionResourceActionKey(diff: DiffMetadata): string {
+    return [diff.node.getContext(), diff.field, diff.action].join(':');
+  }
 
   private async generateResourceTransactionSummaryReport(): Promise<void> {
     try {
       const outputPath = `resource-transaction-summary-${Date.now()}.html`;
-      await HtmlReporter.generateReport(this.resourceActionSummaries, {
+      await HtmlReporter.generateReport(this.resourceActionSummaryEvents, this.resourceTransactionPlan, {
         outputPath,
         title: 'Resource Transaction Summary',
       });
@@ -54,7 +66,11 @@ export class EventLoggerListener {
       this.logger.log.error('Failed to generate Resource Transaction Summary HTML report:', error);
     }
 
-    this.resourceActionSummaries.splice(0, this.resourceActionSummaries.length);
+    // Clear data for next transaction.
+    this.resourceActionSummaryEvents.splice(0, this.resourceActionSummaryEvents.length);
+    this.resourceTransactionPlan.dirtyResources.splice(0, this.resourceTransactionPlan.dirtyResources.length);
+    this.resourceTransactionPlan.goodResources.splice(0, this.resourceTransactionPlan.goodResources.length);
+    this.resourceStatuses.clear();
   }
 
   @OnEvent(ActionEvent)
@@ -120,7 +136,7 @@ export class EventLoggerListener {
   }
 
   @OnEvent(SerializationEvent)
-  onSerialization(event: SerializationEvent<unknown>): void {
+  async onSerialization(event: SerializationEvent<unknown>): Promise<void> {
     if (event instanceof ModelDeserializedEvent) {
       this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('Models de-serialized.');
     } else if (event instanceof ModelSerializedEvent) {
@@ -130,7 +146,14 @@ export class EventLoggerListener {
     } else if (event instanceof ActualResourceSerializedEvent) {
       this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('Actual Resources serialized.');
 
-      this.generateResourceTransactionSummaryReport().then();
+      // Mark all in-progress resource statuses as failed.
+      for (const resource of this.resourceStatuses.values()) {
+        if (resource.status === 'in-progress') {
+          resource.status = 'failed';
+        }
+      }
+      // Generate resource transaction summary report.
+      await this.generateResourceTransactionSummaryReport();
     } else if (event instanceof NewResourceSerializedEvent) {
       this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('New Resources serialized.');
     }
@@ -150,16 +173,58 @@ export class EventLoggerListener {
       this.logger.log
         .withMetadata({ name: event.name, payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource action executed.');
+
+      // Update resource status to completed.
+      const resourceKey = this.createUniqueTransactionResourceActionKey(event.payload);
+      const resource = this.resourceStatuses.get(resourceKey);
+      if (resource) {
+        resource.status = 'completed';
+        if ((event.payload.node as AResource<any, any>).response) {
+          resource.responseData = JSON.stringify((event.payload.node as AResource<any, any>).response, null, 2);
+        }
+      }
     } else if (event instanceof ResourceActionInitiatedTransactionEvent) {
       this.logger.log
         .withMetadata({ name: event.name, payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource action execution initiated.');
+
+      // Update resource status to in-progress.
+      const resourceKey = this.createUniqueTransactionResourceActionKey(event.payload);
+      const resource = this.resourceStatuses.get(resourceKey);
+      if (resource) {
+        resource.status = 'in-progress';
+      }
     } else if (event instanceof ResourceActionSummaryTransactionEvent) {
-      this.resourceActionSummaries.push({ actionClassName: event.name!, eventPayloads: [event.payload!] });
+      this.resourceActionSummaryEvents.push({ action: event.name, eventPayloads: [event.payload] });
     } else if (event instanceof ResourceDiffsTransactionEvent) {
       this.logger.log
         .withMetadata({ payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource diffs executed.');
+
+      // Initialize transaction plan with good resources.
+      for (const diff of event.payload[0].flat().sort((a, b) => a.applyOrder - b.applyOrder)) {
+        const resourceTransactionPlanRow: IResourceTransactionPlan['goodResources'][0] = {
+          action: event.name,
+          diffAction: diff.action,
+          diffField: diff.field,
+          resourceId: (diff.node as AResource<any, any>).resourceId,
+          status: 'not-run',
+        };
+        this.resourceTransactionPlan.goodResources.push(resourceTransactionPlanRow);
+        this.resourceStatuses.set(this.createUniqueTransactionResourceActionKey(diff), resourceTransactionPlanRow);
+      }
+      // Initialize transaction plan with dirty resources.
+      for (const diff of event.payload[1].flat().sort((a, b) => a.applyOrder - b.applyOrder)) {
+        const resourceTransactionPlanRow: IResourceTransactionPlan['dirtyResources'][0] = {
+          action: event.name,
+          diffAction: diff.action,
+          diffField: diff.field,
+          resourceId: (diff.node as AResource<any, any>).resourceId,
+          status: 'not-run',
+        };
+        this.resourceTransactionPlan.dirtyResources.push(resourceTransactionPlanRow);
+        this.resourceStatuses.set(this.createUniqueTransactionResourceActionKey(diff), resourceTransactionPlanRow);
+      }
     } else if (event instanceof ResourceTransactionTransactionEvent) {
       this.logger.log
         .withMetadata({ payload: event.payload, timestamp: event.header.timestamp })

@@ -72,6 +72,7 @@
     <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex space-x-8 overflow-x-auto py-4">
+                <a href="#transaction-plan" class="text-gray-500 hover:text-gray-700 font-medium text-sm whitespace-nowrap transition-colors">Transaction Plan</a>
                 <a href="#summary" class="text-blue-600 hover:text-blue-800 font-medium text-sm whitespace-nowrap transition-colors">Summary</a>
                 <a href="#analytics" class="text-gray-500 hover:text-gray-700 font-medium text-sm whitespace-nowrap transition-colors">Analytics</a>
                 <a href="#changes" class="text-gray-500 hover:text-gray-700 font-medium text-sm whitespace-nowrap transition-colors">Resource Changes</a>
@@ -83,19 +84,24 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="space-y-8">
+            <!-- Transaction Plan Section -->
+            <section id="transaction-plan" class="scroll-mt-20">
+                <%- include('./partials/resource-transaction-plan', { resourceTransactionPlan }) %>
+            </section>
+
             <!-- Summary Statistics Section -->
             <section id="summary" class="scroll-mt-20">
-                <%- include('./partials/resource-summary-stats', { summaryStats }) %>
+                <%- include('./partials/resource-summary-stats', { resourceActionSummaryStats }) %>
             </section>
 
             <!-- Analytics Section -->
             <section id="analytics" class="scroll-mt-20">
-                <%- include('./partials/resource-analytics', { summaryStats, rows }) %>
+                <%- include('./partials/resource-analytics', { resourceActionSummaryRows, resourceActionSummaryStats }) %>
             </section>
 
             <!-- Resource Changes Table Section -->
             <section id="changes" class="scroll-mt-20">
-                <%- include('./partials/resource-change-table', { rows }) %>
+                <%- include('./partials/resource-change-table', { resourceActionSummaryRows }) %>
             </section>
         </div>
     </main>

@@ -8,12 +8,18 @@ import * as HtmlFormatter from 'jsondiffpatch/formatters/html';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/**
+ * A resource-action-summary event received when a resource action is completed.
+ */
 export interface IResourceActionSummaryEvent {
-  actionClassName: string;
+  action: string;
   eventPayloads: Exclude<ResourceActionSummaryTransactionEvent['payload'], undefined>[];
 }
 
-interface IResourceSummaryRow {
+/**
+ * A row with detailed view of a resource-action-summary event.
+ */
+interface IResourceActionSummaryRow {
   action: string;
   changes: string;
   diffAction: DiffAction;
@@ -21,7 +27,10 @@ interface IResourceSummaryRow {
   resourceId: string;
 }
 
-interface IResourceSummaryStats {
+/**
+ * Stats for all the resource-action-summary events.
+ */
+interface IResourceActionSummaryStats {
   add: number;
   delete: number;
   replace: number;
@@ -29,15 +38,39 @@ interface IResourceSummaryStats {
   update: number;
 }
 
-interface IResourceSummaryData {
-  rows: Array<IResourceSummaryRow>;
-  summaryStats: IResourceSummaryStats;
+/**
+ * An interface for the entire resource-diff representing the transaction plan.
+ */
+export interface IResourceTransactionPlan {
+  dirtyResources: IResourceTransactionPlanRow[];
+  goodResources: IResourceTransactionPlanRow[];
+}
+
+/**
+ * A row with detailed view of an individual resource-diff.
+ */
+interface IResourceTransactionPlanRow {
+  action: string;
+  diffAction: DiffAction;
+  diffField: string;
+  resourceId: string;
+  responseData?: string;
+  status: 'completed' | 'failed' | 'in-progress' | 'not-run';
+}
+
+/**
+ * An input interface for the HTML reporter.
+ */
+interface IResourceTransactionSummaryReportData {
+  resourceActionSummaryRows: Array<IResourceActionSummaryRow>;
+  resourceActionSummaryStats: IResourceActionSummaryStats;
+  resourceTransactionPlan: IResourceTransactionPlan;
   timestamp: string;
   title: string;
 }
 
 export class HtmlReporter {
-  private static calculateStats(rows: IResourceSummaryRow[]): IResourceSummaryStats {
+  private static calculateResourceActionSummaryStats(rows: IResourceActionSummaryRow[]): IResourceActionSummaryStats {
     const stats = {
       add: 0,
       delete: 0,
@@ -76,26 +109,23 @@ export class HtmlReporter {
       .replace(/'/g, '&#39;');
   }
 
-  private static getTemplateDirectory(): string {
-    return join(__dirname, 'templates');
-  }
-
   static async generateReport(
-    resourceSummaries: IResourceActionSummaryEvent[],
+    resourceActionSummaryEvents: IResourceActionSummaryEvent[],
+    resourceTransactionPlan: IResourceTransactionPlan,
     options: {
       outputPath: string;
       title: string;
     },
   ): Promise<void> {
     const { title, outputPath } = options;
-    const rows: IResourceSummaryRow[] = [];
+    const rows: IResourceActionSummaryRow[] = [];
 
-    for (const { actionClassName, eventPayloads } of resourceSummaries) {
+    for (const { action, eventPayloads } of resourceActionSummaryEvents) {
       for (const payload of eventPayloads) {
         const delta = diff(payload.values.previous, payload.values.current);
         const htmlDelta = HtmlFormatter.format(delta, payload.values.previous);
         rows.push({
-          action: actionClassName,
+          action: action,
           changes: htmlDelta!,
           diffAction: payload.diffAction,
           diffField: payload.diffField,
@@ -105,15 +135,16 @@ export class HtmlReporter {
     }
 
     // Prepare data for the template
-    const templateData: IResourceSummaryData = {
-      rows: rows.map((row) => ({
+    const templateData: IResourceTransactionSummaryReportData = {
+      resourceActionSummaryRows: rows.map((row) => ({
         action: this.escapeHtml(row.action),
         changes: row.changes || 'No changes',
         diffAction: row.diffAction,
         diffField: this.escapeHtml(row.diffField),
         resourceId: this.escapeHtml(row.resourceId),
       })),
-      summaryStats: this.calculateStats(rows),
+      resourceActionSummaryStats: this.calculateResourceActionSummaryStats(rows),
+      resourceTransactionPlan,
       timestamp: new Date().toLocaleString(),
       title,
     };
@@ -121,5 +152,9 @@ export class HtmlReporter {
     const templateFilePath = join(this.getTemplateDirectory(), 'resource-summary-layout.ejs');
     const html = await renderFile(templateFilePath, templateData);
     writeFileSync(outputPath, html, 'utf8');
+  }
+
+  private static getTemplateDirectory(): string {
+    return join(__dirname, 'templates');
   }
 }

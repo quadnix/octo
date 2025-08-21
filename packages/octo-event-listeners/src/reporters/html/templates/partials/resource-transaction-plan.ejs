@@ -1,0 +1,173 @@
+<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+  <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+    <h3 class="text-lg font-semibold text-gray-900">Resource Transaction Plan</h3>
+    <p class="text-sm text-gray-600 mt-1">Planned resource operations and their execution status</p>
+  </div>
+  
+  <% if (resourceTransactionPlan && (resourceTransactionPlan.goodResources.length > 0 || resourceTransactionPlan.dirtyResources.length > 0)) { %>
+    <div class="divide-y divide-gray-200">
+      
+      <!-- Good Resources Section -->
+      <% if (resourceTransactionPlan.goodResources.length > 0) { %>
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <div class="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full mr-3">
+              <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-md font-semibold text-gray-900">Good Resources</h4>
+              <p class="text-sm text-gray-600">Resources that match actual state and are being updated</p>
+            </div>
+            <div class="ml-auto">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <%= resourceTransactionPlan.goodResources.length %> resources
+              </span>
+            </div>
+          </div>
+          
+          <div class="space-y-3">
+            <% resourceTransactionPlan.goodResources.forEach(function(resource) { %>
+              <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center space-x-3 mb-2">
+                      <code class="bg-gray-100 px-2 py-1 rounded text-xs font-mono"><%= resource.resourceId %></code>
+                      <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full
+                        <% if (resource.diffAction === 'ADD') { %>bg-green-100 text-green-800<% } %>
+                        <% if (resource.diffAction === 'DELETE') { %>bg-red-100 text-red-800<% } %>
+                        <% if (resource.diffAction === 'REPLACE') { %>bg-yellow-100 text-yellow-800<% } %>
+                        <% if (resource.diffAction === 'UPDATE') { %>bg-blue-100 text-blue-800<% } %>
+                      ">
+                        <%= resource.diffAction %>
+                      </span>
+                      <span class="text-sm text-gray-600"><%= resource.actionName %></span>
+                    </div>
+                    
+                    <!-- Response Data (if completed) -->
+                    <% if (resource.status === 'completed' && resource.responseData) { %>
+                      <div class="mt-3 bg-gray-50 rounded-lg p-3">
+                        <div class="text-xs font-medium text-gray-700 mb-1">Response Data:</div>
+                        <pre class="text-xs text-gray-600 whitespace-pre-wrap overflow-x-auto max-h-32 custom-scrollbar font-mono"><%- resource.responseData %></pre>
+                      </div>
+                    <% } %>
+                  </div>
+                  
+                  <div class="ml-4 flex-shrink-0">
+                    <!-- Status Icon -->
+                    <% if (resource.status === 'completed') { %>
+                      <div class="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full" title="Action completed successfully">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      </div>
+                    <% } else if (resource.status === 'failed') { %>
+                      <div class="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full" title="Action started but did not complete">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                      </div>
+                    <% } else if (resource.status === 'not-run') { %>
+                      <div class="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full" title="Action did not run">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      <% } %>
+      
+      <!-- Dirty Resources Section -->
+      <% if (resourceTransactionPlan.dirtyResources.length > 0) { %>
+        <div class="p-6">
+          <div class="flex items-center mb-4">
+            <div class="flex items-center justify-center w-8 h-8 bg-orange-100 rounded-full mr-3">
+              <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-md font-semibold text-gray-900">Dirty Resources</h4>
+              <p class="text-sm text-gray-600">Resources that don't match actual state and need reconciliation</p>
+            </div>
+            <div class="ml-auto">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                <%= resourceTransactionPlan.dirtyResources.length %> resources
+              </span>
+            </div>
+          </div>
+          
+          <div class="space-y-3">
+            <% resourceTransactionPlan.dirtyResources.forEach(function(resource) { %>
+              <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center space-x-3 mb-2">
+                      <code class="bg-gray-100 px-2 py-1 rounded text-xs font-mono"><%= resource.resourceId %></code>
+                      <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full
+                        <% if (resource.diffAction === 'ADD') { %>bg-green-100 text-green-800<% } %>
+                        <% if (resource.diffAction === 'DELETE') { %>bg-red-100 text-red-800<% } %>
+                        <% if (resource.diffAction === 'REPLACE') { %>bg-yellow-100 text-yellow-800<% } %>
+                        <% if (resource.diffAction === 'UPDATE') { %>bg-blue-100 text-blue-800<% } %>
+                      ">
+                        <%= resource.diffAction %>
+                      </span>
+                      <span class="text-sm text-gray-600"><%= resource.actionName %></span>
+                    </div>
+                    
+                    <!-- Response Data (if completed) -->
+                    <% if (resource.status === 'completed' && resource.responseData) { %>
+                      <div class="mt-3 bg-gray-50 rounded-lg p-3">
+                        <div class="text-xs font-medium text-gray-700 mb-1">Response Data:</div>
+                        <pre class="text-xs text-gray-600 whitespace-pre-wrap overflow-x-auto max-h-32 custom-scrollbar font-mono"><%- resource.responseData %></pre>
+                      </div>
+                    <% } %>
+                  </div>
+                  
+                  <div class="ml-4 flex-shrink-0">
+                    <!-- Status Icon -->
+                    <% if (resource.status === 'completed') { %>
+                      <div class="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full" title="Action completed successfully">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      </div>
+                    <% } else if (resource.status === 'failed') { %>
+                      <div class="flex items-center justify-center w-8 h-8 bg-red-100 rounded-full" title="Action started but did not complete">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                      </div>
+                    <% } else if (resource.status === 'not-run') { %>
+                      <div class="flex items-center justify-center w-8 h-8 bg-yellow-100 rounded-full" title="Action did not run">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                        </svg>
+                      </div>
+                    <% } %>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  <% } else { %>
+    <div class="px-6 py-12 text-center">
+      <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-4">
+        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">No Transaction Plan</h3>
+      <p class="text-gray-500">No resource transaction plan is available for this execution.</p>
+    </div>
+  <% } %>
+</div>
