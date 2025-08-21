@@ -1,0 +1,87 @@
+<style>
+  .changes-cell {
+    max-height: 200px;
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+</style>
+
+<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+  <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+    <h3 class="text-lg font-semibold text-gray-900">Resource Changes</h3>
+    <p class="text-sm text-gray-600 mt-1">Detailed list of all resource modifications</p>
+  </div>
+  
+  <% if (rows && rows.length > 0) { %>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Action
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Resource ID
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Diff Action
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Field
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Changes
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% rows.forEach(function(row, index) { %>
+            <tr class="<%= index % 2 === 0 ? 'bg-white' : 'bg-gray-50' %> 
+              <% if (row.diffAction === 'add') { %>bg-green-50 hover:bg-green-100<% } %>
+              <% if (row.diffAction === 'delete') { %>bg-red-50 hover:bg-red-100<% } %>
+              <% if (row.diffAction === 'replace') { %>bg-yellow-50 hover:bg-yellow-100<% } %>
+              <% if (row.diffAction === 'update') { %>bg-blue-50 hover:bg-blue-100<% } %>
+            ">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <%= row.action %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <code class="bg-gray-100 px-2 py-1 rounded text-xs"><%= row.resourceId %></code>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                  <% if (row.diffAction === 'add') { %>bg-green-100 text-green-800<% } %>
+                  <% if (row.diffAction === 'delete') { %>bg-red-100 text-red-800<% } %>
+                  <% if (row.diffAction === 'replace') { %>bg-yellow-100 text-yellow-800<% } %>
+                  <% if (row.diffAction === 'update') { %>bg-blue-100 text-blue-800<% } %>
+                ">
+                  <%= row.diffAction %>
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <code class="bg-gray-100 px-2 py-1 rounded text-xs"><%= row.diffField %></code>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-900">
+                <div class="changes-cell bg-gray-100 p-3 rounded border max-w-md">
+                  <%- row.changes %>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="px-6 py-12 text-center">
+      <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-4">
+        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">No Changes Detected</h3>
+      <p class="text-gray-500">No resource modifications were recorded during this transaction.</p>
+    </div>
+  <% } %>
+</div>

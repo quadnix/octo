@@ -1,0 +1,85 @@
+<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+  <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+    <h3 class="text-lg font-semibold text-gray-900">Visual Analysis</h3>
+    <p class="text-sm text-gray-600 mt-1">Timeline of changed resources</p>
+  </div>
+  
+  <div class="p-6">
+    <% if (summaryStats && summaryStats.total > 0) { %>
+      <!-- Action Type Distribution Pie Chart (Text-based for now) -->
+      <div class="mb-8">
+        <h4 class="text-md font-medium text-gray-900 mb-4">Change Type Distribution</h4>
+        <div class="space-y-3">
+          <% 
+            const totalChanges = summaryStats.total;
+            const actions = [
+              { name: 'Added', count: summaryStats.add, color: 'bg-green-500', textColor: 'text-green-700' },
+              { name: 'Deleted', count: summaryStats.delete, color: 'bg-red-500', textColor: 'text-red-700' },
+              { name: 'Replaced', count: summaryStats.replace, color: 'bg-yellow-500', textColor: 'text-yellow-700' },
+              { name: 'Updated', count: summaryStats.update, color: 'bg-blue-500', textColor: 'text-blue-700' }
+            ];
+          %>
+          <% actions.forEach(function(action) { %>
+            <% if (action.count > 0) { %>
+              <div class="flex items-center">
+                <div class="w-4 h-4 <%= action.color %> rounded mr-3"></div>
+                <div class="flex-1 flex items-center justify-between">
+                  <span class="text-sm font-medium text-gray-900"><%= action.name %></span>
+                  <div class="flex items-center space-x-2">
+                    <span class="text-sm <%= action.textColor %> font-semibold"><%= action.count %></span>
+                    <span class="text-xs text-gray-500">(<%= Math.round((action.count / totalChanges) * 100) %>%)</span>
+                  </div>
+                </div>
+              </div>
+            <% } %>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- Resource Timeline (Simplified) -->
+      <div class="mb-8">
+        <h4 class="text-md font-medium text-gray-900 mb-4">Resource Action Timeline</h4>
+        <div class="relative">
+          <div class="absolute left-4 top-6 bottom-6 w-0.5 bg-gray-200"></div>
+          <div class="space-y-4">
+            <% 
+              const actionTypes = Object.keys(rows.reduce((acc, row) => {
+                acc[row.action] = (acc[row.action] || 0) + 1;
+                return acc;
+              }, {}));
+            %>
+            <% actionTypes.slice(0, 5).forEach(function(actionType, index) { %>
+              <div class="relative flex items-start">
+                <div class="absolute left-2 w-4 h-4 bg-blue-500 rounded-full border-2 border-white"></div>
+                <div class="ml-10">
+                  <div class="text-sm font-medium text-gray-900"><%= actionType %></div>
+                  <div class="text-xs text-gray-500">
+                    <%= rows.filter(r => r.action === actionType).length %> changes
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+            <% if (actionTypes.length > 5) { %>
+              <div class="relative flex items-start">
+                <div class="absolute left-2 w-4 h-4 bg-gray-300 rounded-full border-2 border-white"></div>
+                <div class="ml-10">
+                  <div class="text-sm text-gray-500">+ <%= actionTypes.length - 5 %> more action types</div>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="text-center py-12">
+        <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-4">
+          <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No Data for Visualization</h3>
+        <p class="text-gray-500">Timeline will appear here when resource changes are available.</p>
+      </div>
+    <% } %>
+  </div>
+</div>

@@ -2,15 +2,15 @@
   "dependencies": {
     "@loglayer/transport-pino": "~2.2.0",
     "@quadnix/octo": "~0.0.23",
-    "console-table-printer": "~2.14.6",
-    "json-diff": "~1.0.6",
+    "ejs": "~3.1.10",
+    "jsondiffpatch": "~0.7.3",
     "loglayer": "~6.4.0",
     "pino": "~9.6.0",
     "pino-pretty": "~13.0.0"
   },
   "description": "Octo-Event-Listeners is an extension of the Octo library that provides common event listeners.",
   "devDependencies": {
-    "@types/json-diff": "~1.0.3"
+    "@types/ejs": "~3.1.5"
   },
   "engines": {
     "node": ">=18.18.0"
@@ -58,8 +58,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "build": "rimraf dist && tsc -p tsconfig.build.json && npm run copy-assets",
     "check:circular-dependency": "dpdm --no-tree --exit-code circular:1 --no-warning ./dist/**/*.js",
+    "copy-assets": "copyfiles -u 1 \"src/**/*.ejs\" dist/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
