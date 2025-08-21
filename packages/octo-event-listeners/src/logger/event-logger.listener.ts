@@ -3,7 +3,6 @@ import {
   ActualResourceSerializedEvent,
   AnchorRegistrationEvent,
   Container,
-  DiffAction,
   Factory,
   HookEvent,
   ModelActionRegistrationEvent,
@@ -35,17 +34,28 @@ import {
   SerializationEvent,
   TransactionEvent,
 } from '@quadnix/octo';
-import { Table } from 'console-table-printer';
-import { diffString } from 'json-diff';
+import { HtmlReporter, type IResourceActionSummaryEvent } from '../reporters/html/html.reporter.js';
 import { OctoEventLogger } from './logger.factory.js';
 
 export class EventLoggerListener {
-  private readonly resourceSummaries = new Map<
-    string,
-    Exclude<ResourceActionSummaryTransactionEvent['payload'], undefined>[]
-  >();
+  private readonly resourceActionSummaries: IResourceActionSummaryEvent[] = [];
 
   constructor(private readonly logger: OctoEventLogger) {}
+
+  private async generateResourceTransactionSummaryReport(): Promise<void> {
+    try {
+      const outputPath = `resource-transaction-summary-${Date.now()}.html`;
+      await HtmlReporter.generateReport(this.resourceActionSummaries, {
+        outputPath,
+        title: 'Resource Transaction Summary',
+      });
+      this.logger.log.info(`Resource Transaction Summary HTML report generated: ${outputPath}`);
+    } catch (error) {
+      this.logger.log.error('Failed to generate Resource Transaction Summary HTML report:', error);
+    }
+
+    this.resourceActionSummaries.splice(0, this.resourceActionSummaries.length);
+  }
 
   @OnEvent(ActionEvent)
   onAction(event: ActionEvent): void {
@@ -119,6 +129,8 @@ export class EventLoggerListener {
       this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('Resources de-serialized.');
     } else if (event instanceof ActualResourceSerializedEvent) {
       this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('Actual Resources serialized.');
+
+      this.generateResourceTransactionSummaryReport().then();
     } else if (event instanceof NewResourceSerializedEvent) {
       this.logger.log.withMetadata({ timestamp: event.header.timestamp }).debug('New Resources serialized.');
     }
@@ -143,11 +155,7 @@ export class EventLoggerListener {
         .withMetadata({ name: event.name, payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource action execution initiated.');
     } else if (event instanceof ResourceActionSummaryTransactionEvent) {
-      if (this.resourceSummaries.has(event.name!)) {
-        this.resourceSummaries.get(event.name!)!.push(event.payload!);
-      } else {
-        this.resourceSummaries.set(event.name!, [event.payload!]);
-      }
+      this.resourceActionSummaries.push({ actionClassName: event.name!, eventPayloads: [event.payload!] });
     } else if (event instanceof ResourceDiffsTransactionEvent) {
       this.logger.log
         .withMetadata({ payload: event.payload, timestamp: event.header.timestamp })
@@ -156,53 +164,7 @@ export class EventLoggerListener {
       this.logger.log
         .withMetadata({ payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource transactions executed.');
-
-      this.printResourceSummary();
     }
-  }
-
-  private printColor(diffAction: DiffAction): 'blue' | 'green' | 'red' | 'yellow' {
-    switch (diffAction) {
-      case DiffAction.ADD:
-        return 'green';
-      case DiffAction.DELETE:
-        return 'red';
-      case DiffAction.REPLACE:
-        return 'yellow';
-      default:
-        return 'blue';
-    }
-  }
-
-  private printResourceSummary(): void {
-    const summary = new Table({
-      columns: [
-        { name: 'Action' },
-        { name: 'ResourceId' },
-        { name: 'DiffAction' },
-        { name: 'DiffField' },
-        { alignment: 'left', maxLen: 100, name: 'Changes' },
-      ],
-      title: 'Resource Summary',
-    });
-
-    for (const [resourceActionClass, resourceSummaries] of this.resourceSummaries.entries()) {
-      for (const resourceSummary of resourceSummaries) {
-        summary.addRow(
-          {
-            Action: resourceActionClass,
-            Changes: diffString(resourceSummary.values.previous, resourceSummary.values.current),
-            DiffAction: resourceSummary.diffAction,
-            DiffField: resourceSummary.diffField,
-            ResourceId: resourceSummary.resourceId,
-          },
-          { color: this.printColor(resourceSummary.diffAction) },
-        );
-      }
-    }
-
-    summary.printTable();
-    this.resourceSummaries.clear();
   }
 }
 

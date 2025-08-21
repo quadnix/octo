@@ -1,12 +1,17 @@
 import { writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { DiffAction } from '@quadnix/octo';
+import { DiffAction, type ResourceActionSummaryTransactionEvent } from '@quadnix/octo';
 import { renderFile } from 'ejs';
 import { diff } from 'jsondiffpatch';
 import * as HtmlFormatter from 'jsondiffpatch/formatters/html';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export interface IResourceActionSummaryEvent {
+  actionClassName: string;
+  eventPayloads: Exclude<ResourceActionSummaryTransactionEvent['payload'], undefined>[];
+}
 
 interface IResourceSummaryRow {
   action: string;
@@ -76,15 +81,7 @@ export class HtmlReporter {
   }
 
   static async generateReport(
-    resourceSummaries: Map<
-      string,
-      Array<{
-        diffAction: DiffAction;
-        diffField: string;
-        resourceId: string;
-        values: { previous: unknown; current: unknown };
-      }>
-    >,
+    resourceSummaries: IResourceActionSummaryEvent[],
     options: {
       outputPath: string;
       title: string;
@@ -93,16 +90,16 @@ export class HtmlReporter {
     const { title, outputPath } = options;
     const rows: IResourceSummaryRow[] = [];
 
-    for (const [resourceActionClass, summaries] of resourceSummaries.entries()) {
-      for (const summary of summaries) {
-        const delta = diff(summary.values.previous, summary.values.current);
-        const htmlDelta = HtmlFormatter.format(delta, summary.values.previous);
+    for (const { actionClassName, eventPayloads } of resourceSummaries) {
+      for (const payload of eventPayloads) {
+        const delta = diff(payload.values.previous, payload.values.current);
+        const htmlDelta = HtmlFormatter.format(delta, payload.values.previous);
         rows.push({
-          action: resourceActionClass,
+          action: actionClassName,
           changes: htmlDelta!,
-          diffAction: summary.diffAction,
-          diffField: summary.diffField,
-          resourceId: summary.resourceId,
+          diffAction: payload.diffAction,
+          diffField: payload.diffField,
+          resourceId: payload.resourceId,
         });
       }
     }
