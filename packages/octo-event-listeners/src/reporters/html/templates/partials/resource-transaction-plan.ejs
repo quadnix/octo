@@ -33,7 +33,7 @@
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
                     <div class="flex items-center space-x-3 mb-2">
-                      <code class="bg-gray-100 px-2 py-1 rounded text-xs font-mono"><%= resource.resourceId %></code>
+                      <code class="bg-gray-100 px-2 py-1 rounded text-xs font-mono"><%= resource.resourceContext %></code>
                       <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full
                         <% if (resource.diffAction === 'ADD') { %>bg-green-100 text-green-800<% } %>
                         <% if (resource.diffAction === 'DELETE') { %>bg-red-100 text-red-800<% } %>
@@ -109,7 +109,7 @@
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
                     <div class="flex items-center space-x-3 mb-2">
-                      <code class="bg-gray-100 px-2 py-1 rounded text-xs font-mono"><%= resource.resourceId %></code>
+                      <code class="bg-gray-100 px-2 py-1 rounded text-xs font-mono"><%= resource.resourceContext %></code>
                       <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full
                         <% if (resource.diffAction === 'ADD') { %>bg-green-100 text-green-800<% } %>
                         <% if (resource.diffAction === 'DELETE') { %>bg-red-100 text-red-800<% } %>

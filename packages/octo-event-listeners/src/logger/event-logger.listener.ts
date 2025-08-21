@@ -61,9 +61,13 @@ export class EventLoggerListener {
         outputPath,
         title: 'Resource Transaction Summary',
       });
-      this.logger.log.info(`Resource Transaction Summary HTML report generated: ${outputPath}`);
+      this.logger.log
+        .withMetadata({ payload: { outputPath }, timestamp: Date.now() })
+        .info(`Resource Transaction Summary HTML report generated.`);
     } catch (error) {
-      this.logger.log.error('Failed to generate Resource Transaction Summary HTML report:', error);
+      this.logger.log
+        .withMetadata({ payload: { error }, timestamp: Date.now() })
+        .error(`Failed to generate Resource Transaction Summary HTML report.`);
     }
 
     // Clear data for next transaction.
@@ -207,7 +211,7 @@ export class EventLoggerListener {
           action: event.name,
           diffAction: diff.action,
           diffField: diff.field,
-          resourceId: (diff.node as AResource<any, any>).resourceId,
+          resourceContext: diff.node.getContext(),
           status: 'not-run',
         };
         this.resourceTransactionPlan.goodResources.push(resourceTransactionPlanRow);
@@ -219,7 +223,7 @@ export class EventLoggerListener {
           action: event.name,
           diffAction: diff.action,
           diffField: diff.field,
-          resourceId: (diff.node as AResource<any, any>).resourceId,
+          resourceContext: diff.node.getContext(),
           status: 'not-run',
         };
         this.resourceTransactionPlan.dirtyResources.push(resourceTransactionPlanRow);

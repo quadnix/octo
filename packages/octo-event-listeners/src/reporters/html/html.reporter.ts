@@ -24,7 +24,8 @@ interface IResourceActionSummaryRow {
   changes: string;
   diffAction: DiffAction;
   diffField: string;
-  resourceId: string;
+  diffValue: string;
+  resourceContext: string;
 }
 
 /**
@@ -53,7 +54,7 @@ interface IResourceTransactionPlanRow {
   action: string;
   diffAction: DiffAction;
   diffField: string;
-  resourceId: string;
+  resourceContext: string;
   responseData?: string;
   status: 'completed' | 'failed' | 'in-progress' | 'not-run';
 }
@@ -127,9 +128,10 @@ export class HtmlReporter {
         rows.push({
           action: action,
           changes: htmlDelta!,
-          diffAction: payload.diffAction,
-          diffField: payload.diffField,
-          resourceId: payload.resourceId,
+          diffAction: payload.diff.action,
+          diffField: payload.diff.field,
+          diffValue: JSON.stringify(payload.diff.value, null, 2),
+          resourceContext: payload.diff.node.getContext(),
         });
       }
     }
@@ -141,7 +143,8 @@ export class HtmlReporter {
         changes: row.changes || 'No changes',
         diffAction: row.diffAction,
         diffField: this.escapeHtml(row.diffField),
-        resourceId: this.escapeHtml(row.resourceId),
+        diffValue: row.diffValue || 'No value',
+        resourceContext: this.escapeHtml(row.resourceContext),
       })),
       resourceActionSummaryStats: this.calculateResourceActionSummaryStats(rows),
       resourceTransactionPlan,

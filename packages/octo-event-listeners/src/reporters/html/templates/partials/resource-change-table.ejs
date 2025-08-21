@@ -32,7 +32,10 @@
               Field
             </th>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Changes
+              Diff Value
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Resource Changes
             </th>
           </tr>
         </thead>
@@ -48,7 +51,7 @@
                 <%= row.action %>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <code class="bg-gray-100 px-2 py-1 rounded text-xs"><%= row.resourceId %></code>
+                <code class="bg-gray-100 px-2 py-1 rounded text-xs"><%= row.resourceContext %></code>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
@@ -62,6 +65,11 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 <code class="bg-gray-100 px-2 py-1 rounded text-xs"><%= row.diffField %></code>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-900">
+                <div class="resource-action-summary-table-changes-cell bg-gray-100 p-3 rounded border max-w-md">
+                  <%- row.diffValue %>
+                </div>
               </td>
               <td class="px-6 py-4 text-sm text-gray-900">
                 <div class="resource-action-summary-table-changes-cell bg-gray-100 p-3 rounded border max-w-md">

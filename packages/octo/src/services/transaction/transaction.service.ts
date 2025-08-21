@@ -274,7 +274,10 @@ export class TransactionService {
             this.eventService.emit(
               new ResourceActionSummaryTransactionEvent(a.constructor.name, {
                 diff,
-                values: { current: actualResource.synth(), previous: previousSynth },
+                values: {
+                  current: actualResource.isMarkedDeleted() ? {} : actualResource.synth(),
+                  previous: previousSynth,
+                },
               }),
             );
           }
