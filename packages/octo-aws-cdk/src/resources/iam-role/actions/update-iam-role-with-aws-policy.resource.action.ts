@@ -42,7 +42,7 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
       );
 
       // Set response.
-      response[iamRolePolicyDiff.policyId] = [iamRolePolicyDiff.policy];
+      response.policies![iamRolePolicyDiff.policyId] = [iamRolePolicyDiff.policy as string];
     } else if (isDeletePolicyDiff(iamRolePolicyDiff)) {
       await iamClient.send(
         new DetachRolePolicyCommand({
@@ -53,7 +53,7 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
 
       // Set response.
       if (!Object.isFrozen(response)) {
-        delete response[iamRolePolicyDiff.policyId];
+        delete response.policies![iamRolePolicyDiff.policyId];
       }
     }
   }
