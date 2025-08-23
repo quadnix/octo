@@ -1,63 +1,90 @@
 ---
-sidebar_position: 6
-title: Action
+title: Actions
 ---
 
-## Definition
-An action is how things get done in Octo.
-Octo operates by comparing the previous state of the app with the new state, generating tasks to be completed.
-These tasks can be of three types: **add**, **delete**, or **update**.
-Each of these tasks can be defined atomically using `Actions`.
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 
-In general, an action completes task, and many eligible entities can define Actions.
-The 2 entities you know so far are - Models, and Resources.
-A model diff is handed by a Model Action, whereas a resource diff is handed by a Resource Action.
-There are more entities that can generate actions, such as Overlays, which we have discussed later in this documentation.
+## Definition
+An action can be a model action, an overlay action, or a resource action.
+
+An action is how things get done in Octo.
+Octo operates by comparing the previous state of a graph with the new state, collecting actions to be executed.
+These actions can be one of these types: **add**, **delete**, **update**, or **replace**.
+
+:::info
+* A model or overly action manipulates resources, i.e. they transform a model definition into a set of resources.
+  * E.g. transforming a Region model into a VPC and an Internet Gateway resource.
+* A resource action manipulates the real infrastructure atomically,
+i.e. they transform a resource definition to manipulate the real infrastructure using CDK or HTTP requests.
+  * E.g. transforming a VPC resource into a real VPC in AWS, and provisioning a real Internet Gateway in AWS.
+:::
+
+:::tip
+A resource action should ideally be *atomic*, i.e. they should do a single task.
+They don't need to be idempotent though,
+as Octo will ensure that they are executed in order, one at a time, and only if needed based on the diff.
+:::
 
 ```mermaid
 graph LR;
-    model((Model /\n Resource))
+    model((Model, <br/> Overlay, <br/> or Resource))
     diff{Diff}
     addAction{{Add Action}}
     deleteAction{{Delete Action}}
+    replaceAction{{Replace Action}}
     updateAction{{Update Action}}
 
     model --> diff
     diff --> addAction
     diff --> deleteAction
+    diff --> replaceAction
     diff --> updateAction
 ```
 
-## Anatomy
-An action belongs to an entity, consists of a set of inputs, and can generate outputs.
+## Node-Action Relationship
+A node has `1 : N` relationship with actions, i.e.
+an action is always bound to a single node, but a node can have multiple actions.
+Their relationship is defined in code, where the action is being defined, using the `@Action` decorator.
 
-```js title="Action Schema"
+<Tabs>
+  <TabItem value="modelAction" label="Model Action">
+    Here the `AddSimpleAppModelAction` action is bound to the App model node,
+    and will only be executed on a qualifying diff of the App node.
+    ```typescript
+    @Action(App)
+    export class AddSimpleAppModelAction implements IModelAction<SimpleAppModule> {
+      // implementation.
+    }
+    ```
+  </TabItem>
+  <TabItem value="resourceAction" label="Resource Action">
+    Here the `AddVpcResourceAction` action is bound to the Vpc resource node,
+    and will only be executed on a qualifying diff of the Vpc node.
+    ```typescript
+    @Action(Vpc)
+    export class AddVpcResourceAction implements IResourceAction<Vpc> {
+      // implementation.
+    }
+    ```
+  </TabItem>
+</Tabs>
+
+## Anatomy
+An action primarily consists of 2 methods - `filter()` and `handle()`.
+
+- **Filter**: In this method action defines the conditions when it must run, e.g.
+the action must run if the resource is being added, or it must run if a particular property has been updated.
+- **Handle**: In this method the action must implement the actual logic, handle retries, and produce outputs.
+If an action throws an error, it immediately fails the transaction and Octo captures the current state for the next run.
+```typescript title="Action Schema"
 {
-  collectInput(): "a method that defines what inputs does the action rely upon.",
-  filter(): "a method that defines the conditions when the action must run.",
-  handle(): "a method that contains the action logic. It also produces outputs.",
-  revert(): "a method that is the logical opposite of handle(), i.e. reverts the actions performed to its previous state."
+  filter() // A method that defines the conditions when the action must run.
+  handle() // A method that contains the action logic. It also produces outputs.
 }
 ```
 
-## Back to code
-Looking back at the code we wrote in the [Getting Started](/docs/getting-started/hello-world.mdx) guide,
-```js
-const diffs1 = await octoAws.diff(app);
-const generator1 = octoAws.beginTransaction(diffs1);
-```
-* The `diff()` generates the action tasks.
-* A new transaction is started using `beginTransaction()`.
-* Which finds and runs appropriate model actions using the `handle()` method.
-* Those model actions produce resources.
-* A resource diff is automatically taken to produce new action tasks.
-* Within the same transaction, appropriate resource actions are found and run using the `handle()` method.
-
-:::info[Revert]
-In case the transaction is reverted, the same sequence applies,
-but uses the `revert()` methods instead of the "handle()" methods.
-:::
-
 ## Summary
-Here, we've explored Actions. This is where the "it" happens.
-Most of the custom logic that makes up **your** infrastructure, will happen in your Action files.
+In this section we've explored Actions. This is where the "it" happens.
+Most of the logic that makes up your infrastructure will happen in these Action files.
+We've also discussed why Actions are the most likely place to throw errors, and can cause transactions to fail.

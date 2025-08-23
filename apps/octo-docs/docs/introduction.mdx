@@ -129,18 +129,18 @@ new AwsExecution(deployment, environment);
 ```mermaid
 graph TD;
   subgraph Resources
-    vpc((<b>VPC</b>)) --> subnet((<b>Subnet</b> <br> us-east-1a))
-    subnet --> ecs((<b>ECS Cluster</b> <br> QA))
+    vpc((<b>VPC</b>)) --> subnet((<b>Subnet</b> <br/> us-east-1a))
+    subnet --> ecs((<b>ECS Cluster</b> <br/> QA))
     ecs --> service((<b>ECS Service</b>))
-    taskDefinition((<b>Task Definition</b> <br> Backend)) --> service
+    taskDefinition((<b>Task Definition</b> <br/> Backend)) --> service
   end
 
   subgraph Models
-    app((<b>App</b>)) --> region((<b>Region</b> <br> us-east-1a));
-    app --> server((<b>Server</b> <br> Backend));
-    region --> environment((<b>Environment</b> <br> QA));
-    server --> deployment((<b>Deployment</b> <br> v1));
-    environment --> execution((<b>Execution</b> <br> v1_qa));
+    app((<b>App</b>)) --> region((<b>Region</b> <br/> us-east-1a));
+    app --> server((<b>Server</b> <br/> Backend));
+    region --> environment((<b>Environment</b> <br/> QA));
+    server --> deployment((<b>Deployment</b> <br/> v1));
+    environment --> execution((<b>Execution</b> <br/> v1_qa));
     deployment --> execution;
   end
 ```

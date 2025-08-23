@@ -3,37 +3,42 @@ title: Resources
 ---
 
 ## Introduction
-In Octo, a resource represents the true underlying infrastructure.
+In Octo, a resource represents a true underlying infrastructure component.
 It is the decay of Models into individual infrastructure components.
 
 :::note
-The base generic `octo` library does not expose any resources.
-All resource definitions are from the `octo-*-cdk` libraries,
-such as `octo-aws-cdk` resource definitions exposed below.
+The base generic `octo` library does not expose any resources. It only defines the base models and their relationships.
+Resources come from an implementation of the `octo` library for a specific cloud provider,
+such as `octo-aws-cdk` for AWS. A few of octo-aws-cdk's exposed resources are shown below.
 :::
 
 Like models, resources are designed to be simple and hierarchical.
-They encapsulate context from models and capture lower-level details of infrastructure.
+They inherit context from models and capture the lower-level details of an infrastructure component.
 
 ## Resources in octo-aws-cdk
-This is a partial internal representation of how some resources in `octo-aws-cdk` are interconnected.
+Below is a partial internal representation of how some of the resources in `octo-aws-cdk` are interconnected.
+
+This is just an example though. The real implementation exists in the library, with many more resources,
+and many more relationships, which is not feasible to show here.
+The intention here is to show how resources look like, and how they might be connected to each other.
 
 ```mermaid
 graph TD;
-    codebuild((Code \n Build))
+    codebuild((Code <br/> Build))
     ecr((ECR))
-    ecs_cluster((ECS \n Cluster))
-    ecs_service((ECS \n Service))
+    ecs_cluster((ECS <br/> Cluster))
+    ecs_service((ECS <br/> Service))
     ecs_td((ECS TD))
     efs((EFS))
     iam((IAM))
-    ig((Internet \n Gateway))
+    ig((Internet <br/> Gateway))
     nacl((NACL))
-    rt((Route \n Table))
+    rt((Route <br/> Table))
     s3((S3))
-    sg((Security \n Group))
+    sg((Security <br/> Group))
     subnet((Subnet))
     vpc((VPC))
+
     vpc --> ig;
     vpc --> subnet;
     vpc --> rt;
@@ -48,51 +53,102 @@ graph TD;
     sg --> ecs_service;
 ```
 
-Each node in models can output one or more of these resources.
-The precise relationship between a model and its resources is what makes up the model's definition.
+Each model nodes previously discussed, can output one or more of such resources.
+The precise relationship between a model and its resources is what makes up the model's definition and its actions.
+
+## Model-Resource Relationship
+Infrastructure-as-Code (IaC) tools exist to provision and manage infrastructure resources.
+Traditional IaC tools expose developers directly to low-level resources,
+for example, defining a VPC, an Internet Gateway, and subnets individually.
+
+Octo instead, as you already know, uses Models for encapsulation, which abstract these raw resources.
+For instance, instead of setting up individual networking resources, you think of a Region model.
+
+A Model defines a logical grouping of infrastructure and governs its lifecycle.
+It uses `Actions` to create, update, replace, and delete these resources.
+The diagram below illustrates how models produce resources through actions.
+```mermaid
+graph LR;
+    model1((Model 1))
+    model2((Model 2))
+    resource1((Resource 1))
+    resource2((Resource 2))
+    resource3((Resource 3))
+
+    subgraph models [ ]
+        model1
+        model2
+    end
+
+    subgraph resources [ ]
+        resource1
+        resource2
+        resource3
+    end
+
+    model1 -- add action --> resource1
+    model1 -- add action --> resource2
+
+    model2 -- update action --> resource2
+    model2 -- add action --> resource3
+```
+
+Once you understand a model's definition and its respective actions,
+it becomes easier to think in terms of models, rather than individual resources.
+
+:::info[So how does models know which resources to manipulate?]
+The definition of resources and the relationship between a model and a resource is set by whoever writes the models.
+
+`octo-aws-cdk`, for example, is an implementation of the `octo` library for AWS.
+In this CDK implementation, we defined individual resources and chose which models manipulates what resources.
+If you choose to use our AWS implementation, you will receive resources configured based on our standards.
+
+You can also choose to write your own implementation, choose different resources,
+and set completely different relationships all together.
+
+**TL;DR;** Resources are subjective, defined by the implementor.
+:::
 
 ## Shared Resources
-A shared resource is an extension of a resource.
-It behaves as a resource in all aspects except that it doesn't represent any physical infrastructure component.
-Instead, it signifies the sharing of this resource across Octo's defined boundaries.
-
-In Octo, your infrastructure can be partitioned into boundaries,
-ensuring that operations in one part do not affect the other.
+In Octo, since models are graphs, they naturally form branches or boundaries,
+ensuring that operations in one boundary do not affect the other.
 More often than not, the boundary is a Region.<br />
-In `octo-aws-cdk`, a region is equivalent to an [Availability Zone](https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/availability-zones.html).
-For instance, AWS_US_EAST_1A AWS_US_EAST_1B are Octo regions in AWS us-east-1 region in AZ A and B respectively.
 
-For certain resources, duplicating data does not make sense.
-For example, ECR doesn't need to store the same image twice in us-east-1
-just because there are 2 Octo regions within the same AWS region.
-This is where shared resources come into play.
-A shared resource enables you to maintain separate logical copies of resources
-that point to the same underlying infrastructure.
+When these models are translated into resources, from an infrastructure perspective,
+some resources may be shared between boundaries.
+
+For example in AWS, an ECR resource node (a repository for storing Docker images) doesn't need to be created for every Region.
+Instead, the same ECR resource node will be shared across all Regions,
+and images will be replicated internally by AWS.<br />
+This is an implementation detail, determined by the implementor on which resources to share.
+End users most likely don't need to worry about this, however, it is a good concept to understand.
+
+:::info[TL;DR;]
+A shared resource is a logical way of re-thinking the same resource in different boundaries.
+:::
 
 ```mermaid
 graph BT;
-    aws_ecr[[AWS \n ECR]]
-    ecr_resource_1((Resource \n ECR))
-    ecr_resource_2((Resource \n ECR))
-    ecr_shared_resource[[Shared Resource \n Logical ECR]]
+    aws_ecr[ECR <br/> in AWS]
+    ecr_resource_1((Resource <br/> ECR))
     server_1((Server))
     server_2((Server))
 
-    ecr_shared_resource --> aws_ecr
-    ecr_resource_1 --> ecr_shared_resource
-    ecr_resource_2 --> ecr_shared_resource
+    ecr_resource_1 --> aws_ecr
+    server_2 -. Shared Resource .-> ecr_resource_1
 
     subgraph region1 [Octo Region 1]
         server_1 --> ecr_resource_1
     end
 
     subgraph region 2 [Octo Region 2]
-        server_2 --> ecr_resource_2
+        server_2
     end
 ```
 
 ## Summary
-We discussed the concepts behind Resources and Shared-Resources, and how they associate with Models.
-But we haven't covered the internals of Resources, or how to make one.
-Those details will be covered gradually in later sections.
-For now, think of Resources simply as black boxes representing your infrastructure components.
+We covered Resources and Shared-Resources -
+which is the final encapsulation layer before the actual infrastructure is created.
+We discussed how each resource node can be connected to other resource nodes,
+and how they are associated with Models.
+We also revisited how models create resources, and resources created infrastructure using Actions.
