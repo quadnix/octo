@@ -1,0 +1,60 @@
+---
+title: Overlays
+---
+
+## Definition
+An overlay is a special kind of model to represent infrastructure components that span across multiple models.
+You should think of an overlay as an infrastructure functionality that exists as a crossover between one or more models.
+
+:::info
+Just like resources, the base generic `octo` library does not define any base overlays.
+Overlays are defined in an implementation of the `octo` library for a specific cloud provider
+to achieve functionality that models cannot provide by themselves.
+:::
+
+Take a Filesystem in AWS as an example.
+The filesystem model can aptly represent an EFS filesystem in a Region.
+But in order to be used by a server, it must be mounted to a Subnet.<br/>
+Where should the functionality of adding a filesystem mount be defined?
+Neither the Filesystem, nor the Subnet model can define this without adding a lot of unnecessary complexity to them.
+
+Overlays exists to solve this problem.
+In this scenario, a new overlay can be created which takes both the Filesystem and Subnet models as inputs,
+and then encapsulates the logic of adding a filesystem mount to a server.
+
+:::tip
+An overlay can also be created on a single model.
+Typically, you would do this to add additional functionalities to a model other than its base functionality.
+:::
+
+:::info[TL;DR:]
+An overlay enriches models by adding additional capabilities.
+Think of overlays as additional functionalities that can be easily added or removed from models.
+This flexibility enables model implementations to remain clean and free of unnecessary clutter.
+:::
+
+## Overlay-Anchor Relationship
+Overlays don't really take models as inputs, for the reasons mentioned in [Anchors](/docs/fundamentals/anchors).
+Instead, overlays takes *Anchors* as inputs.
+
+In this diagram, we have an overlay between *Model 1* and *Model 2*,
+and another overlay just on *Model 2*,
+using anchors present in both models.
+<img
+alt="overlay-and-anchor-diagram"
+src={require('./assets/overlay-introduction.png').default}
+/>
+
+:::info
+An overlay is not fundamentally different from a Model, but rather an extension of it.
+Like them, it also has its own actions, can be serialized and deserialized,
+and is managed by Octo using the same state files.
+
+Just like a model, and overlay is also considered an internal implementation.
+Overlays can also expose their own anchors as its representative.
+:::
+
+## Summary
+In this section we discussed Overlays, and its relationship to Models and Anchors.
+We discussed how these add-on classes aid in maintaining complex infrastructure functionalities,
+and helps keep models pure and simplified.

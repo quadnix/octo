@@ -12,14 +12,14 @@ For example, an app is the parent of a region, so the app must exist before any 
 For example, an environment is a child of a region, so all environments must be deleted before deleting the region.
 * **Relationship**
 <br /> A node has a relationship with another node that is neither a parent nor a child relationship.
-For example, a server has a relationship with an image.
+For example, a server could have a relationship with an image.
 The distinction between the "relationship" type and the "parent-child" type is that in a "relationship",
 there is no obligation for either node to exist or be deleted before of the other node.
 
 :::tip
-* A parent-child dependency is bi-directional, i.e. if Node 1 is parent of Node 2,
+* A parent-child dependency is bidirectional, i.e. if Node 1 is parent of Node 2,
 then Node 2 must be a child of Node 1.
-* A "Relationship" dependency is also bi-directional, i.e. if Node 1 has relationship with Node 2,
+* A "Relationship" dependency is also bidirectional, i.e. if Node 1 has relationship with Node 2,
 then Node 2 also has a relationship with Node 1.
 
 ```mermaid
@@ -30,10 +30,10 @@ flowchart LR;
     node2_1((Node 2))
     node3((Node 3))
     node3_1((Node 3))
-    node1DepToNode2[[Node 1 Dependency <br> to Node 2]]
-    node2DepToNode1[[Node 2 Dependency <br> to Node 1]]
-    node1DepToNode3[[Node 1 Dependency <br> to Node 3]]
-    node3DepToNode1[[Node 3 Dependency <br> to Node 1]]
+    node1DepToNode2[[Node 1 Dependency <br/> to Node 2]]
+    node2DepToNode1[[Node 2 Dependency <br/> to Node 1]]
+    node1DepToNode3[[Node 1 Dependency <br/> to Node 3]]
+    node3DepToNode1[[Node 3 Dependency <br/> to Node 1]]
 
     subgraph overview [ ]
         node1_1
@@ -68,17 +68,12 @@ flowchart LR;
 :::
 
 ## Node
-A node in Octo can be - a Model, a Resource, a Shared-Resource, or an Overlay.<br />
-In Octo code base, a node is represented with any child of `AModel<I, T>`,
-which is the base abstract class that Model, Resource, Shared-Resource, and Overlay inherit from.
-
-:::info
-The base class `AModel` is not to be confused with its concrete implementation `Model` class.
-The former is a low level implementation detail, vs the latter is a concrete concept.
-:::
+A node in Octo can be - a Model, a Resource, or an Overlay.<br />
+In Octo code base, a node is represented as an extension of `ANode<I, T>`,
+which is the base abstract class that Models, Resources, and Overlays inherit from.
 
 ## Dependency Class
-A dependency is not stored as a property in nodes; instead, it is its own class.
+A dependency is not stored as a property in nodes; instead, it is its own class as a first class citizen.
 It encompasses two nodes on its either end.
 
 ```js title="Dependency Schema"
@@ -90,10 +85,11 @@ It encompasses two nodes on its either end.
 }
 ```
 
-A dependency is also serialized and deserialized like models and resources.
-<br />It is a first class citizen of Octo.
+A dependency is also serialized and deserialized just like other nodes.
+Octo keeps track of all dependencies in a graph in the state files, and are diffed between runs.
 
 ## Summary
-In a graph there are vetices and edges.
-In this section we learned that a Dependency represents an edge,
-and is stored as a first class citizen of Octo.
+In this section we explored Dependencies.
+Just as in a typical graph we have vetices and edges,
+in Octo graphs, nodes are vertices and dependencies are edges.
+A dependency is a first class citizen of Octo, and has its own dedicated class.

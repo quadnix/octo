@@ -1,0 +1,93 @@
+---
+title: Anchors
+---
+
+## Introduction
+An anchor is a property on the model or overlay node.
+It is typically used to define a signature of the model node, and exposes one or more properties of the node.
+You should think of an anchor as the "representative" of the model.
+
+```mermaid
+graph BT;
+  anchor_1[\Anchor 1 <br/> &lcub;<br/> anchorProperty1, <br/> anchorProperty2, <br/> ...<br/>&rcub;\];
+  model((Model <br/> &lcub;<br/> modelProperty1, <br/> modelProperty2, <br/> ...<br/>&rcub;));
+  
+  model --> anchor_1;
+```
+
+## Anchors for sharing models
+Octo defines a set of base models - App, Account, Region, etc.
+These models are intentionally generic. Frequently, individual implementation libraries will re-create these base models
+to add more properties to better represent the infrastructure being encapsulated.
+
+E.g. a Region model, in octo-aws-cdk, is re-created as `AwsRegion` containing the name of the AWS region - us-east-1.
+If this model was to be shared outside the library, other libraries become dependent on this exact definition.
+This makes it difficult for this model to be updated.
+
+Instead, models are expected to be hidden as an internal implementation detail.<br/>
+**On model's behalf, its anchors are exposed.**
+
+Other libraries can now consume models using the base libraries having this anchor.
+```mermaid
+graph BT;
+  aws_region_model((AwsRegion <br/> model <br/> extends Region))
+  aws_region_anchor[\AwsRegionAnchor\]
+  aws_environment_model((AwsEnvironment <br/> model <br/> extends Environment))
+  explanation_block_1["Library 2 asks for a Region model from library 1 having the AwsRegionAnchor"]
+  
+  classDef transparent fill:transparent,stroke:transparent,padding:0;
+  
+  subgraph library1 [Library 1]
+    aws_region_model -- has --> aws_region_anchor
+  end
+  
+  subgraph library2 [Library 2]
+    aws_environment_model -- consumes --> aws_region_anchor
+  end
+  
+  class explanation_block_1 transparent
+```
+
+This ensures that library 2 receives a Region model having the specific properties defined in the anchor, such as,
+* Having an AWS based model.
+* Having the name of the AWS region.
+
+This is better than sharing the exact models whose definition is likely to evolve over time.
+
+:::info
+Anchor exposes portion of a model with a unique signature to be ingested by other libraries or components,
+and is a substitute for the model for sharing purposes.
+:::
+
+## Anchors for overlays
+Anchors are also the only components that overlays interact with.
+Rather than ingesting the models (for reasons stated above), overlays are created with the anchors of the models.
+Follow the link to learn more about [Overlays](/docs/fundamentals/overlays.mdx).
+
+## Anchor-Model Relationship
+An anchor can only be applied on a model or an overlay.
+
+The relationship is defined by the `@Anchor` decorator.
+Here a new example anchor `AwsRegionAnchor` is being defined for the `AwsRegion` model,
+i.e. the anchor will be automatically added as a property on the `AwsRegion` model.
+
+```typescript
+@Anchor('<namespace>')
+export class AwsRegionAnchor extends AAnchor<{ awsRegionId: string; type: 'AWS' }, AwsRegion> {
+  constructor(
+    anchorId: string,
+    properties: { awsRegionId: string; type: 'AWS' },
+    parent: AwsRegion,
+  ) {
+    super(anchorId, properties, parent);
+  }
+}
+```
+
+It exposes certain properties on the anchor, which makes up the unique signature of the anchor.
+Other libraries, components, or overlays can consume this anchor and will get access to the properties,
+while ensuring that the anchor is attached to a `Region` model.
+
+## Summary
+In this article we discussed Anchors, who can have them, and what purpose they serve.
+Anchors make models shareable, and forms the basis of sharing information between different parts of the system.

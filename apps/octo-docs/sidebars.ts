@@ -46,18 +46,8 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
-          id: 'fundamentals/aws-models',
-          label: 'AWS Models',
-          type: 'doc',
-        },
-        {
           id: 'fundamentals/resources',
           label: 'Resources',
-          type: 'doc',
-        },
-        {
-          id: 'fundamentals/the-big-picture-part-one',
-          label: 'The Big Picture, Part I',
           type: 'doc',
         },
         {
@@ -66,8 +56,28 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
+          id: 'fundamentals/actions',
+          label: 'Actions',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/anchors',
+          label: 'Anchors',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/overlays',
+          label: 'Overlays',
+          type: 'doc',
+        },
+        {
           id: 'fundamentals/modules',
           label: 'Modules',
+          type: 'doc',
+        },
+        {
+          id: 'fundamentals/the-big-picture-part-one',
+          label: 'The Big Picture, Part I',
           type: 'doc',
         },
         {
@@ -76,13 +86,8 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
-          id: 'fundamentals/actions',
-          label: 'Actions',
-          type: 'doc',
-        },
-        {
-          id: 'fundamentals/overlay-and-anchor/index',
-          label: 'Overlay & Anchor',
+          id: 'fundamentals/aws-models',
+          label: 'AWS Models',
           type: 'doc',
         },
       ],
