@@ -76,18 +76,8 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
-          id: 'fundamentals/the-big-picture-part-one',
-          label: 'The Big Picture, Part I',
-          type: 'doc',
-        },
-        {
-          id: 'fundamentals/the-big-picture-part-two',
-          label: 'The Big Picture, Part II',
-          type: 'doc',
-        },
-        {
-          id: 'fundamentals/aws-models',
-          label: 'AWS Models',
+          id: 'fundamentals/hello-world-explained',
+          label: 'Hello World! (Explained)',
           type: 'doc',
         },
       ],
@@ -101,8 +91,18 @@ const sidebars: SidebarsConfig = {
     {
       items: [
         {
+          id: 'techniques/hooks',
+          label: 'Hooks',
+          type: 'doc',
+        },
+        {
           id: 'techniques/testing',
           label: 'Testing',
+          type: 'doc',
+        },
+        {
+          id: 'techniques/aws-models',
+          label: 'AWS Models',
           type: 'doc',
         },
       ],

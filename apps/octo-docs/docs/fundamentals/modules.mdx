@@ -2,137 +2,124 @@
 title: Modules
 ---
 
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 ## Introduction
-Module in Octo refers to a collection of Models come together to form a cohesive unit of higher order infrastructure.
-
-:::info
-Modules is how you define your IaC repository.
-Within modules you mix models, which in turn generates resources, which generates infrastructure.
-:::
+In Octo, modules act as a packaging unit for models, overlays, resources, anchors, and actions.
+When packaged, modules becomes a single unit capable of generating and managing a section of infrastructure
+in a very precise and opinionated manner.
 
 :::tip
 Modules are shareable, which is an incredibly powerful feature.
-It supports isolated "infrastructure plugins" that you can simply import to enhance your infrastructure.
+These are "infrastructure plugins" that you can simply import to implement a piece of infrastructure,
+or swap one with another compatible module.
 :::
 
-## Example
-Modules are classes annotated with a `@Module()` decorator, and implements the `IModule<T>` interface.
+Having the ability to define and share modules comes with several benefits,
+* **Reduces Duplication**: Defining modules for yourself or the community allows you to
+reuse them across several projects.
+* **Standardization & Compliance**: Modules can be defined to fulfill certain standards,
+such as HIPAA, PCI, ISO, GDPR, etc. Reusing the same modules can then result in same standards across all projects.
+* **Security**: Modules can be defined to enforce security policies, such as encryption, access control, etc.
 
+## Modules are opinionated
+One of the key distinctions between Octo and other IaC tools or CDKs is in how infrastructure is expressed.
+Traditional tools expose developers directly to raw infrastructure resources,
+leaving it entirely up to them to decide how to assemble those resources and with what parameters.
+
+Modules, in contrast, are pre-packaged collections of infrastructure resources,
+defined in a precise and opinionated way.<br/>
+The degree of flexibility a module offers depends entirely on its implementor —
+some may allow extensive customization, while others enforce stricter defaults.
+
+:::info
+Instead of viewing this as a limitation, consider how would you share a pre-built AWS infrastructure setup.
+To make it reusable, you inevitably need to make assumptions and design choices on the user's behalf.
+Those assumptions then define the boundaries or limitations of what can be customized.
+
+Octo addresses this by keeping modules small and isolated,
+reducing the impact of those limitations and making them easier to compose or swap.
+:::
+
+:::tip
+If a pre-build module does not meet your needs, you can always create a custom module.
+It's easier than you think!
+
+Octo's own pre-build modules are open for contribution and suggestions.
+We are also open to enhance or add modules to fit community needs.
+:::
+
+## Importing other modules
+Often modules require access to other module's models, overlays, resources, and/or anchors.
+But modules can't directly import other modules, otherwise it would create a vicious dependency trap.
+
+Instead, modules expresses their dependencies on other modules using "indirect inputs" and anchors,
+and relies on users running the modules to pass correct values.
+
+Here's an example of a module's schema input.
+This module is defining an environment to set up an AWS ECS cluster within a region.
+Since it needs access to a region in AWS, it imposes an indirect dependency on the users to pass
+a Region model which exposes a matching anchor `AwsRegionAnchorSchema`.
 ```typescript
-@Module({
-  imports: [RegionModule],
-})
-export class EnvironmentModule implements IModule<Environment> {
-  constructor(private readonly region: Region) {}
-
-  async onInit(): Promise<Environment> {
-    const environment = new Environment('qa');
-    this.region.addEnvironment(environment);
-    return environment;
-  }
+export class AwsEcsEnvironmentModuleSchema {
+  @Validate([
+    {
+      options: {
+        isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region' },
+      },
+    },
+    {
+      destruct: (value: AwsEcsEnvironmentModuleSchema['region']): [RegionSchema] => [value.synth()],
+      options: {
+        isSchema: { schema: RegionSchema },
+      },
+    },
+  ])
+  region = Schema<Region>();
 }
 ```
+And this is how users might pass a Region model from a different module,
+```typescript
+{
+  region: stub<Region>('${{region-module.model.region}}'),
+}
+```
+Here the user is passing a relevant Region model from the `region-module` module that satisfies the above constraints.
 
-In this example, we create an EnvironmentModule that imports the RegionModule.
-It is not important for the EnvironmentModule to know how a region is created,
-except that the RegionModule returns a `Region` which the EnvironmentModule is injected with.
-The EnvironmentModule then manipulates models, and returns the model it promised to return.
+:::tip
+So far, we haven't explained any of the code snippets, which might make them feel a bit overwhelming at first glance.
+That's okay — the goal here is to introduce the core idea of importing other modules.
 
-## Module Imports
+As you progress through the documentation, we'll gradually break down these snippets step by step,
+so they'll start to feel familiar and intuitive.
+:::
 
+## Module Hierarchy
+Modules don't just package any number of Octo components. They are precise, and often focused on a single model.
+And since models are hierarchical in nature, modules must be applied in a set pattern that conforms to the hierarchy.
+
+E.g. an AppModule must execute before an AccountModule, which must execute before a RegionModule, and so on.
+This is also necessary when importing other modules, as you cannot import a module which hasn't executed yet!
+
+In Octo, modules are ordered for execution using the `orderModules()` method.
+```typescript
+octo.orderModules([AppModule, AccountModule, RegionModule, ...]);
+```
+
+Combining module hierarchy with input-based imports, you can even visualize modules as a graph.
 ```mermaid
-graph TD;
+graph BT;
   module1(Module 1)
   module2(Module 2)
   module3(Module 3)
   module4(Module 4)
   module5(Module 5)
 
-  module1 -- imports --> module2;
-  module1 -- imports --> module3;
-  module3 -- imports --> module4;
-  module3 -- imports --> module5;
+  module2 -- imports --> module1;
+  module3 -- imports --> module1;
+  module4 -- imports --> module3;
+  module5 -- imports --> module3;
 ```
-
-Modules supports hierarchy, which means you can import other modules,
-which in turn can import more modules.
-Registration and execution of these modules happens exactly as you might expect -
-with imported modules being executed first.
-
-## Hooks
-Modules support hooks - a sequence of callbacks triggered before or after specific events.
-You can register for these transaction events within the module to execute custom code.
-
-<Tabs>
-  <TabItem value="CommitHooks" label="Commit Hooks" default>
-    Pre/Post Commit Hooks allows you to take an action before or after the entire transaction is committed.
-  </TabItem>
-  <TabItem value="ModelHooks" label="Model Hooks" default>
-    Pre/Post Model Hooks allows you to take an action before or after a model action runs.
-  </TabItem>
-  <TabItem value="ResourceHooks" label="Resource Hooks" default>
-    Pre/Post Resource Hooks allows you to take an action before or after a resource action runs.
-  </TabItem>
-</Tabs>
-
-### Example
-
-```typescript
-@Module({
-  postModelActionHooks: [
-    {
-      ACTION_NAME: 'AddRegionModelAction',
-      handle: async (diff: Diff, actionInputs: ActionInputs, actionOutputs: ActionOutputs): Promise<ActionOutputs> => {
-        // Manipulate some resources.
-
-        // Return the final output.
-        return actionOutputs;
-      }
-    }
-  ]
-})
-export class EnvironmentModule implements IModule<Environment> {
-  // ...
-}
-```
-
-In this example, the EnvironmentModule is registering a hook into the "AddRegionModelAction" event.
-It triggers after this action has run, and before the next action.
-
-:::info
-Hooks enhances/extends the functionality of Actions.
-:::
-
-### Order of Execution
-Hooks are bound to Modules, and since modules have an hierarchy, hook registration follows that hierarchy.
-
-```mermaid
-graph TD;
-  module1("Module 1")
-  module2("Module 2")
-  hook1{{"Hook 1"}}
-  hook2{{"Hook 2"}}
-  hook3{{"Hook 3"}}
-  addRegionEvent(["AddRegionModelAction"])
-  addEnvironmentEvent(["AddEnvironmentModelAction"])
-
-  module1 -- "imports" --> module2
-  module1 --> hook1
-  hook1 -- postHook --> addRegionEvent
-  module1 --> hook2
-  hook2 -- postHook --> addEnvironmentEvent
-  module2 --> hook3
-  hook3 -- postHook --> addRegionEvent
-```
-
-In above diagram, hooks of "Module 2" are registered before "Module 1".<br />
-The resulting order of execution post "AddRegionModelAction" event would be - `[Hook 3, Hook 1]`<br />
-The resulting order of execution post "AddEnvironmentModelAction" event would be - `[Hook 2]`
 
 ## Summary
-We discussed Modules and Hooks.
-Modules unify models into cohesive infrastructure units.
-It supports hierarchical imports and customizable hooks for enhanced transactional control.
+In this section we have discussed Modules.
+Modules unify models and resources into cohesive infrastructure units.
+It supports hierarchical imports, allowing modules to inter-depend on each other, and boost modularity and reusability.

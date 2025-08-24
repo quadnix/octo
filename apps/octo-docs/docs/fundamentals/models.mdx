@@ -22,7 +22,7 @@ This shared vocabulary ensures that developers have a common, unified understand
 
 ## Default Models
 Octo provides a set of core models that act as the building blocks of infrastructure.
-Each model is represented as a node in the graph, and together they define Octo’s base hierarchy.
+Each model is represented as a node in the graph, and together they define Octo's base hierarchy.
 
 This hierarchy is shipped as the default, but it is designed to be extended.
 When used with CDK libraries, developers can introduce new relationships or additional nodes,
@@ -97,7 +97,7 @@ graph TD;
     For a global filesystem, it is better to use a `Service` node, such as an AWS S3 bucket service node.
   </TabItem>
   <TabItem value="Subnet" label="Subnet">
-    A Subnet is a logical subdivision within a region’s network.
+    A Subnet is a logical subdivision within a region's network.
     For example, you might define public subnets (accessible from the internet)
     and private subnets (restricted to internal resources).
     Subnets are commonly used to isolate different parts of your infrastructure,
