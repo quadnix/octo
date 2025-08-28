@@ -27,6 +27,7 @@ describe('Anchor UT', () => {
           "anchorId": "anchor-1",
           "parent": {
             "context": "app=test",
+            "type": "model",
           },
           "properties": {
             "key1": "value-1",
@@ -50,6 +51,7 @@ describe('Anchor UT', () => {
           "anchorId": "anchor-1",
           "parent": {
             "context": "app=test",
+            "type": "model",
           },
           "properties": {
             "key1": "value-1",

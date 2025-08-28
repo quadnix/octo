@@ -1,4 +1,5 @@
 import type { AnchorSchema, UnknownAnchor, UnknownModel } from '../app.type.js';
+import type { ANode } from '../functions/node/node.abstract.js';
 import type { IAnchor } from './anchor.interface.js';
 import type { BaseAnchorSchema } from './anchor.schema.js';
 
@@ -21,7 +22,7 @@ export abstract class AAnchor<S extends BaseAnchorSchema, T extends UnknownModel
   synth(): S {
     return {
       anchorId: this.anchorId,
-      parent: { context: this.parent.getContext() },
+      parent: { context: this.parent.getContext(), type: (this.parent.constructor as typeof ANode).NODE_TYPE },
       properties: JSON.parse(JSON.stringify(this.properties)),
     } as S;
   }

@@ -2,7 +2,7 @@ import type { IDependency } from './functions/dependency/dependency.js';
 import type { ANode } from './functions/node/node.abstract.js';
 import type { IModelAction } from './models/model-action.interface.js';
 import type { AModel } from './models/model.abstract.js';
-import type { IModel } from './models/model.interface.js';
+import type { IModel, IModelReference } from './models/model.interface.js';
 import type { AModule } from './modules/module.abstract.js';
 import type { AAnchor } from './overlays/anchor.abstract.js';
 import type { BaseAnchorSchema } from './overlays/anchor.schema.js';
@@ -160,7 +160,10 @@ export type ObjectKeyValue<T> = { [K in keyof T]: { key: K; value: T[K] } }[keyo
 export type Constructable<T> = new (...args: any[]) => T;
 
 export type ModelSerializedOutput = {
-  anchors: (AnchorSchema<UnknownAnchor> & { className: string })[];
+  anchors: (AnchorSchema<UnknownAnchor> & {
+    className: string;
+    location: IModelReference & { type: NodeType };
+  })[];
   dependencies: IDependency[];
   models: { [p: string]: { className: string; model: IUnknownModel } };
   overlays: { className: string; overlay: OverlaySchema<UnknownOverlay> }[];

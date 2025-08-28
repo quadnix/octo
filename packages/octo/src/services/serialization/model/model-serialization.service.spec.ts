@@ -134,6 +134,27 @@ describe('Model Serialization Service UT', () => {
       expect(previousDependencies).toEqual(currentDependencies);
     });
 
+    it('should deserialize anchor with overlay parent homed in model', async () => {
+      const {
+        app: [app],
+      } = create({ account: ['aws,account'], app: ['test-app'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
+
+      const anchor2 = new TestAnchor('anchor-2', {}, overlay1);
+      app.addAnchor(anchor2);
+
+      const app_1 = await commit(app);
+
+      expect(app_1.getAnchors().map((a) => a.anchorId)).toEqual(['anchor-1', 'anchor-2']);
+      expect(app_1.getAnchor('anchor-1')!.getParent().getContext()).toBe(app_1.getContext());
+      expect(app_1.getAnchor('anchor-2', overlay1)!.getParent().getContext()).toBe(overlay1.getContext());
+    });
+
     it('should deserialize overlay with multiple anchors of same parent', async () => {
       const overlayDataRepository = await container.get(OverlayDataRepository);
 
@@ -258,6 +279,25 @@ describe('Model Serialization Service UT', () => {
       app.addAnchor(anchor2);
 
       await createTestOverlays([{ anchors: [anchor1, anchor2], context: '@octo/test-overlay=overlay-1' }]);
+
+      const service = await container.get(ModelSerializationService);
+
+      expect(await service.serialize(app)).toMatchSnapshot();
+    });
+
+    it('should serialize anchor with overlay parent homed in model', async () => {
+      const {
+        app: [app],
+      } = create({ account: ['aws,account'], app: ['test-app'] });
+      const anchor1 = new TestAnchor('anchor-1', {}, app);
+      app.addAnchor(anchor1);
+
+      const { '@octo/test-overlay=overlay-1': overlay1 } = await createTestOverlays([
+        { anchors: [anchor1], context: '@octo/test-overlay=overlay-1' },
+      ]);
+
+      const anchor2 = new TestAnchor('anchor-2', {}, overlay1);
+      app.addAnchor(anchor2);
 
       const service = await container.get(ModelSerializationService);
 

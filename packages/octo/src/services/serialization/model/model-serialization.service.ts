@@ -3,7 +3,6 @@ import {
   type IUnknownModel,
   type ModelSerializedOutput,
   NodeType,
-  type OverlaySchema,
   type UnknownAnchor,
   type UnknownModel,
   type UnknownOverlay,
@@ -18,7 +17,7 @@ import {
   OverlayRegistrationEvent,
 } from '../../../events/index.js';
 import { Container } from '../../../functions/container/container.js';
-import { Dependency, type IDependency } from '../../../functions/dependency/dependency.js';
+import { Dependency } from '../../../functions/dependency/dependency.js';
 import type { ANode } from '../../../functions/node/node.abstract.js';
 import type { AAnchor } from '../../../overlays/anchor.abstract.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
@@ -82,22 +81,40 @@ export class ModelSerializationService {
     }
     await Promise.all(promiseToDeserializeModels);
 
-    // Deserialize all anchors.
-    for (const a of serializedOutput.anchors) {
-      const { className, parent } = a;
-      const deserializationClass = this.classMapping[className];
-
-      const anchor = await deserializationClass.unSynth(deserializationClass, a, deReferenceContext);
-      seen[parent.context].addAnchor(anchor);
-    }
-
     // Deserialize all overlays.
     const overlays: UnknownOverlay[] = [];
     for (const { className, overlay } of serializedOutput.overlays) {
       const deserializationClass = this.classMapping[className];
-      const newOverlay = await deserializationClass.unSynth(deserializationClass, overlay, deReferenceContext);
+      const newOverlay = await deserializationClass.unSynth(
+        deserializationClass,
+        { ...overlay, anchors: [] },
+        deReferenceContext,
+      );
       overlays.push(newOverlay);
       seen[newOverlay.getContext()] = newOverlay;
+    }
+
+    // Deserialize all anchors.
+    const anchorParentLocationMapping: { [key: string]: UnknownAnchor } = {};
+    for (const a of serializedOutput.anchors) {
+      const { anchorId, className, location, parent } = a;
+      const deserializationClass = this.classMapping[className];
+
+      const anchor = await deserializationClass.unSynth(deserializationClass, a, deReferenceContext);
+      seen[location.context].addAnchor(anchor);
+      anchorParentLocationMapping[[parent.context, anchorId].join(',')] = anchor;
+    }
+
+    // Add overlay anchors.
+    for (const { overlay } of serializedOutput.overlays) {
+      const anchors = await Promise.all(
+        overlay.anchors.map(async (a: AnchorSchema<UnknownAnchor>): Promise<UnknownAnchor> => {
+          return anchorParentLocationMapping[[a.parent.context, a.anchorId].join(',')];
+        }),
+      );
+      for (const anchor of anchors) {
+        overlays.find((o) => o.overlayId === overlay.overlayId)!['anchors'].push(anchor);
+      }
     }
 
     // Deserialize all dependencies.
@@ -155,10 +172,10 @@ export class ModelSerializationService {
   @EventSource(ModelSerializedEvent)
   async serialize(root: UnknownModel): Promise<ModelSerializedOutput> {
     const boundary = root.getBoundaryMembers();
-    const anchors: (AnchorSchema<UnknownAnchor> & { className: string })[] = [];
-    const dependencies: IDependency[] = [];
-    const models: { [key: string]: { className: string; model: IUnknownModel } } = {};
-    const overlays: { className: string; overlay: OverlaySchema<UnknownOverlay> }[] = [];
+    const anchors: ModelSerializedOutput['anchors'] = [];
+    const dependencies: ModelSerializedOutput['dependencies'] = [];
+    const models: ModelSerializedOutput['models'] = {};
+    const overlays: ModelSerializedOutput['overlays'] = [];
 
     for (const model of boundary) {
       for (const d of model.getDependencies()) {
@@ -186,6 +203,10 @@ export class ModelSerializationService {
           anchors.push({
             ...a.synth(),
             className: `${(a.constructor as typeof AAnchor).NODE_PACKAGE}/${a.constructor.name}`,
+            location: {
+              context: model.getContext(),
+              type: NodeType.MODEL,
+            },
           });
         }
       } else if ((model.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {

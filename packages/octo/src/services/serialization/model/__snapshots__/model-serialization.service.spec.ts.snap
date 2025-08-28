@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`Model Serialization Service UT serialize() should serialize a non-empty app 1`] = `
 {
@@ -267,14 +267,160 @@ exports[`Model Serialization Service UT serialize() should serialize an empty ap
 }
 `;
 
+exports[`Model Serialization Service UT serialize() should serialize anchor with overlay parent homed in model 1`] = `
+{
+  "anchors": [
+    {
+      "anchorId": "anchor-1",
+      "className": "@octo/TestAnchor",
+      "location": {
+        "context": "app=test-app",
+        "type": "model",
+      },
+      "parent": {
+        "context": "app=test-app",
+        "type": "model",
+      },
+      "properties": {},
+    },
+    {
+      "anchorId": "anchor-2",
+      "className": "@octo/TestAnchor",
+      "location": {
+        "context": "app=test-app",
+        "type": "model",
+      },
+      "parent": {
+        "context": "@octo/test-overlay=overlay-1",
+        "type": "overlay",
+      },
+      "properties": {},
+    },
+  ],
+  "dependencies": [
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
+          "toField": "accountId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": {
+        "onField": "name",
+        "toField": "accountId",
+        "type": "parent",
+      },
+      "to": "account=account,app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "delete",
+          "onAction": "delete",
+          "onField": "name",
+          "toField": "overlayId",
+        },
+      ],
+      "from": "app=test-app",
+      "relationship": undefined,
+      "to": "@octo/test-overlay=overlay-1",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "overlayId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "overlayId",
+          "toField": "name",
+        },
+      ],
+      "from": "@octo/test-overlay=overlay-1",
+      "relationship": undefined,
+      "to": "app=test-app",
+    },
+    {
+      "behaviors": [
+        {
+          "forAction": "add",
+          "onAction": "add",
+          "onField": "accountId",
+          "toField": "name",
+        },
+        {
+          "forAction": "update",
+          "onAction": "add",
+          "onField": "accountId",
+          "toField": "name",
+        },
+      ],
+      "from": "account=account,app=test-app",
+      "relationship": {
+        "onField": "accountId",
+        "toField": "name",
+        "type": "child",
+      },
+      "to": "app=test-app",
+    },
+  ],
+  "models": {
+    "account=account,app=test-app": {
+      "className": "@octo/Account",
+      "model": {
+        "accountId": "account",
+        "accountType": "aws",
+      },
+    },
+    "app=test-app": {
+      "className": "@octo/App",
+      "model": {
+        "name": "test-app",
+      },
+    },
+  },
+  "overlays": [
+    {
+      "className": "@octo/test-overlay",
+      "overlay": {
+        "anchors": [
+          {
+            "anchorId": "anchor-1",
+            "parent": {
+              "context": "app=test-app",
+              "type": "model",
+            },
+            "properties": {},
+          },
+        ],
+        "overlayId": "overlay-1",
+        "properties": {},
+      },
+    },
+  ],
+}
+`;
+
 exports[`Model Serialization Service UT serialize() should serialize model anchors 1`] = `
 {
   "anchors": [
     {
       "anchorId": "anchor-1",
       "className": "@octo/TestAnchor",
+      "location": {
+        "context": "app=test-app",
+        "type": "model",
+      },
       "parent": {
         "context": "app=test-app",
+        "type": "model",
       },
       "properties": {},
     },
@@ -455,16 +601,26 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
     {
       "anchorId": "anchor-1",
       "className": "@octo/TestAnchor",
+      "location": {
+        "context": "app=test-app",
+        "type": "model",
+      },
       "parent": {
         "context": "app=test-app",
+        "type": "model",
       },
       "properties": {},
     },
     {
       "anchorId": "anchor-2",
       "className": "@octo/TestAnchor",
+      "location": {
+        "context": "app=test-app",
+        "type": "model",
+      },
       "parent": {
         "context": "app=test-app",
+        "type": "model",
       },
       "properties": {},
     },
@@ -599,6 +755,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
             "anchorId": "anchor-1",
             "parent": {
               "context": "app=test-app",
+              "type": "model",
             },
             "properties": {},
           },
@@ -606,6 +763,7 @@ exports[`Model Serialization Service UT serialize() should serialize overlay wit
             "anchorId": "anchor-2",
             "parent": {
               "context": "app=test-app",
+              "type": "model",
             },
             "properties": {},
           },
@@ -624,16 +782,26 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
     {
       "anchorId": "anchor-1",
       "className": "@octo/TestAnchor",
+      "location": {
+        "context": "app=test-app",
+        "type": "model",
+      },
       "parent": {
         "context": "app=test-app",
+        "type": "model",
       },
       "properties": {},
     },
     {
       "anchorId": "anchor-2",
       "className": "@octo/TestAnchor",
+      "location": {
+        "context": "app=test-app",
+        "type": "model",
+      },
       "parent": {
         "context": "app=test-app",
+        "type": "model",
       },
       "properties": {},
     },
@@ -780,6 +948,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
             "anchorId": "anchor-2",
             "parent": {
               "context": "app=test-app",
+              "type": "model",
             },
             "properties": {},
           },
@@ -796,6 +965,7 @@ exports[`Model Serialization Service UT serialize() should serialize two overlay
             "anchorId": "anchor-1",
             "parent": {
               "context": "app=test-app",
+              "type": "model",
             },
             "properties": {},
           },

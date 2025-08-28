@@ -314,6 +314,7 @@ describe('Overlay UT', () => {
               "anchorId": "anchor-1",
               "parent": {
                 "context": "app=test",
+                "type": "model",
               },
               "properties": {},
             },
@@ -321,6 +322,7 @@ describe('Overlay UT', () => {
               "anchorId": "anchor-2",
               "parent": {
                 "context": "app=test",
+                "type": "model",
               },
               "properties": {},
             },
