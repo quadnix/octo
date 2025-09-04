@@ -100,7 +100,7 @@ They define models, resources, and the translation actions.<br/>
 Developers write templates and modules, and shape the infrastructure to self-serve their needs
 using a common understanding of these components.
 
-## Example
+## Pseudo Example
 Here's a pseudo Octo code (not a real code) of a **"Backend server running in QA environment"** in AWS infrastructure.
 
 ```typescript
@@ -166,4 +166,6 @@ Failure in one node won't block changes in other non-dependent nodes.
 for your infrastructure.
 * **Recovery from Failures**: Octo saves the state of resources after every run and keeps track of
 infrastructure changes. Execution is stopped at failures, and upon re-run, it will pick up from the same point.
+* **Beautiful HTML Reports**: After each run, Octo generates an HTML report that
+shows the changes made to the infrastructure.
 * **& more**: Including manual capturing of infrastructure changes done outside Octo, Events, and so much more.

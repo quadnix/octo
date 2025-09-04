@@ -25,6 +25,9 @@ cd test-app
 npm install
 ```
 
+This should create a directory structure like this:
+[Octo App Structure](/docs/getting-started/project-structure#octo-app-structure)
+
 ### Customizing the App
 You will first need to modify below files before you can run the app.
 
@@ -84,6 +87,15 @@ Hopefully, this example demonstrated you the benefits of Octo!
 You were able to accomplish your infrastructure needs using Octo's abstracted components,
 without having the need to implement the low level resources.
 You can inspect the state files and logs to understand the cloud resources created by Octo.
+
+### HTML Reports
+After each run, Octo generates an HTML report that shows the changes made to the infrastructure.
+You should notice a new HTML file in your root directory.
+You can view the HTML report in any web browser - simply drag and drop the HTML file into the browser,
+or double-click the HTML file.
+
+This report gives you an overview of the changes made to the infrastructure.
+You will often find this report beneficial to review the transaction after every run to ensure changes were as expected.
 
 ### Cleaning Up (Optional)
 To clean up all the resources created thus far, modify the `module-definitions.ts`.
