@@ -1,1 +1,2 @@
-export { EventLoggerListener } from './logger/event-logger.listener.js';
+export { HtmlReportEventListener } from './html-report.event.listener.js';
+export { LoggingEventListener } from './logging.event.listener.js';
