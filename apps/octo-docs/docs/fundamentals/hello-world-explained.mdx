@@ -90,16 +90,17 @@ satisfy your desire of having a website hosted on S3.
 :::
 
 ## Running the example
-The hello-world example was ran by running the `main.ts` file.
+The hello-world example was run with the `main.ts` file.
 
 To run an Octo app, you first need to initialize it using below code.
 Here we initialized the main `Octo` class with the `LocalStateProvider` state provider,
 which will store the state in a local file.<br/>
-We also passed it the `EventLoggerListener` listener which provides logging support and HTML reports.
+We also passed it the `HtmlReportEventListener` and `LoggingEventListener` listeners
+which provides logging support and HTML reports.
 ```typescript title="main.ts"
 const octo = new Octo();
 const stateProvider = new LocalStateProvider(octoStatePath);
-await octo.initialize(stateProvider, [{ type: EventLoggerListener }]);
+await octo.initialize(stateProvider, [{ type: HtmlReportEventListener }, { type: LoggingEventListener }]);
 ```
 
 <br/>In the next step, we load the modules into the Octo class.<br />

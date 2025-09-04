@@ -1,7 +1,7 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { type App, Container, LocalStateProvider, Octo } from '@quadnix/octo';
-import { EventLoggerListener } from '@quadnix/octo-event-listeners';
+import { HtmlReportEventListener, LoggingEventListener } from '@quadnix/octo-event-listeners';
 import { ModuleDefinitions } from './module-definitions.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -9,7 +9,7 @@ const octoStatePath = join(__dirname, '.octo');
 
 const octo = new Octo();
 const stateProvider = new LocalStateProvider(octoStatePath);
-await octo.initialize(stateProvider, [{ type: EventLoggerListener }]);
+await octo.initialize(stateProvider, [{ type: HtmlReportEventListener }, { type: LoggingEventListener }]);
 
 const container = Container.getInstance();
 const moduleDefinitions = await container.get(ModuleDefinitions);

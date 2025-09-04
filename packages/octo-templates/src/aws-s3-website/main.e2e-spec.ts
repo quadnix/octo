@@ -6,7 +6,7 @@ import { type AModule, type Container, TestContainer, TestModuleContainer, TestS
 import { type AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
 import { type SimpleAppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
 import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
-import { EventLoggerListener } from '@quadnix/octo-event-listeners';
+import { HtmlReportEventListener, LoggingEventListener } from '@quadnix/octo-event-listeners';
 import axios from 'axios';
 import { ModuleDefinitions } from './module-definitions.js';
 
@@ -28,7 +28,10 @@ describe('Main E2E', () => {
     container = await TestContainer.create({ mocks: [] });
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(stateProvider, [{ type: EventLoggerListener }]);
+    await testModuleContainer.initialize(stateProvider, [
+      { type: HtmlReportEventListener },
+      { type: LoggingEventListener },
+    ]);
 
     // Register tags on all resources.
     testModuleContainer.octo.registerTags([
