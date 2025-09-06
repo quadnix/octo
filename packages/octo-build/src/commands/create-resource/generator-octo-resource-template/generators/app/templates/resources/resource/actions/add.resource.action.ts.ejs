@@ -1,0 +1,65 @@
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import type { <%= resourceNamePascal %>Schema } from '../index.schema.js';
+import { <%= resourceNamePascal %> } from '../<%= resourceName %>.resource.js';
+
+@Action(<%= resourceNamePascal %>)
+export class Add<%= resourceNamePascal %>ResourceAction extends ANodeAction implements IResourceAction<<%= resourceNamePascal %>> {
+  constructor() {
+    super();
+  }
+
+  filter(diff: Diff): boolean {
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof <%= resourceNamePascal %> &&
+      hasNodeName(diff.node, '<%= resourceName %>') &&
+      diff.field === 'resourceId'
+    );
+  }
+
+  async handle(diff: Diff<<%= resourceNamePascal %>>): Promise<void> {
+    // Get properties.
+    const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
+    const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
+    const response = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.response;
+    const tags = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.tags;
+
+    // TODO: Implement the add resource logic.
+    // This is where you would create the actual resource.
+
+    // Set response.
+    // TODO: Set response properties.
+  }
+
+  async mock(diff: Diff<<%= resourceNamePascal %>>, capture: Partial<<%= resourceNamePascal %>Schema['response']>): Promise<void> {
+    // Get properties.
+    const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
+    const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
+
+    // TODO: Implement mock logic for captures.
+    // E.g.,
+    // const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
+    //   args: [properties.awsAccountId, properties.awsRegionId],
+    //   metadata: { package: '@octo' },
+    // });
+    // ec2Client.send = async (instance: unknown): Promise<unknown> => {
+    //   if (instance instanceof CreateVpcCommand) {
+    //     return { Vpc: { VpcId: capture.VpcId } };
+    //   } else if (instance instanceof ModifyVpcAttributeCommand) {
+    //     return {};
+    //   }
+    // };
+  }
+}
+
+@Factory<Add<%= resourceNamePascal %>ResourceAction>(Add<%= resourceNamePascal %>ResourceAction)
+export class Add<%= resourceNamePascal %>ResourceActionFactory {
+  private static instance: Add<%= resourceNamePascal %>ResourceAction;
+
+  static async create(): Promise<Add<%= resourceNamePascal %>ResourceAction> {
+    if (!this.instance) {
+      this.instance = new Add<%= resourceNamePascal %>ResourceAction();
+    }
+    return this.instance;
+  }
+}

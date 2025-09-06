@@ -1,0 +1,31 @@
+import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
+
+export class <%= resourceNamePascal %>Schema extends BaseResourceSchema {
+  @Validate({
+    destruct: (value: <%= resourceNamePascal %>Schema['properties']): string[] => [
+      // TODO: Add properties for validation.
+    ],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    // TODO: Add resource properties.
+  }>();
+
+  @Validate({
+    destruct: (value: <%= resourceNamePascal %>Schema['response']): string[] => {
+      const subjects: string[] = [];
+      // TODO: Add response properties for validation.
+      // E.g.,
+      // if (value.Arn) {
+      //   subjects.push(value.Arn);
+      // }
+      return subjects;
+    },
+    options: { minLength: 1 },
+  })
+  override response = Schema<{
+    // TODO: Add response properties.
+    // Response properties are always optional because actions are applied to transaction sequentially.
+    // These properties must only be validated if they are present.
+  }>();
+}
