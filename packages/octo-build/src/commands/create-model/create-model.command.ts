@@ -7,7 +7,7 @@ import { StringUtility } from '../../utilities/string/string.utility.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export const createModuleCommand = {
+export const createModelCommand = {
   builder: (yargs: Argv): Argv => {
     return yargs
       .option('name', {
@@ -35,8 +35,8 @@ export const createModuleCommand = {
         type: 'string',
       });
   },
-  command: 'create-module',
-  describe: 'Create a new Octo module.',
+  command: 'create-model',
+  describe: 'Create a new Octo model.',
   handler: async (
     argv: ArgumentsCamelCase<{ name: string; package: string; path: string; type: string }>,
   ): Promise<void> => {
@@ -48,22 +48,22 @@ export const createModuleCommand = {
       process.exit(1);
     }
 
-    console.log(chalk.blue(`Creating module "${name}" of type "${type}"...`));
+    console.log(chalk.blue(`Creating model for module "${name}" of type "${type}"...`));
 
     const env = createEnv();
-    env.register(resolve(__dirname, 'generator-octo-module-template/generators/app/index.js'), {
-      namespace: 'generator-octo-module-template:app',
+    env.register(resolve(__dirname, 'generator-octo-model-template/generators/app/index.js'), {
+      namespace: 'generator-octo-model-template:app',
     });
 
     try {
-      await env.run(['generator-octo-module-template:app', name, type, packageName, path], {
+      await env.run(['generator-octo-model-template:app', name, type, packageName, path], {
         skipCache: true,
         skipInstall: true,
       });
 
-      console.log(chalk.green(`Successfully created module!`));
+      console.log(chalk.green(`Successfully created model!`));
     } catch (error) {
-      console.error(chalk.red(`Failed to create module! ${error.message}`));
+      console.error(chalk.red(`Failed to create model! ${error.message}`));
       process.exit(1);
     }
   },

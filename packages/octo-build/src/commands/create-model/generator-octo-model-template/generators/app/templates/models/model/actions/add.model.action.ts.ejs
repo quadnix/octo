@@ -1,0 +1,50 @@
+import {
+  Action,
+  type ActionOutputs,
+  type Diff,
+  DiffAction,
+  type EnhancedModuleSchema,
+  Factory,
+  type IModelAction,
+  hasNodeName,
+} from '@quadnix/octo';
+import type { <%= moduleNamePascal %>Module } from '../../../<%= moduleName %>.module.js';
+import { <%= moduleNamePascal %> } from '../<%= moduleName %>.model.js';
+
+@Action(<%= moduleNamePascal %>)
+export class Add<%= moduleNamePascal %>ModelAction implements IModelAction<<%= moduleNamePascal %>Module> {
+  filter(diff: Diff): boolean {
+    // TODO: Update "diff.field" to assert correct model id.
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof <%= moduleNamePascal %> &&
+      hasNodeName(diff.node, '<%= moduleType %>') &&
+      diff.field === 'my-model-id'
+    );
+  }
+
+  async handle(
+    diff: Diff<<%= moduleNamePascal %>>,
+    actionInputs: EnhancedModuleSchema<<%= moduleNamePascal %>Module>,
+    actionOutputs: ActionOutputs,
+  ): Promise<ActionOutputs> {
+    const <%= moduleType %> = diff.node;
+
+    // TODO: Implement the action logic.
+    // This is where you would create the actual resources for your module.
+
+    return actionOutputs;
+  }
+}
+
+@Factory<Add<%= moduleNamePascal %>ModelAction>(Add<%= moduleNamePascal %>ModelAction)
+export class Add<%= moduleNamePascal %>ModelActionFactory {
+  private static instance: Add<%= moduleNamePascal %>ModelAction;
+
+  static async create(): Promise<Add<%= moduleNamePascal %>ModelAction> {
+    if (!this.instance) {
+      this.instance = new Add<%= moduleNamePascal %>ModelAction();
+    }
+    return this.instance;
+  }
+}

@@ -1,0 +1,8 @@
+import { <%= moduleTypePascal %>Schema, Schema, Validate } from '@quadnix/octo';
+
+export class <%= moduleNamePascal %>Schema extends <%= moduleTypePascal %>Schema {
+  // TODO: Add schema properties specific to your module
+  // Example:
+  @Validate({ options: { minLength: 1 } })
+  customProperty = Schema<string>();
+}
