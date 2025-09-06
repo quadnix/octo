@@ -36,9 +36,7 @@ export default class extends Generator {
     if (targetPathStat?.isDirectory()) {
       const files = await readdir(targetPath);
       if (files.length > 0) {
-        throw new Error(
-          `Directory '${targetPath}' already exists and is not empty! Please choose a different name or path.`,
-        );
+        throw new Error(`Directory '${targetPath}' already exists and is not empty!`);
       }
     }
 

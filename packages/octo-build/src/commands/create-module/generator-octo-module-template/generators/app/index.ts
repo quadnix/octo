@@ -32,11 +32,9 @@ export default class extends Generator {
       }
     }
     if (targetPathStat?.isDirectory()) {
-      const files = await readdir(targetPath);
-      if (files.length > 0) {
-        throw new Error(
-          `Directory '${targetPath}' already exists and is not empty! Please choose a different name or path.`,
-        );
+      const files = await readdir(targetPath, { withFileTypes: true });
+      if (files.filter((f) => f.isFile()).length > 0) {
+        throw new Error(`Directory '${targetPath}' already exists and is not empty!`);
       }
     }
 
