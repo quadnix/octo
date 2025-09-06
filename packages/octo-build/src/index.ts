@@ -8,6 +8,7 @@ import { createAppCommand } from './commands/create-app/index.js';
 import { createCdkCommand } from './commands/create-cdk/index.js';
 import { createModelCommand } from './commands/create-model/index.js';
 import { createModuleCommand } from './commands/create-module/index.js';
+import { createOverlayCommand } from './commands/create-overlay/index.js';
 
 const PROGRAM_NAME = 'octo';
 
@@ -24,6 +25,7 @@ parser.command(createAppCommand);
 parser.command(createCdkCommand);
 parser.command(createModelCommand);
 parser.command(createModuleCommand);
+parser.command(createOverlayCommand);
 parser.command(buildCommand);
 
 await parser.argv;

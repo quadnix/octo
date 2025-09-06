@@ -1,0 +1,13 @@
+import { BaseOverlaySchema, Schema, Validate } from '@quadnix/octo';
+
+export class <%= moduleNamePascal %><%= overlayNamePascal %>OverlaySchema extends BaseOverlaySchema {
+  @Validate({
+    destruct: (value: <%= moduleNamePascal %><%= overlayNamePascal %>OverlaySchema['properties']): string[] => [
+      // TODO: Add properties for validation.
+    ],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    // TODO: Add overlay properties.
+  }>();
+}

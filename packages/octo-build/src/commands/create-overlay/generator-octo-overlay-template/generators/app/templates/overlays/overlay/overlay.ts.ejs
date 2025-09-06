@@ -1,0 +1,22 @@
+import { AOverlay, type Diff, Overlay } from '@quadnix/octo';
+import { <%= moduleNamePascal %><%= overlayNamePascal %>OverlaySchema } from './<%= moduleName %>-<%= overlayName %>.schema.js';
+
+@Overlay('<%= packageName %>', '<%= moduleName %>-<%= overlayName %>-overlay', <%= moduleNamePascal %><%= overlayNamePascal %>OverlaySchema)
+export class <%= moduleNamePascal %><%= overlayNamePascal %>Overlay extends AOverlay<
+  <%= moduleNamePascal %><%= overlayNamePascal %>OverlaySchema,
+  <%= moduleNamePascal %><%= overlayNamePascal %>Overlay
+> {
+  declare properties: <%= moduleNamePascal %><%= overlayNamePascal %>OverlaySchema['properties'];
+
+  constructor(
+    overlayId: string,
+    properties: <%= moduleNamePascal %><%= overlayNamePascal %>OverlaySchema['properties'],
+    anchors: [],
+  ) {
+    super(overlayId, properties, anchors);
+  }
+
+  override async diffAnchors(): Promise<Diff[]> {
+    return [];
+  }
+}

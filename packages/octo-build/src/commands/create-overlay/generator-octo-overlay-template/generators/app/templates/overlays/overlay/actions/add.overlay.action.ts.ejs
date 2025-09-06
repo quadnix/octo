@@ -1,0 +1,50 @@
+import {
+  Action,
+  type ActionOutputs,
+  type Diff,
+  DiffAction,
+  type EnhancedModuleSchema,
+  Factory,
+  type IModelAction,
+  hasNodeName,
+} from '@quadnix/octo';
+import type { <%= moduleNamePascal %>Module } from '../../../<%= moduleName %>.module.js';
+import { <%= moduleNamePascal %><%= overlayNamePascal %>Overlay } from '../<%= moduleName %>-<%= overlayName %>.overlay.js';
+
+@Action(<%= moduleNamePascal %><%= overlayNamePascal %>Overlay)
+export class Add<%= moduleNamePascal %><%= overlayNamePascal %>OverlayAction implements IModelAction<<%= moduleNamePascal %>Module> {
+  filter(diff: Diff): boolean {
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof <%= moduleNamePascal %><%= overlayNamePascal %>Overlay &&
+      hasNodeName(diff.node, '<%= moduleName %>-<%= overlayName %>-overlay') &&
+      diff.field === 'overlayId'
+    );
+  }
+
+  async handle(
+    diff: Diff<<%= moduleNamePascal %><%= overlayNamePascal %>Overlay>,
+    actionInputs: EnhancedModuleSchema<<%= moduleNamePascal %>Module>,
+    actionOutputs: ActionOutputs,
+  ): Promise<ActionOutputs> {
+    const overlay = diff.node;
+    const properties = overlay.properties;
+
+    // TODO: Implement the action logic.
+    // This is where you would create the actual resources for your module.
+
+    return actionOutputs;
+  }
+}
+
+@Factory<Add<%= moduleNamePascal %><%= overlayNamePascal %>OverlayAction>(Add<%= moduleNamePascal %><%= overlayNamePascal %>OverlayAction)
+export class Add<%= moduleNamePascal %><%= overlayNamePascal %>OverlayActionFactory {
+  private static instance: Add<%= moduleNamePascal %><%= overlayNamePascal %>OverlayAction;
+
+  static async create(): Promise<Add<%= moduleNamePascal %><%= overlayNamePascal %>OverlayAction> {
+    if (!this.instance) {
+      this.instance = new Add<%= moduleNamePascal %><%= overlayNamePascal %>OverlayAction();
+    }
+    return this.instance;
+  }
+}
