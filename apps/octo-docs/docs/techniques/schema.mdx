@@ -1,0 +1,76 @@
+---
+title: Schema
+---
+
+## Introduction
+In Octo you can create Schema classes as simple POJO classes to define a set of properties.
+You will often create them for models, resources, overlays, anchors, and inputs to define their data properties.
+
+A schema class has several benefits over hardcoding the data types in the main classes itself,
+- It reduces boilerplate code in the main classes, thus keeping your main class lean and clean.
+- It reduces code duplication, as you can reuse the schema classes across different parts of your project.
+- It supports validation of each property.
+- It promotes type safety.
+
+:::tip
+A schema class often uses the [`Schema()`](/api/octo/function/Schema) function to define and initialize a property value.
+:::
+
+## Usage
+Any class that defines properties can be considered a schema class.
+```typescript
+import { Schema } from '@quadnix/octo';
+
+class MyInputSchema {
+  id = Schema<number>();
+  name? = Schema<string>('');
+}
+```
+
+In a schema class, you can define the type of each property using the `Schema()` method.
+This method also accepts an optional default value as the argument.
+
+## Referencing Other Schemas
+You can reference other schemas using the same `Schema()` method.
+```typescript
+class MyOtherSchema {
+  myInputSchema? = Schema<MyInputSchema>({ id: 0, name: '' });
+}
+```
+
+## Schema Validation
+All schema class properties can be validated on spot using the [@Validate](/docs/techniques/validation) decorator.
+```typescript
+export class RegionSchema {
+  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
+  regionId = Schema<string>();
+}
+```
+
+## Schema in Octo
+Schemas are deeply embedded in Octo, and you will use them throughout your project.
+You will create schema classes to define the data properties of models, overlays, resources, anchors, and module inputs.
+
+Schemas are also often the only constructs that you will share with the outside world for other users to consume
+and use in their validation assertions.
+Here is an example to demonstrate the need for Schema beyond the various benefits we listed above.
+
+In this module input, we would like to ensure that it accepts a valid instance of `MyRegion` class,
+which is a type of Region model. Since models are internal constructs in Octo, a model is almost never directly exposed.
+Other users wanting to access `MyRegion` object will use the exposed `MyRegionSchema` to ensure that the value
+passed to them is a valid instance of `MyRegion` class.
+```typescript
+class MyModuleInput {
+  @Validate({
+    destruct: (value: Region): [MyRegionSchema] => [value.synth()],
+    options: { isSchema: { schema: MyRegionSchema } },
+  })
+  region = Schema<Region>();
+}
+```
+
+:::tip
+Schemas are first class citizens in Octo, and are not optional.
+They promote good practices like type safety, and validation,
+and allows passing internal Octo constructs without exposing their internal implementation details. 
+:::

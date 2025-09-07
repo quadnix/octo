@@ -115,23 +115,13 @@ const sidebars: SidebarsConfig = {
     {
       items: [
         {
+          id: 'techniques/schema',
+          label: 'Schema',
+          type: 'doc',
+        },
+        {
           id: 'techniques/validation',
           label: 'Validation',
-          type: 'doc',
-        },
-        {
-          id: 'techniques/hooks',
-          label: 'Hooks',
-          type: 'doc',
-        },
-        {
-          id: 'techniques/testing',
-          label: 'Testing',
-          type: 'doc',
-        },
-        {
-          id: 'techniques/aws-models',
-          label: 'AWS Models',
           type: 'doc',
         },
       ],
