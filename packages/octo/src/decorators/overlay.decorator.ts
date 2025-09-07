@@ -5,17 +5,26 @@ import { ModelSerializationService } from '../services/serialization/model/model
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
 /**
- * An `@Overlay` is a class decorator to be placed on top of a class that represents an overlay.
- * - An overlay must extend the {@link AOverlay} class.
+ * An `@Overlay` is a class decorator and must be placed on top of a class representing an overlay.
+ * - An overlay must also extend the {@link AOverlay} class.
+ * - For type safety, the type of overlay being decorated is passed to the decorator.
  *
  * @example
  * ```ts
- * @Overlay('my-package', 'my-name')
- * export class MyOverlay extends AOverlay<MyOverlay> { ... }
+ * @Overlay<MyOverlay>('@example', 'my-name', MyOverlaySchema)
+ * export class MyOverlay extends AOverlay<MyOverlaySchema, MyOverlay> { ... }
  * ```
  * @group Decorators
+ *
+ * @param packageName - The name of the package under which the overlay is registered.
+ * Selecting a unique package name helps avoid collisions between same overlay class names across different libraries.
+ * You will reuse the same package name throughout your library for different Octo components you create.
+ * @param overlayName - a string that uniquely represents the name of the overlay.
+ * @param schema - The schema of the overlay.
+ *
  * @returns The decorated class.
- * @see Definition of [Overlays](/docs/fundamentals/overlay-and-anchor).
+ *
+ * @see Definition of [Overlays](/docs/fundamentals/overlays).
  */
 export function Overlay<T extends UnknownOverlay>(
   packageName: string,

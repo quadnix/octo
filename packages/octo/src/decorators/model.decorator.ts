@@ -6,17 +6,30 @@ import { ModelSerializationService } from '../services/serialization/model/model
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
 /**
- * A `@Model` is a class decorator to be placed on top of a class that represents a model.
- * - A model must extend the {@link AModel} class.
+ * A `@Model` is a class decorator and must be placed on top of a class representing a model.
+ * - A model must also extend a base model class.
+ * - For type safety, the type of model being decorated is passed to the decorator.
  *
  * @example
  * ```ts
- * @Model('my-package', 'my-name')
- * export class MyModel extends AModel<IMyModel, MyModel> { ... }
+ * @Model<MyModel>('@example', 'region', MyModelSchema)
+ * export class MyModel extends Region { ... }
  * ```
+ *
  * @group Decorators
+ *
+ * @param packageName - The name of the package under which the model is registered.
+ * Selecting a unique package name helps avoid collisions between same model class names across different libraries.
+ * You will reuse the same package name throughout your library for different Octo components you create.
+ * @param modelName - a string that uniquely represents the base model you are extending.
+ * Octo provides names for each of the base models, and you must use the same name.
+ * E.g. for region base model, the model name is `region`.
+ * @param schema - The schema of the model.
+ *
  * @returns The decorated class.
+ *
  * @see Definition of [Models](/docs/fundamentals/models).
+ * @see {@link App} and {@link Region} are a few base models. More can be found in the same folder.
  */
 export function Model<T extends UnknownModel>(
   packageName: string,

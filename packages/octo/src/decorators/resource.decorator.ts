@@ -5,17 +5,27 @@ import { ResourceSerializationService } from '../services/serialization/resource
 import { ValidationUtility } from '../utilities/validation/validation.utility.js';
 
 /**
- * A `@Resource` is a class decorator to be placed on top of a class that represents a resource.
- * - A resource must extend the {@link AResource} class.
+ * A `@Resource` is a class decorator and must be placed on top of a class representing a resource.
+ * - A resource must also extend the {@link AResource} class.
+ * - For type safety, the type of resource being decorated is passed to the decorator.
  *
  * @example
  * ```ts
- * @Resource('my-package', 'my-name')
- * export class MyResource extends AResource<MyResource> { ... }
+ * @Resource<MyResource>('@example', 'my-name', MyResourceSchema)
+ * export class MyResource extends AResource<MyResourceSchema, MyResource> { ... }
  * ```
+ *
  * @group Decorators
+ *
+ * @param packageName - The name of the package under which the resource is registered.
+ * Selecting a unique package name helps avoid collisions between same resource class names across different libraries.
+ * You will reuse the same package name throughout your library for different Octo components you create.
+ * @param resourceName - a string that uniquely represents the name of the resource.
+ * @param schema - The schema of the resource.
+ *
  * @returns The decorated class.
- * @see Definition of [Resources](http://localhost:3000/docs/fundamentals/resources).
+ *
+ * @see Definition of [Resources](/docs/fundamentals/resources).
  */
 export function Resource<T extends UnknownResource>(
   packageName: string,
