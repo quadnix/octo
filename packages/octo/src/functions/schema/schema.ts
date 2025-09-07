@@ -1,6 +1,9 @@
 import type { Constructable } from '../../app.type.js';
 import { SchemaError } from '../../errors/index.js';
 
+/**
+ * @internal
+ */
 export function getSchemaInstance<S extends object>(schemaClass: Constructable<S>, value: S): Record<string, unknown> {
   if (value === undefined) {
     throw new SchemaError(`Cannot determine schema with "${value}" value!`, schemaClass.name);
@@ -29,6 +32,9 @@ export function getSchemaInstance<S extends object>(schemaClass: Constructable<S
   return instance;
 }
 
+/**
+ * @internal
+ */
 export function getSchemaKeys<S>(schemaClass: Constructable<S>): string[] {
   const t = new schemaClass();
   const keys: string[] = [];
@@ -40,6 +46,15 @@ export function getSchemaKeys<S>(schemaClass: Constructable<S>): string[] {
   return keys;
 }
 
+/**
+ * The Schema function is used to set type and value for a property in a schema class or on a class property.
+ * It also accepts a default value.
+ *
+ * @param defaultValue The default value for the property.
+ * The default value is automatically assigned when the original value is `undefined`.
+ *
+ * @see Techniques for [Schema](/docs/techniques/schema).
+ */
 export function Schema<T>(defaultValue?: T): T {
   return (defaultValue === undefined ? undefined : (defaultValue as T)) as T;
 }

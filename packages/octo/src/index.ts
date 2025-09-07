@@ -18,7 +18,7 @@ export { Diff, DiffAction } from './functions/diff/diff.js';
 export { DiffUtility } from './functions/diff/diff.utility.js';
 export { type DiffMetadata } from './functions/diff/diff-metadata.js';
 export { ANodeAction } from './functions/node/node-action.abstract.js';
-export { Schema, getSchemaInstance, getSchemaKeys } from './functions/schema/schema.js';
+export { Schema } from './functions/schema/schema.js';
 
 export { Account } from './models/account/account.model.js';
 export { AccountSchema, AccountType } from './models/account/account.schema.js';
