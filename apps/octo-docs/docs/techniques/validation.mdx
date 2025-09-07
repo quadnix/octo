@@ -1,0 +1,243 @@
+---
+title: Validation
+---
+
+## Introduction
+Octo provides a built-in [validator](/api/octo/function/Validate) to validate schema properties.
+The property being validated must provide a list of constraints,
+and an optional destruct function to extract the value to validate.
+
+## Example
+The `containerPort` is a number whose value can be between [1, 65535].
+```typescript
+@Validate({ options: { maxLength: 65535, minLength: 1 } })
+containerPort = Schema<number>();
+```
+
+<br/>
+
+The `properties` is an object that has a property `albName` of type string.
+Since validator requires an array of values, we must destruct the object into an array of strings.
+Constraints are then applied on each value individually.
+Here, the constraint ensures that the `albName` will not be empty, and will have at least 1 character.
+```typescript
+@Validate({
+  destruct: (value: { albName: string }): string[] => [value.albName],
+  options: { minLength: 1 },
+})
+override properties = Schema<{
+  albName: string;
+}>();
+```
+
+## Signature
+The `@Validate` decorator can take a single constraint object, or an array of constraints.
+Each constraint object must provide an `options` property, and an optional `destruct` function.
+Without the `destruct` function, the property value is taken literally as the value to validate.
+```typescript
+// Array of constraints.
+@Validate([{ destruct: function, options: { ... }}, { destruct: function, options: { ... } }])
+
+// Single constraint.
+@Validate({ destruct: function, options: { ... } })
+```
+
+When multiple constraints are provided,
+Octo might throw a type error if all constraints don't provide the same return values in the destruct functions.
+You can easily avoid this by specifying a type for the `@Validate` decorator.
+```typescript
+@Validate<unknown>([{ destruct: () => string[], options: { ... }}, { destruct: () => number[], options: { ... } }])
+```
+
+## Transformation
+The `@Validate` decorator can also take a `transform` function to transform the value before validation.
+`destruct()` and constraints then apply on the transformed value.
+
+In this example, we are transforming the value to a JSON object,
+and then destructing the object into an array of strings.
+The `minLength` constraint is then applied on every string value.
+```typescript
+@Validate(
+  {
+    destruct: (transformedValue: object): string[] => Object.keys(transformedValue),
+    options: { minLength: 1 }
+  },
+  (value: any): object => {
+    if (typeof value !== 'string') {
+      throw new Error('Value is not string!');
+    }
+    return JSON.parse(value);
+  }
+)
+students = Schema<string>('{}');
+```
+
+:::warning
+When transformed, the original value is replaced with the transformed value.
+
+E.g., if the input value was `'{"name": "John", "age": 30}'`, and a transform function parsed the value to be an object,
+then the final value of `students` will be `{"name": "John", "age": 30}` an `object`, not a string!
+:::
+
+## Types of Constraints
+### custom
+A custom constraint allows you to specify your own function for validation.
+In this example, the `filter` property takes an optional function that takes a file path as a parameter
+and returns a boolean. To validate whether the user provided value is a function,
+we must first destruct the input value into an array of functions.
+
+Since the input value is optional, `Schema` will set the value to `null` when the input value is not provided.
+To avoid validation failures on `null`, we must check if the value is not null before applying the custom constraint.
+
+In the custom constraint, we will receive the destructed value.
+For each value, we are then checking if it is a function.
+In your custom function you must return a boolean - `true` indicating a valid value, and `false` otherwise.
+
+```typescript
+@Validate({
+  destruct: (value: any): ((filePath: string) => boolean)[] => {
+    const subjects: ((filePath: string) => boolean)[] = [];
+    if (value) {
+      subjects.push(value);
+    }
+    return subjects;
+  },
+  options: {
+    custom: (value: ((filePath: string) => boolean)[]): boolean => value.every((v) => typeof v === 'function'),
+  },
+})
+filter? = Schema<((filePath: string) => boolean) | null>(null);
+```
+
+You can further modify your custom constraint to be as complex as you require,
+e.g. running the function to ensures it returns a boolean value.
+
+### isModel
+To assert that an input value is a model, you can use the `isModel` constraint.
+You can specify,
+- `anchors` to assert that the input value is a model that has the given anchors.
+  - `anchorId` (optional) can assert the ID of the anchor.
+  - `schema` can assert the schema of the anchor.
+- `NODE_NAME` to assert the name of the model.
+- `NODE_PACKAGE` (optional) to assert the package of the model.
+
+In this example, the input value must be a `Region` model, having an anchor of `AwsRegionAnchorSchema` schema.
+The model must also extend the `region` base model, and must be from the `@example` package.
+```typescript
+@Validate([
+  {
+    options: {
+      isModel: { anchors: [{ schema: AwsRegionAnchorSchema }], NODE_NAME: 'region', NODE_PACKAGE: '@example' },
+    },
+  },
+])
+region = Schema<Region>();
+```
+
+### isOverlay
+To assert that an input value is an overlay, you can use the `isOverlay` constraint.
+You can specify,
+- `anchors` to assert that the input value is an overlay that has the given anchors.
+  - `anchorId` (optional) can assert the ID of the anchor.
+  - `schema` can assert the schema of the anchor.
+- `NODE_NAME` to assert the name of the overlay.
+- `NODE_PACKAGE` (optional) to assert the package of the overlay.
+- `overlayId` (optional) to assert the ID of the overlay.
+
+In this example, the input value must be an overlay, having an anchor of `MyOverlayAnchorSchema` schema.
+The overlay name must be `my-overlay`, and must be from the `@example` package.
+```typescript
+@Validate([
+  {
+    options: {
+      isOverlay: { anchors: [{ schema: MyOverlayAnchorSchema }], NODE_NAME: 'my-overlay', NODE_PACKAGE: '@example' },
+    },
+  },
+])
+overlay = Schema<MyOverlay>();
+```
+
+### isResource
+To assert that an input value is a resource, you can use the `isResource` constraint.
+You can specify,
+- `NODE_NAME` to assert the name of the resource.
+- `NODE_PACKAGE` (optional) to assert the package of the resource.
+- `resourceId` (optional) to assert the ID of the resource.
+
+In this example, the input value must be a resource with name `vpc`,
+must be from the `@example` package, and must have an ID of `us-east-1-vpc`.
+```typescript
+@Validate([
+  {
+    options: {
+      isResource: { NODE_NAME: 'vpc', NODE_PACKAGE: '@example', resourceId: 'us-east-1-vpc' },
+    },
+  },
+])
+vpc = Schema<Vpc>();
+```
+
+### isSchema
+To assert that the input value has specific properties, you can use the `isSchema` constraint.
+A `Schema` is a simple POJO class that defines a set of properties. E.g. here is a `RegionSchema` class.
+A schema class may or may not contain additional validation rules on its properties.
+```typescript
+export class RegionSchema {
+  @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
+  regionId = Schema<string>();
+}
+```
+
+In this example, the input value must be a `Region` model, and must have a `regionId` property that is a string.
+Using the `synth()` method we extract the serialized object of the model, and then apply the `isSchema` constraint,
+which will ensure that the serialized object contains the `regionId` property.
+```typescript
+@Validate([
+  {
+    destruct: (value: Region): [RegionSchema] => [value.synth()],
+    options: {
+      isSchema: { schema: RegionSchema },
+    },
+  },
+])
+region = Schema<Region>();
+```
+
+### maxLength
+The maximum length constraint asserts that the input value has a length less than or equal to
+the specified maximum length.
+- `boolean` asserts on the length of the boolean value.
+- `number` asserts on the numeric value.
+- `string` asserts on the length of the string.
+- `array` asserts on the length of the array.
+
+In this example, we are asserting that the `months` array has a length between [1, 12].<br/>
+Notice, without `destruct` the array value is being taken literally,
+and the array itself is validated, not the individual numbers.
+```typescript
+@Validate({ options: { maxLength: 12, minLength: 1 } })
+months = Schema<number[]>();
+```
+
+### minLength
+The minimum length constraint asserts that the input value has a length greater than or equal to
+the specified minimum length.
+- `boolean` asserts on the length of the boolean value.
+- `number` asserts on the numeric value.
+- `string` asserts on the length of the string.
+- `array` asserts on the length of the array.
+
+In this example, we are asserting that the `isEnabled` boolean is defined, and has a default value of `false`.
+```typescript
+@Validate({ options: { minLength: 1 } })
+isEnabled = Schema<boolean>(false);
+```
+
+### regex
+The regex constraint asserts that the input value matches the specified regular expression.
+
+In this example, we are asserting that the `regionId` string matches the specified regular expression.
+```typescript
+@Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z][\w-]*[a-zA-Z0-9]$/ } })
+regionId = Schema<string>();
+```

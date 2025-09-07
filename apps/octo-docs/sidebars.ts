@@ -115,6 +115,11 @@ const sidebars: SidebarsConfig = {
     {
       items: [
         {
+          id: 'techniques/validation',
+          label: 'Validation',
+          type: 'doc',
+        },
+        {
           id: 'techniques/hooks',
           label: 'Hooks',
           type: 'doc',

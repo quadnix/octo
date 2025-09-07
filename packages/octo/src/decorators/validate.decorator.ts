@@ -7,6 +7,14 @@ type ValidationOptions<T> = {
   options: { [key in ValidationType]?: ValidationTypeOptions[key] };
 };
 
+/**
+ * A `@Validate` is a property decorator to validate a property.
+ * It is typically used in {@link Schema} to validate schema properties.
+ *
+ * @group Decorators
+ *
+ * @see Techniques for [Validation](/docs/techniques/validation).
+ */
 export function Validate<T>(
   validators: ValidationOptions<T> | ValidationOptions<T>[],
   transform?: (value: any) => any,
