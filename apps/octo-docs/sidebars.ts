@@ -1,7 +1,6 @@
 import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
-  // By default, Docusaurus generates a sidebar from the docs folder structure
   docsSidebar: [
     {
       id: 'introduction',
@@ -84,6 +83,31 @@ const sidebars: SidebarsConfig = {
       label: 'Fundamentals',
       link: {
         description: 'Basic concepts.',
+        type: 'generated-index',
+      },
+      type: 'category',
+    },
+    {
+      items: [
+        {
+          id: 'devops/create-cdk',
+          label: 'Create a CDK',
+          type: 'doc',
+        },
+        {
+          id: 'devops/create-resource',
+          label: 'Create a Resource',
+          type: 'doc',
+        },
+        {
+          id: 'devops/create-model',
+          label: 'Create a Model',
+          type: 'doc',
+        },
+      ],
+      label: 'DevOps',
+      link: {
+        description: 'CDK concepts and code examples.',
         type: 'generated-index',
       },
       type: 'category',

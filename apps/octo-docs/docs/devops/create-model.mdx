@@ -1,0 +1,165 @@
+---
+title: Create a Model
+---
+
+## Introduction
+In CDK, a [Model](/docs/fundamentals/models) definition is a customized extension of one of the base Octo models.
+
+A new model consists of a few core components,
+- **Model** is the base model extension.
+- **Model Schema** defines the structure and validation rules for model data.
+- **Model Actions** defines the actions that transforms the model into a set of resources.
+
+:::info
+In this tutorial we will define a custom region model for AWS from scratch.
+
+A region in Octo is defined as a physical location where resources are deployed.
+In AWS, this translates to an AWS region like `us-east-1` or `eu-west-1`.
+
+For this example, we will assume that an entire AWS region is a single shard.
+Naturally, the total number of shards our users can then create is limited by the number of AWS regions.
+Further, we will restrict the total number of shards to be 2.
+
+In real world this is rarely the case, and you will typically want to design your region to have multiple shards
+to maximize the total number of shards your users can create.
+But for demonstration purposes, this is a fair assumption.
+:::
+
+## Create a Model
+To create an empty model, Octo provides you with a simple template.<br/>
+Run this command from the root of your project,
+```bash
+npx @quadnix/octo-build create-model -n simple-region -t region --package @example
+```
+
+It should produce a directory structure like this,
+```
+src/modules/region/simple-region
+└── models
+    └── region
+        ├── actions
+        │   └── add-simple-region.model.action.ts
+        ├── index.ts
+        ├── simple-region.model.ts
+        └── simple-region.schema.ts
+```
+
+This model is currently empty, and we will write custom logic in these files.
+
+### Model Schema
+A model schema defines the structure and validation rules for model data,
+and will always extend from the base model schema.<br/>
+For region, the base model schema is [RegionSchema](/api/octo/class/RegionSchema).
+
+- `RegionSchema` defines `regionId` which is the unique identifier for the region.
+- Additionally, we define `awsRegionAZs` as a list of AWS availability zones in the region.
+- And, `awsRegionId` as the AWS region identifier.
+- We also validate our inputs using the built-in [@Validate decorator](/api/octo/function/Validate).
+```typescript title="simple-region.schema.ts"
+export class SimpleRegionSchema extends RegionSchema {
+  @Validate({
+    destruct: (value: SimpleRegionSchema['awsRegionAZs']): string[] => value,
+    options: { minLength: 1 },
+  })
+  awsRegionAZs = Schema<string[]>();
+
+  @Validate({ options: { minLength: 1 } })
+  awsRegionId = Schema<string>();
+}
+```
+
+### Model
+A model class, like schema, extends from one of the base models.<br/>
+For region, the base model is [Region](/api/octo/class/Region).
+
+- We redeclared the same properties as defined in the schema.
+- We then wrote a constructor to initialize the model data based on user inputs.
+We have restricted the `awsRegionId` to only 2 AWS regions,
+and we automatically populate the availability zones.<br/>
+In a production environment, you would want to allow more AWS regions,
+and set the AWS availability zones accordingly.
+- Calling `super()` ensures the base model initializes `regionId`.
+Here, regionId is same as `awsRegionId`.
+- We also marked our model with the [@Model decorator](/api/octo/function/Model).
+
+```typescript title="simple-region.model.ts"
+export class SimpleRegion extends Region {
+  readonly awsRegionAZs: string[];
+
+  readonly awsRegionId: string;
+
+  override readonly regionId: string;
+
+  constructor (awsRegionId: ['us-east-1', 'us-west-2']) {
+    super(awsRegionId);
+
+    // E.g. for us-east-1, the AZs will be us-east-1a and us-east-1b.
+    this.awsRegionAZs = [`${awsRegionId}a`, `${awsRegionId}b`];
+    
+    this.awsRegionId = awsRegionId;
+    
+    this.regionId = awsRegionId;
+  }
+}
+```
+
+Then we complete our model definition by implementing the required
+`synth()` and `unSynth()` methods to correctly serialize and deserialize the model.
+```typescript title="simple-region.model.ts"
+override synth (): SimpleRegionSchema {
+  return {
+    awsRegionIds: [...this.awsRegionIds],
+    awsRegionId: this.awsRegionId,
+    regionId: this.regionId,
+  };
+}
+
+static override async unSynth (region: SimpleRegionSchema): Promise<SimpleRegion> {
+  return new SimpleRegion(region.awsRegionId);
+}
+```
+
+### Model Action
+In the model action, we can transform our model into a set of resources.
+In this example we will reuse the `SimpleVpc` resource we created in the previous section.
+
+The `filter()` method is used by Octo to determine which model actions to execute.
+When Octo attempts to add this model,
+this method is used to determine which model actions qualify for the given model and diff action.
+```typescript title="add-simple-region.model.action.ts"
+filter(diff: Diff): boolean {
+  return (
+    diff.action === DiffAction.ADD &&
+    diff.node instanceof SimpleRegion &&
+    hasNodeName(diff.node, 'region') &&
+    diff.field === 'regionId'
+  );
+}
+```
+
+The `handle()` method is where you can define the actual logic to generate resources.
+- `actionInputs.inputs` are module inputs provided by the users.
+
+[//]: # (TODO: add link for create-module)
+
+```typescript title="add-simple-region.model.action.ts"
+async handle(
+  diff: Diff<SimpleRegion>,
+  actionInputs: EnhancedModuleSchema<SimpleRegionModule>,
+  actionOutputs: ActionOutputs,
+): Promise<ActionOutputs> {
+  const region = diff.node;
+
+  // Create a VPC.
+  const vpc = new SimpleVpc(`vpc-${region.regionId}`, {
+    awsAccountId: actionInputs.inputs.account.accountId,
+    awsAvailabilityZones: [...region.awsRegionAZs],
+    awsRegionId: region.awsRegionId,
+    CidrBlock: actionInputs.inputs.vpcCidrBlock,
+    InstanceTenancy: 'default',
+  });
+
+  actionOutputs[vpc.resourceId] = vpc;
+  return actionOutputs;
+}
+```

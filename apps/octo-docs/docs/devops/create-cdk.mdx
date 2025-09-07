@@ -1,0 +1,72 @@
+---
+title: Create a CDK
+---
+
+## Introduction
+CDKs are Octo definition files that define various Octo components, such as models, resources, modules, etc.
+They are generally created by developers with DevOps background, targeting a specific cloud provider.
+
+A CDK exposes one or more modules with logic to encapsulate and define parts of a cloud infrastructure,
+conforming to a specific standard.
+End users can then ingest these CDKs to create real cloud infrastructure using the exposed modules.
+
+CDKs are written in TypeScript, and you can create one from scratch!<br/>
+However, that requires setting up various tools, such as `tsconfig.json`, `eslint`, and `compilers`.
+To make things easier, Octo provides pre-configured TypeScript templates for CDKs.
+
+## Creating a CDK
+To create a new CDK, simply run the below command.
+```bash
+npx @quadnix/octo-build create-cdk -n test-cdk -p .
+```
+
+For beginners, you can also create a new CDK with a pre-configured example.
+```bash
+npx @quadnix/octo-build create-cdk -n test-cdk -p . -o withExamples=true
+```
+
+Running either command will set up a new TypeScript project with,
+- a pre-configured `tsconfig.json` file.
+- a pre-configured `eslint` configuration.
+- a pre-configured `prettier` configuration.
+- Jest, circular-dependency detector, and Types.
+
+Running with option `withExamples=true` will also add a few example components for demonstration
+and to ensure that the CDK can be run successfully.
+
+This should create a directory structure like this:
+[Octo CDK Structure](/docs/getting-started/project-structure#octo-cdk-structure)
+
+:::tip
+Octo generates new CDKs with a pretty stringent set of eslint and tsconfig rules.
+But if these rules are not to your liking, you can override/modify them accordingly.
+Please see eslint and tsconfig official documentation for more information.
+:::
+
+## CDK Dummy Example
+The dummy example provided in the CDK is a perfect starting point to be able to see Octo in action
+without worrying about manipulating a real cloud infrastructure -
+because the dummy example just simulates making a few REST API calls for demonstration purposes.
+
+It defines a new `dummy-app` module to create a new `App` model with an anchor.
+It then defines a new resource to make a REST api call and collect the response.
+Finally, it defines model and resource actions as per Octo's convention.
+
+We encourage you to study the directory structure, and get familiar with the various Octo components defined here.
+In coming sections, we will explore each of these components in detail.
+
+## Validating CDK
+Your CDK is a library to be published and consumed by you or other developers in their infrastructure.
+But before you publish, you need to validate your components will work as expected.
+Octo provides a built-in testing framework for this.
+
+A sample test is included in the dummy example.
+To run tests, simply run the below command.
+```bash
+npm test
+```
+
+## Summary
+In this section we introduced how to create a new CDK, with and without examples.
+We also discussed the importance of testing, and introduced you to Octo's built-in testing framework.
+Next, we will dive deep into each of the Octo components, and explore how they are created.

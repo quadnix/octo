@@ -1,0 +1,172 @@
+---
+title: Create a Resource
+---
+
+## Introduction
+In CDK, a [Resource](/docs/fundamentals/resources) definition is a representation of a cloud resource,
+like a VPC, or an EC2 instance in AWS.
+
+A new resource consists of a few core components,
+- **Resource** is the resource node representing the infrastructure component in Octo.
+- **Resource Schema** defines the structure and validation rules for resource data.
+- **Resource Actions** defines the actions that transforms the resources into real cloud resources.
+
+:::info
+In this tutorial we will define a VPC resource for AWS from scratch.
+
+A VPC in AWS is a virtual private cloud, which is a private network in the cloud.
+This defines the boundary where all resources within the AWS region are deployed.
+:::
+
+## Create a Resource
+To create an empty resource, Octo provides you with a simple template.<br/>
+Run this command from the root of your project,
+```bash
+npx @quadnix/octo-build create-resource -n simple-vpc --package @example
+```
+
+It should produce a directory structure like this,
+```
+src/resources/simple-vpc
+├── actions
+│   ├── add-simple-vpc.resource.action.ts
+│   ├── delete-simple-vpc.resource.action.ts
+│   └── update-simple-vpc-tags.resource.action.ts
+├── index.schema.ts
+├── index.ts
+└── simple-vpc.resource.ts
+```
+
+This resource is currently empty, and we will write custom logic in these files.
+
+### Resource Schema
+A resource schema defines the structure and validation rules for resource data,
+and will always extend from the [BaseResourceSchema](/api/octo/class/BaseResourceSchema).
+
+To create a simple vpc we require certain inputs, which we will add to the property schema.
+These inputs will be passed directly to the AWS SDK, so you can add or remove inputs as per the SDK's requirements.<br/>
+For a VPC we will use the
+[CreateVpcCommand](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/client/ec2/command/CreateVpcCommand/)
+in our add action. The property inputs are derived from here.
+```typescript title="index.schema.ts"
+override properties = Schema<{
+  awsAccountId: string;
+  awsAvailabilityZones: string[];
+  awsRegionId: string;
+  CidrBlock: string;
+  InstanceTenancy: 'default';
+}>();
+```
+
+Similarly, we expect to capture output once this resource has been created.
+We add these captured outputs to the response schema.
+```typescript title="index.schema.ts"
+override response = Schema<{
+  VpcArn?: string;
+  VpcId?: string;
+}>();
+```
+
+### Resource
+A resource class extends the [AResource](/api/octo/class/AResource) class.
+
+- The only requirement of this definition class is to call the `super()` method.
+- Additionally, you can import and pass other resources as parents.
+A parent resource is a resource that is required to create this resource.
+- There are additional methods you might wish to override,
+like `diff()`, `diffInverse()`, `diffProperties()`, `diffUnpack()`, etc. from the `AResource` class.
+You can learn more about them in the API documentation of the [AResource](/api/octo/class/AResource) class.
+```typescript title="simple-vpc.resource.ts"
+constructor(resourceId: string, properties: SimpleVpcSchema['properties'], parents: []) {
+  super(resourceId, properties, parents);
+}
+```
+
+### Resource Action
+In the resource action, we can transform our resource into a real infrastructure resource.
+
+The `filter()` method is used by Octo to determine which resource actions to execute.
+When Octo attempts to add, modify, replace, or delete this resource,
+this method is used to determine which resource actions qualify for the given resource and diff action.
+```typescript title="add-simple-vpc.resource.action.ts"
+filter(diff: Diff): boolean {
+  return (
+    diff.action === DiffAction.ADD &&
+    diff.node instanceof SimpleVpc &&
+    hasNodeName(diff.node, 'simple-vpc') &&
+    diff.field === 'resourceId'
+  );
+}
+```
+
+The `handle()` method is where you can define the actual logic to manipulate resources.
+Here, we are calling the AWS SDK V3 JavaScript client to create a VPC.
+```typescript title="add-simple-vpc.resource.action.ts"
+async handle(diff: Diff<SimpleVpc>): Promise<void> {
+  // Get properties.
+  const vpc = diff.node;
+  const properties = vpc.properties;
+  const response = vpc.response;
+  const tags = vpc.tags;
+
+  // Get instances.
+  const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
+    args: [properties.awsAccountId, properties.awsRegionId],
+    metadata: { package: '@octo' },
+  });
+
+  // Create VPC.
+  const vpcOutput = await ec2Client.send(
+    new CreateVpcCommand({
+      CidrBlock: properties.CidrBlock,
+      InstanceTenancy: properties.InstanceTenancy,
+      TagSpecifications: [
+        { ResourceType: 'vpc', Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })) },
+      ],
+    }),
+  );
+
+  await ec2Client.send(
+    new ModifyVpcAttributeCommand({
+      EnableDnsHostnames: {
+        Value: true,
+      },
+      VpcId: vpcOutput.Vpc!.VpcId!,
+    }),
+  );
+  await ec2Client.send(
+    new ModifyVpcAttributeCommand({
+      EnableDnsSupport: {
+        Value: true,
+      },
+      VpcId: vpcOutput.Vpc!.VpcId!,
+    }),
+  );
+
+  // Set response.
+  response.VpcArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:vpc/${vpcOutput.Vpc!.VpcId}`;
+  response.VpcId = vpcOutput.Vpc!.VpcId!;
+}
+```
+
+You should now be able to create modify and delete actions on your own using the same pattern.
+
+:::warning
+Before you can use the AWS SDK V3 JavaScript client, you need to instantiate the client.
+We recommend instantiating clients using [Container](/api/octo/class/Container) factories.
+Internally, for `octo-aws-cdk` package, we have defined factories for all AWS SDK V3 clients,
+which enables us to reference these clients using the Container, as you see below.
+
+Our code examples won't work for you until you have created your own clients for your CDK,
+and replaced our example factories with your own.
+
+[//]: # (TODO: put example link for factories here.)
+
+```typescript title="add-simple-vpc.resource.action.ts"
+// Get instances.
+const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
+  args: [properties.awsAccountId, properties.awsRegionId],
+  metadata: { package: '@octo' },
+});
+```
+:::
