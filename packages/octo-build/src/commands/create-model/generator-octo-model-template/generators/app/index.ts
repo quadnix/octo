@@ -94,6 +94,6 @@ export default class extends Generator {
     this.log('✅ Your model has been generated successfully!');
     this.log(`📁 Model created at: ${targetPath}`);
     this.log('📦 Next steps:');
-    this.log(`   Fix TODOs in generated files`);
+    this.log(`   Address all "Fix me" in generated files`);
   }
 }

@@ -102,6 +102,6 @@ export default class extends Generator {
     this.log('✅ Your resource has been generated successfully!');
     this.log(`📁 Resource created at: ${targetPath}`);
     this.log('📦 Next steps:');
-    this.log(`   Fix TODOs in generated files`);
+    this.log(`   Address all "Fix me" in generated files`);
   }
 }

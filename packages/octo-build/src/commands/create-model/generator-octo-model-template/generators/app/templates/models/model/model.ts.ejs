@@ -3,27 +3,27 @@ import { <%= moduleNamePascal %>Schema } from './<%= moduleName %>.schema.js';
 
 @Model<<%= moduleNamePascal %>>('<%= packageName %>', '<%= moduleType %>', <%= moduleNamePascal %>Schema)
 export class <%= moduleNamePascal %> extends <%= moduleTypePascal %> {
-  // TODO: Add properties specific to your module.
+  // Fix me: Add properties specific to your module.
   private readonly customProperty: string;
 
-  // TODO: Update constructor to take properties as inputs.
+  // Fix me: Update constructor to take properties as inputs.
   constructor(customProperty: string) {
-    // TODO: Initialize model with correct ID.
+    // Fix me: Initialize model with correct ID.
     super(customProperty);
 
-    // TODO: Initialize module-specific properties.
+    // Fix me: Initialize module-specific properties.
     this.customProperty = customProperty;
   }
 
   override synth(): <%= moduleNamePascal %>Schema {
-    // TODO: Return serialized schema.
+    // Fix me: Return serialized schema.
     return {
       customProperty: this.customProperty,
     };
   }
 
   static override async unSynth(<%= moduleType %>: <%= moduleNamePascal %>Schema): Promise<<%= moduleNamePascal %>> {
-    // TODO: Return unserialized instance of <%= moduleNamePascal %>.
+    // Fix me: Return unserialized instance of <%= moduleNamePascal %>.
     return new <%= moduleNamePascal %>(<%= moduleType %>.customProperty);
   }
 }

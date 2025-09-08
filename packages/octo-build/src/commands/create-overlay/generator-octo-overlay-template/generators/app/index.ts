@@ -115,6 +115,6 @@ export default class extends Generator {
     this.log('✅ Your overlay has been generated successfully!');
     this.log(`📁 Overlay created at: ${targetPath}`);
     this.log('📦 Next steps:');
-    this.log(`   Fix TODOs in generated files`);
+    this.log(`   Address all "Fix me" in generated files`);
   }
 }

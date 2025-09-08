@@ -32,14 +32,14 @@ export class Update<%= resourceNamePascal %>TagsResourceAction extends ANodeActi
     const response = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.response;
     const tagUpdates = diff.value;
 
-    // TODO: Implement the update-tag resource logic.
+    // Fix me: Implement the update-tag resource logic.
     // This is where you would update tags of the actual resource.
     // E.g.,
     /*
     // Get instances.
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
       args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
+      metadata: { package: '@example' },
     });
 
     // Delete tags.
@@ -72,11 +72,11 @@ export class Update<%= resourceNamePascal %>TagsResourceAction extends ANodeActi
     const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
     const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
 
-    // TODO: Implement mock logic for captures.
+    // Fix me: Implement mock logic for captures.
     // E.g.,
     // const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
     //   args: [properties.awsAccountId, properties.awsRegionId],
-    //   metadata: { package: '@octo' },
+    //   metadata: { package: '@example' },
     // });
     // ec2Client.send = async (): Promise<void> => {};
   }

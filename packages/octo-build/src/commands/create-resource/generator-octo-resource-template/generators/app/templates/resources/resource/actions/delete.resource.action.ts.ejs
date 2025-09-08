@@ -22,7 +22,7 @@ export class Delete<%= resourceNamePascal %>ResourceAction extends ANodeAction i
     const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
     const response = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.response;
 
-    // TODO: Implement the delete resource logic.
+    // Fix me: Implement the delete resource logic.
     // This is where you would delete the actual resource.
   }
 
@@ -31,11 +31,11 @@ export class Delete<%= resourceNamePascal %>ResourceAction extends ANodeAction i
     const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
     const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
 
-    // TODO: Implement mock logic for captures.
+    // Fix me: Implement mock logic for captures.
     // E.g.,
     // const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
     //   args: [properties.awsAccountId, properties.awsRegionId],
-    //   metadata: { package: '@octo' },
+    //   metadata: { package: '@example' },
     // });
     // ec2Client.send = async (instance: unknown): Promise<unknown> => {
     //   if (instance instanceof DeleteVpcCommand) {
