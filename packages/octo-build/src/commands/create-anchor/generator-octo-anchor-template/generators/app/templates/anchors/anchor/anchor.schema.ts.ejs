@@ -1,0 +1,23 @@
+<% if (isModelAnchor) { -%>
+import { BaseAnchorSchema, type <%= modelTypePascal %>, Schema, Validate } from '@quadnix/octo';
+<% } else { -%>
+import { type AOverlay, BaseAnchorSchema, type BaseOverlaySchema, Schema, Validate } from '@quadnix/octo';
+<% } -%>
+
+export class <%= anchorNamePascal %>AnchorSchema extends BaseAnchorSchema {
+  <% if (isModelAnchor) { -%>
+parentInstance: <%- modelTypePascal %>;
+  <% } else { -%>
+parentInstance: AOverlay<BaseOverlaySchema, any>;
+  <% } -%>
+
+  @Validate({
+    destruct: (value: <%= anchorNamePascal %>AnchorSchema['properties']): string[] => [
+      // Fix me: Add properties for validation.
+    ],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    // Fix me: Add anchor properties.
+  }>();
+}
