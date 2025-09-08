@@ -154,13 +154,13 @@ You should now be able to create modify and delete actions on your own using the
 :::warning
 Before you can use the AWS SDK V3 JavaScript client, you need to instantiate the client.
 We recommend instantiating clients using [Container](/api/octo/class/Container) factories.
-Internally, for `octo-aws-cdk` package, we have defined factories for all AWS SDK V3 clients,
+Internally, for `octo-aws-cdk` package, we have defined factories for most AWS SDK V3 clients,
 which enables us to reference these clients using the Container, as you see below.
 
-Our code examples won't work for you until you have created your own clients for your CDK,
-and replaced our example factories with your own.
-
-[//]: # (TODO: put example link for factories here.)
+Our factories are internal implementation details, subjected to change without notice, and thus might not work for you!
+It is best for you to create your own clients for your CDK,
+and replace our example factories with your own.<br/>
+Follow the link to learn more on how to [create a sdk client factory](/docs/devops/create-sdk-client-factory).
 
 ```typescript title="add-simple-vpc.resource.action.ts"
 // Get instances.

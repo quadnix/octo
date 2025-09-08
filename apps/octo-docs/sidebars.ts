@@ -95,6 +95,11 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
+          id: 'devops/create-sdk-client-factory',
+          label: 'Create a SDK Client Factory',
+          type: 'doc',
+        },
+        {
           id: 'devops/create-resource',
           label: 'Create a Resource',
           type: 'doc',

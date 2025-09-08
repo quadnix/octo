@@ -1,0 +1,59 @@
+---
+title: Create a SDK Client Factory
+---
+
+## Introduction
+Most [Resource Actions](/docs/devops/create-resource#resource-action) will want to interface with appropriate cloud SDKs to manipulate cloud resources.
+Before you can use the SDK clients, you might need to instantiate the client.
+
+A [Container](/api/octo/class/Container) factory is the recommended way to instantiate SDK clients.
+This enables you to reference these clients using Octo Container class, and can be easily mocked for testing.
+
+## Usage
+### Create a Factory
+In this example, we are creating a factory for an AWS EC2 client from the AWS SDK V3 JavaScript library.
+We recommend reading the official
+[AWS SDK V3 JavaScript documentation](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/configuring-the-jssdk.html)
+on how to instantiate these clients.
+```typescript title="ec2-client.factory.ts"
+import { EC2Client } from '@aws-sdk/client-ec2';
+import { Factory } from '@quadnix/octo';
+import type { EndpointInputConfig } from '@smithy/middleware-endpoint/dist-types/resolveEndpointConfig.js';
+import type { AwsCredentialIdentityProvider } from '@smithy/types';
+
+@Factory<EC2Client>(EC2Client, { metadata: { package: '@example' } })
+export class EC2ClientFactory {
+  private static instance: EC2Client;
+  
+  static async create(
+    awsRegionId: string,
+    credentials: AwsCredentialIdentityProvider,
+    endpointInputConfig: EndpointInputConfig = {},
+  ): Promise<EC2Client> {
+    if (!this.instance) {
+      this.instance = new EC2Client({ ...credentials, ...endpointInputConfig, region: awsRegionId });
+    }
+    return this.instance;
+  }
+}
+```
+
+:::warning
+The above factory is a singleton, and will always return the same instance on every call.<br/>
+To return new instances on every call, you can modify the factory to not be singleton.
+:::
+
+### Using the Factory
+Once you have created the factory, you can use it to get the client instance.
+```typescript
+import { EC2Client } from '@aws-sdk/client-ec2';
+import { fromIni } from '@aws-sdk/credential-providers';
+import { Container } from '@quadnix/octo';
+import { EC2ClientFactory } from './factories/ec2-client.factory.js';
+
+const container = Container.getInstance();
+const ec2Client = await container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
+  args: ['us-east-1', fromIni({ profile: 'default' })],
+  metadata: { package: '@example' },
+});
+```
