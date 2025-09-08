@@ -5,20 +5,20 @@ import Generator, { type BaseOptions } from 'yeoman-generator';
 import { StringUtility } from '../../../../../utilities/string/string.utility.js';
 
 export default class extends Generator {
+  private readonly cdkRootDir: string;
   private readonly packageName: string;
   private readonly resourceName: string;
-  private readonly resourcePath: string;
 
   constructor(args: string[], opts: BaseOptions) {
     super(args, opts);
 
     this.resourceName = args[0];
     this.packageName = args[1];
-    this.resourcePath = args[2];
+    this.cdkRootDir = args[2];
   }
 
   async initializing(): Promise<void> {
-    const targetPath = resolve(join(this.resourcePath, 'src', 'resources', this.resourceName));
+    const targetPath = resolve(join(this.cdkRootDir, 'src', 'resources', this.resourceName));
 
     // Check if directory already exists and is not empty.
     let targetPathStat: Stats | undefined;
@@ -97,7 +97,7 @@ export default class extends Generator {
   }
 
   end(): void {
-    const targetPath = resolve(join(this.resourcePath, 'src', 'resources', this.resourceName));
+    const targetPath = resolve(join(this.cdkRootDir, 'src', 'resources', this.resourceName));
 
     this.log('✅ Your resource has been generated successfully!');
     this.log(`📁 Resource created at: ${targetPath}`);

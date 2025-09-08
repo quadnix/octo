@@ -18,7 +18,7 @@ export class Add<%= moduleNamePascal %>ModelAction implements IModelAction<<%= m
     return (
       diff.action === DiffAction.ADD &&
       diff.node instanceof <%= moduleNamePascal %> &&
-      hasNodeName(diff.node, '<%= moduleType %>') &&
+      hasNodeName(diff.node, '<%= modelType %>') &&
       diff.field === 'my-model-id'
     );
   }
@@ -28,7 +28,7 @@ export class Add<%= moduleNamePascal %>ModelAction implements IModelAction<<%= m
     actionInputs: EnhancedModuleSchema<<%= moduleNamePascal %>Module>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const <%= moduleType %> = diff.node;
+    const <%= modelType %> = diff.node;
 
     // Fix me: Implement the action logic.
     // This is where you would create the actual resources for your module.

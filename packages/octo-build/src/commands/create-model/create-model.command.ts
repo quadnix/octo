@@ -13,25 +13,26 @@ export const createModelCommand = {
       .option('name', {
         alias: 'n',
         demandOption: true,
-        description: 'Name of the module to create. Should be in kebab-case (e.g., my-awesome-region).',
+        description:
+          'Name of the module where the model is created. Should be in kebab-case (e.g., my-awesome-region).',
         type: 'string',
       })
       .option('type', {
         alias: 't',
         choices: StringUtility.AVAILABLE_MODEL_TYPES,
         demandOption: true,
-        description: 'Type of model this module is for.',
+        description: 'Type of model this custom model is extending.',
         type: 'string',
       })
       .option('package', {
         demandOption: true,
-        description: 'Package name for the module.',
+        description: 'Package name for the model.',
         type: 'string',
       })
       .option('path', {
         alias: 'p',
         default: '.',
-        description: 'Path to create the module.',
+        description: 'Root directory path of the CDK.',
         type: 'string',
       });
   },

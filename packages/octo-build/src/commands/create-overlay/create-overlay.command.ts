@@ -13,19 +13,20 @@ export const createOverlayCommand = {
       .option('name', {
         alias: 'n',
         demandOption: true,
-        description: 'Name of the module to create overlay for. Should be in kebab-case (e.g., my-awesome-region).',
+        description:
+          'Name of the module where the overlay is created. Should be in kebab-case (e.g., my-awesome-region).',
         type: 'string',
       })
       .option('type', {
         alias: 't',
         choices: StringUtility.AVAILABLE_MODEL_TYPES,
         demandOption: true,
-        description: 'Type of model this module is for.',
+        description: 'Type of model this overlay is for.',
         type: 'string',
       })
       .option('package', {
         demandOption: true,
-        description: 'Package name for the module.',
+        description: 'Package name for the overlay.',
         type: 'string',
       })
       .option('overlay', {
@@ -36,7 +37,7 @@ export const createOverlayCommand = {
       .option('path', {
         alias: 'p',
         default: '.',
-        description: 'Path to create the overlay.',
+        description: 'Root directory path of the CDK.',
         type: 'string',
       });
   },

@@ -1,8 +1,8 @@
-import { Model, <%= moduleTypePascal %> } from '@quadnix/octo';
+import { Model, <%= modelTypePascal %> } from '@quadnix/octo';
 import { <%= moduleNamePascal %>Schema } from './<%= moduleName %>.schema.js';
 
-@Model<<%= moduleNamePascal %>>('<%= packageName %>', '<%= moduleType %>', <%= moduleNamePascal %>Schema)
-export class <%= moduleNamePascal %> extends <%= moduleTypePascal %> {
+@Model<<%= moduleNamePascal %>>('<%= packageName %>', '<%= modelType %>', <%= moduleNamePascal %>Schema)
+export class <%= moduleNamePascal %> extends <%= modelTypePascal %> {
   // Fix me: Add properties specific to your module.
   private readonly customProperty: string;
 
@@ -22,8 +22,8 @@ export class <%= moduleNamePascal %> extends <%= moduleTypePascal %> {
     };
   }
 
-  static override async unSynth(<%= moduleType %>: <%= moduleNamePascal %>Schema): Promise<<%= moduleNamePascal %>> {
+  static override async unSynth(<%= modelType %>: <%= moduleNamePascal %>Schema): Promise<<%= moduleNamePascal %>> {
     // Fix me: Return unserialized instance of <%= moduleNamePascal %>.
-    return new <%= moduleNamePascal %>(<%= moduleType %>.customProperty);
+    return new <%= moduleNamePascal %>(<%= modelType %>.customProperty);
   }
 }

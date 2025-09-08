@@ -36,7 +36,7 @@ export const createAnchorCommand = {
       .option('path', {
         alias: 'p',
         default: '.',
-        description: 'Path to create the anchor.',
+        description: 'Root directory path of the CDK.',
         type: 'string',
       });
   },

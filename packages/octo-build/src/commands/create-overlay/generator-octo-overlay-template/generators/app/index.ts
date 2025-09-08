@@ -5,9 +5,9 @@ import Generator, { type BaseOptions } from 'yeoman-generator';
 import { StringUtility } from '../../../../../utilities/string/string.utility.js';
 
 export default class extends Generator {
+  private readonly cdkRootDir: string;
+  private readonly modelType: string;
   private readonly moduleName: string;
-  private readonly modulePath: string;
-  private readonly moduleType: string;
   private readonly overlayName: string;
   private readonly packageName: string;
 
@@ -15,19 +15,19 @@ export default class extends Generator {
     super(args, opts);
 
     this.moduleName = args[0];
-    this.moduleType = args[1];
+    this.modelType = args[1];
     this.packageName = args[2];
     this.overlayName = args[3];
-    this.modulePath = args[4];
+    this.cdkRootDir = args[4];
   }
 
   async initializing(): Promise<void> {
     const targetPath = resolve(
       join(
-        this.modulePath,
+        this.cdkRootDir,
         'src',
         'modules',
-        this.moduleType,
+        this.modelType,
         this.moduleName,
         'overlays',
         `${this.moduleName}-${this.overlayName}`,
@@ -102,10 +102,10 @@ export default class extends Generator {
   end(): void {
     const targetPath = resolve(
       join(
-        this.modulePath,
+        this.cdkRootDir,
         'src',
         'modules',
-        this.moduleType,
+        this.modelType,
         this.moduleName,
         'overlays',
         `${this.moduleName}-${this.overlayName}`,

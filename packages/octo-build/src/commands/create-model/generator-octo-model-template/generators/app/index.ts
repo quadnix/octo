@@ -5,23 +5,23 @@ import Generator, { type BaseOptions } from 'yeoman-generator';
 import { StringUtility } from '../../../../../utilities/string/string.utility.js';
 
 export default class extends Generator {
+  private readonly modelType: string;
+  private readonly cdkRootDir: string;
   private readonly moduleName: string;
-  private readonly modulePath: string;
-  private readonly moduleType: string;
   private readonly packageName: string;
 
   constructor(args: string[], opts: BaseOptions) {
     super(args, opts);
 
     this.moduleName = args[0];
-    this.moduleType = args[1];
+    this.modelType = args[1];
     this.packageName = args[2];
-    this.modulePath = args[3];
+    this.cdkRootDir = args[3];
   }
 
   async initializing(): Promise<void> {
     const targetPath = resolve(
-      join(this.modulePath, 'src', 'modules', this.moduleType, this.moduleName, 'models', this.moduleType),
+      join(this.cdkRootDir, 'src', 'modules', this.modelType, this.moduleName, 'models', this.modelType),
     );
 
     // Check if directory already exists and is not empty.
@@ -50,10 +50,10 @@ export default class extends Generator {
       this.templatePath('models/model/model.ts.ejs'),
       this.destinationPath(`${this.moduleName}.model.ts`),
       {
+        modelType: this.modelType,
+        modelTypePascal: StringUtility.toPascalCase(this.modelType),
         moduleName: this.moduleName,
         moduleNamePascal: StringUtility.toPascalCase(this.moduleName),
-        moduleType: this.moduleType,
-        moduleTypePascal: StringUtility.toPascalCase(this.moduleType),
         packageName: this.packageName,
       },
     );
@@ -63,8 +63,8 @@ export default class extends Generator {
       this.templatePath('models/model/schema.ts.ejs'),
       this.destinationPath(`${this.moduleName}.schema.ts`),
       {
+        modelTypePascal: StringUtility.toPascalCase(this.modelType),
         moduleNamePascal: StringUtility.toPascalCase(this.moduleName),
-        moduleTypePascal: StringUtility.toPascalCase(this.moduleType),
       },
     );
 
@@ -79,16 +79,16 @@ export default class extends Generator {
       this.templatePath('models/model/actions/add.model.action.ts.ejs'),
       this.destinationPath('actions', `add-${this.moduleName}.model.action.ts`),
       {
+        modelType: this.modelType,
         moduleName: this.moduleName,
         moduleNamePascal: StringUtility.toPascalCase(this.moduleName),
-        moduleType: this.moduleType,
       },
     );
   }
 
   end(): void {
     const targetPath = resolve(
-      join(this.modulePath, 'src', 'modules', this.moduleType, this.moduleName, 'models', this.moduleType),
+      join(this.cdkRootDir, 'src', 'modules', this.modelType, this.moduleName, 'models', this.modelType),
     );
 
     this.log('✅ Your model has been generated successfully!');

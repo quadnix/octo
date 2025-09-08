@@ -7,7 +7,7 @@ import { StringUtility } from '../../../../../utilities/string/string.utility.js
 export default class extends Generator {
   private readonly anchorFamily: string;
   private readonly anchorName: string;
-  private readonly anchorPath: string;
+  private readonly cdkRootDir: string;
   private readonly modelType: string;
   private readonly packageName: string;
 
@@ -20,14 +20,14 @@ export default class extends Generator {
     this.anchorFamily = args[1];
     this.modelType = args[2];
     this.packageName = args[3];
-    this.anchorPath = args[4];
+    this.cdkRootDir = args[4];
 
     // Determine if this is a model anchor or overlay anchor.
     this.isModelAnchor = StringUtility.AVAILABLE_MODEL_TYPES.includes(this.modelType as any);
   }
 
   async initializing(): Promise<void> {
-    const targetPath = resolve(join(this.anchorPath, 'src', 'anchors', this.anchorFamily));
+    const targetPath = resolve(join(this.cdkRootDir, 'src', 'anchors', this.anchorFamily));
 
     // Check if anchors already exists.
     let targetPathContents: Dirent[] | undefined;
@@ -76,7 +76,7 @@ export default class extends Generator {
   }
 
   end(): void {
-    const targetPath = resolve(join(this.anchorPath, 'src', 'anchors', this.anchorFamily));
+    const targetPath = resolve(join(this.cdkRootDir, 'src', 'anchors', this.anchorFamily));
 
     this.log('✅ Your anchor has been generated successfully!');
     this.log(`📁 Anchor created at: ${targetPath}`);

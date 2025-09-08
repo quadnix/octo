@@ -5,22 +5,22 @@ import Generator, { type BaseOptions } from 'yeoman-generator';
 import { StringUtility } from '../../../../../utilities/string/string.utility.js';
 
 export default class extends Generator {
+  private readonly cdkRootDir: string;
+  private readonly modelType: string;
   private readonly moduleName: string;
-  private readonly modulePath: string;
-  private readonly moduleType: string;
   private readonly packageName: string;
 
   constructor(args: string[], opts: BaseOptions) {
     super(args, opts);
 
     this.moduleName = args[0];
-    this.moduleType = args[1];
+    this.modelType = args[1];
     this.packageName = args[2];
-    this.modulePath = args[3];
+    this.cdkRootDir = args[3];
   }
 
   async initializing(): Promise<void> {
-    const targetPath = resolve(join(this.modulePath, 'src', 'modules', this.moduleType, this.moduleName));
+    const targetPath = resolve(join(this.cdkRootDir, 'src', 'modules', this.modelType, this.moduleName));
 
     // Check if directory already exists and is not empty.
     let targetPathStat: Stats | undefined;
@@ -45,8 +45,8 @@ export default class extends Generator {
   async writing(): Promise<void> {
     // Create the module file
     this.fs.copyTpl(this.templatePath('module.ts.ejs'), this.destinationPath(`${this.moduleName}.module.ts`), {
+      modelTypePascal: StringUtility.toPascalCase(this.modelType),
       moduleNamePascal: StringUtility.toPascalCase(this.moduleName),
-      moduleTypePascal: StringUtility.toPascalCase(this.moduleType),
       packageName: this.packageName,
     });
 
@@ -63,7 +63,7 @@ export default class extends Generator {
   }
 
   end(): void {
-    const targetPath = resolve(join(this.modulePath, 'src', 'modules', this.moduleType, this.moduleName));
+    const targetPath = resolve(join(this.cdkRootDir, 'src', 'modules', this.modelType, this.moduleName));
 
     this.log('✅ Your module has been generated successfully!');
     this.log(`📁 Module created at: ${targetPath}`);

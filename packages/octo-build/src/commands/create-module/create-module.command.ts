@@ -31,7 +31,7 @@ export const createModuleCommand = {
       .option('path', {
         alias: 'p',
         default: '.',
-        description: 'Path to create the module.',
+        description: 'Root directory path of the CDK.',
         type: 'string',
       });
   },

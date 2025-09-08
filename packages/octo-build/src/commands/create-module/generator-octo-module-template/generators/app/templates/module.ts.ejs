@@ -1,9 +1,9 @@
-import { AModule, Module, type <%= moduleTypePascal %> } from '@quadnix/octo';
+import { AModule, Module, type <%= modelTypePascal %> } from '@quadnix/octo';
 import { <%= moduleNamePascal %>ModuleSchema } from './index.schema.js';
 
 @Module<<%= moduleNamePascal %>Module>('<%= packageName %>', <%= moduleNamePascal %>ModuleSchema)
-export class <%= moduleNamePascal %>Module extends AModule<<%= moduleNamePascal %>ModuleSchema, <%= moduleTypePascal %>> {
-  async onInit(inputs: <%= moduleNamePascal %>ModuleSchema): Promise<<%= moduleTypePascal %>> {
-    // Fix me: Create and return a new instance of <%= moduleTypePascal %>.
+export class <%= moduleNamePascal %>Module extends AModule<<%= moduleNamePascal %>ModuleSchema, <%= modelTypePascal %>> {
+  async onInit(inputs: <%= moduleNamePascal %>ModuleSchema): Promise<<%= modelTypePascal %>> {
+    // Fix me: Create and return a new instance of <%= modelTypePascal %>.
   }
 }
