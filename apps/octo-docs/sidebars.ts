@@ -114,6 +114,16 @@ const sidebars: SidebarsConfig = {
           label: 'Create an Overlay',
           type: 'doc',
         },
+        {
+          id: 'devops/create-anchor',
+          label: 'Create an Anchor',
+          type: 'doc',
+        },
+        {
+          id: 'devops/create-module',
+          label: 'Create a Module',
+          type: 'doc',
+        },
       ],
       label: 'DevOps',
       link: {

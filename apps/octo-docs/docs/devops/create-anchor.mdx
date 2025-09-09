@@ -1,0 +1,80 @@
+---
+title: Create an Anchor
+---
+
+## Introduction
+In CDK, an [Anchor](/docs/fundamentals/anchors) definition represents a model or an overlay subset signature.
+An anchor is a property on the model or overlay node,
+and exposes one or more properties of the node. You should think of an anchor as a "representative" of the model.
+
+A new anchor consists of a few core components,
+- **Anchor** is a node representing a subset of a model or overlay properties.
+- **Anchor Schema** defines the structure and validation rules for anchor data.
+
+Anchors extend the `AAnchor` abstract class and are decorated with the `@Anchor` decorator.
+Their main purpose is,
+- **Exposure of base models**: It exposes a small part of the model or overlay data,
+allowing these models to remain unexposed from the outside world.
+- **Signature**: Anchors provides unique signatures for models and overlays,
+allowing them to be grabbed by their anchors, rather than by their properties directly.
+
+## Create an Anchor
+To create an empty anchor, Octo provides you with a simple template.<br/>
+
+An anchor options require below information,
+- `-n simple-account`: specifies the name of the anchor.
+- `--family aws-account`: specifies the family of the anchor. The anchor will be created under this folder.
+- `-t account`: specifies the type of model the anchor is for. For overlays, the type is `-t overlay`.
+- `--package @example`: specifies the package name.
+
+:::note
+Notice how we don't prefix the names with `-anchor`,
+since the templates automatically append the names with proper suffixes.
+:::
+
+Run this command from the root of your Octo project,
+```bash
+npx @quadnix/octo-build create-anchor -n simple-account --family aws-account -t account --package @example
+```
+
+It should produce a directory structure like this,
+```
+src/anchors/aws-account
+├── simple-account.anchor.schema.ts
+└── simple-account.anchor.ts
+```
+
+This anchor is currently empty, and we will write custom logic in these files.
+
+### Anchor Schema
+An anchor schema defines the structure and validation rules for anchor data,
+and will always extend from the [BaseAnchorSchema](/api/octo/class/BaseAnchorSchema).
+
+The BaseAnchorSchema already defines the necessary fields an anchor schema must have,
+but the properties field is empty. You can add the properties you think your anchor needs,
+and optionally add validation rules for each property.
+```typescript title="simple-account.anchor.schema.ts"
+override properties = Schema<{
+  property1: string;
+  property2: number;
+}>();
+```
+
+:::tip
+Most of the time, the anchor fields are derived from their parent properties.
+:::
+
+### Anchor
+An anchor always extends from the [AAnchor](/api/octo/class/AAnchor) abstract class.
+
+The anchor class generated using the template is usually good enough to not require any customizations.
+The anchor schema defines the parent this anchor is associated with.
+```typescript title="simple-account.anchor.ts"
+constructor(
+  anchorId: string,
+  properties: SimpleAccountAnchorSchema['properties'],
+  parent: SimpleAccountAnchorSchema['parentInstance'],
+) {
+  super(anchorId, properties, parent);
+}
+```

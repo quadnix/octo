@@ -1,0 +1,202 @@
+---
+title: Create a Module
+---
+
+## Introduction
+Modules in Octo are the primary building blocks that orchestrate the creation and management of infrastructure.
+They bring together models, actions, overlays, and resources to provide complete infrastructure solutions.
+
+Within CDK, a [Module](/docs/fundamentals/modules) definition can also be thought of as a packaging unit for
+models, overlays, resources, anchors, and actions.
+When packaged, modules becomes a single unit capable of generating and managing a section of infrastructure
+in a very precise and opinionated manner.
+
+A new module consists of a few core components,
+- **Module** is the entrypoint class which your users will use to create and manage infrastructure
+offered by your module.
+- **Module Schema** defines the structure and validation rules for module input data.
+
+Modules extend the `AModule` abstract class and are decorated with the `@Module` decorator. They serve as,
+- **Orchestrators**: Coordinate the creation of models, overlays, and their relationships.
+- **Configuration Units**: Accept inputs and transform them into infrastructure components.
+- **Composition Points**: Allow infrastructure to be built from reusable, composable pieces.
+- **Lifecycle Managers**: Handle initialization, hooks, and metadata registration.
+
+## Create a Module
+To create an empty module, Octo provides you with a simple template.<br/>
+
+Module options require below information,
+- `-n simple-aws-account`: specifies the name of the module.
+- `-t account`: specifies the type of model this module is implementing.
+- `--package @example`: specifies the package name.
+
+:::info
+Notice how we don't prefix the names with `-module`,
+since the templates automatically append the names with proper suffixes.
+:::
+
+Run this command from the root of your Octo project,
+```bash
+npx @quadnix/octo-build create-module -n simple-aws-account -t account --package @example
+```
+
+It should produce a directory structure like this,
+```
+src/modules/account/simple-aws-account
+├── index.schema.ts
+├── index.ts
+└── simple-aws-account.module.ts
+```
+
+This module is currently empty, and we will write custom logic in these files.
+
+### Module Schema
+A module schema defines the structure and validation rules for module input data.
+Here you can define any inputs you need from your users in order to create the promised infrastructure.
+
+In this example, we are defining a new account module for AWS. We require below inputs,
+- **accountId**: The AWS account ID the module will be associated with.
+- **app**: The app model under which the account model will reside. 
+- **credentials**: The AWS credentials the module will use to access the AWS account.
+- **endpoint**: (optional) An optional endpoint to support VPC or local endpoints.
+```typescript title="index.schema.ts"
+export class SimpleAwsAccountModuleSchema {
+  @Validate({ options: { minLength: 1 } })
+  accountId = Schema<string>();
+
+  @Validate({ options: { isSchema: { schema: AppSchema } } })
+  app = Schema<App>();
+
+  @Validate({
+    destruct: (value: SimpleAwsAccountModuleSchema['credentials']): string[] => [
+      value.accessKeyId,
+      value.secretAccessKey,
+    ],
+    options: { minLength: 1 },
+  })
+  credentials = Schema<{ accessKeyId: string; secretAccessKey: string }>();
+
+  @Validate({
+    destruct: (value: SimpleAwsAccountModuleSchema['endpoint']): string[] => (value ? [value] : []),
+    options: { minLength: 1 },
+  })
+  endpoint? = Schema<string | null>(null);
+}
+```
+
+### Module
+A module always extends from the [AModule](/api/octo/class/AModule) abstract class.
+
+The main customization in a module is to define the `onInit()` function which will be executed to initialize the module.
+Here you will create models and overlays, and return them to Octo to manage.
+```typescript title="simple-aws-account.module.ts"
+async onInit(inputs: SimpleAwsAccountModuleSchema): Promise<Account> {
+  const app = inputs.app;
+
+  // Create a new account.
+  const account = new MySimpleAwsAccount(inputs.accountId, inputs.credentials, inputs.endpoint);
+  app.addAccount(account);
+
+  return account;
+}
+```
+
+In the example above, we have assumed that you already have a `MySimpleAwsAccount` account model created in your module.
+Follow the link to learn more on [how to create a model](/docs/devops/create-model).
+
+The `onInit()` logic can be as simple or complex as you need it to be.
+The only requirement is to return the model or overlays you create, back to Octo.
+
+:::tip
+As you import each model or overlay, their actions will automatically be registered,
+and Octo will be able to generate diffs and apply actions automatically.
+:::
+
+### Module Metadata
+Often the inputs and data points you generate in modules will be required in model or overlay actions.
+To make these data points available to actions, Octo provides a `registerMetadata()` method.
+
+Here you can register and expose module metadata to actions.
+```typescript title="simple-aws-account.module.ts"
+override async registerMetadata(
+  inputs: SimpleAwsAccountModuleSchema,
+): Promise<{ app: App; awsAccountId: string; awsRegionId: string }> {
+  const account = inputs.account;
+  const app = account.getParents()['app'][0].to as App;
+
+  return {
+    app,
+    awsAccountId: account.accountId,
+    awsRegionId: inputs.awsRegionId,
+  };
+}
+```
+
+The metadata, along with other important properties are now available for your actions to consume.
+```typescript title="add-simple-aws-account.action.ts"
+async handle(
+  diff: Diff<SimpleAwsAccount>,
+  actionInputs: EnhancedModuleSchema<SimpleAwsAccountModule>,
+  actionOutputs: ActionOutputs,
+): Promise<ActionOutputs> {
+  const { inputs, metadata, models, overlays, resources} = actionInputs;
+  const { awsAccountId, awsRegionId } = metadata;
+}
+```
+
+`EnhancedModuleSchema` exposes several data points to consume,
+- **inputs**: Module inputs provided by the users.
+- **metadata**: Module metadata registered by the module.
+- **models**: Models created by the module.
+- **overlays**: Overlays created by the module.
+- **resources**: Resources created by the module.
+
+## Module Hooks
+Modules allows registration of [Hooks](/docs/techniques/hooks) - a set of simple callbacks
+triggered on certain Octo events.
+```typescript title="simple-aws-account.module.ts"
+override registerHooks(): {
+  preCommitHooks?: {
+    handle: (app: App, modelTransaction: DiffMetadata[][]) => Promise<void>;
+  }[];
+} {
+  return {
+    preCommitHooks: [
+      {
+        handle: async (_app: App, _modelTransaction: DiffMetadata[][]): Promise<void> => {
+          console.log("I will trigger before Octo commits the transaction!");
+        },
+      },
+    ],
+  };
+}
+```
+
+:::tip
+There are several hooks that Octo allows you to bind into,
+all of which are discussed in detail in the [Hooks](/docs/techniques/hooks) section.
+:::
+
+## Export a Module
+Once you have created a module, it needs to be exported for users to consume.
+```typescript title="index.ts"
+export { SimpleAwsAccountModule } from './simple-aws-account.module.js';
+```
+
+The `index.ts` file serves a single purpose,
+- It creates a single point of entry for your module,
+  thus also controlling what you really want to expose vs internal implementation details.
+
+## Revisiting the Octo Lifecycle
+With all your CDK code in place, it is a good time to summarize the Octo lifecycle.
+- Modules take user inputs and create models, overlays, and anchors.
+- Models and overlay defines actions in which they manipulate resources.
+- Model, overlay, and resource actions are automatically registered.
+- When user runs the entire application, Octo will start with your module's `onInit()` function,
+which in turn will create models and overlays.
+- Octo will generate appropriate model diffs and apply model and overlay actions.
+- This in turn will modify resource nodes.
+- Octo will compare the resource nodes with previous nodes, and generate resource diffs.
+- Octo will run each affected resource's actions,
+following your every instruction, and create infrastructure resources in the cloud.
+- Finally, Octo commits the transaction by updating the state.
