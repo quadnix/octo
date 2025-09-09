@@ -163,3 +163,23 @@ async handle(
   return actionOutputs;
 }
 ```
+
+## Export a Model
+Once you have created a model, it needs to be exported for other parts of your module to consume it.
+```typescript title="index.ts"
+import './actions/add-simple-region.model.action.js';
+
+export { SimpleRegion } from './simple-region.model.js';
+```
+
+The `index.ts` file serves 2 main purpose,
+- It creates a single point of entry for your model,
+  thus also controlling what you really want to expose vs internal implementation details.
+- It automatically wires up the model actions. Any time your model is imported anywhere,
+  the model actions will be imported and the `@Action` decorator inside will be registered.
+
+:::warning
+If you miss importing any model actions in the `index.ts`,
+those actions won't get registered or triggered, since the `@Action` decorator never ran,
+and thus Octo will never know about this action.
+:::

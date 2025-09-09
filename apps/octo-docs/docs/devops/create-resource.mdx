@@ -170,3 +170,25 @@ const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(E
 });
 ```
 :::
+
+## Export a Resource
+Once you have created a resource, it needs to be exported for modules to consume.
+```typescript title="index.ts"
+import './actions/add-simple-vpc.resource.action.js';
+import './actions/delete-simple-vpc.resource.action.js';
+import './actions/update-simple-vpc-tags.resource.action.js';
+
+export { SimpleVpc } from './simple-vpc.resource.js';
+```
+
+The `index.ts` file serves 2 main purpose,
+- It creates a single point of entry for your resource,
+  thus also controlling what you really want to expose vs internal implementation details.
+- It automatically wires up the resource actions. Any time your resource is imported anywhere,
+  the resource actions will be imported and the `@Action` decorator inside will be registered.
+
+:::warning
+If you miss importing any resource actions in the `index.ts`,
+those actions won't get registered or triggered, since the `@Action` decorator never ran,
+and thus Octo will never know about this action.
+:::

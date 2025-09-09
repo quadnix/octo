@@ -109,6 +109,11 @@ const sidebars: SidebarsConfig = {
           label: 'Create a Model',
           type: 'doc',
         },
+        {
+          id: 'devops/create-overlay',
+          label: 'Create an Overlay',
+          type: 'doc',
+        },
       ],
       label: 'DevOps',
       link: {

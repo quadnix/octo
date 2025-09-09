@@ -1,0 +1,194 @@
+---
+title: Create an Overlay
+---
+
+## Introduction
+In CDK, an [Overlay](/docs/fundamentals/overlays) definition represent cross-cutting concerns
+that span multiple models to provide additional functionality on top of existing infrastructure.
+They are used to create relationships, configurations,
+and behaviors that don't naturally fit within a single model boundary.
+
+A new overlay consists of a few core components,
+- **Overlay** is a node representing cross-cutting infrastructure concerns.
+- **Overlay Schema** defines the structure and validation rules for overlay data.
+- **Overlay Actions** defines the actions that transforms the overlay into a set of resources.
+
+Overlays extend the `AOverlay` abstract class and are decorated with the `@Overlay` decorator.
+They differ from models in several ways,
+- **Add cross-cutting concerns**: It implements features like security policies, monitoring, or networking rules.
+- **Uses multiple models**: Connects to multiple models.
+- **Uses anchors**: It references models through anchor schemas.
+
+## Create an Overlay
+To create an empty overlay, Octo provides you with a simple template.<br/>
+
+An overlay is created under a module, and the options require this information,
+- `-n simple-subnet`: specifies the name of the module.
+- `-t subnet`: specifies the type of model the overlay is for.
+- `--package @example`: specifies the package name.
+- `--overlay filesystem-mount`: specifies the name of the overlay.
+
+:::note
+Notice how we don't prefix the names with `-module`, or `-overlay`,
+since the templates automatically append the names with proper suffixes.
+:::
+
+Run this command from the root of your Octo project,
+```bash
+npx @quadnix/octo-build create-overlay -n simple-subnet -t subnet --package @example --overlay filesystem-mount
+```
+
+It should produce a directory structure like this,
+```
+src/modules/subnet/simple-subnet
+└── overlays
+    └── simple-subnet-filesystem-mount
+        ├── actions
+        │   └── add-simple-subnet-filesystem-mount.overlay.action.ts
+        ├── index.ts
+        ├── simple-subnet-filesystem-mount.overlay.ts
+        └── simple-subnet-filesystem-mount.schema.ts
+```
+
+This overlay is currently empty, and we will write custom logic in these files.
+
+### Overlay Schema
+An overlay schema defines the structure and validation rules for overlay data,
+and will always extend from the [BaseOverlaySchema](/api/octo/class/BaseOverlaySchema).
+
+The BaseOverlaySchema already defines the necessary fields an overlay schema must have,
+but the properties field is empty. You can add the properties you think your overlay needs,
+and optionally add validation rules for each property.
+```typescript title="simple-subnet-filesystem-mount.schema.ts"
+override properties = Schema<{
+  property1: string;
+  property2: number;
+}>();
+```
+
+:::tip
+Overlays, just like models, are considered an internal implementation detail.
+That means, your overlays will most likely not be shared outside your module.
+
+It is very rare to share an overlay,
+and is usually only done when you suspect another module might depend on your overlay.
+
+Overlay properties reflects this.
+Since overlays ingest model and overlay anchors, it already has access to a lot of data points.
+Most overlay properties are empty.
+
+However, if you feel your overlay might be shared outside your module,
+it is fair to add overlay properties in this schema, and then share the schema for others to consume.
+You can also use overlay properties to use within the module to hold data that none of the other anchors have.
+:::
+
+### Overlay
+An overlay always extends from the [AOverlay](/api/octo/class/AOverlay) abstract class.
+
+The main customization in overlay is to add the anchors that your overlay depends upon.
+The anchors may come from another model, or another overlay.
+```typescript title="simple-subnet-filesystem-mount.overlay.ts"
+constructor(
+  overlayId: string,
+  properties: SimpleSubnetFilesystemMountOverlaySchema['properties'],
+  anchors: [MyModelAnchor, MyOverlayAnchor],
+) {
+  super(overlayId, properties, anchors);
+}
+```
+
+An overlay internally extends from a model node.
+Hence, most methods that you can use and override on a model, also applies to an overlay.
+Additionally, you have `diffAnchors()` method to override.
+
+The base `diffAnchors()` method in `AOverlay` generates an `ADD` diff for each anchor.
+You will need appropriate actions to handle addition of each anchor.
+```typescript title="api/octo/class/AOverlay#diffAnchors"
+async diffAnchors(): Promise<Diff[]> {
+  const diffs: Diff[] = [];
+
+const currentAnchors = this.getAnchors();
+for (const currentAnchor of currentAnchors) {
+  diffs.push(new Diff(this, DiffAction.ADD, 'anchor', currentAnchor));
+}
+
+return diffs;
+}
+```
+
+But it is very rare to operate on anchor diffs separately since most models or overlay actions
+already handle resource manipulations in their actions.
+So in most overlays this method is overridden to return an empty diff,
+```typescript title="simple-subnet-filesystem-mount.overlay.ts"
+override async diffAnchors(): Promise<Diff[]> {
+  return [];
+}
+```
+
+Nonetheless, you have the option to generate your own anchor diffs if you need to.
+
+### Overlay Action
+In the overlay action, we can transform our overlay into a set of resources.
+In this example we will reuse the `SimpleVpc` resource we created in the previous section.
+
+The `filter()` method is used by Octo to determine which overlay actions to execute.
+When Octo attempts to add this overlay,
+this method is used to determine which overlay actions qualify for the given overlay and diff action.
+```typescript title="add-simple-subnet-filesystem-mount.overlay.action.ts"
+filter(diff: Diff): boolean {
+  return (
+    diff.action === DiffAction.ADD &&
+    diff.node instanceof SimpleSubnetFilesystemMountOverlay &&
+    hasNodeName(diff.node, 'simple-subnet-filesystem-mount-overlay') &&
+    diff.field === 'overlayId'
+  );
+}
+```
+
+The `handle()` method is where you can define the actual logic to generate resources.
+- `actionInputs.inputs` are module inputs provided by the users.
+
+[//]: # (TODO: add link for create-module)
+
+```typescript title="add-simple-subnet-filesystem-mount.overlay.action.ts"
+async handle(
+  diff: Diff<SimpleSubnetFilesystemMountOverlay>,
+  actionInputs: EnhancedModuleSchema<SimpleSubnetModule>,
+  actionOutputs: ActionOutputs,
+): Promise<ActionOutputs> {
+  const overlay = diff.node;
+  const properties = overlay.properties;
+
+  // Create a VPC [Dummy Example]
+  const vpc = new SimpleVpc(`vpc-${properties.property1}`, {
+    awsAccountId: actionInputs.inputs.account.accountId,
+    awsAvailabilityZones: [],
+    awsRegionId: properties.property2,
+    CidrBlock: actionInputs.inputs.vpcCidrBlock,
+    InstanceTenancy: 'default',
+  });
+
+  actionOutputs[vpc.resourceId] = vpc;
+  return actionOutputs;
+}
+```
+
+## Export an Overlay
+Once you have created an overlay, it needs to be exported for other parts of your module to consume it.
+```typescript title="index.ts"
+import './actions/add-simple-subnet-filesystem-mount.overlay.action.js';
+
+export { SimpleSubnetFilesystemMountOverlay } from './simple-subnet-filesystem-mount.overlay.js';
+```
+
+The `index.ts` file serves 2 main purpose,
+- It creates a single point of entry for your overlay,
+thus also controlling what you really want to expose vs internal implementation details.
+- It automatically wires up the overlay actions. Any time your overlay is imported anywhere,
+the overlay actions will be imported and the `@Action` decorator inside will be registered.
+
+:::warning
+If you miss importing an overlay actions in the `index.ts`,
+the actions won't get registered or triggered, since the `@Action` decorator never ran,
+and thus Octo will never know about this action.
+:::
