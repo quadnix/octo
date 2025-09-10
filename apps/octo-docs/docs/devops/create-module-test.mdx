@@ -1,0 +1,257 @@
+---
+title: Create a Module Test
+---
+
+## Introduction
+Automated testing is an integral part of any software development effort.
+Tests help ensure that your CDK releases meets quality and correctness,
+provides coverage, and a faster feedback loop to you.
+
+Tests often span a variety of types, including unit tests, end-to-end (e2e) tests, integration tests,
+and so on. While the benefits are unquestionable, it can be tedious to set them up.
+Octo strives to promote development best practices, including effective testing,
+and thus has built-in support and scaffolding for tests.
+- Provides pre-configured scaffolding.
+- Provides default tooling (such as a test runner that builds an isolated module loader).
+- Makes the Octo container system available in the testing environment for easily mocking factories.
+
+You can use any testing framework you like, but by default Octo ships with [Jest](https://jestjs.io/).
+Another testing frameworks can also be used, but you will have to set them up yourselves.
+
+:::info
+The examples we provide here are written with the [Jest](https://jestjs.io/) framework.
+:::
+
+## What to expect
+Your Octo CDK is written using [Modules](/docs/fundamentals/modules.mdx), which is what we aim to test.
+Within the module you manipulate models, overlays, and resources.
+You also have various actions, hooks, and transactions to test.
+
+You can test other individual Octo components, such as models, actions, or factories as well,
+but we don't cover them in this guide since they are plain simple unit tests.
+You should consult the official [Jest](https://jestjs.io/) documentation if you are new to testing.
+
+## Example
+In the following example, we will test `SimpleAppModule` in octo-aws-cdk package,
+a very straightforward module that creates an `App` model node,
+and does not create any resources.
+```typescript title="simple-app.module.spec.ts"
+import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { SimpleAppModule } from './index.js';
+
+describe('SimpleAppModule UT', () => {
+  let testModuleContainer: TestModuleContainer;
+
+  beforeEach(async () => {
+    await TestContainer.create(
+      {
+        mocks: [
+          {
+            metadata: { package: '@octo' },
+            type: ResourceGroupsTaggingAPIClient,
+            value: {
+              send: (): void => {
+                throw new Error('Trying to execute real AWS resources in mock mode!');
+              },
+            },
+          },
+        ],
+      },
+      { factoryTimeoutInMs: 500 },
+    );
+
+    testModuleContainer = new TestModuleContainer();
+    await testModuleContainer.initialize(new TestStateProvider());
+  });
+
+  afterEach(async () => {
+    await testModuleContainer.reset();
+    await TestContainer.reset();
+  });
+
+  it('should call correct actions', async () => {
+    const { 'app.model.app': app } = await testModuleContainer.runModule<SimpleAppModule>({
+      inputs: { name: 'test-app' },
+      moduleId: 'app',
+      type: SimpleAppModule,
+    });
+
+    const result = await testModuleContainer.commit(app, {
+      enableResourceCapture: true,
+      filterByModuleIds: ['app'],
+    });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddSimpleAppModelAction",
+       ],
+     ]
+    `);
+    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`[]`);
+  });
+
+  it('should CUD', async () => {
+    const { 'app.model.app': app } = await testModuleContainer.runModule<SimpleAppModule>({
+      inputs: { name: 'test-app' },
+      moduleId: 'app',
+      type: SimpleAppModule,
+    });
+
+    const result = await testModuleContainer.commit(app, { enableResourceCapture: true });
+    expect(result.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
+  });
+
+  it('should CUD tags', async () => {
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { 'app.model.app': app1 } = await testModuleContainer.runModule<SimpleAppModule>({
+      inputs: { name: 'test-app' },
+      moduleId: 'app',
+      type: SimpleAppModule,
+    });
+    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
+    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
+
+    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { 'app.model.app': app2 } = await testModuleContainer.runModule<SimpleAppModule>({
+      inputs: { name: 'test-app' },
+      moduleId: 'app',
+      type: SimpleAppModule,
+    });
+    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
+    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
+
+    const { 'app.model.app': app3 } = await testModuleContainer.runModule<SimpleAppModule>({
+      inputs: { name: 'test-app' },
+      moduleId: 'app',
+      type: SimpleAppModule,
+    });
+    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
+    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
+  });
+});
+```
+
+:::tip
+Keep your test files located near the classes they test. Testing files should have a `.spec` suffix.
+:::
+
+The above test is very simple, but overwhelming at first.
+Let's break it down into smaller parts to understand them better.
+
+### Test Suites & Test Cases
+All Jest tests have a `describe` and `it` blocks that defines the test suite and the actual test cases.
+Multiple test cases can be defined in a single test suite.
+```typescript
+describe('SimpleAppModule UT', () => {
+  it('should call correct actions', async () => {}
+}
+```
+
+### Test Container
+Within an Octo test you will be focused in a single module,
+and not bother with other modules and their resources.
+A test container allows you to mock the rest of the CDK and only focus on the module being tested.
+This is done by mocking individual factories.
+
+In below example we know our module makes SDK calls to AWS to set tags on resources.
+Within our tests we want to mock any such behavior.
+Since this module only makes SDK call using `ResourceGroupsTaggingAPIClient`, we mock it.
+
+We additionally use a new state provider - [TestStateProvider](/api/octo/class/TestStateProvider),
+which only persists state in memory, and after the test is done, resets the state.
+
+After the tests are done, we also call the `reset()` methods to reset the container and destroy all factories within.
+```typescript
+let testModuleContainer: TestModuleContainer;
+
+beforeEach(async () => {
+  await TestContainer.create(
+    {
+      mocks: [
+        {
+          metadata: { package: '@octo' },
+          type: ResourceGroupsTaggingAPIClient,
+          value: {
+            send: (): void => {
+              throw new Error('Trying to execute real AWS resources in mock mode!');
+            },
+          },
+        },
+      ],
+    },
+    { factoryTimeoutInMs: 500 },
+  );
+
+  testModuleContainer = new TestModuleContainer();
+  await testModuleContainer.initialize(new TestStateProvider());
+});
+
+afterEach(async () => {
+  await testModuleContainer.reset();
+  await TestContainer.reset();
+});
+```
+
+:::info
+In the TestContainer we also set the Container factory resolution timeout from default 5s to 500ms
+in order to fail fast. Its just good practice, because if a factory is not resolved within a few milliseconds,
+that factory is possibly doing something wrong.
+:::
+
+### Test Case
+A test case should test a single module in isolation,
+and only assert on one type of output.
+
+In this example, we are testing the actions called by a module when it is initialized for the first time.
+
+Using `testModuleContainer.runModule()` we can target a single module to run.
+We provide respective inputs and the moduleId.
+
+Once the module has run and initialized, we can use `testModuleContainer.commit()` to
+allow Octo to generate model and resource diffs, and run relevant actions.
+
+The commit method returns a summary of all actions and resources.
+Here, we simply assert that a relevant action was called, and no resources were generated.
+```typescript
+it('should call correct actions', async () => {
+  const { 'app.model.app': app } = await testModuleContainer.runModule<SimpleAppModule>({
+    inputs: { name: 'test-app' },
+    moduleId: 'app',
+    type: SimpleAppModule,
+  });
+
+  const result = await testModuleContainer.commit(app, {
+    enableResourceCapture: true,
+    filterByModuleIds: ['app'],
+  });
+  expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+   [
+     [
+       "AddSimpleAppModelAction",
+     ],
+   ]
+  `);
+  expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`[]`);
+});
+```

@@ -124,6 +124,11 @@ const sidebars: SidebarsConfig = {
           label: 'Create a Module',
           type: 'doc',
         },
+        {
+          id: 'devops/create-module-test',
+          label: 'Create a Module Test',
+          type: 'doc',
+        },
       ],
       label: 'DevOps',
       link: {
@@ -142,6 +147,11 @@ const sidebars: SidebarsConfig = {
         {
           id: 'techniques/validation',
           label: 'Validation',
+          type: 'doc',
+        },
+        {
+          id: 'techniques/hooks',
+          label: 'Hooks',
           type: 'doc',
         },
       ],
