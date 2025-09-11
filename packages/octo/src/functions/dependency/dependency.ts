@@ -19,11 +19,17 @@ class DependencyBehavior {
   }
 }
 
+/**
+ * @group Functions/Dependency
+ */
 export enum DependencyRelationship {
   CHILD = 'child',
   PARENT = 'parent',
 }
 
+/**
+ * @group Functions/Dependency
+ */
 export interface IDependency {
   behaviors: {
     forAction: DependencyBehavior['forAction'];
@@ -43,6 +49,9 @@ export interface IDependency {
   to: string;
 }
 
+/**
+ * @group Functions/Dependency
+ */
 export class Dependency {
   private readonly behaviors: DependencyBehavior[] = [];
 

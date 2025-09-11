@@ -4,6 +4,9 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { Event } from '../../events/index.js';
 import { Container } from '../../functions/container/container.js';
 
+/**
+ * @internal
+ */
 export class EventService {
   private readonly EVENT_BUFFER_SIZE = 50;
 
@@ -97,6 +100,9 @@ export class EventService {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<EventService>(EventService)
 export class EventServiceFactory {
   static async create(): Promise<EventService> {

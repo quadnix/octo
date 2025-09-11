@@ -14,7 +14,9 @@ import { ServerSchema } from './server.schema.js';
  * ```ts
  * const server = new Server('backend');
  * ```
- * @group Models
+ *
+ * @group Models/Server
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Server>('@octo', 'server', ServerSchema)

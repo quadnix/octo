@@ -1,6 +1,9 @@
 import { Validate } from '../../decorators/validate.decorator.js';
 import { Schema } from '../../functions/schema/schema.js';
 
+/**
+ * @group Models/Image
+ */
 export class ImageSchema {
   @Validate({ options: { maxLength: 32, minLength: 2, regex: /^[a-zA-Z0-9][\w.-]*[a-zA-Z0-9]$/ } })
   imageFamily = Schema<string>();

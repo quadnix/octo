@@ -16,6 +16,9 @@ import {
 import type { AResource } from '../../../resources/resource.abstract.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
+/**
+ * @internal
+ */
 export class ResourceSerializationService {
   private RESOURCE_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
@@ -154,6 +157,9 @@ export class ResourceSerializationService {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<ResourceSerializationService>(ResourceSerializationService)
 export class ResourceSerializationServiceFactory {
   private static instance: ResourceSerializationService;

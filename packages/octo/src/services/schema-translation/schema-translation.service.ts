@@ -1,6 +1,9 @@
 import type { Constructable } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 
+/**
+ * @internal
+ */
 export class SchemaTranslationService {
   private readonly translations: Map<Constructable<unknown>, Map<Constructable<unknown>, (from: unknown) => unknown>> =
     new Map();
@@ -32,6 +35,9 @@ export class SchemaTranslationService {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<SchemaTranslationService>(SchemaTranslationService)
 export class SchemaTranslationServiceFactory {
   private static instance: SchemaTranslationService;

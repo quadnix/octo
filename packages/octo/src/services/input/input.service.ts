@@ -7,6 +7,9 @@ import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { ObjectUtility } from '../../utilities/object/object.utility.js';
 
+/**
+ * @internal
+ */
 export class InputService {
   private inputs: { [key: string]: unknown } = {};
 
@@ -338,6 +341,9 @@ export class InputService {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<InputService>(InputService)
 export class InputServiceFactory {
   private static instance: InputService;

@@ -16,7 +16,9 @@ import { PipelineSchema } from './pipeline.schema.js';
  * ```ts
  * const pipeline = new Pipeline('MyPipeline');
  * ```
- * @group Models
+ *
+ * @group Models/Pipeline
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Pipeline>('@octo', 'pipeline', PipelineSchema)

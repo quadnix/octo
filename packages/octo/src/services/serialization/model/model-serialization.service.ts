@@ -23,6 +23,9 @@ import type { AAnchor } from '../../../overlays/anchor.abstract.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
 
+/**
+ * @internal
+ */
 export class ModelSerializationService {
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
@@ -225,6 +228,9 @@ export class ModelSerializationService {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<ModelSerializationService>(ModelSerializationService)
 export class ModelSerializationServiceFactory {
   private static instance: ModelSerializationService;

@@ -10,7 +10,9 @@ import type { EventService } from '../services/event/event.service.js';
  * const myEvent = new Event<{ value: string }>('event name', { value: 'my payload' });
  * EventService.getInstance().emit(myEvent);
  * ```
+ *
  * @group Events
+ *
  * @returns The Event instance.
  */
 export class Event<T = undefined> {

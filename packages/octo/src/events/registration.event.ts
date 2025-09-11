@@ -11,7 +11,8 @@ import { Event } from './event.model.js';
 /**
  * The RegistrationEvent class is the superclass for all events in relation to class registration.
  *
- * @group Events
+ * @group Events/Registration
+ *
  * @returns The Event instance.
  */
 export class RegistrationEvent extends Event<void> {}
@@ -20,7 +21,8 @@ export class RegistrationEvent extends Event<void> {}
  * This event is emitted when a class with `@Anchor('my-package')` decorator is registered.
  * It emits the name of the class.
  *
- * @group Events
+ * @group Events/Registration
+ *
  * @returns The Event instance.
  */
 export class AnchorRegistrationEvent extends RegistrationEvent {
@@ -45,7 +47,8 @@ export class AnchorRegistrationEvent extends RegistrationEvent {
  * This event is emitted when a class with `@Action(ModelClass)` decorator is registered.
  * It emits the name of the model class and the name of the action.
  *
- * @group Events
+ * @group Events/Registration
+ *
  * @returns The Event instance.
  */
 export class ModelActionRegistrationEvent extends RegistrationEvent {
@@ -73,7 +76,8 @@ export class ModelActionRegistrationEvent extends RegistrationEvent {
  * This event is emitted when a class with `@Model('my-package')` decorator is registered.
  * It emits the name of the class.
  *
- * @group Events
+ * @group Events/Registration
+ *
  * @returns The Event instance.
  */
 export class ModelRegistrationEvent extends RegistrationEvent {
@@ -98,7 +102,8 @@ export class ModelRegistrationEvent extends RegistrationEvent {
  * This event is emitted when a class with `@Overlay('my-package')` decorator is registered.
  * It emits the name of the class.
  *
- * @group Events
+ * @group Events/Registration
+ *
  * @returns The Event instance.
  */
 export class OverlayRegistrationEvent extends RegistrationEvent {
@@ -123,7 +128,8 @@ export class OverlayRegistrationEvent extends RegistrationEvent {
  * This event is emitted when a class with `@Action(ResourceClass)` decorator is registered.
  * It emits the name of the resource class and the name of the action.
  *
- * @group Events
+ * @group Events/Registration
+ *
  * @returns The Event instance.
  */
 export class ResourceActionRegistrationEvent extends RegistrationEvent {
@@ -148,7 +154,8 @@ export class ResourceActionRegistrationEvent extends RegistrationEvent {
  * This event is emitted when a class with `@Resource('my-package')` decorator is registered.
  * It emits the name of the class.
  *
- * @group Events
+ * @group Events/Registration
+ *
  * @returns The Event instance.
  */
 export class ResourceRegistrationEvent extends RegistrationEvent {

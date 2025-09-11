@@ -8,6 +8,9 @@ import { ObjectUtility } from '../utilities/object/object.utility.js';
 import type { IResource, IResourceReference } from './resource.interface.js';
 import type { BaseResourceSchema } from './resource.schema.js';
 
+/**
+ * @group Resources
+ */
 export abstract class AResource<S extends BaseResourceSchema, T extends UnknownResource>
   extends ANode<S, T>
   implements IResource<S, T>

@@ -1,6 +1,9 @@
 import { Validate } from '../../decorators/validate.decorator.js';
 import { Schema } from '../../functions/schema/schema.js';
 
+/**
+ * @group Models/Environment
+ */
 export class EnvironmentSchema {
   /**
    * The name of the environment.

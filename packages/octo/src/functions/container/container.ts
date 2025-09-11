@@ -14,6 +14,8 @@ type FactoryContainer<T> = { factory: FactoryValue<T>; metadata: { [key: string]
  *
  * By using the Container and Factory concepts, it is possible to override internal class definitions at runtime.
  * It is an incredibly powerful tool to customize implementation.
+ *
+ * @group Functions/Container
  */
 export class Container {
   private FACTORY_TIMEOUT_IN_MS = 3000;

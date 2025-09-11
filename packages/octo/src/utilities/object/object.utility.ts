@@ -1,5 +1,8 @@
 import { ANode } from '../../functions/node/node.abstract.js';
 
+/**
+ * @internal
+ */
 export class ObjectUtility {
   // Source: https://stackoverflow.com/a/58496119/1834562
   static deepFreeze<T extends object>(object: T): void {

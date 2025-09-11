@@ -13,6 +13,9 @@ type PreHookSignature = {
   handle: IUnknownModelAction['handle'];
 };
 
+/**
+ * @internal
+ */
 export class ModelActionHook implements IHook<PreHookSignature, PostHookSignature> {
   private static instance: ModelActionHook;
 

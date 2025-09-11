@@ -4,6 +4,8 @@ import type { Diff, DiffAction } from '../diff/diff.js';
 
 /**
  * {@link ANode} interface.
+ *
+ * @internal
  */
 export interface INode<S, T> {
   /**
@@ -178,6 +180,8 @@ export interface INode<S, T> {
 
 /**
  * Node Reference encapsulates identification information of self.
+ *
+ * @internal
  */
 export interface INodeReference {
   context: string;

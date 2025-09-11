@@ -1,3 +1,6 @@
+/**
+ * @group Errors/Schema
+ */
 export class SchemaError extends Error {
   readonly schemaClassName: string;
 

@@ -50,6 +50,8 @@ export function getSchemaKeys<S>(schemaClass: Constructable<S>): string[] {
  * The Schema function is used to set type and value for a property in a schema class or on a class property.
  * It also accepts a default value.
  *
+ * @group Functions/Schema
+ *
  * @param defaultValue The default value for the property.
  * The default value is automatically assigned when the original value is `undefined`.
  *

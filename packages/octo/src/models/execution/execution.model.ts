@@ -21,7 +21,9 @@ import { ExecutionSchema } from './execution.schema.js';
  * const subnet = new Subnet(region, 'private');
  * const execution = new Execution(deployment, environment, subnet);
  * ```
- * @group Models
+ *
+ * @group Models/Execution
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Execution>('@octo', 'execution', ExecutionSchema)

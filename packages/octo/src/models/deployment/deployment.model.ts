@@ -12,7 +12,9 @@ import { DeploymentSchema } from './deployment.schema.js';
  * ```ts
  * const deployment = new Deployment('v1');
  * ```
- * @group Models
+ *
+ * @group Models/Deployment
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Deployment>('@octo', 'deployment', DeploymentSchema)

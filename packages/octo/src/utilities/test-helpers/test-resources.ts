@@ -7,6 +7,9 @@ import { ResourceSerializationService } from '../../services/serialization/resou
 import { TransactionService } from '../../services/transaction/transaction.service.js';
 import { NodeUtility } from '../node/node.utility.js';
 
+/**
+ * @internal
+ */
 export async function commitResources({
   skipAddActualResource = false,
 }: {
@@ -54,6 +57,9 @@ function createResource(nodeName: string): Constructable<AResource<any, any>> {
   };
 }
 
+/**
+ * @internal
+ */
 export async function createResources(
   args: UnknownResource[],
   options?: { save?: boolean },
@@ -98,6 +104,9 @@ export async function createResources(
   return resources;
 }
 
+/**
+ * @internal
+ */
 export async function createTestResources<S extends BaseResourceSchema[]>(
   args: {
     [K in keyof S]: Partial<Pick<S[K], 'properties' | 'response' | 'tags'>> & {

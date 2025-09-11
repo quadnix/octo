@@ -6,6 +6,9 @@ import type { BaseAnchorSchema } from '../../overlays/anchor.schema.js';
 import { AOverlay } from '../../overlays/overlay.abstract.js';
 import { AResource } from '../../resources/resource.abstract.js';
 
+/**
+ * @internal
+ */
 export class ValidationUtility {
   static validateCustom(subject: any, customFn: (subject: any) => boolean): boolean {
     if (typeof customFn !== 'function') {

@@ -13,6 +13,9 @@ type PreHookSignature = {
   handle: IUnknownResourceAction['handle'];
 };
 
+/**
+ * @internal
+ */
 export class ResourceActionHook implements IHook<PreHookSignature, PostHookSignature> {
   private static instance: ResourceActionHook;
 

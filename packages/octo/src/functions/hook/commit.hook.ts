@@ -7,6 +7,9 @@ import type { IHook } from './hook.interface.js';
 type PostHookSignature = { handle: Octo['commitTransaction'] };
 type PreHookSignature = { handle: Octo['commitTransaction'] };
 
+/**
+ * @internal
+ */
 export class CommitHook implements IHook<PreHookSignature, PostHookSignature> {
   private static instance: CommitHook;
 

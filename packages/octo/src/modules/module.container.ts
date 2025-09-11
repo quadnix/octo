@@ -18,6 +18,9 @@ type ModuleOptions = {
   packageName: string;
 };
 
+/**
+ * @internal
+ */
 export class ModuleContainer {
   private modules: {
     hidden: boolean;
@@ -218,6 +221,9 @@ export class ModuleContainer {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<ModuleContainer>(ModuleContainer)
 export class ModuleContainerFactory {
   private static instance: ModuleContainer;

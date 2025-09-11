@@ -45,6 +45,9 @@ import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 
+/**
+ * @internal
+ */
 export class TransactionService {
   private modelActions: { modelClass: Constructable<UnknownModel>; actions: IUnknownModelAction[] }[] = [];
   private overlayActions: { overlayClass: Constructable<UnknownOverlay>; actions: IUnknownModelAction[] }[] = [];
@@ -602,6 +605,9 @@ export class TransactionService {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<TransactionService>(TransactionService)
 export class TransactionServiceFactory {
   private static instance: TransactionService;

@@ -7,7 +7,8 @@ import { Event } from './event.model.js';
 /**
  * The SerializationEvent class is the superclass for all events in relation to serialization and deserialization.
  *
- * @group Events
+ * @group Events/Serialization
+ *
  * @returns The Event instance.
  */
 export class SerializationEvent<T> extends Event<T> {}
@@ -15,7 +16,8 @@ export class SerializationEvent<T> extends Event<T> {}
 /**
  * This event is emitted when models are deserialized from serialized output.
  *
- * @group Events
+ * @group Events/Serialization
+ *
  * @returns The Event instance.
  */
 export class ModelDeserializedEvent extends SerializationEvent<ModelSerializedOutput> {
@@ -39,7 +41,8 @@ export class ModelDeserializedEvent extends SerializationEvent<ModelSerializedOu
 /**
  * This event is emitted when models are serialized to an output.
  *
- * @group Events
+ * @group Events/Serialization
+ *
  * @returns The Event instance.
  */
 export class ModelSerializedEvent extends SerializationEvent<ModelSerializedOutput> {
@@ -63,7 +66,8 @@ export class ModelSerializedEvent extends SerializationEvent<ModelSerializedOutp
 /**
  * This event is emitted when resources are deserialized from serialized output.
  *
- * @group Events
+ * @group Events/Serialization
+ *
  * @returns The Event instance.
  */
 export class ResourceDeserializedEvent extends SerializationEvent<{
@@ -88,7 +92,8 @@ export class ResourceDeserializedEvent extends SerializationEvent<{
 /**
  * This event is emitted when actual resources are serialized to an output.
  *
- * @group Events
+ * @group Events/Serialization
+ *
  * @returns The Event instance.
  */
 export class ActualResourceSerializedEvent extends SerializationEvent<ResourceSerializedOutput> {
@@ -112,7 +117,8 @@ export class ActualResourceSerializedEvent extends SerializationEvent<ResourceSe
 /**
  * This event is emitted when new resources are serialized to an output.
  *
- * @group Events
+ * @group Events/Serialization
+ *
  * @returns The Event instance.
  */
 export class NewResourceSerializedEvent extends SerializationEvent<ResourceSerializedOutput> {

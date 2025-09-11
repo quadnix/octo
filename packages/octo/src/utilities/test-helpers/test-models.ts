@@ -27,11 +27,17 @@ import { Subnet } from '../../models/subnet/subnet.model.js';
 import { SubnetSchema } from '../../models/subnet/subnet.schema.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
 
+/**
+ * @internal
+ */
 export async function commit<T extends UnknownModel>(model: T): Promise<T> {
   const modelSerializationService = await Container.getInstance().get(ModelSerializationService);
   return (await modelSerializationService.deserialize(await modelSerializationService.serialize(model))) as T;
 }
 
+/**
+ * @internal
+ */
 export function create({
   account = [],
   app = [],

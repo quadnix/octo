@@ -4,6 +4,9 @@ import { DiffsOnDirtyResourcesTransactionError, ResourceError } from '../errors/
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { AResource } from './resource.abstract.js';
 
+/**
+ * @internal
+ */
 export class ResourceDataRepository {
   private dirtyResources: UnknownResource[] = [];
 
@@ -198,6 +201,9 @@ export class ResourceDataRepository {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<ResourceDataRepository>(ResourceDataRepository)
 export class ResourceDataRepositoryFactory {
   private static instance: ResourceDataRepository;

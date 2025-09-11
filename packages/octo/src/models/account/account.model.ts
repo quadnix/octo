@@ -12,6 +12,9 @@ type AwsCredentials = {
   readonly secretAccessKey: string;
 };
 
+/**
+ * @group Models/Account
+ */
 @Model<Account>('@octo', 'account', AccountSchema)
 export class Account extends AModel<AccountSchema, Account> {
   readonly accountId: string;

@@ -2,6 +2,9 @@ import type { NodeType } from '../app.type.js';
 import { Schema } from '../functions/schema/schema.js';
 import type { IModelReference } from '../models/model.interface.js';
 
+/**
+ * @group Overlays
+ */
 export class BaseAnchorSchema {
   anchorId = Schema<string>();
 

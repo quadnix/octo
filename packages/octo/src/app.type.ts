@@ -14,6 +14,10 @@ import type { BaseResourceSchema } from './resources/resource.schema.js';
 import type { ValidationUtility } from './utilities/validation/validation.utility.js';
 
 /* Classes */
+
+/**
+ * @group Types
+ */
 export class MatchingAnchor<S extends BaseAnchorSchema> {
   constructor(
     private readonly actual: AAnchor<S, any>,
@@ -33,6 +37,9 @@ export class MatchingAnchor<S extends BaseAnchorSchema> {
   }
 }
 
+/**
+ * @group Types
+ */
 export class MatchingModel<S extends object> {
   constructor(
     private readonly actual: AModel<S, any>,
@@ -52,6 +59,9 @@ export class MatchingModel<S extends object> {
   }
 }
 
+/**
+ * @group Types
+ */
 export class MatchingResource<S extends BaseResourceSchema> {
   constructor(
     private readonly actual: AResource<S, any>,
@@ -97,12 +107,19 @@ export class MatchingResource<S extends BaseResourceSchema> {
 }
 
 /* Enumerations */
+
+/**
+ * @internal
+ */
 export enum NodeType {
   MODEL = 'model',
   OVERLAY = 'overlay',
   RESOURCE = 'resource',
 }
 
+/**
+ * @internal
+ */
 export enum ValidationType {
   CUSTOM = 'custom',
   IS_MODEL = 'isModel',
@@ -114,6 +131,9 @@ export enum ValidationType {
   REGEX = 'regex',
 }
 
+/**
+ * @internal
+ */
 export type ValidationTypeOptions = {
   [ValidationType.CUSTOM]: Parameters<typeof ValidationUtility.validateCustom>[1];
   [ValidationType.IS_MODEL]: Parameters<typeof ValidationUtility.validateIsModel>[1];
@@ -126,18 +146,36 @@ export type ValidationTypeOptions = {
 };
 
 /* Functions */
+
+/**
+ * @group Types
+ */
 export function hasNodeName(node: UnknownNode, nodeName: string): boolean {
   return (node.constructor as typeof ANode).NODE_NAME === nodeName;
 }
 
+/**
+ * @group Types
+ */
 export function stub<T>(value: string): T {
   return value as T;
 }
 
 /* Types */
+
+/**
+ * @internal
+ */
 export type ActionInputs = EnhancedModuleSchema<UnknownModule>;
+
+/**
+ * @group Types
+ */
 export type ActionOutputs = { [key: string]: UnknownResource };
 
+/**
+ * @internal
+ */
 export type ClassRequiredProperties<T> = {
   [K in keyof T]: undefined extends T[K] ? never : K;
 }[keyof T];
@@ -145,20 +183,36 @@ export type ClassOptionalProperties<T> = {
   [K in keyof T]: undefined extends T[K] ? K : never;
 }[keyof T];
 
+/**
+ * @group Types
+ */
 export type DiffValueTypePropertyUpdate = {
   key: string;
   value: unknown;
 };
+
+/**
+ * @group Types
+ */
 export type DiffValueTypeTagUpdate = {
   add: { [key: string]: string };
   delete: string[];
   update: { [key: string]: string };
 };
 
+/**
+ * @internal
+ */
 export type ObjectKeyValue<T> = { [K in keyof T]: { key: K; value: T[K] } }[keyof T];
 
+/**
+ * @group Types
+ */
 export type Constructable<T> = new (...args: any[]) => T;
 
+/**
+ * @group Types
+ */
 export type ModelSerializedOutput = {
   anchors: (AnchorSchema<UnknownAnchor> & {
     className: string;
@@ -168,10 +222,18 @@ export type ModelSerializedOutput = {
   models: { [p: string]: { className: string; model: IUnknownModel } };
   overlays: { className: string; overlay: OverlaySchema<UnknownOverlay> }[];
 };
+
+/**
+ * @group Types
+ */
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
   resources: { [p: string]: { className: string; resource: BaseResourceSchema } };
 };
+
+/**
+ * @internal
+ */
 export type TransactionOptions = {
   enableResourceCapture?: boolean;
   yieldModelDiffs?: boolean;
@@ -180,10 +242,20 @@ export type TransactionOptions = {
   yieldResourceTransaction?: boolean;
 };
 
+/**
+ * @internal
+ */
 // https://stackoverflow.com/a/55032655/1834562
 export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
 
+/**
+ * @group Types
+ */
 export type AnchorSchema<T> = T extends AAnchor<infer S, any> ? S : never;
+
+/**
+ * @group Types
+ */
 export type EnhancedModuleSchema<T extends UnknownModule> = {
   inputs: { [K in keyof ModuleSchemaInputs<T>]: ModuleSchema<T>[K] };
   metadata: Awaited<ReturnType<T['registerMetadata']>>;
@@ -191,22 +263,85 @@ export type EnhancedModuleSchema<T extends UnknownModule> = {
   overlays: Record<string, UnknownOverlay>;
   resources: Record<string, UnknownResource>;
 };
+
+/**
+ * @internal
+ */
 export type ModelSchema<T> = T extends AModel<infer S, any> ? S : never;
+
+/**
+ * @internal
+ */
 export type ModuleOutput<M> = M extends AModule<any, infer T> ? T : never;
+
+/**
+ * @group Types
+ */
 export type ModuleSchema<T> = T extends AModule<infer S, any> ? S : never;
+
+/**
+ * @group Types
+ */
 export type ModuleSchemaInputs<T> = { [K in ClassRequiredProperties<ModuleSchema<T>>]: ModuleSchema<T>[K] } & {
   [K in ClassOptionalProperties<ModuleSchema<T>>]?: ModuleSchema<T>[K];
 };
+
+/**
+ * @internal
+ */
 export type NodeSchema<T> = T extends ANode<infer S, any> ? S : never;
+
+/**
+ * @group Types
+ */
 export type OverlaySchema<T> = T extends AOverlay<infer S, any> ? S : never;
+
+/**
+ * @group Types
+ */
 export type ResourceSchema<T> = T extends AResource<infer S, any> ? S : never;
 
+/**
+ * @internal
+ */
 export type IUnknownModel = IModel<unknown, any>;
+
+/**
+ * @internal
+ */
 export type IUnknownModelAction = IModelAction<any>;
+
+/**
+ * @internal
+ */
 export type IUnknownResourceAction = IResourceAction<any>;
+
+/**
+ * @internal
+ */
 export type UnknownAnchor = AAnchor<BaseAnchorSchema, UnknownModel>;
+
+/**
+ * @internal
+ */
 export type UnknownModel = AModel<unknown, any>;
+
+/**
+ * @internal
+ */
 export type UnknownModule = AModule<unknown, any>;
+
+/**
+ * @internal
+ */
 export type UnknownNode = ANode<unknown, unknown>;
+
+/**
+ * @internal
+ */
 export type UnknownOverlay = AOverlay<BaseOverlaySchema, any>;
+
+/**
+ * @internal
+ */
 export type UnknownResource = AResource<any, any>;

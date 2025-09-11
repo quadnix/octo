@@ -5,6 +5,9 @@ import type { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import type { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 import type { IModule } from './module.interface.js';
 
+/**
+ * @group Modules
+ */
 export abstract class AModule<S, T extends UnknownModel> implements IModule<S, T> {
   static readonly MODULE_PACKAGE: string;
 

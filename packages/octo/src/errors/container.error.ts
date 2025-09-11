@@ -1,5 +1,8 @@
 import type { Constructable } from '../app.type.js';
 
+/**
+ * @group Errors/Container
+ */
 export class ContainerError extends Error {
   readonly type: string;
 
@@ -12,6 +15,9 @@ export class ContainerError extends Error {
   }
 }
 
+/**
+ * @group Errors/Container
+ */
 export class ContainerRegistrationError extends ContainerError {
   constructor(message: string, type: Constructable<unknown> | string) {
     super(message, type);
@@ -20,6 +26,9 @@ export class ContainerRegistrationError extends ContainerError {
   }
 }
 
+/**
+ * @group Errors/Container
+ */
 export class ContainerResolutionError extends ContainerError {
   constructor(message: string, type: Constructable<unknown> | string) {
     super(message, type);

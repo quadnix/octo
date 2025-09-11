@@ -2,6 +2,9 @@ import { ActionEvent } from '../../events/index.js';
 import { EventService } from '../../services/event/event.service.js';
 import { Container } from '../container/container.js';
 
+/**
+ * @group Functions/Node
+ */
 export abstract class ANodeAction {
   readonly container: Container;
   private readonly eventService: Promise<EventService>;

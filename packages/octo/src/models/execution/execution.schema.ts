@@ -2,6 +2,9 @@ import { Validate } from '../../decorators/validate.decorator.js';
 import { Schema } from '../../functions/schema/schema.js';
 import type { IModelReference } from '../model.interface.js';
 
+/**
+ * @group Models/Execution
+ */
 export class ExecutionSchema {
   deployment = Schema<IModelReference>();
 

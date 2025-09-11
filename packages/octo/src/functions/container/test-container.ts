@@ -33,6 +33,8 @@ type TestContainerOptions = { factoryTimeoutInMs?: number };
  * which modifies the Container for the duration of the test.
  * This TestContainer does not affect other tests in parallel since they are on a separate machine core.
  * Once tests are done executing, the `afterAll()` block cleans up the Container.
+ *
+ * @group Functions/Container
  */
 export class TestContainer {
   private static originalFactories: Container['factories'];

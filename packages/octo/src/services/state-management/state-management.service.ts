@@ -3,6 +3,9 @@ import { Factory } from '../../decorators/factory.decorator.js';
 import { TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
+/**
+ * @group Services/State Management
+ */
 export class StateManagementService {
   private readonly stateProvider: IStateProvider;
 
@@ -85,6 +88,9 @@ export class StateManagementService {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<StateManagementService>(StateManagementService)
 export class StateManagementServiceFactory {
   private static instance: StateManagementService;

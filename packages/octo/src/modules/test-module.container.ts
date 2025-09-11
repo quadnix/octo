@@ -59,6 +59,9 @@ class UniversalResourceAction implements IResourceAction<any> {
   async mock(): Promise<void> {}
 }
 
+/**
+ * @group Modules
+ */
 export type TestModule<M extends UnknownModule> = {
   hidden?: boolean;
   inputs: ModuleSchemaInputs<M>;
@@ -66,6 +69,9 @@ export type TestModule<M extends UnknownModule> = {
   type: Constructable<M>;
 };
 
+/**
+ * @group Modules
+ */
 export class TestModuleContainer {
   readonly octo: Octo;
 

@@ -1,6 +1,9 @@
 import { Schema } from '../functions/schema/schema.js';
 import type { IResourceReference } from './resource.interface.js';
 
+/**
+ * @group Resources
+ */
 export class BaseResourceSchema {
   parents = Schema<IResourceReference[]>();
 

@@ -4,6 +4,9 @@ import { Dependency } from '../dependency/dependency.js';
 import { ANode } from '../node/node.abstract.js';
 import { Diff, DiffAction } from './diff.js';
 
+/**
+ * @group Functions/Diff
+ */
 export class DiffUtility {
   private static generateDeleteDiff(node: UnknownNode, field: string): Diff[] {
     const diff: Diff[] = [];

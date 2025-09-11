@@ -25,6 +25,9 @@ import {
 import type { IStateProvider } from './services/state-management/state-provider.interface.js';
 import { TransactionService } from './services/transaction/transaction.service.js';
 
+/**
+ * @group Main
+ */
 export class Octo {
   private readonly modelStateFileName: string = 'models.json';
   private readonly actualResourceStateFileName: string = 'resources-actual.json';

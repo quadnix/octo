@@ -12,7 +12,9 @@ import { EnvironmentSchema } from './environment.schema.js';
  * ```ts
  * const environment = new Environment('qa');
  * ```
- * @group Models
+ *
+ * @group Models/Environment
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Environment>('@octo', 'environment', EnvironmentSchema)

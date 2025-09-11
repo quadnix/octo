@@ -3,6 +3,9 @@ import { join, resolve } from 'path';
 import { TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
 
+/**
+ * @group Services/State Management
+ */
 export class LocalStateProvider implements IStateProvider {
   private readonly localStateDirectoryPath: string;
 

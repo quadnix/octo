@@ -3,6 +3,9 @@ import type { CommitHook } from '../functions/hook/commit.hook.js';
 import type { ModelActionHook } from '../functions/hook/model-action.hook.js';
 import type { ResourceActionHook } from '../functions/hook/resource-action.hook.js';
 
+/**
+ * @internal
+ */
 export interface IModule<S, T extends UnknownModel> {
   onInit(inputs: S): Promise<T | UnknownModel[]>;
 

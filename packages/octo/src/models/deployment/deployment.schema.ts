@@ -1,6 +1,9 @@
 import { Validate } from '../../decorators/validate.decorator.js';
 import { Schema } from '../../functions/schema/schema.js';
 
+/**
+ * @group Models/Deployment
+ */
 export class DeploymentSchema {
   /**
    * The identifying tag that can point to the server's code at a specific point in time.

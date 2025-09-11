@@ -11,8 +11,14 @@ import type { BaseOverlaySchema } from '../../overlays/overlay.schema.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 
+/**
+ * @internal
+ */
 export class TestAction {}
 
+/**
+ * @internal
+ */
 export class TestAnchor extends AAnchor<BaseAnchorSchema, UnknownModel> {
   static override readonly NODE_PACKAGE: string = '@octo';
 
@@ -21,9 +27,16 @@ export class TestAnchor extends AAnchor<BaseAnchorSchema, UnknownModel> {
   }
 }
 
+/**
+ * @internal
+ */
 export class TestAppModuleSchema {
   name = Schema<string>();
 }
+
+/**
+ * @internal
+ */
 export class TestAppModule extends AModule<TestAppModuleSchema, App> {
   static override readonly MODULE_PACKAGE = '@octo';
 
@@ -34,6 +47,9 @@ export class TestAppModule extends AModule<TestAppModuleSchema, App> {
   }
 }
 
+/**
+ * @internal
+ */
 export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsynth> {
   static override readonly NODE_NAME: string = 'test-model';
   static override readonly NODE_PACKAGE: string = '@octo';
@@ -53,6 +69,9 @@ export class TestModelWithoutUnsynth extends AModel<object, TestModelWithoutUnsy
   }
 }
 
+/**
+ * @internal
+ */
 export class TestOverlay extends AOverlay<BaseOverlaySchema, TestOverlay> {
   static override readonly NODE_NAME: string = 'test-overlay';
   static override readonly NODE_PACKAGE: string = '@octo';
@@ -68,10 +87,17 @@ export class TestOverlay extends AOverlay<BaseOverlaySchema, TestOverlay> {
   }
 }
 
+/**
+ * @internal
+ */
 export class TestOverlayModuleSchema {
   anchorName = Schema<string>();
   app = Schema<App>();
 }
+
+/**
+ * @internal
+ */
 export class TestOverlayModule extends AModule<TestOverlayModuleSchema, TestOverlay> {
   static override readonly MODULE_PACKAGE = '@octo';
 
@@ -83,6 +109,9 @@ export class TestOverlayModule extends AModule<TestOverlayModuleSchema, TestOver
   }
 }
 
+/**
+ * @internal
+ */
 export class TestResource extends AResource<BaseResourceSchema, TestResource> {
   static override readonly NODE_NAME: string = 'test-resource';
   static override readonly NODE_PACKAGE: string = '@octo';

@@ -25,6 +25,9 @@ import { InputService } from '../services/input/input.service.js';
 import { SchemaTranslationService } from '../services/schema-translation/schema-translation.service.js';
 import type { IModel } from './model.interface.js';
 
+/**
+ * @group Models
+ */
 export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> implements IModel<S, T> {
   readonly anchors: (MatchingAnchor<BaseAnchorSchema> | UnknownAnchor)[] = [];
 

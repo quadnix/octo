@@ -3,6 +3,9 @@ import type { ANode } from '../functions/node/node.abstract.js';
 import type { IAnchor } from './anchor.interface.js';
 import type { BaseAnchorSchema } from './anchor.schema.js';
 
+/**
+ * @group Overlays
+ */
 export abstract class AAnchor<S extends BaseAnchorSchema, T extends UnknownModel> implements IAnchor<S, T> {
   /**
    * The package of the anchor.

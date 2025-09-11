@@ -1,5 +1,8 @@
 import type { UnknownAnchor, UnknownNode } from '../../app.type.js';
 
+/**
+ * @group Functions/Diff
+ */
 export enum DiffAction {
   ADD = 'add',
   DELETE = 'delete',
@@ -7,6 +10,9 @@ export enum DiffAction {
   UPDATE = 'update',
 }
 
+/**
+ * @group Functions/Diff
+ */
 export class Diff<N extends UnknownNode = UnknownNode, V = unknown> {
   readonly action: DiffAction;
 

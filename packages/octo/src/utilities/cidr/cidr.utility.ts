@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export class CidrUtility {
   private static ipToNumber(ipAsString: string): number {
     const octets = ipAsString.split('.').map((octet) => Number(octet));

@@ -1,3 +1,6 @@
+/**
+ * @group Errors/Module
+ */
 export class ModuleError extends Error {
   readonly module: string;
 

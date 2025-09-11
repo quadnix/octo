@@ -8,6 +8,9 @@ import type {
 import { NoMatchingActionFoundTransactionError } from '../../errors/index.js';
 import type { Diff, DiffAction } from './diff.js';
 
+/**
+ * @group Functions/Diff
+ */
 export class DiffMetadata {
   readonly actions: IUnknownModelAction[] | IUnknownResourceAction[];
   applied: boolean;

@@ -18,6 +18,9 @@ function createOverlay(nodeName: string): Constructable<AOverlay<any, any>> {
   };
 }
 
+/**
+ * @internal
+ */
 export async function createTestOverlays(
   args: {
     anchors: UnknownAnchor[];

@@ -17,7 +17,9 @@ import { RegionSchema } from './region.schema.js';
  * ```ts
  * const region = new Region('us-east-1');
  * ```
- * @group Models
+ *
+ * @group Models/Region
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Region>('@octo', 'region', RegionSchema)

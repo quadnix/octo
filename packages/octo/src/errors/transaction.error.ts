@@ -2,6 +2,9 @@ import type { IUnknownModelAction, UnknownResource } from '../app.type.js';
 import type { Diff } from '../functions/diff/diff.js';
 import type { ValidationService } from '../services/validation/validation.service.js';
 
+/**
+ * @group Errors/Transaction
+ */
 export class TransactionError extends Error {
   constructor(message: string) {
     super(message);
@@ -10,6 +13,9 @@ export class TransactionError extends Error {
   }
 }
 
+/**
+ * @group Errors/Transaction
+ */
 export class DiffsOnDirtyResourcesTransactionError extends TransactionError {
   readonly diffs: ReturnType<Diff['toJSON']>[];
   readonly dirtyResources: UnknownResource[];
@@ -24,6 +30,9 @@ export class DiffsOnDirtyResourcesTransactionError extends TransactionError {
   }
 }
 
+/**
+ * @group Errors/Transaction
+ */
 export class InputNotFoundTransactionError extends TransactionError {
   readonly action: string;
   readonly diff: ReturnType<Diff['toJSON']>;
@@ -40,6 +49,9 @@ export class InputNotFoundTransactionError extends TransactionError {
   }
 }
 
+/**
+ * @group Errors/Transaction
+ */
 export class NoMatchingActionFoundTransactionError extends TransactionError {
   readonly diff: ReturnType<Diff['toJSON']>;
 
@@ -52,6 +64,9 @@ export class NoMatchingActionFoundTransactionError extends TransactionError {
   }
 }
 
+/**
+ * @group Errors/Transaction
+ */
 export class ResourceActionExceptionTransactionError extends TransactionError {
   readonly actionClassName: string;
   readonly diff: ReturnType<Diff['toJSON']>;
@@ -71,6 +86,9 @@ export class ResourceActionExceptionTransactionError extends TransactionError {
   }
 }
 
+/**
+ * @group Errors/Transaction
+ */
 export class ResourceActionTimeoutTransactionError extends TransactionError {
   readonly actionClassName: string;
   readonly diff: ReturnType<Diff['toJSON']>;
@@ -85,6 +103,9 @@ export class ResourceActionTimeoutTransactionError extends TransactionError {
   }
 }
 
+/**
+ * @group Errors/Transaction
+ */
 export class ValidationTransactionError extends TransactionError {
   errors: ReturnType<ValidationService['validate']>;
 

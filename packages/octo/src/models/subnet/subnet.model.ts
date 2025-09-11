@@ -15,7 +15,9 @@ import { SubnetSchema, SubnetType } from './subnet.schema.js';
  * const subnet = new Subnet(region, 'my-subnet');
  * subnet.subnetType = SubnetType.PUBLIC;
  * ```
- * @group Models
+ *
+ * @group Models/Subnet
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Subnet>('@octo', 'subnet', SubnetSchema)

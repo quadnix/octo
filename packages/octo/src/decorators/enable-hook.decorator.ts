@@ -10,10 +10,15 @@ type Hook = 'CommitHook';
  * @EnableHook('CommitHook')
  * async commitTransaction(): Promise<void> { ... }
  * ```
+ *
  * @group Decorators
+ *
  * @internal
+ *
  * @param hook The only values supported are `CommitHook`.
+ *
  * @returns The decorated method.
+ *
  * @see Definition of [Hooks](/docs/fundamentals/modules#hooks).
  */
 export function EnableHook(hook: Hook): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {

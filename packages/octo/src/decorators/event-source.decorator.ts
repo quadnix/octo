@@ -12,9 +12,13 @@ import { EventService } from '../services/event/event.service.js';
  * @EventSource(MyEvent)
  * myMethod(): void { ... }
  * ```
+ *
  * @group Decorators
+ *
  * @internal
+ *
  * @param ofType The type of event being emitted.
+ *
  * @returns The decorated method.
  */
 export function EventSource(

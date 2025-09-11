@@ -4,6 +4,9 @@ import { OverlayError } from '../errors/index.js';
 import { Diff, DiffAction } from '../functions/diff/diff.js';
 import type { AOverlay } from './overlay.abstract.js';
 
+/**
+ * @internal
+ */
 export class OverlayDataRepository {
   constructor(private newOverlays: UnknownOverlay[]) {}
 
@@ -40,6 +43,9 @@ export class OverlayDataRepository {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<OverlayDataRepository>(OverlayDataRepository)
 export class OverlayDataRepositoryFactory {
   private static instance: OverlayDataRepository;

@@ -4,6 +4,9 @@ import type { INode, INodeReference } from '../functions/node/node.interface.js'
 import type { AResource } from './resource.abstract.js';
 import type { BaseResourceSchema } from './resource.schema.js';
 
+/**
+ * @internal
+ */
 export interface IResource<S extends BaseResourceSchema, T extends UnknownResource> extends INode<S, T> {
   clonePropertiesInPlace(sourceResource: T): void;
 
@@ -46,6 +49,9 @@ export interface IResource<S extends BaseResourceSchema, T extends UnknownResour
   remove(): void;
 }
 
+/**
+ * @internal
+ */
 export interface IResourceReference extends INodeReference {
   parentSchemaTranslator?: string;
 }

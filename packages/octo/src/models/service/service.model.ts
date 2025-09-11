@@ -12,7 +12,9 @@ import { ServiceSchema } from './service.schema.js';
  * ```ts
  * const service = new Service('MyService');
  * ```
- * @group Models
+ *
+ * @group Models/Service
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Service>('@octo', 'service', ServiceSchema)

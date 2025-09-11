@@ -1,6 +1,9 @@
 import { Factory } from '../../decorators/factory.decorator.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 
+/**
+ * @internal
+ */
 export class CaptureService {
   private captures: {
     [key: string]: { response: Partial<BaseResourceSchema['response']> };
@@ -15,6 +18,9 @@ export class CaptureService {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<CaptureService>(CaptureService)
 export class CaptureServiceFactory {
   private static instance: CaptureService;

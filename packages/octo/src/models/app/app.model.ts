@@ -18,7 +18,9 @@ import { AppSchema } from './app.schema.js';
  * ```ts
  * const app = new App('MyApp');
  * ```
- * @group Models
+ *
+ * @group Models/App
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<App>('@octo', 'app', AppSchema)

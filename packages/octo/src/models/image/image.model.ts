@@ -13,7 +13,9 @@ import { ImageSchema } from './image.schema.js';
  *
  * const image = new Image('docker/hello-world', '1.0', { dockerfilePath: './Dockerfile' });
  * ```
- * @group Models
+ *
+ * @group Models/Image
+ *
  * @see Definition of [Default Models](/docs/fundamentals/models#default-models).
  */
 @Model<Image>('@octo', 'image', ImageSchema)

@@ -2,6 +2,9 @@ import { type Constructable, ValidationType } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { ValidationUtility } from '../../utilities/validation/validation.utility.js';
 
+/**
+ * @internal
+ */
 export class ValidationService {
   private readonly subjects: {
     constraint: any;
@@ -84,6 +87,9 @@ export class ValidationService {
   }
 }
 
+/**
+ * @internal
+ */
 @Factory<ValidationService>(ValidationService)
 export class ValidationServiceFactory {
   private static instance: ValidationService;

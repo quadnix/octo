@@ -18,6 +18,8 @@ import type { INode } from './node.interface.js';
  *
  * Each of these derived base classes, using the base methods of this class,
  * define their own specific rules on how their graphs should be constructed.
+ *
+ * @internal
  */
 export abstract class ANode<S, T> implements INode<S, T> {
   /**

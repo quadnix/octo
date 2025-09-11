@@ -13,6 +13,9 @@ import type { BaseAnchorSchema } from './anchor.schema.js';
 import type { IOverlay } from './overlay.interface.js';
 import type { BaseOverlaySchema } from './overlay.schema.js';
 
+/**
+ * @group Overlays
+ */
 export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOverlay>
   extends AModel<S, T>
   implements IOverlay<S, T>

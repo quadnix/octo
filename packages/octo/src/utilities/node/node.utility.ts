@@ -1,6 +1,9 @@
 import type { UnknownResource } from '../../app.type.js';
 import { DiffAction } from '../../functions/diff/diff.js';
 
+/**
+ * @internal
+ */
 export class NodeUtility {
   static sortResourcesByDependency(resources: UnknownResource[]): UnknownResource[] {
     const sortedResources: UnknownResource[] = [];

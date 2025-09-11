@@ -4,6 +4,9 @@ import { Model } from '../../decorators/model.decorator.js';
 import { AModel } from '../model.abstract.js';
 import { FilesystemSchema } from './filesystem.schema.js';
 
+/**
+ * @group Models/Filesystem
+ */
 @Model<Filesystem>('@octo', 'filesystem', FilesystemSchema)
 export class Filesystem extends AModel<FilesystemSchema, Filesystem> {
   readonly filesystemName: string;

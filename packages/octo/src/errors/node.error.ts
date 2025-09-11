@@ -4,6 +4,9 @@ import type { Diff } from '../functions/diff/diff.js';
 import type { ANode } from '../functions/node/node.abstract.js';
 import type { AResource } from '../resources/resource.abstract.js';
 
+/**
+ * @group Errors/Node
+ */
 export class DependencyError extends Error {
   readonly dependency: IDependency;
 
@@ -16,6 +19,9 @@ export class DependencyError extends Error {
   }
 }
 
+/**
+ * @group Errors/Node
+ */
 export class NodeUnsynthError extends Error {
   readonly subject: string;
 
@@ -28,6 +34,9 @@ export class NodeUnsynthError extends Error {
   }
 }
 
+/**
+ * @group Errors/Node
+ */
 export class NodeError extends Error {
   readonly node: string;
 
@@ -40,6 +49,9 @@ export class NodeError extends Error {
   }
 }
 
+/**
+ * @group Errors/Node
+ */
 export class ContextNodeError extends NodeError {
   constructor(message: string, node: UnknownNode) {
     super(message, node);
@@ -48,6 +60,9 @@ export class ContextNodeError extends NodeError {
   }
 }
 
+/**
+ * @group Errors/Node
+ */
 export class ModelError extends NodeError {
   constructor(message: string, model: UnknownModel) {
     super(message, model);
@@ -56,6 +71,9 @@ export class ModelError extends NodeError {
   }
 }
 
+/**
+ * @group Errors/Node
+ */
 export class OverlayError extends NodeError {
   constructor(message: string, overlay: UnknownOverlay) {
     super(message, overlay);
@@ -64,6 +82,9 @@ export class OverlayError extends NodeError {
   }
 }
 
+/**
+ * @group Errors/Node
+ */
 export class ResourceError extends NodeError {
   constructor(message: string, resource: typeof AResource | UnknownResource) {
     super(message, resource);
@@ -72,6 +93,9 @@ export class ResourceError extends NodeError {
   }
 }
 
+/**
+ * @group Errors/Node
+ */
 export class DiffInverseResourceError extends ResourceError {
   readonly diff: ReturnType<Diff['toJSON']>;
 
@@ -84,6 +108,9 @@ export class DiffInverseResourceError extends ResourceError {
   }
 }
 
+/**
+ * @group Errors/Node
+ */
 export class RemoveResourceError extends ResourceError {
   readonly childrenResources: string[];
 

@@ -4,6 +4,8 @@ import type { IModelReference } from '../model.interface.js';
 
 /**
  * The type of subnet.
+ *
+ * @group Models/Subnet
  */
 export enum SubnetType {
   /**
@@ -20,6 +22,9 @@ export enum SubnetType {
   PRIVATE = 'private',
 }
 
+/**
+ * @group Models/Subnet
+ */
 export class SubnetSchema {
   options = Schema<{ disableSubnetIntraNetwork: boolean; subnetType: SubnetType }>();
 

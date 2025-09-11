@@ -4,6 +4,8 @@ import type { Diff } from '../functions/diff/diff.js';
 /**
  * Model Actions are translation functions between Diff and underlying resources.
  * These actions can translate a specific type of Diff into individual resources.
+ *
+ * @group Models
  */
 export interface IModelAction<T extends UnknownModule> {
   /**

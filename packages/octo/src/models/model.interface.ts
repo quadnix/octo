@@ -13,6 +13,8 @@ import type { BaseResourceSchema } from '../resources/resource.schema.js';
 
 /**
  * {@link AModel} interface.
+ *
+ * @internal
  */
 export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
   /**
@@ -82,4 +84,7 @@ export interface IModel<S, T extends UnknownModel> extends INode<S, T> {
   removeAnchor(anchor: MatchingAnchor<BaseAnchorSchema> | AAnchor<BaseAnchorSchema, UnknownModel>): void;
 }
 
+/**
+ * @group Models
+ */
 export interface IModelReference extends INodeReference {}
