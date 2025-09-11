@@ -1,0 +1,218 @@
+---
+slug: create-a-website-in-aws-using-octo
+title: Create a website in AWS using Octo
+authors: [rash]
+tags: [advanced, code]
+---
+
+<img
+alt="cover-image"
+src={require('./assets/cover-image.jpeg').default}
+/>
+
+Have you ever wanted to deploy a website to AWS but felt overwhelmed by the complexity of setting up infrastructure?
+What if I told you that you could create and deploy a fully functional static website to AWS S3 in just a few minutes,
+with minimal configuration and zero infrastructure expertise?
+
+In this tutorial, we'll walk through creating your first website using **Octo** -
+a powerful infrastructure-as-code framework that abstracts away the complexity of cloud resources.
+By the end of this guide,
+you'll have a live website running on AWS and understand how Octo makes infrastructure management surprisingly simple.
+
+## What We'll Accomplish
+Today, we're going to:
+- **Create a static website** using Octo's pre-built templates
+- **Deploy it to AWS S3** with just a few commands
+- **Understand how Octo manages infrastructure state** automatically
+- **Learn to clean up resources** when you're done
+
+The best part? You don't need to be an AWS expert or infrastructure guru. Octo handles all the heavy lifting for you.
+
+## Prerequisites
+Before we dive in, make sure you have the basics covered.
+If you haven't already, check out our [installation guide](/docs/getting-started/installation) to set up:
+- **Node.js** (version 22.x or higher)
+- **AWS CLI** (version 2.x or higher) with your credentials configured
+
+Once you're all set up, we're ready to create some magic! ✨
+
+## Step 1: Create Your First Octo App
+Let's start by creating a new Octo application.
+Octo comes with several pre-configured templates that make getting started incredibly easy.
+For our website, we'll use the `aws-s3-website` template.
+
+Open your terminal and run these commands:
+```bash
+# Create a new directory "my-awesome-website" in your current location
+# and set up a new Octo app using the "aws-s3-website" template
+npx @quadnix/octo-build create-app -t aws-s3-website -n my-awesome-website -p .
+
+# Navigate into your new project
+cd my-awesome-website
+
+# Install the dependencies
+npm install
+```
+
+That's it! Octo has just scaffolded a complete project structure for you.
+If you're curious about what was created,
+you can explore the [Octo App Structure](/docs/getting-started/project-structure#octo-app-structure) documentation.
+
+## Step 2: Configure Your Environment
+Before we can deploy anything, we need to tell Octo about your AWS account and give your S3 bucket a unique name. 
+
+Create or edit the `.env` file in your project root:
+```bash
+# Your AWS account ID (you can find this in your AWS console)
+AWS_ACCOUNT_ID=123456789123
+
+# A unique bucket name for your website (S3 bucket names must be globally unique)
+AWS_S3_WEBSITE_BUCKET_NAME=my-awesome-website-2024-unique
+```
+
+:::tip
+Make sure your bucket name is unique! S3 bucket names are globally unique across all AWS accounts.
+:::
+
+## Step 3: Deploy Your Website
+Now for the exciting part - let's deploy your website! This is where Octo really shines.
+
+```bash
+# Build your Octo application
+npm run build
+
+# Deploy to AWS
+npm start
+```
+
+Sit back and watch the magic happen! Octo will:
+1. **Connect to your AWS account** using your configured credentials
+2. **Create an S3 bucket** with the name you specified
+3. **Configure the bucket** for static website hosting
+4. **Upload your website files** to the bucket
+5. **Generate a detailed report** of everything that was created
+
+## Step 4: Visit Your Live Website
+Once the deployment is complete, you'll see the URLs where your website is now live! Visit these URLs in your browser:
+
+```bash
+http://<your-bucket-name>.s3-website-us-east-1.amazonaws.com/index.html
+http://<your-bucket-name>.s3-website-us-east-1.amazonaws.com/error.html
+```
+
+Congratulations! 🎉 You've just deployed your first website to AWS without writing a single line of infrastructure code.
+
+## What Just Happened? (The Magic Behind the Scenes)
+You might be wondering: "How did Octo know what to create?" Here's what happened:
+
+**Octo used pre-built modules** that were imported in your `module-definitions.ts` file.
+These modules contain all the logic needed to create and configure an S3 static website.
+
+**State management is automatic** - Octo saved the state of all resources it created in the `.octo` directory.
+This includes:
+- `models.json` - The logical models of your infrastructure
+- `resources.json` - The actual AWS resources that were created
+- `<your-bucket-name>-manifest.json` - A manifest of your specific deployment
+
+:::tip[Smart Infrastructure Management]
+If you run the app again, Octo will detect that your website already exists and won't recreate it.
+If you modify your HTML files and re-run, Octo will intelligently detect the changes and only upload the modified files.
+Pretty cool, right?
+:::
+
+## Understanding Your Infrastructure
+One of Octo's best features is transparency.
+You can always see exactly what resources were created by examining the state files in the `.octo` directory.
+This gives you full visibility into your infrastructure without having to dig through AWS console screens.
+
+## HTML Reports: Your Infrastructure Dashboard
+
+After each deployment, Octo generates a beautiful HTML report showing exactly what changed in your infrastructure.
+You'll find this report in your project root directory - simply open it in any web browser to see:
+- What resources were created
+- What resources were modified
+- Any errors or warnings
+- A complete audit trail of your deployment
+
+This report is invaluable for understanding what Octo did and ensuring everything was deployed as expected.
+
+## Cleaning Up (When You're Done Experimenting)
+When you're ready to clean up your resources (and avoid any AWS charges), Octo makes it just as easy:
+
+1. **Edit your `module-definitions.ts`** file
+2. **Comment out the S3 website module** (keep the app and account modules)
+3. **Rebuild and run** your app
+
+```typescript
+private init(): void {
+  this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
+  this.add(AwsIniAccountModule, 'account-module', {
+    accountId: config.AWS_ACCOUNT_ID,
+    app: stub<App>('${{app-module.model.app}}'),
+  });
+
+  // Comment out the S3 website module to delete the resources
+  // this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
+  //   account: stub<Account>('${{account-module.model.account}}'),
+  //   awsRegionId: 'us-east-1',
+  //   bucketName: config.AWS_S3_WEBSITE_BUCKET_NAME,
+  //   directoryPath: websiteSourcePath,
+  // });
+}
+```
+
+Then run:
+```bash
+npm run build
+npm start
+```
+
+Finally, delete your project directory:
+```bash
+rm -rf my-awesome-website
+```
+
+## Why This Matters
+What you just accomplished would typically require:
+- Understanding S3 bucket policies
+- Configuring static website hosting settings
+- Managing file uploads and permissions
+- Handling error pages and redirects
+- Tracking infrastructure state manually
+
+With Octo, you got all of this for free, plus:
+- **Automatic state management**
+- **Change detection and incremental updates**
+- **Detailed reporting and audit trails**
+- **Easy cleanup and resource management**
+
+## What's Next?
+You've just scratched the surface of what's possible with Octo! In future tutorials, we'll explore:
+- **Adding custom domains** and SSL certificates
+- **Building more complex applications** with databases and APIs
+- **Managing multiple environments** (dev, staging, production)
+
+## Conclusion
+In just a few minutes, you've learned how to:
+- Create infrastructure using Octo's powerful templates
+- Deploy a website to AWS with minimal configuration
+- Understand how Octo manages infrastructure state
+- Clean up resources when you're done
+
+Octo's philosophy is simple: **infrastructure should be as easy to manage as your application code**.
+By abstracting away the complexity of cloud resources,
+Octo lets you focus on what matters most - building great applications.
+
+Ready to dive deeper?
+Check out our [fundamentals documentation](/docs/fundamentals) to learn more about how Octo works under the hood,
+or explore our [techniques section](/docs/techniques) for advanced patterns and best practices.
+
+Happy building! 🚀
+
+---
+
+:::tip[Need Help?]
+If you ran into any issues during this tutorial,
+don't hesitate to reach out! You can find help links at the bottom of this page,
+or check out our [contributions guide](/docs/contributions) to see how you can get involved in the Octo community.
+:::
