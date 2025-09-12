@@ -96,16 +96,12 @@ const config: Config = {
         {
           items: [
             {
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+              href: 'https://stackoverflow.com/questions/tagged/octo',
               label: 'Stack Overflow',
             },
             {
-              href: 'https://discordapp.com/invite/docusaurus',
-              label: 'Discord',
-            },
-            {
-              href: 'https://twitter.com/docusaurus',
-              label: 'Twitter',
+              href: 'https://discord.gg/n8rjuwXy',
+              label: 'Discord Invitation',
             },
           ],
           title: 'Community',

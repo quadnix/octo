@@ -245,7 +245,7 @@ export type TransactionOptions = {
 /**
  * @internal
  */
-// https://stackoverflow.com/a/55032655/1834562
+// Source: https://stackoverflow.com/a/55032655/1834562
 export type ModifyInterface<T, R> = Omit<T, keyof R> & R;
 
 /**

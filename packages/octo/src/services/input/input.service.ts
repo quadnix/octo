@@ -331,7 +331,7 @@ export class InputService {
     return this.resolveInputValue(this.resolve(pattern[1].trim()), maxRecursion - 1, originalInputValue || inputValue);
   }
 
-  // https://stackoverflow.com/a/69459511/1834562
+  // Source: https://stackoverflow.com/a/69459511/1834562
   private resolveObjectPath(subject: object, path: string): any {
     if (!path.length) {
       return subject;
