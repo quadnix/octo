@@ -1,0 +1,271 @@
+---
+slug: deploy-ecs-server-with-octo
+title: Deploy a Production-Ready ECS Server with Octo
+authors: [rash]
+tags: [advanced, infrastructure, containers]
+---
+
+<img
+alt="cover-image"
+src={require('./assets/cover-image.png').default}
+/>
+
+Ready to take your infrastructure to the next level?
+
+Any advanced website requires backend and API servers, databases, and loads of other AWS resources.
+Setting up this infrastructure can be a daunting task.
+What if I told you that you could deploy a production-ready containerized server on AWS ECS
+with a load balancer, VPC, security groups, and multi-AZ setup in just a few minutes?
+
+In this tutorial, we'll walk through deploying a scalable ECS server using **Octo** -
+a powerful infrastructure-as-code framework that makes complex cloud architectures surprisingly simple.
+By the end of this guide, you'll have a fully functional containerized application
+running behind an Application Load Balancer with enterprise-grade networking and security.
+
+## What We'll Accomplish
+Today, we're going to:
+- **Deploy a containerized server** using AWS ECS with Fargate
+- **Set up a complete VPC** with public and private subnets across multiple availability zones
+- **Configure an Application Load Balancer** with health checks and target groups
+- **Implement security groups** and network isolation
+- **Understand how Octo orchestrates** complex multiservice infrastructure
+
+The best part? You don't need to be a networking expert or container orchestration guru.
+Octo handles all the complex AWS resource relationships for you.
+
+## Prerequisites
+Before we dive in, make sure you have the basics covered.
+If you haven't already, check out our [installation guide](/docs/getting-started/installation) to set up:
+- **Node.js** (version 22.x or higher)
+- **AWS CLI** (version 2.x or higher) with your credentials configured
+
+Once you're all set up, we're ready to build some serious infrastructure! 🚀
+
+## Step 1: Create Your ECS Server App
+Let's start by creating a new Octo application using the `aws-ecs-server` template.
+This template sets up a complete containerized server infrastructure with all the bells and whistles.
+
+Open your terminal and run these commands:
+```bash
+# Create a new directory "my-ecs-server" in your current location
+# and set up a new Octo app using the "aws-ecs-server" template
+npx @quadnix/octo-build create-app -t aws-ecs-server -n my-ecs-server -p .
+
+# Navigate into your new project
+cd my-ecs-server
+
+# Install the dependencies
+npm install
+```
+
+That's it! Octo has just scaffolded a complete ECS infrastructure project for you.
+This template includes everything you need for a production-ready containerized application.
+
+## Step 2: Configure Your Environment
+Before we can deploy our ECS infrastructure, we need to configure your AWS account.
+Create or edit the `.env` file in your project root:
+```bash
+# Your AWS account ID (you can find this in your AWS console)
+AWS_ACCOUNT_ID=123456789123
+```
+
+:::tip
+The ECS template is designed to be production-ready out of the box.
+It creates resources in `us-east-1` with a specific VPC CIDR block (`10.0.0.0/16`).
+If you need to customize the region or networking, you can modify the `module-definitions.ts` file.
+:::
+
+## Step 3: Deploy Your ECS Infrastructure
+Now for the exciting part - let's deploy your complete ECS infrastructure!
+This is where Octo really shows its power in orchestrating complex multiservice architectures.
+```bash
+# Build your Octo application
+npm run build
+
+# Deploy to AWS
+npm start
+```
+
+Sit back and watch the magic happen! Octo will create:
+1. **VPC and Networking** - A complete virtual private cloud with public and private subnets
+2. **ECS Cluster** - A serverless Fargate cluster for running containers
+3. **Application Load Balancer** - With health checks and target groups
+4. **Security Groups** - Proper network isolation and access controls
+5. **Container Service** - Running a sample echo server application
+6. **Multi-AZ Setup** - High availability across multiple availability zones
+
+## Step 4: Access Your Live Server
+Once the deployment is complete, you'll see the ALB DNS name in the HTML report output or in your AWS console.
+Your containerized server is now live and accessible through the load balancer!
+
+Within the HTML report, you can find your ALB DNS name under
+`@octo/alb=alb-region-module-app-region-east-qa-api-alb` resource.<br/>
+The `DNSName` key looks like `qa-api-alb-<random_id>.us-east-1.elb.amazonaws.com`.
+
+Visit this URL in your browser:
+```bash
+http://qa-api-alb-<random_id>.us-east-1.elb.amazonaws.com
+```
+
+You should see a response from the echo server, confirming that your ECS infrastructure is working perfectly!
+
+## What Just Happened?
+You might be wondering: "How did Octo create all the infrastructure?"
+Here's what happened behind the scenes:
+
+**Complete VPC Setup** - Octo created a VPC with:
+- Public subnets in multiple AZs (with NAT gateways for outbound internet access)
+- Private subnets for your containers (with no direct internet access)
+- Proper routing tables and internet gateways
+
+**ECS Infrastructure** - Octo set up:
+- An ECS cluster using Fargate (serverless containers)
+- A task definition for your container
+- An ECS service to manage container instances
+- Auto-scaling and health monitoring
+
+**Load Balancer Configuration** - Octo configured:
+- An Application Load Balancer in public subnets
+- Target groups pointing to your ECS tasks
+- Health checks to ensure your containers are running
+- Listener rules for routing traffic
+
+**Security and Networking** - Octo implemented:
+- Security groups allowing only necessary traffic
+- Network ACLs for additional security layers
+- Proper subnet isolation for security
+
+:::tip[Smart Infrastructure Management]
+If you run the app again, Octo will detect that your infrastructure already exists
+and won't recreate it unnecessarily.
+If you modify your container configuration and re-run,
+Octo will intelligently update only the changed components.
+:::
+
+## HTML Reports: Your Infrastructure Dashboard
+After each deployment, Octo generates a comprehensive HTML report showing exactly what infrastructure was created.
+You'll find this report in your project root directory - open it in any web browser to see:
+- All AWS resources that were created
+- Resource relationships and dependencies
+- Configuration details for each component
+
+This report is invaluable for understanding your infrastructure and ensuring everything was deployed correctly.
+
+## Customizing Your ECS Server
+The template comes with a sample echo server, but you can easily customize it for your own application:
+
+### Changing the Container Image
+Edit the `module-definitions.ts` file and modify the deployment configuration:
+```typescript
+this.add(AwsEcsDeploymentModule, 'backend-deployment-v1-module', {
+  deploymentContainerProperties: {
+    cpu: 256, // Increase CPU if needed
+    image: {
+      command: 'npm start', // Your application command
+      ports: [{ containerPort: 80, protocol: 'tcp' }], // Your app port
+      uri: 'docker.io/strm/helloworld-http:latest', // <-- We changed the container image!
+    },
+    memory: 512, // Increase memory if needed
+  },
+  deploymentTag: 'v1',
+  server: stub<Server>('${{backend-server-module.model.server}}'),
+});
+```
+
+### Scaling Your Application
+You can easily scale your application by modifying the desired count:
+```typescript
+this.add(AwsEcsExecutionModule, 'backend-v1-qa-execution-module', {
+  // ... other configuration
+  desiredCount: 3, // Scale to 3 instances
+  // ... rest of configuration
+});
+```
+
+:::info
+Let's again rebuild and start the app using `npm run build` and `npm start`.
+The HTML report will show you the changes you made.
+
+Heading in the AWS console, you will see that the task definition has been updated,
+and momentarily ECS server will start to pick up the new task definition.
+Wait for the new task to run, and then head over again to your ALB URL and refresh the page.
+You should not see responses coming from your new server!
+:::
+
+## Cleaning Up (When You're Done Experimenting)
+When you're ready to clean up your resources (and avoid AWS charges), Octo makes it straightforward:
+
+1. **Edit your `module-definitions.ts`** file
+2. **Comment out all modules except the app and account modules**
+3. **Rebuild and run** your app
+
+```typescript
+private init(): void {
+  this.add(SimpleAppModule, 'app-module', { name: 'aws-ecs-server' });
+  this.add(AwsIniAccountModule, 'account-module', {
+    accountId: config.AWS_ACCOUNT_ID,
+    app: stub<App>('${{app-module.model.app}}'),
+  });
+
+  // Comment out all other modules to delete the infrastructure
+  // this.add(AwsMultiAzRegionModule, 'region-module', { ... });
+  // this.add(AwsEcsServerModule, 'backend-server-module', { ... });
+  // ... comment out all other modules
+}
+```
+
+Then run:
+```bash
+npm run build
+npm start
+```
+
+:::warning
+Deleting AWS resources takes time since Octo has to wait for confirmation from NAT Gateway and various other resources.
+AWS takes time to clean up resources and release IP addresses.
+In certain cases, the cleanup has been known to take >20 minutes.
+:::
+
+Finally, delete your project directory:
+```bash
+rm -rf my-ecs-server
+```
+
+## Why This Matters
+What you just accomplished would typically require:
+- Deep understanding of VPC networking and subnet design
+- Knowledge of ECS task definitions and service configurations
+- Experience with Application Load Balancer setup and health checks
+- Understanding of security groups and network ACLs
+- Manual coordination of resource dependencies and timing
+
+With Octo, you got all of this for free, plus:
+- **Automatic resource orchestration** and dependency management
+- **Built-in best practices** for security and networking
+- **State management** and change detection
+- **Detailed reporting** and audit trails
+- **Easy cleanup** and resource management
+
+## Conclusion
+In just a few minutes, you've learned how to:
+- Deploy a complete ECS infrastructure with Octo's powerful templates
+- Understand complex AWS resource relationships and dependencies
+- Manage containerized applications with proper networking and security
+- Scale and customize your infrastructure as needed
+
+Octo's philosophy is simple: **complex infrastructure should be as manageable as your application code**.
+By abstracting away the complexity of cloud resource orchestration,
+Octo lets you focus on what matters most - building great applications.
+
+Ready to dive deeper? Check out our [fundamentals documentation](/docs/fundamentals) to learn more about how Octo works under the hood,
+or explore our [techniques section](/docs/techniques) for advanced patterns and best practices.
+
+Happy containerizing! 🐳
+
+---
+
+:::tip[Need Help?]
+If you ran into any issues during this tutorial,
+don't hesitate to reach out! You can find help links at the bottom of this page,
+or check out our [contributions guide](/docs/contributions) to see how you can get involved in the Octo community.
+:::
