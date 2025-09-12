@@ -11,6 +11,8 @@ const octo = new Octo();
 const stateProvider = new LocalStateProvider(octoStatePath);
 await octo.initialize(stateProvider, [{ type: HtmlReportEventListener }, { type: LoggingEventListener }]);
 
+octo.registerTags([{ scope: {}, tags: { 'cdk': '<%= name %>' } }]);
+
 const moduleDefinitions = new ModuleDefinitions();
 for (const moduleDefinition of moduleDefinitions.getAll()) {
   octo.loadModule(moduleDefinition.module, moduleDefinition.moduleId, moduleDefinition.moduleInputs);

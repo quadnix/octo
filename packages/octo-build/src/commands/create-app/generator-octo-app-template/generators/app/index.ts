@@ -108,7 +108,9 @@ export default class extends Generator {
         this.destinationPath('src/app.config.ts'),
       );
       this.fs.copyTpl(this.templatePath(`${templatePath}/env.ejs`), this.destinationPath('.env'));
-      this.fs.copyTpl(this.templatePath(`${templatePath}/main.ts.ejs`), this.destinationPath('src/main.ts'));
+      this.fs.copyTpl(this.templatePath(`${templatePath}/main.ts.ejs`), this.destinationPath('src/main.ts'), {
+        name: this.appName,
+      });
       this.fs.copyTpl(
         this.templatePath(`${templatePath}/module-definitions.ts.ejs`),
         this.destinationPath('src/module-definitions.ts'),
