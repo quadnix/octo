@@ -14,7 +14,7 @@ import type { INode } from './node.interface.js';
  * From this base class, three more base classes are derived,
  * - [Models](/docs/fundamentals/models)
  * - [Resources](/docs/fundamentals/resources)
- * - [Overlays](/docs/fundamentals/overlay-and-anchor)
+ * - [Overlays](/docs/fundamentals/overlays)
  *
  * Each of these derived base classes, using the base methods of this class,
  * define their own specific rules on how their graphs should be constructed.

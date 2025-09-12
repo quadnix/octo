@@ -14,7 +14,7 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * ```
  * @group Decorators
  * @returns The decorated class.
- * @see Definition of [Anchors](/docs/fundamentals/overlay-and-anchor).
+ * @see Definition of [Anchors](/docs/fundamentals/overlays).
  */
 export function Anchor(packageName: string): (constructor: any) => void {
   const container = Container.getInstance();
