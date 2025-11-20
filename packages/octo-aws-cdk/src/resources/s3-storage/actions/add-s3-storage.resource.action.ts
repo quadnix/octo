@@ -1,6 +1,7 @@
 import { CreateBucketCommand, S3Client } from '@aws-sdk/client-s3';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
+import type { S3StorageSchema } from '../index.schema.js';
 import { S3Storage } from '../s3-storage.resource.js';
 
 /**
@@ -19,11 +20,10 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
     );
   }
 
-  async handle(diff: Diff<S3Storage>): Promise<void> {
+  async handle(diff: Diff<S3Storage>): Promise<S3StorageSchema['response']> {
     // Get properties.
     const s3Storage = diff.node;
     const properties = s3Storage.properties;
-    const response = s3Storage.response;
 
     // Get instances.
     const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
@@ -38,23 +38,18 @@ export class AddS3StorageResourceAction implements IResourceAction<S3Storage> {
       }),
     );
 
-    // Set response.
-    response.Arn = `arn:aws:s3:::${properties.Bucket}`;
+    return {
+      Arn: `arn:aws:s3:::${properties.Bucket}`,
+    };
   }
 
-  async mock(diff: Diff<S3Storage>): Promise<void> {
+  async mock(diff: Diff<S3Storage>): Promise<S3StorageSchema['response']> {
     // Get properties.
     const s3Storage = diff.node;
     const properties = s3Storage.properties;
 
-    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    s3Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateBucketCommand) {
-        return;
-      }
+    return {
+      Arn: `arn:aws:s3:::${properties.Bucket}`,
     };
   }
 }

@@ -25,11 +25,10 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     );
   }
 
-  async handle(diff: Diff<RouteTable>): Promise<void> {
+  async handle(diff: Diff<RouteTable>): Promise<RouteTableSchema['response']> {
     // Get properties.
     const routeTable = diff.node;
     const properties = routeTable.properties;
-    const response = routeTable.response;
     const tags = routeTable.tags;
     const routeTableVpc = routeTable.parents[0];
     const routeTableInternetGateway = routeTable.parents[1];
@@ -73,30 +72,26 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
         : Promise.resolve(),
     ]);
 
-    // Set response.
     const rtId = routeTableOutput!.RouteTable!.RouteTableId!;
-    response.RouteTableArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:route-table/${rtId}`;
-    response.RouteTableId = rtId;
-    response.subnetAssociationId = data[0].AssociationId!;
+    return {
+      RouteTableArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:route-table/${rtId}`,
+      RouteTableId: rtId,
+      subnetAssociationId: data[0].AssociationId!,
+    };
   }
 
-  async mock(diff: Diff<RouteTable>, capture: Partial<RouteTableSchema['response']>): Promise<void> {
+  async mock(
+    diff: Diff<RouteTable>,
+    capture: Partial<RouteTableSchema['response']>,
+  ): Promise<RouteTableSchema['response']> {
     // Get properties.
     const routeTable = diff.node;
     const properties = routeTable.properties;
 
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateRouteTableCommand) {
-        return { RouteTable: { RouteTableId: capture.RouteTableId } };
-      } else if (instance instanceof AssociateRouteTableCommand) {
-        return { AssociationId: capture.subnetAssociationId };
-      } else if (instance instanceof CreateRouteCommand) {
-        return;
-      }
+    return {
+      RouteTableArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:route-table/${capture.RouteTableId}`,
+      RouteTableId: capture.RouteTableId!,
+      subnetAssociationId: capture.subnetAssociationId!,
     };
   }
 }

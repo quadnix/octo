@@ -17,6 +17,7 @@ import {
 import type { EFSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
+import type { EfsMountTargetSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -38,7 +39,7 @@ export class DeleteEfsMountTargetResourceAction extends ANodeAction implements I
     );
   }
 
-  async handle(diff: Diff<EfsMountTarget>): Promise<void> {
+  async handle(diff: Diff<EfsMountTarget>): Promise<EfsMountTargetSchema['response']> {
     // Get properties.
     const efsMountTarget = diff.node;
     const properties = efsMountTarget.properties;
@@ -93,32 +94,13 @@ export class DeleteEfsMountTargetResourceAction extends ANodeAction implements I
         retryDelayInMs: 5000,
       },
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<EfsMountTarget>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<EfsMountTarget>): Promise<EfsMountTargetSchema['response']> {
     const efsMountTarget = diff.node;
-    const properties = efsMountTarget.properties;
-    const efsMountTargetEfs = efsMountTarget.parents[0];
-
-    const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    efsClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteMountTargetCommand) {
-        return;
-      } else if (instance instanceof DescribeMountTargetsCommand) {
-        return {
-          MountTargets: [
-            {
-              FileSystemId: efsMountTargetEfs.getSchemaInstanceInResourceAction().response.FileSystemId,
-              LifeCycleState: 'deleted',
-            },
-          ],
-        };
-      }
-    };
+    return efsMountTarget.response;
   }
 }
 
@@ -135,4 +117,5 @@ export class DeleteEfsMountTargetResourceActionFactory {
     }
     return this.instance;
   }
+
 }

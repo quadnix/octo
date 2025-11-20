@@ -2,6 +2,7 @@ import { AttachRolePolicyCommand, DetachRolePolicyCommand, IAMClient } from '@aw
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { type IIamRolePolicyDiff, IamRole, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-role.resource.js';
+import type { IamRoleSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -19,12 +20,12 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
     );
   }
 
-  async handle(diff: Diff<IamRole, IIamRolePolicyDiff>): Promise<void> {
+  async handle(diff: Diff<IamRole, IIamRolePolicyDiff>): Promise<IamRoleSchema['response']> {
     // Get properties.
     const iamRole = diff.node;
-    const iamRolePolicyDiff = diff.value;
     const properties = iamRole.properties;
     const response = iamRole.response;
+    const iamRolePolicyDiff = diff.value;
 
     // Get instances.
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
@@ -42,6 +43,9 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
       );
 
       // Set response.
+      if (!response.policies) {
+        response.policies = {};
+      }
       response.policies![iamRolePolicyDiff.policyId] = [iamRolePolicyDiff.policy as string];
     } else if (isDeletePolicyDiff(iamRolePolicyDiff)) {
       await iamClient.send(
@@ -56,24 +60,29 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
         delete response.policies![iamRolePolicyDiff.policyId];
       }
     }
+
+    return response;
   }
 
-  async mock(diff: Diff<IamRole>): Promise<void> {
+  async mock(diff: Diff<IamRole, IIamRolePolicyDiff>): Promise<IamRoleSchema['response']> {
     // Get properties.
     const iamRole = diff.node;
-    const properties = iamRole.properties;
+    const response = iamRole.response;
+    const iamRolePolicyDiff = diff.value;
 
-    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
-      args: [properties.awsAccountId],
-      metadata: { package: '@octo' },
-    });
-    iamClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof AttachRolePolicyCommand) {
-        return;
-      } else if (instance instanceof DetachRolePolicyCommand) {
-        return;
+    // Attach AWS policies to IAM Role.
+    if (isAddPolicyDiff(iamRolePolicyDiff)) {
+      if (!response.policies) {
+        response.policies = {};
       }
-    };
+      response.policies![iamRolePolicyDiff.policyId] = [iamRolePolicyDiff.policy as string];
+    } else if (isDeletePolicyDiff(iamRolePolicyDiff)) {
+      if (!Object.isFrozen(response)) {
+        delete response.policies![iamRolePolicyDiff.policyId];
+      }
+    }
+
+    return response;
   }
 }
 

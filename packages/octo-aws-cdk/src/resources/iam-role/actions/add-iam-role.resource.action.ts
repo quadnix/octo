@@ -21,11 +21,10 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
     );
   }
 
-  async handle(diff: Diff<IamRole>): Promise<void> {
+  async handle(diff: Diff<IamRole>): Promise<IamRoleSchema['response']> {
     // Get properties.
     const iamRole = diff.node;
     const properties = iamRole.properties;
-    const response = iamRole.response;
     const tags = iamRole.tags;
 
     // Get instances.
@@ -79,28 +78,20 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
       },
     );
 
-    // Set response.
-    response.Arn = data.Role!.Arn!;
-    response.policies = {};
-    response.RoleId = data.Role!.RoleId!;
-    response.RoleName = data.Role!.RoleName!;
+    return {
+      Arn: data.Role!.Arn!,
+      policies: {},
+      RoleId: data.Role!.RoleId!,
+      RoleName: data.Role!.RoleName!,
+    };
   }
 
-  async mock(diff: Diff<IamRole>, capture: Partial<IamRoleSchema['response']>): Promise<void> {
-    // Get properties.
-    const iamRole = diff.node;
-    const properties = iamRole.properties;
-
-    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
-      args: [properties.awsAccountId],
-      metadata: { package: '@octo' },
-    });
-    iamClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateRoleCommand) {
-        return { Role: { Arn: capture.Arn, RoleId: capture.RoleId, RoleName: capture.RoleName } };
-      } else if (instance instanceof GetRoleCommand) {
-        return { Role: { Arn: capture.Arn } };
-      }
+  async mock(_diff: Diff<IamRole>, capture: Partial<IamRoleSchema['response']>): Promise<IamRoleSchema['response']> {
+    return {
+      Arn: capture.Arn!,
+      policies: {},
+      RoleId: capture.RoleId!,
+      RoleName: capture.RoleName!,
     };
   }
 }

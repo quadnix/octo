@@ -21,11 +21,10 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     );
   }
 
-  async handle(diff: Diff<IamUser>): Promise<void> {
+  async handle(diff: Diff<IamUser>): Promise<IamUserSchema['response']> {
     // Get properties.
     const iamUser = diff.node;
     const properties = iamUser.properties;
-    const response = iamUser.response;
     const tags = iamUser.tags;
 
     // Get instances.
@@ -60,27 +59,20 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
       },
     );
 
-    // Set response.
-    response.Arn = data.User!.Arn!;
-    response.policies = {};
-    response.UserId = data.User!.UserId!;
-    response.UserName = data.User!.UserName!;
+    return {
+      Arn: data.User!.Arn!,
+      policies: {},
+      UserId: data.User!.UserId!,
+      UserName: data.User!.UserName!,
+    };
   }
 
-  async mock(diff: Diff<IamUser>, capture: Partial<IamUserSchema['response']>): Promise<void> {
-    const iamUser = diff.node;
-    const properties = iamUser.properties;
-
-    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
-      args: [properties.awsAccountId],
-      metadata: { package: '@octo' },
-    });
-    iamClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateUserCommand) {
-        return { User: { Arn: capture.Arn, UserId: capture.UserId, UserName: capture.UserName } };
-      } else if (instance instanceof GetUserCommand) {
-        return { User: { Arn: capture.Arn } };
-      }
+  async mock(_diff: Diff<IamUser>, capture: Partial<IamUserSchema['response']>): Promise<IamUserSchema['response']> {
+    return {
+      Arn: capture.Arn!,
+      policies: {},
+      UserId: capture.UserId!,
+      UserName: capture.UserName!,
     };
   }
 }

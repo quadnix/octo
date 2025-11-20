@@ -25,7 +25,7 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
     );
   }
 
-  async handle(diff: Diff<EcsTaskDefinition>): Promise<void> {
+  async handle(diff: Diff<EcsTaskDefinition>): Promise<EcsTaskDefinitionSchema['response']> {
     // Get properties.
     const ecsTaskDefinition = diff.node;
     const properties = ecsTaskDefinition.properties;
@@ -95,28 +95,19 @@ export class UpdateEcsTaskDefinitionResourceAction implements IResourceAction<Ec
       console.error(error);
     }
 
-    // Set response.
-    response.revision = data.taskDefinition!.revision!;
-    response.taskDefinitionArn = data.taskDefinition!.taskDefinitionArn!;
+    return {
+      revision: data.taskDefinition!.revision!,
+      taskDefinitionArn: data.taskDefinition!.taskDefinitionArn!,
+    };
   }
 
-  async mock(diff: Diff<EcsTaskDefinition>, capture: Partial<EcsTaskDefinitionSchema['response']>): Promise<void> {
-    // Get properties.
-    const ecsTaskDefinition = diff.node;
-    const properties = ecsTaskDefinition.properties;
-
-    const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ecsClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof RegisterTaskDefinitionCommand) {
-        return { taskDefinition: { revision: capture.revision, taskDefinitionArn: capture.taskDefinitionArn } };
-      } else if (instance instanceof DeregisterTaskDefinitionCommand) {
-        return;
-      } else if (instance instanceof DeleteTaskDefinitionsCommand) {
-        return { failures: [] };
-      }
+  async mock(
+    _diff: Diff<EcsTaskDefinition>,
+    capture: Partial<EcsTaskDefinitionSchema['response']>,
+  ): Promise<EcsTaskDefinitionSchema['response']> {
+    return {
+      revision: capture.revision!,
+      taskDefinitionArn: capture.taskDefinitionArn!,
     };
   }
 }

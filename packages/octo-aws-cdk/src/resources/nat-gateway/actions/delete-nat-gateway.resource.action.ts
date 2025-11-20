@@ -7,6 +7,7 @@ import {
 import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import type { NatGatewaySchema } from '../index.schema.js';
 import { NatGateway } from '../nat-gateway.resource.js';
 
 /**
@@ -29,7 +30,7 @@ export class DeleteNatGatewayResourceAction extends ANodeAction implements IReso
     );
   }
 
-  async handle(diff: Diff<NatGateway>): Promise<void> {
+  async handle(diff: Diff<NatGateway>): Promise<NatGatewaySchema['response']> {
     // Get properties.
     const natGateway = diff.node;
     const properties = natGateway.properties;
@@ -88,26 +89,13 @@ export class DeleteNatGatewayResourceAction extends ANodeAction implements IReso
         throwOnError: false,
       },
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<NatGateway>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<NatGateway>): Promise<NatGatewaySchema['response']> {
     const natGateway = diff.node;
-    const properties = natGateway.properties;
-
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteNatGatewayCommand) {
-        return;
-      } else if (instance instanceof DescribeNatGatewaysCommand) {
-        return { NatGateways: [] };
-      } else if (instance instanceof ReleaseAddressCommand) {
-        return;
-      }
-    };
+    return natGateway.response;
   }
 }
 

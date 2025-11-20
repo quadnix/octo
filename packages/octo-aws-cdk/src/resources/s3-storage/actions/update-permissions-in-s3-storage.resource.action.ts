@@ -2,6 +2,7 @@ import { DeleteBucketPolicyCommand, PutBucketPolicyCommand, S3Client } from '@aw
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
+import type { S3StorageSchema } from '../index.schema.js';
 import { S3Storage, type S3StorageManifestDiff } from '../s3-storage.resource.js';
 
 /**
@@ -20,10 +21,11 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
     );
   }
 
-  async handle(diff: Diff<S3Storage, S3StorageManifestDiff>): Promise<void> {
+  async handle(diff: Diff<S3Storage, S3StorageManifestDiff>): Promise<S3StorageSchema['response']> {
     // Get properties.
     const s3Storage = diff.node;
     const properties = s3Storage.properties;
+    const response = s3Storage.response;
     const manifestDiff = diff.value;
 
     // Get instances.
@@ -99,24 +101,13 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
         }),
       );
     }
+
+    return response;
   }
 
-  async mock(diff: Diff<S3Storage>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<S3Storage>): Promise<S3StorageSchema['response']> {
     const s3Storage = diff.node;
-    const properties = s3Storage.properties;
-
-    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    s3Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof PutBucketPolicyCommand) {
-        return;
-      } else if (instance instanceof DeleteBucketPolicyCommand) {
-        return;
-      }
-    };
+    return s3Storage.response;
   }
 }
 

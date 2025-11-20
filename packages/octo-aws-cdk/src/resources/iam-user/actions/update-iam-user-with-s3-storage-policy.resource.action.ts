@@ -27,12 +27,12 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
     );
   }
 
-  async handle(diff: Diff<IamUser, IIamUserPolicyDiff>): Promise<void> {
+  async handle(diff: Diff<IamUser, IIamUserPolicyDiff>): Promise<IamUserSchema['response']> {
     // Get properties.
     const iamUser = diff.node;
-    const iamUserPolicyDiff = diff.value;
     const properties = iamUser.properties;
     const response = iamUser.response;
+    const iamUserPolicyDiff = diff.value;
 
     // Get instances.
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
@@ -96,6 +96,9 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
       );
 
       // Set response.
+      if (!response.policies) {
+        response.policies = {};
+      }
       response.policies![iamUserPolicyDiff.policyId] = [data.Policy!.Arn!];
     } else if (isDeletePolicyDiff(iamUserPolicyDiff)) {
       const policyARNs = response.policies![iamUserPolicyDiff.policyId] || [];
@@ -120,29 +123,32 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
         delete response.policies![iamUserPolicyDiff.policyId];
       }
     }
+
+    return response;
   }
 
-  async mock(diff: Diff<IamUser, IIamUserPolicyDiff>, capture: Partial<IamUserSchema['response']>): Promise<void> {
+  async mock(
+    diff: Diff<IamUser, IIamUserPolicyDiff>,
+    capture: Partial<IamUserSchema['response']>,
+  ): Promise<IamUserSchema['response']> {
     // Get properties.
     const iamUser = diff.node;
+    const response = iamUser.response;
     const iamUserPolicyDiff = diff.value;
-    const properties = iamUser.properties;
 
-    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
-      args: [properties.awsAccountId],
-      metadata: { package: '@octo' },
-    });
-    iamClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreatePolicyCommand) {
-        return { Policy: { Arn: capture.policies![iamUserPolicyDiff.policyId][0] } };
-      } else if (instance instanceof AttachUserPolicyCommand) {
-        return;
-      } else if (instance instanceof DetachUserPolicyCommand) {
-        return;
-      } else if (instance instanceof DeletePolicyCommand) {
-        return;
+    // Attach policies to IAM User to read/write from bucket.
+    if (isAddPolicyDiff(iamUserPolicyDiff)) {
+      if (!response.policies) {
+        response.policies = {};
       }
-    };
+      response.policies![iamUserPolicyDiff.policyId] = [capture.policies![iamUserPolicyDiff.policyId][0]];
+    } else if (isDeletePolicyDiff(iamUserPolicyDiff)) {
+      if (!Object.isFrozen(response)) {
+        delete response.policies![iamUserPolicyDiff.policyId];
+      }
+    }
+
+    return response;
   }
 }
 

@@ -20,11 +20,10 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
     );
   }
 
-  async handle(diff: Diff<Subnet>): Promise<void> {
+  async handle(diff: Diff<Subnet>): Promise<SubnetSchema['response']> {
     // Get properties.
     const subnet = diff.node;
     const properties = subnet.properties;
-    const response = subnet.response;
     const tags = subnet.tags;
     const subnetVpc = subnet.parents[0];
 
@@ -49,25 +48,21 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
       }),
     );
 
-    // Set response.
     const subnetId = subnetOutput.Subnet!.SubnetId!;
-    response.SubnetArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:subnet/${subnetId}`;
-    response.SubnetId = subnetId;
+    return {
+      SubnetArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:subnet/${subnetId}`,
+      SubnetId: subnetId,
+    };
   }
 
-  async mock(diff: Diff<Subnet>, capture: Partial<SubnetSchema['response']>): Promise<void> {
+  async mock(diff: Diff<Subnet>, capture: Partial<SubnetSchema['response']>): Promise<SubnetSchema['response']> {
     // Get properties.
     const subnet = diff.node;
     const properties = subnet.properties;
 
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateSubnetCommand) {
-        return { Subnet: { SubnetId: capture.SubnetId } };
-      }
+    return {
+      SubnetArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:subnet/${capture.SubnetId}`,
+      SubnetId: capture.SubnetId!,
     };
   }
 }

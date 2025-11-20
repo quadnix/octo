@@ -30,11 +30,10 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
     );
   }
 
-  async handle(diff: Diff<Efs>): Promise<void> {
+  async handle(diff: Diff<Efs>): Promise<EfsSchema['response']> {
     // Get properties.
     const efs = diff.node;
     const properties = efs.properties;
-    const response = efs.response;
     const tags = efs.tags;
 
     // Get instances.
@@ -79,26 +78,16 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
       },
     );
 
-    // Set response.
-    response.FileSystemArn = data.FileSystemArn!;
-    response.FileSystemId = data.FileSystemId!;
+    return {
+      FileSystemArn: data.FileSystemArn!,
+      FileSystemId: data.FileSystemId!,
+    };
   }
 
-  async mock(diff: Diff<Efs>, capture: Partial<EfsSchema['response']>): Promise<void> {
-    // Get properties.
-    const efs = diff.node;
-    const properties = efs.properties;
-
-    const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    efsClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateFileSystemCommand) {
-        return { FileSystemArn: capture.FileSystemArn, FileSystemId: capture.FileSystemId };
-      } else if (instance instanceof DescribeFileSystemsCommand) {
-        return { FileSystems: [{ FileSystemId: capture.FileSystemId, LifeCycleState: 'available' }] };
-      }
+  async mock(_diff: Diff<Efs>, capture: Partial<EfsSchema['response']>): Promise<EfsSchema['response']> {
+    return {
+      FileSystemArn: capture.FileSystemArn!,
+      FileSystemId: capture.FileSystemId!,
     };
   }
 }

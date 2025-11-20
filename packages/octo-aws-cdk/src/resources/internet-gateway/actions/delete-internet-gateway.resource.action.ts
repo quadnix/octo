@@ -2,6 +2,7 @@ import { DeleteInternetGatewayCommand, DetachInternetGatewayCommand, EC2Client }
 import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import type { InternetGatewaySchema } from '../index.schema.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
 /**
@@ -24,7 +25,7 @@ export class DeleteInternetGatewayResourceAction extends ANodeAction implements 
     );
   }
 
-  async handle(diff: Diff<InternetGateway>): Promise<void> {
+  async handle(diff: Diff<InternetGateway>): Promise<InternetGatewaySchema['response']> {
     // Get properties.
     const internetGateway = diff.node;
     const properties = internetGateway.properties;
@@ -64,24 +65,13 @@ export class DeleteInternetGatewayResourceAction extends ANodeAction implements 
         InternetGatewayId: response.InternetGatewayId,
       }),
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<InternetGateway>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<InternetGateway>): Promise<InternetGatewaySchema['response']> {
     const internetGateway = diff.node;
-    const properties = internetGateway.properties;
-
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DetachInternetGatewayCommand) {
-        return;
-      } else if (instance instanceof DeleteInternetGatewayCommand) {
-        return;
-      }
-    };
+    return internetGateway.response;
   }
 }
 

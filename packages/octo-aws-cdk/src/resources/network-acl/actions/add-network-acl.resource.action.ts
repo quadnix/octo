@@ -26,11 +26,10 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     );
   }
 
-  async handle(diff: Diff<NetworkAcl>): Promise<void> {
+  async handle(diff: Diff<NetworkAcl>): Promise<NetworkAclSchema['response']> {
     // Get properties.
     const networkAcl = diff.node;
     const properties = networkAcl.properties;
-    const response = networkAcl.response;
     const tags = networkAcl.tags;
     const networkAclVpc = networkAcl.parents[0];
     const networkAclSubnet = networkAcl.parents[1];
@@ -92,42 +91,29 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
       }),
     );
 
-    // Set response.
     const { awsAccountId, awsRegionId } = properties;
     const networkAclId = naclOutput!.NetworkAcl!.NetworkAclId!;
-    response.associationId = newAssociation.NewAssociationId!;
-    response.defaultNetworkAclId = defaultNACLOutput!.NetworkAcls![0].NetworkAclId!;
-    response.NetworkAclArn = `arn:aws:ec2:${awsRegionId}:${awsAccountId}:network-acl/${networkAclId}`;
-    response.NetworkAclId = networkAclId;
+    return {
+      associationId: newAssociation.NewAssociationId!,
+      defaultNetworkAclId: defaultNACLOutput!.NetworkAcls![0].NetworkAclId!,
+      NetworkAclArn: `arn:aws:ec2:${awsRegionId}:${awsAccountId}:network-acl/${networkAclId}`,
+      NetworkAclId: networkAclId,
+    };
   }
 
-  async mock(diff: Diff<NetworkAcl>, capture: Partial<NetworkAclSchema['response']>): Promise<void> {
+  async mock(
+    diff: Diff<NetworkAcl>,
+    capture: Partial<NetworkAclSchema['response']>,
+  ): Promise<NetworkAclSchema['response']> {
     // Get properties.
     const networkAcl = diff.node;
     const properties = networkAcl.properties;
-    const networkAclSubnet = networkAcl.parents[1];
 
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DescribeNetworkAclsCommand) {
-        return {
-          NetworkAcls: [
-            {
-              Associations: [{ SubnetId: networkAclSubnet.getSchemaInstanceInResourceAction().response.SubnetId }],
-              NetworkAclId: capture.defaultNetworkAclId,
-            },
-          ],
-        };
-      } else if (instance instanceof CreateNetworkAclCommand) {
-        return { NetworkAcl: { NetworkAclId: capture.NetworkAclId } };
-      } else if (instance instanceof CreateNetworkAclEntryCommand) {
-        return;
-      } else if (instance instanceof ReplaceNetworkAclAssociationCommand) {
-        return { NewAssociationId: capture.associationId };
-      }
+    return {
+      associationId: capture.associationId!,
+      defaultNetworkAclId: capture.defaultNetworkAclId!,
+      NetworkAclArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:network-acl/${capture.NetworkAclId}`,
+      NetworkAclId: capture.NetworkAclId!,
     };
   }
 }

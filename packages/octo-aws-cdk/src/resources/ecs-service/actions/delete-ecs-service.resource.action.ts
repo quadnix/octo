@@ -3,6 +3,7 @@ import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceActi
 import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EcsService } from '../ecs-service.resource.js';
+import type { EcsServiceSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -24,10 +25,11 @@ export class DeleteEcsServiceResourceAction extends ANodeAction implements IReso
     );
   }
 
-  async handle(diff: Diff<EcsService>): Promise<void> {
+  async handle(diff: Diff<EcsService>): Promise<EcsServiceSchema['response']> {
     // Get properties.
     const ecsService = diff.node;
     const properties = ecsService.properties;
+    const response = ecsService.response;
     const ecsServiceEcsCluster = ecsService.parents[0];
 
     // Get instances.
@@ -44,7 +46,7 @@ export class DeleteEcsServiceResourceAction extends ANodeAction implements IReso
       }),
     );
     if (describeResult.services?.length === 0 || describeResult.services![0].status!.toUpperCase() === 'INACTIVE') {
-      return;
+      return response;
     }
 
     // Scale down the service to 0.
@@ -110,26 +112,13 @@ export class DeleteEcsServiceResourceAction extends ANodeAction implements IReso
     // Wait for network interfaces used by the tasks to be deleted.
     this.log('Waiting for network interfaces used by the tasks to be deleted.');
     await new Promise((resolve) => setTimeout(resolve, 60000));
+
+    return response;
   }
 
-  async mock(diff: Diff<EcsService>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<EcsService>): Promise<EcsServiceSchema['response']> {
     const ecsService = diff.node;
-    const properties = ecsService.properties;
-
-    const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ecsClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof UpdateServiceCommand) {
-        return;
-      } else if (instance instanceof DescribeServicesCommand) {
-        return { services: [{ status: 'INACTIVE' }] };
-      } else if (instance instanceof DeleteServiceCommand) {
-        return;
-      }
-    };
+    return ecsService.response;
   }
 }
 

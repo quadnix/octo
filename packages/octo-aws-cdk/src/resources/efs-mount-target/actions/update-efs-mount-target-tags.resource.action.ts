@@ -1,5 +1,6 @@
 import { Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
+import type { EfsMountTargetSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -15,9 +16,15 @@ export class UpdateEfsMountTargetTagsResourceAction implements IResourceAction<E
     );
   }
 
-  async handle(): Promise<void> {}
+  async handle(diff: Diff<EfsMountTarget>): Promise<EfsMountTargetSchema['response']> {
+    const efsMountTarget = diff.node;
+    return efsMountTarget.response;
+  }
 
-  async mock(): Promise<void> {}
+  async mock(diff: Diff<EfsMountTarget>): Promise<EfsMountTargetSchema['response']> {
+    const efsMountTarget = diff.node;
+    return efsMountTarget.response;
+  }
 }
 
 /**

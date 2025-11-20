@@ -35,7 +35,7 @@ export class DeleteEfsResourceAction implements IResourceAction<Efs> {
     );
   }
 
-  async handle(diff: Diff<Efs>): Promise<void> {
+  async handle(diff: Diff<Efs>): Promise<EfsSchema['response']> {
     // Get properties.
     const efs = diff.node;
     const properties = efs.properties;
@@ -84,24 +84,13 @@ export class DeleteEfsResourceAction implements IResourceAction<Efs> {
         retryDelayInMs: 5000,
       },
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<Efs>, capture: Partial<EfsSchema['response']>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<Efs>): Promise<EfsSchema['response']> {
     const efs = diff.node;
-    const properties = efs.properties;
-
-    const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    efsClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteFileSystemCommand) {
-        return;
-      } else if (instance instanceof DescribeFileSystemsCommand) {
-        return { FileSystems: [{ FileSystemId: capture.FileSystemId, LifeCycleState: 'deleted' }] };
-      }
-    };
+    return efs.response;
   }
 }
 

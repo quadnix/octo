@@ -2,6 +2,7 @@ import { DeleteSecurityGroupCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import type { SecurityGroupSchema } from '../index.schema.js';
 import { SecurityGroup } from '../security-group.resource.js';
 
 /**
@@ -20,7 +21,7 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction<Securi
     );
   }
 
-  async handle(diff: Diff<SecurityGroup>): Promise<void> {
+  async handle(diff: Diff<SecurityGroup>): Promise<SecurityGroupSchema['response']> {
     // Get properties.
     const securityGroup = diff.node;
     const properties = securityGroup.properties;
@@ -49,23 +50,13 @@ export class DeleteSecurityGroupResourceAction implements IResourceAction<Securi
         throwOnError: false,
       },
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<SecurityGroup>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<SecurityGroup>): Promise<SecurityGroupSchema['response']> {
     const securityGroup = diff.node;
-    const properties = securityGroup.properties;
-
-    // Get instances.
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteSecurityGroupCommand) {
-        return;
-      }
-    };
+    return securityGroup.response;
   }
 }
 

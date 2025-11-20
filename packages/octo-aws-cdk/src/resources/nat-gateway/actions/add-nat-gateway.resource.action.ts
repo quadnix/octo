@@ -20,11 +20,10 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     );
   }
 
-  async handle(diff: Diff<NatGateway>): Promise<void> {
+  async handle(diff: Diff<NatGateway>): Promise<NatGatewaySchema['response']> {
     // Get properties.
     const natGateway = diff.node;
     const properties = natGateway.properties;
-    const response = natGateway.response;
     const tags = natGateway.tags;
     const subnet = natGateway.parents[2];
 
@@ -62,28 +61,26 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
       }),
     );
 
-    // Set response.
     const natId = natGatewayOutput.NatGateway!.NatGatewayId!;
-    response.AllocationId = elasticIpOutput.AllocationId!;
-    response.NatGatewayArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:natgateway/${natId}`;
-    response.NatGatewayId = natId;
+    return {
+      AllocationId: elasticIpOutput.AllocationId!,
+      NatGatewayArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:natgateway/${natId}`,
+      NatGatewayId: natId,
+    };
   }
 
-  async mock(diff: Diff<NatGateway>, capture: Partial<NatGatewaySchema['response']>): Promise<void> {
+  async mock(
+    diff: Diff<NatGateway>,
+    capture: Partial<NatGatewaySchema['response']>,
+  ): Promise<NatGatewaySchema['response']> {
     // Get properties.
     const natGateway = diff.node;
     const properties = natGateway.properties;
 
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof AllocateAddressCommand) {
-        return { AllocationId: capture.AllocationId };
-      } else if (instance instanceof CreateNatGatewayCommand) {
-        return { NatGateway: { NatGatewayId: capture.NatGatewayId } };
-      }
+    return {
+      AllocationId: capture.AllocationId!,
+      NatGatewayArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:natgateway/${capture.NatGatewayId}`,
+      NatGatewayId: capture.NatGatewayId!,
     };
   }
 }

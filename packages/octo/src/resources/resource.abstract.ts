@@ -425,6 +425,12 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
     return `${nodePackage}/${nodeName}=${this.resourceId}`;
   }
 
+  setResponse(response: S['response']): void {
+    for (const key of Object.keys(response || {}) as (keyof S['response'])[]) {
+      this.response[key] = JSON.parse(JSON.stringify(response[key]));
+    }
+  }
+
   override synth(): S {
     const resourceSynth: BaseResourceSchema = {
       parents: this.parents.map((p) => {

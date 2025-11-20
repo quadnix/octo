@@ -28,11 +28,10 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
     );
   }
 
-  async handle(diff: Diff<EcsService>): Promise<void> {
+  async handle(diff: Diff<EcsService>): Promise<EcsServiceSchema['response']> {
     // Get properties.
     const ecsService = diff.node;
     const properties = ecsService.properties;
-    const response = ecsService.response;
     const ecsServiceEcsCluster = ecsService.parents[0];
     const ecsServiceTaskDefinition = ecsService.parents[1];
     const ecsServiceSubnet = ecsService.parents[2];
@@ -75,23 +74,17 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
       }),
     );
 
-    // Set response.
-    response.serviceArn = data.service!.serviceArn!;
+    return {
+      serviceArn: data.service!.serviceArn!,
+    };
   }
 
-  async mock(diff: Diff<EcsService>, capture: Partial<EcsServiceSchema['response']>): Promise<void> {
-    // Get properties.
-    const ecsService = diff.node;
-    const properties = ecsService.properties;
-
-    const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ecsClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof UpdateServiceCommand) {
-        return { service: { serviceArn: capture.serviceArn } };
-      }
+  async mock(
+    _diff: Diff<EcsService>,
+    capture: Partial<EcsServiceSchema['response']>,
+  ): Promise<EcsServiceSchema['response']> {
+    return {
+      serviceArn: capture.serviceArn!,
     };
   }
 }

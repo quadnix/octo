@@ -4,6 +4,7 @@ import type { Upload } from '@aws-sdk/lib-storage';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import mime from 'mime';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
+import type { S3WebsiteSchema } from '../index.schema.js';
 import { S3Website, type S3WebsiteManifestDiff } from '../s3-website.resource.js';
 
 /**
@@ -22,11 +23,12 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     );
   }
 
-  async handle(diff: Diff<S3Website, S3WebsiteManifestDiff>): Promise<void> {
+  async handle(diff: Diff<S3Website, S3WebsiteManifestDiff>): Promise<S3WebsiteSchema['response']> {
     // Get properties.
     const manifestDiff = diff.value;
     const s3Website = diff.node;
     const properties = s3Website.properties;
+    const response = s3Website.response;
 
     // Get instances.
     const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
@@ -63,22 +65,13 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
         );
       }
     }
+
+    return response;
   }
 
-  async mock(diff: Diff<S3Website>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<S3Website>): Promise<S3WebsiteSchema['response']> {
     const s3Website = diff.node;
-    const properties = s3Website.properties;
-
-    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    s3Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteObjectCommand) {
-        return;
-      }
-    };
+    return s3Website.response;
   }
 }
 

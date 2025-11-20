@@ -35,7 +35,7 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
     );
   }
 
-  async handle(diff: Diff<AlbListener, IAlbListenerPropertiesDiff>): Promise<void> {
+  async handle(diff: Diff<AlbListener, IAlbListenerPropertiesDiff>): Promise<AlbListenerSchema['response']> {
     // Get properties.
     const albListener = diff.node;
     const properties = albListener.properties;
@@ -237,45 +237,44 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
         { Priority: ruleDiff.rule.Priority, RuleArn: modifyRuleResponse.Rules![0].RuleArn! },
       );
     }
+
+    return response;
   }
 
   async mock(
     diff: Diff<AlbListener, IAlbListenerPropertiesDiff>,
     capture: Partial<AlbListenerSchema['response']>,
-  ): Promise<void> {
+  ): Promise<AlbListenerSchema['response']> {
     // Get properties.
     const albListener = diff.node;
-    const properties = albListener.properties;
+    const response = albListener.response;
     const ruleDiff = diff.value.Rule!;
 
-    const elbv2Client = await this.container.get<
-      ElasticLoadBalancingV2Client,
-      typeof ElasticLoadBalancingV2ClientFactory
-    >(ElasticLoadBalancingV2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    elbv2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateRuleCommand) {
-        return {
-          Rules: [
-            {
-              RuleArn: capture.Rules!.find((r) => r.Priority === ruleDiff.rule.Priority)!.RuleArn,
-            },
-          ],
-        };
-      } else if (instance instanceof DeleteRuleCommand) {
-        return;
-      } else if (instance instanceof ModifyRuleCommand) {
-        return {
-          Rules: [
-            {
-              RuleArn: capture.Rules!.find((r) => r.Priority === ruleDiff.rule.Priority)!.RuleArn,
-            },
-          ],
-        };
+    if (isAddRuleDiff(ruleDiff)) {
+      if (!response.Rules) {
+        response.Rules = [];
       }
-    };
+      response.Rules.push({
+        Priority: ruleDiff.rule.Priority,
+        RuleArn: capture.Rules!.find((r) => r.Priority === ruleDiff.rule.Priority)!.RuleArn,
+      });
+    } else if (isDeleteRuleDiff(ruleDiff)) {
+      response.Rules!.splice(
+        response.Rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
+        1,
+      );
+    } else if (isUpdateRuleDiff(ruleDiff)) {
+      response.Rules!.splice(
+        response.Rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
+        1,
+        {
+          Priority: ruleDiff.rule.Priority,
+          RuleArn: capture.Rules!.find((r) => r.Priority === ruleDiff.rule.Priority)!.RuleArn,
+        },
+      );
+    }
+
+    return response;
   }
 }
 

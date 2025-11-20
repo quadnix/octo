@@ -20,11 +20,10 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
     );
   }
 
-  async handle(diff: Diff<EcrImage>): Promise<void> {
+  async handle(diff: Diff<EcrImage>): Promise<EcrImageSchema['response']> {
     // Get properties.
     const ecrImage = diff.node;
     const properties = ecrImage.properties;
-    const response = ecrImage.response;
     const tags = ecrImage.tags;
 
     // Get instances.
@@ -45,33 +44,20 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
       }),
     );
 
-    // Set response.
-    response.registryId = data.repository!.registryId!;
-    response.repositoryArn = data.repository!.repositoryArn!;
-    response.repositoryName = data.repository!.repositoryName!;
-    response.repositoryUri = data.repository!.repositoryUri!;
+    return {
+      registryId: data.repository!.registryId!,
+      repositoryArn: data.repository!.repositoryArn!,
+      repositoryName: data.repository!.repositoryName!,
+      repositoryUri: data.repository!.repositoryUri!,
+    };
   }
 
-  async mock(diff: Diff<EcrImage>, capture: Partial<EcrImageSchema['response']>): Promise<void> {
-    // Get properties.
-    const ecrImage = diff.node;
-    const properties = ecrImage.properties;
-
-    const ecrClient = await this.container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ecrClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateRepositoryCommand) {
-        return {
-          repository: {
-            registryId: capture.registryId,
-            repositoryArn: capture.repositoryArn,
-            repositoryName: capture.repositoryName,
-            repositoryUri: capture.repositoryUri,
-          },
-        };
-      }
+  async mock(_diff: Diff<EcrImage>, capture: Partial<EcrImageSchema['response']>): Promise<EcrImageSchema['response']> {
+    return {
+      registryId: capture.registryId!,
+      repositoryArn: capture.repositoryArn!,
+      repositoryName: capture.repositoryName!,
+      repositoryUri: capture.repositoryUri!,
     };
   }
 }

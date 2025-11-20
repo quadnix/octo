@@ -6,6 +6,7 @@ import {
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { AlbTargetGroup } from '../alb-target-group.resource.js';
+import type { AlbTargetGroupSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -23,7 +24,7 @@ export class UpdateAlbTargetGroupResourceAction implements IResourceAction<AlbTa
     );
   }
 
-  async handle(diff: Diff<AlbTargetGroup>): Promise<void> {
+  async handle(diff: Diff<AlbTargetGroup>): Promise<AlbTargetGroupSchema['response']> {
     // Get properties.
     const albTargetGroup = diff.node;
     const properties = albTargetGroup.properties;
@@ -60,25 +61,13 @@ export class UpdateAlbTargetGroupResourceAction implements IResourceAction<AlbTa
         ...(Object.keys(targetGroupHealthCheck).length > 0 ? targetGroupHealthCheck : { HealthCheckEnabled: false }),
       }),
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<AlbTargetGroup>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<AlbTargetGroup>): Promise<AlbTargetGroupSchema['response']> {
     const albTargetGroup = diff.node;
-    const properties = albTargetGroup.properties;
-
-    const elbv2Client = await this.container.get<
-      ElasticLoadBalancingV2Client,
-      typeof ElasticLoadBalancingV2ClientFactory
-    >(ElasticLoadBalancingV2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    elbv2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof ModifyTargetGroupCommand) {
-        return;
-      }
-    };
+    return albTargetGroup.response;
   }
 }
 

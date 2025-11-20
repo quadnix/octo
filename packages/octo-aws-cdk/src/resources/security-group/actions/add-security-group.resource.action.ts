@@ -25,11 +25,10 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
     );
   }
 
-  async handle(diff: Diff<SecurityGroup>): Promise<void> {
+  async handle(diff: Diff<SecurityGroup>): Promise<SecurityGroupSchema['response']> {
     // Get properties.
     const securityGroup = diff.node;
     const properties = securityGroup.properties;
-    const response = securityGroup.response;
     const tags = securityGroup.tags;
     const securityGroupVpc = securityGroup.parents[0];
 
@@ -100,38 +99,36 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
         : Promise.resolve({ SecurityGroupRules: [] }),
     ]);
 
-    // Set response.
     const groupId = securityGroupOutput.GroupId!;
-    response.Arn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:security-group/${groupId}`;
-    response.GroupId = groupId;
-    response.Rules = {
-      egress: egressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
-        SecurityGroupRuleId: r.SecurityGroupRuleId,
-      })),
-      ingress: ingressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
-        SecurityGroupRuleId: r.SecurityGroupRuleId,
-      })),
+    return {
+      Arn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:security-group/${groupId}`,
+      GroupId: groupId,
+      Rules: {
+        egress: egressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
+          SecurityGroupRuleId: r.SecurityGroupRuleId,
+        })),
+        ingress: ingressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
+          SecurityGroupRuleId: r.SecurityGroupRuleId,
+        })),
+      },
     };
   }
 
-  async mock(diff: Diff<SecurityGroup>, capture: Partial<SecurityGroupSchema['response']>): Promise<void> {
+  async mock(
+    diff: Diff<SecurityGroup>,
+    capture: Partial<SecurityGroupSchema['response']>,
+  ): Promise<SecurityGroupSchema['response']> {
     // Get properties.
     const securityGroup = diff.node;
     const properties = securityGroup.properties;
 
-    // Get instances.
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateSecurityGroupCommand) {
-        return { GroupId: capture.GroupId };
-      } else if (instance instanceof AuthorizeSecurityGroupEgressCommand) {
-        return { SecurityGroupRules: capture.Rules!.egress };
-      } else if (instance instanceof AuthorizeSecurityGroupIngressCommand) {
-        return { SecurityGroupRules: capture.Rules!.ingress };
-      }
+    return {
+      Arn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:security-group/${capture.GroupId}`,
+      GroupId: capture.GroupId!,
+      Rules: {
+        egress: capture.Rules!.egress,
+        ingress: capture.Rules!.ingress,
+      },
     };
   }
 }

@@ -34,11 +34,10 @@ export class AddEfsMountTargetResourceAction extends ANodeAction implements IRes
     );
   }
 
-  async handle(diff: Diff<EfsMountTarget>): Promise<void> {
+  async handle(diff: Diff<EfsMountTarget>): Promise<EfsMountTargetSchema['response']> {
     // Get properties.
     const efsMountTarget = diff.node;
     const properties = efsMountTarget.properties;
-    const response = efsMountTarget.response;
     const efsMountTargetEfs = efsMountTarget.parents[0];
     const efsMountTargetSubnet = efsMountTarget.parents[1];
     const efsMountTargetSecurityGroup = efsMountTarget.parents[2];
@@ -87,34 +86,19 @@ export class AddEfsMountTargetResourceAction extends ANodeAction implements IRes
       },
     );
 
-    // Set response.
-    response.MountTargetId = data.MountTargetId!;
-    response.NetworkInterfaceId = data.NetworkInterfaceId!;
+    return {
+      MountTargetId: data.MountTargetId!,
+      NetworkInterfaceId: data.NetworkInterfaceId!,
+    };
   }
 
-  async mock(diff: Diff<EfsMountTarget>, capture: Partial<EfsMountTargetSchema['response']>): Promise<void> {
-    // Get properties.
-    const efsMountTarget = diff.node;
-    const properties = efsMountTarget.properties;
-    const efsMountTargetEfs = efsMountTarget.parents[0];
-
-    const efsClient = await this.container.get<EFSClient, typeof EFSClientFactory>(EFSClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    efsClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateMountTargetCommand) {
-        return { MountTargetId: capture.MountTargetId, NetworkInterfaceId: capture.NetworkInterfaceId };
-      } else if (instance instanceof DescribeMountTargetsCommand) {
-        return {
-          MountTargets: [
-            {
-              FileSystemId: efsMountTargetEfs.getSchemaInstanceInResourceAction().response.FileSystemId,
-              LifeCycleState: 'available',
-            },
-          ],
-        };
-      }
+  async mock(
+    _diff: Diff<EfsMountTarget>,
+    capture: Partial<EfsMountTargetSchema['response']>,
+  ): Promise<EfsMountTargetSchema['response']> {
+    return {
+      MountTargetId: capture.MountTargetId!,
+      NetworkInterfaceId: capture.NetworkInterfaceId!,
     };
   }
 }

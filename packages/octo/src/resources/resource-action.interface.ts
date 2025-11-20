@@ -9,7 +9,7 @@ export interface IResourceAction<T extends UnknownResource> {
 
   filter(diff: Diff): boolean;
 
-  handle(diff: Diff): Promise<void>;
+  handle(diff: Diff): Promise<T['response']>;
 
-  mock(diff: Diff, capture: Partial<ResourceSchema<T>['response']>): Promise<void>;
+  mock(diff: Diff, capture: Partial<ResourceSchema<T>['response']>): Promise<T['response']>;
 }

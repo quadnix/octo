@@ -1,6 +1,7 @@
 import { DeleteVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
+import type { VpcSchema } from '../index.schema.js';
 import { Vpc } from '../vpc.resource.js';
 
 /**
@@ -19,7 +20,7 @@ export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
     );
   }
 
-  async handle(diff: Diff<Vpc>): Promise<void> {
+  async handle(diff: Diff<Vpc>): Promise<VpcSchema['response']> {
     // Get properties.
     const vpc = diff.node;
     const properties = vpc.properties;
@@ -37,22 +38,13 @@ export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
         VpcId: response.VpcId,
       }),
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<Vpc>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<Vpc>): Promise<VpcSchema['response']> {
     const vpc = diff.node;
-    const properties = vpc.properties;
-
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteVpcCommand) {
-        return;
-      }
-    };
+    return vpc.response;
   }
 }
 

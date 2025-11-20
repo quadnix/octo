@@ -8,6 +8,7 @@ import {
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { Efs } from '../efs.resource.js';
+import type { EfsSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -22,21 +23,20 @@ export class UpdateEfsTagsResourceAction extends GenericResourceTaggingAction im
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<Efs, DiffValueTypeTagUpdate>): Promise<void> {
+  override async handle(diff: Diff<Efs, DiffValueTypeTagUpdate>): Promise<EfsSchema['response']> {
     // Get properties.
     const efs = diff.node;
     const properties = efs.properties;
     const response = efs.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.FileSystemArn! });
+
+    return response;
   }
 
-  override async mock(diff: Diff<Efs, DiffValueTypeTagUpdate>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<Efs, DiffValueTypeTagUpdate>): Promise<EfsSchema['response']> {
     const efs = diff.node;
-    const properties = efs.properties;
-
-    await super.mock(diff, properties);
+    return efs.response;
   }
 }
 

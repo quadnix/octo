@@ -8,6 +8,7 @@ import {
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { IamUser } from '../iam-user.resource.js';
+import type { IamUserSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -22,7 +23,7 @@ export class UpdateIamUserTagsResourceAction extends GenericResourceTaggingActio
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<IamUser, DiffValueTypeTagUpdate>): Promise<void> {
+  override async handle(diff: Diff<IamUser, DiffValueTypeTagUpdate>): Promise<IamUserSchema['response']> {
     // Get properties.
     const user = diff.node;
     const properties = user.properties;
@@ -30,15 +31,13 @@ export class UpdateIamUserTagsResourceAction extends GenericResourceTaggingActio
 
     // `us-east-1` is the recommended region for global resources.
     await super.handle(diff, { ...properties, awsRegionId: 'us-east-1', resourceArn: response.Arn! });
+
+    return response;
   }
 
-  override async mock(diff: Diff<IamUser, DiffValueTypeTagUpdate>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<IamUser, DiffValueTypeTagUpdate>): Promise<IamUserSchema['response']> {
     const user = diff.node;
-    const properties = user.properties;
-
-    // `us-east-1` is the recommended region for global resources.
-    await super.mock(diff, { ...properties, awsRegionId: 'us-east-1' });
+    return user.response;
   }
 }
 

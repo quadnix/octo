@@ -20,11 +20,10 @@ export class AddAlbListenerResourceAction implements IResourceAction<AlbListener
     );
   }
 
-  async handle(diff: Diff<AlbListener>): Promise<void> {
+  async handle(diff: Diff<AlbListener>): Promise<AlbListenerSchema['response']> {
     // Get properties.
     const albListener = diff.node;
     const properties = albListener.properties;
-    const response = albListener.response;
     const tags = albListener.tags;
     const matchingAlb = albListener.parents[0];
 
@@ -57,33 +56,19 @@ export class AddAlbListenerResourceAction implements IResourceAction<AlbListener
       }),
     );
 
-    // Set response
-    response.ListenerArn = createListenerOutput.Listeners![0].ListenerArn!;
-    response.Rules = [];
+    return {
+      ListenerArn: createListenerOutput.Listeners![0].ListenerArn!,
+      Rules: [],
+    };
   }
 
-  async mock(diff: Diff<AlbListener>, capture: Partial<AlbListenerSchema['response']>): Promise<void> {
-    // Get properties.
-    const albListener = diff.node;
-    const properties = albListener.properties;
-
-    const elbv2Client = await this.container.get<
-      ElasticLoadBalancingV2Client,
-      typeof ElasticLoadBalancingV2ClientFactory
-    >(ElasticLoadBalancingV2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    elbv2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateListenerCommand) {
-        return {
-          Listeners: [
-            {
-              ListenerArn: capture.ListenerArn,
-            },
-          ],
-        };
-      }
+  async mock(
+    _diff: Diff<AlbListener>,
+    capture: Partial<AlbListenerSchema['response']>,
+  ): Promise<AlbListenerSchema['response']> {
+    return {
+      ListenerArn: capture.ListenerArn!,
+      Rules: [],
     };
   }
 }

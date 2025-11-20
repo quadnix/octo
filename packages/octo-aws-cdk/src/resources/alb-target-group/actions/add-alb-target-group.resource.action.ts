@@ -24,11 +24,10 @@ export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTarge
     );
   }
 
-  async handle(diff: Diff<AlbTargetGroup>): Promise<void> {
+  async handle(diff: Diff<AlbTargetGroup>): Promise<AlbTargetGroupSchema['response']> {
     // Get properties.
     const albTargetGroup = diff.node;
     const properties = albTargetGroup.properties;
-    const response = albTargetGroup.response;
     const tags = albTargetGroup.tags;
     const matchingAlbTargetGroupVpc = albTargetGroup.parents[0];
 
@@ -71,32 +70,17 @@ export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTarge
       }),
     );
 
-    // Set response
-    response.TargetGroupArn = createTargetGroupOutput.TargetGroups![0].TargetGroupArn!;
+    return {
+      TargetGroupArn: createTargetGroupOutput.TargetGroups![0].TargetGroupArn!,
+    };
   }
 
-  async mock(diff: Diff<AlbTargetGroup>, capture: Partial<AlbTargetGroupSchema['response']>): Promise<void> {
-    // Get properties.
-    const albTargetGroup = diff.node;
-    const properties = albTargetGroup.properties;
-
-    const elbv2Client = await this.container.get<
-      ElasticLoadBalancingV2Client,
-      typeof ElasticLoadBalancingV2ClientFactory
-    >(ElasticLoadBalancingV2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    elbv2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateTargetGroupCommand) {
-        return {
-          TargetGroups: [
-            {
-              TargetGroupArn: capture.TargetGroupArn,
-            },
-          ],
-        };
-      }
+  async mock(
+    _diff: Diff<AlbTargetGroup>,
+    capture: Partial<AlbTargetGroupSchema['response']>,
+  ): Promise<AlbTargetGroupSchema['response']> {
+    return {
+      TargetGroupArn: capture.TargetGroupArn,
     };
   }
 }

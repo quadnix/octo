@@ -39,7 +39,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
     );
   }
 
-  async handle(diff: Diff<NetworkAcl>): Promise<void> {
+  async handle(diff: Diff<NetworkAcl>): Promise<NetworkAclSchema['response']> {
     // Get properties.
     const networkAcl = diff.node;
     const properties = networkAcl.properties;
@@ -148,30 +148,13 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
         );
       }),
     ]);
+
+    return response;
   }
 
-  async mock(diff: Diff<NetworkAcl>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<NetworkAcl>): Promise<NetworkAclSchema['response']> {
     const networkAcl = diff.node;
-    const properties = networkAcl.properties;
-
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DescribeNetworkAclsCommand) {
-        return {
-          NetworkAcls: [{ Entries: [] }],
-        };
-      } else if (instance instanceof CreateNetworkAclEntryCommand) {
-        return;
-      } else if (instance instanceof DeleteNetworkAclEntryCommand) {
-        return;
-      } else if (instance instanceof ReplaceNetworkAclEntryCommand) {
-        return;
-      }
-    };
+    return networkAcl.response;
   }
 }
 

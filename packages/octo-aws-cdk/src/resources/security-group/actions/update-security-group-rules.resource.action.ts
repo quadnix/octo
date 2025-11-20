@@ -36,7 +36,7 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
     );
   }
 
-  async handle(diff: Diff<SecurityGroup>): Promise<void> {
+  async handle(diff: Diff<SecurityGroup>): Promise<SecurityGroupSchema['response']> {
     // Get properties.
     const securityGroup = diff.node;
     const properties = securityGroup.properties;
@@ -114,7 +114,6 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
         : Promise.resolve({ SecurityGroupRules: [] }),
     ]);
 
-    // Set response.
     response.Rules = {
       egress: egressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
         SecurityGroupRuleId: r.SecurityGroupRuleId,
@@ -123,29 +122,22 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
         SecurityGroupRuleId: r.SecurityGroupRuleId,
       })),
     };
+    return response;
   }
 
-  async mock(diff: Diff<SecurityGroup>, capture: Partial<SecurityGroupSchema['response']>): Promise<void> {
+  async mock(
+    diff: Diff<SecurityGroup>,
+    capture: Partial<SecurityGroupSchema['response']>,
+  ): Promise<SecurityGroupSchema['response']> {
     // Get properties.
     const securityGroup = diff.node;
-    const properties = securityGroup.properties;
+    const response = securityGroup.response;
 
-    // Get instances.
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof RevokeSecurityGroupEgressCommand) {
-        return;
-      } else if (instance instanceof RevokeSecurityGroupIngressCommand) {
-        return;
-      } else if (instance instanceof AuthorizeSecurityGroupEgressCommand) {
-        return { SecurityGroupRules: capture.Rules!.egress };
-      } else if (instance instanceof AuthorizeSecurityGroupIngressCommand) {
-        return { SecurityGroupRules: capture.Rules!.ingress };
-      }
+    response.Rules = {
+      egress: capture.Rules!.egress,
+      ingress: capture.Rules!.ingress,
     };
+    return response;
   }
 }
 

@@ -19,7 +19,7 @@ export class GenericResourceTaggingAction {
   async handle(
     diff: Diff<any, DiffValueTypeTagUpdate>,
     properties: { awsAccountId: string; awsRegionId: string; resourceArn: string },
-  ): Promise<void> {
+  ): Promise<any> {
     // Get instances.
     const resourceGroupsTaggingApiClient = await this.container.get<
       ResourceGroupsTaggingAPIClient,
@@ -46,23 +46,5 @@ export class GenericResourceTaggingAction {
         }),
       );
     }
-  }
-
-  async mock(_diff: Diff, properties: { awsAccountId: string; awsRegionId: string }): Promise<void> {
-    // Get instances.
-    const resourceGroupsTaggingApiClient = await this.container.get<
-      ResourceGroupsTaggingAPIClient,
-      typeof ResourceGroupsTaggingAPIClientFactory
-    >(ResourceGroupsTaggingAPIClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    resourceGroupsTaggingApiClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof TagResourcesCommand) {
-        return {};
-      } else if (instance instanceof UntagResourcesCommand) {
-        return {};
-      }
-    };
   }
 }

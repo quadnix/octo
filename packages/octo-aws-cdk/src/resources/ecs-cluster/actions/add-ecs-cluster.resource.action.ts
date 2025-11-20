@@ -20,11 +20,10 @@ export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> 
     );
   }
 
-  async handle(diff: Diff<EcsCluster>): Promise<void> {
+  async handle(diff: Diff<EcsCluster>): Promise<EcsClusterSchema['response']> {
     // Get properties.
     const ecsCluster = diff.node;
     const properties = ecsCluster.properties;
-    const response = ecsCluster.response;
     const tags = ecsCluster.tags;
 
     // Get instances.
@@ -41,23 +40,17 @@ export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> 
       }),
     );
 
-    // Set response.
-    response.clusterArn = data.cluster!.clusterArn!;
+    return {
+      clusterArn: data.cluster!.clusterArn!,
+    };
   }
 
-  async mock(diff: Diff<EcsCluster>, capture: Partial<EcsClusterSchema['response']>): Promise<void> {
-    // Get properties.
-    const ecsCluster = diff.node;
-    const properties = ecsCluster.properties;
-
-    const ecsClient = await this.container.get<ECSClient, typeof ECSClientFactory>(ECSClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ecsClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateClusterCommand) {
-        return { cluster: { clusterArn: capture.clusterArn } };
-      }
+  async mock(
+    _diff: Diff<EcsCluster>,
+    capture: Partial<EcsClusterSchema['response']>,
+  ): Promise<EcsClusterSchema['response']> {
+    return {
+      clusterArn: capture.clusterArn,
     };
   }
 }

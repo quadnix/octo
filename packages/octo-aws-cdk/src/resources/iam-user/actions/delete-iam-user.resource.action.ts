@@ -2,6 +2,7 @@ import { DeleteUserCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamUser } from '../iam-user.resource.js';
+import type { IamUserSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -19,7 +20,7 @@ export class DeleteIamUserResourceAction implements IResourceAction<IamUser> {
     );
   }
 
-  async handle(diff: Diff<IamUser>): Promise<void> {
+  async handle(diff: Diff<IamUser>): Promise<IamUserSchema['response']> {
     // Get properties.
     const iamUser = diff.node;
     const properties = iamUser.properties;
@@ -37,21 +38,13 @@ export class DeleteIamUserResourceAction implements IResourceAction<IamUser> {
         UserName: response.UserName,
       }),
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<IamUser>): Promise<void> {
+  async mock(diff: Diff<IamUser>): Promise<IamUserSchema['response']> {
     const iamUser = diff.node;
-    const properties = iamUser.properties;
-
-    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
-      args: [properties.awsAccountId],
-      metadata: { package: '@octo' },
-    });
-    iamClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteUserCommand) {
-        return;
-      }
-    };
+    return iamUser.response;
   }
 }
 

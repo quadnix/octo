@@ -8,6 +8,7 @@ import {
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { EcsCluster } from '../ecs-cluster.resource.js';
+import type { EcsClusterSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -25,21 +26,20 @@ export class UpdateEcsClusterTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<EcsCluster, DiffValueTypeTagUpdate>): Promise<void> {
+  override async handle(diff: Diff<EcsCluster, DiffValueTypeTagUpdate>): Promise<EcsClusterSchema['response']> {
     // Get properties.
     const ecsCluster = diff.node;
     const properties = ecsCluster.properties;
     const response = ecsCluster.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.clusterArn! });
+
+    return response;
   }
 
-  override async mock(diff: Diff<EcsCluster, DiffValueTypeTagUpdate>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<EcsCluster, DiffValueTypeTagUpdate>): Promise<EcsClusterSchema['response']> {
     const ecsCluster = diff.node;
-    const properties = ecsCluster.properties;
-
-    await super.mock(diff, properties);
+    return ecsCluster.response;
   }
 }
 

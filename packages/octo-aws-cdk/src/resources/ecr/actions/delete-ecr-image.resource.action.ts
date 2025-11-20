@@ -2,6 +2,7 @@ import { DeleteRepositoryCommand, ECRClient } from '@aws-sdk/client-ecr';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
 import { EcrImage } from '../ecr-image.resource.js';
+import type { EcrImageSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -19,10 +20,11 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
     );
   }
 
-  async handle(diff: Diff<EcrImage>): Promise<void> {
+  async handle(diff: Diff<EcrImage>): Promise<EcrImageSchema['response']> {
     // Get properties.
     const ecrImage = diff.node;
     const properties = ecrImage.properties;
+    const response = ecrImage.response;
 
     // Get instances.
     const ecrClient = await this.container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
@@ -36,22 +38,13 @@ export class DeleteEcrImageResourceAction implements IResourceAction<EcrImage> {
         repositoryName: properties.imageId,
       }),
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<EcrImage>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<EcrImage>): Promise<EcrImageSchema['response']> {
     const ecrImage = diff.node;
-    const properties = ecrImage.properties;
-
-    const ecrClient = await this.container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ecrClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteRepositoryCommand) {
-        return;
-      }
-    };
+    return ecrImage.response;
   }
 }
 

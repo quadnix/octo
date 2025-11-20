@@ -12,6 +12,7 @@ import {
 import { type EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { NatGatewaySchema } from '../../nat-gateway/index.schema.js';
+import type { RouteTableSchema } from '../index.schema.js';
 import { RouteTable } from '../route-table.resource.js';
 
 /**
@@ -31,7 +32,7 @@ export class UpdateNatGatewayParentInRouteTableResourceAction implements IResour
     );
   }
 
-  async handle(diff: Diff<RouteTable, AResource<NatGatewaySchema, any>>): Promise<void> {
+  async handle(diff: Diff<RouteTable, AResource<NatGatewaySchema, any>>): Promise<RouteTableSchema['response']> {
     // Get properties.
     const routeTable = diff.node;
     const properties = routeTable.properties;
@@ -73,24 +74,13 @@ export class UpdateNatGatewayParentInRouteTableResourceAction implements IResour
         },
       );
     }
+
+    return response;
   }
 
-  async mock(diff: Diff<RouteTable>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<RouteTable>): Promise<RouteTableSchema['response']> {
     const routeTable = diff.node;
-    const properties = routeTable.properties;
-
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteRouteCommand) {
-        return;
-      } else if (instance instanceof CreateRouteCommand) {
-        return;
-      }
-    };
+    return routeTable.response;
   }
 }
 

@@ -212,17 +212,18 @@ export class TransactionService {
         for (const a of diff.actions as IUnknownResourceAction[]) {
           this.eventService.emit(new ResourceActionInitiatedTransactionEvent(a.constructor.name, diff));
 
-          if (enableResourceCapture) {
-            const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
-            await a.mock(diff, capture?.response || {});
-            await a.handle(diffToProcess);
+          const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
+          if (enableResourceCapture && capture?.response) {
+            const response = await a.mock(diff, capture.response);
+            (diffToProcess.node as UnknownResource).setResponse(response);
           } else {
             let actionTimeoutId: NodeJS.Timeout | undefined;
             try {
               await Promise.race([
                 new Promise<void>(async (resolve, reject) => {
                   try {
-                    await a.handle(diffToProcess);
+                    const response = await a.handle(diffToProcess);
+                    (diffToProcess.node as UnknownResource).setResponse(response);
                     resolve();
                   } catch (error) {
                     reject(

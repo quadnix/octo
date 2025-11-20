@@ -20,11 +20,10 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
     );
   }
 
-  async handle(diff: Diff<Alb>): Promise<void> {
+  async handle(diff: Diff<Alb>): Promise<AlbSchema['response']> {
     // Get properties.
     const alb = diff.node;
     const properties = alb.properties;
-    const response = alb.response;
     const tags = alb.tags;
     const matchingAlbSecurityGroup = alb.parents[1];
     const [, , ...matchingAlbSubnets] = alb.parents;
@@ -51,34 +50,16 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
       }),
     );
 
-    // Set response
-    response.LoadBalancerArn = createLoadBalancerOutput.LoadBalancers![0].LoadBalancerArn!;
-    response.DNSName = createLoadBalancerOutput.LoadBalancers![0].DNSName!;
+    return {
+      DNSName: createLoadBalancerOutput.LoadBalancers![0].DNSName!,
+      LoadBalancerArn: createLoadBalancerOutput.LoadBalancers![0].LoadBalancerArn!,
+    };
   }
 
-  async mock(diff: Diff<Alb>, capture: Partial<AlbSchema['response']>): Promise<void> {
-    // Get properties.
-    const alb = diff.node;
-    const properties = alb.properties;
-
-    const elbv2Client = await this.container.get<
-      ElasticLoadBalancingV2Client,
-      typeof ElasticLoadBalancingV2ClientFactory
-    >(ElasticLoadBalancingV2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    elbv2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateLoadBalancerCommand) {
-        return {
-          LoadBalancers: [
-            {
-              DNSName: capture.DNSName,
-              LoadBalancerArn: capture.LoadBalancerArn,
-            },
-          ],
-        };
-      }
+  async mock(_diff: Diff<Alb>, capture: Partial<AlbSchema['response']>): Promise<AlbSchema['response']> {
+    return {
+      DNSName: capture.DNSName!,
+      LoadBalancerArn: capture.LoadBalancerArn!,
     };
   }
 }

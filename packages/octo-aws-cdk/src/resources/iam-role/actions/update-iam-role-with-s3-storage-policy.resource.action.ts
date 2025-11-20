@@ -27,12 +27,12 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
     );
   }
 
-  async handle(diff: Diff<IamRole, IIamRolePolicyDiff>): Promise<void> {
+  async handle(diff: Diff<IamRole, IIamRolePolicyDiff>): Promise<IamRoleSchema['response']> {
     // Get properties.
     const iamRole = diff.node;
-    const iamRolePolicyDiff = diff.value;
     const properties = iamRole.properties;
     const response = iamRole.response;
+    const iamRolePolicyDiff = diff.value;
 
     // Get instances.
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
@@ -96,6 +96,9 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
       );
 
       // Set response.
+      if (!response.policies) {
+        response.policies = {};
+      }
       response.policies![iamRolePolicyDiff.policyId] = [data.Policy!.Arn!];
     } else if (isDeletePolicyDiff(iamRolePolicyDiff)) {
       const policyARNs = response.policies![iamRolePolicyDiff.policyId] || [];
@@ -120,29 +123,32 @@ export class UpdateIamRoleWithS3StoragePolicyResourceAction implements IResource
         delete response.policies![iamRolePolicyDiff.policyId];
       }
     }
+
+    return response;
   }
 
-  async mock(diff: Diff<IamRole, IIamRolePolicyDiff>, capture: Partial<IamRoleSchema['response']>): Promise<void> {
+  async mock(
+    diff: Diff<IamRole, IIamRolePolicyDiff>,
+    capture: Partial<IamRoleSchema['response']>,
+  ): Promise<IamRoleSchema['response']> {
     // Get properties.
     const iamRole = diff.node;
+    const response = iamRole.response;
     const iamRolePolicyDiff = diff.value;
-    const properties = iamRole.properties;
 
-    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
-      args: [properties.awsAccountId],
-      metadata: { package: '@octo' },
-    });
-    iamClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreatePolicyCommand) {
-        return { Policy: { Arn: capture.policies![iamRolePolicyDiff.policyId][0] } };
-      } else if (instance instanceof AttachRolePolicyCommand) {
-        return;
-      } else if (instance instanceof DetachRolePolicyCommand) {
-        return;
-      } else if (instance instanceof DeletePolicyCommand) {
-        return;
+    // Attach policies to IAM Role to read/write from bucket.
+    if (isAddPolicyDiff(iamRolePolicyDiff)) {
+      if (!response.policies) {
+        response.policies = {};
       }
-    };
+      response.policies![iamRolePolicyDiff.policyId] = [capture.policies![iamRolePolicyDiff.policyId][0]];
+    } else if (isDeletePolicyDiff(iamRolePolicyDiff)) {
+      if (!Object.isFrozen(response)) {
+        delete response.policies![iamRolePolicyDiff.policyId];
+      }
+    }
+
+    return response;
   }
 }
 

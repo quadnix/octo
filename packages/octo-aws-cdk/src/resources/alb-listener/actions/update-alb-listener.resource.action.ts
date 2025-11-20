@@ -1,5 +1,4 @@
 import {
-  CreateListenerCommand,
   ElasticLoadBalancingV2Client,
   ModifyListenerCommand,
   type ModifyListenerCommandInput,
@@ -30,7 +29,7 @@ export class UpdateAlbListenerResourceAction implements IResourceAction<AlbListe
     );
   }
 
-  async handle(diff: Diff<AlbListener>): Promise<void> {
+  async handle(diff: Diff<AlbListener>): Promise<AlbListenerSchema['response']> {
     // Get properties.
     const albListener = diff.node;
     const properties = albListener.properties;
@@ -114,31 +113,13 @@ export class UpdateAlbListenerResourceAction implements IResourceAction<AlbListe
         Protocol: properties.Protocol,
       }),
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<AlbListener>, capture: Partial<AlbListenerSchema['response']>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<AlbListener>): Promise<AlbListenerSchema['response']> {
     const albListener = diff.node;
-    const properties = albListener.properties;
-
-    const elbv2Client = await this.container.get<
-      ElasticLoadBalancingV2Client,
-      typeof ElasticLoadBalancingV2ClientFactory
-    >(ElasticLoadBalancingV2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    elbv2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateListenerCommand) {
-        return {
-          Listeners: [
-            {
-              ListenerArn: capture.ListenerArn,
-            },
-          ],
-        };
-      }
-    };
+    return albListener.response;
   }
 }
 

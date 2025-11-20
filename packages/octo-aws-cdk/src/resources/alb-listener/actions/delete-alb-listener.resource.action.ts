@@ -2,6 +2,7 @@ import { DeleteListenerCommand, ElasticLoadBalancingV2Client } from '@aws-sdk/cl
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { AlbListener } from '../alb-listener.resource.js';
+import type { AlbListenerSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -19,7 +20,7 @@ export class DeleteAlbListenerResourceAction implements IResourceAction<AlbListe
     );
   }
 
-  async handle(diff: Diff<AlbListener>): Promise<void> {
+  async handle(diff: Diff<AlbListener>): Promise<AlbListenerSchema['response']> {
     // Get properties.
     const albListener = diff.node;
     const properties = albListener.properties;
@@ -40,25 +41,13 @@ export class DeleteAlbListenerResourceAction implements IResourceAction<AlbListe
         ListenerArn: response.ListenerArn,
       }),
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<AlbListener>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<AlbListener>): Promise<AlbListenerSchema['response']> {
     const albListener = diff.node;
-    const properties = albListener.properties;
-
-    const elbv2Client = await this.container.get<
-      ElasticLoadBalancingV2Client,
-      typeof ElasticLoadBalancingV2ClientFactory
-    >(ElasticLoadBalancingV2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    elbv2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof DeleteListenerCommand) {
-        return;
-      }
-    };
+    return albListener.response;
   }
 }
 

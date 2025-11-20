@@ -20,11 +20,10 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
     );
   }
 
-  async handle(diff: Diff<Vpc>): Promise<void> {
+  async handle(diff: Diff<Vpc>): Promise<VpcSchema['response']> {
     // Get properties.
     const vpc = diff.node;
     const properties = vpc.properties;
-    const response = vpc.response;
     const tags = vpc.tags;
 
     // Get instances.
@@ -61,26 +60,20 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
       }),
     );
 
-    // Set response.
-    response.VpcArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:vpc/${vpcOutput.Vpc!.VpcId}`;
-    response.VpcId = vpcOutput.Vpc!.VpcId!;
+    return {
+      VpcArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:vpc/${vpcOutput.Vpc!.VpcId}`,
+      VpcId: vpcOutput.Vpc!.VpcId!,
+    };
   }
 
-  async mock(diff: Diff<Vpc>, capture: Partial<VpcSchema['response']>): Promise<void> {
+  async mock(diff: Diff<Vpc>, capture: Partial<VpcSchema['response']>): Promise<VpcSchema['response']> {
     // Get properties.
     const vpc = diff.node;
     const properties = vpc.properties;
 
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateVpcCommand) {
-        return { Vpc: { VpcId: capture.VpcId } };
-      } else if (instance instanceof ModifyVpcAttributeCommand) {
-        return {};
-      }
+    return {
+      VpcArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:vpc/${capture.VpcId}`,
+      VpcId: capture.VpcId,
     };
   }
 }

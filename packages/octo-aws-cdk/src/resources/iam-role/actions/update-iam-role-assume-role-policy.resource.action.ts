@@ -2,6 +2,7 @@ import { IAMClient, UpdateAssumeRolePolicyCommand } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamRole } from '../iam-role.resource.js';
+import type { IamRoleSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -19,10 +20,11 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
     );
   }
 
-  async handle(diff: Diff<IamRole>): Promise<void> {
+  async handle(diff: Diff<IamRole>): Promise<IamRoleSchema['response']> {
     // Get properties.
     const iamRole = diff.node;
     const properties = iamRole.properties;
+    const response = iamRole.response;
 
     // Get instances.
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
@@ -55,22 +57,13 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
         RoleName: properties.rolename,
       }),
     );
+
+    return response;
   }
 
-  async mock(diff: Diff<IamRole>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<IamRole>): Promise<IamRoleSchema['response']> {
     const iamRole = diff.node;
-    const properties = iamRole.properties;
-
-    const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {
-      args: [properties.awsAccountId],
-      metadata: { package: '@octo' },
-    });
-    iamClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof UpdateAssumeRolePolicyCommand) {
-        return;
-      }
-    };
+    return iamRole.response;
   }
 }
 

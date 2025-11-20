@@ -20,11 +20,10 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     );
   }
 
-  async handle(diff: Diff<InternetGateway>): Promise<void> {
+  async handle(diff: Diff<InternetGateway>): Promise<InternetGatewaySchema['response']> {
     // Get properties.
     const internetGateway = diff.node;
     const properties = internetGateway.properties;
-    const response = internetGateway.response;
     const tags = internetGateway.tags;
     const internetGatewayVpc = internetGateway.parents[0];
 
@@ -54,29 +53,26 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
       }),
     );
 
-    // Set response.
     const { awsAccountId, awsRegionId } = properties;
     const igwId = internetGWOutput!.InternetGateway!.InternetGatewayId!;
-    response.InternetGatewayArn = `arn:aws:ec2:${awsRegionId}:${awsAccountId}:internet-gateway/${igwId}`;
-    response.InternetGatewayId = igwId;
+    return {
+      InternetGatewayArn: `arn:aws:ec2:${awsRegionId}:${awsAccountId}:internet-gateway/${igwId}`,
+      InternetGatewayId: igwId,
+    };
   }
 
-  async mock(diff: Diff<InternetGateway>, capture: Partial<InternetGatewaySchema['response']>): Promise<void> {
+  async mock(
+    diff: Diff<InternetGateway>,
+    capture: Partial<InternetGatewaySchema['response']>,
+  ): Promise<InternetGatewaySchema['response']> {
     // Get properties.
     const internetGateway = diff.node;
     const properties = internetGateway.properties;
 
-    // Get instances.
-    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
-      metadata: { package: '@octo' },
-    });
-    ec2Client.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof CreateInternetGatewayCommand) {
-        return { InternetGateway: { InternetGatewayId: capture.InternetGatewayId } };
-      } else if (instance instanceof AttachInternetGatewayCommand) {
-        return;
-      }
+    const { awsAccountId, awsRegionId } = properties;
+    return {
+      InternetGatewayArn: `arn:aws:ec2:${awsRegionId}:${awsAccountId}:internet-gateway/${capture.InternetGatewayId}`,
+      InternetGatewayId: capture.InternetGatewayId!,
     };
   }
 }

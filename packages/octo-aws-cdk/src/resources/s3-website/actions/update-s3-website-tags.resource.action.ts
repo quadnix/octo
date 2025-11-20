@@ -7,6 +7,7 @@ import {
   type IResourceAction,
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
+import type { S3WebsiteSchema } from '../index.schema.js';
 import { S3Website } from '../s3-website.resource.js';
 
 /**
@@ -25,21 +26,20 @@ export class UpdateS3WebsiteTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<S3Website, DiffValueTypeTagUpdate>): Promise<void> {
+  override async handle(diff: Diff<S3Website, DiffValueTypeTagUpdate>): Promise<S3WebsiteSchema['response']> {
     // Get properties.
     const s3Website = diff.node;
     const properties = s3Website.properties;
     const response = s3Website.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.Arn! });
+
+    return response;
   }
 
-  override async mock(diff: Diff<S3Website, DiffValueTypeTagUpdate>): Promise<void> {
-    // Get properties.
+  async mock(diff: Diff<S3Website, DiffValueTypeTagUpdate>): Promise<S3WebsiteSchema['response']> {
     const s3Website = diff.node;
-    const properties = s3Website.properties;
-
-    await super.mock(diff, properties);
+    return s3Website.response;
   }
 }
 
