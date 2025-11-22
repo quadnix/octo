@@ -15,7 +15,10 @@
   "engines": {
     "node": ">=18.18.0"
   },
-  "exports": "./dist/index.js",
+  "exports": {
+    "./html-report": "./dist/html-report.event.listener.js",
+    "./logging": "./dist/logging.event.listener.js"
+  },
   "files": [
     "dist",
     "!dist/tsconfig.build.tsbuildinfo",
