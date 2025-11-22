@@ -1,10 +1,22 @@
-import { EC2Client } from '@aws-sdk/client-ec2';
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import {
+  AttachInternetGatewayCommand,
+  CreateInternetGatewayCommand,
+  CreateVpcCommand,
+  DeleteInternetGatewayCommand,
+  DeleteVpcCommand,
+  DetachInternetGatewayCommand,
+  EC2Client,
+  ModifyVpcAttributeCommand,
+} from '@aws-sdk/client-ec2';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import { type Account, type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
-import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
-import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsMultiAzRegionId } from './index.schema.js';
 import { AwsMultiAzRegionModule } from './index.js';
@@ -30,26 +42,27 @@ describe('AwsMultiAzRegionModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
+    const EC2ClientMock = mockClient(EC2Client);
+    EC2ClientMock.on(CreateVpcCommand)
+      .resolves({ Vpc: { VpcId: 'VpcId' } })
+      .on(CreateInternetGatewayCommand)
+      .resolves({ InternetGateway: { InternetGatewayId: 'InternetGatewayId' } });
+
+    const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: EC2Client,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: EC2ClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
         ],
       },
@@ -60,13 +73,7 @@ describe('AwsMultiAzRegionModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
-    });
-
-    // Register resource captures.
-    testModuleContainer.registerCapture<VpcSchema>('@octo/vpc=vpc-aws-us-east-1a', { VpcId: 'VpcId' });
-    testModuleContainer.registerCapture<InternetGatewaySchema>('@octo/internet-gateway=igw-aws-us-east-1a', {
-      InternetGatewayId: 'InternetGatewayId',
+      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
     });
   });
 

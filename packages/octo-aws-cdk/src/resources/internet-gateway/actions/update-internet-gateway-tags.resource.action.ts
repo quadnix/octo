@@ -7,7 +7,6 @@ import {
   type IResourceAction,
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
-import type { InternetGatewaySchema } from '../index.schema.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
 /**
@@ -26,22 +25,13 @@ export class UpdateInternetGatewayTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(
-    diff: Diff<InternetGateway, DiffValueTypeTagUpdate>,
-  ): Promise<InternetGatewaySchema['response']> {
+  override async handle(diff: Diff<InternetGateway, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
     const igw = diff.node;
     const properties = igw.properties;
     const response = igw.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.InternetGatewayArn! });
-
-    return response;
-  }
-
-  async mock(diff: Diff<InternetGateway, DiffValueTypeTagUpdate>): Promise<InternetGatewaySchema['response']> {
-    const igw = diff.node;
-    return igw.response;
   }
 }
 

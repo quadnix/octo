@@ -7,7 +7,6 @@ import {
   type IResourceAction,
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
-import type { VpcSchema } from '../index.schema.js';
 import { Vpc } from '../vpc.resource.js';
 
 /**
@@ -23,20 +22,13 @@ export class UpdateVpcTagsResourceAction extends GenericResourceTaggingAction im
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<Vpc, DiffValueTypeTagUpdate>): Promise<VpcSchema['response']> {
+  override async handle(diff: Diff<Vpc, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
     const vpc = diff.node;
     const properties = vpc.properties;
     const response = vpc.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.VpcArn! });
-
-    return response;
-  }
-
-  async mock(diff: Diff<Vpc, DiffValueTypeTagUpdate>): Promise<VpcSchema['response']> {
-    const vpc = diff.node;
-    return vpc.response;
   }
 }
 

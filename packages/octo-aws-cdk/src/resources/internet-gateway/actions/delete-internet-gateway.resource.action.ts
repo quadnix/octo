@@ -2,7 +2,6 @@ import { DeleteInternetGatewayCommand, DetachInternetGatewayCommand, EC2Client }
 import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
-import type { InternetGatewaySchema } from '../index.schema.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
 
 /**
@@ -25,7 +24,7 @@ export class DeleteInternetGatewayResourceAction extends ANodeAction implements 
     );
   }
 
-  async handle(diff: Diff<InternetGateway>): Promise<InternetGatewaySchema['response']> {
+  async handle(diff: Diff<InternetGateway>): Promise<void> {
     // Get properties.
     const internetGateway = diff.node;
     const properties = internetGateway.properties;
@@ -65,13 +64,6 @@ export class DeleteInternetGatewayResourceAction extends ANodeAction implements 
         InternetGatewayId: response.InternetGatewayId,
       }),
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<InternetGateway>): Promise<InternetGatewaySchema['response']> {
-    const internetGateway = diff.node;
-    return internetGateway.response;
   }
 }
 

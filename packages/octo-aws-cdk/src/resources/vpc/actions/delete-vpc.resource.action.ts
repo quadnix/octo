@@ -1,7 +1,6 @@
 import { DeleteVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
-import type { VpcSchema } from '../index.schema.js';
 import { Vpc } from '../vpc.resource.js';
 
 /**
@@ -20,7 +19,7 @@ export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
     );
   }
 
-  async handle(diff: Diff<Vpc>): Promise<VpcSchema['response']> {
+  async handle(diff: Diff<Vpc>): Promise<void> {
     // Get properties.
     const vpc = diff.node;
     const properties = vpc.properties;
@@ -38,13 +37,6 @@ export class DeleteVpcResourceAction implements IResourceAction<Vpc> {
         VpcId: response.VpcId,
       }),
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<Vpc>): Promise<VpcSchema['response']> {
-    const vpc = diff.node;
-    return vpc.response;
   }
 }
 
