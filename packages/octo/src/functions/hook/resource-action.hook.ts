@@ -6,11 +6,11 @@ import type { IHook } from './hook.interface.js';
 
 type PostHookSignature = {
   action: IUnknownResourceAction;
-  handle: IUnknownResourceAction['handle'];
+  handle: (...args: Parameters<IUnknownResourceAction['handle']>) => Promise<void>;
 };
 type PreHookSignature = {
   action: IUnknownResourceAction;
-  handle: IUnknownResourceAction['handle'];
+  handle: (...args: Parameters<IUnknownResourceAction['handle']>) => Promise<void>;
 };
 
 /**
@@ -58,7 +58,9 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
 
     const originalHandleMethod = resourceAction.handle;
 
-    resourceAction.handle = async function (...args: Parameters<IUnknownResourceAction['handle']>): Promise<void> {
+    resourceAction.handle = async function (
+      ...args: Parameters<IUnknownResourceAction['handle']>
+    ): Promise<ReturnType<IUnknownResourceAction['handle']>> {
       const container = Container.getInstance();
       const eventService = await container.get(EventService);
 
@@ -67,12 +69,14 @@ export class ResourceActionHook implements IHook<PreHookSignature, PostHookSigna
         eventService.emit(new PreResourceActionHookCallbackDoneEvent(resourceAction.constructor.name));
       }
 
-      await originalHandleMethod.apply(this, args);
+      const response = await originalHandleMethod.apply(this, args);
 
       for (const { handle } of self.postResourceActionHooks[resourceAction.constructor.name] || []) {
         await handle.apply(this, args);
         eventService.emit(new PostResourceActionHookCallbackDoneEvent(resourceAction.constructor.name));
       }
+
+      return response;
     };
   }
 

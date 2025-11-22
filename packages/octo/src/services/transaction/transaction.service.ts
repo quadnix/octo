@@ -216,7 +216,7 @@ export class TransactionService {
         this.eventService.emit(
           new ResourceActionInformationTransactionEvent(a.constructor.name, {
             action: { name: a.constructor.name },
-            capture,
+            capture: a.mock ? capture : undefined,
             diff,
           }),
         );
@@ -252,7 +252,7 @@ export class TransactionService {
           this.eventService.emit(new ResourceActionInitiatedTransactionEvent(a.constructor.name, diff));
 
           const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
-          if (enableResourceCapture && capture?.response) {
+          if (enableResourceCapture && capture?.response && a.mock) {
             const response = await a.mock(diff, capture.response);
             (diffToProcess.node as UnknownResource).setResponse(response);
           } else {
