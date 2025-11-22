@@ -414,7 +414,6 @@ describe('TransactionService UT', () => {
     describe('when resource action throws error', () => {
       it('should throw transaction error and persist error properties', async () => {
         const customError = new Error('error!');
-        customError['$metadata'] = { 'key-1': 'value-1' };
         (universalResourceAction.handle as jest.Mocked<any>).mockRejectedValue(customError);
         const { '@octo/test-resource=resource-1': resource1, '@octo/test-resource=resource-2': resource2 } =
           await createTestResources([
@@ -437,11 +436,6 @@ describe('TransactionService UT', () => {
           await applyResources([diffMetadata2, diffMetadata1]);
         } catch (error) {
           expect(error instanceof ResourceActionExceptionTransactionError).toBe(true);
-          expect(error['$metadata']).toMatchInlineSnapshot(`
-           {
-             "key-1": "value-1",
-           }
-          `);
         }
       });
     });

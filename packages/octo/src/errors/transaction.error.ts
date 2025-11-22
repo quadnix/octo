@@ -78,10 +78,8 @@ export class ResourceActionExceptionTransactionError extends TransactionError {
     this.diff = diff.toJSON();
 
     Object.setPrototypeOf(this, ResourceActionExceptionTransactionError.prototype);
-
-    Object.defineProperties(this, Object.getOwnPropertyDescriptors(originalError));
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
+    if (originalError?.stack) {
+      this.stack = `${this.stack}\n\nCaused by: ${originalError.stack}`;
     }
   }
 }
