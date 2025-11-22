@@ -24,6 +24,7 @@ import {
   ModelDiffsTransactionEvent,
   ModelTransactionTransactionEvent,
   ResourceActionCompletedTransactionEvent,
+  ResourceActionInformationTransactionEvent,
   ResourceActionInitiatedTransactionEvent,
   ResourceActionRegistrationEvent,
   ResourceActionSummaryTransactionEvent,
@@ -183,6 +184,44 @@ export class TransactionService {
     }
 
     return transaction;
+  }
+
+  private applyResourcesDryRun(
+    diffs: DiffMetadata[],
+    { enableResourceCapture = false }: { enableResourceCapture?: boolean } = {},
+  ): void {
+    const captures = this.captureService.getAllCaptures();
+    const captureContexts = Object.keys(captures);
+
+    const missingCaptureContexts: string[] = [];
+    if (enableResourceCapture) {
+      for (const capturedContext of captureContexts) {
+        if (!diffs.some((d) => d.node.getContext() === capturedContext)) {
+          missingCaptureContexts.push(capturedContext);
+        }
+      }
+    }
+    if (missingCaptureContexts.length > 0) {
+      throw new TransactionError(
+        `Provided capture contexts do not match any resource diffs! ${missingCaptureContexts.join(', ')}`,
+      );
+    }
+
+    for (const diff of diffs) {
+      const capture =
+        enableResourceCapture && captureContexts.includes(diff.node.getContext())
+          ? this.captureService.getCapture((diff.node as UnknownResource).getContext())
+          : undefined;
+      for (const a of diff.actions as IUnknownResourceAction[]) {
+        this.eventService.emit(
+          new ResourceActionInformationTransactionEvent(a.constructor.name, {
+            action: { name: a.constructor.name },
+            capture,
+            diff,
+          }),
+        );
+      }
+    }
   }
 
   private async applyResources(
@@ -522,6 +561,7 @@ export class TransactionService {
     if (yieldResourceDiffs) {
       yield [resourceDiffs, dirtyResourceDiffs];
     }
+    this.applyResourcesDryRun([...resourceDiffs, ...dirtyResourceDiffs], { enableResourceCapture });
 
     // Apply resource diffs.
     const resourceTransaction = await this.applyResources(resourceDiffs, {

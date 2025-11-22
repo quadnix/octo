@@ -9,6 +9,10 @@ export class CaptureService {
     [key: string]: { response: Partial<BaseResourceSchema['response']> };
   } = {};
 
+  getAllCaptures(): CaptureService['captures'] {
+    return this.captures;
+  }
+
   getCapture<S extends BaseResourceSchema>(context: string): { response: Partial<S['response']> } | undefined {
     return this.captures[context];
   }

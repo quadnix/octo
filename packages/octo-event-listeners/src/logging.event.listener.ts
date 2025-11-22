@@ -23,6 +23,7 @@ import {
   PreResourceActionHookCallbackDoneEvent,
   RegistrationEvent,
   ResourceActionCompletedTransactionEvent,
+  ResourceActionInformationTransactionEvent,
   ResourceActionInitiatedTransactionEvent,
   ResourceActionRegistrationEvent,
   ResourceDeserializedEvent,
@@ -128,6 +129,19 @@ export class LoggingEventListener {
       this.logger.log
         .withMetadata({ name: event.name, payload: event.payload, timestamp: event.header.timestamp })
         .debug('Resource action executed.');
+    } else if (event instanceof ResourceActionInformationTransactionEvent) {
+      this.logger.log
+        .withMetadata({
+          name: event.name,
+          payload: {
+            action: event.payload.action,
+            applyOrder: event.payload.diff.applyOrder,
+            capture: event.payload.capture,
+            inputs: event.payload.diff.inputs,
+          },
+          timestamp: event.header.timestamp,
+        })
+        .debug('Resource action information.');
     } else if (event instanceof ResourceActionInitiatedTransactionEvent) {
       this.logger.log
         .withMetadata({ name: event.name, payload: event.payload, timestamp: event.header.timestamp })
