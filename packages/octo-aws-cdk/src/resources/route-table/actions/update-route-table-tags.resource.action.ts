@@ -7,7 +7,6 @@ import {
   type IResourceAction,
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
-import type { RouteTableSchema } from '../index.schema.js';
 import { RouteTable } from '../route-table.resource.js';
 
 /**
@@ -26,20 +25,13 @@ export class UpdateRouteTableTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<RouteTable, DiffValueTypeTagUpdate>): Promise<RouteTableSchema['response']> {
+  override async handle(diff: Diff<RouteTable, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
     const routeTable = diff.node;
     const properties = routeTable.properties;
     const response = routeTable.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.RouteTableArn! });
-
-    return response;
-  }
-
-  async mock(diff: Diff<RouteTable, DiffValueTypeTagUpdate>): Promise<RouteTableSchema['response']> {
-    const routeTable = diff.node;
-    return routeTable.response;
   }
 }
 

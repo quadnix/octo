@@ -1,7 +1,6 @@
 import { DeleteNetworkAclCommand, EC2Client, ReplaceNetworkAclAssociationCommand } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
-import type { NetworkAclSchema } from '../index.schema.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
 /**
@@ -20,7 +19,7 @@ export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAc
     );
   }
 
-  async handle(diff: Diff<NetworkAcl>): Promise<NetworkAclSchema['response']> {
+  async handle(diff: Diff<NetworkAcl>): Promise<void> {
     // Get properties.
     const networkAcl = diff.node;
     const properties = networkAcl.properties;
@@ -46,13 +45,6 @@ export class DeleteNetworkAclResourceAction implements IResourceAction<NetworkAc
         NetworkAclId: response.NetworkAclId,
       }),
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<NetworkAcl>): Promise<NetworkAclSchema['response']> {
-    const networkAcl = diff.node;
-    return networkAcl.response;
   }
 }
 

@@ -2,7 +2,6 @@ import { DeleteTargetGroupCommand, ElasticLoadBalancingV2Client } from '@aws-sdk
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { AlbTargetGroup } from '../alb-target-group.resource.js';
-import type { AlbTargetGroupSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -20,7 +19,7 @@ export class DeleteAlbTargetGroupResourceAction implements IResourceAction<AlbTa
     );
   }
 
-  async handle(diff: Diff<AlbTargetGroup>): Promise<AlbTargetGroupSchema['response']> {
+  async handle(diff: Diff<AlbTargetGroup>): Promise<void> {
     // Get properties.
     const albTargetGroup = diff.node;
     const properties = albTargetGroup.properties;
@@ -41,13 +40,6 @@ export class DeleteAlbTargetGroupResourceAction implements IResourceAction<AlbTa
         TargetGroupArn: response.TargetGroupArn,
       }),
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<AlbTargetGroup>): Promise<AlbTargetGroupSchema['response']> {
-    const albTargetGroup = diff.node;
-    return albTargetGroup.response;
   }
 }
 

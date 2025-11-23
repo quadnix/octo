@@ -4,7 +4,6 @@ import type { Upload } from '@aws-sdk/lib-storage';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import mime from 'mime';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
-import type { S3WebsiteSchema } from '../index.schema.js';
 import { S3Website, type S3WebsiteManifestDiff } from '../s3-website.resource.js';
 
 /**
@@ -23,7 +22,7 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     );
   }
 
-  async handle(diff: Diff<S3Website, S3WebsiteManifestDiff>): Promise<S3WebsiteSchema['response']> {
+  async handle(diff: Diff<S3Website, S3WebsiteManifestDiff>): Promise<void> {
     // Get properties.
     const manifestDiff = diff.value;
     const s3Website = diff.node;
@@ -65,13 +64,6 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
         );
       }
     }
-
-    return response;
-  }
-
-  async mock(diff: Diff<S3Website>): Promise<S3WebsiteSchema['response']> {
-    const s3Website = diff.node;
-    return s3Website.response;
   }
 }
 

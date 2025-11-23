@@ -8,7 +8,6 @@ import {
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { EcsTaskDefinition } from '../ecs-task-definition.resource.js';
-import type { EcsTaskDefinitionSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -26,22 +25,13 @@ export class UpdateEcsTaskDefinitionTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(
-    diff: Diff<EcsTaskDefinition, DiffValueTypeTagUpdate>,
-  ): Promise<EcsTaskDefinitionSchema['response']> {
+  override async handle(diff: Diff<EcsTaskDefinition, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
     const ecsTaskDefinition = diff.node;
     const properties = ecsTaskDefinition.properties;
     const response = ecsTaskDefinition.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.taskDefinitionArn! });
-
-    return response;
-  }
-
-  async mock(diff: Diff<EcsTaskDefinition, DiffValueTypeTagUpdate>): Promise<EcsTaskDefinitionSchema['response']> {
-    const ecsTaskDefinition = diff.node;
-    return ecsTaskDefinition.response;
   }
 }
 

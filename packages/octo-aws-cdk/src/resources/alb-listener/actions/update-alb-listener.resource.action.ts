@@ -29,7 +29,7 @@ export class UpdateAlbListenerResourceAction implements IResourceAction<AlbListe
     );
   }
 
-  async handle(diff: Diff<AlbListener>): Promise<AlbListenerSchema['response']> {
+  async handle(diff: Diff<AlbListener>): Promise<void> {
     // Get properties.
     const albListener = diff.node;
     const properties = albListener.properties;
@@ -113,13 +113,6 @@ export class UpdateAlbListenerResourceAction implements IResourceAction<AlbListe
         Protocol: properties.Protocol,
       }),
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<AlbListener>): Promise<AlbListenerSchema['response']> {
-    const albListener = diff.node;
-    return albListener.response;
   }
 }
 

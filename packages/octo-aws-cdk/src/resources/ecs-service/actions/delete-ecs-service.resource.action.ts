@@ -3,7 +3,6 @@ import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceActi
 import type { ECSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EcsService } from '../ecs-service.resource.js';
-import type { EcsServiceSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -25,7 +24,7 @@ export class DeleteEcsServiceResourceAction extends ANodeAction implements IReso
     );
   }
 
-  async handle(diff: Diff<EcsService>): Promise<EcsServiceSchema['response']> {
+  async handle(diff: Diff<EcsService>): Promise<void> {
     // Get properties.
     const ecsService = diff.node;
     const properties = ecsService.properties;
@@ -46,7 +45,7 @@ export class DeleteEcsServiceResourceAction extends ANodeAction implements IReso
       }),
     );
     if (describeResult.services?.length === 0 || describeResult.services![0].status!.toUpperCase() === 'INACTIVE') {
-      return response;
+      return;
     }
 
     // Scale down the service to 0.
@@ -112,13 +111,6 @@ export class DeleteEcsServiceResourceAction extends ANodeAction implements IReso
     // Wait for network interfaces used by the tasks to be deleted.
     this.log('Waiting for network interfaces used by the tasks to be deleted.');
     await new Promise((resolve) => setTimeout(resolve, 60000));
-
-    return response;
-  }
-
-  async mock(diff: Diff<EcsService>): Promise<EcsServiceSchema['response']> {
-    const ecsService = diff.node;
-    return ecsService.response;
   }
 }
 

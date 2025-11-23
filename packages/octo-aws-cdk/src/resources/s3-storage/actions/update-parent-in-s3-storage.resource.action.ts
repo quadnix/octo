@@ -1,5 +1,4 @@
 import { Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
-import type { S3StorageSchema } from '../index.schema.js';
 import { S3Storage } from '../s3-storage.resource.js';
 
 /**
@@ -16,15 +15,7 @@ export class UpdateParentInS3StorageResourceAction implements IResourceAction<S3
     );
   }
 
-  async handle(diff: Diff<S3Storage>): Promise<S3StorageSchema['response']> {
-    const s3Storage = diff.node;
-    return s3Storage.response;
-  }
-
-  async mock(diff: Diff<S3Storage>): Promise<S3StorageSchema['response']> {
-    const s3Storage = diff.node;
-    return s3Storage.response;
-  }
+  async handle(): Promise<void> {}
 }
 
 /**

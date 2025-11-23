@@ -12,7 +12,6 @@ import {
 import { type EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import type { NatGatewaySchema } from '../../nat-gateway/index.schema.js';
-import type { RouteTableSchema } from '../index.schema.js';
 import { RouteTable } from '../route-table.resource.js';
 
 /**
@@ -32,7 +31,7 @@ export class UpdateNatGatewayParentInRouteTableResourceAction implements IResour
     );
   }
 
-  async handle(diff: Diff<RouteTable, AResource<NatGatewaySchema, any>>): Promise<RouteTableSchema['response']> {
+  async handle(diff: Diff<RouteTable, AResource<NatGatewaySchema, any>>): Promise<void> {
     // Get properties.
     const routeTable = diff.node;
     const properties = routeTable.properties;
@@ -74,13 +73,6 @@ export class UpdateNatGatewayParentInRouteTableResourceAction implements IResour
         },
       );
     }
-
-    return response;
-  }
-
-  async mock(diff: Diff<RouteTable>): Promise<RouteTableSchema['response']> {
-    const routeTable = diff.node;
-    return routeTable.response;
   }
 }
 

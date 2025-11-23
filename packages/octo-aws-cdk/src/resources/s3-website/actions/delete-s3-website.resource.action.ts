@@ -7,7 +7,6 @@ import {
 } from '@aws-sdk/client-s3';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
-import type { S3WebsiteSchema } from '../index.schema.js';
 import { S3Website } from '../s3-website.resource.js';
 
 /**
@@ -26,7 +25,7 @@ export class DeleteS3WebsiteResourceAction implements IResourceAction<S3Website>
     );
   }
 
-  async handle(diff: Diff<S3Website>): Promise<S3WebsiteSchema['response']> {
+  async handle(diff: Diff<S3Website>): Promise<void> {
     // Get properties.
     const s3Website = diff.node;
     const properties = s3Website.properties;
@@ -72,13 +71,6 @@ export class DeleteS3WebsiteResourceAction implements IResourceAction<S3Website>
         Bucket: properties.Bucket,
       }),
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<S3Website>): Promise<S3WebsiteSchema['response']> {
-    const s3Website = diff.node;
-    return s3Website.response;
   }
 }
 

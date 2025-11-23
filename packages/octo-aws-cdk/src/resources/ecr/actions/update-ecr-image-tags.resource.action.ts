@@ -8,7 +8,6 @@ import {
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { EcrImage } from '../ecr-image.resource.js';
-import type { EcrImageSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -26,20 +25,13 @@ export class UpdateEcrImageTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<EcrImage, DiffValueTypeTagUpdate>): Promise<EcrImageSchema['response']> {
+  override async handle(diff: Diff<EcrImage, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
     const ecr = diff.node;
     const properties = ecr.properties;
     const response = ecr.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.repositoryArn! });
-
-    return response;
-  }
-
-  async mock(diff: Diff<EcrImage, DiffValueTypeTagUpdate>): Promise<EcrImageSchema['response']> {
-    const ecr = diff.node;
-    return ecr.response;
   }
 }
 

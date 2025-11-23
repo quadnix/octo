@@ -10,7 +10,6 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import type { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
-import type { NatGatewaySchema } from '../index.schema.js';
 import { NatGateway } from '../nat-gateway.resource.js';
 
 /**
@@ -29,7 +28,7 @@ export class UpdateEipTagsResourceAction implements IResourceAction<NatGateway> 
     );
   }
 
-  async handle(diff: Diff<NatGateway, DiffValueTypeTagUpdate>): Promise<NatGatewaySchema['response']> {
+  async handle(diff: Diff<NatGateway, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
     const nat = diff.node;
     const properties = nat.properties;
@@ -64,13 +63,6 @@ export class UpdateEipTagsResourceAction implements IResourceAction<NatGateway> 
         }),
       );
     }
-
-    return response;
-  }
-
-  async mock(diff: Diff<NatGateway, DiffValueTypeTagUpdate>): Promise<NatGatewaySchema['response']> {
-    const nat = diff.node;
-    return nat.response;
   }
 }
 

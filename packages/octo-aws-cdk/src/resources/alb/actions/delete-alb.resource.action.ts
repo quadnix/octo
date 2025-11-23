@@ -7,7 +7,6 @@ import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceActi
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { Alb } from '../alb.resource.js';
-import type { AlbSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -29,7 +28,7 @@ export class DeleteAlbResourceAction extends ANodeAction implements IResourceAct
     );
   }
 
-  async handle(diff: Diff<Alb>): Promise<AlbSchema['response']> {
+  async handle(diff: Diff<Alb>): Promise<void> {
     // Get properties.
     const alb = diff.node;
     const properties = alb.properties;
@@ -92,13 +91,6 @@ export class DeleteAlbResourceAction extends ANodeAction implements IResourceAct
         throwOnError: false,
       },
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<Alb>): Promise<AlbSchema['response']> {
-    const alb = diff.node;
-    return alb.response;
   }
 }
 

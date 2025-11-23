@@ -2,7 +2,6 @@ import { DeleteListenerCommand, ElasticLoadBalancingV2Client } from '@aws-sdk/cl
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { AlbListener } from '../alb-listener.resource.js';
-import type { AlbListenerSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -20,7 +19,7 @@ export class DeleteAlbListenerResourceAction implements IResourceAction<AlbListe
     );
   }
 
-  async handle(diff: Diff<AlbListener>): Promise<AlbListenerSchema['response']> {
+  async handle(diff: Diff<AlbListener>): Promise<void> {
     // Get properties.
     const albListener = diff.node;
     const properties = albListener.properties;
@@ -41,13 +40,6 @@ export class DeleteAlbListenerResourceAction implements IResourceAction<AlbListe
         ListenerArn: response.ListenerArn,
       }),
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<AlbListener>): Promise<AlbListenerSchema['response']> {
-    const albListener = diff.node;
-    return albListener.response;
   }
 }
 

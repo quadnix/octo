@@ -8,7 +8,6 @@ import {
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { EcsService } from '../ecs-service.resource.js';
-import type { EcsServiceSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -26,20 +25,13 @@ export class UpdateEcsServiceTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<EcsService, DiffValueTypeTagUpdate>): Promise<EcsServiceSchema['response']> {
+  override async handle(diff: Diff<EcsService, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
     const ecsService = diff.node;
     const properties = ecsService.properties;
     const response = ecsService.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.serviceArn! });
-
-    return response;
-  }
-
-  async mock(diff: Diff<EcsService, DiffValueTypeTagUpdate>): Promise<EcsServiceSchema['response']> {
-    const ecsService = diff.node;
-    return ecsService.response;
   }
 }
 

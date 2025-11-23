@@ -7,7 +7,6 @@ import {
   type IResourceAction,
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
-import type { NetworkAclSchema } from '../index.schema.js';
 import { NetworkAcl } from '../network-acl.resource.js';
 
 /**
@@ -26,20 +25,13 @@ export class UpdateNetworkAclTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<NetworkAcl, DiffValueTypeTagUpdate>): Promise<NetworkAclSchema['response']> {
+  override async handle(diff: Diff<NetworkAcl, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
     const nacl = diff.node;
     const properties = nacl.properties;
     const response = nacl.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.NetworkAclArn! });
-
-    return response;
-  }
-
-  async mock(diff: Diff<NetworkAcl, DiffValueTypeTagUpdate>): Promise<NetworkAclSchema['response']> {
-    const nacl = diff.node;
-    return nacl.response;
   }
 }
 

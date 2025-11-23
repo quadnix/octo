@@ -8,7 +8,6 @@ import {
 } from '@quadnix/octo';
 import { GenericResourceTaggingAction } from '../../../utilities/actions/generic-resource-tagging.action.js';
 import { AlbListener } from '../alb-listener.resource.js';
-import type { AlbListenerSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -26,20 +25,13 @@ export class UpdateAlbListenerTagsResourceAction
     return super.filter(diff);
   }
 
-  override async handle(diff: Diff<AlbListener, DiffValueTypeTagUpdate>): Promise<AlbListenerSchema['response']> {
+  override async handle(diff: Diff<AlbListener, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
     const albListener = diff.node;
     const properties = albListener.properties;
     const response = albListener.response;
 
     await super.handle(diff, { ...properties, resourceArn: response.ListenerArn! });
-
-    return response;
-  }
-
-  async mock(diff: Diff<AlbListener, DiffValueTypeTagUpdate>): Promise<AlbListenerSchema['response']> {
-    const albListener = diff.node;
-    return albListener.response;
   }
 }
 

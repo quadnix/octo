@@ -1,7 +1,6 @@
 import { DeleteRouteTableCommand, DisassociateRouteTableCommand, EC2Client } from '@aws-sdk/client-ec2';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
-import type { RouteTableSchema } from '../index.schema.js';
 import { RouteTable } from '../route-table.resource.js';
 
 /**
@@ -20,7 +19,7 @@ export class DeleteRouteTableResourceAction implements IResourceAction<RouteTabl
     );
   }
 
-  async handle(diff: Diff<RouteTable>): Promise<RouteTableSchema['response']> {
+  async handle(diff: Diff<RouteTable>): Promise<void> {
     // Get properties.
     const routeTable = diff.node;
     const properties = routeTable.properties;
@@ -45,13 +44,6 @@ export class DeleteRouteTableResourceAction implements IResourceAction<RouteTabl
         RouteTableId: response.RouteTableId,
       }),
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<RouteTable>): Promise<RouteTableSchema['response']> {
-    const routeTable = diff.node;
-    return routeTable.response;
   }
 }
 

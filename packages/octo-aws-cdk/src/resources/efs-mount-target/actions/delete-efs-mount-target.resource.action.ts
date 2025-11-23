@@ -17,7 +17,6 @@ import {
 import type { EFSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { EfsMountTarget } from '../efs-mount-target.resource.js';
-import type { EfsMountTargetSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -39,7 +38,7 @@ export class DeleteEfsMountTargetResourceAction extends ANodeAction implements I
     );
   }
 
-  async handle(diff: Diff<EfsMountTarget>): Promise<EfsMountTargetSchema['response']> {
+  async handle(diff: Diff<EfsMountTarget>): Promise<void> {
     // Get properties.
     const efsMountTarget = diff.node;
     const properties = efsMountTarget.properties;
@@ -94,13 +93,6 @@ export class DeleteEfsMountTargetResourceAction extends ANodeAction implements I
         retryDelayInMs: 5000,
       },
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<EfsMountTarget>): Promise<EfsMountTargetSchema['response']> {
-    const efsMountTarget = diff.node;
-    return efsMountTarget.response;
   }
 }
 

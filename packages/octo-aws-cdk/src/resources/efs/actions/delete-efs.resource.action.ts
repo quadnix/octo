@@ -17,7 +17,6 @@ import {
 import type { EFSClientFactory } from '../../../factories/aws-client.factory.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { Efs } from '../efs.resource.js';
-import type { EfsSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -35,7 +34,7 @@ export class DeleteEfsResourceAction implements IResourceAction<Efs> {
     );
   }
 
-  async handle(diff: Diff<Efs>): Promise<EfsSchema['response']> {
+  async handle(diff: Diff<Efs>): Promise<void> {
     // Get properties.
     const efs = diff.node;
     const properties = efs.properties;
@@ -84,13 +83,6 @@ export class DeleteEfsResourceAction implements IResourceAction<Efs> {
         retryDelayInMs: 5000,
       },
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<Efs>): Promise<EfsSchema['response']> {
-    const efs = diff.node;
-    return efs.response;
   }
 }
 

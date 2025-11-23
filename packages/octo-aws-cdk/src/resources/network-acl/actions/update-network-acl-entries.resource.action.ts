@@ -39,7 +39,7 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
     );
   }
 
-  async handle(diff: Diff<NetworkAcl>): Promise<NetworkAclSchema['response']> {
+  async handle(diff: Diff<NetworkAcl>): Promise<void> {
     // Get properties.
     const networkAcl = diff.node;
     const properties = networkAcl.properties;
@@ -148,13 +148,6 @@ export class UpdateNetworkAclEntriesResourceAction implements IResourceAction<Ne
         );
       }),
     ]);
-
-    return response;
-  }
-
-  async mock(diff: Diff<NetworkAcl>): Promise<NetworkAclSchema['response']> {
-    const networkAcl = diff.node;
-    return networkAcl.response;
   }
 }
 

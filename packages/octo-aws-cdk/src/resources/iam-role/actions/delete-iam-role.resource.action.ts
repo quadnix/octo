@@ -2,7 +2,6 @@ import { DeleteRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { IamRole } from '../iam-role.resource.js';
-import type { IamRoleSchema } from '../index.schema.js';
 
 /**
  * @internal
@@ -20,7 +19,7 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
     );
   }
 
-  async handle(diff: Diff<IamRole>): Promise<IamRoleSchema['response']> {
+  async handle(diff: Diff<IamRole>): Promise<void> {
     // Get properties.
     const iamRole = diff.node;
     const properties = iamRole.properties;
@@ -38,13 +37,6 @@ export class DeleteIamRoleResourceAction implements IResourceAction<IamRole> {
         RoleName: response.RoleName,
       }),
     );
-
-    return response;
-  }
-
-  async mock(diff: Diff<IamRole>): Promise<IamRoleSchema['response']> {
-    const iamRole = diff.node;
-    return iamRole.response;
   }
 }
 
