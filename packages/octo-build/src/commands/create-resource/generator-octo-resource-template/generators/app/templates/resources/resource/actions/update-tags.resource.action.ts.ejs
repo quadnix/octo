@@ -65,20 +65,11 @@ export class Update<%= resourceNamePascal %>TagsResourceAction extends ANodeActi
       );
     }
     */
-  }
 
-  async mock(diff: Diff<<%= resourceNamePascal %>, DiffValueTypeTagUpdate>): Promise<void> {
-    // Get properties.
-    const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
-    const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
-
-    // Fix me: Implement mock logic for captures.
-    // E.g.,
-    // const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-    //   args: [properties.awsAccountId, properties.awsRegionId],
-    //   metadata: { package: '@example' },
-    // });
-    // ec2Client.send = async (): Promise<void> => {};
+    // You could also extend from `GenericResourceTaggingAction`,
+    // only if the AWS resource is supported for generic resource tagging.
+    // See https://docs.aws.amazon.com/resourcegroupstagging/latest/APIReference/supported-services.html
+    // for more details.
   }
 }
 

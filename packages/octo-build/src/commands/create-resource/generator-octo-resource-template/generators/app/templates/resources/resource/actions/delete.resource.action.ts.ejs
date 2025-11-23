@@ -25,24 +25,6 @@ export class Delete<%= resourceNamePascal %>ResourceAction extends ANodeAction i
     // Fix me: Implement the delete resource logic.
     // This is where you would delete the actual resource.
   }
-
-  async mock(diff: Diff<<%= resourceNamePascal %>>): Promise<void> {
-    // Get properties.
-    const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
-    const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
-
-    // Fix me: Implement mock logic for captures.
-    // E.g.,
-    // const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-    //   args: [properties.awsAccountId, properties.awsRegionId],
-    //   metadata: { package: '@example' },
-    // });
-    // ec2Client.send = async (instance: unknown): Promise<unknown> => {
-    //   if (instance instanceof DeleteVpcCommand) {
-    //     return;
-    //   }
-    // };
-  }
 }
 
 @Factory<Delete<%= resourceNamePascal %>ResourceAction>(Delete<%= resourceNamePascal %>ResourceAction)

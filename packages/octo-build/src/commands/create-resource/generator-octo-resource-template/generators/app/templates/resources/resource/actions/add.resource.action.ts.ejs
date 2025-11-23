@@ -17,7 +17,7 @@ export class Add<%= resourceNamePascal %>ResourceAction extends ANodeAction impl
     );
   }
 
-  async handle(diff: Diff<<%= resourceNamePascal %>>): Promise<void> {
+  async handle(diff: Diff<<%= resourceNamePascal %>>): Promise<<%= resourceNamePascal %>Schema['response']> {
     // Get properties.
     const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
     const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
@@ -28,27 +28,18 @@ export class Add<%= resourceNamePascal %>ResourceAction extends ANodeAction impl
     // This is where you would create the actual resource.
 
     // Set response.
-    // Fix me: Set response properties.
+    // Fix me: Return response properties.
+    return response;
   }
 
-  async mock(diff: Diff<<%= resourceNamePascal %>>, capture: Partial<<%= resourceNamePascal %>Schema['response']>): Promise<void> {
+  async mock(diff: Diff<<%= resourceNamePascal %>>, capture: Partial<<%= resourceNamePascal %>Schema['response']>): Promise<<%= resourceNamePascal %>Schema['response']> {
     // Get properties.
     const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
     const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
+    const response = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.response;
 
-    // Fix me: Implement mock logic for captures.
-    // E.g.,
-    // const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-    //   args: [properties.awsAccountId, properties.awsRegionId],
-    //   metadata: { package: '@example' },
-    // });
-    // ec2Client.send = async (instance: unknown): Promise<unknown> => {
-    //   if (instance instanceof CreateVpcCommand) {
-    //     return { Vpc: { VpcId: capture.VpcId } };
-    //   } else if (instance instanceof ModifyVpcAttributeCommand) {
-    //     return {};
-    //   }
-    // };
+    // Fix me: Return response using captures.
+    return response;
   }
 }
 
