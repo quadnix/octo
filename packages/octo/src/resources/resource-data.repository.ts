@@ -159,6 +159,16 @@ export class ResourceDataRepository {
     return diffs;
   }
 
+  diffValidate(): Diff[] {
+    const diffs: Diff[] = [];
+
+    for (const resource of this.actualResources) {
+      diffs.push(new Diff(resource, DiffAction.VALIDATE, 'resourceId', ''));
+    }
+
+    return diffs;
+  }
+
   ensureDiffsNotOperatingOnDirtyResources(diffs: Diff[]): void {
     if (diffs.some((d) => this.dirtyResources.some((dr) => d.node.hasAncestor(dr)))) {
       throw new DiffsOnDirtyResourcesTransactionError(

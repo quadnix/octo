@@ -437,6 +437,7 @@ export class TransactionService {
     diffs: Diff[],
     {
       enableResourceCapture = false,
+      enableResourceValidation = false,
       yieldModelDiffs = false,
       yieldModelTransaction = false,
       yieldResourceDiffs = false,
@@ -444,7 +445,12 @@ export class TransactionService {
     }: TransactionOptions = {},
   ): AsyncGenerator<DiffMetadata[][], DiffMetadata[][]> {
     // Diff overlays and add to existing diffs.
-    diffs.push(...(await this.overlayDataRepository.diff()));
+    const overlayDiffs = await this.overlayDataRepository.diff();
+    diffs.push(...overlayDiffs);
+
+    if (enableResourceValidation && diffs.length > 0) {
+      throw new TransactionError('Cannot run resource validation with pending model diffs!');
+    }
 
     // Generate diff on models.
     const modelDiffs = diffs.map((d) => {
@@ -489,6 +495,16 @@ export class TransactionService {
     // Generate resource diffs.
     const newDiffs = await this.resourceDataRepository.diff();
     const dirtyDiffs = await this.resourceDataRepository.diffDirty();
+
+    if (enableResourceValidation && (newDiffs.length > 0 || dirtyDiffs.length > 0)) {
+      throw new TransactionError('Cannot run resource validation with pending resource diffs!');
+    }
+
+    if (enableResourceValidation) {
+      const validationDiffs = this.resourceDataRepository.diffValidate();
+      newDiffs.push(...validationDiffs);
+      dirtyDiffs.push(...validationDiffs);
+    }
 
     // new diffs = new - old | dirty diffs = new - actual
     // Any new diff that is also not part of dirty diffs should be skipped, as the actual is already in desired state.

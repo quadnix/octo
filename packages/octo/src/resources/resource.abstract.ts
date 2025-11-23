@@ -203,6 +203,10 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   }
 
   async diffInverse(diff: Diff, deReferenceResource: (context: string) => Promise<UnknownResource>): Promise<void> {
+    if (diff.action === DiffAction.VALIDATE) {
+      return;
+    }
+
     switch (diff.field) {
       case 'resourceId': {
         if (diff.action === DiffAction.DELETE) {

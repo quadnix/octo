@@ -732,6 +732,40 @@ describe('TransactionService UT', () => {
   });
 
   describe('beginTransaction()', () => {
+    describe('enableResourceValidation', () => {
+      const universalResourceAction: IResourceAction<UnknownResource> = {
+        filter: () => true,
+        handle: jest.fn() as jest.Mocked<any>,
+        mock: jest.fn() as jest.Mocked<any>,
+      };
+
+      afterEach(() => {
+        (universalResourceAction.handle as jest.Mock).mockReset();
+        (universalResourceAction.mock as jest.Mock).mockReset();
+      });
+
+      it('should generate validation diffs', async () => {
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
+        await commitResources();
+
+        // Recreate resource-1
+        // Since after commitResources() new resources are empty,
+        // so we need to just add resource-1 again in order to generate diffs.
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
+
+        const service = await container.get(TransactionService);
+        const generator = service.beginTransaction([], { enableResourceValidation: true, yieldResourceDiffs: true });
+
+        const result = await generator.next();
+
+        expect(result.value).toMatchSnapshot();
+      });
+    });
+
     describe('yieldModelDiffs', () => {
       const universalModelAction: IModelAction<UnknownModule> = {
         filter: () => true,

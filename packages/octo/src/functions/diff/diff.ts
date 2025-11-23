@@ -8,6 +8,7 @@ export enum DiffAction {
   DELETE = 'delete',
   REPLACE = 'replace',
   UPDATE = 'update',
+  VALIDATE = 'validate',
 }
 
 /**

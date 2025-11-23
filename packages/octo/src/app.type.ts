@@ -236,6 +236,7 @@ export type ResourceSerializedOutput = {
  */
 export type TransactionOptions = {
   enableResourceCapture?: boolean;
+  enableResourceValidation?: boolean;
   yieldModelDiffs?: boolean;
   yieldModelTransaction?: boolean;
   yieldResourceDiffs?: boolean;

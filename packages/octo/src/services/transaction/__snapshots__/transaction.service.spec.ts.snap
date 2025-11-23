@@ -207,6 +207,20 @@ exports[`TransactionService UT applyResources() should process diffs of resource
 ]
 `;
 
+exports[`TransactionService UT beginTransaction() enableResourceValidation should generate validation diffs 1`] = `
+[
+  [
+    {
+      "action": "validate",
+      "field": "resourceId",
+      "node": "@octo/test-resource=resource-1",
+      "value": "",
+    },
+  ],
+  [],
+]
+`;
+
 exports[`TransactionService UT beginTransaction() yieldModelDiffs should yield model diffs 1`] = `
 [
   [

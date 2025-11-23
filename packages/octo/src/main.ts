@@ -46,6 +46,7 @@ export class Octo {
     app: App,
     {
       enableResourceCapture = false,
+      enableResourceValidation = false,
       yieldModelDiffs = false,
       yieldModelTransaction = false,
       yieldResourceDiffs = false,
@@ -55,6 +56,7 @@ export class Octo {
     const diffs = await app.diff();
     const transaction = this.transactionService.beginTransaction(diffs, {
       enableResourceCapture,
+      enableResourceValidation,
       yieldModelDiffs: true,
       yieldModelTransaction: true,
       yieldResourceDiffs: true,
