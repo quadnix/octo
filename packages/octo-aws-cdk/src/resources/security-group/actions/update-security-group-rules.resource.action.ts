@@ -114,15 +114,17 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
         : Promise.resolve({ SecurityGroupRules: [] }),
     ]);
 
-    response.Rules = {
-      egress: egressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
-        SecurityGroupRuleId: r.SecurityGroupRuleId,
-      })),
-      ingress: ingressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
-        SecurityGroupRuleId: r.SecurityGroupRuleId,
-      })),
+    return {
+      ...response,
+      Rules: {
+        egress: egressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
+          SecurityGroupRuleId: r.SecurityGroupRuleId,
+        })),
+        ingress: ingressOutput.SecurityGroupRules!.map((r: { SecurityGroupRuleId: string }) => ({
+          SecurityGroupRuleId: r.SecurityGroupRuleId,
+        })),
+      },
     };
-    return response;
   }
 
   async mock(
@@ -133,11 +135,13 @@ export class UpdateSecurityGroupRulesResourceAction implements IResourceAction<S
     const securityGroup = diff.node;
     const response = securityGroup.response;
 
-    response.Rules = {
-      egress: capture.Rules!.egress,
-      ingress: capture.Rules!.ingress,
+    return {
+      ...response,
+      Rules: {
+        egress: capture.Rules!.egress,
+        ingress: capture.Rules!.ingress,
+      },
     };
-    return response;
   }
 }
 

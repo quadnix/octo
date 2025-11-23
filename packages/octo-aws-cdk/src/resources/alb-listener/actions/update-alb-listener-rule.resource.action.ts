@@ -192,11 +192,12 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
         }),
       );
 
-      // Set response.
-      if (!response.Rules) {
-        response.Rules = [];
-      }
-      response.Rules.push({ Priority: ruleDiff.rule.Priority, RuleArn: createRuleResponse.Rules![0].RuleArn! });
+      const rules: AlbListenerSchema['response']['Rules'] = response.Rules ? { ...response.Rules } : [];
+      rules.push({ Priority: ruleDiff.rule.Priority, RuleArn: createRuleResponse.Rules![0].RuleArn! });
+      return {
+        ...response,
+        Rules: rules,
+      };
     } else if (isDeleteRuleDiff(ruleDiff)) {
       await elbv2Client.send(
         new DeleteRuleCommand({
@@ -204,11 +205,15 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
         }),
       );
 
-      // Set response.
-      response.Rules!.splice(
-        response.Rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
+      const rules = response.Rules;
+      rules!.splice(
+        rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
         1,
       );
+      return {
+        ...response,
+        Rules: rules,
+      };
     } else if (isUpdateRuleDiff(ruleDiff)) {
       const modifyRuleResponse = await elbv2Client.send(
         new ModifyRuleCommand({
@@ -230,12 +235,16 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
         }),
       );
 
-      // Set response.
-      response.Rules!.splice(
-        response.Rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
+      const rules = response.Rules;
+      rules!.splice(
+        rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
         1,
         { Priority: ruleDiff.rule.Priority, RuleArn: modifyRuleResponse.Rules![0].RuleArn! },
       );
+      return {
+        ...response,
+        Rules: rules,
+      };
     }
 
     return response;
@@ -251,27 +260,39 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
     const ruleDiff = diff.value.Rule!;
 
     if (isAddRuleDiff(ruleDiff)) {
-      if (!response.Rules) {
-        response.Rules = [];
-      }
-      response.Rules.push({
+      const rules: AlbListenerSchema['response']['Rules'] = response.Rules ? { ...response.Rules } : [];
+      rules.push({
         Priority: ruleDiff.rule.Priority,
         RuleArn: capture.Rules!.find((r) => r.Priority === ruleDiff.rule.Priority)!.RuleArn,
       });
+      return {
+        ...response,
+        Rules: rules,
+      };
     } else if (isDeleteRuleDiff(ruleDiff)) {
-      response.Rules!.splice(
-        response.Rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
+      const rules = response.Rules;
+      rules!.splice(
+        rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
         1,
       );
+      return {
+        ...response,
+        Rules: rules,
+      };
     } else if (isUpdateRuleDiff(ruleDiff)) {
-      response.Rules!.splice(
-        response.Rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
+      const rules = response.Rules;
+      rules!.splice(
+        rules!.findIndex((r) => r.RuleArn === ruleDiff.RuleArn),
         1,
         {
           Priority: ruleDiff.rule.Priority,
           RuleArn: capture.Rules!.find((r) => r.Priority === ruleDiff.rule.Priority)!.RuleArn,
         },
       );
+      return {
+        ...response,
+        Rules: rules,
+      };
     }
 
     return response;

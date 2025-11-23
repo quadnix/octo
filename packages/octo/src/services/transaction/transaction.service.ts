@@ -254,7 +254,7 @@ export class TransactionService {
           const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
           if (enableResourceCapture && capture?.response && a.mock) {
             const response = await a.mock(diff, capture.response);
-            (diffToProcess.node as UnknownResource).setResponse(response);
+            this.resourceDataRepository.getNewResourceByContext(diffToProcess.node.getContext())?.setResponse(response);
           } else {
             let actionTimeoutId: NodeJS.Timeout | undefined;
             try {
@@ -262,7 +262,9 @@ export class TransactionService {
                 new Promise<void>(async (resolve, reject) => {
                   try {
                     const response = await a.handle(diffToProcess);
-                    (diffToProcess.node as UnknownResource).setResponse(response);
+                    this.resourceDataRepository
+                      .getNewResourceByContext(diffToProcess.node.getContext())
+                      ?.setResponse(response);
                     resolve();
                   } catch (error) {
                     reject(

@@ -42,11 +42,12 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
         }),
       );
 
-      // Set response.
-      if (!response.policies) {
-        response.policies = {};
-      }
-      response.policies![iamRolePolicyDiff.policyId] = [iamRolePolicyDiff.policy as string];
+      const policies = response.policies ? { ...response.policies } : {};
+      policies![iamRolePolicyDiff.policyId] = [iamRolePolicyDiff.policy as string];
+      return {
+        ...response,
+        policies,
+      };
     } else if (isDeletePolicyDiff(iamRolePolicyDiff)) {
       await iamClient.send(
         new DetachRolePolicyCommand({
@@ -55,10 +56,12 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
         }),
       );
 
-      // Set response.
-      if (!Object.isFrozen(response)) {
-        delete response.policies![iamRolePolicyDiff.policyId];
-      }
+      const policies = { ...response.policies };
+      delete policies![iamRolePolicyDiff.policyId];
+      return {
+        ...response,
+        policies,
+      };
     }
 
     return response;
@@ -72,14 +75,19 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
 
     // Attach AWS policies to IAM Role.
     if (isAddPolicyDiff(iamRolePolicyDiff)) {
-      if (!response.policies) {
-        response.policies = {};
-      }
-      response.policies![iamRolePolicyDiff.policyId] = [iamRolePolicyDiff.policy as string];
+      const policies = response.policies ? { ...response.policies } : {};
+      policies![iamRolePolicyDiff.policyId] = [iamRolePolicyDiff.policy as string];
+      return {
+        ...response,
+        policies,
+      };
     } else if (isDeletePolicyDiff(iamRolePolicyDiff)) {
-      if (!Object.isFrozen(response)) {
-        delete response.policies![iamRolePolicyDiff.policyId];
-      }
+      const policies = { ...response.policies };
+      delete policies![iamRolePolicyDiff.policyId];
+      return {
+        ...response,
+        policies,
+      };
     }
 
     return response;

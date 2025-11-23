@@ -95,11 +95,12 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
         }),
       );
 
-      // Set response.
-      if (!response.policies) {
-        response.policies = {};
-      }
-      response.policies![iamUserPolicyDiff.policyId] = [data.Policy!.Arn!];
+      const policies = response.policies ? { ...response.policies } : {};
+      policies![iamUserPolicyDiff.policyId] = [data.Policy!.Arn!];
+      return {
+        ...response,
+        policies,
+      };
     } else if (isDeletePolicyDiff(iamUserPolicyDiff)) {
       const policyARNs = response.policies![iamUserPolicyDiff.policyId] || [];
       await Promise.all(
@@ -118,10 +119,12 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
         }),
       );
 
-      // Set response.
-      if (!Object.isFrozen(response)) {
-        delete response.policies![iamUserPolicyDiff.policyId];
-      }
+      const policies = { ...response.policies };
+      delete policies![iamUserPolicyDiff.policyId];
+      return {
+        ...response,
+        policies,
+      };
     }
 
     return response;
@@ -138,14 +141,19 @@ export class UpdateIamUserWithS3StoragePolicyResourceAction implements IResource
 
     // Attach policies to IAM User to read/write from bucket.
     if (isAddPolicyDiff(iamUserPolicyDiff)) {
-      if (!response.policies) {
-        response.policies = {};
-      }
-      response.policies![iamUserPolicyDiff.policyId] = [capture.policies![iamUserPolicyDiff.policyId][0]];
+      const policies = response.policies ? { ...response.policies } : {};
+      policies![iamUserPolicyDiff.policyId] = [capture.policies![iamUserPolicyDiff.policyId][0]];
+      return {
+        ...response,
+        policies,
+      };
     } else if (isDeletePolicyDiff(iamUserPolicyDiff)) {
-      if (!Object.isFrozen(response)) {
-        delete response.policies![iamUserPolicyDiff.policyId];
-      }
+      const policies = { ...response.policies };
+      delete policies![iamUserPolicyDiff.policyId];
+      return {
+        ...response,
+        policies,
+      };
     }
 
     return response;
