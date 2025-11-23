@@ -1,6 +1,23 @@
-import { EC2Client } from '@aws-sdk/client-ec2';
-import { ECSClient } from '@aws-sdk/client-ecs';
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import {
+  AuthorizeSecurityGroupEgressCommand,
+  AuthorizeSecurityGroupIngressCommand,
+  CreateSecurityGroupCommand,
+  DescribeSecurityGroupsCommand,
+  EC2Client,
+} from '@aws-sdk/client-ec2';
+import {
+  CreateServiceCommand,
+  DeleteTaskDefinitionsCommand,
+  DescribeServicesCommand,
+  ECSClient,
+  RegisterTaskDefinitionCommand,
+  UpdateServiceCommand,
+} from '@aws-sdk/client-ecs';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type Account,
@@ -16,6 +33,7 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import type { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
 import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
@@ -25,12 +43,9 @@ import type { AwsSecurityGroupAnchorSchema } from '../../../anchors/aws-security
 import type { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
 import type { AwsSubnetAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet.anchor.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
-import type { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
-import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
 import type { IamRoleSchema } from '../../../resources/iam-role/index.schema.js';
-import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
@@ -226,36 +241,65 @@ describe('AwsEcsExecutionModule UT', () => {
   let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
+  const EC2ClientMock = mockClient(EC2Client);
+  const ECSClientMock = mockClient(ECSClient);
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+
   beforeEach(async () => {
+    EC2ClientMock.on(CreateSecurityGroupCommand)
+      .resolves({ GroupId: 'GroupId' })
+      .on(AuthorizeSecurityGroupEgressCommand)
+      .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Egress' }] })
+      .on(AuthorizeSecurityGroupIngressCommand)
+      .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Ingress' }] })
+      .on(DescribeSecurityGroupsCommand)
+      .resolves({ SecurityGroups: [] });
+
+    ECSClientMock.on(RegisterTaskDefinitionCommand)
+      .resolves({
+        taskDefinition: {
+          revision: 1,
+          taskDefinitionArn: 'arn:aws:ecs:us-east-1:123:task-definition/family:1',
+        },
+      })
+      .on(CreateServiceCommand)
+      .resolves({
+        service: {
+          serviceArn: 'arn:aws:ecs:us-east-1:123:service/cluster/service-name',
+          serviceName: 'service-name',
+        },
+      })
+      .on(UpdateServiceCommand)
+      .resolves({
+        service: {
+          serviceArn: 'arn:aws:ecs:us-east-1:123:service/cluster/service-name',
+          serviceName: 'service-name',
+        },
+      })
+      .on(DescribeServicesCommand)
+      .resolves({ services: [] })
+      .on(DeleteTaskDefinitionsCommand)
+      .resolves({ failures: [] });
+
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: EC2Client,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: EC2ClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ECSClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ECSClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
         ],
       },
@@ -266,37 +310,15 @@ describe('AwsEcsExecutionModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
+      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
     });
-
-    // Register resource captures.
-    testModuleContainer.registerCapture<SecurityGroupSchema>('@octo/security-group=sec-grp-SecurityGroup-backend', {
-      GroupId: 'GroupId-1',
-      Rules: { egress: [], ingress: [] },
-    });
-    testModuleContainer.registerCapture<SecurityGroupSchema>(
-      '@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet',
-      {
-        GroupId: 'GroupId-2',
-        Rules: { egress: [], ingress: [] },
-      },
-    );
-    testModuleContainer.registerCapture<EcsTaskDefinitionSchema>(
-      '@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet',
-      {
-        revision: 1,
-        taskDefinitionArn: 'taskDefinitionArn',
-      },
-    );
-    testModuleContainer.registerCapture<EcsServiceSchema>(
-      '@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet',
-      {
-        serviceArn: 'serviceArn',
-      },
-    );
   });
 
   afterEach(async () => {
+    EC2ClientMock.reset();
+    ECSClientMock.reset();
+    ResourceGroupsTaggingAPIClientMock.reset();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
 

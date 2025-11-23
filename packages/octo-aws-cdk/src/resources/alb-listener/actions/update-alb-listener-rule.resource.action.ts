@@ -192,7 +192,7 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
         }),
       );
 
-      const rules: AlbListenerSchema['response']['Rules'] = response.Rules ? { ...response.Rules } : [];
+      const rules: AlbListenerSchema['response']['Rules'] = response.Rules ? [...response.Rules] : [];
       rules.push({ Priority: ruleDiff.rule.Priority, RuleArn: createRuleResponse.Rules![0].RuleArn! });
       return {
         ...response,
@@ -260,7 +260,7 @@ export class UpdateAlbListenerRuleResourceAction implements IResourceAction<AlbL
     const ruleDiff = diff.value.Rule!;
 
     if (isAddRuleDiff(ruleDiff)) {
-      const rules: AlbListenerSchema['response']['Rules'] = response.Rules ? { ...response.Rules } : [];
+      const rules: AlbListenerSchema['response']['Rules'] = response.Rules ? [...response.Rules] : [];
       rules.push({
         Priority: ruleDiff.rule.Priority,
         RuleArn: capture.Rules!.find((r) => r.Priority === ruleDiff.rule.Priority)!.RuleArn,

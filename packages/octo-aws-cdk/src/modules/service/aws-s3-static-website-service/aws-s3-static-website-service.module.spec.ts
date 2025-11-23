@@ -1,9 +1,14 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
-import { S3Client } from '@aws-sdk/client-s3';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
+import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import { type Account, type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsS3StaticWebsiteServiceModule } from './index.js';
 
@@ -31,27 +36,26 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 describe('AwsS3StaticWebsiteServiceModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+  const S3ClientMock = mockClient(S3Client);
+
   beforeEach(async () => {
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
+    S3ClientMock.on(ListObjectsV2Command).resolves({ Contents: [] });
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: S3Client,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: S3ClientMock,
           },
           {
             metadata: { package: '@octo' },
@@ -72,6 +76,9 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
   });
 
   afterEach(async () => {
+    ResourceGroupsTaggingAPIClientMock.restore();
+    S3ClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
   });

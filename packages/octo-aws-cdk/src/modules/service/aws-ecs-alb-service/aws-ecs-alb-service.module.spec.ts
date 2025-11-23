@@ -1,7 +1,24 @@
-import { EC2Client } from '@aws-sdk/client-ec2';
-import { ECSClient } from '@aws-sdk/client-ecs';
-import { ElasticLoadBalancingV2Client } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import {
+  AuthorizeSecurityGroupEgressCommand,
+  AuthorizeSecurityGroupIngressCommand,
+  CreateSecurityGroupCommand,
+  DescribeSecurityGroupsCommand,
+  EC2Client,
+} from '@aws-sdk/client-ec2';
+import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
+import {
+  CreateListenerCommand,
+  CreateLoadBalancerCommand,
+  CreateRuleCommand,
+  CreateTargetGroupCommand,
+  DescribeLoadBalancersCommand,
+  ElasticLoadBalancingV2Client,
+} from '@aws-sdk/client-elastic-load-balancing-v2';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type AResource,
@@ -15,16 +32,14 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsEcsServiceAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { type AlbListenerSchema } from '../../../resources/alb-listener/index.schema.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 // eslint-disable-next-line boundaries/element-types
 import { EcsService } from '../../../resources/ecs-service/index.js';
-import type { EcsServiceSchema } from '../../../resources/ecs-service/index.schema.js';
 import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
-import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
@@ -252,45 +267,88 @@ describe('AwsEcsAlbServiceModule UT', () => {
   let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
+  const EC2ClientMock = mockClient(EC2Client);
+  const ECSClientMock = mockClient(ECSClient);
+  const ElasticLoadBalancingV2ClientMock = mockClient(ElasticLoadBalancingV2Client);
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+
   beforeEach(async () => {
+    EC2ClientMock.on(CreateSecurityGroupCommand)
+      .resolves({ GroupId: 'GroupId' })
+      .on(AuthorizeSecurityGroupEgressCommand)
+      .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Egress' }] })
+      .on(AuthorizeSecurityGroupIngressCommand)
+      .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Ingress' }] })
+      .on(DescribeSecurityGroupsCommand)
+      .resolves({ SecurityGroups: [] });
+
+    ECSClientMock.on(UpdateServiceCommand).resolves({
+      service: {
+        serviceArn: 'arn:aws:ecs:us-east-1:123:service/cluster/service-name',
+        serviceName: 'service-name',
+      },
+    });
+
+    ElasticLoadBalancingV2ClientMock.on(CreateTargetGroupCommand)
+      .resolves({
+        TargetGroups: [
+          {
+            TargetGroupArn: 'TargetGroupArn',
+          },
+        ],
+      })
+      .on(CreateLoadBalancerCommand)
+      .resolves({
+        LoadBalancers: [
+          {
+            DNSName: 'DNSName',
+            LoadBalancerArn: 'LoadBalancerArn',
+          },
+        ],
+      })
+      .on(CreateListenerCommand)
+      .resolves({
+        Listeners: [
+          {
+            ListenerArn: 'ListenerArn',
+          },
+        ],
+      })
+      .on(CreateRuleCommand)
+      .resolves({
+        Rules: [
+          {
+            RuleArn: 'RuleArn1',
+          },
+        ],
+      })
+      .on(DescribeLoadBalancersCommand)
+      .resolves({ LoadBalancers: [] });
+
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: EC2Client,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: EC2ClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ECSClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ECSClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ElasticLoadBalancingV2Client,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ElasticLoadBalancingV2ClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
         ],
       },
@@ -301,30 +359,16 @@ describe('AwsEcsAlbServiceModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
-    });
-
-    // Register resource captures.
-    testModuleContainer.registerCapture<AlbListenerSchema>('@octo/alb-listener=alb-listener-test-alb', {
-      ListenerArn: 'ListenerArn',
-      Rules: [
-        { Priority: 1, RuleArn: 'RuleArn1' },
-        { Priority: 2, RuleArn: 'RuleArn2' },
-      ],
-    });
-    testModuleContainer.registerCapture<EcsServiceSchema>(
-      '@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1',
-      {
-        serviceArn: 'serviceArn',
-      },
-    );
-    testModuleContainer.registerCapture<SecurityGroupSchema>('@octo/security-group=sec-grp-region-test-alb', {
-      GroupId: 'GroupId',
-      Rules: { egress: [], ingress: [] },
+      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
     });
   });
 
   afterEach(async () => {
+    EC2ClientMock.reset();
+    ECSClientMock.reset();
+    ElasticLoadBalancingV2ClientMock.reset();
+    ResourceGroupsTaggingAPIClientMock.reset();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
 

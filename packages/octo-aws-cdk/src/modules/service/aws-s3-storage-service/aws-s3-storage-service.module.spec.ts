@@ -1,5 +1,9 @@
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
-import { S3Client } from '@aws-sdk/client-s3';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
+import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import {
   type Account,
@@ -10,6 +14,7 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsS3StorageServiceModule } from './index.js';
 
@@ -46,27 +51,26 @@ async function setup(
 describe('AwsS3StorageServiceModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+  const S3ClientMock = mockClient(S3Client);
+
   beforeEach(async () => {
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
+    S3ClientMock.on(ListObjectsV2Command).resolves({ Contents: [] });
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: S3Client,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: S3ClientMock,
           },
         ],
       },
@@ -78,6 +82,9 @@ describe('AwsS3StorageServiceModule UT', () => {
   });
 
   afterEach(async () => {
+    ResourceGroupsTaggingAPIClientMock.restore();
+    S3ClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
   });

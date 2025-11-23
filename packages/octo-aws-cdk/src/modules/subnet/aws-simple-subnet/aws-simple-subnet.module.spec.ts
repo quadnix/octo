@@ -20,7 +20,6 @@ import {
   DescribeMountTargetsCommand,
   EFSClient,
   type FileSystemDescription,
-  type MountTargetDescription,
 } from '@aws-sdk/client-efs';
 import {
   ResourceGroupsTaggingAPIClient,
@@ -211,11 +210,13 @@ describe('AwsSimpleSubnetModule UT', () => {
       .on(CreateMountTargetCommand)
       .resolves({ MountTargetId: 'MountTargetId', NetworkInterfaceId: 'NetworkInterfaceId' })
       .on(DescribeMountTargetsCommand)
-      .resolvesOnce({
-        MountTargets: [{ FileSystemId: 'FileSystemId', LifeCycleState: 'available' } as MountTargetDescription],
-      })
-      .resolves({
-        MountTargets: [],
+      .callsFake(() => {
+        const states = ['available', 'deleted'];
+        return {
+          MountTargets: [
+            { FileSystemId: 'FileSystemId', LifeCycleState: states[Math.floor(Math.random() * states.length)] },
+          ],
+        };
       });
 
     ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
@@ -247,14 +248,20 @@ describe('AwsSimpleSubnetModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
+      await originalRetryPromise(fn, {
+        ...options,
+        initialDelayInMs: 0,
+        maxRetries: 15,
+        retryDelayInMs: 0,
+        throwOnError: true,
+      });
     });
   });
 
   afterEach(async () => {
-    EC2ClientMock.restore();
-    EFSClientMock.restore();
-    ResourceGroupsTaggingAPIClientMock.restore();
+    EC2ClientMock.reset();
+    EFSClientMock.reset();
+    ResourceGroupsTaggingAPIClientMock.reset();
 
     await testModuleContainer.reset();
     await TestContainer.reset();

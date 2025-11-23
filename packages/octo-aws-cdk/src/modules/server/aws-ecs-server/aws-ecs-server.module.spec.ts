@@ -1,6 +1,19 @@
-import { IAMClient } from '@aws-sdk/client-iam';
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
-import { S3Client } from '@aws-sdk/client-s3';
+import {
+  AttachRolePolicyCommand,
+  CreatePolicyCommand,
+  CreateRoleCommand,
+  DeletePolicyCommand,
+  DeleteRoleCommand,
+  DetachRolePolicyCommand,
+  GetRoleCommand,
+  IAMClient,
+} from '@aws-sdk/client-iam';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
+import { DeleteBucketPolicyCommand, PutBucketPolicyCommand, S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
 import {
   type Account,
@@ -11,10 +24,10 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
-import type { IamRoleSchema } from '../../../resources/iam-role/index.schema.js';
 // eslint-disable-next-line boundaries/element-types
 import { S3Storage } from '../../../resources/s3-storage/index.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
@@ -71,36 +84,57 @@ describe('AwsEcsServerModule UT', () => {
   let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
+  const IAMClientMock = mockClient(IAMClient);
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+  const S3ClientMock = mockClient(S3Client);
+
   beforeEach(async () => {
+    IAMClientMock.on(CreateRoleCommand)
+      .resolves({
+        Role: {
+          Arn: 'arn:aws:iam::123:role/RoleName',
+          CreateDate: new Date(),
+          Path: 'Path',
+          RoleId: 'RoleId',
+          RoleName: 'RoleName',
+        },
+      })
+      .on(GetRoleCommand)
+      .resolves({
+        Role: {
+          Arn: 'arn:aws:iam::123:role/RoleName',
+          CreateDate: new Date(),
+          Path: 'Path',
+          RoleId: 'RoleId',
+          RoleName: 'RoleName',
+        },
+      })
+      .on(CreatePolicyCommand)
+      .resolves({
+        Policy: {
+          Arn: 'arn:aws:iam::123:policy/PolicyName',
+        },
+      });
+
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: IAMClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: IAMClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: S3Client,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: S3ClientMock,
           },
         ],
       },
@@ -111,21 +145,15 @@ describe('AwsEcsServerModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
-    });
-
-    // Register resource captures.
-    testModuleContainer.registerCapture<IamRoleSchema>('@octo/iam-role=iam-role-ServerRole-backend', {
-      Arn: 'Arn',
-      policies: {
-        'aws-ecs-server-s3-access-overlay-e9dc96db328e': ['server-s3-access-arn'],
-      },
-      RoleId: 'RoleId',
-      RoleName: 'RoleName',
+      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
     });
   });
 
   afterEach(async () => {
+    IAMClientMock.restore();
+    ResourceGroupsTaggingAPIClientMock.restore();
+    S3ClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
 
