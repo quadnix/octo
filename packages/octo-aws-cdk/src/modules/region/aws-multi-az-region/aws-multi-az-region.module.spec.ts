@@ -41,14 +41,15 @@ describe('AwsMultiAzRegionModule UT', () => {
   let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
+  const EC2ClientMock = mockClient(EC2Client);
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+
   beforeEach(async () => {
-    const EC2ClientMock = mockClient(EC2Client);
     EC2ClientMock.on(CreateVpcCommand)
       .resolves({ Vpc: { VpcId: 'VpcId' } })
       .on(CreateInternetGatewayCommand)
       .resolves({ InternetGateway: { InternetGatewayId: 'InternetGatewayId' } });
 
-    const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
     ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
 
     await TestContainer.create(
@@ -78,6 +79,9 @@ describe('AwsMultiAzRegionModule UT', () => {
   });
 
   afterEach(async () => {
+    EC2ClientMock.restore();
+    ResourceGroupsTaggingAPIClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
 

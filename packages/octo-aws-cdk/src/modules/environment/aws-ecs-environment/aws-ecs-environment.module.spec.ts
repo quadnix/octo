@@ -1,5 +1,9 @@
-import { ECSClient } from '@aws-sdk/client-ecs';
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import { CreateClusterCommand, DeleteClusterCommand, ECSClient } from '@aws-sdk/client-ecs';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type Account,
@@ -10,8 +14,8 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 import { AwsEcsEnvironmentModule } from './index.js';
 
 async function setup(
@@ -47,27 +51,29 @@ async function setup(
 describe('AwsEcsEnvironmentModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
+  const ECSClientMock = mockClient(ECSClient);
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+
   beforeEach(async () => {
+    ECSClientMock.on(CreateClusterCommand)
+      .resolves({ cluster: { clusterArn: 'arn:aws:ecs:us-east-1:123:cluster/cluster-name' } })
+      .on(DeleteClusterCommand)
+      .resolves({});
+
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: ECSClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ECSClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
         ],
       },
@@ -76,14 +82,12 @@ describe('AwsEcsEnvironmentModule UT', () => {
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
-
-    // Register resource captures.
-    testModuleContainer.registerCapture<EcsClusterSchema>('@octo/ecs-cluster=ecs-cluster-region-qa', {
-      clusterArn: 'clusterArn',
-    });
   });
 
   afterEach(async () => {
+    ECSClientMock.restore();
+    ResourceGroupsTaggingAPIClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
   });

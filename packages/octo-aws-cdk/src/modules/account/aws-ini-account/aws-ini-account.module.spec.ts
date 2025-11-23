@@ -1,7 +1,11 @@
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { type App, type Container, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
-import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
+import { mockClient } from 'aws-sdk-client-mock';
 import { AwsIniAccountModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
@@ -15,27 +19,26 @@ describe('AwsIniAccountModule UT', () => {
   let container: Container;
   let testModuleContainer: TestModuleContainer;
 
+  const STSClientMock = mockClient(STSClient);
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+
   beforeEach(async () => {
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
+    STSClientMock.on(GetCallerIdentityCommand).resolves({ Account: '123' });
+
     container = await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: STSClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: STSClientMock,
           },
         ],
       },
@@ -44,20 +47,12 @@ describe('AwsIniAccountModule UT', () => {
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
-
-    // Mock GetCallerIdentityCommand() in STS.
-    const stsClient = await container.get<STSClient, typeof STSClientFactory>(STSClient, {
-      args: ['123'],
-      metadata: { package: '@octo' },
-    });
-    stsClient.send = async (instance: unknown): Promise<unknown> => {
-      if (instance instanceof GetCallerIdentityCommand) {
-        return { Account: '123' };
-      }
-    };
   });
 
   afterEach(async () => {
+    ResourceGroupsTaggingAPIClientMock.restore();
+    STSClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
   });

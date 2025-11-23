@@ -1,5 +1,9 @@
-import { EFSClient } from '@aws-sdk/client-efs';
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import { CreateFileSystemCommand, DescribeFileSystemsCommand, EFSClient } from '@aws-sdk/client-efs';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type Account,
@@ -10,8 +14,8 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsEfsFilesystemModule } from './index.js';
 
@@ -51,27 +55,42 @@ describe('AwsEfsFilesystemModule UT', () => {
   let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
+  const EFSClientMock = mockClient(EFSClient);
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+
   beforeEach(async () => {
+    EFSClientMock.on(CreateFileSystemCommand)
+      .resolves({
+        FileSystemArn: 'FileSystemArn',
+        FileSystemId: 'FileSystemId',
+      })
+      .on(DescribeFileSystemsCommand)
+      .callsFake(() => {
+        const states = ['available', 'deleted'];
+        return {
+          FileSystems: [
+            {
+              FileSystemId: 'FileSystemId',
+              LifeCycleState: states[Math.floor(Math.random() * states.length)],
+            },
+          ],
+        };
+      });
+
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: EFSClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: EFSClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
         ],
       },
@@ -82,17 +101,20 @@ describe('AwsEfsFilesystemModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
-    });
-
-    // Register resource captures.
-    testModuleContainer.registerCapture<EfsSchema>('@octo/efs=efs-region-test-filesystem', {
-      FileSystemArn: 'FileSystemArn',
-      FileSystemId: 'FileSystemId',
+      await originalRetryPromise(fn, {
+        ...options,
+        initialDelayInMs: 0,
+        maxRetries: 15,
+        retryDelayInMs: 0,
+        throwOnError: true,
+      });
     });
   });
 
   afterEach(async () => {
+    EFSClientMock.restore();
+    ResourceGroupsTaggingAPIClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
 

@@ -1,6 +1,32 @@
-import { EC2Client } from '@aws-sdk/client-ec2';
-import { EFSClient } from '@aws-sdk/client-efs';
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import {
+  AllocateAddressCommand,
+  AssociateRouteTableCommand,
+  AuthorizeSecurityGroupEgressCommand,
+  AuthorizeSecurityGroupIngressCommand,
+  CreateNatGatewayCommand,
+  CreateNetworkAclCommand,
+  CreateRouteTableCommand,
+  CreateSecurityGroupCommand,
+  CreateSubnetCommand,
+  DescribeNatGatewaysCommand,
+  DescribeNetworkAclsCommand,
+  EC2Client,
+  ReplaceNetworkAclAssociationCommand,
+} from '@aws-sdk/client-ec2';
+import {
+  CreateFileSystemCommand,
+  CreateMountTargetCommand,
+  DescribeFileSystemsCommand,
+  DescribeMountTargetsCommand,
+  EFSClient,
+  type FileSystemDescription,
+  type MountTargetDescription,
+} from '@aws-sdk/client-efs';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type AResource,
@@ -15,15 +41,11 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
-import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
-import type { NetworkAclSchema } from '../../../resources/network-acl/index.schema.js';
-import type { RouteTableSchema } from '../../../resources/route-table/index.schema.js';
-import type { SecurityGroupSchema } from '../../../resources/security-group/index.schema.js';
-import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
 import { AwsSimpleSubnetModule } from './index.js';
@@ -101,36 +123,120 @@ describe('AwsSimpleSubnetModule UT', () => {
   let retryPromiseSpy: jest.Spied<any>;
   let testModuleContainer: TestModuleContainer;
 
+  const EC2ClientMock = mockClient(EC2Client);
+  const EFSClientMock = mockClient(EFSClient);
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+
   beforeEach(async () => {
+    EC2ClientMock.on(CreateSubnetCommand, { CidrBlock: '10.0.1.0/24' })
+      .resolves({
+        Subnet: {
+          SubnetId: 'SubnetId-Private',
+        },
+      })
+      .on(CreateSubnetCommand, { CidrBlock: '10.0.0.0/24' })
+      .resolves({
+        Subnet: {
+          SubnetId: 'SubnetId-Public',
+        },
+      })
+      .on(CreateSecurityGroupCommand)
+      .resolves({
+        GroupId: 'GroupId',
+      })
+      .on(AuthorizeSecurityGroupEgressCommand)
+      .resolves({ SecurityGroupRules: [] })
+      .on(AuthorizeSecurityGroupIngressCommand)
+      .resolves({ SecurityGroupRules: [] })
+      .on(CreateRouteTableCommand)
+      .resolves({ RouteTable: { RouteTableId: 'RouteTableId' } })
+      .on(AssociateRouteTableCommand, { SubnetId: 'SubnetId-Private' })
+      .resolves({ AssociationId: 'subnetAssociationId-Private' })
+      .on(AssociateRouteTableCommand, { SubnetId: 'SubnetId-Public' })
+      .resolves({ AssociationId: 'subnetAssociationId-Public' })
+      .on(DescribeNetworkAclsCommand, {
+        Filters: [
+          {
+            Name: 'association.subnet-id',
+            Values: ['SubnetId-Private'],
+          },
+        ],
+      })
+      .resolves({
+        NetworkAcls: [
+          {
+            Associations: [{ NetworkAclAssociationId: 'defaultNetworkAclId-Private', SubnetId: 'SubnetId-Private' }],
+            Entries: [],
+            NetworkAclId: 'defaultNetworkAclId-Private',
+          },
+        ],
+      })
+      .on(DescribeNetworkAclsCommand, {
+        Filters: [
+          {
+            Name: 'association.subnet-id',
+            Values: ['SubnetId-Public'],
+          },
+        ],
+      })
+      .resolves({
+        NetworkAcls: [
+          {
+            Associations: [{ NetworkAclAssociationId: 'defaultNetworkAclId-Public', SubnetId: 'SubnetId-Public' }],
+            Entries: [],
+            NetworkAclId: 'defaultNetworkAclId-Public',
+          },
+        ],
+      })
+      .on(CreateNetworkAclCommand)
+      .resolves({ NetworkAcl: { NetworkAclId: 'NetworkAclId' } })
+      .on(ReplaceNetworkAclAssociationCommand, { AssociationId: 'defaultNetworkAclId-Private' })
+      .resolves({ NewAssociationId: 'subnetNetworkAclId-Private' })
+      .on(ReplaceNetworkAclAssociationCommand, { AssociationId: 'defaultNetworkAclId-Public' })
+      .resolves({ NewAssociationId: 'subnetNetworkAclId-Public' })
+      .on(AllocateAddressCommand)
+      .resolves({ AllocationId: 'AllocationId' })
+      .on(CreateNatGatewayCommand)
+      .resolves({ NatGateway: { NatGatewayId: 'NatGatewayId' } })
+      .on(DescribeNatGatewaysCommand)
+      .resolvesOnce({ NatGateways: [{ State: 'available' }] })
+      .resolves({ NatGateways: [{ State: 'deleted' }] });
+
+    EFSClientMock.on(CreateFileSystemCommand)
+      .resolves({ FileSystemId: 'FileSystemId' })
+      .on(DescribeFileSystemsCommand)
+      .resolves({
+        FileSystems: [{ FileSystemId: 'FileSystemId', LifeCycleState: 'available' } as FileSystemDescription],
+      })
+      .on(CreateMountTargetCommand)
+      .resolves({ MountTargetId: 'MountTargetId', NetworkInterfaceId: 'NetworkInterfaceId' })
+      .on(DescribeMountTargetsCommand)
+      .resolvesOnce({
+        MountTargets: [{ FileSystemId: 'FileSystemId', LifeCycleState: 'available' } as MountTargetDescription],
+      })
+      .resolves({
+        MountTargets: [],
+      });
+
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: EC2Client,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: EC2ClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: EFSClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: EFSClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
         ],
       },
@@ -141,51 +247,15 @@ describe('AwsSimpleSubnetModule UT', () => {
     await testModuleContainer.initialize(new TestStateProvider());
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0 });
+      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
     });
-
-    // Register resource captures.
-    testModuleContainer.registerCapture<EfsMountTargetSchema>(
-      '@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem',
-      {
-        MountTargetId: 'MountTargetId',
-        NetworkInterfaceId: 'NetworkInterfaceId',
-      },
-    );
-    testModuleContainer.registerCapture<SubnetSchema>('@octo/subnet=subnet-region-private-subnet', {
-      SubnetId: 'SubnetId-Private',
-    });
-    testModuleContainer.registerCapture<SubnetSchema>('@octo/subnet=subnet-region-public-subnet', {
-      SubnetId: 'SubnetId-Public',
-    });
-    testModuleContainer.registerCapture<RouteTableSchema>('@octo/route-table=rt-region-private-subnet', {
-      RouteTableId: 'RouteTableId-Private',
-      subnetAssociationId: 'subnetAssociationId-Private',
-    });
-    testModuleContainer.registerCapture<RouteTableSchema>('@octo/route-table=rt-region-public-subnet', {
-      RouteTableId: 'RouteTableId-Public',
-      subnetAssociationId: 'subnetAssociationId-Public',
-    });
-    testModuleContainer.registerCapture<NetworkAclSchema>('@octo/network-acl=nacl-region-private-subnet', {
-      associationId: 'associationId-Private',
-      defaultNetworkAclId: 'defaultNetworkAclId-Private',
-      NetworkAclId: 'NetworkAclId-Private',
-    });
-    testModuleContainer.registerCapture<NetworkAclSchema>('@octo/network-acl=nacl-region-public-subnet', {
-      associationId: 'associationId-Public',
-      defaultNetworkAclId: 'defaultNetworkAclId-Public',
-      NetworkAclId: 'NetworkAclId-Public',
-    });
-    testModuleContainer.registerCapture<SecurityGroupSchema>(
-      '@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem',
-      {
-        GroupId: 'GroupId',
-        Rules: { egress: [], ingress: [] },
-      },
-    );
   });
 
   afterEach(async () => {
+    EC2ClientMock.restore();
+    EFSClientMock.restore();
+    ResourceGroupsTaggingAPIClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
 

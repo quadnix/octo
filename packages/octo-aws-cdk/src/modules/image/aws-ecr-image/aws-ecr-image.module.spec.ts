@@ -1,19 +1,21 @@
-import { ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import { CreateRepositoryCommand, ECRClient, GetAuthorizationTokenCommand } from '@aws-sdk/client-ecr';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type Account,
   type App,
-  type Container,
   type Region,
   TestContainer,
   TestModuleContainer,
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import type { ECRClientFactory } from '../../../factories/aws-client.factory.js';
-import type { EcrImageSchema } from '../../../resources/ecr/index.schema.js';
 import { AwsEcrImageModule } from './index.js';
 
 async function setup(
@@ -47,30 +49,46 @@ async function setup(
 }
 
 describe('AwsEcrImageModule UT', () => {
-  let container: Container;
   let testModuleContainer: TestModuleContainer;
 
+  const ECRClientMock = mockClient(ECRClient);
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+
   beforeEach(async () => {
-    container = await TestContainer.create(
+    ECRClientMock.on(CreateRepositoryCommand)
+      .resolves({
+        repository: {
+          registryId: 'RegistryId',
+          repositoryArn: 'RepositoryArn',
+          repositoryName: 'RepositoryName',
+          repositoryUri: 'RepositoryUri',
+        },
+      })
+      .on(GetAuthorizationTokenCommand)
+      .resolves({
+        authorizationData: [
+          {
+            // eslint-disable-next-line spellcheck/spell-checker
+            authorizationToken: 'QVdTOnRva2Vu', // AWS:token
+            proxyEndpoint: 'https://123.dkr.ecr.us-east-1.amazonaws.com',
+          },
+        ],
+      });
+
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
+    await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: ECRClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ECRClientMock,
           },
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
         ],
       },
@@ -79,17 +97,12 @@ describe('AwsEcrImageModule UT', () => {
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize(new TestStateProvider());
-
-    // Register resource captures.
-    testModuleContainer.registerCapture<EcrImageSchema>('@octo/ecs-cluster=ecs-cluster-region-qa', {
-      registryId: 'RegistryId',
-      repositoryArn: 'RepositoryArn',
-      repositoryName: 'RepositoryName',
-      repositoryUri: 'RepositoryUri',
-    });
   });
 
   afterEach(async () => {
+    ECRClientMock.reset();
+    ResourceGroupsTaggingAPIClientMock.reset();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
   });
@@ -106,24 +119,6 @@ describe('AwsEcrImageModule UT', () => {
         moduleId: 'image',
         type: AwsEcrImageModule,
       });
-
-      const ecrClient = await container.get<ECRClient, typeof ECRClientFactory>(ECRClient, {
-        args: ['123', 'us-east-1'],
-        metadata: { package: '@octo' },
-      });
-      ecrClient.send = async (instance: unknown): Promise<unknown> => {
-        if (instance instanceof GetAuthorizationTokenCommand) {
-          return {
-            authorizationData: [
-              {
-                // eslint-disable-next-line spellcheck/spell-checker
-                authorizationToken: 'QVdTOnRva2Vu', // AWS:token
-                proxyEndpoint: 'https://123.dkr.ecr.us-east-1.amazonaws.com',
-              },
-            ],
-          };
-        }
-      };
 
       const awsImageModule = testModuleContainer.octo.getModule<AwsEcrImageModule>('image')!;
       const ecrRepositoryCommands = await awsImageModule.getEcrRepositoryCommands('family', 'image', 'v1', {

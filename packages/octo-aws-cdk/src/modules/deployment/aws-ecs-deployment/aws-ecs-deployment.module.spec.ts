@@ -1,4 +1,8 @@
-import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import {
+  ResourceGroupsTaggingAPIClient,
+  TagResourcesCommand,
+  UntagResourcesCommand,
+} from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
 import {
   type Account,
@@ -9,6 +13,7 @@ import {
   TestStateProvider,
   stub,
 } from '@quadnix/octo';
+import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsEcsServerAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
 import type { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-role.anchor.schema.js';
 import { AwsEcsDeploymentModule } from './index.js';
@@ -48,18 +53,18 @@ async function setup(
 describe('AwsEcsDeploymentModule UT', () => {
   let testModuleContainer: TestModuleContainer;
 
+  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
+
   beforeEach(async () => {
+    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
+
     await TestContainer.create(
       {
         mocks: [
           {
             metadata: { package: '@octo' },
             type: ResourceGroupsTaggingAPIClient,
-            value: {
-              send: (): void => {
-                throw new Error('Trying to execute real AWS resources in mock mode!');
-              },
-            },
+            value: ResourceGroupsTaggingAPIClientMock,
           },
         ],
       },
@@ -71,6 +76,8 @@ describe('AwsEcsDeploymentModule UT', () => {
   });
 
   afterEach(async () => {
+    ResourceGroupsTaggingAPIClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
   });
