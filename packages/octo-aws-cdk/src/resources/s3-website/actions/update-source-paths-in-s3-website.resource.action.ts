@@ -27,7 +27,6 @@ export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceActi
     const manifestDiff = diff.value;
     const s3Website = diff.node;
     const properties = s3Website.properties;
-    const response = s3Website.response;
 
     // Get instances.
     const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {

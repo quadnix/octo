@@ -24,7 +24,6 @@ export class UpdatePermissionsInS3StorageResourceAction implements IResourceActi
     // Get properties.
     const s3Storage = diff.node;
     const properties = s3Storage.properties;
-    const response = s3Storage.response;
     const manifestDiff = diff.value;
 
     // Get instances.
