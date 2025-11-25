@@ -8,6 +8,7 @@ import {
   type UnknownModel,
   type UnknownOverlay,
   type UnknownResource,
+  ValidationType,
 } from '../../app.type.js';
 import { EventSource } from '../../decorators/event-source.decorator.js';
 import { Factory } from '../../decorators/factory.decorator.js';
@@ -17,6 +18,7 @@ import {
   ResourceActionExceptionTransactionError,
   ResourceActionTimeoutTransactionError,
   TransactionError,
+  ValidationTransactionError,
 } from '../../errors/index.js';
 import {
   ModelActionRegistrationEvent,
@@ -229,6 +231,7 @@ export class TransactionService {
     { enableResourceCapture = false }: { enableResourceCapture?: boolean } = {},
   ): Promise<DiffMetadata[][]> {
     const transaction: DiffMetadata[][] = [];
+    const validationErrors: Error[] = [];
 
     let currentApplyOrder = 0;
     let processed = 0;
@@ -267,14 +270,19 @@ export class TransactionService {
                       ?.setResponse(response);
                     resolve();
                   } catch (error) {
-                    reject(
-                      new ResourceActionExceptionTransactionError(
-                        error.message,
-                        error,
-                        diffToProcess,
-                        a.constructor.name,
-                      ),
-                    );
+                    if (diffToProcess.action === DiffAction.VALIDATE) {
+                      validationErrors.push(error);
+                      resolve();
+                    } else {
+                      reject(
+                        new ResourceActionExceptionTransactionError(
+                          error.message,
+                          error,
+                          diffToProcess,
+                          a.constructor.name,
+                        ),
+                      );
+                    }
                   }
                 }),
                 new Promise(
@@ -342,6 +350,17 @@ export class TransactionService {
 
       processed += diffsInSameLevel.length;
       currentApplyOrder += 1;
+    }
+
+    if (validationErrors.length > 0) {
+      throw new ValidationTransactionError('Validation failed on resources!', {
+        errors: validationErrors.map((error) => ({
+          constraint: 'Resource Validation',
+          type: ValidationType.CUSTOM,
+          value: error.message,
+        })),
+        pass: false,
+      });
     }
 
     return transaction;
