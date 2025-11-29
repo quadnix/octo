@@ -67,6 +67,8 @@ ecs
 efs
 eip
 ejs
+elasticfilesystem
+elasticloadbalancing
 elbv
 enum
 eslintcache
@@ -116,6 +118,7 @@ lang
 len
 linkcode
 linkplain
+loadbalancer
 localstack
 loglayer
 lstat
@@ -191,6 +194,7 @@ sys
 tablecell
 tablerow
 tagline
+targetgroup
 tcp
 tds
 toc
