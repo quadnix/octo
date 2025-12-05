@@ -95,7 +95,7 @@ export class ValidateNatGatewayResourceAction extends ANodeAction implements IRe
 
     // Validate Elastic IP allocation.
     const natGatewayAddresses = actualNatGateway.NatGatewayAddresses || [];
-    const allocationMatch = natGatewayAddresses.find((addr) => addr.AllocationId === response.AllocationId);
+    const allocationMatch = natGatewayAddresses.find((address) => address.AllocationId === response.AllocationId);
 
     if (!allocationMatch) {
       throw new TransactionError(
@@ -149,4 +149,3 @@ export class ValidateNatGatewayResourceActionFactory {
     return this.instance;
   }
 }
-

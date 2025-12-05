@@ -3,6 +3,9 @@
     "octo": "./dist/index.js"
   },
   "dependencies": {
+    "@quadnix/octo": "~0.0.24",
+    "@quadnix/octo-event-listeners": "~0.0.3",
+    "ajv": "~8.17.1",
     "chalk": "~5.5.0",
     "js-yaml": "~4.1.0",
     "p-limit": "~6.2.0",
@@ -62,7 +65,7 @@
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json && npm run copy-assets && chmod +x ./dist/index.js",
     "check:circular-dependency": "dpdm --no-tree --exit-code circular:1 --no-warning ./dist/index.js",
-    "copy-assets": "copyfiles -u 1 \"src/**/*.ejs\" dist/",
+    "copy-assets": "copyfiles -u 1 \"src/**/*.{ejs,json}\" dist/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

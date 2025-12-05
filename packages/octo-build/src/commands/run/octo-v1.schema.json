@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "modules": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "moduleClass": {
+            "type": "string"
+          },
+          "moduleId": {
+            "type": "string"
+          },
+          "moduleImportPath": {
+            "type": "string"
+          },
+          "moduleInputs": {
+            "type": "object"
+          }
+        },
+        "required": ["moduleClass", "moduleId", "moduleImportPath", "moduleInputs"],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "settings": {
+      "additionalProperties": false,
+      "properties": {
+        "listeners": {
+          "items": {
+            "oneOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "const": "HtmlReportEventListener",
+                    "type": "string"
+                  }
+                },
+                "required": ["type"],
+                "type": "object"
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "type": {
+                    "const": "LoggingEventListener",
+                    "type": "string"
+                  }
+                },
+                "required": ["type"],
+                "type": "object"
+              }
+            ]
+          },
+          "type": "array"
+        },
+        "stateProvider": {
+          "oneOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "statePath": {
+                  "type": "string"
+                },
+                "type": {
+                  "const": "LocalStateProvider",
+                  "type": "string"
+                }
+              },
+              "required": ["type", "statePath"],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "const": "TestStateProvider",
+                  "type": "string"
+                }
+              },
+              "required": ["type"],
+              "type": "object"
+            }
+          ]
+        },
+        "transactionOptions": {
+          "additionalProperties": false,
+          "properties": {
+            "enableResourceCapture": {
+              "default": false,
+              "type": "boolean"
+            },
+            "enableResourceValidation": {
+              "default": false,
+              "type": "boolean"
+            },
+            "yieldModelDiffs": {
+              "default": false,
+              "type": "boolean"
+            },
+            "yieldModelTransaction": {
+              "default": false,
+              "type": "boolean"
+            },
+            "yieldResourceDiffs": {
+              "default": false,
+              "type": "boolean"
+            },
+            "yieldResourceTransaction": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "required": ["stateProvider"],
+      "type": "object"
+    },
+    "version": {
+      "enum": [1],
+      "type": "number"
+    }
+  },
+  "required": ["modules", "settings", "version"],
+  "title": "Octo Build Configuration",
+  "type": "object"
+}

@@ -21,7 +21,11 @@ export default [
           allow: [],
           depConstraints: [
             {
-              onlyDependOnLibsWithTags: ['scope:octo-build'],
+              onlyDependOnLibsWithTags: [
+                'scope:octo',
+                'scope:octo-event-listeners',
+                'scope:octo-build',
+              ],
               sourceTag: 'scope:octo-build',
             },
           ],

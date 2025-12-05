@@ -11,6 +11,7 @@ import { createModelCommand } from './commands/create-model/index.js';
 import { createModuleCommand } from './commands/create-module/index.js';
 import { createOverlayCommand } from './commands/create-overlay/index.js';
 import { createResourceCommand } from './commands/create-resource/index.js';
+import { runCommand } from './commands/run/index.js';
 
 const PROGRAM_NAME = 'octo';
 
@@ -31,5 +32,6 @@ parser.command(createModuleCommand);
 parser.command(createOverlayCommand);
 parser.command(createResourceCommand);
 parser.command(buildCommand);
+parser.command(runCommand);
 
 await parser.argv;
