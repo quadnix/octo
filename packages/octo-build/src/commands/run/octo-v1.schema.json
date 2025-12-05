@@ -2,6 +2,24 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
+    "env": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": ["boolean", "number", "string"],
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": ["key", "kind", "value"],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "modules": {
       "items": {
         "additionalProperties": false,

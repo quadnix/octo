@@ -10,6 +10,7 @@ import { load } from 'js-yaml';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const customEnvironmentVariables: Record<string, unknown> = {};
 
 type RunCommandArguments = {
   definitionFilePath: string;
@@ -22,6 +23,7 @@ type LoggingEventListenerOptions = {
 };
 
 interface IRunDefinition {
+  env: { key: string; kind: 'boolean' | 'number' | 'string'; value: unknown }[];
   modules: Array<{
     moduleClass: string;
     moduleId: string;
@@ -48,8 +50,8 @@ interface IRunDefinition {
   version: number;
 }
 
-// TODO: add support for env.
 async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
+  // Setup listeners.
   if (!definition.settings.listeners) {
     definition.settings.listeners = [];
   } else {
@@ -83,12 +85,14 @@ async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
     }
   }
 
+  // Setup state provider.
   if (definition.settings.stateProvider.type === 'LocalStateProvider') {
     definition.settings.stateProvider.type = LocalStateProvider;
   } else if (definition.settings.stateProvider.type === 'TestStateProvider') {
     definition.settings.stateProvider.type = TestStateProvider;
   }
 
+  // Setup transaction options.
   if (!definition.settings.transactionOptions) {
     definition.settings.transactionOptions = {
       enableResourceCapture: false,
@@ -119,6 +123,7 @@ async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
     tx.yieldResourceTransaction = process.env.OCTO_YIELD_RESOURCE_TRANSACTION.toLowerCase() === 'true';
   }
 
+  // Setup version.
   if (!definition.version) {
     definition.version = 1;
   } else {
@@ -127,13 +132,17 @@ async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
 }
 
 async function importModules(definition: IRunDefinition): Promise<void> {
+  for (const { key, value } of definition.env || []) {
+    customEnvironmentVariables[key] = value;
+  }
+
   if (!definition.modules || definition.modules.length === 0) {
     console.log(chalk.red('At least 1 module is required to run!'));
     process.exit(1);
   }
 
   for (const moduleDef of definition.modules) {
-    const { moduleImportPath, moduleClass, moduleId } = moduleDef;
+    const { moduleImportPath, moduleClass, moduleId, moduleInputs } = moduleDef;
     if (!moduleImportPath || !moduleClass) {
       console.log(
         chalk.red(
@@ -163,6 +172,30 @@ async function importModules(definition: IRunDefinition): Promise<void> {
         ),
       );
       process.exit(1);
+    }
+
+    for (const [key, value] of Object.entries(moduleInputs || {})) {
+      if (typeof value === 'string') {
+        const pattern = value.match(/^\$\{env\.(.+)}$/);
+        if (pattern && pattern.length >= 2) {
+          let resolvedValue = process.env[pattern[1]] || customEnvironmentVariables[pattern[1]];
+          const { kind } = definition.env.find((e) => e.key === pattern[1])!;
+          switch (kind) {
+            case 'boolean': {
+              resolvedValue = Boolean(resolvedValue);
+              break;
+            }
+            case 'number': {
+              resolvedValue = Number(resolvedValue);
+              break;
+            }
+            default: {
+              resolvedValue = String(resolvedValue);
+            }
+          }
+          moduleInputs[key] = resolvedValue;
+        }
+      }
     }
   }
 }
@@ -221,6 +254,9 @@ export const runCommand = {
     await applyEnvOverrides(definition);
     await importModules(definition);
 
-    console.log(chalk.green('Definition file is valid and all modules were successfully imported.'));
+    console.log(
+      chalk.green('Definition file is valid and all modules were successfully imported.'),
+      JSON.stringify(definition, null, 2),
+    );
   },
 };
