@@ -33,6 +33,7 @@ import {
   SerializationEvent,
   TransactionEvent,
 } from '@quadnix/octo';
+import type { LevelWithSilentOrString } from 'pino';
 import { Logger } from './logger/logger.factory.js';
 
 export class LoggingEventListener {
@@ -162,9 +163,12 @@ export class LoggingEventListener {
 export class LoggingEventListenerFactory {
   private static instance: LoggingEventListener;
 
-  static async create(): Promise<LoggingEventListener> {
+  static async create({
+    colorize = true,
+    level = 'trace',
+  }: { colorize?: boolean; level?: LevelWithSilentOrString } = {}): Promise<LoggingEventListener> {
     if (!this.instance) {
-      this.instance = new LoggingEventListener(new Logger());
+      this.instance = new LoggingEventListener(new Logger({ colorize, level }));
     }
     return this.instance;
   }

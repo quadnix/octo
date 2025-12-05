@@ -1,17 +1,17 @@
 import { PinoTransport } from '@loglayer/transport-pino';
 import { LogLayer } from 'loglayer';
-import { pino } from 'pino';
+import { type LevelWithSilentOrString, pino } from 'pino';
 
 export class Logger {
   readonly log: LogLayer;
 
-  constructor() {
+  constructor({ colorize = true, level = 'trace' }: { colorize?: boolean; level?: LevelWithSilentOrString } = {}) {
     this.log = new LogLayer({
       transport: new PinoTransport({
         logger: pino({
-          level: 'trace',
+          level,
           timestamp: false,
-          transport: { options: { colorize: true }, target: 'pino-pretty' },
+          transport: { options: { colorize }, target: 'pino-pretty' },
         }),
       }),
     });

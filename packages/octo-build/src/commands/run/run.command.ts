@@ -2,14 +2,24 @@ import { existsSync, readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { type Constructable, LocalStateProvider, TestStateProvider } from '@quadnix/octo';
-import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
-import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
+import type { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import type { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { Ajv2020 as Ajv } from 'ajv/dist/2020.js';
 import chalk from 'chalk';
 import { load } from 'js-yaml';
 import type { ArgumentsCamelCase, Argv } from 'yargs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+type RunCommandArguments = {
+  definitionFilePath: string;
+};
+
+type LoggingEventListenerOptions = {
+  colorize: boolean;
+  level: 'debug' | 'error' | 'info' | 'trace' | 'warn';
+  type: Constructable<LoggingEventListener> | 'LoggingEventListener';
+};
 
 interface IRunDefinition {
   modules: Array<{
@@ -21,7 +31,7 @@ interface IRunDefinition {
   settings: {
     listeners?: (
       | { type: Constructable<HtmlReportEventListener> | 'HtmlReportEventListener' }
-      | { type: Constructable<LoggingEventListener> | 'LoggingEventListener' }
+      | LoggingEventListenerOptions
     )[];
     stateProvider:
       | { statePath: string; type: Constructable<LocalStateProvider> | 'LocalStateProvider' }
@@ -38,26 +48,40 @@ interface IRunDefinition {
   version: number;
 }
 
-type RunCommandArguments = {
-  definitionFilePath: string;
-};
-
 // TODO: add support for env.
-function applyEnvOverrides(definition: IRunDefinition): void {
+async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
   if (!definition.settings.listeners) {
     definition.settings.listeners = [];
   } else {
-    for (const listener of definition.settings.listeners) {
-      if (listener.type === 'HtmlReportEventListener') {
-        listener.type = HtmlReportEventListener;
-      } else if (listener.type === 'LoggingEventListener') {
-        listener.type = LoggingEventListener;
+    for (let i = definition.settings.listeners.length - 1; i >= 0; i--) {
+      if (definition.settings.listeners[i].type === 'HtmlReportEventListener') {
+        if (process.env.OCTO_DISABLE_HTML_REPORT_EVENT_LISTENER?.toLowerCase() === 'true') {
+          definition.settings.listeners.splice(i, 1);
+        } else {
+          const imported = await import('@quadnix/octo-event-listeners/html-report');
+          definition.settings.listeners[i].type = imported.HtmlReportEventListener;
+        }
+      } else if (definition.settings.listeners[i].type === 'LoggingEventListener') {
+        if (process.env.OCTO_DISABLE_LOGGING_EVENT_LISTENER?.toLowerCase() === 'true') {
+          definition.settings.listeners.splice(i, 1);
+        } else {
+          const imported = await import('@quadnix/octo-event-listeners/logging');
+          definition.settings.listeners[i].type = imported.LoggingEventListener;
+
+          if (process.env.OCTO_LOGGING_EVENT_LISTENER_COLORIZE) {
+            (definition.settings.listeners[i] as LoggingEventListenerOptions).colorize = Boolean(
+              process.env.OCTO_LOGGING_EVENT_LISTENER_COLORIZE,
+            );
+          }
+          if (process.env.OCTO_LOGGING_EVENT_LISTENER_LEVEL) {
+            (definition.settings.listeners[i] as LoggingEventListenerOptions).level = String(
+              process.env.OCTO_LOGGING_EVENT_LISTENER_LEVEL,
+            ) as LoggingEventListenerOptions['level'];
+          }
+        }
       }
     }
   }
-  // TODO: users can pass several other options to control listeners.
-  // Based on their options, we can manipulate listeners further,
-  // like excluding a certain listener from loading, or passing different arguments.
 
   if (definition.settings.stateProvider.type === 'LocalStateProvider') {
     definition.settings.stateProvider.type = LocalStateProvider;
@@ -194,7 +218,7 @@ export const runCommand = {
     }
 
     validateDefinition(definition);
-    applyEnvOverrides(definition);
+    await applyEnvOverrides(definition);
     await importModules(definition);
 
     console.log(chalk.green('Definition file is valid and all modules were successfully imported.'));

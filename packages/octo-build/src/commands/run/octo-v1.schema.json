@@ -45,6 +45,13 @@
               {
                 "additionalProperties": false,
                 "properties": {
+                  "colorize": {
+                    "type": "boolean"
+                  },
+                  "level": {
+                    "enum": ["debug", "error", "info", "trace", "warn"],
+                    "type": "string"
+                  },
                   "type": {
                     "const": "LoggingEventListener",
                     "type": "string"
