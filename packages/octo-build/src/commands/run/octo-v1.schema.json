@@ -151,6 +151,6 @@
     }
   },
   "required": ["modules", "settings", "version"],
-  "title": "Octo Build Configuration",
+  "title": "Octo Run Configuration",
   "type": "object"
 }

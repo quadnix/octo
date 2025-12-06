@@ -1,7 +1,14 @@
 import { existsSync, readFileSync } from 'fs';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { type Constructable, LocalStateProvider, TestStateProvider } from '@quadnix/octo';
+import {
+  type App,
+  type Constructable,
+  type IStateProvider,
+  LocalStateProvider,
+  Octo,
+  TestStateProvider,
+} from '@quadnix/octo';
 import type { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
 import type { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { Ajv2020 as Ajv } from 'ajv/dist/2020.js';
@@ -16,28 +23,33 @@ type RunCommandArguments = {
   definitionFilePath: string;
 };
 
+type HtmlReportEventListenerOptions = {
+  args?: unknown[];
+  metadata?: Record<string, string>;
+  type: Constructable<HtmlReportEventListener> | 'HtmlReportEventListener';
+};
 type LoggingEventListenerOptions = {
+  args?: unknown[];
   colorize: boolean;
   level: 'debug' | 'error' | 'info' | 'trace' | 'warn';
+  metadata?: Record<string, string>;
   type: Constructable<LoggingEventListener> | 'LoggingEventListener';
 };
+
+type LocalStateProviderOptions = { statePath: string; type: LocalStateProvider | 'LocalStateProvider' };
+type TestStateProviderOptions = { type: TestStateProvider | 'TestStateProvider' };
 
 interface IRunDefinition {
   env: { key: string; kind: 'boolean' | 'number' | 'string'; value: unknown }[];
   modules: Array<{
-    moduleClass: string;
+    moduleClass: Constructable<any> | string;
     moduleId: string;
     moduleImportPath: string;
     moduleInputs: Record<string, unknown>;
   }>;
   settings: {
-    listeners?: (
-      | { type: Constructable<HtmlReportEventListener> | 'HtmlReportEventListener' }
-      | LoggingEventListenerOptions
-    )[];
-    stateProvider:
-      | { statePath: string; type: Constructable<LocalStateProvider> | 'LocalStateProvider' }
-      | { type: Constructable<TestStateProvider> | 'TestStateProvider' };
+    listeners?: (HtmlReportEventListenerOptions | LoggingEventListenerOptions)[];
+    stateProvider: LocalStateProviderOptions | TestStateProviderOptions;
     transactionOptions?: {
       enableResourceCapture?: boolean;
       enableResourceValidation?: boolean;
@@ -80,6 +92,13 @@ async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
               process.env.OCTO_LOGGING_EVENT_LISTENER_LEVEL,
             ) as LoggingEventListenerOptions['level'];
           }
+
+          definition.settings.listeners[i].args = [
+            {
+              colorize: (definition.settings.listeners[i] as LoggingEventListenerOptions).colorize,
+              level: (definition.settings.listeners[i] as LoggingEventListenerOptions).level,
+            },
+          ];
         }
       }
     }
@@ -87,9 +106,11 @@ async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
 
   // Setup state provider.
   if (definition.settings.stateProvider.type === 'LocalStateProvider') {
-    definition.settings.stateProvider.type = LocalStateProvider;
+    definition.settings.stateProvider.type = new LocalStateProvider(
+      (definition.settings.stateProvider as LocalStateProviderOptions).statePath,
+    );
   } else if (definition.settings.stateProvider.type === 'TestStateProvider') {
-    definition.settings.stateProvider.type = TestStateProvider;
+    definition.settings.stateProvider.type = new TestStateProvider();
   }
 
   // Setup transaction options.
@@ -159,11 +180,13 @@ async function importModules(definition: IRunDefinition): Promise<void> {
 
     try {
       const imported = await import(resolvedImport);
-      if (!imported[moduleClass]) {
+      if (!imported[moduleClass as string]) {
         console.log(
           chalk.red(`Unable to find export "${moduleClass}" in module "${resolvedImport}" for moduleId="${moduleId}"!`),
         );
         process.exit(1);
+      } else {
+        moduleDef.moduleClass = imported[moduleClass as string];
       }
     } catch (error: any) {
       console.log(
@@ -253,10 +276,55 @@ export const runCommand = {
     validateDefinition(definition);
     await applyEnvOverrides(definition);
     await importModules(definition);
+    console.log(chalk.green('Definition file is valid and all modules were successfully imported.'));
 
-    console.log(
-      chalk.green('Definition file is valid and all modules were successfully imported.'),
-      JSON.stringify(definition, null, 2),
+    const octo = new Octo();
+    await octo.initialize(
+      definition.settings.stateProvider.type as IStateProvider,
+      definition.settings.listeners!.map((l) => ({
+        options: {
+          args: l.args,
+          metadata: l.metadata,
+        },
+        type: l.type,
+      })),
     );
+
+    for (const moduleDefinition of definition.modules) {
+      octo.loadModule(moduleDefinition.moduleClass, moduleDefinition.moduleId, moduleDefinition.moduleInputs);
+    }
+    octo.orderModules(definition.modules.map((m) => m.moduleClass));
+
+    const appModuleId = definition.modules[0].moduleId;
+    const modules = await octo.compose();
+    const app = modules[`${appModuleId}.model.app`] as App;
+
+    const transaction = octo.beginTransaction(app, definition.settings.transactionOptions);
+    if (definition.settings.transactionOptions?.yieldModelDiffs === true) {
+      const result = await transaction.next();
+      console.log(chalk.green('==== Model Diffs ===='));
+      console.log(JSON.stringify(result.value, null, 2));
+    }
+    if (definition.settings.transactionOptions?.yieldModelTransaction === true) {
+      const result = await transaction.next();
+      console.log(chalk.green('==== Model Transaction ===='));
+      console.log(JSON.stringify(result.value, null, 2));
+    }
+    if (definition.settings.transactionOptions?.yieldResourceDiffs === true) {
+      const result = await transaction.next();
+      console.log(chalk.green('==== Resource Diffs ===='));
+      console.log(JSON.stringify(result.value, null, 2));
+    }
+    if (definition.settings.transactionOptions?.yieldResourceTransaction === true) {
+      const result = await transaction.next();
+      console.log(chalk.green('==== Resource Transaction ===='));
+      console.log(JSON.stringify(result.value, null, 2));
+    }
+
+    const result = await transaction.next();
+    if (definition.settings.transactionOptions?.yieldResourceTransaction !== true) {
+      console.log(chalk.green('==== Resource Transaction ===='));
+      console.log(JSON.stringify(result.value, null, 2));
+    }
   },
 };
