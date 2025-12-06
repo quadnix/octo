@@ -30,8 +30,6 @@ type HtmlReportEventListenerOptions = {
 };
 type LoggingEventListenerOptions = {
   args?: unknown[];
-  colorize: boolean;
-  level: 'debug' | 'error' | 'info' | 'trace' | 'warn';
   metadata?: Record<string, string>;
   type: Constructable<LoggingEventListener> | 'LoggingEventListener';
 };
@@ -81,24 +79,6 @@ async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
         } else {
           const imported = await import('@quadnix/octo-event-listeners/logging');
           definition.settings.listeners[i].type = imported.LoggingEventListener;
-
-          if (process.env.OCTO_LOGGING_EVENT_LISTENER_COLORIZE) {
-            (definition.settings.listeners[i] as LoggingEventListenerOptions).colorize = Boolean(
-              process.env.OCTO_LOGGING_EVENT_LISTENER_COLORIZE,
-            );
-          }
-          if (process.env.OCTO_LOGGING_EVENT_LISTENER_LEVEL) {
-            (definition.settings.listeners[i] as LoggingEventListenerOptions).level = String(
-              process.env.OCTO_LOGGING_EVENT_LISTENER_LEVEL,
-            ) as LoggingEventListenerOptions['level'];
-          }
-
-          definition.settings.listeners[i].args = [
-            {
-              colorize: (definition.settings.listeners[i] as LoggingEventListenerOptions).colorize,
-              level: (definition.settings.listeners[i] as LoggingEventListenerOptions).level,
-            },
-          ];
         }
       }
     }
