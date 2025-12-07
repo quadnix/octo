@@ -20,6 +20,22 @@
       },
       "type": "array"
     },
+    "hooks": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "importPath": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string"
+          }
+        },
+        "required": ["importPath", "method"],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "imports": {
       "items": {
         "additionalProperties": false,

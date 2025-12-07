@@ -23,6 +23,15 @@ type RunCommandArguments = {
   definitionFilePath: string;
 };
 
+type HookMethodSignature = () => {
+  postCommitHooks?: { handle: any }[];
+  postModelActionHooks?: { action: any; handle: any }[];
+  postResourceActionHooks?: { action: any; handle: any }[];
+  preCommitHooks?: { handle: any }[];
+  preModelActionHooks?: { action: any; handle: any }[];
+  preResourceActionHooks?: { action: any; handle: any }[];
+};
+
 type HtmlReportEventListenerOptions = {
   args?: unknown[];
   metadata?: Record<string, string>;
@@ -39,6 +48,10 @@ type TestStateProviderOptions = { type: TestStateProvider | 'TestStateProvider' 
 
 interface IRunDefinition {
   env: { key: string; kind: 'boolean' | 'number' | 'string'; value: unknown }[];
+  hooks: Array<{
+    importPath: string;
+    method: HookMethodSignature | string;
+  }>;
   imports: Array<{
     className: Constructable<any> | string;
     importPath: string;
@@ -132,6 +145,36 @@ async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
     definition.version = 1;
   } else {
     definition.version = Number(definition.version);
+  }
+}
+
+async function resolveHooks(definition: IRunDefinition): Promise<void> {
+  if (!definition.hooks) {
+    definition.hooks = [];
+  }
+
+  for (const hookDef of definition.hooks) {
+    const { importPath, method } = hookDef;
+    if (!importPath || !method) {
+      console.log(chalk.red(`Invalid hook definition: "importPath" and "method" are required!`));
+      process.exit(1);
+    }
+
+    const resolvedImport =
+      importPath.startsWith('.') || importPath.startsWith('/') ? resolve(process.cwd(), importPath) : importPath;
+
+    try {
+      const imported = await import(resolvedImport);
+      if (!imported[method as string]) {
+        console.log(chalk.red(`Unable to find export "${method}" in path "${resolvedImport}"!`));
+        process.exit(1);
+      } else {
+        hookDef.method = imported[method as string];
+      }
+    } catch (error: any) {
+      console.log(chalk.red(`Failed to import path "${resolvedImport}": ${error?.message || String(error)}`));
+      process.exit(1);
+    }
   }
 }
 
@@ -262,10 +305,12 @@ export const runCommand = {
 
     validateDefinition(definition);
     await applyEnvOverrides(definition);
+    await resolveHooks(definition);
     await resolveImports(definition);
     resolveModules(definition);
     console.log(chalk.green('Definition file is valid and all modules were successfully imported.'));
 
+    // Initialize.
     const octo = new Octo();
     await octo.initialize(
       definition.settings.stateProvider.type as IStateProvider,
@@ -278,15 +323,23 @@ export const runCommand = {
       })),
     );
 
+    // Register hooks.
+    for (const hookDef of definition.hooks) {
+      octo.registerHooks((hookDef.method as HookMethodSignature)());
+    }
+
+    // Load modules.
     for (const moduleDefinition of definition.modules) {
       octo.loadModule(moduleDefinition.moduleClass, moduleDefinition.moduleId, moduleDefinition.moduleInputs);
     }
     octo.orderModules(definition.modules.map((m) => m.moduleClass));
 
+    // Compose.
     const appModuleId = definition.modules[0].moduleId;
     const modules = await octo.compose();
     const app = modules[`${appModuleId}.model.app`] as App;
 
+    // Start transaction.
     const transaction = octo.beginTransaction(app, definition.settings.transactionOptions);
     if (definition.settings.transactionOptions?.yieldModelDiffs === true) {
       const result = await transaction.next();
