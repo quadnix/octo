@@ -82,6 +82,7 @@ export default [
                 ['module-schema-index', { family: '${from.family}' }],
                 'anchor-anchor',
                 'anchor-schema',
+                'resource-index',
                 'utilities',
               ],
               from: ['module-module'],
