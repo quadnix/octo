@@ -40,6 +40,13 @@ export class ModuleContainer {
 
     for (const moduleMetadata of this.modules) {
       if (moduleMetadata.hidden) {
+        const { module } = moduleMetadata;
+
+        // Create new module instance.
+        const instance = new module('');
+        // Register module hooks.
+        this.registerHooks(instance.registerHooks());
+
         continue;
       }
 
