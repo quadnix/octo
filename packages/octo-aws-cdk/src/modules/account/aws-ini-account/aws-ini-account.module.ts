@@ -1,7 +1,7 @@
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { AModule, Container, Module } from '@quadnix/octo';
 import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
-import type { STSClientFactory } from '../../../factories/aws-client.factory.js';
+import { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsIniAccountModuleSchema } from './index.schema.js';
 import { AwsIniAccount } from './models/account/index.js';
 
