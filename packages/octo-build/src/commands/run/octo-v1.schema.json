@@ -20,6 +20,22 @@
       },
       "type": "array"
     },
+    "imports": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "className": {
+            "type": "string"
+          },
+          "importPath": {
+            "type": "string"
+          }
+        },
+        "required": ["className", "importPath"],
+        "type": "object"
+      },
+      "type": "array"
+    },
     "modules": {
       "items": {
         "additionalProperties": false,
@@ -30,14 +46,11 @@
           "moduleId": {
             "type": "string"
           },
-          "moduleImportPath": {
-            "type": "string"
-          },
           "moduleInputs": {
             "type": "object"
           }
         },
-        "required": ["moduleClass", "moduleId", "moduleImportPath", "moduleInputs"],
+        "required": ["moduleClass", "moduleId", "moduleInputs"],
         "type": "object"
       },
       "minItems": 1,

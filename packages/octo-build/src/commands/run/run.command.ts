@@ -39,10 +39,13 @@ type TestStateProviderOptions = { type: TestStateProvider | 'TestStateProvider' 
 
 interface IRunDefinition {
   env: { key: string; kind: 'boolean' | 'number' | 'string'; value: unknown }[];
+  imports: Array<{
+    className: Constructable<any> | string;
+    importPath: string;
+  }>;
   modules: Array<{
     moduleClass: Constructable<any> | string;
     moduleId: string;
-    moduleImportPath: string;
     moduleInputs: Record<string, unknown>;
   }>;
   settings: {
@@ -132,7 +135,37 @@ async function applyEnvOverrides(definition: IRunDefinition): Promise<void> {
   }
 }
 
-async function importModules(definition: IRunDefinition): Promise<void> {
+async function resolveImports(definition: IRunDefinition): Promise<void> {
+  if (!definition.imports) {
+    definition.imports = [];
+  }
+
+  for (const importDef of definition.imports) {
+    const { className, importPath } = importDef;
+    if (!importPath || !className) {
+      console.log(chalk.red(`Invalid import definition: "className" and "importPath" are required!`));
+      process.exit(1);
+    }
+
+    const resolvedImport =
+      importPath.startsWith('.') || importPath.startsWith('/') ? resolve(process.cwd(), importPath) : importPath;
+
+    try {
+      const imported = await import(resolvedImport);
+      if (!imported[className as string]) {
+        console.log(chalk.red(`Unable to find export "${className}" in path "${resolvedImport}"!`));
+        process.exit(1);
+      } else {
+        importDef.className = imported[className as string];
+      }
+    } catch (error: any) {
+      console.log(chalk.red(`Failed to import path "${resolvedImport}": ${error?.message || String(error)}`));
+      process.exit(1);
+    }
+  }
+}
+
+function resolveModules(definition: IRunDefinition): void {
   for (const { key, value } of definition.env || []) {
     customEnvironmentVariables[key] = value;
   }
@@ -143,39 +176,13 @@ async function importModules(definition: IRunDefinition): Promise<void> {
   }
 
   for (const moduleDef of definition.modules) {
-    const { moduleImportPath, moduleClass, moduleId, moduleInputs } = moduleDef;
-    if (!moduleImportPath || !moduleClass) {
-      console.log(
-        chalk.red(
-          `Invalid module definition for moduleId="${moduleId}": "moduleImportPath" and "moduleClass" are required!`,
-        ),
-      );
+    const { moduleClass, moduleId, moduleInputs } = moduleDef;
+    const importedModule = definition.imports.find((i) => (i.className as Constructable<any>).name === moduleClass);
+    if (!moduleClass || !importedModule) {
+      console.log(chalk.red(`Invalid module definition for moduleId="${moduleId}": "${moduleClass}" not found!`));
       process.exit(1);
     }
-
-    const resolvedImport =
-      moduleImportPath.startsWith('.') || moduleImportPath.startsWith('/')
-        ? resolve(process.cwd(), moduleImportPath)
-        : moduleImportPath;
-
-    try {
-      const imported = await import(resolvedImport);
-      if (!imported[moduleClass as string]) {
-        console.log(
-          chalk.red(`Unable to find export "${moduleClass}" in module "${resolvedImport}" for moduleId="${moduleId}"!`),
-        );
-        process.exit(1);
-      } else {
-        moduleDef.moduleClass = imported[moduleClass as string];
-      }
-    } catch (error: any) {
-      console.log(
-        chalk.red(
-          `Failed to import module "${resolvedImport}" for moduleId="${moduleId}": ${error?.message || String(error)}`,
-        ),
-      );
-      process.exit(1);
-    }
+    moduleDef.moduleClass = importedModule.className;
 
     for (const [key, value] of Object.entries(moduleInputs || {})) {
       if (typeof value === 'string') {
@@ -255,7 +262,8 @@ export const runCommand = {
 
     validateDefinition(definition);
     await applyEnvOverrides(definition);
-    await importModules(definition);
+    await resolveImports(definition);
+    resolveModules(definition);
     console.log(chalk.green('Definition file is valid and all modules were successfully imported.'));
 
     const octo = new Octo();
