@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=../../../octo-build/src/commands/run/octo-v1.schema.json
+
+version: 1
+
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: "123456789123"
+  - key: AWS_S3_WEBSITE_BUCKET_NAME
+    kind: string
+    value: my-website-unique-bucket
+
+settings:
+  listeners:
+    - type: HtmlReportEventListener
+    - type: LoggingEventListener
+
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo
+
+imports:
+  - className: SimpleAppModule
+    importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
+  - className: AwsIniAccountModule
+    importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+  - className: AwsS3StaticWebsiteServiceModule
+    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service"
+
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-s3-website
+
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
+
+  - moduleId: s3-website-service-module
+    moduleClass: AwsS3StaticWebsiteServiceModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      awsRegionId: us-east-1
+      bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
+      directoryPath: website

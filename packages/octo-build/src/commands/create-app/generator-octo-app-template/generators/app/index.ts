@@ -131,16 +131,7 @@ export default class extends Generator {
           name: this.appName,
         },
       );
-      this.fs.copyTpl(
-        this.templatePath(`${templatePath}/app.config.ts.ejs`),
-        this.destinationPath('src/app.config.ts'),
-      );
-      this.fs.copyTpl(this.templatePath(`${templatePath}/env.ejs`), this.destinationPath('.env'));
-      this.fs.copyTpl(this.templatePath(`${templatePath}/main.ts.ejs`), this.destinationPath('src/main.ts'));
-      this.fs.copyTpl(
-        this.templatePath(`${templatePath}/module-definitions.ts.ejs`),
-        this.destinationPath('src/module-definitions.ts'),
-      );
+      this.fs.copyTpl(this.templatePath(`${templatePath}/octo.yaml.ejs`), this.destinationPath('src/octo.yaml'));
     } else {
       throw new Error(`Unsupported app template: ${this.appTemplate}`);
     }
