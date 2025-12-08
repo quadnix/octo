@@ -160,29 +160,8 @@ export class ValidateS3WebsiteResourceAction extends ANodeAction implements IRes
         ],
         Version: '2012-10-17',
       };
-
-      // Validate policy version.
-      if (policy.Version !== expectedPolicy.Version) {
-        throw new TransactionError(
-          `S3 bucket policy version mismatch. Expected: ${expectedPolicy.Version}, Actual: ${policy.Version}`,
-        );
-      }
-
-      // Validate policy statement exists.
-      const expectedStatement = expectedPolicy.Statement[0];
-      const matchingStatement = policy.Statement?.find(
-        (statement: any) =>
-          statement.Sid === expectedStatement.Sid &&
-          statement.Effect === expectedStatement.Effect &&
-          statement.Principal === expectedStatement.Principal &&
-          JSON.stringify(statement.Action) === JSON.stringify(expectedStatement.Action) &&
-          JSON.stringify(statement.Resource) === JSON.stringify(expectedStatement.Resource),
-      );
-
-      if (!matchingStatement) {
-        throw new TransactionError(
-          `S3 bucket policy does not contain the expected public read statement with Sid: ${expectedStatement.Sid}`,
-        );
+      if (!PolicyUtility.isS3BucketPolicyEqual(policy, expectedPolicy)) {
+        throw new TransactionError(`S3 bucket policy mismatch! Current: ${policy} Expected: ${expectedPolicy}`);
       }
     } catch (error: any) {
       if (error.name === 'NoSuchBucketPolicy') {
