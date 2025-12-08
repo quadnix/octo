@@ -467,10 +467,6 @@ export class TransactionService {
     const overlayDiffs = await this.overlayDataRepository.diff();
     diffs.push(...overlayDiffs);
 
-    if (enableResourceValidation && diffs.length > 0) {
-      throw new TransactionError('Cannot run resource validation with pending model diffs!');
-    }
-
     // Generate diff on models.
     const modelDiffs = diffs.map((d) => {
       if ((d.node.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY) {
