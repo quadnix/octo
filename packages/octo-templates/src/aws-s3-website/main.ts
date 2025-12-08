@@ -1,7 +1,8 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { type App, Container, LocalStateProvider, Octo } from '@quadnix/octo';
-import { HtmlReportEventListener, LoggingEventListener } from '@quadnix/octo-event-listeners';
+import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { ModuleDefinitions } from './module-definitions.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

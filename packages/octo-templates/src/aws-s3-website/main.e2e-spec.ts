@@ -6,7 +6,8 @@ import { type AModule, type Container, TestContainer, TestModuleContainer, TestS
 import { type AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
 import { type SimpleAppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
 import { type AwsS3StaticWebsiteServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-s3-static-website-service';
-import { HtmlReportEventListener, LoggingEventListener } from '@quadnix/octo-event-listeners';
+import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import axios from 'axios';
 import { ModuleDefinitions } from './module-definitions.js';
 
