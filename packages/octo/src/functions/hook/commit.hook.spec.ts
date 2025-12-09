@@ -26,14 +26,17 @@ describe('CommitHook UT', () => {
     const postCommitHookMock = jest.fn();
     const preCommitHookMock = jest.fn();
 
+    const stateProvider = new TestStateProvider();
+    const { lockId } = await stateProvider.lockApp();
+
     const octo = new Octo();
-    await octo.initialize(new TestStateProvider());
+    await octo.initialize(stateProvider);
 
     octo.registerHooks({
       postCommitHooks: [{ handle: postCommitHookMock as any }],
       preCommitHooks: [{ handle: preCommitHookMock as any }],
     });
-    const generator = octo.beginTransaction(new App('test-app'));
+    const generator = octo.beginTransaction(new App('test-app'), { appLockId: lockId });
     await generator.next();
 
     expect(postCommitHookMock).toHaveBeenCalledTimes(1);

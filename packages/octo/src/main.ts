@@ -7,6 +7,7 @@ import type {
   UnknownResource,
 } from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
+import { TransactionError } from './errors/index.js';
 import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
 import { App } from './models/app/app.model.js';
@@ -45,13 +46,14 @@ export class Octo {
   async *beginTransaction(
     app: App,
     {
+      appLockId = undefined,
       enableResourceCapture = false,
       enableResourceValidation = false,
       yieldModelDiffs = false,
       yieldModelTransaction = false,
       yieldResourceDiffs = false,
       yieldResourceTransaction = false,
-    }: TransactionOptions = {},
+    }: TransactionOptions & { appLockId?: string } = {},
   ): ReturnType<TransactionService['beginTransaction']> {
     const diffs = await app.diff();
     const transaction = this.transactionService.beginTransaction(diffs, {
@@ -77,6 +79,16 @@ export class Octo {
     if (yieldResourceDiffs) {
       yield resourceDiffs.value;
     }
+
+    if (!appLockId) {
+      return resourceDiffs.value;
+    }
+
+    const isAppLocked = await this.stateManagementService.isAppLocked(appLockId);
+    if (!isAppLocked) {
+      throw new TransactionError('App is not in lock state!');
+    }
+    await this.stateManagementService.updateAppLockTransaction(appLockId);
 
     let resourceTransaction:
       | IteratorYieldResult<DiffMetadata[][]>

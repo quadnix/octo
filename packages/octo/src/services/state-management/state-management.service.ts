@@ -75,6 +75,14 @@ export class StateManagementService {
     }
   }
 
+  async isAppLocked(lockId: string): Promise<boolean> {
+    return this.stateProvider.isAppLocked(lockId);
+  }
+
+  async lockApp(): Promise<{ lockId: string }> {
+    return this.stateProvider.lockApp();
+  }
+
   async saveModelState(stateFileName: string, data: ModelSerializedOutput, userData: object): Promise<void> {
     await this.saveState(stateFileName, Buffer.from(JSON.stringify({ data, userData })));
   }
@@ -85,6 +93,14 @@ export class StateManagementService {
 
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
     return this.stateProvider.saveState(stateFileName, data);
+  }
+
+  async unlockApp(lockId: string): Promise<void> {
+    return this.stateProvider.unlockApp(lockId);
+  }
+
+  async updateAppLockTransaction(lockId: string): Promise<void> {
+    return this.stateProvider.updateAppLockTransaction(lockId);
   }
 }
 

@@ -589,12 +589,12 @@ export class TransactionService {
     for (const diff of dirtyResourceDiffs) {
       this.setApplyOrder(diff, dirtyResourceDiffs);
     }
+    this.applyResourcesDryRun([...resourceDiffs, ...dirtyResourceDiffs], { enableResourceCapture });
 
     this.eventService.emit(new ResourceDiffsTransactionEvent(undefined, [[resourceDiffs], [dirtyResourceDiffs]]));
     if (yieldResourceDiffs) {
       yield [resourceDiffs, dirtyResourceDiffs];
     }
-    this.applyResourcesDryRun([...resourceDiffs, ...dirtyResourceDiffs], { enableResourceCapture });
 
     // Apply resource diffs.
     const resourceTransaction = await this.applyResources(resourceDiffs, {
