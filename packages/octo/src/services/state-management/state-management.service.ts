@@ -13,6 +13,10 @@ export class StateManagementService {
     this.stateProvider = stateProvider;
   }
 
+  async getAppLock(): Promise<string | undefined> {
+    return this.stateProvider.getAppLock();
+  }
+
   async getModelState(
     stateFileName: string,
     { freeze = true }: { freeze?: boolean } = {},

@@ -21,13 +21,14 @@ export class LocalStateProvider implements IStateProvider {
     await writeFile(this.lockFilePath, lockId);
   }
 
-  private async getAppLock(): Promise<string | undefined> {
+  async getAppLock(): Promise<string | undefined> {
     try {
       const contents = await readFile(this.lockFilePath, 'utf-8');
       const appLock = contents.replace(/\s/g, '');
       if (!appLock) {
         return undefined;
       }
+      return appLock;
     } catch (error) {
       if (error.code === 'ENOENT') {
         return undefined;

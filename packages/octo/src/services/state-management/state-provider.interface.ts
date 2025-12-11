@@ -2,6 +2,8 @@
  * @group Services/State Management
  */
 export interface IStateProvider {
+  getAppLock(): Promise<string | undefined>;
+
   getState(stateFileName: string): Promise<Buffer>;
 
   isAppLocked(lockId: string): Promise<boolean>;

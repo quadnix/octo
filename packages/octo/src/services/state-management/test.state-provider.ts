@@ -6,7 +6,11 @@ import type { IStateProvider } from './state-provider.interface.js';
  */
 export class TestStateProvider implements IStateProvider {
   private readonly localState: { [key: string]: Buffer } = {};
-  private lockId: string | null = null;
+  private lockId: string | undefined = undefined;
+
+  async getAppLock(): Promise<string | undefined> {
+    return this.lockId;
+  }
 
   async getState(stateFileName: string): Promise<Buffer> {
     if (!(stateFileName in this.localState)) {
@@ -16,11 +20,13 @@ export class TestStateProvider implements IStateProvider {
   }
 
   async isAppLocked(lockId: string): Promise<boolean> {
-    if (this.lockId === null) {
+    const existingLockId = await this.getAppLock();
+
+    if (!existingLockId) {
       return false;
     }
 
-    if (lockId !== this.lockId) {
+    if (lockId !== existingLockId) {
       throw new TransactionError('Invalid lock ID!');
     } else {
       return true;
@@ -28,12 +34,15 @@ export class TestStateProvider implements IStateProvider {
   }
 
   async lockApp(): Promise<{ lockId: string }> {
-    if (this.lockId !== null) {
+    const existingLockId = await this.getAppLock();
+
+    if (existingLockId) {
       throw new TransactionError('App already locked!');
     }
 
-    this.lockId = 'default_lock';
-    return { lockId: this.lockId };
+    const lockId = 'default_lock';
+    this.lockId = lockId;
+    return { lockId };
   }
 
   async saveState(stateFileName: string, data: Buffer): Promise<void> {
@@ -41,14 +50,16 @@ export class TestStateProvider implements IStateProvider {
   }
 
   async unlockApp(lockId: string): Promise<void> {
-    if (this.lockId === null) {
+    const existingLockId = await this.getAppLock();
+
+    if (!existingLockId) {
       return;
     }
 
-    if (lockId !== this.lockId) {
+    if (lockId !== existingLockId) {
       throw new TransactionError('Invalid lock ID!');
     }
-    this.lockId = null;
+    this.lockId = undefined;
   }
 
   async updateAppLockTransaction(lockId: string): Promise<void> {
