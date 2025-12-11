@@ -136,14 +136,6 @@
         "transactionOptions": {
           "additionalProperties": false,
           "properties": {
-            "enableResourceCapture": {
-              "default": false,
-              "type": "boolean"
-            },
-            "enableResourceValidation": {
-              "default": false,
-              "type": "boolean"
-            },
             "yieldModelDiffs": {
               "default": false,
               "type": "boolean"
@@ -172,7 +164,7 @@
       "type": "number"
     }
   },
-  "required": ["modules", "settings", "version"],
-  "title": "Octo Run Configuration",
+  "required": ["imports", "modules", "settings", "version"],
+  "title": "Octo V1 Definition Schema",
   "type": "object"
 }
