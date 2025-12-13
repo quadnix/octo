@@ -6,19 +6,31 @@ import React, { type ReactElement } from 'react';
 
 import styles from './styles.module.scss';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
+import WhyOcto from '@site/src/components/WhyOcto';
+import mascotImage from '@site/static/img/emotes/octo-mascot.png';
+import backgroundImage from '@site/static/img/octo-landing-page-bg.jpg';
 
 function HomepageHeader(): ReactElement {
   return (
-    <header className={clsx('hero', styles.heroBanner)}>
+    <header className={clsx('hero', styles.heroBanner)} style={{ backgroundImage: `url(${backgroundImage})` }}>
       <div className="container">
-        <Heading as="h1" className={clsx('hero__title', styles.hero__title)}>
-          <span className={clsx(styles.hero__title__highlight)}>Infrastructure made simple.</span>
-        </Heading>
-        <p className={clsx('hero__subtitle', styles.hero__subtitle)}>
-          Octo is a general-purpose cloud infrastructure modeling and management tool.
-          <br />
-          Made easy for developers and devops alike.
-        </p>
+        <div className={styles.heroTitleContainer}>
+          <div>
+            <Heading as="h1" className={clsx('hero__title', styles.hero__title)}>
+              <span className={clsx(styles.hero__title__highlight)}>Infrastructure made simple.</span>
+            </Heading>
+            <p className={clsx('hero__subtitle', styles.hero__subtitle)}>
+              Octo is a general-purpose cloud infrastructure modeling and management tool.
+              <br />
+              Made easy for developers and devops alike.
+            </p>
+          </div>
+
+          <div className={styles.mascotContainer}>
+            <img src={mascotImage} alt="Octo Mascot" className={styles.mascotImage} />
+          </div>
+        </div>
+
         <div className={styles.buttons}>
           <Link className="button button--secondary button--lg" to="/docs/introduction">
             Let's Begin! 🚀
@@ -34,6 +46,7 @@ export default function Home(): ReactElement {
     <Layout title={`Octo - Infrastructure Modeling`} description="Description will go into a meta tag in <head />">
       <HomepageHeader />
       <main>
+        <WhyOcto />
         <HomepageFeatures />
       </main>
     </Layout>

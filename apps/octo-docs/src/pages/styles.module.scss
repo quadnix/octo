@@ -1,8 +1,11 @@
 .heroBanner {
-  padding: 6rem 0 2rem 0 !important;
-  text-align: center;
-  position: relative;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
   overflow: hidden;
+  padding: 0 0 2rem 0 !important;
+  position: relative;
+  text-align: left;
 
   .hero__title {
     font-size: 3rem !important;
@@ -15,6 +18,28 @@
   }
 }
 
+.heroTitleContainer {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.mascotContainer {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+.mascotImage {
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
+  height: auto;
+  max-width: 300px;
+  object-fit: contain;
+  width: 100%;
+}
+
 .container {
   background-color: black;
 }
@@ -23,10 +48,23 @@
   .heroBanner {
     padding: 1rem 0 1rem 0 !important;
   }
+
+  .heroTitleContainer {
+    flex-direction: column;
+  }
+
+  .mascotImage {
+    max-width: 250px;
+  }
 }
 
 .buttons {
-  display: flex;
   align-items: center;
+  display: flex;
   justify-content: center;
+}
+
+.buttons a {
+  background-color: #3b82f6;
+  color: #ffffff !important;
 }
