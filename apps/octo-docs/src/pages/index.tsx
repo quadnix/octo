@@ -6,6 +6,7 @@ import React, { type ReactElement } from 'react';
 
 import styles from './styles.module.scss';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
+import Typewriter from '@site/src/components/Typewriter';
 import WhyOcto from '@site/src/components/WhyOcto';
 import mascotImage from '@site/static/img/emotes/octo-mascot.png';
 import backgroundImage from '@site/static/img/octo-landing-page-bg.jpg';
@@ -17,12 +18,14 @@ function HomepageHeader(): ReactElement {
         <div className={styles.heroTitleContainer}>
           <div>
             <Heading as="h1" className={clsx('hero__title', styles.hero__title)}>
-              <span className={clsx(styles.hero__title__highlight)}>Infrastructure made simple.</span>
+              <span className={clsx(styles.hero__title__highlight)}>
+                Infrastructure made <Typewriter words={['simple', 'amazing', 'awesome', 'powerful', 'intuitive']} />
+              </span>
             </Heading>
             <p className={clsx('hero__subtitle', styles.hero__subtitle)}>
               Octo is a general-purpose cloud infrastructure modeling and management tool.
               <br />
-              Made easy for developers and devops alike.
+              Made easy for <b>developers</b> and <b>devops</b> alike.
             </p>
           </div>
 
