@@ -30,7 +30,6 @@ import {
   type Subnet,
   TestContainer,
   TestModuleContainer,
-  TestStateProvider,
   stub,
 } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
@@ -307,7 +306,7 @@ describe('AwsEcsExecutionModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
       await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });

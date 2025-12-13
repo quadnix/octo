@@ -1,5 +1,5 @@
 import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
-import { TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import { TestContainer, TestModuleContainer } from '@quadnix/octo';
 import { SimpleAppModule } from './index.js';
 
 describe('SimpleAppModule UT', () => {
@@ -24,7 +24,7 @@ describe('SimpleAppModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
   });
 
   afterEach(async () => {

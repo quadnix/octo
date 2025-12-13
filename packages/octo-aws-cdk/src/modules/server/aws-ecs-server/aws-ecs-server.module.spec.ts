@@ -1,29 +1,12 @@
-import {
-  AttachRolePolicyCommand,
-  CreatePolicyCommand,
-  CreateRoleCommand,
-  DeletePolicyCommand,
-  DeleteRoleCommand,
-  DetachRolePolicyCommand,
-  GetRoleCommand,
-  IAMClient,
-} from '@aws-sdk/client-iam';
+import { CreatePolicyCommand, CreateRoleCommand, GetRoleCommand, IAMClient } from '@aws-sdk/client-iam';
 import {
   ResourceGroupsTaggingAPIClient,
   TagResourcesCommand,
   UntagResourcesCommand,
 } from '@aws-sdk/client-resource-groups-tagging-api';
-import { DeleteBucketPolicyCommand, PutBucketPolicyCommand, S3Client } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
-import {
-  type Account,
-  type App,
-  type Service,
-  TestContainer,
-  TestModuleContainer,
-  TestStateProvider,
-  stub,
-} from '@quadnix/octo';
+import { type Account, type App, type Service, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
@@ -142,7 +125,7 @@ describe('AwsEcsServerModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
       await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });

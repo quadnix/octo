@@ -5,15 +5,7 @@ import {
 } from '@aws-sdk/client-resource-groups-tagging-api';
 import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
-import {
-  type Account,
-  type App,
-  type Region,
-  TestContainer,
-  TestModuleContainer,
-  TestStateProvider,
-  stub,
-} from '@quadnix/octo';
+import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsS3StorageServiceModule } from './index.js';
@@ -78,7 +70,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
   });
 
   afterEach(async () => {

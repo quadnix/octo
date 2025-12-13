@@ -4,15 +4,7 @@ import {
   UntagResourcesCommand,
 } from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
-import {
-  type Account,
-  type App,
-  type Server,
-  TestContainer,
-  TestModuleContainer,
-  TestStateProvider,
-  stub,
-} from '@quadnix/octo';
+import { type Account, type App, type Server, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsEcsServerAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
 import type { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-role.anchor.schema.js';
@@ -72,7 +64,7 @@ describe('AwsEcsDeploymentModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
   });
 
   afterEach(async () => {

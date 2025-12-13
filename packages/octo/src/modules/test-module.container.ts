@@ -82,9 +82,10 @@ export class TestModuleContainer {
   async commit(
     app: App,
     {
+      appLockId = undefined,
       enableResourceCapture = false,
       filterByModuleIds = [],
-    }: { enableResourceCapture?: boolean; filterByModuleIds?: string[] } = {},
+    }: { appLockId?: string; enableResourceCapture?: boolean; filterByModuleIds?: string[] } = {},
   ): Promise<{
     modelDiffs: DiffMetadata[][];
     modelTransaction: DiffMetadata[][];
@@ -92,6 +93,7 @@ export class TestModuleContainer {
     resourceTransaction: DiffMetadata[][];
   }> {
     const generator = this.octo.beginTransaction(app, {
+      appLockId: appLockId || 'default_lock',
       enableResourceCapture,
       yieldModelDiffs: true,
       yieldModelTransaction: true,
@@ -342,7 +344,9 @@ export class TestModuleContainer {
     if (stateProvider) {
       await this.octo.initialize(stateProvider, initializeInContainer, excludeInContainer);
     } else {
-      await this.octo.initialize(new TestStateProvider(), initializeInContainer, excludeInContainer);
+      const stateProvider = new TestStateProvider();
+      await stateProvider.lockApp();
+      await this.octo.initialize(stateProvider, initializeInContainer, excludeInContainer);
     }
 
     // Always register the UniversalTestModule to allow users to create test prerequisites.

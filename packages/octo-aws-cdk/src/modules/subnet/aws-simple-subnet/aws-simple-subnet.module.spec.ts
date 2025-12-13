@@ -37,7 +37,6 @@ import {
   SubnetType,
   TestContainer,
   TestModuleContainer,
-  TestStateProvider,
   stub,
 } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
@@ -245,7 +244,7 @@ describe('AwsSimpleSubnetModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
       await originalRetryPromise(fn, {

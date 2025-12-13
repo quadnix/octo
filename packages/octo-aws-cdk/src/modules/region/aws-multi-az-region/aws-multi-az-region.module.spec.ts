@@ -1,20 +1,11 @@
-import {
-  AttachInternetGatewayCommand,
-  CreateInternetGatewayCommand,
-  CreateVpcCommand,
-  DeleteInternetGatewayCommand,
-  DeleteVpcCommand,
-  DetachInternetGatewayCommand,
-  EC2Client,
-  ModifyVpcAttributeCommand,
-} from '@aws-sdk/client-ec2';
+import { CreateInternetGatewayCommand, CreateVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
 import {
   ResourceGroupsTaggingAPIClient,
   TagResourcesCommand,
   UntagResourcesCommand,
 } from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
-import { type Account, type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
+import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
@@ -71,7 +62,7 @@ describe('AwsMultiAzRegionModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
 
     retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
       await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });

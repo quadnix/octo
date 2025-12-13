@@ -5,15 +5,7 @@ import {
   UntagResourcesCommand,
 } from '@aws-sdk/client-resource-groups-tagging-api';
 import { jest } from '@jest/globals';
-import {
-  type Account,
-  type App,
-  type Region,
-  TestContainer,
-  TestModuleContainer,
-  TestStateProvider,
-  stub,
-} from '@quadnix/octo';
+import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsEcrImageModule } from './index.js';
@@ -96,7 +88,7 @@ describe('AwsEcrImageModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
   });
 
   afterEach(async () => {

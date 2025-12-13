@@ -4,7 +4,7 @@ import {
   UntagResourcesCommand,
 } from '@aws-sdk/client-resource-groups-tagging-api';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { type App, type Container, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
+import { type App, type Container, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
 import { AwsIniAccountModule } from './index.js';
 
@@ -46,7 +46,7 @@ describe('AwsIniAccountModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
   });
 
   afterEach(async () => {

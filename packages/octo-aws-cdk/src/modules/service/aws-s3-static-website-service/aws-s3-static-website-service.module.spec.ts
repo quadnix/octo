@@ -7,7 +7,7 @@ import {
 } from '@aws-sdk/client-resource-groups-tagging-api';
 import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
 import { jest } from '@jest/globals';
-import { type Account, type App, TestContainer, TestModuleContainer, TestStateProvider, stub } from '@quadnix/octo';
+import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { AwsS3StaticWebsiteServiceModule } from './index.js';
@@ -72,7 +72,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(new TestStateProvider());
+    await testModuleContainer.initialize();
   });
 
   afterEach(async () => {
