@@ -244,6 +244,7 @@ export class YamlDefinitionUtility {
   }
 
   resolveTransactionOptions(): {
+    appLockId: string | undefined;
     enableResourceCapture: boolean;
     enableResourceValidation: boolean;
     yieldModelDiffs: boolean;
@@ -253,6 +254,7 @@ export class YamlDefinitionUtility {
   } {
     const tx = this.definition.settings.transactionOptions || {};
     const options: ReturnType<YamlDefinitionUtility['resolveTransactionOptions']> = {
+      appLockId: undefined,
       enableResourceCapture: false,
       enableResourceValidation: false,
       yieldModelDiffs: tx.yieldModelDiffs || false,
@@ -261,6 +263,9 @@ export class YamlDefinitionUtility {
       yieldResourceTransaction: tx.yieldResourceTransaction || false,
     };
 
+    if (process.env.OCTO_APP_LOCK_ID) {
+      options.appLockId = process.env.OCTO_APP_LOCK_ID;
+    }
     if (process.env.OCTO_ENABLE_RESOURCE_CAPTURE) {
       options.enableResourceCapture = process.env.OCTO_ENABLE_RESOURCE_CAPTURE.toLowerCase() === 'true';
     }
