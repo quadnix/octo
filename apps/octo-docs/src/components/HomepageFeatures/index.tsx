@@ -4,6 +4,7 @@ import React, { type ReactElement } from 'react';
 import styles from './styles.module.scss';
 
 type FeatureItem = {
+  additionalClassName?: string;
   description: ReactElement;
   icon: string;
   title: string;
@@ -11,6 +12,7 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
+    additionalClassName: 'featureImageGraphs',
     description: (
       <>
         We promised visualization, and its about to become a reality!
@@ -24,11 +26,25 @@ const FeatureList: FeatureItem[] = [
     icon: '/img/octo-landing-page-graph-preview.png',
     title: 'Graphs, Baby! (Coming Soon)',
   },
+  {
+    additionalClassName: 'featureImagePipeline',
+    description: (
+      <>
+        With Octo Pipelines your infrastructure changes are just a PR away.
+        <br />
+        Setup Pipelines to run Octo on every pull request and automatically apply infrastructure changes.
+        <br />
+        Watch logs. Enforce PR rules. Detailed diffs. HTML Reports. And more!
+      </>
+    ),
+    icon: '/img/octo-landing-page-pipeline-preview.png',
+    title: 'Octo CD Pipeline! (Coming Soon)',
+  },
 ];
 
-function Feature({ description, icon, title }: FeatureItem): ReactElement {
+function Feature({ additionalClassName, description, icon, title }: FeatureItem): ReactElement {
   return (
-    <div className={styles.featureCard}>
+    <div className={`${styles.featureCard} ${styles[additionalClassName]}`}>
       <div className={styles.featureContent}>
         <Heading as="h3" className={styles.featureTitle}>
           {title}

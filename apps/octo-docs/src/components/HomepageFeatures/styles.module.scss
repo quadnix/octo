@@ -4,7 +4,6 @@
 }
 
 .featureCard {
-  background: #fb8f8f;
   border: 1px solid var(--ifm-color-emphasis-300, rgba(0, 0, 0, 0.1));
   border-radius: var(--ifm-card-border-radius, 0.5rem);
   box-shadow: var(--ifm-global-shadow-lw);
@@ -54,4 +53,24 @@
     object-fit: contain;
     width: 100%;
   }
+}
+
+.featureImageGraphs {
+  background: linear-gradient(to top, #fdcbf1 0%, #fdcbf1 1%, #e6dee9 100%);
+}
+
+.featureImagePipeline {
+  background: linear-gradient(to top, #a18cd1 0%, #fbc2eb 100%);
+
+  img {
+    max-width: 50%;
+  }
+}
+
+:global(html[data-theme='dark']) .featureTitle {
+  color: #000000;
+}
+
+:global(html[data-theme='dark']) .featureDescription {
+  color: #525860;
 }
