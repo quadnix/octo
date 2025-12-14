@@ -139,6 +139,7 @@ namespace
 nat
 natgateway
 nginx
+noopener
 noreferrer
 noreply
 nullable

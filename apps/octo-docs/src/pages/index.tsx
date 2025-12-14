@@ -6,6 +6,7 @@ import React, { type ReactElement } from 'react';
 
 import styles from './styles.module.scss';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
+import SupportUs from '@site/src/components/SupportUs';
 import Typewriter from '@site/src/components/Typewriter';
 import WhyOcto from '@site/src/components/WhyOcto';
 import mascotImage from '@site/static/img/emotes/octo-mascot.png';
@@ -51,6 +52,7 @@ export default function Home(): ReactElement {
       <main>
         <WhyOcto />
         <HomepageFeatures />
+        <SupportUs />
       </main>
     </Layout>
   );
