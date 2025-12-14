@@ -1,61 +1,42 @@
 import Heading from '@theme/Heading';
-import clsx from 'clsx';
 import React, { type ReactElement } from 'react';
 
 import styles from './styles.module.scss';
 
-import UnDrawDocusaurusMountainImage from '@site/static/img/undraw_docusaurus_mountain.svg';
-import UnDrawDocusaurusReactImage from '@site/static/img/undraw_docusaurus_react.svg';
-import UnDrawDocusaurusTreeImage from '@site/static/img/undraw_docusaurus_tree.svg';
-
 type FeatureItem = {
-  title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
   description: ReactElement;
+  icon: string;
+  title: string;
 };
 
 const FeatureList: FeatureItem[] = [
   {
     description: (
       <>
-        Octo CDK is designed to be simple for developers and DevOps alike. Its models allows clear separation of
-        concerns while offering ample opportunities for extension for the DevOps teams.
+        We promised visualization, and its about to become a reality!
+        <br />
+        With Octo UI you can generate real time graphs of your infrastructure. You can chart models, dive deep into
+        cloud resources, or highlight how different components network together.
+        <br />
+        Take the guesswork out, and take control of your infrastructure.
       </>
     ),
-    Svg: UnDrawDocusaurusMountainImage,
-    title: 'Simple for devs, flexible for DevOps',
-  },
-  {
-    description: (
-      <>
-        Octo analyzes infrastructure diffs at both model and resource levels, offering detailed insights. It supports
-        transactions for individual changes and handles errors gracefully.
-      </>
-    ),
-    Svg: UnDrawDocusaurusTreeImage,
-    title: 'Diffs & Transaction Support',
-  },
-  {
-    description: (
-      <>
-        Octo modeling is graph-based, depicting infrastructure and its relationships. Built in TypeScript, Octo
-        leverages TS benefits, such as robust testing frameworks and the familiarity of a widely-used language.
-      </>
-    ),
-    Svg: UnDrawDocusaurusReactImage,
-    title: 'Powered by Graphs & TypeScript',
+    icon: '/img/octo-landing-page-graph-preview.png',
+    title: 'Graphs, Baby! (Coming Soon)',
   },
 ];
 
-function Feature({ title, Svg, description }: FeatureItem): ReactElement {
+function Feature({ description, icon, title }: FeatureItem): ReactElement {
   return (
-    <div className={clsx('col col--4')}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
+    <div className={styles.featureCard}>
+      <div className={styles.featureContent}>
+        <Heading as="h3" className={styles.featureTitle}>
+          {title}
+        </Heading>
+        <p className={styles.featureDescription}>{description}</p>
       </div>
-      <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
+      <div className={styles.featureImage}>
+        <img src={icon} alt={title} />
       </div>
     </div>
   );
@@ -65,11 +46,9 @@ export default function HomepageFeatures(): ReactElement {
   return (
     <section className={styles.features}>
       <div className="container">
-        <div className="row">
-          {FeatureList.map((props, idx) => (
-            <Feature key={idx} {...props} />
-          ))}
-        </div>
+        {FeatureList.map((props, idx) => (
+          <Feature key={idx} {...props} />
+        ))}
       </div>
     </section>
   );
