@@ -2,29 +2,32 @@
 title: Introduction
 ---
 
-**Octo is a cloud-agnostic, general purpose, cloud infrastructure modeling and management tool.**<br />
+**Octo is a cloud-agnostic, general purpose, cloud infrastructure modeling and management tool.**<br /><br />
 This simply means Octo can help you design, implement, and maintain infrastructure for your application
-in the cloud of your choice, such as AWS or GCP, without you having to learn the big underlying networking concepts.
+in the cloud of your choice (e.g. AWS or GCP), using concepts relevant to your application
+rather than directly manipulating cloud resources.
 
 So, let's get started! But before all that,
 **Hello, and welcome to Octo ❤️**<br />
 
-**What is Octo?**<br />
+## What is Octo?
 Octo project is a collection of libraries to help write cloud infrastructure as code.
 These libraries are TypeScript based.
 
 The base Octo library, called `octo`, is general-purpose, and it abstracts your infrastructure into logical components,
-such as Models, Modules, and Resources. It is cloud-agnostic, meaning, the definition of Octo components
+such as Models, Resources, and Modules. It is cloud-agnostic, meaning, the definition of Octo components
 can work with any cloud provider.<br />
 Then, there are individual libraries for supported cloud providers which takes the abstracted Octo components and
 maps them to the underlying cloud resources.
 One such library is `octo-aws-cdk`, which provides support for infrastructure in AWS.
 
+:::info
 While Octo has the capability to support multiple Cloud Providers,
 today it only provides limited support for AWS.
 As our community grows, we expect to write CDKs for other providers as well, such as GCP and Azure.
+:::
 
-**Why choose Octo?**<br />
+## Why choose Octo?
 You might already be familiar with one or more of the already available,
 industry standard Infrastructure as Code (IaC) tools.
 
@@ -40,7 +43,7 @@ easy and more natural for developers to understand.
 With Octo, infrastructure becomes more accessible to developers - easier to conceptualize, logical updates,
 and more in-line with object-oriented programming.
 
-**Quick Demo**<br />
+## Quick Demo
 :::note
 Some examples and code in this video are outdated, but the concepts are still relevant.
 The documentation in this website however, will always be up-to-date.
@@ -61,7 +64,8 @@ The documentation in this website however, will always be up-to-date.
 Octo is a tool for modeling cloud infrastructure.
 It encapsulates the underlying infrastructure into components such as Modules, Models, and Resources.
 
-Here is how it works - you write or import modules, which generates models,
+Here is how it works - Modules are IaC packages for a specific cloud provider to do a specific infrastructure task.
+You import or write new modules, which generates models,
 which in turn creates infrastructure resources.
 These resources then map to the real underlying infrastructure.
 Each layer is translated into the next using Actions.<br/>
@@ -102,6 +106,8 @@ using a common understanding of these components.
 
 ## Pseudo Example
 Here's a pseudo Octo code (not a real code) of a **"Backend server running in QA environment"** in AWS infrastructure.
+It demonstrates how you can think of your infrastructure from your application's perspective,
+rather than individual resources of cloud.
 
 ```typescript
 const app = new App('my-app');
@@ -146,26 +152,75 @@ graph TD;
 ```
 
 ## Benefits
-* **Power of Models**: Octo excels as a general-purpose cloud infrastructure modeling tool,
+**Power of Models**<br/>
+Octo excels as a general-purpose cloud infrastructure modeling tool,
 making modeling its greatest strength. By facilitating devops in creating clear and intuitive CDKs,
 developers can logically write and test infrastructure changes.
-* **Abstraction for Developers**: Developers are shielded from intricate low-level infrastructure details,
+
+**Abstraction for Developers**<br/>
+Developers are shielded from intricate low-level infrastructure details,
 interacting solely with higher constructs.
-* **Modules**: Octo introduces the concept of Modules - shareable and reusable infrastructure components.
-* **Templates**: With help of community driven, pre-tested templates, it is possible to customize and bootstrap
-your infrastructure setup in a matter of minutes.
-* **TypeScript Advantage**: Being written in TypeScript, Octo inherits the benefits of TS,
+
+**Modules**<br/>
+Octo introduces the concept of Modules - shareable and reusable infrastructure abstractions of
+cloud resources to do one unit of work.
+
+E.g. a module to set up networking VPC and subnets and expose this
+encapsulation as a Region model. When you import this module, you automatically get the same setup
+without having to write any code for it.
+
+**Templates**<br/>
+With help of community driven, pre-tested templates, it is possible to write the entire infrastructure
+as one big reusable collection of modules.
+You can customize and bootstrap your infrastructure setup in a matter of minutes.
+
+Many templates already exists to support common use cases, ranging from static websites hosted in S3,
+to complex Backend setup with load balancers, ECS containers, and Databases.
+
+**TypeScript Advantage**<br/>
+Being written in TypeScript, Octo inherits the benefits of TS,
 including testing frameworks and the familiarity of one of the most widely used languages.
-* **Graph Representation**: Octo depicts infrastructure as a Graph,
+
+**Graph Representation**<br/>
+Octo depicts infrastructure as a Graph,
 enabling visualization of infrastructure as a well-defined set of nodes and edges.
-* **Detailed Understanding of Changes**: Any alterations to the infrastructure graph are differentially analyzed
+
+Looking your entire infrastructure at a glance has never been simpler!
+Dive deep into each model, or uncover how individual resources depend on each other.
+
+Truly - a picture is worth a thousand words.
+
+**Detailed Understanding of Changes**<br/>
+Any alterations to the infrastructure graph are differentially analyzed
 at both Model and Resource levels, offering developers both simplified and detailed insights into the proposed changes.
-* **Non Blocking Pipelines**: Being a graph, Octo understands the hierarchy and dependencies of resources.
-Failure in one node won't block changes in other non-dependent nodes.
-* **In-Built Testing**: Octo provides a testing framework that can help your write meaningful, intuitive, test cases
+
+**Non Blocking Pipelines**<br/>
+Being a graph, Octo understands the hierarchy and dependencies of resources.
+Failure in one node won't block changes to other non-dependent nodes.
+
+Octo also comes pre-bundled with necessary command line options to build a Continuous Delivery (CD) pipeline.
+Create your own or pay for a more intuitive Pipeline in Octo UI.
+Either way, you get a pipeline to apply Octo changes incrementally
+to your infrastructure without heavy user intervention - just create a PR and watch your changes apply in minutes.
+
+**In-Built Testing**<br/>
+Octo provides a testing framework that can help your write meaningful, intuitive, test cases
 for your infrastructure.
-* **Recovery from Failures**: Octo saves the state of resources after every run and keeps track of
+Don't retest providers and cloud resources. Make tests more meaningful with what your application needs.
+
+**Recovery from Failures**<br/>
+Octo saves the state of resources after every run and keeps track of
 infrastructure changes. Execution is stopped at failures, and upon re-run, it will pick up from the same point.
-* **Beautiful HTML Reports**: After each run, Octo generates an HTML report that
+
+**Beautiful HTML Reports**<br/>
+After each run, Octo generates a beautiful HTML report that
 shows the changes made to the infrastructure.
-* **& more**: Including manual capturing of infrastructure changes done outside Octo, Events, and so much more.
+
+**End-to-End Solution**<br/>
+Octo doesn't just provide solution to a slice of infrastructure problems,
+but is rather a more complete framework and a one-stop shop for all your infrastructure needs.
+Create complex infrastructure, set up pipeline, set up CICD, generate reports, apply security, view logs,
+and many more features coming soon.
+
+**& more**<br/>
+Including manual capturing of infrastructure changes done outside Octo, Events, and so much more.

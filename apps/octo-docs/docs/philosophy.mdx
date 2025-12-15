@@ -9,7 +9,7 @@ one that has an entirely different set of opinions and beliefs.
 <details>
   <summary>1. Infrastructure should be easy to understand, easy to build, and easy to change.</summary>
   <p>
-    We share this common belief, with every IaC provider, tool, and engineer,
+    We share this common belief with every IaC provider, tool, and engineer,
     and materialize it with our abstractions and encapsulations of infrastructure.
 
     Without an abstraction layer, developers are exposed to the underlying resources,
@@ -91,7 +91,7 @@ one that has an entirely different set of opinions and beliefs.
 </details>
 
 ## Monorepo vs Polyrepo
-Octo only supports monorepo infrastructure repository by design.
+Octo prefers monorepo infrastructure repository by design.
 Having worked several years with large infrastructure code bases for several companies,
 we realized polyrepo doesn't bring the benefits when it comes to infrastructure, but rather makes it difficult.
 
@@ -135,6 +135,44 @@ There are of course disadvantages to this approach too - mainly the possibility 
 when the previous changes have failed to apply. But, Octo has a special way to deal with such situations,
 which you can read about in later pages.
 
+## Polyrepo in Octo
+Polyrepo is not a first class citizen in Octo, neither is it our main focus.<br/>
+However, you can still have a polyrepo setup if you really want to.
+
+You are looking to separate your infrastructure into multiple repositories.
+A repository that depends on the infrastructure created by another repository
+can **capture** previous repository's outputs.
+This allows the dependent repository to still contain all the definitions of the entire infrastructure,
+but won't create or manage them. Instead, it would simply assume those resources already exist.
+```mermaid
+graph TD;
+  app1((App))
+  app2((App))
+  regionA1((Region A))
+  regionA2((Region A))
+  regionB1((Region B))
+  environmentA((Environment A))
+  
+  app2 -. capture .-> app1
+  regionA2 -. capture .-> regionA1
+    
+  subgraph Region Repository
+    app1 --> regionA1
+    app1 --> regionB1
+  end
+  
+  subgraph Envrironment Repository
+    app2 --> regionA2
+    regionA2 --> environmentA
+  end
+```
+
+Here `Region Repository` contains the definition to create and manage App and Regions.
+The `Environment Repository` captures the resources from the previous repository to define the models,
+and creates an environment on top.
+At runtime, the `Environment Repository` will skip processing the App and Region models,
+and will only create and manage the Environment model.
+
 ## Developers vs DevOps
 Unlike other IaC stacks, Octo recognizes the two factions of engineers - developers and devops.
 The former excels in program and business logic, vs the latter in infrastructure details.
@@ -147,25 +185,6 @@ which creates an unnecessary dependency.
 Octo separates the two groups into their own spaces, where DevOps are tasked to generate Octo constructs -
 such as definition of models, modules, resources, and such,
 while Developers interface with these high level encapsulated constructs to create the final infrastructure.
-
-## Polyrepo in Octo
-*Octo doesn't support polyrepo* - at least not in the traditional sense.
-
-Octo can have multiple definition repositories created by DevOps,
-but only a single infrastructure repository.<br/>
-Definitions are created by DevOps, vs the infrastructure repository is where developers operate.
-```mermaid
-graph TD;
-  repoA[Definitions <br/> of Models <br/> and Modules]
-  repoB[More definitions]
-  repoC[Even more definitions]
-  infraRepo[Infrastructure <br/> Monorepo]
-
-  repoA --> repoC;
-  repoA --> infraRepo;
-  repoB --> infraRepo;
-  repoC --> infraRepo;
-```
 
 ## Octo vs the rest
 Octo is not a silver bullet to fit every need. Every tool has their place and benefits.
