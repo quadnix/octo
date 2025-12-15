@@ -17,7 +17,7 @@ Most files here are to set up TypeScript. If you are familiar with TypeScript pr
 you might be able to recognize some of the boilerplate code.
 :::
 
-### Octo App Structure
+## Octo App Structure
 An Octo app is an infrastructure implementation project in TypeScript.
 This is where you apply templates, or import modules to define your overall infrastructure.
 
@@ -43,14 +43,20 @@ test-app                      # Root directory.
 │   ├── app.config.ts         # Application configuration file. Loads environment variables from .env file.
 │   ├── main.ts               # Main entry point of the app.
 │   └── module-definitions.ts # Module definitions file. Loads Octo modules.
+│   └── octo.yaml             # Yaml Module definitions file. Loads Octo modules.
 ├── tsconfig.build.json       # TypeScript build configuration file.
 ├── tsconfig.json             # TypeScript configuration file.
-└── website                   # Website directory containing HTML files.
+└── website                   # Website directory containing HTML files (only for aws-s3-website template).
     ├── error.html            # Error page HTML file.
     └── index.html            # Index page HTML file.
 ```
 
-### Octo CDK Structure
+:::info
+Depending on how the specific template you are downloading is configured, the actual files may differ,
+but this structure gives you a basic idea of what to expect.
+:::
+
+## Octo CDK Structure
 An Octo CDK project is a TypeScript project to define custom Octo components.
 This is where you develop new templates, modules, models, and resources for others to consume.
 
@@ -80,3 +86,45 @@ test-cdk                      # Root directory.
 ├── tsconfig.build.json       # TypeScript build configuration file.
 └── tsconfig.json             # TypeScript configuration file.
 ```
+
+:::tip
+The CDK project structure is not so different from the app's structure by design.
+Both are set up to configure TypeScript with minor differences in EsLint rules, and other TypeScript settings.
+
+Our recommendation is to start with a pre-built template, and enhance it to add custom components as required.
+:::
+
+## Types of Library
+Octo is a large framework built with many smaller libraries.
+The source code of these libraries exist in [GitHub](https://github.com/quadnix/octo), which is a NX monorepo.
+
+### octo
+This is the base library. It defines the base model and resource nodes, transaction capabilities,
+and other essential constructs required for Octo to run.
+It is a really lightweight, zero dependency library. It is cloud-agnostic, and it exports classes
+required for nearly all Octo operations.
+
+### octo-aws-cdk
+This is an extension of the base octo library - specific for AWS resources.
+It defines several modules, models, overlays, anchors, and resources to encapsulate several of AWS resources.
+You already saw an example with S3 website module imported from this library,
+which encapsulates creating a S3 website with different parameters.
+
+This is but one of the many community modules available to you.
+Any one can write new modules, for any cloud provider.
+Create your own custom modules in your own CDK. Share, reuse, publish, or use locally.
+
+### octo-build
+This is Octo's CLI tool. It offers several commands ranging from generating boilerplate code,
+to running Octo's YAML definitions, and state manipulation.
+
+### octo-event-listeners
+This package is dedicated and scoped for logging and report generation only.
+It listens and subscribes to several of Octo's events to emit logs and output HTML reports post transaction.
+
+### octo-templates
+This package houses some of the curated templates offered by Octo to help you get started faster.
+Reference them as examples, or copy and customize them to set up the same infrastructure for yourself.
+
+These templates are pre-built, pre-tested collection of modules,
+serving some of the most common use cases we came across the community.

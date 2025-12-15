@@ -10,8 +10,11 @@ And what better way to say hi other than a simple "hello world" project.
 Let's dive in and create the simplest possible infrastructure in Octo - a static website!
 
 ### Create a new App
-Octo supports Templates - pre-configured and pre-tested infrastructure to help you get started fast.
+Octo supports Templates - pre-configured and pre-tested collection of modules to help you get started fast.
 You can start and customize one of the many templates provided by Octo, or create a new one from scratch.
+
+Templates can be written in **YAML** or **TypeScript**.
+In this tutorial we are work with YAML.
 
 ```bash
 # Create a new directory "test-app" in current directory,
@@ -32,24 +35,22 @@ This should create a directory structure like this:
 You will first need to modify below files before you can run the app.
 
 <Tabs>
-  <TabItem value="Environment File" label="Environment File" default>
-    ```bash title=".env"
-    # Fix me: AWS account ID.
-    AWS_ACCOUNT_ID=123456789123
-
-    # Fix me: S3 bucket name.
-    AWS_S3_WEBSITE_BUCKET_NAME=my-website-unique-bucket
+  <TabItem value="Definition File" label="Definition File" default>
+    ```yaml title="src/octo.yaml"
+    env:
+      - key: AWS_ACCOUNT_ID
+        kind: string
+        value: "123456789123"
+      - key: AWS_S3_WEBSITE_BUCKET_NAME
+        kind: string
+        value: my-website-unique-bucket
     ```
   </TabItem>
 </Tabs>
 
 ### Running the App
 ```bash
-# Compile the app.
-npm run build
-
-# Run the app.
-npm start
+npx @quadnix/octo-build run -d src/octo.yaml
 ```
 
 ### Testing the App
@@ -65,7 +66,7 @@ If the script didn't work out, please open an issue using links at the bottom of
 
 ### What just happened?
 You created your first infrastructure using Octo!
-You ran some pre-built modules imported in `module-definitions.ts` that creates and sets up a static website in AWS S3.
+You ran some pre-built modules imported in `src/octo.yaml` that creates and sets up a static website in AWS S3.
 
 Octo ran these modules, and saved the state of all models and resources that got created in the `.octo` directory!
 These represent the state of your infrastructure.
@@ -98,39 +99,38 @@ This report gives you an overview of the changes made to the infrastructure.
 You will often find this report beneficial to review the transaction after every run to ensure changes were as expected.
 
 ### Cleaning Up (Optional)
-To clean up all the resources created thus far, modify the `module-definitions.ts`.
+To clean up all the resources created thus far, modify the `src/octo.yaml` file.
 Comment out all modules except the `app` and `account` modules.
-The app and account modules load AWS credentials to call AWS APIs, hence they remain uncommented.
+The app and account modules load AWS credentials to call AWS APIs, hence they should remain intact.
 
 By deleting the `s3-website-service-module` module below,
 you are deleting the s3-website resources created by this module.
 
-```typescript
-private init(): void {
-  this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
+```yaml
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-s3-website
 
-  this.add(AwsIniAccountModule, 'account-module', {
-    accountId: config.AWS_ACCOUNT_ID,
-    app: stub<App>('${{app-module.model.app}}'),
-  });
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
 
-  // *************************
-  // Comment out below module.
-  // *************************
-
-  // this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
-  //   account: stub<Account>('${{account-module.model.account}}'),
-  //   awsRegionId: 'us-east-1',
-  //   bucketName: config.AWS_S3_WEBSITE_BUCKET_NAME,
-  //   directoryPath: websiteSourcePath,
-  // });
-}
+#  - moduleId: s3-website-service-module
+#    moduleClass: AwsS3StaticWebsiteServiceModule
+#    moduleInputs:
+#      account: "${{account-module.model.account}}"
+#      awsRegionId: us-east-1
+#      bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
+#      directoryPath: website
 ```
 
-Then, simply re-build and run your app again.
+Then, simply re-run your app again.
 ```bash
-npm run build
-npm start
+npx @quadnix/octo-build run -d src/octo.yaml
 ```
 
 Now you can just delete the Octo directory and all the code in it.
