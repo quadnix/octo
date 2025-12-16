@@ -1,0 +1,160 @@
+---
+title: Templates
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+## Introduction
+Just as modules were a packaging unit for transaction nodes,
+Templates are a packaging unit for modules.
+Templates allow you to bundle multiple modules together to form a complete end-to-end infrastructure with real values.
+Think of it as the concrete floor plans of your house.
+
+Templates can also be shared like modules. In the hello world example, we exposed a s3 bucket template with you.
+You simply have to import a template and customize it with your own values.
+
+:::note
+Templates are made of modules, and since [modules are opinionated](/docs/fundamentals/modules#modules-are-opinionated),
+by extension, so are templates.
+If a template only partially suits your use case, feel free to only take those parts from the template.
+
+Templates are just examples of how someone put together a set of modules to make their infrastructure.
+You can experiment with your own set of modules, mix and match, and produce solutions to new use cases.
+:::
+
+## YAML vs TypeScript
+Since Templates are just multiple modules put together,
+it can be written using pure YAML configuration, or as a small TypeScript project.
+
+Other than syntax, there are some big trade-offs you should know of before you select one or the other option.
+| YAML                                                                      | TypeScript                                                                                          |
+|---------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
+| Self contained in one file. Simple and compact.                           | Spanning across multiple files for better structure and decoupling.                                 |
+| Fully supported in `@quadnix/octo-build` command line tool.               | You will have to define your own scripts to build and run the template in `package.json -> scripts` |
+| No typing or autocomplete support. Template is validated at runtime only. | Full TypeScript typing support in IDEs.                                                             |
+| To write custom modules you must set up a TypeScript environment.         | More naturally aligned to write new modules since TypeScript is already set up.                     |
+| To test a template, you will have to parse the YAML yourself.             | Testing is supported out of the box.                                                                |
+
+:::info
+In most examples throughout this documentation,
+you will notice examples to be a mix of YAML and TypeScript, but more heavily skewed towards YAML for its terse syntax.
+But as you will see below, both syntaxes are easily inter-changeable.
+:::
+
+## Referencing Inputs
+Within your template you will use multiple modules.
+Most modules expect inputs to be passed, and often these inputs needs to be sourced from another module.
+To reference an input, you need to use the `${{ }}` syntax.
+
+In this example, the account-module is referencing the `App` model from app module,
+and the s3-module is referencing the `Account` model from account module.
+
+<Tabs>
+  <TabItem value="yamlTemplate" label="YAML Template">
+
+    ```yaml
+    modules:
+      - moduleId: app-module
+        moduleClass: SimpleAppModule
+        moduleInputs:
+          name: aws-s3-website
+    
+      - moduleId: account-module
+        moduleClass: AwsIniAccountModule
+        moduleInputs:
+          app: "${{app-module.model.app}}"
+    
+      - moduleId: s3-website-service-module
+        moduleClass: AwsS3StaticWebsiteServiceModule
+        moduleInputs:
+          account: "${{account-module.model.account}}"
+          awsRegionId: us-east-1
+    ```
+
+  </TabItem>
+
+  <TabItem value="typescriptTemplate" label="TypeScript Template">
+    
+    ```typescript
+    octo.loadModule(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
+
+    octo.loadModule(AwsIniAccountModule, 'account-module', {
+      app: stub<App>('${{app-module.model.app}}'),
+    });
+
+    octo.loadModule(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
+      account: stub<Account>('${{account-module.model.account}}'),
+      awsRegionId: 'us-east-1',
+    });
+    ```
+
+  </TabItem>
+</Tabs>
+
+:::tip
+You can reference things other than modules using the `${{ }}` syntax - input, metadata, overlay, resource, and tag.
+There are detailed examples of each of these later in the documentation.
+:::
+
+## Referencing Environment Variables
+If you choose to reference environment variables within your template, e.g. to hide AWS account ID, or credentials,
+or to pass them to Octo at runtime, you will need to rely on environment variables.
+
+These variables are defined in a variety of ways, depending on the type of template.
+
+<Tabs>
+  <TabItem value="yamlTemplate" label="YAML Template">
+    
+    Within YAML templates, environment variables are straight forward.
+    You can define them with dummy values in the `env` section, and they automatically become available to override
+    when loaded with `@quadnix/octo-build` CLI tool.
+
+    Within YAML templates, env variables are referenced using the `${ }` syntax.<br/>
+    Notice the difference between an input reference `${{ }}` (double curly), vs `${ }` (single curly).
+
+    ```yaml
+    env:
+      - key: AWS_ACCOUNT_ID
+        kind: string
+        value: "123456789123"
+      - key: AWS_S3_WEBSITE_BUCKET_NAME
+        kind: string
+        value: my-website-unique-bucket
+
+    modules:
+      - moduleId: account-module
+        moduleClass: AwsIniAccountModule
+        moduleInputs:
+          accountId: "${env.AWS_ACCOUNT_ID}"
+          app: "${{app-module.model.app}}"
+    ```
+
+    To override, simply call the CLI tool with overrides.
+    ```bash
+    AWS_ACCOUNT_ID=9876543210 npx @quadnix/octo-build run -d src/octo.yaml
+    ```
+
+  </TabItem>
+
+  <TabItem value="typescriptTemplate" label="TypeScript Template">
+    
+    With TypeScript templates, your options for environment variables increases.
+    There are many tools supporting environment based config values,
+    such as `env-smart` or `node-config`, or you can choose the most simple `process.env` method.
+
+    ```typescript
+    octo.loadModule(AwsIniAccountModule, 'account-module', {
+      accountId: process.env.AWS_ACCOUNT_ID,
+      app: stub<App>('${{app-module.model.app}}'),
+    });
+    ```
+
+  </TabItem>
+</Tabs>
+
+## Summary
+In this section we discussed Templates and its different flavors.
+Templates are the final executables that define your end-to-end infrastructure.<br/>
+We discussed how YAML and TypeScript variations are inter-changeable, with their own strengths and weaknesses,
+and we looked at how they support different syntaxes and references.

@@ -73,7 +73,7 @@ In Octo code base, a node is represented as an extension of `ANode<I, T>`,
 which is the base abstract class that Models, Resources, and Overlays inherit from.
 
 ## Dependency Class
-A dependency is not stored as a property in nodes; instead, it is its own class as a first class citizen.
+A dependency is not stored as a property in node; instead, it is its own class as a first class citizen.
 It encompasses two nodes on its either end.
 
 ```js title="Dependency Schema"
@@ -86,7 +86,7 @@ It encompasses two nodes on its either end.
 ```
 
 A dependency is also serialized and deserialized just like other nodes.
-Octo keeps track of all dependencies in a graph in the state files, and are diffed between runs.
+Octo keeps track of all dependencies in a graph in the state files, and are diff-ed between runs.
 
 ## Summary
 In this section we explored Dependencies.

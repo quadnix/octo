@@ -75,6 +75,11 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
         },
         {
+          id: 'fundamentals/templates',
+          label: 'Templates',
+          type: 'doc',
+        },
+        {
           id: 'fundamentals/hello-world-explained',
           label: 'Hello World! (Explained)',
           type: 'doc',
