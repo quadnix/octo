@@ -31,7 +31,8 @@ graph LR;
 ```
 
 ## Libraries
-The Octo ecosystem consists of many smaller sets of libraries -
+The Octo ecosystem consists of
+[many smaller sets of libraries](/docs/getting-started/project-structure#types-of-library) -
 each building a different functionality on top of each other.
 
 In the hello-world example, you used below libraries.
@@ -41,6 +42,7 @@ transaction management, state management, diffs, serialization, and other common
 It defines specific modules to build on the AWS infrastructure, such as a S3 bucket.
 - **octo-event-listeners**: This library provides a few common listeners to listen and log Octo events,
 and to generate beautiful HTML reports.
+- **octo-build**: This is the CLI tool you used to run your YAML definition file.
 
 ## Visualizing the Graph
 The hello-world code produced one of the most basic infrastructure possible in AWS -
@@ -66,31 +68,43 @@ does not create any resources, and only exists to add the root node.
 * The second module, `AwsIniAccountModule`, defines the account node. It also does not create any resources,
 but instead loads AWS credentials from the INI files in your `~/.aws/` directory.
 * The third module, `AwsS3StaticWebsiteServiceModule`, defines a service node. It creates a S3 bucket,
-and uploads the static website files as pointed by the `websiteSourcePath` variable. 
-```typescript title="module-definitions.ts"
-this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
+and uploads the static website files as pointed by the `directoryPath` input. 
+```yaml title="octo.yaml"
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-s3-website
 
-this.add(AwsIniAccountModule, 'account-module', {
-  accountId: config.AWS_ACCOUNT_ID,
-  app: stub<App>('${{app-module.model.app}}'),
-});
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
 
-this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
-  account: stub<Account>('${{account-module.model.account}}'),
-  awsRegionId: 'us-east-1',
-  bucketName: config.AWS_S3_WEBSITE_BUCKET_NAME,
-  directoryPath: websiteSourcePath,
-});
+  - moduleId: s3-website-service-module
+    moduleClass: AwsS3StaticWebsiteServiceModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      awsRegionId: us-east-1
+      bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
+      directoryPath: website
 ```
 
 :::tip
-As a user of these modules, you do not need to worry about how they create the infrastructure.
+As a new user and a consumer of these modules, you do not need to worry about how they create the infrastructure.
 You can simply treat them as black box functions that promises to create the infrastructure in a certain way to
 satisfy your desire of having a website hosted on S3.
+
+As you gradually learn more about how to create your own models and resources,
+you will get comfortable to read any module's source code to understand the underlying infrastructure better.
 :::
 
 ## Running the example
-The hello-world example was run with the `main.ts` file.
+The hello-world example was run using the CLI tool.
+However, the CLI tool is a just a thin wrapper around TypeScript.
+Behind the scenes we generate the same TypeScript script you would have written to run the app.
+So let's look at how a TypeScript script runs the app.
 
 To run an Octo app, you first need to initialize it using below code.
 Here we initialized the main `Octo` class with the `LocalStateProvider` state provider,
@@ -103,10 +117,22 @@ const stateProvider = new LocalStateProvider(octoStatePath);
 await octo.initialize(stateProvider, [{ type: HtmlReportEventListener }, { type: LoggingEventListener }]);
 ```
 
+That's why you had to pass the `settings` option to your definition file.
+```yaml title="octo.yaml
+settings:
+  listeners:
+    - type: HtmlReportEventListener
+    - type: LoggingEventListener
+
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo
+```
+
 <br/>In the next step, we load the modules into the Octo class.<br />
-We use the `ModuleDefinitions` class to fetch all the modules, and then order them as per the model hierarchy.
+We pick up the modules in your definition file, and then order them in the same order as their definition.
 ```typescript title="main.ts"
-const moduleDefinitions = new ModuleDefinitions();
+const moduleDefinitions = new GetModuleDefinitionsFromYAML();
 for (const moduleDefinition of moduleDefinitions.getAll()) {
   octo.loadModule(moduleDefinition.module, moduleDefinition.moduleId, moduleDefinition.moduleInputs);
 }
@@ -115,7 +141,8 @@ octo.orderModules(moduleDefinitions.getAll().map((m) => m.module));
 
 <br/>Finally, we call the `compose()` method to get all modules to run,
 which would run the `onInit()` method of each module and generate the necessary models.<br/>
-Knowing that `app` is our root node, we get this node, and pass it to the `beginTransaction()` method,
+Knowing that `app` is our root node, we get this node from the first module you defined,
+and pass it to the `beginTransaction()` method,
 which would start to calculate diffs in each model node,
 gather all resource nodes, compare all resource nodes with previous state, and generate diffs.<br/>
 It would then run each affected resource's actions, and finally commit the transaction by updating the state.
@@ -131,7 +158,7 @@ you would notice a new HTML report in your root directory.
 You can load this report in your browser to see the generated infrastructure.
 You will notice that all resources are generated for the first time.
 
-As you make changes to your `module-definitions.ts` file, either to delete the S3 bucket,
+As you make changes to your `octo.yaml` definition file, either to delete the S3 bucket,
 or to change one of the static website files in the `website` directory,
 you will notice the new reports indicates the respective changes.
 
