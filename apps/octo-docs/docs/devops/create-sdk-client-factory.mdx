@@ -4,10 +4,11 @@ title: Create a SDK Client Factory
 
 ## Introduction
 Most [Resource Actions](/docs/devops/create-resource#resource-action) will want to interface with appropriate cloud SDKs to manipulate cloud resources.
-Before you can use the SDK clients, you might need to instantiate the client.
+Before you can use the SDK clients, you will need to instantiate the client.
 
 A [Container](/api/octo/class/Container) factory is the recommended way to instantiate SDK clients.
-This enables you to reference these clients using Octo Container class, and can be easily mocked for testing.
+This enables you to maintain a singleton set of clients,
+reference these clients using Octo Container class, and can be easily mocked for testing.
 
 ## Usage
 ### Create a Factory
@@ -57,3 +58,31 @@ const ec2Client = await container.get<EC2Client, typeof EC2ClientFactory>(EC2Cli
   metadata: { package: '@example' },
 });
 ```
+
+:::info
+Notice, how the arguments of `create()` method are passed in the `args`,<br/>
+and `metadata` allows you to target your factory out of any other `EC2Client` factories that exist.
+
+This is why setting a package scope (e.g. `@example`) is so important.
+:::
+
+### Octo Factories
+Follow the links for a more
+[advanced usage](https://github.com/quadnix/octo/blob/main/packages/octo-aws-cdk/src/factories/aws-client.factory.ts)
+example of how `octo-aws-cdk` package creates its factories.
+
+Octo uses the `Account`
+[modules to predefine](https://github.com/quadnix/octo/blob/main/packages/octo-aws-cdk/src/modules/account/aws-ini-account/aws-ini-account.module.ts)
+`AwsCredentialIdentityProvider` so that actions don't have to always
+pass a credential provider.
+```typescript
+container.registerValue('AwsCredentialIdentityProvider', credentials, {
+  metadata: { awsAccountId: inputs.accountId, package: '@octo' },
+});
+```
+
+It also defines a common `create()` method for all its AWS SDK factories to provide a consistent interface to
+all the actions.
+
+It maintains a static set of `instances` per AWS account, and per region.
+For a more detailed explanation, refer to the source code and its class comments.

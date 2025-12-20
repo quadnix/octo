@@ -75,14 +75,15 @@ For region, the base model is [Region](/api/octo/class/Region).
 - We redeclared the same properties as defined in the schema.
 - We then wrote a constructor to initialize the model data based on user inputs.
 We have restricted the `awsRegionId` to only 2 AWS regions,
-and we automatically populate the availability zones.<br/>
+and we automatically populate the availability zones because we restricted one shard per region.<br/>
 In a production environment, you would want to allow more AWS regions,
 and set the AWS availability zones accordingly.
 - Calling `super()` ensures the base model initializes `regionId`.
-Here, regionId is same as `awsRegionId`.
+Here, regionId can be same as `awsRegionId` because of our restriction.
 - We also marked our model with the [@Model decorator](/api/octo/function/Model).
 
 ```typescript title="simple-region.model.ts"
+@Model<SimpleRegion>('@example', 'region', SimpleRegionSchema)
 export class SimpleRegion extends Region {
   readonly awsRegionAZs: string[];
 
@@ -162,6 +163,16 @@ async handle(
   return actionOutputs;
 }
 ```
+
+:::info
+Note, that unlike resources, models have fewer actions.
+
+Models don't require a **DELETE** action because deletion is covered by user simply deleting the module they don't want
+to use.
+
+In rare cases, models might require an **UPDATE** action, but most often than not, update is also covered by user simply
+updating the module inputs.
+:::
 
 ## Export a Model
 Once you have created a model, it needs to be exported for other parts of your module to consume it.

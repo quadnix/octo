@@ -82,12 +82,34 @@ constructor(resourceId: string, properties: SimpleVpcSchema['properties'], paren
 }
 ```
 
+`parents` is empty here because VPC does not depend on any other resources.
+Suppose you were creating internet gateway as a resource. To create an IGW, you definitely need VPC to exist first.
+So, the constructor code will reflect that dependency.
+```typescript title="internet-gateway.resource.ts"
+constructor(
+  resourceId: string,
+  properties: InternetGatewaySchema['properties'],
+  parents: [MatchingResource<VpcSchema>],
+) {
+  super(resourceId, properties, parents);
+}
+```
+
+:::info
+Crafting a resource using the right set of `parents`, and effectively overriding different resource methods
+is an advanced skill that will get more apparent as you look at more examples and understand Octo more deeply.
+
+For now, we just want you to focus on the most basic and simple use case of a resource.
+:::
+
 ### Resource Action
 In the resource action, we can transform our resource into a real infrastructure resource.
 
 The `filter()` method is used by Octo to determine which resource actions to execute.
 When Octo attempts to add, modify, replace, or delete this resource,
 this method is used to determine which resource actions qualify for the given resource and diff action.
+
+In this example, Octo will invoke this add action whenever it is processing an ADD diff for this VPC node.
 ```typescript title="add-simple-vpc.resource.action.ts"
 filter(diff: Diff): boolean {
   return (
@@ -102,7 +124,7 @@ filter(diff: Diff): boolean {
 The `handle()` method is where you can define the actual logic to manipulate resources.
 Here, we are calling the AWS SDK V3 JavaScript client to create a VPC.
 ```typescript title="add-simple-vpc.resource.action.ts"
-async handle(diff: Diff<SimpleVpc>): Promise<void> {
+async handle(diff: Diff<SimpleVpc>): Promise<SimpleVpcSchema['response']> {
   // Get properties.
   const vpc = diff.node;
   const properties = vpc.properties;
@@ -143,9 +165,10 @@ async handle(diff: Diff<SimpleVpc>): Promise<void> {
     }),
   );
 
-  // Set response.
-  response.VpcArn = `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:vpc/${vpcOutput.Vpc!.VpcId}`;
-  response.VpcId = vpcOutput.Vpc!.VpcId!;
+  return {
+    VpcArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:vpc/${vpcOutput.Vpc!.VpcId}`,
+    VpcId: vpcOutput.Vpc!.VpcId!,
+  };
 }
 ```
 
