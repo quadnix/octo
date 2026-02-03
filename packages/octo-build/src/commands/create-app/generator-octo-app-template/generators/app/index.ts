@@ -58,7 +58,6 @@ export default class extends Generator {
       '@quadnix/octo': '0.0.x',
       '@quadnix/octo-aws-cdk': '0.0.x',
       '@quadnix/octo-event-listeners': '0.0.x',
-      'env-smart': '^2.3.2',
     });
     await this.addDevDependencies({
       '@eslint/js': '^9.33.0',
@@ -131,7 +130,7 @@ export default class extends Generator {
           name: this.appName,
         },
       );
-      this.fs.copyTpl(this.templatePath(`${templatePath}/octo.yaml.ejs`), this.destinationPath('src/octo.yaml'));
+      this.fs.copyTpl(this.templatePath(`${templatePath}/octo.yaml.ejs`), this.destinationPath('octo.yaml'));
     } else {
       throw new Error(`Unsupported app template: ${this.appTemplate}`);
     }

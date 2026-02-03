@@ -11,42 +11,59 @@ npm install
 
 ## Fix me
 Before running the app, ensure,
-- `.env` values are appropriately set.
+- `env` values are appropriately set in `octo.yaml`.
+
+## Running the Definition file
+The `octo.yaml` is your Octo definition file.
+It contains all the modules you want to run,
+which will create your infrastructure resources as per the module's instructions.
+
+To run the definition file,
+```bash
+npx @quadnix/octo-build run -d octo.yaml
+```
 
 ## Development
-```bash
-# Build app. This will compile your TypeScript code.
-npm run build
+The rest of the setup is a TypeScript project for you to get started with developing new modules in Octo quickly.
+You can follow the official documentation to learn more.
+Once you have your custom constructs and modules defined, you can use below commands to build those modules.
+Don't forget to add your new modules to your Octo definition file.
 
-# Run app. This will create the infrastructure defined in your app.
-npm start
+```bash
+npm run build
 ```
 
 ## Destroy
+Once you have your infrastructure created, and you wish all of them destroyed,
+its as simple as commenting out the necessary modules and re-running the app.
+
 ### Step 1
-In `module-definitions.ts`, comment out all modules except the `app` and `account` modules.
+In `octo.yaml`, comment out all modules except the `app` and `account` modules.
 The app and account modules load AWS credentials to call AWS APIs, hence they remain uncommented.
 
-By deleting the `s3-website-service-module` module below,
+By commenting the `s3-website-service-module` module below,
 you are safely deleting the s3-website resources created by this module.
 
-```typescript
-// Example for 'aws-s3-website' template.
-private init(): void {
-  this.add(SimpleAppModule, 'app-module', { name: 'aws-s3-website' });
+```yaml
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-s3-website
 
-  this.add(AwsIniAccountModule, 'account-module', {
-    accountId: config.AWS_ACCOUNT_ID,
-    app: stub<App>('${{app-module.model.app}}'),
-  });
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
 
-  // this.add(AwsS3StaticWebsiteServiceModule, 's3-website-service-module', {
-  //   account: stub<Account>('${{account-module.model.account}}'),
-  //   awsRegionId: 'us-east-1',
-  //   bucketName: config.AWS_S3_WEBSITE_BUCKET_NAME,
-  //   directoryPath: websiteSourcePath,
-  // });
-}
+  #- moduleId: s3-website-service-module
+  #  moduleClass: AwsS3StaticWebsiteServiceModule
+  #  moduleInputs:
+  #    account: "${{account-module.model.account}}"
+  #    awsRegionId: us-east-1
+  #    bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
+  #    directoryPath: website
 ```
 
 ### Step 2
@@ -54,5 +71,5 @@ Then, simply re-build and run your app again.
 
 ```bash
 npm run build
-npm start
+npx @quadnix/octo-build run -d octo.yaml
 ```

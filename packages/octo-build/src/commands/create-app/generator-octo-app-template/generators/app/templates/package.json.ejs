@@ -37,18 +37,15 @@
     "octo",
     "typescript"
   ],
-  "main": "dist/main.js",
   "name": "<%= name %>",
   "private": true,
   "scripts": {
     "build": "rimraf dist && tsc -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint .",
-    "start": "node dist/main.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.spec.ts$\"",
     "test:e2e": "NODE_OPTIONS=--experimental-vm-modules jest --testRegex=\"\\.e2e-spec.ts$\""
   },
   "type": "module",
-  "types": "dist/main.d.ts",
   "version": "<%= version %>"
 }
