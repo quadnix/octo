@@ -22,6 +22,7 @@ import type { IResourceAction } from '../resources/resource-action.interface.js'
 import { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
+import { LocalStateProvider } from '../services/state-management/local.state-provider.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
@@ -50,7 +51,6 @@ class UniversalModelAction implements IModelAction<UniversalTestModule> {
     return {};
   }
 }
-
 class UniversalResourceAction implements IResourceAction<any> {
   filter(): boolean {
     return true;
@@ -74,6 +74,7 @@ export type TestModule<M extends UnknownModule> = {
  */
 export class TestModuleContainer {
   readonly octo: Octo;
+  private stateProvider: IStateProvider;
 
   constructor() {
     this.octo = new Octo();
@@ -82,7 +83,6 @@ export class TestModuleContainer {
   async commit(
     app: App,
     {
-      appLockId = undefined,
       enableResourceCapture = false,
       filterByModuleIds = [],
     }: { appLockId?: string; enableResourceCapture?: boolean; filterByModuleIds?: string[] } = {},
@@ -92,8 +92,10 @@ export class TestModuleContainer {
     resourceDiffs: DiffMetadata[][];
     resourceTransaction: DiffMetadata[][];
   }> {
+    const { lockId: appLockId } = await this.stateProvider.lockApp();
+
     const generator = this.octo.beginTransaction(app, {
-      appLockId: appLockId || 'default_lock',
+      appLockId,
       enableResourceCapture,
       yieldModelDiffs: true,
       yieldModelTransaction: true,
@@ -107,6 +109,8 @@ export class TestModuleContainer {
     response.resourceDiffs = (await generator.next()).value;
     response.resourceTransaction = (await generator.next()).value;
     await generator.next();
+
+    await this.stateProvider.unlockApp(appLockId);
 
     const container = Container.getInstance();
     const inputService = await container.get(InputService);
@@ -341,13 +345,11 @@ export class TestModuleContainer {
     initializeInContainer?: Parameters<typeof Octo.prototype.initialize>[1],
     excludeInContainer?: Parameters<typeof Octo.prototype.initialize>[2],
   ): Promise<void> {
-    if (stateProvider) {
-      await this.octo.initialize(stateProvider, initializeInContainer, excludeInContainer);
-    } else {
-      const stateProvider = new TestStateProvider();
-      await stateProvider.lockApp();
-      await this.octo.initialize(stateProvider, initializeInContainer, excludeInContainer);
+    if (stateProvider && !(stateProvider instanceof LocalStateProvider || stateProvider instanceof TestStateProvider)) {
+      throw new Error('TestModuleContainer is only meant to work with Local or Test state provider!');
     }
+    this.stateProvider = stateProvider ?? new TestStateProvider();
+    await this.octo.initialize(this.stateProvider, initializeInContainer, excludeInContainer);
 
     // Always register the UniversalTestModule to allow users to create test prerequisites.
     const moduleContainer = await Container.getInstance().get(ModuleContainer);

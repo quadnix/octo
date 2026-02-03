@@ -81,7 +81,7 @@ export class Octo {
     }
 
     if (!appLockId) {
-      return resourceDiffs.value;
+      throw new TransactionError('App is not in lock state!');
     }
 
     const isAppLocked = await this.stateManagementService.isAppLocked(appLockId);
