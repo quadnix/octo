@@ -10,7 +10,8 @@ import {
 import { type AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
 import { type SimpleAppModule } from '@quadnix/octo-aws-cdk/modules/app/simple-app';
 import type { AlbSchema } from '@quadnix/octo-aws-cdk/resources/alb/schema';
-import { HtmlReportEventListener, LoggingEventListener } from '@quadnix/octo-event-listeners';
+import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { ModuleDefinitions } from './module-definitions.js';
