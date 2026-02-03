@@ -57,6 +57,7 @@ export default class extends Generator {
     await this.addDependencies({
       '@quadnix/octo': '0.0.x',
       '@quadnix/octo-aws-cdk': '0.0.x',
+      '@quadnix/octo-build': '0.0.x',
       '@quadnix/octo-event-listeners': '0.0.x',
     });
     await this.addDevDependencies({

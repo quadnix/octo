@@ -20,7 +20,14 @@ which will create your infrastructure resources as per the module's instructions
 
 To run the definition file,
 ```bash
-npx @quadnix/octo-build run -d octo.yaml
+# First create a lock.
+node_modules/.bin/octo state lock -d octo.yaml
+
+# Then copy the lock output, a random unique string, and run the app with the lock ID.
+OCTO_APP_LOCK_ID=<lock_id> node_modules/.bin/octo run -d octo.yaml
+
+# Lastly, unlock the app.
+node_modules/.bin/octo state unlock <lock_id> -d octo.yaml
 ```
 
 ## Development
@@ -68,8 +75,3 @@ modules:
 
 ### Step 2
 Then, simply re-build and run your app again.
-
-```bash
-npm run build
-npx @quadnix/octo-build run -d octo.yaml
-```
