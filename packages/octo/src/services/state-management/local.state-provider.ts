@@ -70,7 +70,7 @@ export class LocalStateProvider implements IStateProvider {
       throw new TransactionError('App already locked!');
     }
 
-    const lockId = 'default_lock';
+    const lockId = crypto.randomUUID();
     await this.addOrUpdateAppLock(lockId);
     return { lockId };
   }

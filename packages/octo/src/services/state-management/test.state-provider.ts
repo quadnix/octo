@@ -40,7 +40,7 @@ export class TestStateProvider implements IStateProvider {
       throw new TransactionError('App already locked!');
     }
 
-    const lockId = 'default_lock';
+    const lockId = crypto.randomUUID();
     this.lockId = lockId;
     return { lockId };
   }
