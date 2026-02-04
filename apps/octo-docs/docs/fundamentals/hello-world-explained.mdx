@@ -112,8 +112,10 @@ which will store the state in a local file.<br/>
 We also passed it the `HtmlReportEventListener` and `LoggingEventListener` listeners
 which provides logging support and HTML reports.
 ```typescript title="main.ts"
-const octo = new Octo();
 const stateProvider = new LocalStateProvider(octoStatePath);
+const { lockId: appLockId } = await stateProvider.lockApp();
+
+const octo = new Octo();
 await octo.initialize(stateProvider, [{ type: HtmlReportEventListener }, { type: LoggingEventListener }]);
 ```
 
@@ -148,8 +150,10 @@ gather all resource nodes, compare all resource nodes with previous state, and g
 It would then run each affected resource's actions, and finally commit the transaction by updating the state.
 ```typescript title="main.ts"
 const { 'app-module.model.app': app } = (await octo.compose()) as { 'app-module.model.app': App };
-const transaction = octo.beginTransaction(app);
+const transaction = octo.beginTransaction(app, { appLockId });
 await transaction.next();
+
+await stateProvider.unlockApp(appLockId);
 ```
 
 ## HTML Reports

@@ -32,11 +32,11 @@ This should create a directory structure like this:
 [Octo App Structure](/docs/getting-started/project-structure#octo-app-structure)
 
 ### Customizing the App
-You will first need to modify below files before you can run the app.
+You will first need to modify below files with your custom values before you can run the app.
 
 <Tabs>
   <TabItem value="Definition File" label="Definition File" default>
-    ```yaml title="src/octo.yaml"
+    ```yaml title="octo.yaml"
     env:
       - key: AWS_ACCOUNT_ID
         kind: string
@@ -50,8 +50,26 @@ You will first need to modify below files before you can run the app.
 
 ### Running the App
 ```bash
-node_modules/.bin/octo run -d src/octo.yaml
+# First create a lock.
+node_modules/.bin/octo state lock -d octo.yaml
+
+# Then copy the lock output, a random unique string, and run the app with the lock ID.
+OCTO_APP_LOCK_ID=<lock_id> node_modules/.bin/octo run -d octo.yaml
+
+# Lastly, unlock the app.
+node_modules/.bin/octo state unlock <lock_id> -d octo.yaml
 ```
+
+`octo.yaml` has the module definitions for creating the S3 bucket.
+By running the app, you ran all the modules which created the desired infrastructure as per their instructions.
+The log outputs and HTML reports show this information in more detail.
+
+:::info
+In your `package.json`, the `@quadnix/octo-build` package exposes the `octo` executable.
+You can either add `node_modules/.bin` to your `PATH` environment variable to directly call the `octo` executable,
+or you can call this executable with the full path `node_modules/.bin/octo`.
+Throughout our examples we will use the full path to avoid any confusion.
+:::
 
 ### Testing the App
 Modify and visit these URLs to ensure the website is up and running.
@@ -66,7 +84,7 @@ If the script didn't work out, please open an issue using links at the bottom of
 
 ### What just happened?
 You created your first infrastructure using Octo!
-You ran some pre-built modules imported in `src/octo.yaml` that creates and sets up a static website in AWS S3.
+You ran some pre-built modules imported in `octo.yaml` that creates and sets up a static website in AWS S3.
 
 Octo ran these modules, and saved the state of all models and resources that got created in the `.octo` directory!
 These represent the state of your infrastructure.
@@ -96,10 +114,11 @@ You can view the HTML report in any web browser - simply drag and drop the HTML 
 or double-click the HTML file.
 
 This report gives you an overview of the changes made to the infrastructure.
-You will often find this report beneficial to review the transaction after every run to ensure changes were as expected.
+You will often find this report beneficial to review the transaction after every run
+to ensure changes were applied as expected.
 
 ### Cleaning Up (Optional)
-To clean up all the resources created thus far, modify the `src/octo.yaml` file.
+To clean up all the resources created thus far, modify the `octo.yaml` file.
 Comment out all modules except the `app` and `account` modules.
 The app and account modules load AWS credentials to call AWS APIs, hence they should remain intact.
 
@@ -130,7 +149,14 @@ modules:
 
 Then, simply re-run your app again.
 ```bash
-node_modules/.bin/octo run -d src/octo.yaml
+# First create a lock.
+node_modules/.bin/octo state lock -d octo.yaml
+
+# Then copy the lock output, a random unique string, and run the app with the lock ID.
+OCTO_APP_LOCK_ID=<lock_id> node_modules/.bin/octo run -d octo.yaml
+
+# Lastly, unlock the app.
+node_modules/.bin/octo state unlock <lock_id> -d octo.yaml
 ```
 
 Now you can just delete the Octo directory and all the code in it.

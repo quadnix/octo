@@ -27,23 +27,20 @@ npx @quadnix/octo-build create-app -t aws-s3-website -n test-app -p .
 ```
 ```
 test-app                      # Root directory.
-├── .env                      # Environment variables file.
 ├── .gitignore                # Git ignore file.
 ├── .octo                     # Octo state directory. This is where Octo will save the state of your infrastructure.
 │   ├── .gitkeep              # Git keep file as a placeholder to keep the directory non-empty.
+|   ├── local-state.lock      # State lock file (when using LocalStateProvider)
 │   ├── models.json           # Serialized output of Models.
 │   ├── resources-actual.json # Serialized output of actual Resources.
 │   └── resources-old.json    # Serialized output of old Resources.
 ├── .prettierrc               # Prettier configuration file.
 ├── eslint.config.js          # ESLint configuration file.
+├── octo.yaml                 # Yaml Module definitions file. Loads Octo modules.
 ├── package-lock.json         # Package lock file.
 ├── package.json              # Package configuration file.
 ├── README.md                 # README file.
-├── src                       # Source directory.
-│   ├── app.config.ts         # Application configuration file. Loads environment variables from .env file.
-│   ├── main.ts               # Main entry point of the app.
-│   └── module-definitions.ts # Module definitions file. Loads Octo modules.
-│   └── octo.yaml             # Yaml Module definitions file. Loads Octo modules.
+├── src                       # Source directory. Define custom Octo constructs here.
 ├── tsconfig.build.json       # TypeScript build configuration file.
 ├── tsconfig.json             # TypeScript configuration file.
 └── website                   # Website directory containing HTML files (only for aws-s3-website template).
@@ -57,8 +54,8 @@ but this structure gives you a basic idea of what to expect.
 :::
 
 ## Octo CDK Structure
-An Octo CDK project is a TypeScript project to define custom Octo components.
-This is where you develop new templates, modules, models, and resources for others to consume.
+An Octo CDK project is a TypeScript project to define custom Octo constructs.
+This is where you develop new templates, modules, models, and resources.
 
 A typical Octo CDK, generated using the `create-cdk` command, will yield the following project structure.
 ```bash
@@ -72,7 +69,7 @@ test-cdk                      # Root directory.
 ├── package-lock.json         # Package lock file.
 ├── package.json              # Package configuration file.
 ├── README.md                 # README file.
-├── src                       # Source directory.
+├── src                       # Source directory. Reference `octo-aws-cdk` for a detailed structure.
 │   ├── anchors               # Anchor directory.
 │   │   └── .gitkeep
 │   ├── factories             # Factory directory.
