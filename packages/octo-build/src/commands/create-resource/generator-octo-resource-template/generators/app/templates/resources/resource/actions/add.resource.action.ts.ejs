@@ -19,24 +19,23 @@ export class Add<%= resourceNamePascal %>ResourceAction extends ANodeAction impl
 
   async handle(diff: Diff<<%= resourceNamePascal %>>): Promise<<%= resourceNamePascal %>Schema['response']> {
     // Get properties.
-    const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
-    const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
-    const response = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.response;
-    const tags = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.tags;
+    const <%= resourceName %> = diff.node;
+    const properties = <%= resourceName %>.properties;
+    const response = <%= resourceName %>.response;
+    const tags = <%= resourceName %>.tags;
 
     // Fix me: Implement the add resource logic.
     // This is where you would create the actual resource.
 
-    // Set response.
     // Fix me: Return response properties.
     return response;
   }
 
   async mock(diff: Diff<<%= resourceNamePascal %>>, capture: Partial<<%= resourceNamePascal %>Schema['response']>): Promise<<%= resourceNamePascal %>Schema['response']> {
     // Get properties.
-    const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
-    const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
-    const response = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.response;
+    const <%= resourceName %> = diff.node;
+    const properties = <%= resourceName %>.properties;
+    const response = <%= resourceName %>.response;
 
     // Fix me: Return response using captures.
     return response;

@@ -94,6 +94,15 @@ export default class extends Generator {
         resourceNamePascal: StringUtility.toPascalCase(this.resourceName),
       },
     );
+
+    this.fs.copyTpl(
+      this.templatePath('resources/resource/actions/validate.resource.action.ts.ejs'),
+      this.destinationPath('actions', `validate-${this.resourceName}.resource.action.ts`),
+      {
+        resourceName: this.resourceName,
+        resourceNamePascal: StringUtility.toPascalCase(this.resourceName),
+      },
+    );
   }
 
   end(): void {

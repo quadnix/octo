@@ -27,9 +27,9 @@ export class Update<%= resourceNamePascal %>TagsResourceAction extends ANodeActi
 
   async handle(diff: Diff<<%= resourceNamePascal %>, DiffValueTypeTagUpdate>): Promise<void> {
     // Get properties.
-    const <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %> = diff.node;
-    const properties = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.properties;
-    const response = <%= resourceNamePascal.toLowerCase().charAt(0) + resourceNamePascal.slice(1) %>.response;
+    const <%= resourceName %> = diff.node;
+    const properties = <%= resourceName %>.properties;
+    const response = <%= resourceName %>.response;
     const tagUpdates = diff.value;
 
     // Fix me: Implement the update-tag resource logic.

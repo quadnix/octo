@@ -2,14 +2,14 @@ import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceActi
 import { <%= resourceNamePascal %> } from '../<%= resourceName %>.resource.js';
 
 @Action(<%= resourceNamePascal %>)
-export class Delete<%= resourceNamePascal %>ResourceAction extends ANodeAction implements IResourceAction<<%= resourceNamePascal %>> {
+export class Validate<%= resourceNamePascal %>ResourceAction extends ANodeAction implements IResourceAction<<%= resourceNamePascal %>> {
   constructor() {
     super();
   }
 
   filter(diff: Diff): boolean {
     return (
-      diff.action === DiffAction.DELETE &&
+      diff.action === DiffAction.VALIDATE &&
       diff.node instanceof <%= resourceNamePascal %> &&
       hasNodeName(diff.node, '<%= resourceName %>') &&
       diff.field === 'resourceId'
@@ -22,18 +22,18 @@ export class Delete<%= resourceNamePascal %>ResourceAction extends ANodeAction i
     const properties = <%= resourceName %>.properties;
     const response = <%= resourceName %>.response;
 
-    // Fix me: Implement the delete resource logic.
-    // This is where you would delete the actual resource.
+    // Fix me: Implement the resource validation logic.
+    // This is where you would validate the actual resource and its properties.
   }
 }
 
-@Factory<Delete<%= resourceNamePascal %>ResourceAction>(Delete<%= resourceNamePascal %>ResourceAction)
-export class Delete<%= resourceNamePascal %>ResourceActionFactory {
-  private static instance: Delete<%= resourceNamePascal %>ResourceAction;
+@Factory<Validate<%= resourceNamePascal %>ResourceAction>(Validate<%= resourceNamePascal %>ResourceAction)
+export class Validate<%= resourceNamePascal %>ResourceActionFactory {
+  private static instance: Validate<%= resourceNamePascal %>ResourceAction;
 
-  static async create(): Promise<Delete<%= resourceNamePascal %>ResourceAction> {
+  static async create(): Promise<Validate<%= resourceNamePascal %>ResourceAction> {
     if (!this.instance) {
-      this.instance = new Delete<%= resourceNamePascal %>ResourceAction();
+      this.instance = new Validate<%= resourceNamePascal %>ResourceAction();
     }
     return this.instance;
   }
