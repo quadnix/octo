@@ -56,7 +56,17 @@ jobs:
           OCTO_STATE_ENCRYPTION_KEY: ${{ secrets.OCTO_STATE_ENCRYPTION_KEY }}
         name: Release
         run: |
-          ./node_modules/.bin/octo --help
+          # Acquire state lock.
+          ./node_modules/.bin/octo state lock -d octo.yaml
+          
+          # Read Lock ID from local state file (strip newline).
+          LOCK_ID=$(cat .octo/local-state.lock | tr -d '\n' | tr -d '\r')
+          
+          # Run octo command with Lock ID set as environment variable.
+          OCTO_APP_LOCK_ID=$LOCK_ID ./node_modules/.bin/octo run -d octo.yaml
+          
+          # Release the state lock.
+          ./node_modules/.bin/octo state unlock $LOCK_ID -d octo.yaml
         working-directory: apps/octo-docs
       - name: Commit Generated Documentation Artifacts
         run: |

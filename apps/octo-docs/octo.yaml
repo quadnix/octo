@@ -49,4 +49,4 @@ modules:
       account: "${{account-module.model.account}}"
       awsRegionId: us-east-1
       bucketName: "${env.AWS_S3_WEBSITE_BUCKET_NAME}"
-      directoryPath: website
+      directoryPath: build
