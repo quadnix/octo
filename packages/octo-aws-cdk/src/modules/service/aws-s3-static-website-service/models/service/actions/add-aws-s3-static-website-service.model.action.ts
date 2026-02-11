@@ -36,7 +36,7 @@ export class AddAwsS3StaticWebsiteServiceModelAction implements IModelAction<Aws
     const { awsAccountId, awsRegionId } = actionInputs.metadata;
 
     // Create S3 Website.
-    const s3Website = new S3Website(`bucket-${bucketName}`, {
+    const s3Website = new S3Website(`bucket-${bucketName.replace(/[^\w-]/g, '-')}`, {
       awsAccountId,
       awsRegionId,
       Bucket: bucketName,

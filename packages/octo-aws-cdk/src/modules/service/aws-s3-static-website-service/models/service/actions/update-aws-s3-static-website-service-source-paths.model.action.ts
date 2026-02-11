@@ -35,7 +35,7 @@ export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction
   ): Promise<ActionOutputs> {
     const { bucketName } = diff.node;
 
-    const s3Website = actionInputs.resources[`bucket-${bucketName}`] as S3Website;
+    const s3Website = actionInputs.resources[`bucket-${bucketName.replace(/[^\w-]/g, '-')}`] as S3Website;
     s3Website.updateManifestDiff(diff.value);
 
     actionOutputs[s3Website.resourceId] = s3Website;
