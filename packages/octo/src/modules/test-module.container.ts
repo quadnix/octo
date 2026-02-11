@@ -22,6 +22,7 @@ import type { IResourceAction } from '../resources/resource-action.interface.js'
 import { AResource } from '../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
+import { LocalEncryptionStateProvider } from '../services/state-management/local-encryption.state-provider.js';
 import { LocalStateProvider } from '../services/state-management/local.state-provider.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
@@ -345,8 +346,15 @@ export class TestModuleContainer {
     initializeInContainer?: Parameters<typeof Octo.prototype.initialize>[1],
     excludeInContainer?: Parameters<typeof Octo.prototype.initialize>[2],
   ): Promise<void> {
-    if (stateProvider && !(stateProvider instanceof LocalStateProvider || stateProvider instanceof TestStateProvider)) {
-      throw new Error('TestModuleContainer is only meant to work with Local or Test state provider!');
+    if (
+      stateProvider &&
+      !(
+        stateProvider instanceof LocalEncryptionStateProvider ||
+        stateProvider instanceof LocalStateProvider ||
+        stateProvider instanceof TestStateProvider
+      )
+    ) {
+      throw new Error('TestModuleContainer is only meant to work with LocalEncryption, Local, or Test state provider!');
     }
     this.stateProvider = stateProvider ?? new TestStateProvider();
     await this.octo.initialize(this.stateProvider, initializeInContainer, excludeInContainer);

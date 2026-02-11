@@ -1,10 +1,12 @@
 abcdef
 abcdefghijklmnopqrstuvwxyz
 accessor
+aes
 acl
 acls
 ajv
 alb
+alloc
 allowfullscreen
 amazonaws
 apilink
@@ -35,6 +37,7 @@ chaudhary
 checkbox
 cicd
 cidr
+cipheriv
 cjs
 clsx
 codespan
@@ -47,6 +50,9 @@ copyfiles
 cov
 cpu
 cpus
+decipheriv
+decrypt
+decrypted
 dep
 deserializing
 devkit
@@ -91,6 +97,7 @@ frameborder
 frontend
 frontmatter
 fs
+gcm
 gfm
 gitignore
 gitkeep
@@ -129,6 +136,7 @@ matcher
 mdx
 microservice
 microservices
+mkdtemp
 mnt
 monorepo
 monorepos
@@ -201,6 +209,7 @@ tagline
 targetgroup
 tcp
 tds
+tmpdir
 toc
 tokenizer
 tsbuildinfo

@@ -109,6 +109,23 @@
             {
               "additionalProperties": false,
               "properties": {
+                "encryptionKey": {
+                  "type": "string"
+                },
+                "statePath": {
+                  "type": "string"
+                },
+                "type": {
+                  "const": "LocalEncryptionStateProvider",
+                  "type": "string"
+                }
+              },
+              "required": ["encryptionKey", "type", "statePath"],
+              "type": "object"
+            },
+            {
+              "additionalProperties": false,
+              "properties": {
                 "statePath": {
                   "type": "string"
                 },

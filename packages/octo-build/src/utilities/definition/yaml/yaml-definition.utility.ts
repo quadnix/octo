@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { type Constructable, LocalStateProvider, TestStateProvider } from '@quadnix/octo';
+import { type Constructable, LocalEncryptionStateProvider, LocalStateProvider, TestStateProvider } from '@quadnix/octo';
 import type { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
 import type { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
 import { Ajv2020 as Ajv } from 'ajv/dist/2020.js';
@@ -33,7 +33,10 @@ interface IYamlDefinition {
           type: 'LoggingEventListener';
         }
     )[];
-    stateProvider: { statePath: string; type: 'LocalStateProvider' } | { type: 'TestStateProvider' };
+    stateProvider:
+      | { encryptionKey: string; statePath: string; type: 'LocalEncryptionStateProvider' }
+      | { statePath: string; type: 'LocalStateProvider' }
+      | { type: 'TestStateProvider' };
     transactionOptions?: {
       yieldModelDiffs?: boolean;
       yieldModelTransaction?: boolean;
@@ -228,9 +231,16 @@ export class YamlDefinitionUtility {
     return modules;
   }
 
-  resolveStateProvider(): { type: LocalStateProvider } | { type: TestStateProvider } {
+  resolveStateProvider():
+    | { type: LocalEncryptionStateProvider }
+    | { type: LocalStateProvider }
+    | { type: TestStateProvider } {
     const stateProvider = this.definition.settings.stateProvider;
-    if (stateProvider.type === 'LocalStateProvider') {
+    if (stateProvider.type === 'LocalEncryptionStateProvider') {
+      return {
+        type: new LocalEncryptionStateProvider(stateProvider.statePath, stateProvider.encryptionKey),
+      };
+    } else if (stateProvider.type === 'LocalStateProvider') {
       return {
         type: new LocalStateProvider(stateProvider.statePath),
       };
