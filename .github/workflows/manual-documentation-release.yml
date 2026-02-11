@@ -1,0 +1,67 @@
+name: Manual Documentation Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        default: 'main'
+        description: 'Select the branch you want to build documentation from.'
+        options:
+          - main
+        required: true
+        type: choice
+
+jobs:
+  build-release:
+    continue-on-error: false
+    name: Build & Release Documentation
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.branch }}
+          token: ${{ secrets.GH_TOKEN }}
+      - name: Setup Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      - env:
+          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+        name: Setup NPM
+        uses: actions/setup-node@v4
+        with:
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install Docs Dependencies
+        run: npm install
+        working-directory: apps/octo-docs
+      - name: Docs Pre Script
+        run: npm run plugin:pre-script
+        working-directory: apps/octo-docs
+      - name: Build Docs
+        run: npm run build
+        working-directory: apps/octo-docs
+      - name: Docs Post Script
+        run: npm run plugin:post-script
+        working-directory: apps/octo-docs
+      - env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          OCTO_STATE_ENCRYPTION_KEY: ${{ secrets.OCTO_STATE_ENCRYPTION_KEY }}
+        name: Release
+        run: |
+          ./node_modules/.bin/octo --help
+        working-directory: apps/octo-docs
+      - name: Commit Generated Documentation Artifacts
+        run: |
+          if [ -n "$(git status --porcelain apps/octo-docs/.octo)" ]; then
+            git add apps/octo-docs/.octo
+            git commit -m "chore(docs): update generated documentation artifacts [skip ci]"
+          else
+            echo "No documentation changes to commit."
+          fi
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        name: Push Changes
+        run: git push origin HEAD:${{ github.event.inputs.branch }}
