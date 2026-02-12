@@ -53,6 +53,7 @@ jobs:
         working-directory: apps/octo-docs
       - env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: us-east-1
           OCTO_STATE_ENCRYPTION_KEY: ${{ secrets.OCTO_STATE_ENCRYPTION_KEY }}
         name: Release
         run: |
