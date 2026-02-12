@@ -21,6 +21,7 @@ jest.setTimeout(30_000);
 
 describe('Main IT', () => {
   let bucketName: string;
+  let bucketNameNormalized: string;
   let environment: StartedDockerComposeEnvironment;
   let moduleDefinitions: ModuleDefinitions;
   let stateProvider: TestStateProvider;
@@ -51,6 +52,7 @@ describe('Main IT', () => {
 
     const { moduleInputs } = moduleDefinitions.get<AwsS3StaticWebsiteServiceModule>('s3-website-service-module')!;
     bucketName = moduleInputs.bucketName;
+    bucketNameNormalized = bucketName.replace(/[^\w-]/g, '-');
   });
 
   afterEach(async () => {
@@ -82,15 +84,15 @@ describe('Main IT', () => {
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/s3-website=bucket-${bucketName}",
-           "value": "@octo/s3-website=bucket-${bucketName}",
+           "node": "@octo/s3-website=bucket-${bucketNameNormalized}",
+           "value": "@octo/s3-website=bucket-${bucketNameNormalized}",
          },
        ],
        [
          {
            "action": "update",
            "field": "update-source-paths",
-           "node": "@octo/s3-website=bucket-${bucketName}",
+           "node": "@octo/s3-website=bucket-${bucketNameNormalized}",
            "value": {
              "error.html": [
                "add",
@@ -110,7 +112,7 @@ describe('Main IT', () => {
     const resourcesActual: { data: ResourceSerializedOutput } = JSON.parse(resourcesActualState.toString('utf-8'));
 
     // s3-website exists.
-    expect(resourcesActual.data.resources[`@octo/s3-website=bucket-${bucketName}`]).toMatchInlineSnapshot(`
+    expect(resourcesActual.data.resources[`@octo/s3-website=bucket-${bucketNameNormalized}`]).toMatchInlineSnapshot(`
      {
        "className": "@octo/S3Website",
        "resource": {
@@ -122,9 +124,9 @@ describe('Main IT', () => {
            "awsAccountId": "000000000000",
            "awsRegionId": "us-east-1",
          },
-         "resourceId": "bucket-${bucketName}",
+         "resourceId": "bucket-${bucketNameNormalized}",
          "response": {
-           "Arn": "arn:aws:s3:::octo-test-aws-s3-website",
+           "Arn": "arn:aws:s3:::${bucketName}",
            "awsRegionId": "us-east-1",
          },
          "tags": {},
@@ -152,8 +154,8 @@ describe('Main IT', () => {
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/s3-website=bucket-${bucketName}",
-           "value": "@octo/s3-website=bucket-${bucketName}",
+           "node": "@octo/s3-website=bucket-${bucketNameNormalized}",
+           "value": "@octo/s3-website=bucket-${bucketNameNormalized}",
          },
        ],
      ]
@@ -163,6 +165,6 @@ describe('Main IT', () => {
     const resourcesActual: { data: ResourceSerializedOutput } = JSON.parse(resourcesActualState.toString('utf-8'));
 
     // s3-website deleted.
-    expect(resourcesActual.data.resources[`@octo/s3-website=bucket-${bucketName}`]).toBeUndefined();
+    expect(resourcesActual.data.resources[`@octo/s3-website=bucket-${bucketNameNormalized}`]).toBeUndefined();
   });
 });
