@@ -1,7 +1,7 @@
 import { createReadStream } from 'fs';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import type { Upload } from '@aws-sdk/lib-storage';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import mime from 'mime';
 import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
 import { S3Website, type S3WebsiteManifestDiff } from '../s3-website.resource.js';
@@ -10,8 +10,12 @@ import { S3Website, type S3WebsiteManifestDiff } from '../s3-website.resource.js
  * @internal
  */
 @Action(S3Website)
-export class UpdateSourcePathsInS3WebsiteResourceAction implements IResourceAction<S3Website> {
-  constructor(private readonly container: Container) {}
+export class UpdateSourcePathsInS3WebsiteResourceAction extends ANodeAction implements IResourceAction<S3Website> {
+  actionTimeoutInMs: number = 900000; // 15 minutes.
+
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -75,8 +79,7 @@ export class UpdateSourcePathsInS3WebsiteResourceActionFactory {
 
   static async create(): Promise<UpdateSourcePathsInS3WebsiteResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new UpdateSourcePathsInS3WebsiteResourceAction(container);
+      this.instance = new UpdateSourcePathsInS3WebsiteResourceAction();
     }
     return this.instance;
   }
