@@ -30,11 +30,8 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
   ) {
     super();
 
-    if (!/^[\w-]+$/.test(resourceId)) {
-      throw new ResourceError(
-        'Invalid resource ID! Can only contain letters, numbers, underscores, and hyphens.',
-        this,
-      );
+    if (!/^[\w-/]+$/.test(resourceId)) {
+      throw new ResourceError('Invalid resource ID!', this);
     }
 
     for (const parent of parents) {
