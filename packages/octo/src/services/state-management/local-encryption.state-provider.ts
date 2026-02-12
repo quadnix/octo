@@ -15,6 +15,9 @@ export class LocalEncryptionStateProvider implements IStateProvider {
   private readonly lockFilePath: string;
 
   constructor(localStateDirectoryPath: string, encryptionKey: string) {
+    if (encryptionKey.length < 3) {
+      throw new TransactionError('Selected encryption key is too weak!');
+    }
     this.encryptionKey = encryptionKey;
 
     this.localStateDirectoryPath = resolve(localStateDirectoryPath);
