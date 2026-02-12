@@ -47,7 +47,7 @@
     "git": {
       "commitMessage": "chore(release): publish."
     },
-    "projects": ["packages/*"],
+    "projects": ["apps/*", "packages/*"],
     "projectsRelationship": "independent",
     "version": {
       "conventionalCommits": true
