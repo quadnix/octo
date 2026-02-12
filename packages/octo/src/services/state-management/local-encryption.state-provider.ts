@@ -1,5 +1,4 @@
 import { readFile, writeFile } from 'fs/promises';
-import { createHash } from 'node:crypto';
 import { join, resolve } from 'path';
 import { TransactionError } from '../../errors/index.js';
 import { FileUtility } from '../../utilities/file/file.utility.js';
@@ -9,14 +8,14 @@ import type { IStateProvider } from './state-provider.interface.js';
  * @group Services/State Management
  */
 export class LocalEncryptionStateProvider implements IStateProvider {
-  private readonly encryptionKey: Buffer;
+  private readonly encryptionKey: string;
 
   private readonly localStateDirectoryPath: string;
 
   private readonly lockFilePath: string;
 
   constructor(localStateDirectoryPath: string, encryptionKey: string) {
-    this.encryptionKey = createHash('sha256').update(encryptionKey).digest();
+    this.encryptionKey = encryptionKey;
 
     this.localStateDirectoryPath = resolve(localStateDirectoryPath);
 

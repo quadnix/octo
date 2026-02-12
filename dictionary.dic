@@ -193,6 +193,7 @@ stdin
 stdout
 stringified
 sts
+subarray
 subclass
 subclasses
 subgraph

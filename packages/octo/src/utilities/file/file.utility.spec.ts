@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { FileUtility } from './file.utility.js';
@@ -16,7 +16,7 @@ describe('FileUtility UT', () => {
   });
 
   it('should encrypt a buffer to a file and decrypt back to the same data', async () => {
-    const key = randomBytes(32);
+    const key = 'encryption key';
     const data = Buffer.from('test data 123');
     const filePath = join(tempDir, 'test.enc');
 
@@ -26,9 +26,24 @@ describe('FileUtility UT', () => {
     expect(decrypted.equals(data)).toBe(true);
   });
 
+  it('should produce the same encrypted buffer with same data and key', async () => {
+    const key = 'encryption key';
+    const data = Buffer.from('test data 123');
+    const filePath1 = join(tempDir, 'test1.enc');
+    const filePath2 = join(tempDir, 'test2.enc');
+
+    await FileUtility.encryptBufferToFile(data, filePath1, key);
+    await FileUtility.encryptBufferToFile(data, filePath2, key);
+
+    const encrypted1 = readFileSync(filePath1);
+    const encrypted2 = readFileSync(filePath2);
+
+    expect(encrypted1.equals(encrypted2)).toBe(true);
+  });
+
   it('should fail decryption when using an incorrect key', async () => {
-    const key = randomBytes(32);
-    const wrongKey = randomBytes(32);
+    const key = 'encryption key';
+    const wrongKey = 'wrong key';
     const data = randomBytes(64);
     const filePath = join(tempDir, 'test-invalid-key.enc');
 

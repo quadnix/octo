@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { open } from 'node:fs/promises';
 import { Readable } from 'node:stream';
@@ -9,7 +9,10 @@ const IV_LENGTH = 12;
 const TAG_LENGTH = 16;
 
 export class FileUtility {
-  static async decryptFileToBuffer(inputFilePath: string, key: Buffer): Promise<Buffer> {
+  static async decryptFileToBuffer(inputFilePath: string, key: string): Promise<Buffer> {
+    // sha256 always produces a 32 byte key.
+    const keyBuffer = createHash('sha256').update(key).digest();
+
     const fileHandle = await open(inputFilePath, 'r');
 
     try {
@@ -23,7 +26,7 @@ export class FileUtility {
       await fileHandle.read(tag, 0, TAG_LENGTH, size - TAG_LENGTH);
 
       // Setup Decipher.
-      const decipher = createDecipheriv(ALGORITHM, key, iv);
+      const decipher = createDecipheriv(ALGORITHM, keyBuffer, iv);
       decipher.setAuthTag(tag);
 
       // Create ReadStream for the encrypted chunk in the middle.
@@ -47,9 +50,11 @@ export class FileUtility {
     }
   }
 
-  static async encryptBufferToFile(data: Buffer, outputFilePath: string, key: Buffer): Promise<void> {
-    const iv = randomBytes(IV_LENGTH);
-    const cipher = createCipheriv(ALGORITHM, key, iv);
+  static async encryptBufferToFile(data: Buffer, outputFilePath: string, key: string): Promise<void> {
+    // sha256 always produces a 32 byte key.
+    const keyBuffer = createHash('sha256').update(key).digest();
+    const iv = createHash('md5').update(data).digest().subarray(0, IV_LENGTH);
+    const cipher = createCipheriv(ALGORITHM, keyBuffer, iv);
 
     const readStream = Readable.from(data);
     const writeStream = createWriteStream(outputFilePath);
