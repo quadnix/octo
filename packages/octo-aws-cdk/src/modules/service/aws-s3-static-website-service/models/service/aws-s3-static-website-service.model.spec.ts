@@ -7,13 +7,13 @@ const resourcesPath = join(__dirname, '../../../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
 
 describe('AwsS3StaticWebsiteService UT', () => {
+  let service: AwsS3StaticWebsiteService;
+
+  beforeEach(() => {
+    service = new AwsS3StaticWebsiteService('test-bucket');
+  });
+
   describe('addSource()', () => {
-    let service: AwsS3StaticWebsiteService;
-
-    beforeEach(() => {
-      service = new AwsS3StaticWebsiteService('test-bucket');
-    });
-
     describe('when called with directoryPath', () => {
       it('should add the directory when relative path given', async () => {
         await service.addSource(websiteSourcePath);
@@ -26,6 +26,7 @@ describe('AwsS3StaticWebsiteService UT', () => {
             subDirectoryOrFilePath: '',
           },
         ]);
+        expect(service.excludePaths).toEqual([]);
       });
 
       it('should add the directory when absolute path given', async () => {
@@ -39,10 +40,11 @@ describe('AwsS3StaticWebsiteService UT', () => {
             subDirectoryOrFilePath: '',
           },
         ]);
+        expect(service.excludePaths).toEqual([]);
       });
     });
 
-    it('should add when file path is given', async () => {
+    it('should add when file path is given in directoryPath', async () => {
       await service.addSource(websiteSourcePath + '/index.html');
 
       expect(service.sourcePaths).toEqual([
@@ -53,6 +55,21 @@ describe('AwsS3StaticWebsiteService UT', () => {
           subDirectoryOrFilePath: 'index.html',
         },
       ]);
+      expect(service.excludePaths).toEqual([]);
+    });
+
+    it('should add when file path is given in subDirectoryOrFilePath', async () => {
+      await service.addSource(websiteSourcePath, '/index.html');
+
+      expect(service.sourcePaths).toEqual([
+        {
+          directoryPath: websiteSourcePath,
+          isDirectory: false,
+          remotePath: 'index.html',
+          subDirectoryOrFilePath: 'index.html',
+        },
+      ]);
+      expect(service.excludePaths).toEqual([]);
     });
 
     describe('when called with directoryPath and subDirectoryOrFilePath', () => {
@@ -67,6 +84,7 @@ describe('AwsS3StaticWebsiteService UT', () => {
             subDirectoryOrFilePath: 's3-static-website',
           },
         ]);
+        expect(service.excludePaths).toEqual([]);
       });
 
       it('should add the directory without slashes', async () => {
@@ -80,6 +98,7 @@ describe('AwsS3StaticWebsiteService UT', () => {
             subDirectoryOrFilePath: 's3-static-website',
           },
         ]);
+        expect(service.excludePaths).toEqual([]);
       });
     });
 
@@ -97,6 +116,7 @@ describe('AwsS3StaticWebsiteService UT', () => {
             subDirectoryOrFilePath: 'index.html',
           },
         ]);
+        expect(service.excludePaths).toEqual([]);
       });
 
       it('should not add file when filter blocks it', async () => {
@@ -105,18 +125,42 @@ describe('AwsS3StaticWebsiteService UT', () => {
         });
 
         expect(service.sourcePaths).toEqual([]);
+        expect(service.excludePaths).toEqual([]);
       });
 
       it('should add directory and record excludes according to filter', async () => {
-        const directoryPath = join(resourcesPath, 's3-static-website');
-
-        await service.addSource(directoryPath, '', (filePath: string) => {
-          return filePath === 'index.html';
+        await service.addSource(resourcesPath, 's3-static-website', (filePath: string) => {
+          return filePath === 's3-static-website/index.html';
         });
 
         expect(service.sourcePaths).toEqual([
           {
-            directoryPath,
+            directoryPath: resourcesPath,
+            isDirectory: true,
+            remotePath: 's3-static-website',
+            subDirectoryOrFilePath: 's3-static-website',
+          },
+        ]);
+        expect(service.excludePaths).toEqual([
+          {
+            directoryPath: resourcesPath,
+            subDirectoryOrFilePath: 's3-static-website/error.html',
+          },
+          {
+            directoryPath: resourcesPath,
+            subDirectoryOrFilePath: 's3-static-website/page-1.html',
+          },
+        ]);
+      });
+
+      it('should add directory and record excludes with directories according to filter', async () => {
+        await service.addSource(resourcesPath, '', (filePath: string) => {
+          return filePath === 's3-static-website/index.html';
+        });
+
+        expect(service.sourcePaths).toEqual([
+          {
+            directoryPath: resourcesPath,
             isDirectory: true,
             remotePath: '',
             subDirectoryOrFilePath: '',
@@ -124,12 +168,20 @@ describe('AwsS3StaticWebsiteService UT', () => {
         ]);
         expect(service.excludePaths).toEqual([
           {
-            directoryPath,
-            subDirectoryOrFilePath: 'error.html',
+            directoryPath: resourcesPath,
+            subDirectoryOrFilePath: 'index.html',
           },
           {
-            directoryPath,
-            subDirectoryOrFilePath: 'page-1.html',
+            directoryPath: resourcesPath,
+            subDirectoryOrFilePath: 's3-static-website',
+          },
+          {
+            directoryPath: resourcesPath,
+            subDirectoryOrFilePath: 's3-static-website/error.html',
+          },
+          {
+            directoryPath: resourcesPath,
+            subDirectoryOrFilePath: 's3-static-website/page-1.html',
           },
         ]);
       });
@@ -150,6 +202,78 @@ describe('AwsS3StaticWebsiteService UT', () => {
           },
         ]);
       });
+    });
+  });
+
+  describe('generateSourceManifest()', () => {
+    it('should generate manifest for a file', async () => {
+      await service.addSource(resourcesPath, 'index.html');
+
+      const manifest = await service['generateSourceManifest']();
+      // eslint-disable-next-line spellcheck/spell-checker
+      expect(manifest).toMatchInlineSnapshot(`
+       {
+         "index.html": {
+           "algorithm": "sha1",
+           "digest": "aba92cd2086d7ab2f36d3bf5baa269478b941921",
+           "filePath": "${resourcesPath}/index.html",
+         },
+       }
+      `);
+    });
+
+    it('should generate manifest for a directory', async () => {
+      await service.addSource(resourcesPath, 's3-static-website', (filePath: string) => {
+        return filePath === 's3-static-website/index.html';
+      });
+
+      const manifest = await service['generateSourceManifest']();
+      // eslint-disable-next-line spellcheck/spell-checker
+      expect(manifest).toMatchInlineSnapshot(`
+       {
+         "s3-static-website/index.html": {
+           "algorithm": "sha1",
+           "digest": "aba92cd2086d7ab2f36d3bf5baa269478b941921",
+           "filePath": "${resourcesPath}/s3-static-website/index.html",
+         },
+       }
+      `);
+    });
+
+    it('should generate manifest for a directory with subdirectories', async () => {
+      await service.addSource(resourcesPath, '', (filePath: string) => {
+        return filePath === 's3-static-website/index.html';
+      });
+
+      const manifest = await service['generateSourceManifest']();
+      // eslint-disable-next-line spellcheck/spell-checker
+      expect(manifest).toMatchInlineSnapshot(`
+       {
+         "s3-static-website/index.html": {
+           "algorithm": "sha1",
+           "digest": "aba92cd2086d7ab2f36d3bf5baa269478b941921",
+           "filePath": "${resourcesPath}/s3-static-website/index.html",
+         },
+       }
+      `);
+    });
+
+    it('should generate manifest for a directory without excluded subdirectories', async () => {
+      await service.addSource(resourcesPath, '', (filePath: string) => {
+        return !filePath.startsWith('s3-static-website/');
+      });
+
+      const manifest = await service['generateSourceManifest']();
+      // eslint-disable-next-line spellcheck/spell-checker
+      expect(manifest).toMatchInlineSnapshot(`
+       {
+         "index.html": {
+           "algorithm": "sha1",
+           "digest": "aba92cd2086d7ab2f36d3bf5baa269478b941921",
+           "filePath": "${resourcesPath}/index.html",
+         },
+       }
+      `);
     });
   });
 });

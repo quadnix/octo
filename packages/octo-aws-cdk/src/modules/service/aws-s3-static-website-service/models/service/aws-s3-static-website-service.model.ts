@@ -56,22 +56,15 @@ export class AwsS3StaticWebsiteService extends Service {
         manifest[sourcePath.remotePath] = { algorithm: 'sha1', digest, filePath };
       } else {
         const directoryPath = join(sourcePath.directoryPath, sourcePath.subDirectoryOrFilePath);
-        const directoryFilePaths = await readdir(directoryPath);
+        const directoryFilePaths = await readdir(directoryPath, { recursive: true });
         for (const directoryFilePath of directoryFilePaths) {
           const filePath = join(directoryPath, directoryFilePath);
           const stats = await lstat(filePath);
+          if (stats.isDirectory()) {
+            continue;
+          }
 
           if (this.excludePaths.findIndex((p) => join(p.directoryPath, p.subDirectoryOrFilePath) === filePath) === -1) {
-            if (stats.isDirectory()) {
-              sourcePaths.push({
-                directoryPath: filePath,
-                isDirectory: true,
-                remotePath: join(sourcePath.remotePath, directoryFilePath),
-                subDirectoryOrFilePath: '',
-              });
-              continue;
-            }
-
             const remotePath = join(sourcePath.remotePath, directoryFilePath);
             const digest = await FileUtility.hash(filePath);
             manifest[remotePath] = { algorithm: 'sha1', digest, filePath };
@@ -125,7 +118,7 @@ export class AwsS3StaticWebsiteService extends Service {
         subDirectoryOrFilePath,
       });
 
-      const filePaths = await readdir(relativeSubDirectoryOrFilePath);
+      const filePaths = await readdir(relativeSubDirectoryOrFilePath, { recursive: true });
       for (let filePath of filePaths) {
         filePath = join(subDirectoryOrFilePath, filePath);
 
@@ -203,16 +196,11 @@ export class AwsS3StaticWebsiteService extends Service {
   override synth(): AwsS3StaticWebsiteServiceSchema {
     return {
       bucketName: this.bucketName,
-      excludePaths: JSON.parse(JSON.stringify(this.excludePaths)),
       serviceId: this.serviceId,
-      sourcePaths: JSON.parse(JSON.stringify(this.sourcePaths)),
     };
   }
 
   static override async unSynth(service: AwsS3StaticWebsiteServiceSchema): Promise<AwsS3StaticWebsiteService> {
-    const newService = new AwsS3StaticWebsiteService(service.bucketName);
-    newService.excludePaths.push(...service.excludePaths!);
-    newService.sourcePaths.push(...service.sourcePaths!);
-    return newService;
+    return new AwsS3StaticWebsiteService(service.bucketName);
   }
 }
