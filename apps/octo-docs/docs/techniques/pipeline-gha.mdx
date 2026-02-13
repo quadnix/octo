@@ -1,0 +1,169 @@
+---
+title: Pipeline - GitHub Actions
+---
+
+## Introduction
+A pipeline, or Continuous Delivery (CD), is important for any project.
+It automates building, testing, and releasing so that changes reach production reliably and repeatably.
+For infrastructure, CD is especially valuable: instead of manual runs and one-off scripts,
+you can make continuous changes by simply pushing new code.
+Every merge can trigger an Octo run that applies your latest definitions to the cloud,
+keeping infrastructure in sync with your repository.
+
+This guide focuses on running Octo inside a [GitHub Actions](https://github.com/features/actions) workflow.
+To implement CD in Octo you require a state provider that can help acquire a state lock, run Octo definitions,
+and release the lock so that subsequent runs can be performed safely and consistently.
+
+## Running Octo
+To run Octo in a CD pipeline, you must:
+1. **Acquire a state lock** – so only one process can modify state at a time.
+2. **Run Octo** – execute `octo run` with the lock ID so Octo can validate that it holds the lock.
+3. **Release the lock** – so the next run can proceed.
+
+:::warning
+Before you implement your own CD pipeline,
+you must understand [State Providers](/docs/techniques/state-providers).
+Effects and benefits of lock is largely dependent on which state provider is currently selected.
+
+A local state provider, such as in example below, will not provide parallel Octo executions!
+To support parallel Octo executions, you must use a remote state provider.
+:::
+
+## Example
+This GitHub Action workflow will set up a manual workflow dispatch to run Octo executions.
+
+:::danger
+A CD pipeline is responsible for building and releasing the changes reliably,
+and since the build steps differ with each project, so does the job of the pipeline.
+
+Your pipeline will be custom for you, requiring different steps.
+Our examples focus on the main logic required to build and run Octo templates,
+and is not a full code example that can be copied verbatim.
+:::
+
+```yaml
+name: Manual Octo Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        default: 'main'
+        description: 'Select the branch to run Octo from.'
+        options:
+          - main
+        required: true
+        type: choice
+
+jobs:
+  build-release:
+    continue-on-error: false
+    name: Build & Release
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.branch }}
+          token: ${{ secrets.GH_TOKEN }}
+      - name: Setup Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+      - name: Setup NPM
+        uses: actions/setup-node@v4
+      - name: Setup AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-region: us-east-1
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Install Dependencies
+        run: npm install
+      - env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          OCTO_STATE_ENCRYPTION_KEY: ${{ secrets.OCTO_STATE_ENCRYPTION_KEY }}
+        name: Release
+        run: |
+          
+          # Acquire state lock.
+          ./node_modules/.bin/octo state lock -d octo.yaml
+
+          # Read Lock ID from local state file (strip newline).
+          LOCK_ID=$(cat .octo/local-state.lock | tr -d '\n' | tr -d '\r')
+
+          # Run octo command with Lock ID set as environment variable.
+          OCTO_APP_LOCK_ID=$LOCK_ID ./node_modules/.bin/octo run -d octo.yaml
+
+          # Release the state lock.
+          ./node_modules/.bin/octo state unlock $LOCK_ID -d octo.yaml
+      - name: Commit Generated State Artifacts
+        run: |
+          
+          if [ -n "$(git status --porcelain .octo)" ]; then
+            git add .octo
+            git commit --no-verify -m "chore(release): infrastructure state changes."
+          else
+            echo "No state changes to commit."
+          fi
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        name: Push Changes
+        run: git push origin HEAD:${{ github.event.inputs.branch }}
+```
+
+Many of the details about this job and steps are standard to GitHub Actions syntax.
+However, the main steps to watch out for are,
+* Setting up AWS in order for Octo get the necessary keys or IAM roles to perform the infrastructure tasks.
+* Octo Release steps.
+
+To run Octo, a state lock must be acquired.
+For local state providers, the lock is stored under `.octo/local-state.lock`.
+The same lock ID must be passed to `octo run` via `OCTO_APP_LOCK_ID`,
+and then used in `octo state unlock` so that only the run that acquired the lock can update state and release it.
+
+```shell
+LOCK_ID=$(cat .octo/local-state.lock | tr -d '\n' | tr -d '\r')
+```
+This command simply extract the LOCK ID from the `.octo/local-state.lock` file.
+
+:::info
+If you want a real world example, please check out the CD pipeline for this documentation website -
+[manual-documentation-release.yml](https://github.com/quadnix/octo/blob/main/.github/workflows/manual-documentation-release.yml).
+This website is hosted in AWS S3 with the help of S3 modules -
+the same one explained in [Hello World](/docs/getting-started/hello-world) tutorial.
+
+It is a simple workflow that uses the `LocalEncryptionStateProvider`,
+i.e. **it does not support parallel executions**.
+
+It simply checks out the latest code, sets up dependencies like Node, and AWS,
+and finally executes Octo to push the document changes to AWS S3.
+In the end it collects all the new state files and commits them to the repository.
+:::
+
+## Octo Parallel Executions
+When using local state providers, please be mindful of **concurrent updates**.
+If two PRs are merged one after another, or two workflow runs start at nearly the same time, each run will:
+1. Check out the branch (possibly at different commits).
+2. Pull or use state from a shared location (e.g. the repo after a previous run pushed `.octo`).
+3. Run Octo on top of that state.
+
+Running parallel executions without a proper remote state provider
+will corrupt the Octo state and will leave infrastructure in a broken state!
+You can read more about this limitation in the
+[State Providers](/docs/techniques/state-providers#parallel-runs-and-octo-state) section.
+
+To support **multiple changes** safely (e.g. many PRs or frequent merges), you need to avoid overlapping Octo runs.
+Two approaches can be used,
+1. **Merge queue** – Use a merge queue (e.g. GitHub merge queue or a third-party solution)
+so that only one merge is applied at a time and only one pipeline run executes for that merge.
+No two runs operate on the same branch at the same time.
+2. **State provider with locking** – Use a state provider that supports **distributed locking**
+so that only one run can hold the lock and update state,
+even if multiple workflow runs start in parallel.
+Octo provides **OctoRemoteStateProvider** for this: it supports locking and is designed for teams and CI use.
+Using it requires signing up for an account and configuring your app to use this provider instead of the local.
+
+Choose one of these strategies so that concurrent changes don’t overwrite each other and your pipeline stays predictable.

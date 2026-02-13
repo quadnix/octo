@@ -159,6 +159,16 @@ const sidebars: SidebarsConfig = {
           label: 'Hooks',
           type: 'doc',
         },
+        {
+          id: 'techniques/state-providers',
+          label: 'State Providers',
+          type: 'doc',
+        },
+        {
+          id: 'techniques/pipeline-gha',
+          label: 'Pipeline - GitHub Actions',
+          type: 'doc',
+        },
       ],
       label: 'Techniques',
       link: {
