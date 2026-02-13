@@ -139,9 +139,11 @@ export class AwsS3StaticWebsiteService extends Service {
 
     const manifestFileName = `${this.bucketName}-manifest.json`;
 
-    // Get old manifest.
+    // Get old manifest. It won't contain filePath.
     const oldManifestDataBuffer = await stateManagementService.getState(manifestFileName, '{}');
-    const oldManifestData: IManifest = JSON.parse(oldManifestDataBuffer.toString());
+    const oldManifestData: {
+      [K in keyof IManifest]: Omit<IManifest[K], 'filePath'>;
+    } = JSON.parse(oldManifestDataBuffer.toString());
 
     // Generate new manifest.
     const newManifestData: IManifest = await this.generateSourceManifest();
@@ -159,10 +161,10 @@ export class AwsS3StaticWebsiteService extends Service {
           oldManifestData[remotePath].algorithm !== newManifestData[remotePath].algorithm ||
           oldManifestData[remotePath].digest !== newManifestData[remotePath].digest
         ) {
-          manifestDiff[remotePath] = ['update', oldManifestData[remotePath].filePath];
+          manifestDiff[remotePath] = ['update', newManifestData[remotePath].filePath];
         }
       } else {
-        manifestDiff[remotePath] = ['delete', oldManifestData[remotePath].filePath];
+        manifestDiff[remotePath] = ['delete', ''];
       }
     }
     for (const remotePath in newManifestData) {
@@ -189,6 +191,11 @@ export class AwsS3StaticWebsiteService extends Service {
 
     const manifestFileName = `${this.bucketName}-manifest.json`;
     const manifestData = await this.generateSourceManifest();
+
+    // Strip filePath from manifest data to avoid recording local file paths.
+    Object.entries(manifestData).map(([key, value]) => {
+      manifestData[key] = { algorithm: value.algorithm, digest: value.digest } as IManifest[string];
+    });
 
     await stateManagementService.saveState(manifestFileName, Buffer.from(JSON.stringify(manifestData)));
   }
