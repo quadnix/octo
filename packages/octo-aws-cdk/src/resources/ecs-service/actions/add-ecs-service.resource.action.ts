@@ -85,6 +85,7 @@ export class AddEcsServiceResourceAction extends ANodeAction implements IResourc
     );
 
     // Wait for ECS Service to stabilize.
+    this.log('Waiting for ECS Service to stabilize.');
     await waitUntilServicesStable(
       {
         client: ecsClient,

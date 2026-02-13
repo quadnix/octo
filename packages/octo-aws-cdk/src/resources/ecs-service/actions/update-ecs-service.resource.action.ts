@@ -79,6 +79,7 @@ export class UpdateEcsServiceResourceAction extends ANodeAction implements IReso
     );
 
     // Wait for ECS Service to stabilize.
+    this.log('Waiting for ECS Service to stabilize.');
     await waitUntilServicesStable(
       {
         client: ecsClient,

@@ -63,6 +63,7 @@ export class AddAlbResourceAction extends ANodeAction implements IResourceAction
     const LoadBalancerArn = createLoadBalancerOutput.LoadBalancers![0].LoadBalancerArn!;
 
     // Wait for ALB to become available.
+    this.log('Waiting for ALB to become available.');
     await waitUntilLoadBalancerAvailable(
       {
         client: elbv2Client,

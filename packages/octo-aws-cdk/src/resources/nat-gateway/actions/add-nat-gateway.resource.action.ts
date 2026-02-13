@@ -78,6 +78,7 @@ export class AddNatGatewayResourceAction extends ANodeAction implements IResourc
     const natId = natGatewayOutput.NatGateway!.NatGatewayId!;
 
     // Wait for NAT Gateway to become available.
+    this.log('Waiting for NAT Gateway to become available.');
     await waitUntilNatGatewayAvailable(
       {
         client: ec2Client,

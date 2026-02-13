@@ -67,6 +67,7 @@ export class UpdateAlbTargetGroupResourceAction extends ANodeAction implements I
     );
 
     // Wait for ALB Target Group to be healthy.
+    this.log('Waiting for ALB Target Group to be healthy.');
     await waitUntilTargetInService(
       {
         client: elbv2Client,

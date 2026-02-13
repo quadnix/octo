@@ -80,6 +80,7 @@ export class AddAlbTargetGroupResourceAction extends ANodeAction implements IRes
     const TargetGroupArn = createTargetGroupOutput.TargetGroups![0].TargetGroupArn!;
 
     // Wait for ALB Target Group to be healthy.
+    this.log('Waiting for ALB Target Group to be healthy.');
     await waitUntilTargetInService(
       {
         client: elbv2Client,

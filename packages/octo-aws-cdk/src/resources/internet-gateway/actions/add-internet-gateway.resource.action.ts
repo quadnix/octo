@@ -58,6 +58,7 @@ export class AddInternetGatewayResourceAction extends ANodeAction implements IRe
     const igwId = internetGWOutput!.InternetGateway!.InternetGatewayId!;
 
     // Wait for Internet Gateway to become available.
+    this.log('Waiting for Internet Gateway to become available.');
     await waitUntilInternetGatewayExists({ client: ec2Client, maxWaitTime: 60 }, { InternetGatewayIds: [igwId] });
 
     // Attach to VPC.
