@@ -89,10 +89,25 @@ export const runCommand = {
         console.log(JSON.stringify(result.value, null, 2));
       }
     } catch (error: any) {
-      console.log(chalk.red(error.message));
-      for (const failure of error.failures || []) {
-        console.log(chalk.red(failure));
+      // Print errors.
+      console.log(chalk.red(error.stack));
+      for (const errorProperty of Object.getOwnPropertyNames(error) || []) {
+        if (errorProperty !== 'message' && errorProperty !== 'stack') {
+          console.log(chalk.red(`${errorProperty}: ${error[errorProperty]}`));
+        }
       }
+
+      // Print YAML failures.
+      const failures: string[] = error.failures || [];
+      if (failures.length > 0) {
+        console.log('\n');
+        console.log(chalk.red('FAILURES'));
+        console.log(chalk.red('========'));
+      }
+      for (let i = 0; i < failures.length; i++) {
+        console.log(chalk.red(`${i + 1}. ${failures[i]}`));
+      }
+
       process.exit(1);
     }
   },
