@@ -37,9 +37,10 @@ export class AddVpcResourceAction implements IResourceAction<Vpc> {
       new CreateVpcCommand({
         CidrBlock: properties.CidrBlock,
         InstanceTenancy: properties.InstanceTenancy,
-        TagSpecifications: [
-          { ResourceType: 'vpc', Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })) },
-        ],
+        TagSpecifications:
+          Object.keys(tags).length > 0
+            ? [{ ResourceType: 'vpc', Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })) }]
+            : undefined,
       }),
     );
 

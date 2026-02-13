@@ -36,7 +36,10 @@ export class AddIamUserResourceAction implements IResourceAction<IamUser> {
     // Create IAM user.
     const data = await iamClient.send(
       new CreateUserCommand({
-        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+        Tags:
+          Object.keys(tags).length > 0
+            ? Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value }))
+            : undefined,
         UserName: properties.username,
       }),
     );

@@ -52,7 +52,10 @@ export class AddAlbListenerResourceAction implements IResourceAction<AlbListener
         LoadBalancerArn: matchingAlb.getSchemaInstanceInResourceAction().response.LoadBalancerArn,
         Port: properties.Port,
         Protocol: properties.Protocol,
-        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+        Tags:
+          Object.keys(tags).length > 0
+            ? Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value }))
+            : undefined,
       }),
     );
 

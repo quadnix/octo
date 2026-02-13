@@ -1,5 +1,10 @@
-import { AttachInternetGatewayCommand, CreateInternetGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import {
+  AttachInternetGatewayCommand,
+  CreateInternetGatewayCommand,
+  EC2Client,
+  waitUntilInternetGatewayExists,
+} from '@aws-sdk/client-ec2';
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { InternetGatewaySchema } from '../index.schema.js';
 import { InternetGateway } from '../internet-gateway.resource.js';
@@ -8,8 +13,10 @@ import { InternetGateway } from '../internet-gateway.resource.js';
  * @internal
  */
 @Action(InternetGateway)
-export class AddInternetGatewayResourceAction implements IResourceAction<InternetGateway> {
-  constructor(private readonly container: Container) {}
+export class AddInternetGatewayResourceAction extends ANodeAction implements IResourceAction<InternetGateway> {
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -24,37 +31,43 @@ export class AddInternetGatewayResourceAction implements IResourceAction<Interne
     // Get properties.
     const internetGateway = diff.node;
     const properties = internetGateway.properties;
+    const { awsAccountId, awsRegionId } = properties;
     const tags = internetGateway.tags;
     const internetGatewayVpc = internetGateway.parents[0];
 
     // Get instances.
     const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
+      args: [awsAccountId, awsRegionId],
       metadata: { package: '@octo' },
     });
 
     // Create Internet Gateway.
     const internetGWOutput = await ec2Client.send(
       new CreateInternetGatewayCommand({
-        TagSpecifications: [
-          {
-            ResourceType: 'internet-gateway',
-            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
-          },
-        ],
+        TagSpecifications:
+          Object.keys(tags).length > 0
+            ? [
+                {
+                  ResourceType: 'internet-gateway',
+                  Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+                },
+              ]
+            : undefined,
       }),
     );
+    const igwId = internetGWOutput!.InternetGateway!.InternetGatewayId!;
+
+    // Wait for Internet Gateway to become available.
+    await waitUntilInternetGatewayExists({ client: ec2Client, maxWaitTime: 60 }, { InternetGatewayIds: [igwId] });
 
     // Attach to VPC.
     await ec2Client.send(
       new AttachInternetGatewayCommand({
-        InternetGatewayId: internetGWOutput!.InternetGateway!.InternetGatewayId,
+        InternetGatewayId: igwId,
         VpcId: internetGatewayVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );
 
-    const { awsAccountId, awsRegionId } = properties;
-    const igwId = internetGWOutput!.InternetGateway!.InternetGatewayId!;
     return {
       InternetGatewayArn: `arn:aws:ec2:${awsRegionId}:${awsAccountId}:internet-gateway/${igwId}`,
       InternetGatewayId: igwId,
@@ -86,8 +99,7 @@ export class AddInternetGatewayResourceActionFactory {
 
   static async create(): Promise<AddInternetGatewayResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new AddInternetGatewayResourceAction(container);
+      this.instance = new AddInternetGatewayResourceAction();
     }
     return this.instance;
   }

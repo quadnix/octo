@@ -1,7 +1,7 @@
-import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
+import { ECSClient, UpdateServiceCommand, waitUntilServicesStable } from '@aws-sdk/client-ecs';
 import {
+  ANodeAction,
   Action,
-  Container,
   type Diff,
   DiffAction,
   Factory,
@@ -19,8 +19,12 @@ import type { EcsServiceSchema } from '../index.schema.js';
  * @internal
  */
 @Action(EcsService)
-export class UpdateEcsServiceResourceAction implements IResourceAction<EcsService> {
-  constructor(private readonly container: Container) {}
+export class UpdateEcsServiceResourceAction extends ANodeAction implements IResourceAction<EcsService> {
+  actionTimeoutInMs: number = 900000; // 15 minutes.
+
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -74,6 +78,19 @@ export class UpdateEcsServiceResourceAction implements IResourceAction<EcsServic
       }),
     );
 
+    // Wait for ECS Service to stabilize.
+    await waitUntilServicesStable(
+      {
+        client: ecsClient,
+        maxWaitTime: 840, // 14 minutes.
+        minDelay: 30,
+      },
+      {
+        cluster: ecsServiceEcsCluster.getSchemaInstanceInResourceAction().properties.clusterName,
+        services: [properties.serviceName],
+      },
+    );
+
     return {
       serviceArn: data.service!.serviceArn!,
     };
@@ -98,8 +115,7 @@ export class UpdateEcsServiceResourceActionFactory {
 
   static async create(): Promise<UpdateEcsServiceResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new UpdateEcsServiceResourceAction(container);
+      this.instance = new UpdateEcsServiceResourceAction();
     }
     return this.instance;
   }

@@ -2,8 +2,9 @@ import {
   ElasticLoadBalancingV2Client,
   ModifyTargetGroupCommand,
   type ModifyTargetGroupInput,
+  waitUntilTargetInService,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { AlbTargetGroup } from '../alb-target-group.resource.js';
 
@@ -11,8 +12,12 @@ import { AlbTargetGroup } from '../alb-target-group.resource.js';
  * @internal
  */
 @Action(AlbTargetGroup)
-export class UpdateAlbTargetGroupResourceAction implements IResourceAction<AlbTargetGroup> {
-  constructor(private readonly container: Container) {}
+export class UpdateAlbTargetGroupResourceAction extends ANodeAction implements IResourceAction<AlbTargetGroup> {
+  actionTimeoutInMs: number = 900000; // 15 minutes.
+
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -60,6 +65,18 @@ export class UpdateAlbTargetGroupResourceAction implements IResourceAction<AlbTa
         ...(Object.keys(targetGroupHealthCheck).length > 0 ? targetGroupHealthCheck : { HealthCheckEnabled: false }),
       }),
     );
+
+    // Wait for ALB Target Group to be healthy.
+    await waitUntilTargetInService(
+      {
+        client: elbv2Client,
+        maxWaitTime: 600, // 10 minutes.
+        minDelay: 30,
+      },
+      {
+        TargetGroupArn: response.TargetGroupArn,
+      },
+    );
   }
 }
 
@@ -72,8 +89,7 @@ export class UpdateAlbTargetGroupResourceActionFactory {
 
   static async create(): Promise<UpdateAlbTargetGroupResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new UpdateAlbTargetGroupResourceAction(container);
+      this.instance = new UpdateAlbTargetGroupResourceAction();
     }
     return this.instance;
   }

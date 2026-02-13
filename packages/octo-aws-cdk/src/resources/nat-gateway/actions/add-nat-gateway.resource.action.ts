@@ -1,5 +1,10 @@
-import { AllocateAddressCommand, CreateNatGatewayCommand, EC2Client } from '@aws-sdk/client-ec2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import {
+  AllocateAddressCommand,
+  CreateNatGatewayCommand,
+  EC2Client,
+  waitUntilNatGatewayAvailable,
+} from '@aws-sdk/client-ec2';
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { EC2ClientFactory } from '../../../factories/aws-client.factory.js';
 import type { NatGatewaySchema } from '../index.schema.js';
 import { NatGateway } from '../nat-gateway.resource.js';
@@ -8,8 +13,12 @@ import { NatGateway } from '../nat-gateway.resource.js';
  * @internal
  */
 @Action(NatGateway)
-export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> {
-  constructor(private readonly container: Container) {}
+export class AddNatGatewayResourceAction extends ANodeAction implements IResourceAction<NatGateway> {
+  actionTimeoutInMs: number = 900000; // 15 minutes.
+
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -37,12 +46,15 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
     const elasticIpOutput = await ec2Client.send(
       new AllocateAddressCommand({
         Domain: 'vpc',
-        TagSpecifications: [
-          {
-            ResourceType: 'elastic-ip',
-            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
-          },
-        ],
+        TagSpecifications:
+          Object.keys(tags).length > 0
+            ? [
+                {
+                  ResourceType: 'elastic-ip',
+                  Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+                },
+              ]
+            : undefined,
       }),
     );
 
@@ -52,16 +64,31 @@ export class AddNatGatewayResourceAction implements IResourceAction<NatGateway> 
         AllocationId: elasticIpOutput.AllocationId,
         ConnectivityType: properties.ConnectivityType,
         SubnetId: subnet.getSchemaInstanceInResourceAction().response.SubnetId,
-        TagSpecifications: [
-          {
-            ResourceType: 'natgateway',
-            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
-          },
-        ],
+        TagSpecifications:
+          Object.keys(tags).length > 0
+            ? [
+                {
+                  ResourceType: 'natgateway',
+                  Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+                },
+              ]
+            : undefined,
       }),
     );
-
     const natId = natGatewayOutput.NatGateway!.NatGatewayId!;
+
+    // Wait for NAT Gateway to become available.
+    await waitUntilNatGatewayAvailable(
+      {
+        client: ec2Client,
+        maxWaitTime: 840, // 14 minutes.
+        minDelay: 30,
+      },
+      {
+        NatGatewayIds: [natId],
+      },
+    );
+
     return {
       AllocationId: elasticIpOutput.AllocationId!,
       NatGatewayArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:natgateway/${natId}`,
@@ -94,8 +121,7 @@ export class AddNatGatewayResourceActionFactory {
 
   static async create(): Promise<AddNatGatewayResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new AddNatGatewayResourceAction(container);
+      this.instance = new AddNatGatewayResourceAction();
     }
     return this.instance;
   }

@@ -43,12 +43,15 @@ export class AddRouteTableResourceAction implements IResourceAction<RouteTable> 
     // Create Route Table.
     const routeTableOutput = await ec2Client.send(
       new CreateRouteTableCommand({
-        TagSpecifications: [
-          {
-            ResourceType: 'route-table',
-            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
-          },
-        ],
+        TagSpecifications:
+          Object.keys(tags).length > 0
+            ? [
+                {
+                  ResourceType: 'route-table',
+                  Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+                },
+              ]
+            : undefined,
         VpcId: routeTableVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );

@@ -48,7 +48,10 @@ export class AddEfsResourceAction implements IResourceAction<Efs> {
         Backup: false,
         Encrypted: false,
         PerformanceMode: 'generalPurpose',
-        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+        Tags:
+          Object.keys(tags).length > 0
+            ? Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value }))
+            : undefined,
         ThroughputMode: 'bursting',
       }),
     );

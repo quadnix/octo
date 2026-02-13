@@ -36,7 +36,7 @@ export class AddEcsClusterResourceAction implements IResourceAction<EcsCluster> 
     const data = await ecsClient.send(
       new CreateClusterCommand({
         clusterName: properties.clusterName,
-        tags: Object.entries(tags).map(([key, value]) => ({ key, value })),
+        tags: Object.keys(tags).length > 0 ? Object.entries(tags).map(([key, value]) => ({ key, value })) : undefined,
       }),
     );
 

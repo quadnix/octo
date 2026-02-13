@@ -38,12 +38,15 @@ export class AddSubnetResourceAction implements IResourceAction<Subnet> {
       new CreateSubnetCommand({
         AvailabilityZone: properties.AvailabilityZone,
         CidrBlock: properties.CidrBlock,
-        TagSpecifications: [
-          {
-            ResourceType: 'subnet',
-            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
-          },
-        ],
+        TagSpecifications:
+          Object.keys(tags).length > 0
+            ? [
+                {
+                  ResourceType: 'subnet',
+                  Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+                },
+              ]
+            : undefined,
         VpcId: subnetVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );

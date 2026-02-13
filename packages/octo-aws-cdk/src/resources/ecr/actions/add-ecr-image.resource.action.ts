@@ -40,7 +40,10 @@ export class AddEcrImageResourceAction implements IResourceAction<EcrImage> {
         },
         imageTagMutability: 'IMMUTABLE',
         repositoryName: properties.imageId,
-        tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+        tags:
+          Object.keys(tags).length > 0
+            ? Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value }))
+            : undefined,
       }),
     );
 

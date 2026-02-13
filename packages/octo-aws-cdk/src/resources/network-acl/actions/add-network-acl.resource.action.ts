@@ -58,12 +58,15 @@ export class AddNetworkAclResourceAction implements IResourceAction<NetworkAcl> 
     // Create Network ACL.
     const naclOutput = await ec2Client.send(
       new CreateNetworkAclCommand({
-        TagSpecifications: [
-          {
-            ResourceType: 'network-acl',
-            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
-          },
-        ],
+        TagSpecifications:
+          Object.keys(tags).length > 0
+            ? [
+                {
+                  ResourceType: 'network-acl',
+                  Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+                },
+              ]
+            : undefined,
         VpcId: networkAclVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );

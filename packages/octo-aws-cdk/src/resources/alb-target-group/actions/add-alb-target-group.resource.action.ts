@@ -2,8 +2,9 @@ import {
   CreateTargetGroupCommand,
   type CreateTargetGroupInput,
   ElasticLoadBalancingV2Client,
+  waitUntilTargetInService,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { AlbTargetGroup } from '../alb-target-group.resource.js';
 import type { AlbTargetGroupSchema } from '../index.schema.js';
@@ -12,8 +13,12 @@ import type { AlbTargetGroupSchema } from '../index.schema.js';
  * @internal
  */
 @Action(AlbTargetGroup)
-export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTargetGroup> {
-  constructor(private readonly container: Container) {}
+export class AddAlbTargetGroupResourceAction extends ANodeAction implements IResourceAction<AlbTargetGroup> {
+  actionTimeoutInMs: number = 900000; // 15 minutes.
+
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -63,15 +68,31 @@ export class AddAlbTargetGroupResourceAction implements IResourceAction<AlbTarge
         Port: properties.Port,
         Protocol: properties.Protocol,
         ProtocolVersion: properties.ProtocolVersion,
-        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+        Tags:
+          Object.keys(tags).length > 0
+            ? Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value }))
+            : undefined,
         TargetType: properties.TargetType,
         VpcId: matchingAlbTargetGroupVpc.getSchemaInstanceInResourceAction().response.VpcId,
         ...(Object.keys(targetGroupHealthCheck).length > 0 ? targetGroupHealthCheck : { HealthCheckEnabled: false }),
       }),
     );
+    const TargetGroupArn = createTargetGroupOutput.TargetGroups![0].TargetGroupArn!;
+
+    // Wait for ALB Target Group to be healthy.
+    await waitUntilTargetInService(
+      {
+        client: elbv2Client,
+        maxWaitTime: 600, // 10 minutes.
+        minDelay: 30,
+      },
+      {
+        TargetGroupArn,
+      },
+    );
 
     return {
-      TargetGroupArn: createTargetGroupOutput.TargetGroups![0].TargetGroupArn!,
+      TargetGroupArn,
     };
   }
 
@@ -94,8 +115,7 @@ export class AddAlbTargetGroupResourceActionFactory {
 
   static async create(): Promise<AddAlbTargetGroupResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new AddAlbTargetGroupResourceAction(container);
+      this.instance = new AddAlbTargetGroupResourceAction();
     }
     return this.instance;
   }

@@ -56,7 +56,10 @@ export class AddIamRoleResourceAction implements IResourceAction<IamRole> {
           Version: '2012-10-17',
         }),
         RoleName: properties.rolename,
-        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+        Tags:
+          Object.keys(tags).length > 0
+            ? Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value }))
+            : undefined,
       }),
     );
 

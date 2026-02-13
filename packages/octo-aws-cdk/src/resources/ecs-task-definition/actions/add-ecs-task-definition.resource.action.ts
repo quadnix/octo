@@ -60,7 +60,7 @@ export class AddEcsTaskDefinitionResourceAction implements IResourceAction<EcsTa
         memory: String(properties.memory),
         networkMode: 'awsvpc',
         requiresCompatibilities: ['FARGATE'],
-        tags: Object.entries(tags).map(([key, value]) => ({ key, value })),
+        tags: Object.keys(tags).length > 0 ? Object.entries(tags).map(([key, value]) => ({ key, value })) : undefined,
         taskRoleArn: matchingEcsTaskDefinitionIamRole.getSchemaInstanceInResourceAction().response.Arn,
         volumes: matchingEcsTaskDefinitionEfsList.map((efs) => ({
           efsVolumeConfiguration: {

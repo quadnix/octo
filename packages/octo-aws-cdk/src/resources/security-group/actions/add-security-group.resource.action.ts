@@ -43,12 +43,15 @@ export class AddSecurityGroupResourceAction implements IResourceAction<SecurityG
       new CreateSecurityGroupCommand({
         Description: securityGroup.resourceId,
         GroupName: securityGroup.resourceId,
-        TagSpecifications: [
-          {
-            ResourceType: 'security-group',
-            Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
-          },
-        ],
+        TagSpecifications:
+          Object.keys(tags).length > 0
+            ? [
+                {
+                  ResourceType: 'security-group',
+                  Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+                },
+              ]
+            : undefined,
         VpcId: securityGroupVpc.getSchemaInstanceInResourceAction().response.VpcId,
       }),
     );

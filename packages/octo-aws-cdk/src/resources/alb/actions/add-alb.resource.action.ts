@@ -1,5 +1,9 @@
-import { CreateLoadBalancerCommand, ElasticLoadBalancingV2Client } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
+import {
+  CreateLoadBalancerCommand,
+  ElasticLoadBalancingV2Client,
+  waitUntilLoadBalancerAvailable,
+} from '@aws-sdk/client-elastic-load-balancing-v2';
+import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
 import { Alb } from '../alb.resource.js';
 import type { AlbSchema } from '../index.schema.js';
@@ -8,8 +12,12 @@ import type { AlbSchema } from '../index.schema.js';
  * @internal
  */
 @Action(Alb)
-export class AddAlbResourceAction implements IResourceAction<Alb> {
-  constructor(private readonly container: Container) {}
+export class AddAlbResourceAction extends ANodeAction implements IResourceAction<Alb> {
+  actionTimeoutInMs: number = 900000; // 15 minutes.
+
+  constructor() {
+    super();
+  }
 
   filter(diff: Diff): boolean {
     return (
@@ -45,14 +53,28 @@ export class AddAlbResourceAction implements IResourceAction<Alb> {
         Scheme: properties.Scheme,
         SecurityGroups: [matchingAlbSecurityGroup.getSchemaInstanceInResourceAction().response.GroupId],
         Subnets: matchingAlbSubnets.map((s) => s.getSchemaInstanceInResourceAction().response.SubnetId),
-        Tags: Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value })),
+        Tags:
+          Object.keys(tags).length > 0
+            ? Object.entries(tags).map(([key, value]) => ({ Key: key, Value: value }))
+            : undefined,
         Type: properties.Type,
       }),
+    );
+    const LoadBalancerArn = createLoadBalancerOutput.LoadBalancers![0].LoadBalancerArn!;
+
+    // Wait for ALB to become available.
+    await waitUntilLoadBalancerAvailable(
+      {
+        client: elbv2Client,
+        maxWaitTime: 840, // 14 minutes.
+        minDelay: 30,
+      },
+      { LoadBalancerArns: [LoadBalancerArn] },
     );
 
     return {
       DNSName: createLoadBalancerOutput.LoadBalancers![0].DNSName!,
-      LoadBalancerArn: createLoadBalancerOutput.LoadBalancers![0].LoadBalancerArn!,
+      LoadBalancerArn,
     };
   }
 
@@ -73,8 +95,7 @@ export class AddAlbResourceActionFactory {
 
   static async create(): Promise<AddAlbResourceAction> {
     if (!this.instance) {
-      const container = Container.getInstance();
-      this.instance = new AddAlbResourceAction(container);
+      this.instance = new AddAlbResourceAction();
     }
     return this.instance;
   }
