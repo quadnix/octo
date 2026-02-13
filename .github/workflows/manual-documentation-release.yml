@@ -78,7 +78,7 @@ jobs:
         run: |
           if [ -n "$(git status --porcelain apps/octo-docs/.octo)" ]; then
             git add apps/octo-docs/.octo
-            git commit --no-verify -m "chore(docs): update generated documentation artifacts [skip ci]"
+            git commit --no-verify -m "chore(release): docs publish."
           else
             echo "No documentation changes to commit."
           fi
