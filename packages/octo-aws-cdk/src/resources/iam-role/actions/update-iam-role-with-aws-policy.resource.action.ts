@@ -1,4 +1,9 @@
-import { AttachRolePolicyCommand, DetachRolePolicyCommand, IAMClient } from '@aws-sdk/client-iam';
+import {
+  AttachRolePolicyCommand,
+  DetachRolePolicyCommand,
+  IAMClient,
+  ListAttachedRolePoliciesCommand,
+} from '@aws-sdk/client-iam';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import type { IAMClientFactory } from '../../../factories/aws-client.factory.js';
 import { type IIamRolePolicyDiff, IamRole, isAddPolicyDiff, isDeletePolicyDiff } from '../iam-role.resource.js';
@@ -49,12 +54,22 @@ export class UpdateIamRoleWithAwsPolicyResourceAction implements IResourceAction
         policies,
       };
     } else if (isDeletePolicyDiff(iamRolePolicyDiff)) {
-      await iamClient.send(
-        new DetachRolePolicyCommand({
-          PolicyArn: iamRolePolicyDiff.policyId,
-          RoleName: response.RoleName,
-        }),
+      // Before deleting policy from role, check if the policy is attached.
+      const listAttachedRolePoliciesCommandResponse = await iamClient.send(
+        new ListAttachedRolePoliciesCommand({ RoleName: response.RoleName }),
       );
+      const isPolicyAttached = listAttachedRolePoliciesCommandResponse.AttachedPolicies?.some(
+        (p) => p.PolicyArn === iamRolePolicyDiff.policyId,
+      );
+
+      if (isPolicyAttached) {
+        await iamClient.send(
+          new DetachRolePolicyCommand({
+            PolicyArn: iamRolePolicyDiff.policyId,
+            RoleName: response.RoleName,
+          }),
+        );
+      }
 
       const policies = { ...response.policies };
       delete policies![iamRolePolicyDiff.policyId];
