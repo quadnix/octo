@@ -103,18 +103,7 @@ export default class extends Generator {
     // Create src directory and main files
     if (this.appTemplate === 'aws-ecs-server') {
       const templatePath = `src/${this.appTemplate}`;
-      this.fs.copyTpl(
-        this.templatePath(`${templatePath}/app.config.ts.ejs`),
-        this.destinationPath('src/app.config.ts'),
-      );
-      this.fs.copyTpl(this.templatePath(`${templatePath}/env.ejs`), this.destinationPath('.env'));
-      this.fs.copyTpl(this.templatePath(`${templatePath}/main.ts.ejs`), this.destinationPath('src/main.ts'), {
-        name: this.appName,
-      });
-      this.fs.copyTpl(
-        this.templatePath(`${templatePath}/module-definitions.ts.ejs`),
-        this.destinationPath('src/module-definitions.ts'),
-      );
+      this.fs.copyTpl(this.templatePath(`${templatePath}/octo.yaml.ejs`), this.destinationPath('octo.yaml'));
     } else if (this.appTemplate === 'aws-s3-website') {
       const templatePath = `src/${this.appTemplate}`;
       this.fs.copyTpl(

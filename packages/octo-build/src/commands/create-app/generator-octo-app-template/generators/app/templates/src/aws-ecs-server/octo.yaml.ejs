@@ -1,0 +1,184 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/quadnix/octo/refs/heads/main/packages/octo-build/src/resources/octo-v1.schema.json
+
+version: 1
+
+env:
+  - key: AWS_ACCOUNT_ID
+    kind: string
+    value: "123456789123"
+
+settings:
+  listeners:
+    - type: HtmlReportEventListener
+    - type: LoggingEventListener
+
+  stateProvider:
+    type: LocalStateProvider
+    statePath: .octo
+
+imports:
+  - className: SimpleAppModule
+    importPath: "@quadnix/octo-aws-cdk/modules/app/simple-app"
+  - className: AwsIniAccountModule
+    importPath: "@quadnix/octo-aws-cdk/modules/account/aws-ini-account"
+  - className: AwsEcsDeploymentModule
+    importPath: "@quadnix/octo-aws-cdk/modules/deployment/aws-ecs-deployment"
+  - className: AwsEcsEnvironmentModule
+    importPath: "@quadnix/octo-aws-cdk/modules/environment/aws-ecs-environment"
+  - className: AwsEcsExecutionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/execution/aws-ecs-execution"
+  - className: AwsMultiAzRegionModule
+    importPath: "@quadnix/octo-aws-cdk/modules/region/aws-multi-az-region"
+  - className: AwsEcsServerModule
+    importPath: "@quadnix/octo-aws-cdk/modules/server/aws-ecs-server"
+  - className: AwsEcsAlbServiceModule
+    importPath: "@quadnix/octo-aws-cdk/modules/service/aws-ecs-alb-service"
+  - className: AwsSimpleSubnetModule
+    importPath: "@quadnix/octo-aws-cdk/modules/subnet/aws-simple-subnet"
+
+modules:
+  - moduleId: app-module
+    moduleClass: SimpleAppModule
+    moduleInputs:
+      name: aws-ecs-server
+
+  - moduleId: account-module
+    moduleClass: AwsIniAccountModule
+    moduleInputs:
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      app: "${{app-module.model.app}}"
+
+  - moduleId: region-module
+    moduleClass: AwsMultiAzRegionModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      name: app-region-east
+      regionIds:
+        - aws-us-east-1a
+        - aws-us-east-1b
+      vpcCidrBlock: 10.0.0.0/16
+
+  - moduleId: backend-server-module
+    moduleClass: AwsEcsServerModule
+    moduleInputs:
+      account: "${{account-module.model.account}}"
+      serverKey: backend
+
+  - moduleId: backend-deployment-v1-module
+    moduleClass: AwsEcsDeploymentModule
+    moduleInputs:
+      deploymentContainerProperties:
+        cpu: 256
+        image:
+          command: node webserver
+          ports:
+            - containerPort: 80
+              protocol: tcp
+          uri: docker.io/ealen/echo-server:0.9.2
+        memory: 512
+      deploymentTag: v1
+      server: "${{backend-server-module.model.server}}"
+
+  - moduleId: qa-environment-module
+    moduleClass: AwsEcsEnvironmentModule
+    moduleInputs:
+      environmentName: qa
+      environmentVariables:
+        NODE_ENV: qa
+      region: "${{region-module.model.region}}"
+
+  - moduleId: public-subnet-module
+    moduleClass: AwsSimpleSubnetModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      subnetAvailabilityZone: us-east-1a
+      subnetCidrBlock: 10.0.0.0/24
+      subnetName: public-subnet
+      subnetOptions:
+        createNatGateway: true
+        disableSubnetIntraNetwork: false
+        subnetType: public
+
+  - moduleId: public-backup-subnet-module
+    moduleClass: AwsSimpleSubnetModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      subnetAvailabilityZone: us-east-1b
+      subnetCidrBlock: 10.0.1.0/24
+      subnetName: public-backup-subnet
+      subnetOptions:
+        createNatGateway: false
+        disableSubnetIntraNetwork: false
+        subnetType: public
+
+  - moduleId: private-subnet-module
+    moduleClass: AwsSimpleSubnetModule
+    moduleInputs:
+      region: "${{region-module.model.region}}"
+      subnetAvailabilityZone: us-east-1a
+      subnetCidrBlock: 10.0.2.0/24
+      subnetName: private-subnet
+      subnetOptions:
+        createNatGateway: false
+        disableSubnetIntraNetwork: true
+        subnetType: private
+      subnetSiblings:
+        - attachToNatGateway: true
+          subnet: "${{public-subnet-module.model.subnet}}"
+        - attachToNatGateway: false
+          subnet: "${{public-backup-subnet-module.model.subnet}}"
+
+  - moduleId: backend-v1-qa-execution-module
+    moduleClass: AwsEcsExecutionModule
+    moduleInputs:
+      deployments:
+        main:
+          containerProperties:
+            image:
+              essential: true
+              name: backend-v1
+          deployment: "${{backend-deployment-v1-module.model.deployment}}"
+        sidecars: []
+      desiredCount: 1
+      environment: "${{qa-environment-module.model.environment}}"
+      executionId: backend-v1-qa-execution
+      securityGroupRules:
+        - CidrBlock: 0.0.0.0/0
+          Egress: false
+          FromPort: 80
+          IpProtocol: tcp
+          ToPort: 80
+      subnet: "${{private-subnet-module.model.subnet}}"
+
+  - moduleId: qa-api-alb-module
+    moduleClass: AwsEcsAlbServiceModule
+    moduleInputs:
+      albName: qa-api-alb
+      listeners:
+        - DefaultActions:
+            - action:
+                TargetGroups:
+                  - targetGroupName: backend-v1-80
+                    Weight: 100
+              actionType: forward
+          Port: 80
+          rules: []
+      region: "${{region-module.model.region}}"
+      subnets:
+        - "${{public-subnet-module.model.subnet}}"
+        - "${{public-backup-subnet-module.model.subnet}}"
+      targets:
+        - containerName: backend-v1
+          containerPort: 80
+          execution: "${{backend-v1-qa-execution-module.model.execution}}"
+          healthCheck:
+            HealthCheckIntervalSeconds: 30
+            HealthCheckPath: /
+            HealthCheckPort: 80
+            HealthCheckProtocol: HTTP
+            HealthCheckTimeoutSeconds: 5
+            HealthyThresholdCount: 2
+            Matcher:
+              HttpCode: 200
+            UnhealthyThresholdCount: 2
+          Name: backend-v1-80

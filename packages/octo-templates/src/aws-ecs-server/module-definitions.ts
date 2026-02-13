@@ -81,7 +81,6 @@ export class ModuleDefinitions {
         image: {
           command: 'node webserver',
           ports: [{ containerPort: 80, protocol: 'tcp' }],
-          // eslint-disable-next-line spellcheck/spell-checker
           uri: 'docker.io/ealen/echo-server:0.9.2',
         },
         memory: 512,

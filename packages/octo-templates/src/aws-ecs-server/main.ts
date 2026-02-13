@@ -8,8 +8,10 @@ import { ModuleDefinitions } from './module-definitions.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const octoStatePath = join(__dirname, '.octo');
 
-const octo = new Octo();
 const stateProvider = new LocalStateProvider(octoStatePath);
+const { lockId: appLockId } = await stateProvider.lockApp();
+
+const octo = new Octo();
 await octo.initialize(stateProvider, [{ type: HtmlReportEventListener }, { type: LoggingEventListener }]);
 
 const container = Container.getInstance();
@@ -20,5 +22,7 @@ for (const moduleDefinition of moduleDefinitions.getAll()) {
 octo.orderModules(moduleDefinitions.getAll().map((m) => m.module));
 
 const { 'app-module.model.app': app } = (await octo.compose()) as { 'app-module.model.app': App };
-const transaction = octo.beginTransaction(app);
+const transaction = octo.beginTransaction(app, { appLockId });
 await transaction.next();
+
+await stateProvider.unlockApp(appLockId);
