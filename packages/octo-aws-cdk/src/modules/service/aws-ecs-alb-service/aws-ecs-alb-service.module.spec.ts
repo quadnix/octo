@@ -5,7 +5,7 @@ import {
   DescribeSecurityGroupsCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
-import { ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
+import { DescribeServicesCommand, ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
 import {
   CreateListenerCommand,
   CreateLoadBalancerCommand,
@@ -281,12 +281,25 @@ describe('AwsEcsAlbServiceModule UT', () => {
       .on(DescribeSecurityGroupsCommand)
       .resolves({ SecurityGroups: [] });
 
-    ECSClientMock.on(UpdateServiceCommand).resolves({
-      service: {
-        serviceArn: 'arn:aws:ecs:us-east-1:123:service/cluster/service-name',
-        serviceName: 'service-name',
-      },
-    });
+    ECSClientMock.on(UpdateServiceCommand)
+      .resolves({
+        service: {
+          serviceArn: 'arn:aws:ecs:us-east-1:123:service/cluster/service-name',
+          serviceName: 'service-name',
+        },
+      })
+      .on(DescribeServicesCommand)
+      .resolves({
+        failures: [],
+        services: [
+          {
+            deployments: [{}],
+            desiredCount: 1,
+            runningCount: 1,
+            status: 'ACTIVE',
+          },
+        ],
+      });
 
     ElasticLoadBalancingV2ClientMock.on(CreateTargetGroupCommand)
       .resolves({
@@ -322,6 +335,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         ],
       })
       .on(DescribeLoadBalancersCommand)
+      .resolvesOnce({
+        LoadBalancers: [{ State: { Code: 'active' } }],
+      })
       .resolves({ LoadBalancers: [] });
 
     ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});

@@ -2,7 +2,6 @@ import {
   CreateTargetGroupCommand,
   type CreateTargetGroupInput,
   ElasticLoadBalancingV2Client,
-  waitUntilTargetInService,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
 import { ANodeAction, Action, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
 import { ElasticLoadBalancingV2ClientFactory } from '../../../factories/aws-client.factory.js';
@@ -78,19 +77,6 @@ export class AddAlbTargetGroupResourceAction extends ANodeAction implements IRes
       }),
     );
     const TargetGroupArn = createTargetGroupOutput.TargetGroups![0].TargetGroupArn!;
-
-    // Wait for ALB Target Group to be healthy.
-    this.log('Waiting for ALB Target Group to be healthy.');
-    await waitUntilTargetInService(
-      {
-        client: elbv2Client,
-        maxWaitTime: 600, // 10 minutes.
-        minDelay: 30,
-      },
-      {
-        TargetGroupArn,
-      },
-    );
 
     return {
       TargetGroupArn,

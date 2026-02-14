@@ -1,4 +1,9 @@
-import { CreateInternetGatewayCommand, CreateVpcCommand, EC2Client } from '@aws-sdk/client-ec2';
+import {
+  CreateInternetGatewayCommand,
+  CreateVpcCommand,
+  DescribeInternetGatewaysCommand,
+  EC2Client,
+} from '@aws-sdk/client-ec2';
 import {
   ResourceGroupsTaggingAPIClient,
   TagResourcesCommand,
@@ -39,7 +44,9 @@ describe('AwsSingleAzRegionModule UT', () => {
     EC2ClientMock.on(CreateVpcCommand)
       .resolves({ Vpc: { VpcId: 'VpcId' } })
       .on(CreateInternetGatewayCommand)
-      .resolves({ InternetGateway: { InternetGatewayId: 'InternetGatewayId' } });
+      .resolves({ InternetGateway: { InternetGatewayId: 'InternetGatewayId' } })
+      .on(DescribeInternetGatewaysCommand)
+      .resolves({ InternetGateways: [{ InternetGatewayId: 'InternetGatewayId' }] });
 
     ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
 

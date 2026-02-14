@@ -1,4 +1,10 @@
-import { CreatePolicyCommand, CreateRoleCommand, GetRoleCommand, IAMClient } from '@aws-sdk/client-iam';
+import {
+  CreatePolicyCommand,
+  CreateRoleCommand,
+  GetRoleCommand,
+  IAMClient,
+  ListAttachedRolePoliciesCommand,
+} from '@aws-sdk/client-iam';
 import {
   ResourceGroupsTaggingAPIClient,
   TagResourcesCommand,
@@ -97,7 +103,9 @@ describe('AwsEcsServerModule UT', () => {
         Policy: {
           Arn: 'arn:aws:iam::123:policy/PolicyName',
         },
-      });
+      })
+      .on(ListAttachedRolePoliciesCommand)
+      .resolves({ AttachedPolicies: [] });
 
     ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
 
