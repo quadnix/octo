@@ -21,8 +21,10 @@ for (const moduleDefinition of moduleDefinitions.getAll()) {
 }
 octo.orderModules(moduleDefinitions.getAll().map((m) => m.module));
 
-const { 'app-module.model.app': app } = (await octo.compose()) as { 'app-module.model.app': App };
-const transaction = octo.beginTransaction(app, { appLockId });
-await transaction.next();
-
-await stateProvider.unlockApp(appLockId);
+try {
+  const { 'app-module.model.app': app } = (await octo.compose()) as { 'app-module.model.app': App };
+  const transaction = octo.beginTransaction(app, { appLockId });
+  await transaction.next();
+} finally {
+  await stateProvider.unlockApp(appLockId);
+}
