@@ -57,12 +57,12 @@ export class AwsSingleAzRegionModule extends AModule<AwsSingleAzRegionModuleSche
     }
 
     // Check for unique regionId.
-    if (accountRegions.some((r) => r.regionId === `${this.moduleId}-${inputs.name}`)) {
+    if (accountRegions.some((r) => r.regionId === `${inputs.name}`)) {
       throw new Error(`Region "${inputs.name}" already exists!`);
     }
 
     // Create a new region.
-    const region = new AwsSingleAzRegion(`${this.moduleId}-${inputs.name}`, inputs.regionId);
+    const region = new AwsSingleAzRegion(`${inputs.name}`, inputs.regionId);
     account.addRegion(region);
 
     // Add anchors.

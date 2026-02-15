@@ -98,7 +98,6 @@ describe('AwsSingleAzRegionModule UT', () => {
       moduleId: 'region',
       type: AwsSingleAzRegionModule,
     });
-
     const result = await testModuleContainer.commit(app, {
       enableResourceCapture: true,
       filterByModuleIds: ['region'],
@@ -123,7 +122,7 @@ describe('AwsSingleAzRegionModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSingleAzRegionModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -134,45 +133,43 @@ describe('AwsSingleAzRegionModule UT', () => {
       moduleId: 'region',
       type: AwsSingleAzRegionModule,
     });
-
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/vpc=vpc-region-test-region",
-           "value": "@octo/vpc=vpc-region-test-region",
+           "node": "@octo/vpc=vpc-test-region",
+           "value": "@octo/vpc=vpc-test-region",
          },
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-region-test-region",
-           "value": "@octo/internet-gateway=igw-region-test-region",
+           "node": "@octo/internet-gateway=igw-test-region",
+           "value": "@octo/internet-gateway=igw-test-region",
          },
        ],
        [],
      ]
     `);
 
-    const { app: app2 } = await setup(testModuleContainer);
-
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const { app: appDelete } = await setup(testModuleContainer);
+    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
+    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/vpc=vpc-region-test-region",
-           "value": "@octo/vpc=vpc-region-test-region",
+           "node": "@octo/vpc=vpc-test-region",
+           "value": "@octo/vpc=vpc-test-region",
          },
          {
            "action": "delete",
            "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-region-test-region",
-           "value": "@octo/internet-gateway=igw-region-test-region",
+           "node": "@octo/internet-gateway=igw-test-region",
+           "value": "@octo/internet-gateway=igw-test-region",
          },
        ],
        [],
@@ -182,7 +179,7 @@ describe('AwsSingleAzRegionModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSingleAzRegionModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -193,21 +190,21 @@ describe('AwsSingleAzRegionModule UT', () => {
       moduleId: 'region',
       type: AwsSingleAzRegionModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/vpc=vpc-region-test-region",
-           "value": "@octo/vpc=vpc-region-test-region",
+           "node": "@octo/vpc=vpc-test-region",
+           "value": "@octo/vpc=vpc-test-region",
          },
          {
            "action": "add",
            "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-region-test-region",
-           "value": "@octo/internet-gateway=igw-region-test-region",
+           "node": "@octo/internet-gateway=igw-test-region",
+           "value": "@octo/internet-gateway=igw-test-region",
          },
        ],
        [],
@@ -215,7 +212,7 @@ describe('AwsSingleAzRegionModule UT', () => {
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSingleAzRegionModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -226,14 +223,14 @@ describe('AwsSingleAzRegionModule UT', () => {
       moduleId: 'region',
       type: AwsSingleAzRegionModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
+    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
            "action": "update",
            "field": "tags",
-           "node": "@octo/vpc=vpc-region-test-region",
+           "node": "@octo/vpc=vpc-test-region",
            "value": {
              "add": {
                "tag2": "value2",
@@ -247,7 +244,7 @@ describe('AwsSingleAzRegionModule UT', () => {
          {
            "action": "update",
            "field": "tags",
-           "node": "@octo/internet-gateway=igw-region-test-region",
+           "node": "@octo/internet-gateway=igw-test-region",
            "value": {
              "add": {
                "tag2": "value2",
@@ -263,7 +260,7 @@ describe('AwsSingleAzRegionModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSingleAzRegionModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -274,14 +271,14 @@ describe('AwsSingleAzRegionModule UT', () => {
       moduleId: 'region',
       type: AwsSingleAzRegionModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
+    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
            "action": "update",
            "field": "tags",
-           "node": "@octo/vpc=vpc-region-test-region",
+           "node": "@octo/vpc=vpc-test-region",
            "value": {
              "add": {},
              "delete": [
@@ -294,7 +291,7 @@ describe('AwsSingleAzRegionModule UT', () => {
          {
            "action": "update",
            "field": "tags",
-           "node": "@octo/internet-gateway=igw-region-test-region",
+           "node": "@octo/internet-gateway=igw-test-region",
            "value": {
              "add": {},
              "delete": [
@@ -308,5 +305,211 @@ describe('AwsSingleAzRegionModule UT', () => {
        [],
      ]
     `);
+  });
+
+  it('should handle moduleId changes', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        name: 'test-region',
+        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+        vpcCidrBlock: '10.0.0.0/8',
+      },
+      moduleId: 'region-1',
+      type: AwsSingleAzRegionModule,
+    });
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/vpc=vpc-test-region",
+           "value": "@octo/vpc=vpc-test-region",
+         },
+         {
+           "action": "add",
+           "field": "resourceId",
+           "node": "@octo/internet-gateway=igw-test-region",
+           "value": "@octo/internet-gateway=igw-test-region",
+         },
+       ],
+       [],
+     ]
+    `);
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        name: 'test-region',
+        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+        vpcCidrBlock: '10.0.0.0/8',
+      },
+      moduleId: 'region-2',
+      type: AwsSingleAzRegionModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
+  });
+
+  describe('validation', () => {
+    it('should validate overlapping CIDR blocks', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region-1',
+            regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region1',
+          type: AwsSingleAzRegionModule,
+        });
+        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region-2',
+            regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region2',
+          type: AwsSingleAzRegionModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
+    });
+
+    it('should handle name change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          name: 'test-region',
+          regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+          vpcCidrBlock: '10.0.0.0/8',
+        },
+        moduleId: 'region',
+        type: AwsSingleAzRegionModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateName } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          name: 'changed-region',
+          regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
+          vpcCidrBlock: '10.0.0.0/8',
+        },
+        moduleId: 'region',
+        type: AwsSingleAzRegionModule,
+      });
+      const resultUpdateName = await testModuleContainer.commit(appUpdateName, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateName.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/vpc=vpc-test-region",
+             "value": "@octo/vpc=vpc-test-region",
+           },
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/internet-gateway=igw-test-region",
+             "value": "@octo/internet-gateway=igw-test-region",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/vpc=vpc-changed-region",
+             "value": "@octo/vpc=vpc-changed-region",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/internet-gateway=igw-changed-region",
+             "value": "@octo/internet-gateway=igw-changed-region",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle regionId change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          name: 'test-region',
+          regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+          vpcCidrBlock: '10.0.0.0/8',
+        },
+        moduleId: 'region',
+        type: AwsSingleAzRegionModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateRegionId } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          name: 'test-region',
+          regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
+          vpcCidrBlock: '10.0.0.0/8',
+        },
+        moduleId: 'region',
+        type: AwsSingleAzRegionModule,
+      });
+      await expect(async () => {
+        await testModuleContainer.commit(appUpdateRegionId, {
+          enableResourceCapture: true,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Cannot update VPC once it has been created!"`);
+    });
+
+    it('should handle vpcCidrBlock change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          name: 'test-region',
+          regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+          vpcCidrBlock: '10.0.0.0/8',
+        },
+        moduleId: 'region',
+        type: AwsSingleAzRegionModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateVpcCidrBlock } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          name: 'test-region',
+          regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+          vpcCidrBlock: '10.0.0.0/16',
+        },
+        moduleId: 'region',
+        type: AwsSingleAzRegionModule,
+      });
+      await expect(async () => {
+        await testModuleContainer.commit(appUpdateVpcCidrBlock, {
+          enableResourceCapture: true,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Cannot update VPC once it has been created!"`);
+    });
   });
 });

@@ -106,7 +106,7 @@ However, the CLI tool is a just a thin wrapper around TypeScript.
 Behind the scenes we generate the same TypeScript script you would have written to run the app.
 So let's look at how a TypeScript script runs the app.
 
-To run an Octo app, you first need to initialize it using below code.
+To run an Octo app, you first need to create a lock and initialize Octo using below code.
 Here we initialized the main `Octo` class with the `LocalStateProvider` state provider,
 which will store the state in a local file.<br/>
 We also passed it the `HtmlReportEventListener` and `LoggingEventListener` listeners
@@ -147,13 +147,16 @@ Knowing that `app` is our root node, we get this node from the first module you 
 and pass it to the `beginTransaction()` method,
 which would start to calculate diffs in each model node,
 gather all resource nodes, compare all resource nodes with previous state, and generate diffs.<br/>
-It would then run each affected resource's actions, and finally commit the transaction by updating the state.
+It would then run each affected resource's actions, and commit the transaction by updating the state.
+Finally, the app-lock is released.
 ```typescript title="main.ts"
-const { 'app-module.model.app': app } = (await octo.compose()) as { 'app-module.model.app': App };
-const transaction = octo.beginTransaction(app, { appLockId });
-await transaction.next();
-
-await stateProvider.unlockApp(appLockId);
+try {
+  const { 'app-module.model.app': app } = (await octo.compose()) as { 'app-module.model.app': App };
+  const transaction = octo.beginTransaction(app, { appLockId });
+  await transaction.next();
+} finally {
+  await stateProvider.unlockApp(appLockId);
+}
 ```
 
 ## HTML Reports

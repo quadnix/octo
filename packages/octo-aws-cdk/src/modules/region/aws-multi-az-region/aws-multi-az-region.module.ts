@@ -62,12 +62,12 @@ export class AwsMultiAzRegionModule extends AModule<AwsMultiAzRegionModuleSchema
     }
 
     // Check for unique regionId.
-    if (accountRegions.some((r) => r.regionId === `${this.moduleId}-${inputs.name}`)) {
+    if (accountRegions.some((r) => r.regionId === `${inputs.name}`)) {
       throw new Error(`Region "${inputs.name}" already exists!`);
     }
 
     // Create a new region.
-    const region = new AwsMultiAzRegion(`${this.moduleId}-${inputs.name}`, inputs.regionIds);
+    const region = new AwsMultiAzRegion(`${inputs.name}`, inputs.regionIds);
     account.addRegion(region);
 
     // Add anchors.
