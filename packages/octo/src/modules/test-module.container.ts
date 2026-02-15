@@ -105,13 +105,19 @@ export class TestModuleContainer {
     });
 
     const response = {} as Awaited<ReturnType<TestModuleContainer['commit']>>;
-    response.modelDiffs = (await generator.next()).value;
-    response.modelTransaction = (await generator.next()).value;
-    response.resourceDiffs = (await generator.next()).value;
-    response.resourceTransaction = (await generator.next()).value;
-    await generator.next();
 
-    await this.stateProvider.unlockApp(appLockId);
+    try {
+      response.modelDiffs = (await generator.next()).value;
+      response.modelTransaction = (await generator.next()).value;
+      response.resourceDiffs = (await generator.next()).value;
+      response.resourceTransaction = (await generator.next()).value;
+      await generator.next();
+    } catch (error) {
+      await this.reset();
+      throw error;
+    } finally {
+      await this.stateProvider.unlockApp(appLockId);
+    }
 
     const container = Container.getInstance();
     const inputService = await container.get(InputService);
