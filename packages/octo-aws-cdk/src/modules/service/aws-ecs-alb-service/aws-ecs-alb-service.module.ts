@@ -1,4 +1,13 @@
-import { AModule, type Account, type App, type MatchingAnchor, Module, type Subnet, SubnetType } from '@quadnix/octo';
+import {
+  AModule,
+  type Account,
+  type App,
+  type MatchingAnchor,
+  Module,
+  ModuleError,
+  type Subnet,
+  SubnetType,
+} from '@quadnix/octo';
 import { AwsEcsAlbAnchor } from '../../../anchors/aws-ecs/aws-ecs-alb.anchor.js';
 import { AwsEcsServiceAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
@@ -66,15 +75,18 @@ export class AwsEcsAlbServiceModule extends AModule<AwsEcsAlbServiceModuleSchema
     for (const { subnetName } of inputs.subnets || []) {
       const regionSubnet = subnets.find((s) => s.subnetName === subnetName);
       if (!regionSubnet) {
-        throw new Error(`Subnet "${subnetName}" not found in region "${region.regionId}"!`);
+        throw new ModuleError(
+          `Subnet "${subnetName}" not found in region "${region.regionId}"!`,
+          this.constructor.name,
+        );
       }
       if (regionSubnet.subnetType !== SubnetType.PUBLIC) {
-        throw new Error(`Subnet "${subnetName}" is not public!`);
+        throw new ModuleError(`Subnet "${subnetName}" is not public!`, this.constructor.name);
       }
       associatedPublicSubnets.push(regionSubnet);
     }
     if (associatedPublicSubnets.length < 2) {
-      throw new Error('At least two public subnets are required!');
+      throw new ModuleError('At least two public subnets are required!', this.constructor.name);
     }
 
     // Create a new ALB.

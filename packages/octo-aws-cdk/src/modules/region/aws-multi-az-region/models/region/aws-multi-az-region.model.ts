@@ -1,4 +1,4 @@
-import { Model, Region } from '@quadnix/octo';
+import { Model, ModelError, Region } from '@quadnix/octo';
 import { AwsMultiAzRegionSchema } from './aws-multi-az-region.schema.js';
 
 /**
@@ -45,10 +45,10 @@ export class AwsMultiAzRegion extends Region {
       awsRegionIds.add(regionIdParts.awsRegionId);
     }
     if (awsRegionIds.size !== 1) {
-      throw new Error(`Found separate AWS regionIds: ${regionIds.join(', ')}`);
+      throw new ModelError(`Found separate AWS regionIds: ${regionIds.join(', ')}`, this);
     }
     if (awsRegionAZs.length !== regionIds.length) {
-      throw new Error(`Found duplicate AWS regionIds: ${regionIds.join(', ')}`);
+      throw new ModelError(`Found duplicate AWS regionIds: ${regionIds.join(', ')}`, this);
     }
 
     this.awsRegionAZs = awsRegionAZs.sort();

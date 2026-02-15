@@ -4,6 +4,7 @@ import {
   type Execution,
   type MatchingAnchor,
   Module,
+  ModuleError,
   type Region,
   type Server,
 } from '@quadnix/octo';
@@ -85,7 +86,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
     const { region } = await this.registerMetadata(inputs);
 
     if (environment.getParents()['region'][0].to.getContext() !== subnet.getParents()['region'][0].to.getContext()) {
-      throw new Error('Environment and Subnet must be in the same region!');
+      throw new ModuleError('Environment and Subnet must be in the same region!', this.constructor.name);
     }
 
     // Create a new execution.
@@ -151,7 +152,10 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
       },
     );
     if (!matchingMainIamRoleAnchor || !matchingMainSecurityGroupAnchor) {
-      throw new Error(`Server "${mainServer.serverKey}" does not have compatible anchors!`);
+      throw new ModuleError(
+        `Server "${mainServer.serverKey}" does not have compatible anchors!`,
+        this.constructor.name,
+      );
     }
 
     // Get sidecar deployment server's anchors.
@@ -166,7 +170,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
         },
       );
       if (!matchingSidecarSecurityGroupAnchor) {
-        throw new Error(`Server "${server.serverKey}" does not have compatible anchors!`);
+        throw new ModuleError(`Server "${server.serverKey}" does not have compatible anchors!`, this.constructor.name);
       }
       matchingSidecarSecurityGroupAnchors.push(matchingSidecarSecurityGroupAnchor);
     }
@@ -207,7 +211,7 @@ export class AwsEcsExecutionModule extends AModule<AwsEcsExecutionModuleSchema, 
         { searchBoundaryMembers: false },
       );
       if (!matchingSubnetLocalFilesystemMountAnchor) {
-        throw new Error('Filesystem not mounted in given subnet!');
+        throw new ModuleError('Filesystem not mounted in given subnet!', this.constructor.name);
       }
       matchingSubnetLocalFilesystemMountAnchors.push(matchingSubnetLocalFilesystemMountAnchor);
     }

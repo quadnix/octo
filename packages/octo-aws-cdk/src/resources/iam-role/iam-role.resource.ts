@@ -1,4 +1,4 @@
-import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, Resource, ResourceError } from '@quadnix/octo';
 import {
   type IIamRoleAssumeRolePolicy,
   type IIamRolePolicyTypes,
@@ -47,11 +47,11 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
   declare response: IamRoleSchema['response'];
 
   constructor(resourceId: string, properties: IamRoleSchema['properties']) {
-    if (properties.policies.length === 0) {
-      throw new Error('At least one policy is required!');
-    }
-
     super(resourceId, properties, []);
+
+    if (properties.policies.length === 0) {
+      throw new ResourceError('At least one policy is required!', this);
+    }
   }
 
   addAssumeRolePolicy(policyId: string, awsService: IIamRoleAssumeRolePolicy): void {

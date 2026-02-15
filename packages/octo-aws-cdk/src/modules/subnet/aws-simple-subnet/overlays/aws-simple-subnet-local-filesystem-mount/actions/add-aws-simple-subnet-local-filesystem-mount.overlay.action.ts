@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  OverlayActionExceptionTransactionError,
   hasNodeName,
 } from '@quadnix/octo';
 import { EfsSchema } from '../../../../../../resources/efs/index.schema.js';
@@ -45,7 +46,11 @@ export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IMod
       { key: 'filesystemName', value: properties.filesystemName },
     ]);
     if (!matchingEfsResource) {
-      throw new Error(`EFS "${properties.filesystemName}" not found!`);
+      throw new OverlayActionExceptionTransactionError(
+        `EFS "${properties.filesystemName}" not found!`,
+        diff,
+        this.constructor.name,
+      );
     }
     const subnet = actionInputs.resources[`subnet-${properties.subnetId}`] as Subnet;
     const [matchingVpcResource] = (await subnetLocalFilesystemMountOverlay.getResourcesMatchingSchema(VpcSchema, [

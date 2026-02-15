@@ -1,5 +1,5 @@
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { AModule, Container, Module } from '@quadnix/octo';
+import { AModule, Container, Module, ModuleError } from '@quadnix/octo';
 import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
 import { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsMotoAccountModuleSchema } from './index.schema.js';
@@ -63,7 +63,7 @@ export class AwsMotoAccountModule extends AModule<AwsMotoAccountModuleSchema, Aw
     });
     const data = await stsClient.send(new GetCallerIdentityCommand({}));
     if (data.Account !== accountId) {
-      throw new Error(`Moto Account ID "${accountId}" does not match "${data.Account}"!`);
+      throw new ModuleError(`Moto Account ID "${accountId}" does not match "${data.Account}"!`, this.constructor.name);
     }
 
     return account;

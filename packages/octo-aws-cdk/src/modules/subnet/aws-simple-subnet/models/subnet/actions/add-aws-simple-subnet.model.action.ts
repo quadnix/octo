@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  ModelActionExceptionTransactionError,
   SubnetType,
   hasNodeName,
 } from '@quadnix/octo';
@@ -50,14 +51,22 @@ export class AddAwsSimpleSubnetModelAction implements IModelAction<AwsSimpleSubn
       { key: 'awsRegionId', value: awsRegionId },
     ]);
     if (!matchingVpcResource) {
-      throw new Error(`Vpc in account "${awsAccountId}" and region "${awsRegionId}" not found!`);
+      throw new ModelActionExceptionTransactionError(
+        `Vpc in account "${awsAccountId}" and region "${awsRegionId}" not found!`,
+        diff,
+        this.constructor.name,
+      );
     }
     const [matchingInternetGatewayResource] = await subnet.getResourcesMatchingSchema(InternetGatewaySchema, [
       { key: 'awsAccountId', value: awsAccountId },
       { key: 'awsRegionId', value: awsRegionId },
     ]);
     if (!matchingInternetGatewayResource) {
-      throw new Error(`InternetGateway in account "${awsAccountId}" and region "${awsRegionId}" not found!`);
+      throw new ModelActionExceptionTransactionError(
+        `InternetGateway in account "${awsAccountId}" and region "${awsRegionId}" not found!`,
+        diff,
+        this.constructor.name,
+      );
     }
 
     // Create Subnet.

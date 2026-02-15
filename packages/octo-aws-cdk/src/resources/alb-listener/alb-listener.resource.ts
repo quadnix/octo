@@ -1,4 +1,13 @@
-import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resource, hasNodeName } from '@quadnix/octo';
+import {
+  AResource,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  type MatchingResource,
+  Resource,
+  ResourceError,
+  hasNodeName,
+} from '@quadnix/octo';
 import type { AlbSchema } from '../alb/index.schema.js';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
 import { AlbListenerSchema } from './index.schema.js';
@@ -92,6 +101,8 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     properties: AlbListenerSchema['properties'],
     parents: [MatchingResource<AlbSchema>, ...MatchingResource<AlbTargetGroupSchema>[]],
   ) {
+    super(resourceId, properties, parents);
+
     const albTargetGroupMatchingParents = parents.filter((p) =>
       hasNodeName(p.getActual(), 'alb-target-group'),
     ) as MatchingResource<AlbTargetGroupSchema>[];
@@ -118,22 +129,23 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     // "Forward" actions have an associated target group.
     for (const targetGroupName of albTargetGroupNames) {
       if (!albTargetGroupParentNames.includes(targetGroupName)) {
-        throw new Error(`Invalid "forward" configuration! TargetGroup "${targetGroupName}" not found in parents!`);
+        throw new ResourceError(
+          `Invalid "forward" configuration! TargetGroup "${targetGroupName}" not found in parents!`,
+          this,
+        );
       }
     }
 
     // There should not be a target group which is not referenced by a "forward" action.
     if (albTargetGroupNames.length !== albTargetGroupParentNames.length) {
-      throw new Error('Invalid "forward" configuration! Forward configurations does not match parents!');
+      throw new ResourceError('Invalid "forward" configuration! Forward configurations does not match parents!', this);
     }
 
     // All rules have a unique priority.
     const priorities = new Set(properties.rules.map((r) => r.Priority));
     if (priorities.size !== properties.rules.length) {
-      throw new Error('Rules have duplicate priorities!');
+      throw new ResourceError('Rules have duplicate priorities!', this);
     }
-
-    super(resourceId, properties, parents);
   }
 
   override async diffInverse(

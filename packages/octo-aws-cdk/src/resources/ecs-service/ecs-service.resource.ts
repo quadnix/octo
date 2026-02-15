@@ -176,7 +176,7 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
   ): void {
     // Ensure there are no more than 5 security groups.
     if (securityGroupParents.length > 5) {
-      throw new Error('Cannot have more than 5 security groups in ECS Service!');
+      throw new ResourceError('Cannot have more than 5 security groups in ECS Service!', this);
     }
 
     for (const sgParent of securityGroupParents) {

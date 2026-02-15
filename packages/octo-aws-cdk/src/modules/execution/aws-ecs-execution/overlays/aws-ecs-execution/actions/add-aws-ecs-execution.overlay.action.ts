@@ -8,6 +8,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  OverlayActionExceptionTransactionError,
   SubnetType,
   hasNodeName,
 } from '@quadnix/octo';
@@ -80,7 +81,11 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       { key: 'rolename', value: mainIamRoleProperties.iamRoleName },
     ]);
     if (!matchingMainIamRoleResource) {
-      throw new Error(`IamRole "${mainIamRoleProperties.iamRoleName}" not found in "${awsAccountId}"!`);
+      throw new OverlayActionExceptionTransactionError(
+        `IamRole "${mainIamRoleProperties.iamRoleName}" not found in "${awsAccountId}"!`,
+        diff,
+        this.constructor.name,
+      );
     }
 
     // Get matching EFS resources based on mounts of subnet.
@@ -97,8 +102,10 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
         [],
       );
       if (!matchingEfsResource) {
-        throw new Error(
+        throw new OverlayActionExceptionTransactionError(
           `Filesystem "${subnetFilesystemMountAnchorProperties.filesystemName}" not found in "${awsRegionId}"!`,
+          diff,
+          this.constructor.name,
         );
       }
 
@@ -128,7 +135,11 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       { key: 'clusterName', value: ecsClusterAnchorProperties.clusterName },
     ]);
     if (!matchingEcsClusterResource) {
-      throw new Error(`ECS Cluster "${ecsClusterAnchorProperties.clusterName}" not found!`);
+      throw new OverlayActionExceptionTransactionError(
+        `ECS Cluster "${ecsClusterAnchorProperties.clusterName}" not found!`,
+        diff,
+        this.constructor.name,
+      );
     }
 
     // Get matching Subnet resource.
@@ -138,7 +149,11 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       { key: 'subnetName', value: subnet.subnetName },
     ]);
     if (!matchingSubnetResource) {
-      throw new Error(`Subnet "${subnet.subnetName}" not found!`);
+      throw new OverlayActionExceptionTransactionError(
+        `Subnet "${subnet.subnetName}" not found!`,
+        diff,
+        this.constructor.name,
+      );
     }
 
     // Get matching execution's SecurityGroup resources - server, sidecar server, and execution SGs.
@@ -147,7 +162,11 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
       searchBoundaryMembers: false,
     });
     if (matchingExecutionSGResources.length !== 2 + actionInputs.inputs.deployments.sidecars.length) {
-      throw new Error('One or more security groups from main server, sidecar server, and/or execution not found!');
+      throw new OverlayActionExceptionTransactionError(
+        'One or more security groups from main server, sidecar server, and/or execution not found!',
+        diff,
+        this.constructor.name,
+      );
     }
 
     // Create ECS Service.

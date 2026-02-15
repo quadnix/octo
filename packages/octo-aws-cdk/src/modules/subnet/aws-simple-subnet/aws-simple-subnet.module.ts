@@ -1,4 +1,4 @@
-import { AModule, type Account, type Filesystem, Module, type Region, SubnetType } from '@quadnix/octo';
+import { AModule, type Account, type Filesystem, Module, ModuleError, type Region, SubnetType } from '@quadnix/octo';
 import { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsSubnetLocalFilesystemMountAnchor } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.js';
@@ -61,17 +61,17 @@ export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, 
 
     // Validate subnet availability zone.
     if (!awsAvailabilityZones.includes(inputs.subnetAvailabilityZone)) {
-      throw new Error('Invalid subnet availability zone!');
+      throw new ModuleError('Invalid subnet availability zone!', this.constructor.name);
     }
 
     // Validate NAT Gateway option.
     if (inputs.subnetOptions?.createNatGateway && inputs.subnetOptions.subnetType !== SubnetType.PUBLIC) {
-      throw new Error('NAT Gateway can only be created for public subnets!');
+      throw new ModuleError('NAT Gateway can only be created for public subnets!', this.constructor.name);
     }
 
     // Validate subnet CIDR is within region CIDR.
     if (!CidrUtility.contains([awsRegionVpcCidrBlock], [inputs.subnetCidrBlock])) {
-      throw new Error('Subnet CIDR is not within region CIDR!');
+      throw new ModuleError('Subnet CIDR is not within region CIDR!', this.constructor.name);
     }
 
     // Create a new subnet.
@@ -100,7 +100,10 @@ export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, 
     // Associate subnet with siblings.
     for (const { subnet: siblingSubnet } of inputs.subnetSiblings || []) {
       if ((siblingSubnet.getParents()['region'][0].to as Region).regionId !== region.regionId) {
-        throw new Error(`Sibling subnet "${siblingSubnet.subnetName}" not found within the same region!`);
+        throw new ModuleError(
+          `Sibling subnet "${siblingSubnet.subnetName}" not found within the same region!`,
+          this.constructor.name,
+        );
       }
       subnet.updateNetworkingRules(siblingSubnet, true);
     }
@@ -114,7 +117,10 @@ export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, 
         ((matchingAwsEfsAnchor.getActual().getParent() as Filesystem).getParents()['region'][0].to as Region)
           .regionId !== region.regionId
       ) {
-        throw new Error(`Filesystem "${filesystem.filesystemName}" not found within the same region!`);
+        throw new ModuleError(
+          `Filesystem "${filesystem.filesystemName}" not found within the same region!`,
+          this.constructor.name,
+        );
       }
 
       const awsSimpleSubnetLocalFilesystemMountOverlay = new AwsSimpleSubnetLocalFilesystemMountOverlay(

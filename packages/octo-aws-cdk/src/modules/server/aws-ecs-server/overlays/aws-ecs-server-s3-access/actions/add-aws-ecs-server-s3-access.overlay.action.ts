@@ -8,6 +8,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  OverlayActionExceptionTransactionError,
   hasNodeName,
 } from '@quadnix/octo';
 import type { IamRole } from '../../../../../../resources/iam-role/index.js';
@@ -50,7 +51,11 @@ export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcs
       searchBoundaryMembers: false,
     });
     if (!matchingS3StorageResource) {
-      throw new Error(`Bucket "${properties.bucketName}" not found!`);
+      throw new OverlayActionExceptionTransactionError(
+        `Bucket "${properties.bucketName}" not found!`,
+        diff,
+        this.constructor.name,
+      );
     }
 
     (matchingS3StorageResource.getActual() as S3Storage).addPermission(

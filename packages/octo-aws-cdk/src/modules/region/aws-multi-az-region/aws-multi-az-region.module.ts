@@ -1,4 +1,4 @@
-import { AModule, AccountType, Module, type Region } from '@quadnix/octo';
+import { AModule, AccountType, Module, ModuleError, type Region } from '@quadnix/octo';
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { CidrUtility } from '../../../utilities/cidr/cidr.utility.js';
@@ -36,12 +36,12 @@ export class AwsMultiAzRegionModule extends AModule<AwsMultiAzRegionModuleSchema
   async onInit(inputs: AwsMultiAzRegionModuleSchema): Promise<AwsMultiAzRegion> {
     const account = inputs.account;
     if (account.accountType !== AccountType.AWS) {
-      throw new Error('Only AWS accounts are supported in this module!');
+      throw new ModuleError('Only AWS accounts are supported in this module!', this.constructor.name);
     }
 
     // Check for minimum regionIds.
     if (inputs.regionIds.length < 2) {
-      throw new Error('At least 2 regionIds are required!');
+      throw new ModuleError('At least 2 regionIds are required!', this.constructor.name);
     }
 
     // Check for overlapping cidr regions. This ensures correctness in VPC peering.
@@ -58,12 +58,12 @@ export class AwsMultiAzRegionModule extends AModule<AwsMultiAzRegionModuleSchema
         CidrUtility.hasOverlap([c.getSchemaInstance().properties.vpcCidrBlock], [inputs.vpcCidrBlock]),
       )
     ) {
-      throw new Error('Overlapping VPC cidr blocks are not allowed!');
+      throw new ModuleError('Overlapping VPC cidr blocks are not allowed!', this.constructor.name);
     }
 
     // Check for unique regionId.
     if (accountRegions.some((r) => r.regionId === `${inputs.name}`)) {
-      throw new Error(`Region "${inputs.name}" already exists!`);
+      throw new ModuleError(`Region "${inputs.name}" already exists!`, this.constructor.name);
     }
 
     // Create a new region.

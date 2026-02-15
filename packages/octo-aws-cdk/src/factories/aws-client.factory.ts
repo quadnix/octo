@@ -8,7 +8,7 @@ import { ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-
 import { S3Client } from '@aws-sdk/client-s3';
 import { STSClient } from '@aws-sdk/client-sts';
 import { Upload } from '@aws-sdk/lib-storage';
-import { Container, Factory } from '@quadnix/octo';
+import { Container, ContainerResolutionError, Factory } from '@quadnix/octo';
 import type { EndpointInputConfig } from '@smithy/middleware-endpoint/dist-types/resolveEndpointConfig.js';
 import type { AwsCredentialIdentityProvider } from '@smithy/types';
 
@@ -17,7 +17,10 @@ class AwsClientFactory {
 
   static async create(awsAccountId: string, awsRegionId: string): Promise<any> {
     if (!awsAccountId || !awsRegionId) {
-      throw new Error(`Failed to create instance of ${this.name} due to insufficient arguments!`);
+      throw new ContainerResolutionError(
+        `Failed to create instance of ${this.name} due to insufficient arguments!`,
+        AwsClientFactory.name,
+      );
     }
     if (!this.instances[this.name]) {
       this.instances[this.name] = [];
@@ -53,10 +56,13 @@ class AwsClientFactory {
 
   static createInstance(...args: unknown[]): any {
     if (args.length > 3) {
-      throw new Error('Invalid number of args in createInstance()!');
+      throw new ContainerResolutionError('Invalid number of args in createInstance()!', AwsClientFactory.name);
     }
 
-    throw new Error('Method not implemented! Use derived class implementation');
+    throw new ContainerResolutionError(
+      'Method not implemented! Use derived class implementation',
+      AwsClientFactory.name,
+    );
   }
 }
 

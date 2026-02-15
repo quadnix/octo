@@ -1,5 +1,5 @@
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { AModule, Container, Module } from '@quadnix/octo';
+import { AModule, Container, Module, ModuleError } from '@quadnix/octo';
 import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
 import { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsCredentialsAccountModuleSchema } from './index.schema.js';
@@ -71,7 +71,10 @@ export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountMo
     });
     const data = await stsClient.send(new GetCallerIdentityCommand({}));
     if (data.Account !== inputs.accountId) {
-      throw new Error(`Account ID "${inputs.accountId}" does not belong to given credentials!`);
+      throw new ModuleError(
+        `Account ID "${inputs.accountId}" does not belong to given credentials!`,
+        this.constructor.name,
+      );
     }
 
     return account;

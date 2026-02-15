@@ -52,6 +52,23 @@ export class InputNotFoundTransactionError extends TransactionError {
 /**
  * @group Errors/Transaction
  */
+export class ModelActionExceptionTransactionError extends TransactionError {
+  readonly actionClassName: string;
+  readonly diff: ReturnType<Diff['toJSON']>;
+
+  constructor(message: string, diff: Diff, actionClassName: string) {
+    super(message);
+
+    this.actionClassName = actionClassName;
+    this.diff = diff.toJSON();
+
+    Object.setPrototypeOf(this, ModelActionExceptionTransactionError.prototype);
+  }
+}
+
+/**
+ * @group Errors/Transaction
+ */
 export class NoMatchingActionFoundTransactionError extends TransactionError {
   readonly diff: ReturnType<Diff['toJSON']>;
 
@@ -61,6 +78,23 @@ export class NoMatchingActionFoundTransactionError extends TransactionError {
     this.diff = diff.toJSON();
 
     Object.setPrototypeOf(this, NoMatchingActionFoundTransactionError.prototype);
+  }
+}
+
+/**
+ * @group Errors/Transaction
+ */
+export class OverlayActionExceptionTransactionError extends TransactionError {
+  readonly actionClassName: string;
+  readonly diff: ReturnType<Diff['toJSON']>;
+
+  constructor(message: string, diff: Diff, actionClassName: string) {
+    super(message);
+
+    this.actionClassName = actionClassName;
+    this.diff = diff.toJSON();
+
+    Object.setPrototypeOf(this, OverlayActionExceptionTransactionError.prototype);
   }
 }
 

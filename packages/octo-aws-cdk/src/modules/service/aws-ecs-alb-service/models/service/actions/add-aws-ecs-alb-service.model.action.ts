@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  ModelActionExceptionTransactionError,
   hasNodeName,
 } from '@quadnix/octo';
 import { Alb } from '../../../../../../resources/alb/index.js';
@@ -32,7 +33,7 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
   }
 
   async handle(
-    _diff: Diff,
+    diff: Diff,
     actionInputs: EnhancedModuleSchema<AwsEcsAlbServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
@@ -73,7 +74,11 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
 
       // Validate subnet availability zone.
       if (!awsAvailabilityZones.includes(matchingSubnetResource.getSchemaInstance().properties.AvailabilityZone)) {
-        throw new Error('Invalid subnet availability zone!');
+        throw new ModelActionExceptionTransactionError(
+          'Invalid subnet availability zone!',
+          diff,
+          this.constructor.name,
+        );
       }
 
       matchingSubnetResources.push(matchingSubnetResource);

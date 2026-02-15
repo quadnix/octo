@@ -1,4 +1,4 @@
-import { AModule, type Account, AccountType, type App, Module } from '@quadnix/octo';
+import { AModule, type Account, AccountType, type App, Module, ModuleError } from '@quadnix/octo';
 import { AwsEcsServerAnchor } from '../../../anchors/aws-ecs/aws-ecs-server.anchor.js';
 import { AwsIamRoleAnchor } from '../../../anchors/aws-iam/aws-iam-role.anchor.js';
 import { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
@@ -97,7 +97,10 @@ export class AwsEcsServerModule extends AModule<AwsEcsServerModuleSchema, AwsEcs
         });
 
         if (matchingS3StorageAnchor.getSchemaInstance().properties.awsAccountId !== account.accountId) {
-          throw new Error('This module does not support adding s3 resources from other accounts!');
+          throw new ModuleError(
+            'This module does not support adding s3 resources from other accounts!',
+            this.constructor.name,
+          );
         }
 
         const awsRegionId = matchingS3StorageAnchor.getSchemaInstance().properties.awsRegionId;
@@ -122,7 +125,7 @@ export class AwsEcsServerModule extends AModule<AwsEcsServerModuleSchema, AwsEcs
             { searchBoundaryMembers: false },
           );
           if (matchingAnchors.length !== 1) {
-            throw new Error('Cannot find remote directory in S3Storage service!');
+            throw new ModuleError('Cannot find remote directory in S3Storage service!', this.constructor.name);
           }
           const s3DirectoryAnchor = matchingAnchors[0];
 
@@ -157,7 +160,7 @@ export class AwsEcsServerModule extends AModule<AwsEcsServerModuleSchema, AwsEcs
   ): Promise<{ account: Account; app: App; iamRoleName: string }> {
     const account = inputs.account;
     if (account.accountType !== AccountType.AWS) {
-      throw new Error('Only AWS accounts are supported in this module!');
+      throw new ModuleError('Only AWS accounts are supported in this module!', this.constructor.name);
     }
     const app = account.getParents()['app'][0].to as App;
 

@@ -7,6 +7,7 @@ import {
   Factory,
   type IModelAction,
   MatchingResource,
+  OverlayActionExceptionTransactionError,
   hasNodeName,
 } from '@quadnix/octo';
 import { Alb } from '../../../../../../resources/alb/index.js';
@@ -106,7 +107,11 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
         },
       );
       if (!matchingEcsService) {
-        throw new Error(`No ecs service found for execution "${target.execution.executionId}"!`);
+        throw new OverlayActionExceptionTransactionError(
+          `No ecs service found for execution "${target.execution.executionId}"!`,
+          diff,
+          this.constructor.name,
+        );
       }
 
       (matchingEcsService.getActual() as EcsService).addAlbTargetGroup(
