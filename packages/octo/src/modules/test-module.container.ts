@@ -84,19 +84,29 @@ export class TestModuleContainer {
   async commit(
     app: App,
     {
+      appLockId,
       enableResourceCapture = false,
       filterByModuleIds = [],
-    }: { appLockId?: string; enableResourceCapture?: boolean; filterByModuleIds?: string[] } = {},
+      skipResourceTransaction = false,
+    }: {
+      appLockId?: string;
+      enableResourceCapture?: boolean;
+      filterByModuleIds?: string[];
+      skipResourceTransaction?: boolean;
+    } = {},
   ): Promise<{
     modelDiffs: DiffMetadata[][];
     modelTransaction: DiffMetadata[][];
     resourceDiffs: DiffMetadata[][];
     resourceTransaction: DiffMetadata[][];
   }> {
-    const { lockId: appLockId } = await this.stateProvider.lockApp();
+    if (!appLockId) {
+      const { lockId } = await this.stateProvider.lockApp();
+      appLockId = lockId;
+    }
 
     const generator = this.octo.beginTransaction(app, {
-      appLockId,
+      appLockId: skipResourceTransaction ? undefined : appLockId,
       enableResourceCapture,
       yieldModelDiffs: true,
       yieldModelTransaction: true,
@@ -113,8 +123,10 @@ export class TestModuleContainer {
       response.resourceTransaction = (await generator.next()).value;
       await generator.next();
     } catch (error) {
-      await this.reset();
-      throw error;
+      if (!skipResourceTransaction || error.message !== 'App is not in lock state!') {
+        await this.reset();
+        throw error;
+      }
     } finally {
       await this.stateProvider.unlockApp(appLockId);
     }
@@ -163,17 +175,19 @@ export class TestModuleContainer {
         )
         .filter((i) => i.length);
 
-      response.resourceTransaction = response.resourceTransaction
-        .map((i) =>
-          i.filter((j) => {
-            if (j.node instanceof AResource) {
-              return inputService.getModuleIdFromResource(j.node) === moduleId;
-            } else {
-              return false;
-            }
-          }),
-        )
-        .filter((i) => i.length);
+      if (!skipResourceTransaction) {
+        response.resourceTransaction = response.resourceTransaction
+          .map((i) =>
+            i.filter((j) => {
+              if (j.node instanceof AResource) {
+                return inputService.getModuleIdFromResource(j.node) === moduleId;
+              } else {
+                return false;
+              }
+            }),
+          )
+          .filter((i) => i.length);
+      }
     }
 
     await this.reset();
