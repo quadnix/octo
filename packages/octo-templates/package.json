@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@aws-sdk/client-resource-groups-tagging-api": "~3.743.0",
+    "@aws-sdk/client-sts": "~3.743.0",
     "@quadnix/octo": "~0.0.29",
     "@quadnix/octo-aws-cdk": "~0.0.18",
     "@quadnix/octo-event-listeners": "~0.0.8",
