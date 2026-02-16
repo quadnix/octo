@@ -38,7 +38,6 @@ describe('SimpleAppModule UT', () => {
       moduleId: 'app',
       type: SimpleAppModule,
     });
-
     const result = await testModuleContainer.commit(app, {
       enableResourceCapture: true,
       filterByModuleIds: ['app'],
@@ -54,14 +53,13 @@ describe('SimpleAppModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { 'app.model.app': app } = await testModuleContainer.runModule<SimpleAppModule>({
+    const { 'app.model.app': appCreate } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: SimpleAppModule,
     });
-
-    const result = await testModuleContainer.commit(app, { enableResourceCapture: true });
-    expect(result.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [],
        [],
@@ -71,13 +69,13 @@ describe('SimpleAppModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { 'app.model.app': app1 } = await testModuleContainer.runModule<SimpleAppModule>({
+    const { 'app.model.app': appCreate } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: SimpleAppModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [],
        [],
@@ -85,30 +83,82 @@ describe('SimpleAppModule UT', () => {
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { 'app.model.app': app2 } = await testModuleContainer.runModule<SimpleAppModule>({
+    const { 'app.model.app': appUpdateTags } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: SimpleAppModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
+    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [],
        [],
      ]
     `);
 
-    const { 'app.model.app': app3 } = await testModuleContainer.runModule<SimpleAppModule>({
+    const { 'app.model.app': appDeleteTags } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: SimpleAppModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
+    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [],
        [],
      ]
     `);
+  });
+
+  it('should handle moduleId changes', async () => {
+    const { 'app-1.model.app': appCreate } = await testModuleContainer.runModule<SimpleAppModule>({
+      inputs: { name: 'test-app' },
+      moduleId: 'app-1',
+      type: SimpleAppModule,
+    });
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
+
+    const { 'app-2.model.app': appUpdateModuleId } = await testModuleContainer.runModule<SimpleAppModule>({
+      inputs: { name: 'test-app' },
+      moduleId: 'app-2',
+      type: SimpleAppModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
+  });
+
+  describe('validation', () => {
+    it('should handle name change', async () => {
+      const { 'app.model.app': appCreate } = await testModuleContainer.runModule<SimpleAppModule>({
+        inputs: { name: 'test-app' },
+        moduleId: 'app',
+        type: SimpleAppModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { 'app.model.app': appUpdateName } = await testModuleContainer.runModule<SimpleAppModule>({
+        inputs: { name: 'changed-app' },
+        moduleId: 'app',
+        type: SimpleAppModule,
+      });
+      const resultUpdateName = await testModuleContainer.commit(appUpdateName, { enableResourceCapture: true });
+      expect(resultUpdateName.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [],
+         [],
+       ]
+      `);
+    });
   });
 });
