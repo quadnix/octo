@@ -1,4 +1,4 @@
-import { AResource, Diff, DiffAction, type DiffValueTypeTagUpdate, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, type DiffValueTypeTagUpdate, Resource, ResourceError } from '@quadnix/octo';
 import { S3WebsiteSchema } from './index.schema.js';
 
 /**
@@ -30,7 +30,14 @@ export class S3Website extends AResource<S3WebsiteSchema, S3Website> {
     }
   }
 
-  override async diffProperties(): Promise<Diff[]> {
+  override async diffProperties(previous: S3Website): Promise<Diff[]> {
+    if (
+      previous.properties.awsAccountId !== this.properties.awsAccountId ||
+      previous.properties.awsRegionId !== this.properties.awsRegionId
+    ) {
+      throw new ResourceError('Cannot update S3 Bucket accountId or regionId once it has been created!', this);
+    }
+
     const diffs: Diff[] = [];
 
     if (this.manifestDiff && Object.keys(this.manifestDiff).length > 0) {
