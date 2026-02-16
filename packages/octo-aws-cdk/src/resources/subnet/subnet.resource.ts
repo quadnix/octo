@@ -1,4 +1,4 @@
-import { AResource, MatchingResource, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffUtility, MatchingResource, Resource, ResourceError } from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { SubnetSchema } from './index.schema.js';
 
@@ -13,5 +13,13 @@ export class Subnet extends AResource<SubnetSchema, Subnet> {
 
   constructor(resourceId: string, properties: SubnetSchema['properties'], parents: [MatchingResource<VpcSchema>]) {
     super(resourceId, properties, parents);
+  }
+
+  override async diffProperties(previous: Subnet): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
+      throw new ResourceError('Cannot update Subnet immutable properties once it has been created!', this);
+    }
+
+    return super.diffProperties(previous);
   }
 }

@@ -428,7 +428,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
           enableResourceCapture: true,
         });
       }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update S3 Bucket accountId or regionId once it has been created!"`,
+        `"Cannot update S3 Website immutable properties once it has been created!"`,
       );
     });
 

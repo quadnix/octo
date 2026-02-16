@@ -1,4 +1,4 @@
-import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { AlbTargetGroupSchema } from './index.schema.js';
 
@@ -32,6 +32,10 @@ export class AlbTargetGroup extends AResource<AlbTargetGroupSchema, AlbTargetGro
 
   override async diffProperties(previous: AlbTargetGroup): Promise<Diff[]> {
     const diffs: Diff[] = [];
+
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['healthCheck'])) {
+      throw new ResourceError('Cannot update ALB Target Group immutable properties once it has been created!', this);
+    }
 
     if (!DiffUtility.isObjectDeepEquals(previous.properties.healthCheck, this.properties.healthCheck)) {
       diffs.push(new Diff(this, DiffAction.UPDATE, 'properties', ''));

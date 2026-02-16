@@ -1,4 +1,4 @@
-import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffUtility, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { SecurityGroupSchema } from './index.schema.js';
 
@@ -17,5 +17,13 @@ export class SecurityGroup extends AResource<SecurityGroupSchema, SecurityGroup>
     parents: [MatchingResource<VpcSchema>],
   ) {
     super(resourceId, properties, parents);
+  }
+
+  override async diffProperties(previous: SecurityGroup): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['rules'])) {
+      throw new ResourceError('Cannot update Security Group immutable properties once it has been created!', this);
+    }
+
+    return super.diffProperties(previous);
   }
 }

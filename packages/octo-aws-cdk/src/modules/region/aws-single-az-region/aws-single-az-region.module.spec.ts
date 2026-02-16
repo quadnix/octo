@@ -477,7 +477,9 @@ describe('AwsSingleAzRegionModule UT', () => {
         await testModuleContainer.commit(appUpdateRegionId, {
           enableResourceCapture: true,
         });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Cannot update VPC once it has been created!"`);
+      }).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Cannot update VPC immutable properties once it has been created!"`,
+      );
     });
 
     it('should handle vpcCidrBlock change', async () => {
@@ -509,7 +511,9 @@ describe('AwsSingleAzRegionModule UT', () => {
         await testModuleContainer.commit(appUpdateVpcCidrBlock, {
           enableResourceCapture: true,
         });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Cannot update VPC once it has been created!"`);
+      }).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Cannot update VPC immutable properties once it has been created!"`,
+      );
     });
   });
 });

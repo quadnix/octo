@@ -1,4 +1,4 @@
-import { AResource, type MatchingResource, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffUtility, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
 import { NetworkAclUtility } from '../../utilities/network-acl/network-acl.utility.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
 import type { VpcSchema } from '../vpc/index.schema.js';
@@ -20,6 +20,14 @@ export class NetworkAcl extends AResource<NetworkAclSchema, NetworkAcl> {
   ) {
     NetworkAclUtility.assignRuleNumber(properties.entries);
     super(resourceId, properties, parents);
+  }
+
+  override async diffProperties(previous: NetworkAcl): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['entries'])) {
+      throw new ResourceError('Cannot update Network ACL immutable properties once it has been created!', this);
+    }
+
+    return super.diffProperties(previous);
   }
 
   updateNaclEntries(entries: NetworkAclSchema['properties']['entries']): void {

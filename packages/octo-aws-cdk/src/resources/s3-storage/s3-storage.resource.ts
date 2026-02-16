@@ -3,9 +3,11 @@ import {
   DependencyRelationship,
   Diff,
   DiffAction,
+  DiffUtility,
   type DiffValueTypeTagUpdate,
   MatchingResource,
   Resource,
+  ResourceError,
 } from '@quadnix/octo';
 import { type PrincipalResourceSchema, S3StorageSchema } from './index.schema.js';
 
@@ -78,6 +80,10 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
   }
 
   override async diffProperties(previous: S3Storage): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['permissions'])) {
+      throw new ResourceError('Cannot update S3 Storage immutable properties once it has been created!', this);
+    }
+
     const diffs: Diff[] = [];
     const manifestDiff: S3StorageManifestDiff = {};
 

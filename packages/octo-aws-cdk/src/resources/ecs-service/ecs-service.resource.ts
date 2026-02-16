@@ -3,6 +3,7 @@ import {
   DependencyRelationship,
   Diff,
   DiffAction,
+  DiffUtility,
   type MatchingResource,
   Resource,
   ResourceError,
@@ -188,6 +189,20 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
       // Before deleting security-groups must update ecs-service.
       sgToEcsDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
     }
+  }
+
+  override async diffProperties(previous: EcsService): Promise<Diff[]> {
+    if (
+      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
+        'assignPublicIp',
+        'desiredCount',
+        'loadBalancers',
+      ])
+    ) {
+      throw new ResourceError('Cannot update ECS Service immutable properties once it has been created!', this);
+    }
+
+    return super.diffProperties(previous);
   }
 
   private updateServiceTaskDefinition(

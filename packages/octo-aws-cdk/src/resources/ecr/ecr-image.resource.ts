@@ -1,4 +1,4 @@
-import { AResource, type Diff, Resource } from '@quadnix/octo';
+import { AResource, type Diff, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
 import { EcrImageSchema } from './index.schema.js';
 
 /**
@@ -13,7 +13,11 @@ export class EcrImage extends AResource<EcrImageSchema, EcrImage> {
     super(resourceId, properties, []);
   }
 
-  override async diffProperties(): Promise<Diff[]> {
+  override async diffProperties(previous: EcrImage): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
+      throw new ResourceError('Cannot update ECR immutable properties once it has been created!', this);
+    }
+
     return [];
   }
 }

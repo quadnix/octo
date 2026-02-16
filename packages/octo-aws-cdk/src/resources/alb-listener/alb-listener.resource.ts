@@ -193,6 +193,12 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
   override async diffProperties(previous: AlbListener): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
+    if (
+      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['DefaultActions', 'Port', 'Protocol', 'rules'])
+    ) {
+      throw new ResourceError('Cannot update ALB Listener immutable properties once it has been created!', this);
+    }
+
     // Diff DefaultActions.
     if (!DiffUtility.isObjectDeepEquals(previous.properties.DefaultActions, this.properties.DefaultActions)) {
       diffs.push(

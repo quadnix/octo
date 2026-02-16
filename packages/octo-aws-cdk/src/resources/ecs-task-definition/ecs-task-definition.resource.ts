@@ -3,6 +3,7 @@ import {
   DependencyRelationship,
   Diff,
   DiffAction,
+  DiffUtility,
   type MatchingResource,
   Resource,
   ResourceError,
@@ -60,6 +61,22 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
     }
 
     return diffs;
+  }
+
+  override async diffProperties(previous: EcsTaskDefinition): Promise<Diff[]> {
+    if (
+      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
+        'cpu',
+        'deploymentTag',
+        'environmentVariables',
+        'images',
+        'memory',
+      ])
+    ) {
+      throw new ResourceError('Cannot update ECS Task Definition immutable properties once it has been created!', this);
+    }
+
+    return super.diffProperties(previous);
   }
 
   override async diffInverse(

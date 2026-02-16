@@ -1,4 +1,4 @@
-import { AResource, Diff, DiffAction, Resource, ResourceError } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
 import {
   type IIamRoleAssumeRolePolicy,
   type IIamRolePolicyTypes,
@@ -146,6 +146,10 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
   }
 
   override async diffProperties(previous: IamRole): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['policies'])) {
+      throw new ResourceError('Cannot update IAM Role immutable properties once it has been created!', this);
+    }
+
     if (this.properties.policies.length === 0) {
       return [new Diff(previous, DiffAction.DELETE, 'resourceId', previous.getContext())];
     }

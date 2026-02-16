@@ -1,4 +1,4 @@
-import { AResource, Diff, DiffAction, Resource } from '@quadnix/octo';
+import { AResource, Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
 import { type IIamUserPolicyTypes, type IIamUserS3BucketPolicy, IamUserSchema } from './index.schema.js';
 
 /**
@@ -109,6 +109,10 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
   }
 
   override async diffProperties(previous: IamUser): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['policies'])) {
+      throw new ResourceError('Cannot update IAM User immutable properties once it has been created!', this);
+    }
+
     const diffs: Diff[] = [];
 
     for (const policy of previous.properties.policies) {

@@ -3,6 +3,7 @@ import {
   DependencyRelationship,
   Diff,
   DiffAction,
+  DiffUtility,
   type MatchingResource,
   Resource,
   ResourceError,
@@ -80,6 +81,14 @@ export class RouteTable extends AResource<RouteTableSchema, RouteTable> {
     } else {
       return [diff];
     }
+  }
+
+  override async diffProperties(previous: RouteTable): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
+      throw new ResourceError('Cannot update Route Table immutable properties once it has been created!', this);
+    }
+
+    return super.diffProperties(previous);
   }
 
   private updateNatGatewayResourceDependencyBehaviors(
