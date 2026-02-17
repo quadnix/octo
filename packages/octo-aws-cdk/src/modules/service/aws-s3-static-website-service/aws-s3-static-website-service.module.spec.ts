@@ -331,73 +331,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     `);
   });
 
-  it('should handle moduleId changes', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
-      },
-      moduleId: 'service-1',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/s3-website=bucket-test-bucket",
-           "value": "@octo/s3-website=bucket-test-bucket",
-         },
-         {
-           "action": "update",
-           "field": "update-source-paths",
-           "node": "@octo/s3-website=bucket-test-bucket",
-           "value": {
-             "error.html": [
-               "add",
-               "${websiteSourcePath}/error.html",
-             ],
-             "index.html": [
-               "add",
-               "${websiteSourcePath}/index.html",
-             ],
-             "page-1.html": [
-               "add",
-               "${websiteSourcePath}/page-1.html",
-             ],
-           },
-         },
-       ],
-       [],
-     ]
-    `);
-
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        awsRegionId: 'us-east-1',
-        bucketName: 'test-bucket',
-        directoryPath: websiteSourcePath,
-      },
-      moduleId: 'service-2',
-      type: AwsS3StaticWebsiteServiceModule,
-    });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
-  });
-
-  describe('validation', () => {
+  describe('input changes', () => {
     it('should handle awsRegionId change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
@@ -551,5 +485,39 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
        ]
       `);
     });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        awsRegionId: 'us-east-1',
+        bucketName: 'test-bucket',
+        directoryPath: websiteSourcePath,
+      },
+      moduleId: 'service-1',
+      type: AwsS3StaticWebsiteServiceModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        awsRegionId: 'us-east-1',
+        bucketName: 'test-bucket',
+        directoryPath: websiteSourcePath,
+      },
+      moduleId: 'service-2',
+      type: AwsS3StaticWebsiteServiceModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
   });
 });

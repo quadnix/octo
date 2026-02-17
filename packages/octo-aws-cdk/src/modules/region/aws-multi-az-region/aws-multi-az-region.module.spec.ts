@@ -307,102 +307,7 @@ describe('AwsMultiAzRegionModule UT', () => {
     `);
   });
 
-  it('should handle moduleId changes', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsMultiAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-        vpcCidrBlock: '10.0.0.0/8',
-      },
-      moduleId: 'region-1',
-      type: AwsMultiAzRegionModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/vpc=vpc-test-region",
-           "value": "@octo/vpc=vpc-test-region",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-test-region",
-           "value": "@octo/internet-gateway=igw-test-region",
-         },
-       ],
-       [],
-     ]
-    `);
-
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsMultiAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-        vpcCidrBlock: '10.0.0.0/8',
-      },
-      moduleId: 'region-2',
-      type: AwsMultiAzRegionModule,
-    });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
-  });
-
-  describe('validation', () => {
-    it('should validate minimum regionIds', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region',
-            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A],
-            vpcCidrBlock: '10.0.0.0/8',
-          },
-          moduleId: 'region',
-          type: AwsMultiAzRegionModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"At least 2 regionIds are required!"`);
-    });
-
-    it('should validate overlapping CIDR blocks', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region-1',
-            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-            vpcCidrBlock: '10.0.0.0/8',
-          },
-          moduleId: 'region1',
-          type: AwsMultiAzRegionModule,
-        });
-        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region-2',
-            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-            vpcCidrBlock: '10.0.0.0/8',
-          },
-          moduleId: 'region2',
-          type: AwsMultiAzRegionModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
-    });
-
+  describe('input changes', () => {
     it('should handle name change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsMultiAzRegionModule>({
@@ -528,6 +433,84 @@ describe('AwsMultiAzRegionModule UT', () => {
       }).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Cannot update VPC immutable properties once it has been created!"`,
       );
+    });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        name: 'test-region',
+        regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
+        vpcCidrBlock: '10.0.0.0/8',
+      },
+      moduleId: 'region-1',
+      type: AwsMultiAzRegionModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        name: 'test-region',
+        regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
+        vpcCidrBlock: '10.0.0.0/8',
+      },
+      moduleId: 'region-2',
+      type: AwsMultiAzRegionModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
+  });
+
+  describe('validation', () => {
+    it('should validate minimum regionIds', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region',
+            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A],
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region',
+          type: AwsMultiAzRegionModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"At least 2 regionIds are required!"`);
+    });
+
+    it('should validate overlapping CIDR blocks', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region-1',
+            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region1',
+          type: AwsMultiAzRegionModule,
+        });
+        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region-2',
+            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region2',
+          type: AwsMultiAzRegionModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
     });
   });
 });

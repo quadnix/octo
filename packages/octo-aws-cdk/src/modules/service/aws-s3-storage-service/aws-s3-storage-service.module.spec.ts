@@ -92,7 +92,6 @@ describe('AwsS3StorageServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StorageServiceModule,
     });
-
     const result = await testModuleContainer.commit(app, {
       enableResourceCapture: true,
       filterByModuleIds: ['service'],
@@ -114,7 +113,7 @@ describe('AwsS3StorageServiceModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StorageServiceModule>({
       inputs: {
         bucketName: 'test-bucket',
@@ -123,8 +122,8 @@ describe('AwsS3StorageServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StorageServiceModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -139,7 +138,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     `);
 
     // Adding directories should have no effect as they only create anchors.
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appAddDirectory } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StorageServiceModule>({
       inputs: {
         bucketName: 'test-bucket',
@@ -149,17 +148,17 @@ describe('AwsS3StorageServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StorageServiceModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAddDirectory = await testModuleContainer.commit(appAddDirectory, { enableResourceCapture: true });
+    expect(resultAddDirectory.resourceDiffs).toMatchInlineSnapshot(`
      [
        [],
        [],
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const { app: appDelete } = await setup(testModuleContainer);
+    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
+    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -176,7 +175,7 @@ describe('AwsS3StorageServiceModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StorageServiceModule>({
       inputs: {
         bucketName: 'test-bucket',
@@ -186,8 +185,8 @@ describe('AwsS3StorageServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StorageServiceModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -214,7 +213,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StorageServiceModule>({
       inputs: {
         bucketName: 'test-bucket',
@@ -224,8 +223,8 @@ describe('AwsS3StorageServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StorageServiceModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
+    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -247,7 +246,7 @@ describe('AwsS3StorageServiceModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StorageServiceModule>({
       inputs: {
         bucketName: 'test-bucket',
@@ -257,8 +256,8 @@ describe('AwsS3StorageServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StorageServiceModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
+    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -280,7 +279,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     `);
   });
 
-  describe('validation', () => {
+  describe('input changes', () => {
     it('should handle bucketName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsS3StorageServiceModule>({
@@ -325,5 +324,35 @@ describe('AwsS3StorageServiceModule UT', () => {
        ]
       `);
     });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StorageServiceModule>({
+      inputs: {
+        bucketName: 'test-bucket',
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'service-1',
+      type: AwsS3StorageServiceModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsS3StorageServiceModule>({
+      inputs: {
+        bucketName: 'test-bucket',
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'service-2',
+      type: AwsS3StorageServiceModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
   });
 });

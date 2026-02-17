@@ -348,7 +348,6 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-
     const result = await testModuleContainer.commit(app, {
       enableResourceCapture: true,
       filterByModuleIds: ['execution'],
@@ -381,7 +380,7 @@ describe('AwsEcsExecutionModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -404,8 +403,8 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -437,7 +436,7 @@ describe('AwsEcsExecutionModule UT', () => {
      ]
     `);
 
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appUpdateDeployment } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -461,8 +460,10 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateDeployment = await testModuleContainer.commit(appUpdateDeployment, {
+      enableResourceCapture: true,
+    });
+    expect(resultUpdateDeployment.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -482,7 +483,7 @@ describe('AwsEcsExecutionModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appUpdateDeploymentRevert } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -505,8 +506,10 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateDeploymentRevert = await testModuleContainer.commit(appUpdateDeploymentRevert, {
+      enableResourceCapture: true,
+    });
+    expect(resultUpdateDeploymentRevert.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -526,7 +529,7 @@ describe('AwsEcsExecutionModule UT', () => {
      ]
     `);
 
-    const { app: app4 } = await setup(testModuleContainer);
+    const { app: appUpdateDesiredCount } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -549,8 +552,10 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-    const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
-    expect(result4.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateDesiredCount = await testModuleContainer.commit(appUpdateDesiredCount, {
+      enableResourceCapture: true,
+    });
+    expect(resultUpdateDesiredCount.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -564,7 +569,7 @@ describe('AwsEcsExecutionModule UT', () => {
      ]
     `);
 
-    const { app: app5 } = await setup(testModuleContainer);
+    const { app: appAddFilesystem } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -588,8 +593,8 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-    const result5 = await testModuleContainer.commit(app5, { enableResourceCapture: true });
-    expect(result5.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAddFilesystem = await testModuleContainer.commit(appAddFilesystem, { enableResourceCapture: true });
+    expect(resultAddFilesystem.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -609,7 +614,7 @@ describe('AwsEcsExecutionModule UT', () => {
      ]
     `);
 
-    const { app: app6 } = await setup(testModuleContainer);
+    const { app: appAddSecurityGroupRule } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -642,8 +647,10 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-    const result6 = await testModuleContainer.commit(app6, { enableResourceCapture: true });
-    expect(result6.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAddSecurityGroupRule = await testModuleContainer.commit(appAddSecurityGroupRule, {
+      enableResourceCapture: true,
+    });
+    expect(resultAddSecurityGroupRule.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -674,9 +681,9 @@ describe('AwsEcsExecutionModule UT', () => {
      ]
     `);
 
-    const { app: app7 } = await setup(testModuleContainer);
-    const result7 = await testModuleContainer.commit(app7, { enableResourceCapture: true });
-    expect(result7.resourceDiffs).toMatchInlineSnapshot(`
+    const { app: appDelete } = await setup(testModuleContainer);
+    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
+    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -711,7 +718,7 @@ describe('AwsEcsExecutionModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -734,8 +741,8 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -768,7 +775,7 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -791,8 +798,8 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
+    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -856,7 +863,7 @@ describe('AwsEcsExecutionModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -879,8 +886,8 @@ describe('AwsEcsExecutionModule UT', () => {
       moduleId: 'execution',
       type: AwsEcsExecutionModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
+    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -941,7 +948,7 @@ describe('AwsEcsExecutionModule UT', () => {
     `);
   });
 
-  describe('validation', () => {
+  describe('input changes', () => {
     it('should handle deployment change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsExecutionModule>({
@@ -1178,5 +1185,63 @@ describe('AwsEcsExecutionModule UT', () => {
        ]
       `);
     });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
+      inputs: {
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
+        desiredCount: 1,
+        environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
+        subnet: stub('${{testModule.model.subnet}}'),
+      },
+      moduleId: 'execution-1',
+      type: AwsEcsExecutionModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsEcsExecutionModule>({
+      inputs: {
+        deployments: {
+          main: {
+            containerProperties: {
+              image: {
+                essential: true,
+                name: 'backend-v1',
+              },
+            },
+            deployment: stub('${{testModule.model.deployment}}'),
+          },
+          sidecars: [],
+        },
+        desiredCount: 1,
+        environment: stub('${{testModule.model.environment}}'),
+        executionId: 'backend-v1-region-qa-private-subnet',
+        subnet: stub('${{testModule.model.subnet}}'),
+      },
+      moduleId: 'execution-2',
+      type: AwsEcsExecutionModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
   });
 });

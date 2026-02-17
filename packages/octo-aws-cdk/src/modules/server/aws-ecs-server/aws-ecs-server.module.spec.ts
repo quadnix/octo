@@ -167,7 +167,6 @@ describe('AwsEcsServerModule UT', () => {
       moduleId: 'server',
       type: AwsEcsServerModule,
     });
-
     const result = await testModuleContainer.commit(app, {
       enableResourceCapture: true,
       filterByModuleIds: ['server'],
@@ -196,7 +195,7 @@ describe('AwsEcsServerModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -205,8 +204,8 @@ describe('AwsEcsServerModule UT', () => {
       moduleId: 'server',
       type: AwsEcsServerModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -232,7 +231,7 @@ describe('AwsEcsServerModule UT', () => {
     `);
 
     // Adding security groups should have no effect as they are not created until execution.
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appAddSecurityGroups } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -250,8 +249,10 @@ describe('AwsEcsServerModule UT', () => {
       moduleId: 'server',
       type: AwsEcsServerModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAddSecurityGroups = await testModuleContainer.commit(appAddSecurityGroups, {
+      enableResourceCapture: true,
+    });
+    expect(resultAddSecurityGroups.resourceDiffs).toMatchInlineSnapshot(`
      [
        [],
        [],
@@ -259,7 +260,7 @@ describe('AwsEcsServerModule UT', () => {
     `);
 
     // Add S3 Storage.
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appAddS3Storage } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -283,8 +284,8 @@ describe('AwsEcsServerModule UT', () => {
       moduleId: 'server',
       type: AwsEcsServerModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAddS3Storage = await testModuleContainer.commit(appAddS3Storage, { enableResourceCapture: true });
+    expect(resultAddS3Storage.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -324,9 +325,9 @@ describe('AwsEcsServerModule UT', () => {
      ]
     `);
 
-    const { app: app4 } = await setup(testModuleContainer);
-    const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
-    expect(result4.resourceDiffs).toMatchInlineSnapshot(`
+    const { app: appDelete } = await setup(testModuleContainer);
+    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
+    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -379,7 +380,7 @@ describe('AwsEcsServerModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -388,8 +389,8 @@ describe('AwsEcsServerModule UT', () => {
       moduleId: 'server',
       type: AwsEcsServerModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -415,7 +416,7 @@ describe('AwsEcsServerModule UT', () => {
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -424,8 +425,8 @@ describe('AwsEcsServerModule UT', () => {
       moduleId: 'server',
       type: AwsEcsServerModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
+    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -447,7 +448,7 @@ describe('AwsEcsServerModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsServerModule>({
       inputs: {
         account: stub('${{testModule.model.account}}'),
@@ -456,8 +457,8 @@ describe('AwsEcsServerModule UT', () => {
       moduleId: 'server',
       type: AwsEcsServerModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
+    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -479,7 +480,7 @@ describe('AwsEcsServerModule UT', () => {
     `);
   });
 
-  describe('validation', () => {
+  describe('input changes', () => {
     it('should handle serverKey change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsServerModule>({
@@ -545,5 +546,35 @@ describe('AwsEcsServerModule UT', () => {
        ]
       `);
     });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsEcsServerModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        serverKey: 'backend',
+      },
+      moduleId: 'server-1',
+      type: AwsEcsServerModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsEcsServerModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        serverKey: 'backend',
+      },
+      moduleId: 'server-2',
+      type: AwsEcsServerModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
   });
 });

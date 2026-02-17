@@ -470,7 +470,6 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-
     const result = await testModuleContainer.commit(app, {
       enableResourceCapture: true,
       filterByModuleIds: ['alb-module'],
@@ -506,7 +505,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -548,9 +547,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -597,7 +595,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
      ]
     `);
 
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appAddListenerRule } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -650,8 +648,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAddListenerRule = await testModuleContainer.commit(appAddListenerRule, { enableResourceCapture: true });
+    expect(resultAddListenerRule.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -692,7 +690,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appUpdateListenerRule } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -745,8 +743,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule, {
+      enableResourceCapture: true,
+    });
+    expect(resultUpdateListenerRule.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -824,9 +824,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
      ]
     `);
 
-    const { app: app4 } = await setup(testModuleContainer);
-    const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
-    expect(result4.resourceDiffs).toMatchInlineSnapshot(`
+    const { app: appDelete } = await setup(testModuleContainer);
+    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
+    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -867,7 +867,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -909,8 +909,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -970,7 +970,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -1012,8 +1012,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
+    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -1091,7 +1091,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -1133,8 +1133,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
+    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -1208,7 +1208,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
     `);
   });
 
-  describe('validation', () => {
+  describe('input changes', () => {
     it('should handle albName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
@@ -2218,5 +2218,101 @@ describe('AwsEcsAlbServiceModule UT', () => {
         `[Error: Cannot update ALB Target Group immutable properties once it has been created!]`,
       );
     });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+      inputs: {
+        albName: 'test-alb',
+        listeners: [
+          {
+            DefaultActions: [
+              {
+                action: {
+                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                },
+                actionType: 'forward',
+              },
+            ],
+            Port: 80,
+            rules: [],
+          },
+        ],
+        region: stub('${{testModule.model.region}}'),
+        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+        targets: [
+          {
+            containerName: 'test-container',
+            containerPort: 80,
+            execution: stub('${{testExecutionModule.model.execution}}'),
+            healthCheck: {
+              HealthCheckIntervalSeconds: 30,
+              HealthCheckPath: '/health',
+              HealthCheckPort: 80,
+              HealthCheckProtocol: 'HTTP',
+              HealthCheckTimeoutSeconds: 5,
+              HealthyThresholdCount: 3,
+              Matcher: { HttpCode: 200 },
+              UnhealthyThresholdCount: 3,
+            },
+            Name: 'test-container-80',
+          },
+        ],
+      },
+      moduleId: 'alb-module-1',
+      type: AwsEcsAlbServiceModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+      inputs: {
+        albName: 'test-alb',
+        listeners: [
+          {
+            DefaultActions: [
+              {
+                action: {
+                  TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                },
+                actionType: 'forward',
+              },
+            ],
+            Port: 80,
+            rules: [],
+          },
+        ],
+        region: stub('${{testModule.model.region}}'),
+        subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+        targets: [
+          {
+            containerName: 'test-container',
+            containerPort: 80,
+            execution: stub('${{testExecutionModule.model.execution}}'),
+            healthCheck: {
+              HealthCheckIntervalSeconds: 30,
+              HealthCheckPath: '/health',
+              HealthCheckPort: 80,
+              HealthCheckProtocol: 'HTTP',
+              HealthCheckTimeoutSeconds: 5,
+              HealthyThresholdCount: 3,
+              Matcher: { HttpCode: 200 },
+              UnhealthyThresholdCount: 3,
+            },
+            Name: 'test-container-80',
+          },
+        ],
+      },
+      moduleId: 'alb-module-2',
+      type: AwsEcsAlbServiceModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
   });
 });

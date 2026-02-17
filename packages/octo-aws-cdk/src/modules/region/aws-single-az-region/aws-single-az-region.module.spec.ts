@@ -307,86 +307,7 @@ describe('AwsSingleAzRegionModule UT', () => {
     `);
   });
 
-  it('should handle moduleId changes', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-        vpcCidrBlock: '10.0.0.0/8',
-      },
-      moduleId: 'region-1',
-      type: AwsSingleAzRegionModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/vpc=vpc-test-region",
-           "value": "@octo/vpc=vpc-test-region",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-test-region",
-           "value": "@octo/internet-gateway=igw-test-region",
-         },
-       ],
-       [],
-     ]
-    `);
-
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
-    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-      inputs: {
-        account: stub('${{testModule.model.account}}'),
-        name: 'test-region',
-        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-        vpcCidrBlock: '10.0.0.0/8',
-      },
-      moduleId: 'region-2',
-      type: AwsSingleAzRegionModule,
-    });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
-  });
-
-  describe('validation', () => {
-    it('should validate overlapping CIDR blocks', async () => {
-      await setup(testModuleContainer);
-      await expect(async () => {
-        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region-1',
-            regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
-            vpcCidrBlock: '10.0.0.0/8',
-          },
-          moduleId: 'region1',
-          type: AwsSingleAzRegionModule,
-        });
-        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
-          inputs: {
-            account: stub('${{testModule.model.account}}'),
-            name: 'test-region-2',
-            regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
-            vpcCidrBlock: '10.0.0.0/8',
-          },
-          moduleId: 'region2',
-          type: AwsSingleAzRegionModule,
-        });
-      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
-    });
-
+  describe('input changes', () => {
     it('should handle name change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSingleAzRegionModule>({
@@ -514,6 +435,68 @@ describe('AwsSingleAzRegionModule UT', () => {
       }).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Cannot update VPC immutable properties once it has been created!"`,
       );
+    });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        name: 'test-region',
+        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+        vpcCidrBlock: '10.0.0.0/8',
+      },
+      moduleId: 'region-1',
+      type: AwsSingleAzRegionModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+      inputs: {
+        account: stub('${{testModule.model.account}}'),
+        name: 'test-region',
+        regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+        vpcCidrBlock: '10.0.0.0/8',
+      },
+      moduleId: 'region-2',
+      type: AwsSingleAzRegionModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
+  });
+
+  describe('validation', () => {
+    it('should validate overlapping CIDR blocks', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region-1',
+            regionId: AwsSingleAzRegionId.AWS_US_EAST_1A,
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region1',
+          type: AwsSingleAzRegionModule,
+        });
+        await testModuleContainer.runModule<AwsSingleAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region-2',
+            regionId: AwsSingleAzRegionId.AWS_US_EAST_1B,
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region2',
+          type: AwsSingleAzRegionModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
     });
   });
 });

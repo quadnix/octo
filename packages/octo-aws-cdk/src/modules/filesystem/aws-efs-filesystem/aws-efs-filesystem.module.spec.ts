@@ -123,7 +123,6 @@ describe('AwsEfsFilesystemModule UT', () => {
       moduleId: 'filesystem',
       type: AwsEfsFilesystemModule,
     });
-
     const result = await testModuleContainer.commit(app, {
       enableResourceCapture: true,
       filterByModuleIds: ['filesystem'],
@@ -145,7 +144,7 @@ describe('AwsEfsFilesystemModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEfsFilesystemModule>({
       inputs: {
         filesystemName: 'test-filesystem',
@@ -154,9 +153,8 @@ describe('AwsEfsFilesystemModule UT', () => {
       moduleId: 'filesystem',
       type: AwsEfsFilesystemModule,
     });
-
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -170,10 +168,9 @@ describe('AwsEfsFilesystemModule UT', () => {
      ]
     `);
 
-    const { app: app2 } = await setup(testModuleContainer);
-
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const { app: appDelete } = await setup(testModuleContainer);
+    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
+    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -190,7 +187,7 @@ describe('AwsEfsFilesystemModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEfsFilesystemModule>({
       inputs: {
         filesystemName: 'test-filesystem',
@@ -199,8 +196,8 @@ describe('AwsEfsFilesystemModule UT', () => {
       moduleId: 'filesystem',
       type: AwsEfsFilesystemModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -215,7 +212,7 @@ describe('AwsEfsFilesystemModule UT', () => {
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEfsFilesystemModule>({
       inputs: {
         filesystemName: 'test-filesystem',
@@ -224,8 +221,8 @@ describe('AwsEfsFilesystemModule UT', () => {
       moduleId: 'filesystem',
       type: AwsEfsFilesystemModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
+    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -247,7 +244,7 @@ describe('AwsEfsFilesystemModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEfsFilesystemModule>({
       inputs: {
         filesystemName: 'test-filesystem',
@@ -256,8 +253,8 @@ describe('AwsEfsFilesystemModule UT', () => {
       moduleId: 'filesystem',
       type: AwsEfsFilesystemModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
+    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -279,7 +276,7 @@ describe('AwsEfsFilesystemModule UT', () => {
     `);
   });
 
-  describe('validation', () => {
+  describe('input changes', () => {
     it('should handle filesystemName change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEfsFilesystemModule>({
@@ -324,5 +321,35 @@ describe('AwsEfsFilesystemModule UT', () => {
        ]
       `);
     });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
+      inputs: {
+        filesystemName: 'test-filesystem',
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'filesystem-1',
+      type: AwsEfsFilesystemModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsEfsFilesystemModule>({
+      inputs: {
+        filesystemName: 'test-filesystem',
+        region: stub('${{testModule.model.region}}'),
+      },
+      moduleId: 'filesystem-2',
+      type: AwsEfsFilesystemModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
   });
 });

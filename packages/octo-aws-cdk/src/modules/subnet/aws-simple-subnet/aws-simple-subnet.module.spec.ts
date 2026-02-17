@@ -281,7 +281,6 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-
     const result = await testModuleContainer.commit(app, {
       enableResourceCapture: true,
       filterByModuleIds: ['subnet'],
@@ -312,7 +311,7 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should CUD', async () => {
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -323,9 +322,8 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -350,7 +348,7 @@ describe('AwsSimpleSubnetModule UT', () => {
        [],
      ]
     `);
-    expect((result1.resourceDiffs[0][2].diff.node as AResource<BaseResourceSchema, any>).properties)
+    expect((resultCreate.resourceDiffs[0][2].diff.node as AResource<BaseResourceSchema, any>).properties)
       .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
@@ -382,7 +380,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      }
     `);
 
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appAddSubnetOptions } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -398,9 +396,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAddSubnetOptions = await testModuleContainer.commit(appAddSubnetOptions, {
+      enableResourceCapture: true,
+    });
+    expect(resultAddSubnetOptions.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -440,7 +439,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appAddLocalFilesystem } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         localFilesystems: [stub('${{testModule.model.filesystem}}')],
@@ -457,8 +456,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAddLocalFilesystem = await testModuleContainer.commit(appAddLocalFilesystem, {
+      enableResourceCapture: true,
+    });
+    expect(resultAddLocalFilesystem.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -478,9 +479,9 @@ describe('AwsSimpleSubnetModule UT', () => {
      ]
     `);
 
-    const { app: app4 } = await setup(testModuleContainer);
-    const result4 = await testModuleContainer.commit(app4, { enableResourceCapture: true });
-    expect(result4.resourceDiffs).toMatchInlineSnapshot(`
+    const { app: appDelete } = await setup(testModuleContainer);
+    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
+    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -520,7 +521,7 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should associate and disassociate subnet with siblings', async () => {
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appAssociateSubnet } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -552,9 +553,8 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet2',
       type: AwsSimpleSubnetModule,
     });
-
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAssociateSubnet = await testModuleContainer.commit(appAssociateSubnet, { enableResourceCapture: true });
+    expect(resultAssociateSubnet.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -597,7 +597,7 @@ describe('AwsSimpleSubnetModule UT', () => {
        [],
      ]
     `);
-    expect((result1.resourceDiffs[0][2].diff.node as AResource<BaseResourceSchema, any>).properties)
+    expect((resultAssociateSubnet.resourceDiffs[0][2].diff.node as AResource<BaseResourceSchema, any>).properties)
       .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
@@ -650,7 +650,7 @@ describe('AwsSimpleSubnetModule UT', () => {
        ],
      }
     `);
-    expect((result1.resourceDiffs[0][5].diff.node as AResource<BaseResourceSchema, any>).properties)
+    expect((resultAssociateSubnet.resourceDiffs[0][5].diff.node as AResource<BaseResourceSchema, any>).properties)
       .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
@@ -726,7 +726,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      }
     `);
 
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appDisassociateSubnet } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -754,8 +754,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
 
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet, {
+      enableResourceCapture: true,
+    });
+    expect(resultDisassociateSubnet.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -851,7 +853,7 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should associate and disassociate private subnet with public subnet with a NAT Gateway', async () => {
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appAssociateSubnet } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -884,8 +886,8 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
 
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultAssociateSubnet = await testModuleContainer.commit(appAssociateSubnet, { enableResourceCapture: true });
+    expect(resultAssociateSubnet.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -940,7 +942,7 @@ describe('AwsSimpleSubnetModule UT', () => {
        [],
      ]
     `);
-    expect((result1.resourceDiffs[0][3].diff.node as AResource<BaseResourceSchema, any>).properties)
+    expect((resultAssociateSubnet.resourceDiffs[0][3].diff.node as AResource<BaseResourceSchema, any>).properties)
       .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
@@ -1015,7 +1017,7 @@ describe('AwsSimpleSubnetModule UT', () => {
        ],
      }
     `);
-    expect((result1.resourceDiffs[0][7].diff.node as AResource<BaseResourceSchema, any>).properties)
+    expect((resultAssociateSubnet.resourceDiffs[0][7].diff.node as AResource<BaseResourceSchema, any>).properties)
       .toMatchInlineSnapshot(`
      {
        "awsAccountId": "123",
@@ -1091,7 +1093,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      }
     `);
 
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appDisassociateSubnet } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1118,9 +1120,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet2',
       type: AwsSimpleSubnetModule,
     });
-
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet, {
+      enableResourceCapture: true,
+    });
+    expect(resultDisassociateSubnet.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -1220,7 +1223,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appDeleteNATGateway } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1247,9 +1250,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet2',
       type: AwsSimpleSubnetModule,
     });
-
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDeleteNATGateway = await testModuleContainer.commit(appDeleteNATGateway, {
+      enableResourceCapture: true,
+    });
+    expect(resultDeleteNATGateway.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -1266,7 +1270,7 @@ describe('AwsSimpleSubnetModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: app1 } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1277,8 +1281,8 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const result1 = await testModuleContainer.commit(app1, { enableResourceCapture: true });
-    expect(result1.resourceDiffs).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -1305,7 +1309,7 @@ describe('AwsSimpleSubnetModule UT', () => {
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: app2 } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1316,8 +1320,8 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const result2 = await testModuleContainer.commit(app2, { enableResourceCapture: true });
-    expect(result2.resourceDiffs).toMatchInlineSnapshot(`
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
+    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -1367,7 +1371,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      ]
     `);
 
-    const { app: app3 } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1378,8 +1382,8 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const result3 = await testModuleContainer.commit(app3, { enableResourceCapture: true });
-    expect(result3.resourceDiffs).toMatchInlineSnapshot(`
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
+    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
      [
        [
          {
@@ -1427,7 +1431,7 @@ describe('AwsSimpleSubnetModule UT', () => {
     `);
   });
 
-  describe('validation', () => {
+  describe('input changes', () => {
     it('should handle subnetAvailabilityZone change', async () => {
       const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
@@ -1568,5 +1572,39 @@ describe('AwsSimpleSubnetModule UT', () => {
        ]
       `);
     });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { app: appCreate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+      },
+      moduleId: 'subnet-1',
+      type: AwsSimpleSubnetModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+      inputs: {
+        region: stub('${{testModule.model.region}}'),
+        subnetAvailabilityZone: 'us-east-1a',
+        subnetCidrBlock: '10.0.1.0/24',
+        subnetName: 'private-subnet',
+      },
+      moduleId: 'subnet-2',
+      type: AwsSimpleSubnetModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
   });
 });

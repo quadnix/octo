@@ -110,35 +110,7 @@ describe('SimpleAppModule UT', () => {
     `);
   });
 
-  it('should handle moduleId changes', async () => {
-    const { 'app-1.model.app': appCreate } = await testModuleContainer.runModule<SimpleAppModule>({
-      inputs: { name: 'test-app' },
-      moduleId: 'app-1',
-      type: SimpleAppModule,
-    });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
-
-    const { 'app-2.model.app': appUpdateModuleId } = await testModuleContainer.runModule<SimpleAppModule>({
-      inputs: { name: 'test-app' },
-      moduleId: 'app-2',
-      type: SimpleAppModule,
-    });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
-  });
-
-  describe('validation', () => {
+  describe('input changes', () => {
     it('should handle name change', async () => {
       const { 'app.model.app': appCreate } = await testModuleContainer.runModule<SimpleAppModule>({
         inputs: { name: 'test-app' },
@@ -160,5 +132,27 @@ describe('SimpleAppModule UT', () => {
        ]
       `);
     });
+  });
+
+  it('should handle moduleId change', async () => {
+    const { 'app-1.model.app': appCreate } = await testModuleContainer.runModule<SimpleAppModule>({
+      inputs: { name: 'test-app' },
+      moduleId: 'app-1',
+      type: SimpleAppModule,
+    });
+    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+    const { 'app-2.model.app': appUpdateModuleId } = await testModuleContainer.runModule<SimpleAppModule>({
+      inputs: { name: 'test-app' },
+      moduleId: 'app-2',
+      type: SimpleAppModule,
+    });
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
+    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
+     [
+       [],
+       [],
+     ]
+    `);
   });
 });
