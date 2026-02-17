@@ -295,4 +295,100 @@ describe('AwsEcrImageModule UT', () => {
      ]
     `);
   });
+
+  describe('validation', () => {
+    it('should handle imageFamily change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcrImageModule>({
+        inputs: {
+          imageFamily: 'family',
+          imageName: 'image',
+          regions: [stub('${{testModule.model.region}}')],
+        },
+        moduleId: 'image',
+        type: AwsEcrImageModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateImageFamily } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcrImageModule>({
+        inputs: {
+          imageFamily: 'changed-family',
+          imageName: 'image',
+          regions: [stub('${{testModule.model.region}}')],
+        },
+        moduleId: 'image',
+        type: AwsEcrImageModule,
+      });
+      const resultUpdateImageFamily = await testModuleContainer.commit(appUpdateImageFamily, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateImageFamily.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/ecr-image=ecr-us-east-1-family/image",
+             "value": "@octo/ecr-image=ecr-us-east-1-family/image",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/ecr-image=ecr-us-east-1-changed-family/image",
+             "value": "@octo/ecr-image=ecr-us-east-1-changed-family/image",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle imageName change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcrImageModule>({
+        inputs: {
+          imageFamily: 'family',
+          imageName: 'image',
+          regions: [stub('${{testModule.model.region}}')],
+        },
+        moduleId: 'image',
+        type: AwsEcrImageModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateImageName } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcrImageModule>({
+        inputs: {
+          imageFamily: 'family',
+          imageName: 'changed-image',
+          regions: [stub('${{testModule.model.region}}')],
+        },
+        moduleId: 'image',
+        type: AwsEcrImageModule,
+      });
+      const resultUpdateImageName = await testModuleContainer.commit(appUpdateImageName, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateImageName.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/ecr-image=ecr-us-east-1-family/image",
+             "value": "@octo/ecr-image=ecr-us-east-1-family/image",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/ecr-image=ecr-us-east-1-family/changed-image",
+             "value": "@octo/ecr-image=ecr-us-east-1-family/changed-image",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+  });
 });

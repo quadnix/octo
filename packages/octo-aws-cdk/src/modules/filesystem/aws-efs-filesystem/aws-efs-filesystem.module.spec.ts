@@ -278,4 +278,51 @@ describe('AwsEfsFilesystemModule UT', () => {
      ]
     `);
   });
+
+  describe('validation', () => {
+    it('should handle filesystemName change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEfsFilesystemModule>({
+        inputs: {
+          filesystemName: 'test-filesystem',
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'filesystem',
+        type: AwsEfsFilesystemModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateFilesystemName } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEfsFilesystemModule>({
+        inputs: {
+          filesystemName: 'changed-filesystem',
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'filesystem',
+        type: AwsEfsFilesystemModule,
+      });
+      const resultUpdateFilesystemName = await testModuleContainer.commit(appUpdateFilesystemName, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateFilesystemName.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/efs=efs-region-test-filesystem",
+             "value": "@octo/efs=efs-region-test-filesystem",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/efs=efs-region-changed-filesystem",
+             "value": "@octo/efs=efs-region-changed-filesystem",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+  });
 });

@@ -279,4 +279,51 @@ describe('AwsS3StorageServiceModule UT', () => {
      ]
     `);
   });
+
+  describe('validation', () => {
+    it('should handle bucketName change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsS3StorageServiceModule>({
+        inputs: {
+          bucketName: 'test-bucket',
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'service',
+        type: AwsS3StorageServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateBucketName } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsS3StorageServiceModule>({
+        inputs: {
+          bucketName: 'changed-bucket',
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'service',
+        type: AwsS3StorageServiceModule,
+      });
+      const resultUpdateBucketName = await testModuleContainer.commit(appUpdateBucketName, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateBucketName.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/s3-storage=bucket-test-bucket",
+             "value": "@octo/s3-storage=bucket-test-bucket",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/s3-storage=bucket-changed-bucket",
+             "value": "@octo/s3-storage=bucket-changed-bucket",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+  });
 });

@@ -478,4 +478,72 @@ describe('AwsEcsServerModule UT', () => {
      ]
     `);
   });
+
+  describe('validation', () => {
+    it('should handle serverKey change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsServerModule>({
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          serverKey: 'backend',
+        },
+        moduleId: 'server',
+        type: AwsEcsServerModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateServerKey } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsServerModule>({
+        inputs: {
+          account: stub('${{testModule.model.account}}'),
+          serverKey: 'changed-backend',
+        },
+        moduleId: 'server',
+        type: AwsEcsServerModule,
+      });
+      const resultUpdateServerKey = await testModuleContainer.commit(appUpdateServerKey, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateServerKey.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "update",
+             "field": "aws-policy",
+             "node": "@octo/iam-role=iam-role-ServerRole-backend",
+             "value": {
+               "action": "delete",
+               "policyId": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+               "policyType": "aws-policy",
+             },
+           },
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/iam-role=iam-role-ServerRole-backend",
+             "value": "@octo/iam-role=iam-role-ServerRole-backend",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/iam-role=iam-role-ServerRole-changed-backend",
+             "value": "@octo/iam-role=iam-role-ServerRole-changed-backend",
+           },
+           {
+             "action": "update",
+             "field": "aws-policy",
+             "node": "@octo/iam-role=iam-role-ServerRole-changed-backend",
+             "value": {
+               "action": "add",
+               "policy": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+               "policyId": "AmazonECSTaskExecutionRolePolicy",
+               "policyType": "aws-policy",
+             },
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+  });
 });

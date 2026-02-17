@@ -75,7 +75,7 @@ async function setup(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
       'AwsRegionAnchor',
       {
-        awsRegionAZs: ['us-east-1a'],
+        awsRegionAZs: ['us-east-1a', 'us-east-1b'],
         awsRegionId: 'us-east-1',
         regionId: 'aws-us-east-1a',
         vpcCidrBlock: '10.0.0.0/16',
@@ -1425,5 +1425,148 @@ describe('AwsSimpleSubnetModule UT', () => {
        [],
      ]
     `);
+  });
+
+  describe('validation', () => {
+    it('should handle subnetAvailabilityZone change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+        inputs: {
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1a',
+          subnetCidrBlock: '10.0.1.0/24',
+          subnetName: 'private-subnet',
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateAvailabilityZone } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+        inputs: {
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1b',
+          subnetCidrBlock: '10.0.1.0/24',
+          subnetName: 'private-subnet',
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
+      });
+      await expect(async () => {
+        await testModuleContainer.commit(appUpdateAvailabilityZone, {
+          enableResourceCapture: true,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Cannot update Subnet immutable properties once it has been created!"`,
+      );
+    });
+
+    it('should handle subnetCidrBlock change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+        inputs: {
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1a',
+          subnetCidrBlock: '10.0.1.0/24',
+          subnetName: 'private-subnet',
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateCidrBlock } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+        inputs: {
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1a',
+          subnetCidrBlock: '10.0.2.0/24',
+          subnetName: 'private-subnet',
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
+      });
+      await expect(async () => {
+        await testModuleContainer.commit(appUpdateCidrBlock, {
+          enableResourceCapture: true,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Cannot update Subnet immutable properties once it has been created!"`,
+      );
+    });
+
+    it('should handle subnetName change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+        inputs: {
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1a',
+          subnetCidrBlock: '10.0.1.0/24',
+          subnetName: 'private-subnet',
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateSubnetName } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+        inputs: {
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1a',
+          subnetCidrBlock: '10.0.1.0/24',
+          subnetName: 'changed-subnet',
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
+      });
+      const resultUpdateSubnetName = await testModuleContainer.commit(appUpdateSubnetName, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateSubnetName.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/subnet=subnet-region-private-subnet",
+             "value": "@octo/subnet=subnet-region-private-subnet",
+           },
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/network-acl=nacl-region-private-subnet",
+             "value": "@octo/network-acl=nacl-region-private-subnet",
+           },
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/route-table=rt-region-private-subnet",
+             "value": "@octo/route-table=rt-region-private-subnet",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/subnet=subnet-region-changed-subnet",
+             "value": "@octo/subnet=subnet-region-changed-subnet",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/route-table=rt-region-changed-subnet",
+             "value": "@octo/route-table=rt-region-changed-subnet",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/network-acl=nacl-region-changed-subnet",
+             "value": "@octo/network-acl=nacl-region-changed-subnet",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
   });
 });

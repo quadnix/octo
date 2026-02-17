@@ -253,4 +253,51 @@ describe('AwsEcsEnvironmentModule UT', () => {
      ]
     `);
   });
+
+  describe('validation', () => {
+    it('should handle environmentName change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
+        inputs: {
+          environmentName: 'qa',
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'environment',
+        type: AwsEcsEnvironmentModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateEnvironmentName } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
+        inputs: {
+          environmentName: 'changed-qa',
+          region: stub('${{testModule.model.region}}'),
+        },
+        moduleId: 'environment',
+        type: AwsEcsEnvironmentModule,
+      });
+      const resultUpdateEnvironmentName = await testModuleContainer.commit(appUpdateEnvironmentName, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateEnvironmentName.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/ecs-cluster=ecs-cluster-region-qa",
+             "value": "@octo/ecs-cluster=ecs-cluster-region-qa",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/ecs-cluster=ecs-cluster-region-changed-qa",
+             "value": "@octo/ecs-cluster=ecs-cluster-region-changed-qa",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+  });
 });
