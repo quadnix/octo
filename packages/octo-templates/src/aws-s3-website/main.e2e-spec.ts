@@ -82,7 +82,7 @@ describe('Main E2E', () => {
     expect(errorContent.data).toContain('This is an error!');
   }, 60_000);
 
-  describe('module input changes', () => {
+  describe('input changes', () => {
     describe('SimpleAppModule', () => {
       it('should handle name change', async () => {
         await testModuleContainer.orderModules(moduleDefinitions.getAll().map((md) => md.module));
