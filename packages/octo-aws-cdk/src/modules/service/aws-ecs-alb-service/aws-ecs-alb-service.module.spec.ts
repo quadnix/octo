@@ -2,6 +2,7 @@ import {
   AuthorizeSecurityGroupEgressCommand,
   AuthorizeSecurityGroupIngressCommand,
   CreateSecurityGroupCommand,
+  DeleteSecurityGroupCommand,
   DescribeSecurityGroupsCommand,
   EC2Client,
 } from '@aws-sdk/client-ec2';
@@ -11,6 +12,8 @@ import {
   CreateLoadBalancerCommand,
   CreateRuleCommand,
   CreateTargetGroupCommand,
+  DeleteListenerCommand,
+  DeleteLoadBalancerCommand,
   DescribeLoadBalancersCommand,
   ElasticLoadBalancingV2Client,
 } from '@aws-sdk/client-elastic-load-balancing-v2';
@@ -219,6 +222,16 @@ async function setup(
               command: [],
               essential: true,
               name: 'test-container',
+              ports: [
+                { containerPort: 80, protocol: 'tcp' },
+                { containerPort: 8080, protocol: 'tcp' },
+              ],
+              uri: '',
+            },
+            {
+              command: [],
+              essential: true,
+              name: 'side-container',
               ports: [{ containerPort: 80, protocol: 'tcp' }],
               uri: '',
             },
@@ -278,6 +291,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Egress' }] })
       .on(AuthorizeSecurityGroupIngressCommand)
       .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Ingress' }] })
+      .on(DeleteSecurityGroupCommand)
+      .resolves({})
       .on(DescribeSecurityGroupsCommand)
       .resolves({ SecurityGroups: [] });
 
@@ -334,6 +349,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
           },
         ],
       })
+      .on(DeleteLoadBalancerCommand)
+      .resolves({})
+      .on(DeleteListenerCommand)
+      .resolves({})
       .on(DescribeLoadBalancersCommand)
       .resolvesOnce({
         LoadBalancers: [{ State: { Code: 'active' } }],
@@ -1187,5 +1206,1017 @@ describe('AwsEcsAlbServiceModule UT', () => {
        [],
      ]
     `);
+  });
+
+  describe('validation', () => {
+    it('should handle albName change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateAlbName } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'changed-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      const resultUpdateAlbName = await testModuleContainer.commit(appUpdateAlbName, {
+        enableResourceCapture: true,
+        skipResourceTransaction: true,
+      });
+      expect(resultUpdateAlbName.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/security-group=sec-grp-region-test-alb",
+             "value": "@octo/security-group=sec-grp-region-test-alb",
+           },
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/alb=alb-region-test-alb",
+             "value": "@octo/alb=alb-region-test-alb",
+           },
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/alb-listener=alb-listener-test-alb",
+             "value": "@octo/alb-listener=alb-listener-test-alb",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/security-group=sec-grp-region-changed-alb",
+             "value": "@octo/security-group=sec-grp-region-changed-alb",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/alb=alb-region-changed-alb",
+             "value": "@octo/alb=alb-region-changed-alb",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/alb-listener=alb-listener-changed-alb",
+             "value": "@octo/alb-listener=alb-listener-changed-alb",
+           },
+           {
+             "action": "update",
+             "field": "properties",
+             "node": "@octo/alb-listener=alb-listener-changed-alb",
+             "value": {
+               "DefaultActions": [],
+             },
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle listener DefaultActions change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateListenerDefaultAction } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: { ContentType: 'text/plain', MessageBody: 'Not Found!', StatusCode: 404 },
+                  actionType: 'fixed-response',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      const resultUpdateListenerDefaultAction = await testModuleContainer.commit(appUpdateListenerDefaultAction, {
+        enableResourceCapture: true,
+        skipResourceTransaction: true,
+      });
+      expect(resultUpdateListenerDefaultAction.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+             "value": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+           },
+           {
+             "action": "update",
+             "field": "properties",
+             "node": "@octo/alb-listener=alb-listener-test-alb",
+             "value": {
+               "DefaultActions": [],
+             },
+           },
+           {
+             "action": "update",
+             "field": "resourceId",
+             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+             "value": "",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle listener Port change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateListenerPort } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 8080,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      const resultUpdateListenerPort = await testModuleContainer.commit(appUpdateListenerPort, {
+        enableResourceCapture: true,
+        skipResourceTransaction: true,
+      });
+      expect(resultUpdateListenerPort.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "update",
+             "field": "properties",
+             "node": "@octo/alb-listener=alb-listener-test-alb",
+             "value": {
+               "DefaultActions": [],
+             },
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle listener rules change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateListenerRule } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [
+                {
+                  actions: [
+                    {
+                      action: { ContentType: 'text/plain', MessageBody: 'Not implemented!', StatusCode: 404 },
+                      actionType: 'fixed-response',
+                    },
+                  ],
+                  conditions: [{ condition: { Values: ['/api'] }, conditionType: 'path-pattern' }],
+                  Priority: 1,
+                },
+              ],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule, {
+        enableResourceCapture: true,
+        skipResourceTransaction: true,
+      });
+      expect(resultUpdateListenerRule.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "update",
+             "field": "properties",
+             "node": "@octo/alb-listener=alb-listener-test-alb",
+             "value": {
+               "Rule": {
+                 "action": "add",
+                 "rule": {
+                   "Priority": 1,
+                   "actions": [
+                     {
+                       "action": {
+                         "ContentType": "text/plain",
+                         "MessageBody": "Not implemented!",
+                         "StatusCode": 404,
+                       },
+                       "actionType": "fixed-response",
+                     },
+                   ],
+                   "conditions": [
+                     {
+                       "condition": {
+                         "Values": [
+                           "/api",
+                         ],
+                       },
+                       "conditionType": "path-pattern",
+                     },
+                   ],
+                 },
+               },
+             },
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle target add change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: { ContentType: 'text/plain', MessageBody: 'Not Found!', StatusCode: 404 },
+                  actionType: 'fixed-response',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateTargetAddNewTarget } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      const resultUpdateTargetAddNewTarget = await testModuleContainer.commit(appUpdateTargetAddNewTarget, {
+        enableResourceCapture: true,
+        skipResourceTransaction: true,
+      });
+      expect(resultUpdateTargetAddNewTarget.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "update",
+             "field": "resourceId",
+             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+             "value": "",
+           },
+           {
+             "action": "update",
+             "field": "properties",
+             "node": "@octo/alb-listener=alb-listener-test-alb",
+             "value": {
+               "DefaultActions": [],
+             },
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+             "value": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle target containerName change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateTargetContainerName } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'side-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      const resultUpdateTargetContainerName = await testModuleContainer.commit(appUpdateTargetContainerName, {
+        enableResourceCapture: true,
+        skipResourceTransaction: true,
+      });
+      expect(resultUpdateTargetContainerName.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "update",
+             "field": "resourceId",
+             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+             "value": "",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle target containerPort change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateTargetContainerPort } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 8080,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await expect(async () => {
+        await testModuleContainer.commit(appUpdateTargetContainerPort, {
+          enableResourceCapture: true,
+          skipResourceTransaction: true,
+        });
+      }).rejects.toMatchInlineSnapshot(
+        `[Error: Cannot update ALB Target Group immutable properties once it has been created!]`,
+      );
+    });
+
+    it('should handle target healthCheck change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateTargetHealthCheck } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 4, // change.
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      const resultUpdateTargetHealthCheck = await testModuleContainer.commit(appUpdateTargetHealthCheck, {
+        enableResourceCapture: true,
+        skipResourceTransaction: true,
+      });
+      expect(resultUpdateTargetHealthCheck.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "update",
+             "field": "properties",
+             "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+             "value": "",
+           },
+           {
+             "action": "update",
+             "field": "resourceId",
+             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+             "value": "",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle target name change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'test-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'test-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateTargetName } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
+        inputs: {
+          albName: 'test-alb',
+          listeners: [
+            {
+              DefaultActions: [
+                {
+                  action: {
+                    TargetGroups: [{ targetGroupName: 'change-container-80', Weight: 100 }],
+                  },
+                  actionType: 'forward',
+                },
+              ],
+              Port: 80,
+              rules: [],
+            },
+          ],
+          region: stub('${{testModule.model.region}}'),
+          subnets: [stub('${{testSubnet1Module.model.subnet}}'), stub('${{testSubnet2Module.model.subnet}}')],
+          targets: [
+            {
+              containerName: 'test-container',
+              containerPort: 80,
+              execution: stub('${{testExecutionModule.model.execution}}'),
+              healthCheck: {
+                HealthCheckIntervalSeconds: 30,
+                HealthCheckPath: '/health',
+                HealthCheckPort: 80,
+                HealthCheckProtocol: 'HTTP',
+                HealthCheckTimeoutSeconds: 5,
+                HealthyThresholdCount: 3,
+                Matcher: { HttpCode: 200 },
+                UnhealthyThresholdCount: 3,
+              },
+              Name: 'change-container-80',
+            },
+          ],
+        },
+        moduleId: 'alb-module',
+        type: AwsEcsAlbServiceModule,
+      });
+      await expect(async () => {
+        await testModuleContainer.commit(appUpdateTargetName, {
+          enableResourceCapture: true,
+          skipResourceTransaction: true,
+        });
+      }).rejects.toMatchInlineSnapshot(
+        `[Error: Cannot update ALB Target Group immutable properties once it has been created!]`,
+      );
+    });
   });
 });

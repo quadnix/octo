@@ -148,6 +148,21 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     }
   }
 
+  override async diff(previous: AlbListener): Promise<Diff[]> {
+    const diffs: Diff[] = await super.diff(previous);
+
+    for (let i = diffs.length - 1; i >= 0; i--) {
+      // If the ALB Target Group parent has changed, there is no need to process this diff,
+      // since we have already verified in constructor that this target group is not referenced in listener.
+      // The target group is managed separately in its own actions.
+      if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'alb-target-group')) {
+        diffs.splice(i, 1);
+      }
+    }
+
+    return diffs;
+  }
+
   override async diffInverse(
     diff: Diff<AlbListener>,
     deReferenceResource: (
@@ -194,13 +209,22 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     const diffs: Diff[] = [];
 
     if (
-      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['DefaultActions', 'Port', 'Protocol', 'rules'])
+      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
+        'DefaultActions',
+        'Port',
+        'Protocol',
+        'rules',
+      ])
     ) {
       throw new ResourceError('Cannot update ALB Listener immutable properties once it has been created!', this);
     }
 
-    // Diff DefaultActions.
-    if (!DiffUtility.isObjectDeepEquals(previous.properties.DefaultActions, this.properties.DefaultActions)) {
+    // Diff DefaultActions, Port, or Protocols.
+    if (
+      !DiffUtility.isObjectDeepEquals(previous.properties.DefaultActions, this.properties.DefaultActions) ||
+      previous.properties.Port !== this.properties.Port ||
+      previous.properties.Protocol !== this.properties.Protocol
+    ) {
       diffs.push(
         new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', { DefaultActions: [] }),
       );
