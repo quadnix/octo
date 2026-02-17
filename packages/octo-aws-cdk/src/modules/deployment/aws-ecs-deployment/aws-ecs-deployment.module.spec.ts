@@ -226,4 +226,109 @@ describe('AwsEcsDeploymentModule UT', () => {
      ]
     `);
   });
+
+  describe('input changes', () => {
+    it('should handle deploymentContainerProperties change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsDeploymentModule>({
+        inputs: {
+          deploymentContainerProperties: {
+            cpu: 256,
+            image: {
+              command: 'command',
+              ports: [{ containerPort: 80, protocol: 'tcp' }],
+              uri: 'uri',
+            },
+            memory: 512,
+          },
+          deploymentTag: 'v1',
+          server: stub('${{testModule.model.server}}'),
+        },
+        moduleId: 'deployment',
+        type: AwsEcsDeploymentModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateDeploymentContainerProperties } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsDeploymentModule>({
+        inputs: {
+          deploymentContainerProperties: {
+            cpu: 512,
+            image: {
+              command: 'change-command',
+              ports: [{ containerPort: 8080, protocol: 'tcp' }],
+              uri: 'change-uri',
+            },
+            memory: 1024,
+          },
+          deploymentTag: 'v1',
+          server: stub('${{testModule.model.server}}'),
+        },
+        moduleId: 'deployment',
+        type: AwsEcsDeploymentModule,
+      });
+      const resultUpdateDeploymentContainerProperties = await testModuleContainer.commit(
+        appUpdateDeploymentContainerProperties,
+        {
+          enableResourceCapture: true,
+        },
+      );
+      expect(resultUpdateDeploymentContainerProperties.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle deploymentTag change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsDeploymentModule>({
+        inputs: {
+          deploymentContainerProperties: {
+            cpu: 256,
+            image: {
+              command: 'command',
+              ports: [{ containerPort: 80, protocol: 'tcp' }],
+              uri: 'uri',
+            },
+            memory: 512,
+          },
+          deploymentTag: 'v1',
+          server: stub('${{testModule.model.server}}'),
+        },
+        moduleId: 'deployment',
+        type: AwsEcsDeploymentModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateDeploymentTag } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsDeploymentModule>({
+        inputs: {
+          deploymentContainerProperties: {
+            cpu: 256,
+            image: {
+              command: 'command',
+              ports: [{ containerPort: 80, protocol: 'tcp' }],
+              uri: 'uri',
+            },
+            memory: 512,
+          },
+          deploymentTag: 'change-v1',
+          server: stub('${{testModule.model.server}}'),
+        },
+        moduleId: 'deployment',
+        type: AwsEcsDeploymentModule,
+      });
+      const resultUpdateDeploymentTag = await testModuleContainer.commit(appUpdateDeploymentTag, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateDeploymentTag.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [],
+         [],
+       ]
+      `);
+    });
+  });
 });

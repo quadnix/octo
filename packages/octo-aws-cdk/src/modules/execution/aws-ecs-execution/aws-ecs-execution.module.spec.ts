@@ -940,4 +940,243 @@ describe('AwsEcsExecutionModule UT', () => {
      ]
     `);
   });
+
+  describe('validation', () => {
+    it('should handle deployment change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsExecutionModule>({
+        inputs: {
+          deployments: {
+            main: {
+              containerProperties: {
+                image: {
+                  essential: true,
+                  name: 'backend-v1',
+                },
+              },
+              deployment: stub('${{testModule.model.deployment}}'),
+            },
+            sidecars: [],
+          },
+          desiredCount: 1,
+          environment: stub('${{testModule.model.environment}}'),
+          executionId: 'backend-v1-region-qa-private-subnet',
+          subnet: stub('${{testModule.model.subnet}}'),
+        },
+        moduleId: 'execution',
+        type: AwsEcsExecutionModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateDeployment } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsExecutionModule>({
+        inputs: {
+          deployments: {
+            main: {
+              containerProperties: {
+                image: {
+                  essential: true,
+                  name: 'change-backend-v1',
+                },
+              },
+              deployment: stub('${{testModule.model.deployment}}'),
+            },
+            sidecars: [],
+          },
+          desiredCount: 1,
+          environment: stub('${{testModule.model.environment}}'),
+          executionId: 'backend-v1-region-qa-private-subnet',
+          subnet: stub('${{testModule.model.subnet}}'),
+        },
+        moduleId: 'execution',
+        type: AwsEcsExecutionModule,
+      });
+      const resultUpdateDeployment = await testModuleContainer.commit(appUpdateDeployment, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateDeployment.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "update",
+             "field": "resourceId",
+             "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+             "value": "",
+           },
+           {
+             "action": "update",
+             "field": "resourceId",
+             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+             "value": "",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle desiredCount change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsExecutionModule>({
+        inputs: {
+          deployments: {
+            main: {
+              containerProperties: {
+                image: {
+                  essential: true,
+                  name: 'backend-v1',
+                },
+              },
+              deployment: stub('${{testModule.model.deployment}}'),
+            },
+            sidecars: [],
+          },
+          desiredCount: 1,
+          environment: stub('${{testModule.model.environment}}'),
+          executionId: 'backend-v1-region-qa-private-subnet',
+          subnet: stub('${{testModule.model.subnet}}'),
+        },
+        moduleId: 'execution',
+        type: AwsEcsExecutionModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateDesiredCount } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsExecutionModule>({
+        inputs: {
+          deployments: {
+            main: {
+              containerProperties: {
+                image: {
+                  essential: true,
+                  name: 'backend-v1',
+                },
+              },
+              deployment: stub('${{testModule.model.deployment}}'),
+            },
+            sidecars: [],
+          },
+          desiredCount: 2,
+          environment: stub('${{testModule.model.environment}}'),
+          executionId: 'backend-v1-region-qa-private-subnet',
+          subnet: stub('${{testModule.model.subnet}}'),
+        },
+        moduleId: 'execution',
+        type: AwsEcsExecutionModule,
+      });
+      const resultUpdateDesiredCount = await testModuleContainer.commit(appUpdateDesiredCount, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateDesiredCount.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "update",
+             "field": "resourceId",
+             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+             "value": "",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+
+    it('should handle executionId change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsExecutionModule>({
+        inputs: {
+          deployments: {
+            main: {
+              containerProperties: {
+                image: {
+                  essential: true,
+                  name: 'backend-v1',
+                },
+              },
+              deployment: stub('${{testModule.model.deployment}}'),
+            },
+            sidecars: [],
+          },
+          desiredCount: 1,
+          environment: stub('${{testModule.model.environment}}'),
+          executionId: 'backend-v1-region-qa-private-subnet',
+          subnet: stub('${{testModule.model.subnet}}'),
+        },
+        moduleId: 'execution',
+        type: AwsEcsExecutionModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+
+      const { app: appUpdateExecutionId } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsEcsExecutionModule>({
+        inputs: {
+          deployments: {
+            main: {
+              containerProperties: {
+                image: {
+                  essential: true,
+                  name: 'backend-v1',
+                },
+              },
+              deployment: stub('${{testModule.model.deployment}}'),
+            },
+            sidecars: [],
+          },
+          desiredCount: 1,
+          environment: stub('${{testModule.model.environment}}'),
+          executionId: 'changed-execution-id',
+          subnet: stub('${{testModule.model.subnet}}'),
+        },
+        moduleId: 'execution',
+        type: AwsEcsExecutionModule,
+      });
+      const resultUpdateExecutionId = await testModuleContainer.commit(appUpdateExecutionId, {
+        enableResourceCapture: true,
+      });
+      expect(resultUpdateExecutionId.resourceDiffs).toMatchInlineSnapshot(`
+       [
+         [
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+             "value": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+           },
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+             "value": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+           },
+           {
+             "action": "delete",
+             "field": "resourceId",
+             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+             "value": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/security-group=sec-grp-SecurityGroup-changed-execution-id",
+             "value": "@octo/security-group=sec-grp-SecurityGroup-changed-execution-id",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/ecs-task-definition=ecs-task-definition-changed-execution-id",
+             "value": "@octo/ecs-task-definition=ecs-task-definition-changed-execution-id",
+           },
+           {
+             "action": "add",
+             "field": "resourceId",
+             "node": "@octo/ecs-service=ecs-service-changed-execution-id",
+             "value": "@octo/ecs-service=ecs-service-changed-execution-id",
+           },
+         ],
+         [],
+       ]
+      `);
+    });
+  });
 });
