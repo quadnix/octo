@@ -152,10 +152,17 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     const diffs: Diff[] = await super.diff(previous);
 
     for (let i = diffs.length - 1; i >= 0; i--) {
-      // If the ALB Target Group parent has changed, there is no need to process this diff,
-      // since we have already verified in constructor that this target group is not referenced in listener.
-      // The target group is managed separately in its own actions.
-      if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'alb-target-group')) {
+      if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'alb')) {
+        // If the ALB parent has changed, there is no need to process this diff,
+        // since the ALB Arn is still the same.
+        diffs.splice(i, 1);
+      } else if (
+        diffs[i].field === 'parent' &&
+        hasNodeName(diffs[i].value as AResource<any, any>, 'alb-target-group')
+      ) {
+        // If the ALB Target Group parent has changed, there is no need to process this diff,
+        // since we have already verified in constructor that this target group is not referenced in listener.
+        // The target group is managed separately in its own actions.
         diffs.splice(i, 1);
       }
     }
