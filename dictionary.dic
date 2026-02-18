@@ -181,6 +181,7 @@ rehype
 renderer
 rimraf
 rolename
+runbooks
 scalable
 schemas
 sdk
