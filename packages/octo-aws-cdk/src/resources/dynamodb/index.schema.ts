@@ -42,28 +42,29 @@ export class DynamoDbBillingProvisionedSchema {
   }>();
 }
 
+export class DynamoDbKeySchema {
+  @Validate({ options: { minLength: 3 } })
+  AttributeName = Schema<string>();
+
+  @Validate({ options: { regex: /^(HASH|RANGE)$/ } })
+  KeyType = Schema<'HASH' | 'RANGE'>();
+}
+
 export class DynamoDbSecondaryIndexSchema {
   @Validate({ options: { minLength: 3 } })
   IndexName = Schema<string>();
 
   @Validate([
     {
-      // AttributeName must at least be 3 characters.
-      destruct: (value: DynamoDbSecondaryIndexSchema['KeySchema']): string[] =>
-        value.map((v) => [v.AttributeName]).flat(),
-      options: { minLength: 3 },
-    },
-    {
-      // KeyType must match enum.
-      destruct: (value: DynamoDbSecondaryIndexSchema['KeySchema']): string[] => value.map((v) => [v.KeyType]).flat(),
-      options: { regex: /^(HASH|RANGE)$/ },
-    },
-    {
       // Array length must at least be 1.
       options: { minLength: 1 },
     },
+    {
+      destruct: (value: DynamoDbSecondaryIndexSchema['KeySchema']): DynamoDbKeySchema[] => value,
+      options: { isSchema: { schema: DynamoDbKeySchema } },
+    },
   ])
-  KeySchema = Schema<{ AttributeName: string; KeyType: 'HASH' | 'RANGE' }[]>();
+  KeySchema = Schema<DynamoDbKeySchema[]>();
 
   @Validate([
     {
@@ -116,34 +117,82 @@ export class DynamoDbSchema extends BaseResourceSchema {
    * * `properties.ttl` - Time-to-Live configuration. **Mutable.**
    *   To disable TTL, explicitly set `Enabled: false` — do not remove the field.
    */
-  @Validate([
+  @Validate<unknown>([
     {
       destruct: (value: DynamoDbSchema['properties']): string[] => [value.awsAccountId, value.awsRegionId],
       options: { minLength: 1 },
     },
     {
-      // AttributeName must at least be 3 characters.
+      // AttributeDefinitions AttributeName must at least be 3 characters.
       destruct: (value: DynamoDbSchema['properties']): string[] =>
         value.AttributeDefinitions.map((d) => d.AttributeName),
       options: { minLength: 3 },
     },
     {
-      // KeyType must match enum.
+      // AttributeDefinitions AttributeType must match enum.
       destruct: (value: DynamoDbSchema['properties']): string[] =>
-        value.AttributeDefinitions.map((d) => [v.KeyType]).flat(),
-      options: { regex: /^(HASH|RANGE)$/ },
+        value.AttributeDefinitions.map((d) => d.AttributeType),
+      options: { regex: /^([BNS])$/ },
     },
     {
+      // billingMode settings must match schema.
+      destruct: (value: DynamoDbSchema['properties']): DynamoDbBillingPayPerRequestSchema[] => {
+        return value.billingMode.type === 'PAY_PER_REQUEST' ? [value.billingMode.settings] : [];
+      },
+      options: { isSchema: { schema: DynamoDbBillingPayPerRequestSchema } },
+    },
+    {
+      // billingMode settings must match schema.
+      destruct: (value: DynamoDbSchema['properties']): DynamoDbBillingProvisionedSchema[] => {
+        return value.billingMode.type === 'PROVISIONED' ? [value.billingMode.settings] : [];
+      },
+      options: { isSchema: { schema: DynamoDbBillingProvisionedSchema } },
+    },
+    {
+      // billingMode type must match enum.
+      destruct: (value: DynamoDbSchema['properties']): string[] => [value.billingMode.type],
+      options: { regex: /^(PAY_PER_REQUEST|PROVISIONED)$/ },
+    },
+    {
+      // DeletionProtectionEnabled must match enum.
       destruct: (value: DynamoDbSchema['properties']): string[] => [String(value.DeletionProtectionEnabled)],
       options: { regex: /^(false)$/ },
     },
     {
+      // KeySchema must match schema.
+      destruct: (value: DynamoDbSchema['properties']): DynamoDbKeySchema[] => value.KeySchema,
+      options: { isSchema: { schema: DynamoDbKeySchema } },
+    },
+    {
+      // LocalSecondaryIndexes must match schema.
+      destruct: (value: DynamoDbSchema['properties']): DynamoDbSecondaryIndexSchema[] => {
+        return value.LocalSecondaryIndexes || [];
+      },
+      options: { isSchema: { schema: DynamoDbSecondaryIndexSchema } },
+    },
+    {
+      // GlobalSecondaryIndexes must match schema.
+      destruct: (value: DynamoDbSchema['properties']): DynamoDbSecondaryIndexSchema[] => {
+        return value.GlobalSecondaryIndexes || [];
+      },
+      options: { isSchema: { schema: DynamoDbSecondaryIndexSchema } },
+    },
+    {
+      // TableClass must match enum.
       destruct: (value: DynamoDbSchema['properties']): string[] => [value.TableClass],
       options: { regex: /^(STANDARD)$/ },
     },
     {
+      // TableName must at least be 3 characters.
       destruct: (value: DynamoDbSchema['properties']): string[] => [value.TableName],
-      options: { minLength: 5 },
+      options: { minLength: 3 },
+    },
+    {
+      // timeToLiveAttribute must at least be 3 characters.
+      destruct: (value: DynamoDbSchema['properties']): string[] => {
+        return value.timeToLiveAttribute ? [value.timeToLiveAttribute] : [];
+      },
+      options: { minLength: 3 },
     },
   ])
   override properties = Schema<{
@@ -151,10 +200,13 @@ export class DynamoDbSchema extends BaseResourceSchema {
     awsRegionId: string;
     AttributeDefinitions: { AttributeName: string; AttributeType: 'B' | 'N' | 'S' }[];
     billingMode: {
-      [B in keyof IDynamoDbBillingTypes]-?: IDynamoDbBillingTypes[B];
+      [K in keyof IDynamoDbBillingTypes]: {
+        settings: IDynamoDbBillingTypes[K];
+        type: K;
+      };
     }[keyof IDynamoDbBillingTypes];
     DeletionProtectionEnabled: false;
-    KeySchema: { AttributeName: string; KeyType: 'HASH' | 'RANGE' }[];
+    KeySchema: DynamoDbKeySchema[];
     LocalSecondaryIndexes?: DynamoDbSecondaryIndexSchema[];
     GlobalSecondaryIndexes?: DynamoDbSecondaryIndexSchema[];
     StreamSpecification?: {
