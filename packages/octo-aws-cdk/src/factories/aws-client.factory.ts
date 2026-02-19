@@ -1,3 +1,4 @@
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { EC2Client } from '@aws-sdk/client-ec2';
 import { ECRClient } from '@aws-sdk/client-ecr';
 import { ECSClient } from '@aws-sdk/client-ecs';
@@ -63,6 +64,20 @@ class AwsClientFactory {
       'Method not implemented! Use derived class implementation',
       AwsClientFactory.name,
     );
+  }
+}
+
+/**
+ * @internal
+ */
+@Factory<DynamoDBClient>(DynamoDBClient, { metadata: { package: '@octo' } })
+export class DynamoDBClientFactory extends AwsClientFactory {
+  static override createInstance(
+    awsRegionId: string,
+    credentials: AwsCredentialIdentityProvider,
+    endpointInputConfig: EndpointInputConfig = {},
+  ): DynamoDBClient {
+    return new DynamoDBClient({ ...credentials, ...endpointInputConfig, region: awsRegionId });
   }
 }
 
