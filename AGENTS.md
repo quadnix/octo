@@ -55,6 +55,13 @@ There are unit tests, integration tests, and e2e tests defined for each project.
 - Avoid running `octo-templates` integration and e2e tests frequently. These tests create actual AWS resources,
   and might incur unnecessary AWS costs.
 
+## Documentation
+Octo's documentation must grow with its feature set, with code examples, API docs, and helpful blog posts.
+- `packages` make heavy use of JSDoc to document code behavior with parameter details and code examples.
+- `apps` contain high level documents explaining entire feature sets, and referencing API docs.
+  - @apps/octo-docs/package.json can run `plugin:pre-script`, `plugin:build`, and `plugin:post-script`
+    to generate API docs from JSDoc comments.
+
 ## Agent Workflow
 AI Agents must follow this workflow every time to keep the developer as hands free as possible.
 1. **Initiate**: Create a git worktree: `git worktree add ../ai-worktrees/octo-worktree-<branch-name> -b ai/<branch-name>`.
