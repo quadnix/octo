@@ -62,6 +62,7 @@ AI Agents must follow this workflow every time to keep the developer as hands fr
 2. **Plan**: Research the code and @apps/octo-docs.
    Write a plan in the chat, and wait for approval.
 3. **Execute**: Complete the task following the Coding Standards. Ensure all UT passes, and no linter errors.
+   Once the plan is approved, do not ask for user permissions. Run in loop until the task is completed.
 4. **Submit**: Use GitHub.
    - Push the branch to origin.
    - Create a GitHub PR with detailed description.
