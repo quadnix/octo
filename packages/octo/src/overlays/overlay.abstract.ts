@@ -14,7 +14,31 @@ import type { IOverlay } from './overlay.interface.js';
 import type { BaseOverlaySchema } from './overlay.schema.js';
 
 /**
+ * The abstract base class for all Octo overlays.
+ *
+ * An overlay is a special kind of model that represents infrastructure
+ * functionality spanning across multiple models — for example, mounting a
+ * filesystem to a subnet. Unlike regular models, overlays are constructed from
+ * *anchors* (the public representatives of models) rather than from models
+ * directly, keeping model implementations decoupled.
+ *
+ * To create a custom overlay, extend this class and apply the {@link Overlay} decorator:
+ * ```ts
+ * @Overlay('@my-package', 'my-overlay', MyOverlaySchema)
+ * export class MyOverlay extends AOverlay<MyOverlaySchema, MyOverlay> {
+ *   constructor(
+ *     overlayId: string,
+ *     properties: MyOverlaySchema['properties'],
+ *     anchors: [MyAnchor],
+ *   ) {
+ *     super(overlayId, properties, anchors);
+ *   }
+ * }
+ * ```
+ *
  * @group Overlays
+ * @see {@link Overlay} decorator
+ * @see [Fundamentals: Overlays](/docs/fundamentals/overlays)
  */
 export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOverlay>
   extends AModel<S, T>
@@ -64,6 +88,17 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
     return diffs;
   }
 
+  /**
+   * Computes anchor-level diffs for this overlay.
+   *
+   * Called by the transaction engine as part of {@link AOverlay.diff}.
+   * The default implementation emits an `ADD` diff for every anchor currently
+   * attached to this overlay, which triggers overlay actions that react to
+   * anchor additions. Override this method when you need custom diff logic —
+   * for example, to emit `UPDATE` diffs when anchor properties change.
+   *
+   * @returns An array of anchor {@link Diff} objects.
+   */
   async diffAnchors(): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -75,6 +110,14 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
     return diffs;
   }
 
+  /**
+   * Returns property-level diffs for this overlay.
+   *
+   * The base implementation returns an empty array. Override when individual
+   * overlay properties should drive update actions.
+   *
+   * @returns An array of property {@link Diff} objects.
+   */
   override async diffProperties(): Promise<Diff[]> {
     return [];
   }
@@ -107,12 +150,28 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
     super.removeAnchor(anchor);
   }
 
+  /**
+   * Returns the unique context string for this overlay instance.
+   *
+   * The format is `{package}/{overlayName}={overlayId}`, e.g. `@octo/filesystem-mount=mount-1`.
+   * This string is used by Octo to identify and track overlay instances across runs.
+   *
+   * @returns The overlay's unique context string.
+   */
   override setContext(): string {
     const nodePackage = (this.constructor as typeof AOverlay).NODE_PACKAGE;
     const nodeName = (this.constructor as typeof AOverlay).NODE_NAME;
     return `${nodePackage}/${nodeName}=${this.overlayId}`;
   }
 
+  /**
+   * Serialises the overlay to a plain-object schema suitable for JSON persistence.
+   *
+   * The returned object contains `overlayId`, `properties`, and the serialised anchors.
+   * It is called on every run to capture the state of the overlay graph.
+   *
+   * @returns A schema object representing this overlay's current state.
+   */
   override synth(): S {
     return {
       anchors: this.getAnchors().map((a) => a.synth()),
@@ -121,6 +180,18 @@ export abstract class AOverlay<S extends BaseOverlaySchema, T extends UnknownOve
     } as S;
   }
 
+  /**
+   * Reconstructs an overlay instance from its serialised schema
+   * (the inverse of {@link AOverlay.synth}).
+   *
+   * Resolves each anchor reference via `deReferenceContext` before constructing
+   * the overlay so that anchor–model relationships are restored correctly.
+   *
+   * @param deserializationClass The concrete overlay class to instantiate.
+   * @param overlay The serialised overlay schema.
+   * @param deReferenceContext Callback to resolve models by context string.
+   * @returns The reconstructed overlay instance.
+   */
   static override async unSynth(
     deserializationClass: any,
     overlay: OverlaySchema<UnknownOverlay>,

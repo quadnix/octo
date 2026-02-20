@@ -20,6 +20,10 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * }
  * ```
  * @group Decorators
+ * @param packageName The package name that owns this module (e.g. `'@my-package'`).
+ *   Must match the regex `^[@A-Za-z][\w-]+[A-Za-z]$`.
+ * @param schema The module's input schema class, used to validate inputs passed
+ *   to {@link Octo.loadModule} at registration time.
  * @returns The decorated class.
  * @see Definition of [Modules](/docs/fundamentals/modules).
  */

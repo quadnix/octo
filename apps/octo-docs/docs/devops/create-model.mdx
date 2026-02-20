@@ -120,6 +120,45 @@ static override async unSynth (region: SimpleRegionSchema): Promise<SimpleRegion
 }
 ```
 
+:::info[Inherited abstract methods]
+`setContext()`, `synth()`, and `unSynth()` are abstract methods inherited from
+[`AModel`](/api/octo/class/AModel).
+
+- **`setContext()`** — must return a unique string that identifies this model instance
+  across runs (e.g. `"region=us-east-1,app=my-app"`). Octo uses it for state tracking.
+- **`synth()`** — must return a plain JSON-serialisable object containing all data needed
+  to recreate the model; it is called on every run to capture the model graph state.
+- **`unSynth()`** — the static inverse of `synth()`; reconstructs a model from its
+  serialised schema. It is called when loading persisted state from the previous run.
+
+See the [`AModel` API reference](/api/octo/class/AModel) for the full contract of each method.
+:::
+
+### Parent-child registration in `onInit()`
+
+When your module creates a model that is a *child* of another model (e.g. a Region
+inside an Account), you must register the parent-child relationship inside your module's
+`onInit()` so Octo can build the correct model graph.
+
+```typescript title="aws-region.module.ts"
+async onInit(inputs: AwsRegionModuleSchema): Promise<AwsRegion> {
+  const region = new SimpleRegion(inputs.awsRegionId);
+
+  // Register the region as a child of the account model.
+  // This creates the graph edge that Octo uses for ordering and state tracking.
+  inputs.account.addChild('accountId', region, 'regionId');
+
+  return region;
+}
+```
+
+:::tip
+The first argument to `addChild()` is the field on the **parent** the child depends on,
+and the third argument is the field on the **child** that references the parent.
+These field names must match the schema property names, as Octo uses them when
+computing diffs and selecting the right model actions.
+:::
+
 ### Model Action
 In the model action, we can transform our model into a set of resources.
 In this example we will reuse the `SimpleVpc` resource we created in the previous section.

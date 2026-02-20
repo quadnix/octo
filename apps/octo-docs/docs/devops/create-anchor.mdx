@@ -78,3 +78,69 @@ constructor(
   super(anchorId, properties, parent);
 }
 ```
+
+## Attach the anchor in a module's `onInit()`
+
+An anchor only becomes useful when it is attached to a model. Do this inside the
+module that creates and owns the parent model, using
+[`model.addAnchor()`](/api/octo/class/AModel#addAnchor).
+
+```typescript title="simple-account.module.ts"
+async onInit(inputs: SimpleAccountModuleSchema): Promise<SimpleAccount> {
+  const account = new SimpleAccount(inputs.accountId);
+
+  // Create the anchor with the properties we want to expose, and attach it.
+  account.addAnchor(
+    new SimpleAccountAnchor('SimpleAccountAnchor', { property1: inputs.property1, property2: 42 }, account),
+  );
+
+  return account;
+}
+```
+
+:::tip
+`anchorId` must be unique within the parent model.
+By convention, use the anchor class name (e.g. `'SimpleAccountAnchor'`) as the `anchorId`
+when only one anchor of that type is expected per model instance.
+:::
+
+## Consume the anchor in another module's `@Validate` schema
+
+Consuming modules declare a dependency on *a model that has this anchor*,
+rather than on the concrete model class itself.
+This keeps the two modules decoupled.
+
+```typescript title="simple-environment.module.schema.ts"
+export class SimpleEnvironmentModuleSchema extends ModuleSchema<SimpleEnvironmentModule> {
+  // Declare that we need a model carrying a SimpleAccountAnchor.
+  @Validate({
+    isModel: {
+      anchors: [{ schema: SimpleAccountAnchorSchema }],
+    },
+  })
+  account = Schema<SimpleAccount>();
+}
+```
+
+When Octo validates inputs before calling `onInit()`, it checks:
+1. The provided model has at least one anchor whose serialised form matches `SimpleAccountAnchorSchema`.
+2. The anchor's properties conform to the schema's validation rules.
+
+Inside `onInit()`, retrieve the anchor to access its exposed properties:
+
+```typescript title="simple-environment.module.ts"
+async onInit(inputs: SimpleEnvironmentModuleSchema): Promise<SimpleEnvironment> {
+  const [accountAnchor] = inputs.account.getAnchors([], [SimpleAccountAnchor]);
+
+  const environment = new SimpleEnvironment(inputs.environmentName);
+  // Use anchor properties without importing SimpleAccount directly.
+  console.log('Creating environment in account:', accountAnchor.properties.property1);
+
+  return environment;
+}
+```
+
+:::info
+See the [`AAnchor` API reference](/api/octo/class/AAnchor) for the full anchor contract,
+and the [`@Anchor` decorator reference](/api/octo/function/Anchor) for decorator options.
+:::

@@ -43,6 +43,18 @@ This resource is currently empty, and we will write custom logic in these files.
 A resource schema defines the structure and validation rules for resource data,
 and will always extend from the [BaseResourceSchema](/api/octo/class/BaseResourceSchema).
 
+:::info[`properties` vs `response`]
+Every resource schema has two distinct data bags:
+
+| Field | Direction | Purpose |
+|---|---|---|
+| `properties` | **Input** — you declare these | Drive the diff and determine whether an action must run. They are set when you construct the resource inside a model action and never change unless you explicitly update them. |
+| `response` | **Output** — the cloud returns these | Written back by resource actions after a successful API call (e.g. the AWS-assigned `VpcId`). They are persisted in state and available to downstream resources. |
+
+Use `resource.setResponse(...)` inside a resource action's `handle()` to populate the response.
+See [`AResource.setResponse`](/api/octo/class/AResource) for the full API.
+:::
+
 To create a simple vpc we require certain inputs, which we will add to the property schema.
 These inputs will be passed directly to the AWS SDK, so you can add or remove inputs as per the SDK's requirements.<br/>
 For a VPC we will use the
@@ -76,6 +88,16 @@ A parent resource is a resource that is required to create this resource.
 - There are additional methods you might wish to override,
 like `diff()`, `diffInverse()`, `diffProperties()`, `diffUnpack()`, etc. from the `AResource` class.
 You can learn more about them in the API documentation of the [AResource](/api/octo/class/AResource) class.
+
+:::tip[When to override `diffProperties()`]
+The default `diffProperties()` implementation performs a deep equality check on `properties`
+and emits an `UPDATE` diff for any changed keys. Override it when a property is **immutable**
+in the cloud (e.g. a VPC CIDR block cannot be changed after creation) — in that case you
+should throw an error or emit a `REPLACE` diff so that Octo deletes and recreates the resource
+instead of attempting an in-place update.
+
+See [`AResource.diffProperties`](/api/octo/class/AResource) for the method signature.
+:::
 ```typescript title="simple-vpc.resource.ts"
 constructor(resourceId: string, properties: SimpleVpcSchema['properties'], parents: []) {
   super(resourceId, properties, parents);

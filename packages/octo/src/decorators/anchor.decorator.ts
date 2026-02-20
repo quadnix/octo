@@ -13,6 +13,8 @@ import { ValidationUtility } from '../utilities/validation/validation.utility.js
  * export class MyAnchor extends AAnchor { ... }
  * ```
  * @group Decorators
+ * @param packageName The package name that owns this anchor (e.g. `'@my-package'`).
+ *   Must match the regex `^[@A-Za-z][\w-]+[A-Za-z]$`.
  * @returns The decorated class.
  * @see Definition of [Anchors](/docs/fundamentals/overlays).
  */

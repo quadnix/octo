@@ -88,6 +88,87 @@ It exposes certain properties on the anchor, which makes up the unique signature
 Other libraries, components, or overlays can consume this anchor and will get access to the properties,
 while ensuring that the anchor is attached to a `Region` model.
 
+## End-to-End Example
+
+The following walkthrough shows the full lifecycle of an anchor:
+**define it → attach it in a module → consume it in another module**.
+
+### Step 1 — Define the anchor
+
+Create an anchor class that exposes the subset of model properties other modules need.
+
+```typescript title="aws-region.anchor.ts"
+@Anchor('@my-cdk')
+export class AwsRegionAnchor extends AAnchor<AwsRegionAnchorSchema, AwsRegion> {
+  constructor(
+    anchorId: string,
+    properties: AwsRegionAnchorSchema['properties'],
+    parent: AwsRegion,
+  ) {
+    super(anchorId, properties, parent);
+  }
+}
+```
+
+```typescript title="aws-region.anchor.schema.ts"
+export class AwsRegionAnchorSchema extends BaseAnchorSchema {
+  override properties = Schema<{
+    awsRegionId: string;
+    type: 'AWS';
+  }>();
+}
+```
+
+### Step 2 — Attach the anchor inside a module's `onInit()`
+
+In the module that owns the `AwsRegion` model, create and attach the anchor after
+constructing the model. Any module that receives this model as input can now
+discover the anchor without importing `AwsRegion` directly.
+
+```typescript title="aws-region.module.ts"
+@Module('@my-cdk', AwsRegionModuleSchema)
+export class AwsRegionModule extends AModule<AwsRegionModuleSchema, AwsRegion> {
+  async onInit(inputs: AwsRegionModuleSchema): Promise<AwsRegion> {
+    const region = new AwsRegion(inputs.awsRegionId);
+
+    // Attach the anchor so other modules can consume it.
+    region.addAnchor(
+      new AwsRegionAnchor('AwsRegionAnchor', { awsRegionId: inputs.awsRegionId, type: 'AWS' }, region),
+    );
+
+    return region;
+  }
+}
+```
+
+### Step 3 — Consume the anchor in another module's schema
+
+A consuming module declares that it needs *a model that has an `AwsRegionAnchor`*,
+rather than importing `AwsRegion` directly. This keeps the two libraries decoupled.
+
+```typescript title="aws-environment.module.schema.ts"
+export class AwsEnvironmentModuleSchema extends ModuleSchema<AwsEnvironmentModule> {
+  @Validate({
+    isModel: {
+      anchors: [{ schema: AwsRegionAnchorSchema }],
+    },
+  })
+  region = Schema<AwsRegion>();
+}
+```
+
+When Octo validates the schema it checks:
+- The supplied model has at least one anchor that serialises as `AwsRegionAnchorSchema`.
+
+This is safer than importing `AwsRegion` directly because:
+- The environment module never takes a hard dependency on the region module's internal class.
+- If the region module upgrades or renames `AwsRegion`, only the anchor schema contract matters.
+
+:::info
+See the [`@Anchor` decorator API reference](/api/octo/function/Anchor) and
+the [`AAnchor` class reference](/api/octo/class/AAnchor) for full API details.
+:::
+
 ## Summary
 In this article we discussed Anchors, who can have them, and what purpose they serve.
 Anchors make models shareable, and forms the basis of sharing information between different parts of the system.

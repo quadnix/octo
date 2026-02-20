@@ -84,6 +84,122 @@ If an action throws an error, it immediately fails the transaction and Octo capt
 }
 ```
 
+## End-to-End Example
+
+The following walkthrough shows how a model action and a resource action chain together
+to turn a `SimpleRegion` model into a real AWS VPC.
+
+### Step 1 — Model action creates resources
+
+When Octo diffs the model graph and finds a new `SimpleRegion` node, it selects
+`AddSimpleRegionModelAction` because its `filter()` matches.
+The `handle()` method creates a `SimpleVpc` resource and returns it in `actionOutputs`.
+
+```typescript title="add-simple-region.model.action.ts"
+@Action(SimpleRegion)
+export class AddSimpleRegionModelAction implements IModelAction<SimpleRegionModule> {
+  filter(diff: Diff): boolean {
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof SimpleRegion &&
+      hasNodeName(diff.node, 'region') &&
+      diff.field === 'regionId'
+    );
+  }
+
+  async handle(
+    diff: Diff<SimpleRegion>,
+    actionInputs: EnhancedModuleSchema<SimpleRegionModule>,
+    actionOutputs: ActionOutputs,
+  ): Promise<ActionOutputs> {
+    const region = diff.node;
+
+    // Create a VPC resource for this region.
+    const vpc = new SimpleVpc(`vpc-${region.regionId}`, {
+      awsAccountId: actionInputs.inputs.account.accountId,
+      awsAvailabilityZones: [...region.awsRegionAZs],
+      awsRegionId: region.awsRegionId,
+      CidrBlock: actionInputs.inputs.vpcCidrBlock,
+      InstanceTenancy: 'default',
+    });
+
+    actionOutputs[vpc.resourceId] = vpc;
+    return actionOutputs;
+  }
+}
+```
+
+### Step 2 — Resource action calls the cloud API
+
+After all model actions complete, Octo diffs the resource graph.
+It finds the new `SimpleVpc` and selects `AddSimpleVpcResourceAction`.
+The `handle()` method calls the AWS SDK and writes the resulting VPC ID back to
+`resource.response` via `setResponse()` so that downstream resources can reference it.
+
+```typescript title="add-simple-vpc.resource.action.ts"
+@Action(SimpleVpc)
+export class AddSimpleVpcResourceAction implements IResourceAction<SimpleVpc> {
+  filter(diff: Diff): boolean {
+    return (
+      diff.action === DiffAction.ADD &&
+      diff.node instanceof SimpleVpc &&
+      hasNodeName(diff.node, 'simple-vpc') &&
+      diff.field === 'resourceId'
+    );
+  }
+
+  async handle(diff: Diff<SimpleVpc>): Promise<SimpleVpcSchema['response']> {
+    const vpc = diff.node;
+    const { awsAccountId, awsRegionId, CidrBlock, InstanceTenancy } = vpc.properties;
+
+    const ec2Client = await this.container.get<EC2Client, typeof EC2ClientFactory>(EC2Client, {
+      args: [awsAccountId, awsRegionId],
+      metadata: { package: '@octo' },
+    });
+
+    const vpcOutput = await ec2Client.send(
+      new CreateVpcCommand({ CidrBlock, InstanceTenancy }),
+    );
+
+    // Write the cloud-assigned VPC ID back onto the resource.
+    return {
+      VpcId: vpcOutput.Vpc!.VpcId!,
+      VpcArn: `arn:aws:ec2:${awsRegionId}:${awsAccountId}:vpc/${vpcOutput.Vpc!.VpcId}`,
+    };
+  }
+}
+```
+
+### How they chain
+
+```mermaid
+graph LR;
+    region((SimpleRegion <br/> model))
+    modelDiff{Model Diff}
+    modelAction{{AddSimpleRegionModelAction}}
+    vpc([SimpleVpc <br/> resource])
+    resourceDiff{Resource Diff}
+    resourceAction{{AddSimpleVpcResourceAction}}
+    aws[(AWS VPC)]
+
+    region --> modelDiff
+    modelDiff --> modelAction
+    modelAction -- "creates" --> vpc
+    vpc --> resourceDiff
+    resourceDiff --> resourceAction
+    resourceAction -- "provisions" --> aws
+```
+
+1. The **model action** transforms intent (the `SimpleRegion` model) into resources (`SimpleVpc`).
+2. The **resource action** transforms the resource definition into real cloud infrastructure.
+3. The response (`VpcId`) is written back to the resource via `setResponse()` and persisted
+   in state for the next run.
+
+:::tip
+See the [`@Action` decorator API reference](/api/octo/function/Action) for the full decorator signature,
+and the [`AResource.setResponse` API reference](/api/octo/class/AResource) for response handling details.
+:::
+
 ## Summary
 In this section we've explored Actions. This is where the "it" happens.
 Most of the logic that makes up your infrastructure will happen in these Action files.
