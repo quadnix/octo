@@ -88,7 +88,7 @@ export class ValidateVpcResourceAction extends ANodeAction implements IResourceA
     );
     if (dnsHostnamesResult.EnableDnsHostnames?.Value !== true) {
       throw new TransactionError(
-        `VPC DNS hostnames not enabled. Expected: true, Actual: ${dnsHostnamesResult.EnableDnsHostnames?.Value || 'undefined'}`,
+        `VPC DNS hostnames not enabled. Expected: true, Actual: ${dnsHostnamesResult.EnableDnsHostnames?.Value ?? 'undefined'}`,
       );
     }
 
@@ -101,7 +101,7 @@ export class ValidateVpcResourceAction extends ANodeAction implements IResourceA
     );
     if (dnsSupportResult.EnableDnsSupport?.Value !== true) {
       throw new TransactionError(
-        `VPC DNS support not enabled. Expected: true, Actual: ${dnsSupportResult.EnableDnsSupport?.Value || 'undefined'}`,
+        `VPC DNS support not enabled. Expected: true, Actual: ${dnsSupportResult.EnableDnsSupport?.Value ?? 'undefined'}`,
       );
     }
 
@@ -110,6 +110,11 @@ export class ValidateVpcResourceAction extends ANodeAction implements IResourceA
     if (!response.VpcArn!.startsWith(expectedArnPrefix)) {
       throw new TransactionError(
         `VPC ARN region/account mismatch. Expected prefix: ${expectedArnPrefix}, Actual: ${response.VpcArn}`,
+      );
+    }
+    if (!response.VpcArn!.endsWith(response.VpcId!)) {
+      throw new TransactionError(
+        `VPC ARN VpcId suffix mismatch. Expected suffix: ${response.VpcId}, Actual ARN: ${response.VpcArn}`,
       );
     }
   }
