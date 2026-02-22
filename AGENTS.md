@@ -68,8 +68,16 @@ AI Agents must follow this workflow every time to keep the developer as hands fr
    - For high autonomy tasks and large features,
      create a git worktree: `git worktree add ../ai-worktrees/octo-worktree-<branch-name> -b ai/<branch-name>`.
      Move your execution context to that directory.
-   - After creating a worktree, symlink the root `node_modules` into it so NX and Jest can resolve packages:
-     `ln -s /Users/rash/Workspace/quadnix/octo/node_modules ../ai-worktrees/octo-worktree-<branch-name>/node_modules`
+   - After creating a worktree, symlink every `node_modules` directory from the main repo into the
+     worktree so NX and Jest can resolve packages. Run from the main repo root:
+     ```bash
+     WORKTREE=../ai-worktrees/octo-worktree-<branch-name>
+     find . -maxdepth 4 -name node_modules -type d ! -path "*/node_modules/*/node_modules" | \
+       while read src; do
+         mkdir -p "$WORKTREE/$(dirname $src)"
+         ln -s "$(pwd)/$src" "$WORKTREE/$src"
+       done
+     ```
      Run lint and tests from within the worktree directory after this.
 2. **Plan**: Research the code in `@packages` and documentation in `@apps/octo-docs`.
    Write a plan in the chat, and wait for approval. Use pre-approved plans in `@docs/agent-plans` when appropriate.
