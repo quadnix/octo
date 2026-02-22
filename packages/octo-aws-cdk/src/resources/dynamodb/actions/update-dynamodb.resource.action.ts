@@ -59,34 +59,37 @@ export class UpdateDynamoDBResourceAction extends ANodeAction implements IResour
         AttributeDefinitions: properties.AttributeDefinitions,
         BillingMode: properties.billingMode.type,
         DeletionProtectionEnabled: properties.DeletionProtectionEnabled,
-        GlobalSecondaryIndexUpdates: [
-          ...(globalIndexesToDelete.length > 0
-            ? globalIndexesToDelete.map((i) => ({
-                Delete: { IndexName: i.properties.IndexName },
-              }))
-            : []),
-          ...(globalIndexesToAdd.length > 0
-            ? globalIndexesToAdd.map((i) => ({
-                Create: {
-                  IndexName: i.properties.IndexName,
-                  KeySchema: i.properties.KeySchema,
-                  OnDemandThroughput:
-                    properties.billingMode.type === 'PAY_PER_REQUEST'
-                      ? properties.billingMode.settings.OnDemandThroughput
-                      : undefined,
-                  Projection: i.properties.Projection,
-                  ProvisionedThroughput:
-                    properties.billingMode.type === 'PROVISIONED'
-                      ? properties.billingMode.settings.ProvisionedThroughput
-                      : undefined,
-                  WarmThroughput:
-                    properties.billingMode.type === 'PAY_PER_REQUEST'
-                      ? properties.billingMode.settings.WarmThroughput
-                      : undefined,
-                },
-              }))
-            : []),
-        ],
+        GlobalSecondaryIndexUpdates:
+          globalIndexesToAdd.length > 0 || globalIndexesToDelete.length > 0
+            ? [
+                ...(globalIndexesToDelete.length > 0
+                  ? globalIndexesToDelete.map((i) => ({
+                      Delete: { IndexName: i.properties.IndexName },
+                    }))
+                  : []),
+                ...(globalIndexesToAdd.length > 0
+                  ? globalIndexesToAdd.map((i) => ({
+                      Create: {
+                        IndexName: i.properties.IndexName,
+                        KeySchema: i.properties.KeySchema,
+                        OnDemandThroughput:
+                          properties.billingMode.type === 'PAY_PER_REQUEST'
+                            ? properties.billingMode.settings.OnDemandThroughput
+                            : undefined,
+                        Projection: i.properties.Projection,
+                        ProvisionedThroughput:
+                          properties.billingMode.type === 'PROVISIONED'
+                            ? properties.billingMode.settings.ProvisionedThroughput
+                            : undefined,
+                        WarmThroughput:
+                          properties.billingMode.type === 'PAY_PER_REQUEST'
+                            ? properties.billingMode.settings.WarmThroughput
+                            : undefined,
+                      },
+                    }))
+                  : []),
+              ]
+            : undefined,
         OnDemandThroughput:
           properties.billingMode.type === 'PAY_PER_REQUEST'
             ? properties.billingMode.settings.OnDemandThroughput

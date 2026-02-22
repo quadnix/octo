@@ -39,7 +39,7 @@ export class DynamoDB extends AResource<DynamoDBSchema, DynamoDB> {
     }
 
     // GSIs require StreamSpecification to be present for replication.
-    if (!properties.StreamSpecification) {
+    if (properties.GlobalSecondaryIndexes.length > 0 && !properties.StreamSpecification) {
       throw new ResourceError(
         `DynamoDB table "${properties.TableName}" must have StreamSpecification defined when GSIs are present!`,
         this,
@@ -76,7 +76,7 @@ export class DynamoDB extends AResource<DynamoDBSchema, DynamoDB> {
     }
 
     // LSI requires the primary KeySchema to have a RANGE key.
-    if (!properties.KeySchema.some((s) => s.KeyType === 'RANGE')) {
+    if (properties.LocalSecondaryIndexes.length > 0 && !properties.KeySchema.some((s) => s.KeyType === 'RANGE')) {
       throw new ResourceError(
         `DynamoDB table "${properties.TableName}" must have a RANGE key in KeySchema when defining LSIs!`,
         this,

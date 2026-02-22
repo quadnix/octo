@@ -73,7 +73,7 @@ export class S3Storage extends AResource<S3StorageSchema, S3Storage> {
     if (diff.field === 'update-permissions' && diff.action === DiffAction.UPDATE) {
       // All changes to properties.permissions is in this single diff, invoking one single action.
       // Copying all permissions in one shot.
-      this.properties.permissions = JSON.parse(JSON.stringify(this.properties.permissions));
+      this.properties.permissions = JSON.parse(JSON.stringify(diff.node.properties.permissions));
 
       // There is no need to clone response since it did not change.
     } else {

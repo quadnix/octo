@@ -45,9 +45,11 @@ export class AddDynamoDBResourceAction extends ANodeAction implements IResourceA
         AttributeDefinitions: properties.AttributeDefinitions,
         BillingMode: properties.billingMode.type,
         DeletionProtectionEnabled: properties.DeletionProtectionEnabled,
-        GlobalSecondaryIndexes: properties.GlobalSecondaryIndexes,
+        GlobalSecondaryIndexes:
+          properties.GlobalSecondaryIndexes.length > 0 ? properties.GlobalSecondaryIndexes : undefined,
         KeySchema: properties.KeySchema,
-        LocalSecondaryIndexes: properties.LocalSecondaryIndexes,
+        LocalSecondaryIndexes:
+          properties.LocalSecondaryIndexes.length > 0 ? properties.LocalSecondaryIndexes : undefined,
         OnDemandThroughput:
           properties.billingMode.type === 'PAY_PER_REQUEST'
             ? properties.billingMode.settings.OnDemandThroughput
