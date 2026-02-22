@@ -3,15 +3,7 @@
 ## What is Octo
 Octo is a IaC tool to help developers and devops write clean infrastructure code using intent,
 rather than dealing directly with cloud resources.
-- **Models & Overlays**: Base Octo component that users can use to define infrastructure intent
-  from an application perspective. Use `@packages/octo/src/models/*`
-  to declare any infrastructure. Models help revisualize infrastructure from developer's POV.
-- **Resources**: Define a cloud resource, like a VPC, with actions on how to create, delete, update, and verify.
-- **Modules**: A CDK package that wraps models, overlays, resources, anchors, factories, and utilities for a single
-  unit of infrastructure work, such as adding a Region, or a Service. A module works on a single model,
-  but may use multiple resources.
-- **Templates**: This keeps common infrastructure patterns that users can start using now with confidence.
-  They are pre-tested e2e tests, that also serve as examples for users to cross-reference.
+Learn the fundamentals in `@apps/octo-docs/docs/fundamentals`.
 
 ## Project Structure
 Octo is a NX monorepo with 2 main directories - `apps` and `packages`.
@@ -62,15 +54,27 @@ Octo's documentation must grow with its feature set, with code examples, API doc
   - @apps/octo-docs/package.json can run `plugin:pre-script`, `plugin:build`, and `plugin:post-script`
     to generate API docs from JSDoc comments.
 
+## Agent Context
+There are several AGENTS.md files scattered throughout the codebase listed below.
+You must reference appropriate instructions in those files to gain more context.
+This is also your personal note-taking space to build over time with feedbacks.
+- `@AGENTS.md`: It is this master file.
+- `@packages/octo/AGENTS.md`: Specific to base Octo library.
+- `@packages/octo-aws-cdk/AGENTS.md`: Specific to Octo AWS CDK library.
+
 ## Agent Workflow
 AI Agents must follow this workflow every time to keep the developer as hands free as possible.
-1. **Initiate**: Create a git worktree: `git worktree add ../ai-worktrees/octo-worktree-<branch-name> -b ai/<branch-name>`.
-   Move your execution context to that directory.
-2. **Plan**: Research the code and @apps/octo-docs.
+1. **Initiate**: User might want a pair programming session or hands-free session. When in doubt, ask the user.
+   - For small refactors, stay in local context.
+   - For high autonomy tasks and large features,
+     create a git worktree: `git worktree add ../ai-worktrees/octo-worktree-<branch-name> -b ai/<branch-name>`.
+     Move your execution context to that directory.
+2. **Plan**: Research the code in `@packages` and documentation in `@apps/octo-docs`.
    Write a plan in the chat, and wait for approval.
 3. **Execute**: Complete the task following the Coding Standards. Ensure all UT passes, and no linter errors.
    Once the plan is approved, do not ask for user permissions. Run in loop until the task is completed.
-4. **Submit**: Use GitHub.
+4. **Feedback**: Users will provide feedback or correct your mistakes.
+   You must enhance the appropriate `@AGENTS.md` with these feedbacks so that you never make the same mistake again.
+5. **Submit**: Use GitHub.
    - Push the branch to origin.
-   - Create a GitHub PR with detailed description.
-5. **Notify**: Let the user know when to review the PR in the chat window.
+   - Create a GitHub PR using guidelines in `@.github/jobs/validate-pr-title.job.sh` and with detailed description.
