@@ -23,7 +23,6 @@ export class UpdateIamRoleAssumeRolePolicyResourceAction implements IResourceAct
     // Get properties.
     const iamRole = diff.node;
     const properties = iamRole.properties;
-    const response = iamRole.response;
 
     // Get instances.
     const iamClient = await this.container.get<IAMClient, typeof IAMClientFactory>(IAMClient, {

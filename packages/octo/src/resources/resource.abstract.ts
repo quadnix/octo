@@ -222,6 +222,9 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       }
       case 'parent': {
         if (diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE) {
+          // Unlike properties, by default we copy all parents in one shot!
+          // If the custom resource wants to apply each parent individually, they must override diffInverse()
+          // with their custom logic.
           await this.cloneResourceInPlace(diff.node as T, deReferenceResource);
         } else if (diff.action === DiffAction.UPDATE) {
           // Do nothing, since the parent of this resource has been updated,
