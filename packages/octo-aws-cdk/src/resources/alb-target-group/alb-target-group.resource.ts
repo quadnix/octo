@@ -1,4 +1,12 @@
-import { AResource, Diff, DiffAction, DiffUtility, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
+import {
+  AResource,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  type MatchingResource,
+  Resource,
+  ResourceError,
+} from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { AlbTargetGroupSchema } from './index.schema.js';
 

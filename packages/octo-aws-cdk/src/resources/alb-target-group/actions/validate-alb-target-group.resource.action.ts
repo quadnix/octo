@@ -192,9 +192,7 @@ export class ValidateAlbTargetGroupResourceAction extends ANodeAction implements
     } else {
       // If health check is not configured, verify it's disabled.
       if (actualTargetGroup.HealthCheckEnabled === true) {
-        throw new TransactionError(
-          'ALB Target Group health check is enabled but is expected to be disabled!',
-        );
+        throw new TransactionError('ALB Target Group health check is enabled but is expected to be disabled!');
       }
     }
   }
@@ -214,4 +212,3 @@ export class ValidateAlbTargetGroupResourceActionFactory {
     return this.instance;
   }
 }
-

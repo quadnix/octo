@@ -142,4 +142,3 @@ export class ValidateEcrImageResourceActionFactory {
     return this.instance;
   }
 }
-

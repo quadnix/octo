@@ -105,4 +105,3 @@ export class ValidateEcsClusterResourceActionFactory {
     return this.instance;
   }
 }
-

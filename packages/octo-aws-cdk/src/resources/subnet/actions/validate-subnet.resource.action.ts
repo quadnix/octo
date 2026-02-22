@@ -107,4 +107,3 @@ export class ValidateSubnetResourceActionFactory {
     return this.instance;
   }
 }
-

@@ -84,7 +84,9 @@ export class ValidateS3StorageResourceAction extends ANodeAction implements IRes
 
         // Validate policy version.
         if (policy.Version !== '2012-10-17') {
-          throw new TransactionError(`S3 bucket policy version mismatch. Expected: 2012-10-17, Actual: ${policy.Version}`);
+          throw new TransactionError(
+            `S3 bucket policy version mismatch. Expected: 2012-10-17, Actual: ${policy.Version}`,
+          );
         }
 
         // Validate each permission has corresponding policy statements.
@@ -106,7 +108,9 @@ export class ValidateS3StorageResourceAction extends ANodeAction implements IRes
 
             // Validate read statement properties.
             if (readStatement.Effect !== 'Allow') {
-              throw new TransactionError(`Read permission statement ${readSid} has incorrect Effect: ${readStatement.Effect}`);
+              throw new TransactionError(
+                `Read permission statement ${readSid} has incorrect Effect: ${readStatement.Effect}`,
+              );
             }
 
             if (JSON.stringify(readStatement.Action) !== JSON.stringify(['s3:GetObject'])) {
@@ -146,7 +150,9 @@ export class ValidateS3StorageResourceAction extends ANodeAction implements IRes
 
             // Validate write statement properties.
             if (writeStatement.Effect !== 'Allow') {
-              throw new TransactionError(`Write permission statement ${writeSid} has incorrect Effect: ${writeStatement.Effect}`);
+              throw new TransactionError(
+                `Write permission statement ${writeSid} has incorrect Effect: ${writeStatement.Effect}`,
+              );
             }
 
             if (JSON.stringify(writeStatement.Action) !== JSON.stringify(['s3:PutObject'])) {
@@ -231,4 +237,3 @@ export class ValidateS3StorageResourceActionFactory {
     return this.instance;
   }
 }
-
