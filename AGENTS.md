@@ -55,12 +55,11 @@ Octo's documentation must grow with its feature set, with code examples, API doc
     to generate API docs from JSDoc comments.
 
 ## Agent Context
-There are several AGENTS.md files scattered throughout the codebase listed below.
-You must reference appropriate instructions in those files to gain more context.
+There are pre-approved plans for many tasks under `@docs/agent-plans`.
+You must reference appropriate instructions in those plans to gain more context.
 This is also your personal note-taking space to build over time with feedbacks.
-- `@AGENTS.md`: It is this master file.
-- `@packages/octo/AGENTS.md`: Specific to base Octo library.
-- `@packages/octo-aws-cdk/AGENTS.md`: Specific to Octo AWS CDK library.
+- Use `@docs/agent-plans/octo-aws-cdk-validate-resource.md` to validate a resource definition in octo-aws-cdk.
+- Use `@docs/agent-plans/octo-aws-cdk-fix-resource.md` to fix a GitHub bug issue for an octo-aws-cdk resource.
 
 ## Agent Workflow
 AI Agents must follow this workflow every time to keep the developer as hands free as possible.
@@ -70,11 +69,11 @@ AI Agents must follow this workflow every time to keep the developer as hands fr
      create a git worktree: `git worktree add ../ai-worktrees/octo-worktree-<branch-name> -b ai/<branch-name>`.
      Move your execution context to that directory.
 2. **Plan**: Research the code in `@packages` and documentation in `@apps/octo-docs`.
-   Write a plan in the chat, and wait for approval.
+   Write a plan in the chat, and wait for approval. Use pre-approved plans in `@docs/agent-plans` when appropriate.
 3. **Execute**: Complete the task following the Coding Standards. Ensure all UT passes, and no linter errors.
    Once the plan is approved, do not ask for user permissions. Run in loop until the task is completed.
 4. **Feedback**: Users will provide feedback or correct your mistakes.
-   You must enhance the appropriate `@AGENTS.md` with these feedbacks so that you never make the same mistake again.
+   You must enhance the appropriate plan with these feedbacks so that you never make the same mistake again.
 5. **Submit**: Use GitHub.
    - Push the branch to origin.
    - Create a GitHub PR using guidelines in `@.github/jobs/validate-pr-title.job.sh` and with detailed description.
