@@ -1,4 +1,4 @@
-# Plan: Validate an octo-aws-cdk Resource
+# Plan: Validate an octo-aws-cdk Resource (octo-aws-cdk)
 
 **Goal:** Find and report bugs — do not fix anything. File a GitHub issue per bug at the end.
 
@@ -75,14 +75,60 @@ List `actions/` explicitly before reading so no file is missed.
 
 - Any collection where AWS requires unique names/identifiers should have a `Set`-size comparison guard.
 
-### 3d. `diffProperties()` — mutable vs. immutable
+### 3d. `diffInverse()` — clone granularity
+
+After each action completes, Octo calls `diffInverse()` on the **actual** resource to apply only the
+change that just succeeded. This is how Octo keeps the local actual state in sync with reality without
+re-querying AWS. Getting this wrong means actual can record changes as done when they haven't run yet,
+causing missed diffs on the next run.
+
+Three helpers are available (all deep-clone via `JSON.parse(JSON.stringify(...))`):
+
+| Helper                                | What it copies                                   |
+|---------------------------------------|--------------------------------------------------|
+| `cloneResourceInPlace(source, deRef)` | Everything — properties, response, tags, parents |
+| `clonePropertiesInPlace(source)`      | Only `properties`                                |
+| `cloneResponseInPlace(source)`        | Only `response`                                  |
+
+**The core rule: clone granularity must match the action granularity.**
+
+| Situation                                                                               | Correct `diffInverse` approach                                                                                                                                                                        |
+|-----------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Exactly **one** update action covers **all** mutable properties                         | `cloneResourceInPlace` or `clonePropertiesInPlace` — safe because completing that one action means all properties are done                                                                            |
+| **Multiple** update actions, each covering a **different subset** of mutable properties | Surgical copy: assign only the fields that *this* action changed. Using `clonePropertiesInPlace` here is a **bug** — it would write properties belonging to sibling actions that may not have run yet |
+| Custom array diff (add/delete a single item)                                            | Push/splice only the specific item to mirror exactly what the action did in AWS                                                                                                                       |
+
+**How to audit:**
+
+1. From `diffProperties()`'s exclusion list, list every mutable property.
+2. Map each mutable property to the update action that handles it (from `diff.value.key` or custom field filter).
+3. Check `diffInverse()` in the resource class (or the lack of an override, meaning the base class runs).
+4. For every update-diff branch in `diffInverse()`, ask: *does this branch copy any property that belongs to a different
+   action?*
+   - If yes — it will prematurely commit those properties to actual. That is a **P1 bug**.
+5. Confirm `cloneResponseInPlace` is called wherever the action updates `response` fields. A missing call
+   means the new response (e.g., a new ARN after a REPLACE) is never written to actual.
+
+**Known-good examples (for reference):**
+
+- `DynamoDB.diffInverse` — calls `cloneResourceInPlace` for its single consolidated update diff.
+  Safe because only one update action exists.
+- `IamRole.diffInverse` — pushes/splices the single policy that changed.
+  Safe because each diff represents exactly one policy operation.
+- `AlbListener.diffInverse` — surgically copies `DefaultActions` or splices `rules` depending on
+  which diff branch fires. Safe because two separate update actions each own a distinct property.
+- `S3Storage.diffInverse` — copies the entire `permissions` array in one shot for the single
+  `update-permissions` action. Safe because one action handles all permission changes.
+
+### 3e. `diffProperties()` — mutable vs. immutable
 
 The exclusion list passed to `DiffUtility.isObjectDeepEquals(prev, curr, [...excluded])` declares which properties are *
 *mutable**.
 
 Check:
 
-1. Every excluded (mutable) field has a corresponding update action that handles it (see §4).
+1. Every excluded (mutable) field has a corresponding update action that handles it (see §4). This same list is the
+   input to the `diffInverse()` audit in §3d.
 2. Every non-excluded (immutable) field is actually immutable in the AWS API — and vice versa.
 3. Any additional custom immutability guards (e.g., blocking updates to existing sub-items) are correct and intentional.
 
@@ -157,7 +203,7 @@ state assumption is wrong.
   for each direction.
 - The handle method uses `diff.action` to branch correctly between add/remove/replace logic.
 - Parent resource identifiers are read from `diff.value.response.{Id}` (not from `properties`).
-- Order of operations: if a replace must delete-then-add, the delete comes first.
+- Order of operations: if a REPLACE must delete-then-add, the delete comes first.
 
 ### 4f. Tags action (`update-{name}-tags.resource.action.ts`)
 
@@ -168,11 +214,28 @@ state assumption is wrong.
 ### 4g. Validate action (`validate-{name}.resource.action.ts`)
 
 - Uses a `Describe*` command — never a mutating command.
-- Compares each **immutable** property (those not in `diffProperties()`'s exclusion list) against the AWS response.
-- Checks `response.{id/arn}` fields for identity drift.
-- Handles AWS response quirks (e.g., a field that AWS omits when it equals the default).
 - Throws `TransactionError` — not `ResourceError` — on mismatch.
 - Does not silently pass when the `Describe*` call returns nothing (check for null/undefined guards).
+
+**What must be validated — build a checklist before auditing:**
+
+1. **Response identity fields** (`response.{Id}`, `response.{Arn}`): compare every field in the response schema against the AWS describe output.
+
+2. **Every immutable property** (those *not* in `diffProperties()`'s exclusion list): compare each one fully — not just a derived metric like array length. A "length check only" on an array is a bug; the actual element values must be compared too.
+
+3. **Every mutable property that has observable AWS state** (those *in* `diffProperties()`'s exclusion list): check that the current AWS state matches `properties.*`. Common examples:
+   - Collection size (e.g., number of GSIs) — a count mismatch means out-of-band changes.
+   - Status of each element (e.g., GSI `IndexStatus === 'ACTIVE'`) — an error/deleting state would cause the next update to fail.
+   - Key shape of each element (e.g., GSI `IndexName`, `KeySchema`, `Projection`) — structural drift would corrupt future diffs.
+
+4. **AWS response quirks**: handle fields AWS omits when they equal the default (e.g., `TableClassSummary` is absent for `STANDARD`; `BillingModeSummary` is absent for `PROVISIONED`). Treat absent as the documented default — not as a mismatch.
+
+**Audit procedure:**
+
+For every property in the schema:
+- List it in a table: `property | immutable? | checked in validate?`
+- Flag any property that is unchecked or checked only partially (e.g., length instead of deep comparison).
+- For array properties: verify each element's fields are compared, not just the array length.
 
 ### 4h. `index.ts` — registration completeness
 
@@ -203,14 +266,21 @@ Severity is communicated via GitHub labels `P0`, `P1`, `P2`, `P3` — **not** in
 
 ### False-positive patterns to avoid
 
+**Empty `handle()` in a tags action (not a bug when the AWS resource does not support tagging):**
+Some AWS resource types do not support tagging at all (e.g., EFS mount targets). For those resources,
+a tags action with an empty `handle()` is intentional — it exists purely to consume tag-update diffs
+without error. Before flagging an empty tag handler, verify in the AWS API docs that the resource type
+actually supports tagging.
+
 **Optional response fields used without null guard (not a bug):**
 Response fields are typed optional because they are unpopulated before the add action runs.
 Octo guarantees the add action always completes before any subsequent action (delete, update, validate) executes,
 so those fields will always be set. Do not flag this pattern unless:
+
 - A response field is first set by an *update* action (not add), AND
 - A second update action reads that field, AND
 - There is no guaranteed run-order between the two update actions.
-Only report if all three conditions hold; frame it as a resource action run-order bug.
+  Only report if all three conditions hold; frame it as a resource action run-order bug.
 
 ### GitHub issue — one per bug
 
@@ -242,15 +312,19 @@ EOF
 )"
 ```
 
-For enhancement requests, replace `--label "bug"` with `--label "enhancement"` and change `## Expected fix` to `## Expected change`.
+For enhancement requests, replace `--label "bug"` with `--label "enhancement"` and change `## Expected fix` to
+`## Expected change`.
 
 ### Checklist before filing
 
 - [ ] `ls actions/` run — no action file skipped.
+- [ ] Validate action: built the property checklist (§4g) — every property listed, immutability noted, coverage confirmed.
+- [ ] Validate action: array properties verified element-by-element, not just by length.
 - [ ] Every `@Validate` rule verified against the AWS API docs for this service.
 - [ ] Every constructor `if` condition checked for operator-precedence traps.
 - [ ] Every `diff.value.key` string in every filter checked against current schema property names.
 - [ ] Every SDK command in every action checked for unconditional fields that depend on prior state.
 - [ ] `index.ts` checked — every action on disk is registered.
 - [ ] One issue per bug — no batching of unrelated bugs.
+- [ ] Empty tags `handle()`: verify the AWS resource type actually supports tagging before filing.
 - [ ] Optional response fields used without null guard: verify the false-positive rule above before filing.

@@ -58,7 +58,8 @@ Octo's documentation must grow with its feature set, with code examples, API doc
 There are pre-approved plans for many tasks under `@docs/agent-plans`.
 You must reference appropriate instructions in those plans to gain more context.
 This is also your personal note-taking space to build over time with feedbacks.
-- Use `@docs/agent-plans/validate-resource.md` to validate a resource definition in octo-aws-cdk.
+- Use `@docs/agent-plans/octo-aws-cdk-validate-resource.md` to validate a resource definition in octo-aws-cdk.
+- Use `@docs/agent-plans/octo-aws-cdk-fix-resource.md` to fix a GitHub bug issue for an octo-aws-cdk resource.
 
 ## Agent Workflow
 AI Agents must follow this workflow every time to keep the developer as hands free as possible.
