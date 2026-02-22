@@ -28,9 +28,13 @@ Record the following fields from the issue body:
 
 ```bash
 git worktree add ../ai-worktrees/octo-worktree-fix-issue-<number> -b ai/fix-issue-<number>
+ln -s /Users/rash/Workspace/quadnix/octo/node_modules \
+  /Users/rash/Workspace/quadnix/ai-worktrees/octo-worktree-fix-issue-<number>/node_modules
 ```
 
 Move execution context to that worktree directory for all subsequent steps.
+The `node_modules` symlink is required so NX and Jest can resolve packages from within the worktree.
+See the Initiate step in `@AGENTS.md` for the general rule.
 
 ---
 
