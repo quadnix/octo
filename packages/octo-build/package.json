@@ -39,6 +39,7 @@
     "moduleNameMapper": {
       "(.+)\\.js": "$1"
     },
+    "passWithNoTests": true,
     "preset": "ts-jest/presets/default-esm",
     "rootDir": ".",
     "testEnvironment": "node",
