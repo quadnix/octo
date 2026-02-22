@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "~3.743.0",
     "@aws-sdk/client-ec2": "~3.743.0",
     "@aws-sdk/client-ecr": "~3.743.0",
     "@aws-sdk/client-ecs": "~3.743.0",
@@ -74,6 +75,7 @@
     "./resources/alb-listener/schema": "./dist/resources/alb-listener/index.schema.js",
     "./resources/alb-target-group/schema": "./dist/resources/alb-target-group/index.schema.js",
     "./resources/alb/schema": "./dist/resources/alb/index.schema.js",
+    "./resources/dynamodb/schema": "./dist/resources/dynamodb/index.schema.js",
     "./resources/ecr/schema": "./dist/resources/ecr/index.schema.js",
     "./resources/ecs-cluster/schema": "./dist/resources/ecs-cluster/index.schema.js",
     "./resources/ecs-service/schema": "./dist/resources/ecs-service/index.schema.js",

@@ -67,6 +67,7 @@ docusaurus
 dom
 dpdm
 dualstack
+dynamodb
 ealen
 ec2
 ecma
@@ -227,6 +228,7 @@ typedoc
 udp
 un
 unicode
+unix
 unlink
 unmaintained
 unmount
