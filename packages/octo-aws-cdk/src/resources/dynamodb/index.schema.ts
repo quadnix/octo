@@ -54,9 +54,10 @@ export class DynamoDBSecondaryIndexSchema {
   @Validate({ options: { maxLength: 255, minLength: 3, regex: /^[\w.-]+$/ } })
   IndexName = Schema<string>();
 
-  @Validate([
+  @Validate<unknown>([
     {
       // Array length must at least be 1.
+      destruct: (value: DynamoDBSecondaryIndexSchema['KeySchema']): DynamoDBKeySchema[][] => [value],
       options: { maxLength: 2, minLength: 1 },
     },
     {
@@ -159,9 +160,14 @@ export class DynamoDBSchema extends BaseResourceSchema {
       options: { isSchema: { schema: DynamoDBSecondaryIndexSchema } },
     },
     {
-      // KeySchema must match schema, and array must have valid length.
+      // KeySchema array must have valid length.
+      destruct: (value: DynamoDBSchema['properties']): DynamoDBKeySchema[][] => [value.KeySchema],
+      options: { maxLength: 2, minLength: 1 },
+    },
+    {
+      // KeySchema must match schema.
       destruct: (value: DynamoDBSchema['properties']): DynamoDBKeySchema[] => value.KeySchema,
-      options: { isSchema: { schema: DynamoDBKeySchema }, maxLength: 2, minLength: 1 },
+      options: { isSchema: { schema: DynamoDBKeySchema } },
     },
     {
       // LocalSecondaryIndexes must match schema.

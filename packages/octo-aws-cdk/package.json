@@ -24,6 +24,7 @@
   },
   "exports": {
     "./anchors/aws-account/schema": "./dist/anchors/aws-account/aws-account.anchor.schema.js",
+    "./anchors/aws-dynamodb/schema": "./dist/anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js",
     "./anchors/aws-ecs-alb/schema": "./dist/anchors/aws-ecs/aws-ecs-alb.anchor.schema.js",
     "./anchors/aws-ecs-cluster/schema": "./dist/anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js",
     "./anchors/aws-ecs-execution/schema": "./dist/anchors/aws-ecs/aws-ecs-execution.anchor.schema.js",
@@ -64,6 +65,8 @@
     "./modules/region/aws-single-az-region/schema": "./dist/modules/region/aws-single-az-region/index.schema.js",
     "./modules/server/aws-ecs-server": "./dist/modules/server/aws-ecs-server/index.js",
     "./modules/server/aws-ecs-server/schema": "./dist/modules/server/aws-ecs-server/index.schema.js",
+    "./modules/service/aws-dynamodb-service": "./dist/modules/service/aws-dynamodb-service/index.js",
+    "./modules/service/aws-dynamodb-service/schema": "./dist/modules/service/aws-dynamodb-service/index.schema.js",
     "./modules/service/aws-ecs-alb-service": "./dist/modules/service/aws-ecs-alb-service/index.js",
     "./modules/service/aws-ecs-alb-service/schema": "./dist/modules/service/aws-ecs-alb-service/index.schema.js",
     "./modules/service/aws-s3-static-website-service": "./dist/modules/service/aws-s3-static-website-service/index.js",
