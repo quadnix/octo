@@ -66,6 +66,27 @@ export class ValidateDynamoDBResourceAction extends ANodeAction implements IReso
       );
     }
 
+    // Validate AttributeDefinitions.
+    const actualAttributeDefinitions = actualTable.AttributeDefinitions ?? [];
+    if (actualAttributeDefinitions.length !== properties.AttributeDefinitions.length) {
+      throw new TransactionError(
+        `DynamoDB table AttributeDefinitions length mismatch. Expected: ${properties.AttributeDefinitions.length}, Actual: ${actualAttributeDefinitions.length}`,
+      );
+    }
+    for (const expectedAttribute of properties.AttributeDefinitions) {
+      const actualAttr = actualAttributeDefinitions.find((a) => a.AttributeName === expectedAttribute.AttributeName);
+      if (!actualAttr) {
+        throw new TransactionError(
+          `DynamoDB table AttributeDefinitions attribute "${expectedAttribute.AttributeName}" not found`,
+        );
+      }
+      if (actualAttr.AttributeType !== expectedAttribute.AttributeType) {
+        throw new TransactionError(
+          `DynamoDB table AttributeDefinitions AttributeType mismatch for "${expectedAttribute.AttributeName}". Expected: ${expectedAttribute.AttributeType}, Actual: ${actualAttr.AttributeType}`,
+        );
+      }
+    }
+
     // Validate billing mode (DynamoDB defaults to PROVISIONED if BillingModeSummary is absent).
     const actualBillingMode = actualTable.BillingModeSummary?.BillingMode ?? 'PROVISIONED';
     if (actualBillingMode !== properties.billingMode.type) {
@@ -74,11 +95,140 @@ export class ValidateDynamoDBResourceAction extends ANodeAction implements IReso
       );
     }
 
-    // Validate key schema length as a basic sanity check.
-    const actualKeySchemaLength = (actualTable.KeySchema ?? []).length;
-    if (actualKeySchemaLength !== properties.KeySchema.length) {
+    // Validate DeletionProtectionEnabled.
+    if (actualTable.DeletionProtectionEnabled !== properties.DeletionProtectionEnabled) {
       throw new TransactionError(
-        `DynamoDB table key schema length mismatch. Expected: ${properties.KeySchema.length}, Actual: ${actualKeySchemaLength}`,
+        `DynamoDB table DeletionProtectionEnabled mismatch. Expected: ${properties.DeletionProtectionEnabled}, Actual: ${actualTable.DeletionProtectionEnabled}`,
+      );
+    }
+
+    // Validate GlobalSecondaryIndexes.
+    const actualGSIs = actualTable.GlobalSecondaryIndexes ?? [];
+    if (actualGSIs.length !== properties.GlobalSecondaryIndexes.length) {
+      throw new TransactionError(
+        `DynamoDB table GlobalSecondaryIndexes length mismatch. Expected: ${properties.GlobalSecondaryIndexes.length}, Actual: ${actualGSIs.length}`,
+      );
+    }
+    for (const expectedGSI of properties.GlobalSecondaryIndexes) {
+      const actualGSI = actualGSIs.find((g) => g.IndexName === expectedGSI.IndexName);
+      if (!actualGSI) {
+        throw new TransactionError(`DynamoDB table GlobalSecondaryIndex "${expectedGSI.IndexName}" not found`);
+      }
+      if (actualGSI.IndexStatus !== 'ACTIVE') {
+        throw new TransactionError(
+          `DynamoDB table GlobalSecondaryIndex "${expectedGSI.IndexName}" is not ACTIVE. Actual: ${actualGSI.IndexStatus}`,
+        );
+      }
+      const actualGSIKeySchema = actualGSI.KeySchema ?? [];
+      if (actualGSIKeySchema.length !== expectedGSI.KeySchema.length) {
+        throw new TransactionError(
+          `DynamoDB table GlobalSecondaryIndex "${expectedGSI.IndexName}" key schema length mismatch. Expected: ${expectedGSI.KeySchema.length}, Actual: ${actualGSIKeySchema.length}`,
+        );
+      }
+      for (const expectedKey of expectedGSI.KeySchema) {
+        const actualKey = actualGSIKeySchema.find((k) => k.AttributeName === expectedKey.AttributeName);
+        if (!actualKey) {
+          throw new TransactionError(
+            `DynamoDB table GlobalSecondaryIndex "${expectedGSI.IndexName}" key schema attribute "${expectedKey.AttributeName}" not found`,
+          );
+        }
+        if (actualKey.KeyType !== expectedKey.KeyType) {
+          throw new TransactionError(
+            `DynamoDB table GlobalSecondaryIndex "${expectedGSI.IndexName}" key schema KeyType mismatch for "${expectedKey.AttributeName}". Expected: ${expectedKey.KeyType}, Actual: ${actualKey.KeyType}`,
+          );
+        }
+      }
+      if (actualGSI.Projection?.ProjectionType !== expectedGSI.Projection.ProjectionType) {
+        throw new TransactionError(
+          `DynamoDB table GlobalSecondaryIndex "${expectedGSI.IndexName}" projection type mismatch. Expected: ${expectedGSI.Projection.ProjectionType}, Actual: ${actualGSI.Projection?.ProjectionType}`,
+        );
+      }
+    }
+
+    // Validate key schema.
+    const actualKeySchema = actualTable.KeySchema ?? [];
+    if (actualKeySchema.length !== properties.KeySchema.length) {
+      throw new TransactionError(
+        `DynamoDB table key schema length mismatch. Expected: ${properties.KeySchema.length}, Actual: ${actualKeySchema.length}`,
+      );
+    }
+    for (const expectedKey of properties.KeySchema) {
+      const actualKey = actualKeySchema.find((k) => k.AttributeName === expectedKey.AttributeName);
+      if (!actualKey) {
+        throw new TransactionError(
+          `DynamoDB table key schema attribute "${expectedKey.AttributeName}" not found in actual key schema`,
+        );
+      }
+      if (actualKey.KeyType !== expectedKey.KeyType) {
+        throw new TransactionError(
+          `DynamoDB table key schema KeyType mismatch for "${expectedKey.AttributeName}". Expected: ${expectedKey.KeyType}, Actual: ${actualKey.KeyType}`,
+        );
+      }
+    }
+
+    // Validate LocalSecondaryIndexes.
+    const actualLSIs = actualTable.LocalSecondaryIndexes ?? [];
+    if (actualLSIs.length !== properties.LocalSecondaryIndexes.length) {
+      throw new TransactionError(
+        `DynamoDB table LocalSecondaryIndexes length mismatch. Expected: ${properties.LocalSecondaryIndexes.length}, Actual: ${actualLSIs.length}`,
+      );
+    }
+    for (const expectedLSI of properties.LocalSecondaryIndexes) {
+      const actualLSI = actualLSIs.find((l) => l.IndexName === expectedLSI.IndexName);
+      if (!actualLSI) {
+        throw new TransactionError(`DynamoDB table LocalSecondaryIndex "${expectedLSI.IndexName}" not found`);
+      }
+      const actualLSIKeySchema = actualLSI.KeySchema ?? [];
+      if (actualLSIKeySchema.length !== expectedLSI.KeySchema.length) {
+        throw new TransactionError(
+          `DynamoDB table LocalSecondaryIndex "${expectedLSI.IndexName}" key schema length mismatch. Expected: ${expectedLSI.KeySchema.length}, Actual: ${actualLSIKeySchema.length}`,
+        );
+      }
+      for (const expectedKey of expectedLSI.KeySchema) {
+        const actualKey = actualLSIKeySchema.find((k) => k.AttributeName === expectedKey.AttributeName);
+        if (!actualKey) {
+          throw new TransactionError(
+            `DynamoDB table LocalSecondaryIndex "${expectedLSI.IndexName}" key schema attribute "${expectedKey.AttributeName}" not found`,
+          );
+        }
+        if (actualKey.KeyType !== expectedKey.KeyType) {
+          throw new TransactionError(
+            `DynamoDB table LocalSecondaryIndex "${expectedLSI.IndexName}" key schema KeyType mismatch for "${expectedKey.AttributeName}". Expected: ${expectedKey.KeyType}, Actual: ${actualKey.KeyType}`,
+          );
+        }
+      }
+      if (actualLSI.Projection?.ProjectionType !== expectedLSI.Projection.ProjectionType) {
+        throw new TransactionError(
+          `DynamoDB table LocalSecondaryIndex "${expectedLSI.IndexName}" projection type mismatch. Expected: ${expectedLSI.Projection.ProjectionType}, Actual: ${actualLSI.Projection?.ProjectionType}`,
+        );
+      }
+    }
+
+    // Validate DynamoDB latest stream ARN (only present when StreamSpecification is configured).
+    if (properties.StreamSpecification) {
+      if (actualTable.LatestStreamArn !== response.LatestStreamArn) {
+        throw new TransactionError(
+          `DynamoDB table LatestStreamArn mismatch. Expected: ${response.LatestStreamArn}, Actual: ${actualTable.LatestStreamArn}`,
+        );
+      }
+    }
+
+    // Validate StreamSpecification (treat absent/disabled stream as undefined).
+    const actualStreamViewType = actualTable.StreamSpecification?.StreamEnabled
+      ? actualTable.StreamSpecification.StreamViewType
+      : undefined;
+    const expectedStreamViewType = properties.StreamSpecification?.StreamViewType;
+    if (actualStreamViewType !== expectedStreamViewType) {
+      throw new TransactionError(
+        `DynamoDB table StreamSpecification StreamViewType mismatch. Expected: ${expectedStreamViewType ?? 'disabled'}, Actual: ${actualStreamViewType ?? 'disabled'}`,
+      );
+    }
+
+    // Validate TableClass (AWS omits TableClassSummary when class is STANDARD).
+    const actualTableClass = actualTable.TableClassSummary?.TableClass ?? 'STANDARD';
+    if (actualTableClass !== properties.TableClass) {
+      throw new TransactionError(
+        `DynamoDB table TableClass mismatch. Expected: ${properties.TableClass}, Actual: ${actualTableClass}`,
       );
     }
 
