@@ -22,16 +22,28 @@ export class VpcSchema extends BaseResourceSchema {
    * * `properties.CidrBlock` - The CIDR block.
    * * `properties.InstanceTenancy` - The instance tenancy. Possible values are `default`.
    */
-  @Validate({
-    destruct: (value: VpcSchema['properties']): string[] => [
-      value.awsAccountId,
-      ...value.awsAvailabilityZones,
-      value.awsRegionId,
-      value.CidrBlock,
-      value.InstanceTenancy,
-    ],
-    options: { minLength: 1 },
-  })
+  @Validate<unknown>([
+    {
+      destruct: (value: VpcSchema['properties']): string[] => [
+        value.awsAccountId,
+        ...value.awsAvailabilityZones,
+        value.awsRegionId,
+        value.CidrBlock,
+        value.InstanceTenancy,
+      ],
+      options: { minLength: 1 },
+    },
+    {
+      // awsAvailabilityZones must have at least one element.
+      destruct: (value: VpcSchema['properties']): string[][] => [value.awsAvailabilityZones],
+      options: { minLength: 1 },
+    },
+    {
+      // CidrBlock must match CIDR notation.
+      destruct: (value: VpcSchema['properties']): string[] => [value.CidrBlock],
+      options: { regex: /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\/\d{1,2}$/ },
+    },
+  ])
   override properties = Schema<{
     awsAccountId: string;
     awsAvailabilityZones: string[];
