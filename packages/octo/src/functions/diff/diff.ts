@@ -40,7 +40,7 @@ export class Diff<N extends UnknownNode = UnknownNode, V = unknown> {
     } else if ((value as UnknownAnchor).anchorId) {
       value = `anchorId=${(value as UnknownAnchor).anchorId}`;
     } else {
-      value = JSON.parse(JSON.stringify(value));
+      value = value === undefined ? undefined : JSON.parse(JSON.stringify(value));
     }
 
     return {

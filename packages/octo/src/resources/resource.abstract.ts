@@ -84,7 +84,10 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       delete this.properties[key];
     }
     for (const key of Object.keys(sourceResource.properties) as (keyof S['properties'])[]) {
-      this.properties[key] = JSON.parse(JSON.stringify(sourceResource.properties[key]));
+      this.properties[key] =
+        sourceResource.properties[key] === undefined
+          ? undefined
+          : JSON.parse(JSON.stringify(sourceResource.properties[key]));
     }
   }
 
@@ -155,7 +158,10 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       delete this.response[key];
     }
     for (const key of Object.keys(sourceResource.response) as (keyof S['response'])[]) {
-      this.response[key] = JSON.parse(JSON.stringify(sourceResource.response[key]));
+      this.response[key] =
+        sourceResource.response[key] === undefined
+          ? undefined
+          : JSON.parse(JSON.stringify(sourceResource.response[key]));
     }
   }
 
@@ -237,7 +243,8 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
       case 'properties': {
         if (diff.action === DiffAction.ADD || diff.action === DiffAction.UPDATE) {
           const change = diff.value as { key: keyof S['properties']; value: any };
-          this.properties[change.key] = JSON.parse(JSON.stringify(change.value));
+          this.properties[change.key] =
+            change.value === undefined ? undefined : JSON.parse(JSON.stringify(change.value));
         } else if (diff.action === DiffAction.DELETE) {
           const change = diff.value as { key: string; value: any };
           delete this.properties[change.key];
@@ -438,7 +445,7 @@ export abstract class AResource<S extends BaseResourceSchema, T extends UnknownR
 
   setResponse(response: S['response']): void {
     for (const key of Object.keys(response || {}) as (keyof S['response'])[]) {
-      this.response[key] = JSON.parse(JSON.stringify(response[key]));
+      this.response[key] = response[key] === undefined ? undefined : JSON.parse(JSON.stringify(response[key]));
     }
   }
 

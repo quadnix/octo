@@ -42,7 +42,7 @@ export abstract class AAnchor<S extends BaseAnchorSchema, T extends UnknownModel
     }
 
     for (const [key, value] of Object.entries(anchor.properties)) {
-      newAnchor.properties[key] = JSON.parse(JSON.stringify(value));
+      newAnchor.properties[key] = value === undefined ? undefined : JSON.parse(JSON.stringify(value));
     }
     return newAnchor;
   }
