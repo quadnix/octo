@@ -24,7 +24,6 @@ export class DiffUtility {
     return diff;
   }
 
-  // Source: https://stackoverflow.com/a/32922084/1834562
   static isObjectDeepEquals(x: unknown, y: unknown, excludePaths: string[] = [], currentPath: string[] = []): boolean {
     if (x instanceof AAnchor && y instanceof AAnchor) {
       return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
@@ -36,19 +35,21 @@ export class DiffUtility {
       return this.isObjectDeepEquals(x.toJSON(), y.toJSON(), excludePaths, currentPath);
     }
 
-    const ok = Object.keys,
+    const ok = (subject: object): string[] =>
+        Object.keys(Object.fromEntries(Object.entries(subject).filter(([, value]) => value !== undefined))),
       tx = typeof x,
       ty = typeof y;
 
-    return x && y && tx === 'object' && tx === ty
-      ? ok(x).length === ok(y).length &&
-          ok(x).every((key) => {
-            if (excludePaths.includes([...currentPath, key].join('.'))) {
-              return true;
-            }
-            return this.isObjectDeepEquals(x[key], y[key], excludePaths, [...currentPath, key]);
-          })
-      : x === y;
+    if (x && y && tx === 'object' && tx === ty) {
+      const xKeys = ok(x).filter((k) => !excludePaths.includes([...currentPath, k].join('.')));
+      const yKeys = ok(y).filter((k) => !excludePaths.includes([...currentPath, k].join('.')));
+      return (
+        xKeys.length === yKeys.length &&
+        xKeys.every((key) => this.isObjectDeepEquals(x[key], y[key], excludePaths, [...currentPath, key]))
+      );
+    } else {
+      return x === y;
+    }
   }
 
   /**

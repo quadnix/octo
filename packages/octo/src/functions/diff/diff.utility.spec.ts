@@ -17,6 +17,7 @@ describe('Diff Utility UT', () => {
 
     it('should return true when objects are equal', () => {
       expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, { a: 1, b: 2 })).toEqual(true);
+      expect(DiffUtility.isObjectDeepEquals({ a: 1 }, { a: 1, b: undefined })).toEqual(true);
     });
 
     it('should return false when objects are not equal', () => {
@@ -71,12 +72,55 @@ describe('Diff Utility UT', () => {
       it('should return true when non-excluded objects are equal', () => {
         expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, { a: 2, b: 2 }, ['a'])).toEqual(true);
         expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, { a: 2, b: 2 }, ['b'])).toEqual(false);
+        expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, { a: 1, b: undefined }, ['b'])).toEqual(true);
+        expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, { a: 1 }, ['b'])).toEqual(true);
+        expect(DiffUtility.isObjectDeepEquals({ a: 1, b: undefined }, { a: 1 }, ['b'])).toEqual(true);
         expect(DiffUtility.isObjectDeepEquals({ deep: { a: 1, b: 2 } }, { deep: { a: 2, b: 2 } }, ['deep.a'])).toEqual(
           true,
         );
         expect(DiffUtility.isObjectDeepEquals({ deep: { a: 1, b: 2 } }, { deep: { a: 2, b: 2 } }, ['deep.b'])).toEqual(
           false,
         );
+        expect(
+          DiffUtility.isObjectDeepEquals({ deep: { a: 1, b: 2 } }, { deep: { a: 1, b: undefined } }, ['deep.b']),
+        ).toEqual(true);
+        expect(DiffUtility.isObjectDeepEquals({ deep: { a: 1, b: 2 } }, { deep: { a: 1 } }, ['deep.b'])).toEqual(true);
+        expect(
+          DiffUtility.isObjectDeepEquals({ deep: { a: 1, b: undefined } }, { deep: { a: 1 } }, ['deep.b']),
+        ).toEqual(true);
+      });
+
+      it('should return true when excluded key exists only in first object (e.g. optional dropped by JSON)', () => {
+        const withOptional = { a: 1, b: 2, optional: 'value' };
+        const withoutOptional = { a: 1, b: 2 };
+        expect(DiffUtility.isObjectDeepEquals(withOptional, withoutOptional, ['optional'])).toEqual(true);
+      });
+
+      it('should return true when excluded key exists only in second object', () => {
+        const withoutOptional = { a: 1, b: 2 };
+        const withOptional = { a: 1, b: 2, optional: 'value' };
+        expect(DiffUtility.isObjectDeepEquals(withoutOptional, withOptional, ['optional'])).toEqual(true);
+      });
+
+      it('should return true when both have excluded key with different values', () => {
+        expect(DiffUtility.isObjectDeepEquals({ a: 1, skip: 'x' }, { a: 1, skip: 'y' }, ['skip'])).toEqual(true);
+      });
+
+      it('should return false when non-excluded key exists only in one object', () => {
+        expect(DiffUtility.isObjectDeepEquals({ a: 1, b: 2 }, { a: 1 }, ['optional'])).toEqual(false);
+        expect(DiffUtility.isObjectDeepEquals({ a: 1 }, { a: 1, b: 2 }, ['optional'])).toEqual(false);
+      });
+
+      it('should exclude paths from key count for nested objects', () => {
+        const withNested = { top: { a: 1, b: 2, skip: 3 } };
+        const withoutNested = { top: { a: 1, b: 2 } };
+        expect(DiffUtility.isObjectDeepEquals(withNested, withoutNested, ['top.skip'])).toEqual(true);
+      });
+
+      it('should return false when non-excluded nested values differ', () => {
+        const x = { top: { a: 1, skip: 3 } };
+        const y = { top: { a: 2, skip: 4 } };
+        expect(DiffUtility.isObjectDeepEquals(x, y, ['top.skip'])).toEqual(false);
       });
     });
   });
