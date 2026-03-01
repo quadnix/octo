@@ -74,16 +74,16 @@ export class UpdateDynamoDBResourceAction extends ANodeAction implements IResour
                         KeySchema: i.properties.KeySchema,
                         OnDemandThroughput:
                           properties.billingMode.type === 'PAY_PER_REQUEST'
-                            ? properties.billingMode.settings.OnDemandThroughput
+                            ? properties.billingMode.settings.OnDemandThroughput!
                             : undefined,
                         Projection: i.properties.Projection,
                         ProvisionedThroughput:
                           properties.billingMode.type === 'PROVISIONED'
-                            ? properties.billingMode.settings.ProvisionedThroughput
+                            ? properties.billingMode.settings.ProvisionedThroughput!
                             : undefined,
                         WarmThroughput:
                           properties.billingMode.type === 'PAY_PER_REQUEST'
-                            ? properties.billingMode.settings.WarmThroughput
+                            ? properties.billingMode.settings.WarmThroughput!
                             : undefined,
                       },
                     }))
@@ -92,11 +92,11 @@ export class UpdateDynamoDBResourceAction extends ANodeAction implements IResour
             : undefined,
         OnDemandThroughput:
           properties.billingMode.type === 'PAY_PER_REQUEST'
-            ? properties.billingMode.settings.OnDemandThroughput
+            ? properties.billingMode.settings.OnDemandThroughput!
             : undefined,
         ProvisionedThroughput:
           properties.billingMode.type === 'PROVISIONED'
-            ? properties.billingMode.settings.ProvisionedThroughput
+            ? properties.billingMode.settings.ProvisionedThroughput!
             : undefined,
         StreamSpecification: properties.StreamSpecification
           ? { StreamEnabled: true, StreamViewType: properties.StreamSpecification.StreamViewType }
@@ -104,7 +104,7 @@ export class UpdateDynamoDBResourceAction extends ANodeAction implements IResour
         TableName: properties.TableName,
         WarmThroughput:
           properties.billingMode.type === 'PAY_PER_REQUEST'
-            ? properties.billingMode.settings.WarmThroughput
+            ? properties.billingMode.settings.WarmThroughput!
             : undefined,
       }),
     );

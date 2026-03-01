@@ -15,7 +15,7 @@ export class DynamoDBBillingPayPerRequestSchema {
   OnDemandThroughput? = Schema<{
     MaxReadRequestUnits: number;
     MaxWriteRequestUnits: number;
-  }>();
+  } | null>(null);
 
   @Validate({
     destruct: (value: DynamoDBBillingPayPerRequestSchema['WarmThroughput']): number[] => {
@@ -26,7 +26,7 @@ export class DynamoDBBillingPayPerRequestSchema {
   WarmThroughput? = Schema<{
     ReadUnitsPerSecond: number;
     WriteUnitsPerSecond: number;
-  }>();
+  } | null>(null);
 }
 
 export class DynamoDBBillingProvisionedSchema {

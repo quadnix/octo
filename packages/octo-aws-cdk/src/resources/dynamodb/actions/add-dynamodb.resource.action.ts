@@ -46,17 +46,41 @@ export class AddDynamoDBResourceAction extends ANodeAction implements IResourceA
         BillingMode: properties.billingMode.type,
         DeletionProtectionEnabled: properties.DeletionProtectionEnabled,
         GlobalSecondaryIndexes:
-          properties.GlobalSecondaryIndexes.length > 0 ? properties.GlobalSecondaryIndexes : undefined,
+          properties.GlobalSecondaryIndexes.length > 0
+            ? properties.GlobalSecondaryIndexes.map((i) => ({
+                IndexName: i.IndexName,
+                KeySchema: i.KeySchema,
+                OnDemandThroughput:
+                  properties.billingMode.type === 'PAY_PER_REQUEST'
+                    ? properties.billingMode.settings.OnDemandThroughput!
+                    : undefined,
+                Projection: i.Projection,
+                ProvisionedThroughput:
+                  properties.billingMode.type === 'PROVISIONED'
+                    ? properties.billingMode.settings.ProvisionedThroughput!
+                    : undefined,
+                WarmThroughput:
+                  properties.billingMode.type === 'PAY_PER_REQUEST'
+                    ? properties.billingMode.settings.WarmThroughput!
+                    : undefined,
+              }))
+            : undefined,
         KeySchema: properties.KeySchema,
         LocalSecondaryIndexes:
-          properties.LocalSecondaryIndexes.length > 0 ? properties.LocalSecondaryIndexes : undefined,
+          properties.LocalSecondaryIndexes.length > 0
+            ? properties.LocalSecondaryIndexes.map((i) => ({
+                IndexName: i.IndexName,
+                KeySchema: i.KeySchema,
+                Projection: i.Projection,
+              }))
+            : undefined,
         OnDemandThroughput:
           properties.billingMode.type === 'PAY_PER_REQUEST'
-            ? properties.billingMode.settings.OnDemandThroughput
+            ? properties.billingMode.settings.OnDemandThroughput!
             : undefined,
         ProvisionedThroughput:
           properties.billingMode.type === 'PROVISIONED'
-            ? properties.billingMode.settings.ProvisionedThroughput
+            ? properties.billingMode.settings.ProvisionedThroughput!
             : undefined,
         StreamSpecification: properties.StreamSpecification
           ? { StreamEnabled: true, StreamViewType: properties.StreamSpecification.StreamViewType }
@@ -66,7 +90,7 @@ export class AddDynamoDBResourceAction extends ANodeAction implements IResourceA
         Tags: Object.keys(tags).length > 0 ? Object.entries(tags).map(([Key, Value]) => ({ Key, Value })) : undefined,
         WarmThroughput:
           properties.billingMode.type === 'PAY_PER_REQUEST'
-            ? properties.billingMode.settings.WarmThroughput
+            ? properties.billingMode.settings.WarmThroughput!
             : undefined,
       }),
     );
