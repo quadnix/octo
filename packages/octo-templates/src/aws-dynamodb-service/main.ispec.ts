@@ -287,9 +287,9 @@ describe('Main IT', () => {
 
     const accountsAfterAutoExpire = await accountRepositoryUsEast1.getByAccountId('1');
     expect(accountsAfterAutoExpire.length).toBe(0);
-  }, 10_000);
+  });
 
-  it('should add GSI in DynamoDB table and query and delete GSI', async () => {
+  it('should add GSI in DynamoDB table and query', async () => {
     // Add GSI - Email.
     const { moduleInputs } = moduleDefinitions.get<AwsDynamoDBServiceModule>('dynamodb-service-module')!;
     moduleInputs.AttributeDefinitions.push({ AttributeName: 'Email', AttributeType: 'S' });
@@ -321,10 +321,10 @@ describe('Main IT', () => {
     });
     const accountsByEmail = await accountRepositoryUsEast1.getByEmail('test-user-1@test.com');
     expect(accountsByEmail.length).toBe(1);
+  });
 
-    // Remove GSI - Email.
-    moduleInputs.AttributeDefinitions.splice(4, 1);
-    moduleInputs.GlobalSecondaryIndexes!.splice(1, 1);
+  it('should remove GSI in DynamoDB table and query', async () => {
+    // Remove GSI - Email. Not adding Email GSI is equivalent to have removed it from module inputs.
     await testModuleContainer.orderModules(moduleDefinitions.getAll().map((md) => md.module));
     const { 'app-module.model.app': app2 } = await testModuleContainer.runModules(
       moduleDefinitions.getAll().map((md) => ({
