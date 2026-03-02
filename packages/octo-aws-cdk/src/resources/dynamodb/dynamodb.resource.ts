@@ -7,7 +7,9 @@ export type GlobalSecondaryIndexDiffs = {
 };
 
 export type DynamoDBDiff = {
+  billingMode: boolean;
   GlobalSecondaryIndexDiffs: GlobalSecondaryIndexDiffs[];
+  StreamSpecification: boolean;
 };
 
 /**
@@ -193,7 +195,12 @@ export class DynamoDB extends AResource<DynamoDBSchema, DynamoDB> {
     if (shouldConsolidateUpdateDiffs) {
       diffs.push(
         new Diff<DynamoDB, DynamoDBDiff>(this, DiffAction.UPDATE, 'properties', {
+          billingMode: !DiffUtility.isObjectDeepEquals(previous.properties.billingMode, this.properties.billingMode),
           GlobalSecondaryIndexDiffs: globalSecondaryIndexDiffs,
+          StreamSpecification: !DiffUtility.isObjectDeepEquals(
+            previous.properties.StreamSpecification,
+            this.properties.StreamSpecification,
+          ),
         }),
       );
     }

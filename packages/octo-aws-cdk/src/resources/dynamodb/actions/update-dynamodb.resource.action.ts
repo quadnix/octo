@@ -44,8 +44,10 @@ export class UpdateDynamoDBResourceAction extends ANodeAction implements IResour
     const properties = dynamoDB.properties;
     const response = dynamoDB.response;
 
+    const billingModeChanged = diff.value.billingMode;
     const globalIndexesToAdd = diff.value.GlobalSecondaryIndexDiffs.filter((d) => d.action === 'add');
     const globalIndexesToDelete = diff.value.GlobalSecondaryIndexDiffs.filter((d) => d.action === 'delete');
+    const StreamSpecificationChanged = diff.value.StreamSpecification;
 
     // Get instances.
     const dynamoDBClient = await this.container.get<DynamoDBClient, typeof DynamoDBClientFactory>(DynamoDBClient, {
@@ -57,7 +59,7 @@ export class UpdateDynamoDBResourceAction extends ANodeAction implements IResour
     await dynamoDBClient.send(
       new UpdateTableCommand({
         AttributeDefinitions: properties.AttributeDefinitions,
-        BillingMode: properties.billingMode.type,
+        BillingMode: billingModeChanged ? properties.billingMode.type : undefined,
         DeletionProtectionEnabled: properties.DeletionProtectionEnabled,
         GlobalSecondaryIndexUpdates:
           globalIndexesToAdd.length > 0 || globalIndexesToDelete.length > 0
@@ -91,19 +93,21 @@ export class UpdateDynamoDBResourceAction extends ANodeAction implements IResour
               ]
             : undefined,
         OnDemandThroughput:
-          properties.billingMode.type === 'PAY_PER_REQUEST'
+          billingModeChanged && properties.billingMode.type === 'PAY_PER_REQUEST'
             ? properties.billingMode.settings.OnDemandThroughput!
             : undefined,
         ProvisionedThroughput:
-          properties.billingMode.type === 'PROVISIONED'
+          billingModeChanged && properties.billingMode.type === 'PROVISIONED'
             ? properties.billingMode.settings.ProvisionedThroughput!
             : undefined,
-        StreamSpecification: properties.StreamSpecification
-          ? { StreamEnabled: true, StreamViewType: properties.StreamSpecification.StreamViewType }
-          : { StreamEnabled: false },
+        StreamSpecification: StreamSpecificationChanged
+          ? properties.StreamSpecification
+            ? { StreamEnabled: true, StreamViewType: properties.StreamSpecification.StreamViewType }
+            : { StreamEnabled: false }
+          : undefined,
         TableName: properties.TableName,
         WarmThroughput:
-          properties.billingMode.type === 'PAY_PER_REQUEST'
+          billingModeChanged && properties.billingMode.type === 'PAY_PER_REQUEST'
             ? properties.billingMode.settings.WarmThroughput!
             : undefined,
       }),
