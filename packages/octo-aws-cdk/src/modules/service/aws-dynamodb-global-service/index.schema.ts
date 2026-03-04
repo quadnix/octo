@@ -38,6 +38,16 @@ export class AwsDynamoDBGlobalServiceModuleSchema {
   ])
   dynamoDBService = Schema<Service>();
 
-  @Validate({ options: { isSchema: { schema: DynamoDBGlobalReplicaSchema } } })
+  @Validate<unknown>([
+    {
+      // At least 1 replica is required.
+      destruct: (value: AwsDynamoDBGlobalServiceModuleSchema['replicas']): DynamoDBGlobalReplicaSchema[][] => [value],
+      options: { minLength: 1 },
+    },
+    {
+      destruct: (value: AwsDynamoDBGlobalServiceModuleSchema['replicas']): DynamoDBGlobalReplicaSchema[] => value,
+      options: { isSchema: { schema: DynamoDBGlobalReplicaSchema } },
+    },
+  ])
   replicas = Schema<DynamoDBGlobalReplicaSchema[]>();
 }

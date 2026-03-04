@@ -118,7 +118,30 @@ export class DynamoDBGlobal extends AResource<DynamoDBGlobalSchema, DynamoDBGlob
 
   override diffUnpack(diff: Diff): Diff[] {
     if ((diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE) && diff.field === 'resourceId') {
-      return [new Diff(this, DiffAction.UPDATE, 'properties', '')];
+      const replicaDiffs: ReplicaDiff[] = [];
+      const currentReplicas = this.properties.replicas;
+      for (const replica of currentReplicas) {
+        replicaDiffs.push({
+          action: 'add',
+          properties: { awsAccountId: replica.awsAccountId, awsRegionId: replica.awsRegionId },
+        });
+      }
+
+      const tagUpdates: DynamoDBGlobalDiff['tagUpdates'] = [];
+      for (const replica of currentReplicas) {
+        tagUpdates.push({
+          awsAccountId: replica.awsAccountId,
+          awsRegionId: replica.awsRegionId,
+          tags: { ...this.tags, ...(replica.tags || {}) },
+        });
+      }
+
+      return [
+        new Diff<DynamoDBGlobal, DynamoDBGlobalDiff>(this, DiffAction.UPDATE, 'properties', {
+          replicaDiffs,
+          tagUpdates,
+        }),
+      ];
     } else {
       return [diff];
     }

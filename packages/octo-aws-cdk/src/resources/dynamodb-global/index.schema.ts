@@ -37,7 +37,12 @@ export class DynamoDBGlobalSchema extends BaseResourceSchema {
    * Input properties.
    * * `properties.replicas` - List of replicas for the DynamoDB table.
    */
-  @Validate([
+  @Validate<unknown>([
+    {
+      // At least 1 replica is required.
+      destruct: (value: DynamoDBGlobalSchema['properties']): DynamoDBGlobalReplicaSchema[][] => [value.replicas],
+      options: { minLength: 1 },
+    },
     {
       // replicas must match DynamoDBGlobalReplicaSchema schema.
       destruct: (value: DynamoDBGlobalSchema['properties']): DynamoDBGlobalReplicaSchema[] => value.replicas,
