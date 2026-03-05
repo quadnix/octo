@@ -1,74 +1,58 @@
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { GetResourcesCommand, ResourceGroupsTaggingAPIClient } from '@aws-sdk/client-resource-groups-tagging-api';
+import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { jest } from '@jest/globals';
-import {
-  type App,
-  type ResourceSerializedOutput,
-  TestContainer,
-  TestModuleContainer,
-  TestStateProvider,
-  stub,
-} from '@quadnix/octo';
-import { AwsLocalstackAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-localstack-account';
+import { type Container, TestContainer, TestModuleContainer, TestStateProvider } from '@quadnix/octo';
+import type { AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
 import type { AwsDynamoDBServiceModule } from '@quadnix/octo-aws-cdk/modules/service/aws-dynamodb-service';
-import axios from 'axios';
-import { DockerComposeEnvironment, type StartedDockerComposeEnvironment, Wait } from 'testcontainers';
+import { HtmlReportEventListener } from '@quadnix/octo-event-listeners/html-report';
+import { LoggingEventListener } from '@quadnix/octo-event-listeners/logging';
+import { mockClient } from 'aws-sdk-client-mock';
 import { AccountRepository } from './account.repository.js';
 import { ModuleDefinitions } from './module-definitions.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const LOCAL_STACK_URL: string = 'http://localhost:4566';
+jest.setTimeout(60_000);
 
-jest.setTimeout(30_000);
-
-describe('Main IT', () => {
-  let accountRepositoryUsEast1: AccountRepository;
-
-  let environment: StartedDockerComposeEnvironment;
-  let tableName: string;
-
-  let moduleDefinitions: ModuleDefinitions;
-  let stateProvider: TestStateProvider;
+describe('Main E2E', () => {
+  let container: Container;
   let testModuleContainer: TestModuleContainer;
+  const stateProvider = new TestStateProvider();
 
-  beforeAll(async () => {
-    environment = await new DockerComposeEnvironment(__dirname, 'docker-compose.yml')
-      .withWaitStrategy('localstack-aws-dynamodb-service', Wait.forLogMessage('Ready.'))
-      .up();
+  const accountRepositoryUsEast1 = new AccountRepository('us-east-1');
+  const STSClientMock = mockClient(STSClient);
 
-    stateProvider = new TestStateProvider();
-
-    accountRepositoryUsEast1 = new AccountRepository('us-east-1', LOCAL_STACK_URL);
-  });
+  const moduleDefinitions = new ModuleDefinitions();
+  const accountId = moduleDefinitions.get<AwsIniAccountModule>('account-module')!.moduleInputs.accountId;
 
   beforeEach(async () => {
-    moduleDefinitions = new ModuleDefinitions();
-    // Replace real aws credentials with localstack.
-    moduleDefinitions.update(AwsLocalstackAccountModule, 'account-module', {
-      app: stub<App>('${{app-module.model.app}}'),
+    STSClientMock.on(GetCallerIdentityCommand).resolves({ Account: accountId });
+
+    container = await TestContainer.create({
+      mocks: [
+        {
+          metadata: { package: '@octo' },
+          type: STSClient,
+          value: STSClientMock,
+        },
+      ],
     });
 
-    await TestContainer.create(
-      { mocks: [{ type: ModuleDefinitions, value: moduleDefinitions }] },
-      { factoryTimeoutInMs: 500 },
-    );
-
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize(stateProvider);
+    await testModuleContainer.initialize(stateProvider, [
+      { type: HtmlReportEventListener },
+      { type: LoggingEventListener },
+    ]);
 
-    const { moduleInputs } = moduleDefinitions.get<AwsDynamoDBServiceModule>('dynamodb-service-module')!;
-    tableName = moduleInputs.TableName;
+    // Register tags on all resources.
+    testModuleContainer.octo.registerTags([
+      { scope: {}, tags: { 'e2e-test': 'true', 'e2e-test-family': 'aws-dynamodb-service' } },
+    ]);
   });
 
   afterEach(async () => {
+    STSClientMock.restore();
+
     await testModuleContainer.reset();
     await TestContainer.reset();
-  });
-
-  afterAll(async () => {
-    if (environment) {
-      await environment.down({ removeVolumes: true, timeout: 10_000 });
-    }
   });
 
   it('should create base resources', async () => {
@@ -109,116 +93,6 @@ describe('Main IT', () => {
        ],
      ]
     `);
-
-    const resourcesActualState = await stateProvider.getState('resources-actual.json');
-    const resourcesActual: { data: ResourceSerializedOutput } = JSON.parse(resourcesActualState.toString('utf-8'));
-
-    // DynamoDB exists.
-    expect(resourcesActual.data.resources[`@octo/dynamodb=dynamodb-${tableName}`]).toMatchInlineSnapshot(
-      {
-        resource: {
-          response: {
-            LatestStreamArn: expect.any(String),
-            TableId: expect.any(String),
-          },
-        },
-      },
-      `
-     {
-       "className": "@octo/DynamoDB",
-       "resource": {
-         "parents": [],
-         "properties": {
-           "AttributeDefinitions": [
-             {
-               "AttributeName": "AccountId",
-               "AttributeType": "S",
-             },
-             {
-               "AttributeName": "AccountType",
-               "AttributeType": "S",
-             },
-             {
-               "AttributeName": "CreatedAt",
-               "AttributeType": "N",
-             },
-             {
-               "AttributeName": "UserId",
-               "AttributeType": "S",
-             },
-           ],
-           "DeletionProtectionEnabled": false,
-           "GlobalSecondaryIndexes": [
-             {
-               "IndexName": "AccountUserIndex",
-               "KeySchema": [
-                 {
-                   "AttributeName": "UserId",
-                   "KeyType": "HASH",
-                 },
-               ],
-               "Projection": {
-                 "ProjectionType": "ALL",
-               },
-             },
-           ],
-           "KeySchema": [
-             {
-               "AttributeName": "AccountId",
-               "KeyType": "HASH",
-             },
-             {
-               "AttributeName": "AccountType",
-               "KeyType": "RANGE",
-             },
-           ],
-           "LocalSecondaryIndexes": [
-             {
-               "IndexName": "AccountCreatedAtIndex",
-               "KeySchema": [
-                 {
-                   "AttributeName": "AccountId",
-                   "KeyType": "HASH",
-                 },
-                 {
-                   "AttributeName": "CreatedAt",
-                   "KeyType": "RANGE",
-                 },
-               ],
-               "Projection": {
-                 "ProjectionType": "ALL",
-               },
-             },
-           ],
-           "StreamSpecification": {
-             "StreamViewType": "NEW_AND_OLD_IMAGES",
-           },
-           "TableClass": "STANDARD",
-           "TableName": "accounts",
-           "awsAccountId": "000000000000",
-           "awsRegionId": "us-east-1",
-           "billingMode": {
-             "settings": {
-               "ProvisionedThroughput": {
-                 "ReadCapacityUnits": 5,
-                 "WriteCapacityUnits": 5,
-               },
-             },
-             "type": "PROVISIONED",
-           },
-           "timeToLiveAttribute": "ExpiresAt",
-         },
-         "resourceId": "dynamodb-accounts",
-         "response": {
-           "LatestStreamArn": Any<String>,
-           "TableArn": "arn:aws:dynamodb:us-east-1:000000000000:table/accounts",
-           "TableId": Any<String>,
-         },
-         "tags": {},
-       },
-     }
-    `,
-    );
   });
 
   it('should CRUD DynamoDB table', async () => {
@@ -281,9 +155,7 @@ describe('Main IT', () => {
     expect(accountsBeforeAutoExpire.length).toBe(1);
 
     // Wait > 5 seconds for auto expire.
-    await new Promise((resolve) => setTimeout(resolve, 6000));
-    // Force LocalStack to expire items.
-    await axios.delete(`${LOCAL_STACK_URL}/_aws/dynamodb/expired`);
+    await new Promise((resolve) => setTimeout(resolve, 10000));
 
     const accountsAfterAutoExpire = await accountRepositoryUsEast1.getByAccountId('TestAutoExpire');
     expect(accountsAfterAutoExpire.length).toBe(0);
@@ -342,7 +214,7 @@ describe('Main IT', () => {
     }).rejects.toThrow();
   });
 
-  it('should delete DynamoDB resource', async () => {
+  it('should have no resources left after teardown', async () => {
     moduleDefinitions.remove('dynamodb-service-module');
     await testModuleContainer.orderModules(moduleDefinitions.getAll().map((md) => md.module));
     const { 'app-module.model.app': app } = await testModuleContainer.runModules(
@@ -353,25 +225,25 @@ describe('Main IT', () => {
         type: md.module,
       })),
     );
+    await testModuleContainer.commit(app);
 
-    const { resourceTransaction } = await testModuleContainer.commit(app);
-    expect(resourceTransaction).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/dynamodb=dynamodb-accounts",
-           "value": "@octo/dynamodb=dynamodb-accounts",
-         },
-       ],
-     ]
-    `);
+    const resourceGroupsTaggingApiClient = await container.get<ResourceGroupsTaggingAPIClient, any>(
+      ResourceGroupsTaggingAPIClient,
+      {
+        args: [accountId, 'us-east-1'],
+        metadata: { package: '@octo' },
+      },
+    );
 
-    const resourcesActualState = await stateProvider.getState('resources-actual.json');
-    const resourcesActual: { data: ResourceSerializedOutput } = JSON.parse(resourcesActualState.toString('utf-8'));
+    const response = await resourceGroupsTaggingApiClient.send(
+      new GetResourcesCommand({
+        TagFilters: [
+          { Key: 'e2e-test', Values: ['true'] },
+          { Key: 'e2e-test-family', Values: ['aws-dynamodb-service'] },
+        ],
+      }),
+    );
 
-    // DynamoDB deleted.
-    expect(resourcesActual.data.resources[`@octo/dynamodb=dynamodb-${tableName}`]).toBeUndefined();
+    expect(response.ResourceTagMappingList!.map((r) => r.ResourceARN)).toEqual([]);
   });
 });

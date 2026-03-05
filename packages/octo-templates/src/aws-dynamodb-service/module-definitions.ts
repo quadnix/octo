@@ -5,6 +5,7 @@ import {
   type Constructable,
   Factory,
   type ModuleSchemaInputs,
+  type Region,
   stub,
 } from '@quadnix/octo';
 import { AwsIniAccountModule } from '@quadnix/octo-aws-cdk/modules/account/aws-ini-account';
@@ -90,7 +91,7 @@ export class ModuleDefinitions {
           Projection: { ProjectionType: 'ALL' },
         },
       ],
-      region: stub('${{region-module.model.region}}'),
+      region: stub<Region>('${{region-module.model.region}}'),
       StreamSpecification: { StreamViewType: 'NEW_AND_OLD_IMAGES' },
       TableName: 'accounts',
       timeToLiveAttribute: 'ExpiresAt',

@@ -23,7 +23,7 @@ export class AccountRepository {
   private readonly documentClient: DynamoDBDocumentClient;
   private readonly tableName: string;
 
-  constructor(region: string, endpoint: string) {
+  constructor(region: string, endpoint?: string) {
     const client = new DynamoDBClient({ endpoint, region });
     this.documentClient = DynamoDBDocumentClient.from(client, {
       marshallOptions: {
