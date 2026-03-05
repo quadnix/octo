@@ -171,6 +171,9 @@ describe('AwsS3StorageServiceModule UT', () => {
        [],
      ]
     `);
+
+    const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
+    expect(isResourceStateEqual).toBe(true);
   });
 
   it('should CUD tags', async () => {

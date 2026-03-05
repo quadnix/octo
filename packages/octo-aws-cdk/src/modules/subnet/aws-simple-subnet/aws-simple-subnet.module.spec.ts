@@ -518,6 +518,9 @@ describe('AwsSimpleSubnetModule UT', () => {
        [],
      ]
     `);
+
+    const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
+    expect(isResourceStateEqual).toBe(true);
   });
 
   it('should associate and disassociate subnet with siblings', async () => {

@@ -142,6 +142,9 @@ describe('AwsEcsDeploymentModule UT', () => {
        [],
      ]
     `);
+
+    const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
+    expect(isResourceStateEqual).toBe(true);
   });
 
   it('should CUD tags', async () => {
