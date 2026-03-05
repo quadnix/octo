@@ -11,6 +11,7 @@ import type {
 } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
+import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
 import type { IModelAction } from '../models/model-action.interface.js';
@@ -24,6 +25,7 @@ import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { InputService, type InputServiceFactory } from '../services/input/input.service.js';
 import { LocalEncryptionStateProvider } from '../services/state-management/local-encryption.state-provider.js';
 import { LocalStateProvider } from '../services/state-management/local.state-provider.js';
+import { StateManagementService } from '../services/state-management/state-management.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
@@ -382,6 +384,14 @@ export class TestModuleContainer {
     // Always register the UniversalTestModule to allow users to create test prerequisites.
     const moduleContainer = await Container.getInstance().get(ModuleContainer);
     moduleContainer.register(UniversalTestModule, { packageName: '@octo' });
+  }
+
+  async isResourceStateEqual(): Promise<boolean> {
+    const container = Container.getInstance();
+    const stateManagementService = await container.get(StateManagementService);
+    const resourcesActual = await stateManagementService.getResourceState('resources-actual.json');
+    const resourcesOld = await stateManagementService.getResourceState('resources-old.json');
+    return DiffUtility.isObjectDeepEquals(resourcesActual, resourcesOld);
   }
 
   async orderModules(modules: (Constructable<UnknownModule> | string)[]): Promise<void> {
