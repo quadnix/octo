@@ -101,7 +101,9 @@ export class DynamoDBGlobal extends AResource<DynamoDBGlobalSchema, DynamoDBGlob
     diff: Diff<DynamoDBGlobal>,
     deReferenceResource: (resourceId: string) => Promise<never>,
   ): Promise<void> {
-    if (diff.action === DiffAction.UPDATE && diff.field === 'properties') {
+    if (diff.action === DiffAction.DELETE && diff.field === 'properties') {
+      this.remove(true);
+    } else if (diff.action === DiffAction.UPDATE && diff.field === 'properties') {
       await this.cloneResourceInPlace(diff.node, deReferenceResource);
     } else {
       await super.diffInverse(diff, deReferenceResource);
@@ -117,7 +119,7 @@ export class DynamoDBGlobal extends AResource<DynamoDBGlobalSchema, DynamoDBGlob
   }
 
   override diffUnpack(diff: Diff): Diff[] {
-    if ((diff.action === DiffAction.ADD || diff.action === DiffAction.DELETE) && diff.field === 'resourceId') {
+    if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       const replicaDiffs: ReplicaDiff[] = [];
       const currentReplicas = this.properties.replicas;
       for (const replica of currentReplicas) {
@@ -142,6 +144,22 @@ export class DynamoDBGlobal extends AResource<DynamoDBGlobalSchema, DynamoDBGlob
           tagUpdates,
         }),
       ];
+    } else if (diff.action === DiffAction.DELETE && diff.field === 'resourceId') {
+      const replicaDiffs: ReplicaDiff[] = [];
+      const currentReplicas = this.properties.replicas;
+      for (const replica of currentReplicas) {
+        replicaDiffs.push({
+          action: 'delete',
+          properties: { awsAccountId: replica.awsAccountId, awsRegionId: replica.awsRegionId },
+        });
+      }
+
+      return [
+        new Diff<DynamoDBGlobal, DynamoDBGlobalDiff>(this, DiffAction.DELETE, 'properties', {
+          replicaDiffs,
+          tagUpdates: [],
+        }),
+      ];
     } else {
       return [diff];
     }
@@ -153,11 +171,15 @@ export class DynamoDBGlobal extends AResource<DynamoDBGlobalSchema, DynamoDBGlob
     const globalToTableDep = this.getDependency(dynamoDBParent, DependencyRelationship.CHILD)!;
     const tableToGlobalDep = dynamoDBParent.getDependency(this, DependencyRelationship.PARENT)!;
 
-    // Before updating DynamoDBGlobal must add/update DynamoDB.
+    // Before update/delete DynamoDBGlobal must add/update DynamoDB.
     globalToTableDep.addBehavior('properties', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
     globalToTableDep.addBehavior('properties', DiffAction.UPDATE, 'properties', DiffAction.UPDATE);
     globalToTableDep.addBehavior('properties', DiffAction.UPDATE, 'tags', DiffAction.UPDATE);
+    globalToTableDep.addBehavior('properties', DiffAction.DELETE, 'resourceId', DiffAction.ADD);
+    globalToTableDep.addBehavior('properties', DiffAction.DELETE, 'properties', DiffAction.UPDATE);
+    globalToTableDep.addBehavior('properties', DiffAction.DELETE, 'tags', DiffAction.UPDATE);
     // Before deleting DynamoDB must update DynamoDBGlobal.
     tableToGlobalDep.addBehavior('resourceId', DiffAction.DELETE, 'properties', DiffAction.UPDATE);
+    tableToGlobalDep.addBehavior('resourceId', DiffAction.DELETE, 'properties', DiffAction.DELETE);
   }
 }

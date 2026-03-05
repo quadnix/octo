@@ -27,7 +27,7 @@ export class UpdateDynamoDBGlobalResourceAction extends ANodeAction implements I
 
   filter(diff: Diff<any, DiffValueTypePropertyUpdate>): boolean {
     return (
-      diff.action === DiffAction.UPDATE &&
+      (diff.action === DiffAction.DELETE || diff.action === DiffAction.UPDATE) &&
       diff.node instanceof DynamoDBGlobal &&
       hasNodeName(diff.node, 'dynamodb-global') &&
       diff.field === 'properties'
@@ -90,6 +90,10 @@ export class UpdateDynamoDBGlobalResourceAction extends ANodeAction implements I
           throwOnError: true,
         },
       );
+
+      if (replicaDiff.action === 'delete') {
+        replicaKeys.delete(`${replicaDiff.properties.awsAccountId}:${replicaDiff.properties.awsRegionId}`);
+      }
     }
 
     // Update DynamoDB table replica tags.
