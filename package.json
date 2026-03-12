@@ -58,8 +58,6 @@
   "scripts": {
     "build": "nx run-many -t build",
     "format": "nx run-many -t format",
-    "install:local-octo": "rimraf node_modules/@quadnix && nx run @quadnix/octo:build && npm install",
-    "install:local-octo-aws-cdk": "npm run install:local-octo && nx run @quadnix/octo-aws-cdk:build && npm install",
     "lint": "nx run-many -t lint && npm run lint:root",
     "lint:fix": "nx run-many -t lint:fix",
     "lint:root": "eslint . --ignore-pattern \"apps\" --ignore-pattern \"packages\"",

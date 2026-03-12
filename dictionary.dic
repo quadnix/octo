@@ -25,6 +25,7 @@ backticks
 balancer
 balancers
 blockquote
+bool
 brk
 browserslist
 cacheable
@@ -125,6 +126,7 @@ ispec
 jpeg
 jpg
 jsonc
+jsonencode
 jsx
 lang
 len
@@ -214,6 +216,8 @@ tagline
 targetgroup
 tcp
 tds
+terraform
+tfstate
 tmpdir
 toc
 tokenizer
