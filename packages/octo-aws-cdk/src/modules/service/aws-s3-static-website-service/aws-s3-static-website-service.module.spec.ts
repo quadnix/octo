@@ -1,3 +1,4 @@
+import { rm } from 'node:fs/promises';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import {
@@ -10,6 +11,7 @@ import { jest } from '@jest/globals';
 import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import { AwsS3StaticWebsiteServiceModule } from './index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -35,6 +37,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 
 describe('AwsS3StaticWebsiteServiceModule UT', () => {
   let testModuleContainer: TestModuleContainer;
+  let octoTerraform: OctoTerraform;
 
   const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
   const S3ClientMock = mockClient(S3Client);
@@ -44,7 +47,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
 
     S3ClientMock.on(ListObjectsV2Command).resolves({ Contents: [] });
 
-    await TestContainer.create(
+    const container = await TestContainer.create(
       {
         mocks: [
           {
@@ -72,12 +75,24 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     );
 
     testModuleContainer = new TestModuleContainer();
-    await testModuleContainer.initialize();
+    await testModuleContainer.initialize(undefined, [
+      {
+        options: {
+          args: [{ terraformApplyEnabled: false, terraformFilePath: join(__dirname, 'main.tf') }, true],
+          metadata: { package: '@octo' },
+        },
+        type: OctoTerraform,
+      },
+    ]);
+
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
   });
 
   afterEach(async () => {
     ResourceGroupsTaggingAPIClientMock.restore();
     S3ClientMock.restore();
+
+    await rm(join(__dirname, 'main.tf'), { force: true });
 
     await testModuleContainer.reset();
     await TestContainer.reset();
@@ -118,6 +133,58 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
          "UpdateSourcePathsInS3WebsiteResourceAction",
        ],
      ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "variable "bucket-test-bucket_website_bucket_name" {
+       type = string
+       default = "test-bucket"
+     }
+
+     resource "aws_s3_bucket" "bucket-test-bucket_website_bucket" {
+       bucket = var.bucket-test-bucket_website_bucket_name
+     }
+
+     output "bucket-test-bucket_website_bucket_arn" {
+       value = aws_s3_bucket.bucket-test-bucket_website_bucket.arn
+     }
+
+     resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucket_config" {
+       bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+       index_document {
+         suffix = "index.html"
+       }
+       error_document {
+         key = "error.html"
+       }
+
+       depends_on = [aws_s3_bucket.bucket-test-bucket_website_bucket]
+     }
+
+     resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_public_access" {
+       bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+       block_public_acls = false
+       block_public_policy = false
+       ignore_public_acls = false
+       restrict_public_buckets = false
+
+       depends_on = [aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]
+     }
+
+     resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_public_read_policy" {
+       bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
+       policy = jsonencode({
+         Statement = [{
+             Action = ["s3:GetObject"]
+             Effect = "Allow"
+             Principal = "*"
+             Resource = ["\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*"]
+             Sid = "PublicReadGetObject"
+           }]
+         Version = "2012-10-17"
+       })
+
+       depends_on = [aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]
+     }"
     `);
   });
 

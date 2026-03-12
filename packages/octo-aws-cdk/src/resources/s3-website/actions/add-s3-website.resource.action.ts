@@ -1,12 +1,5 @@
-import {
-  CreateBucketCommand,
-  PutBucketPolicyCommand,
-  PutBucketWebsiteCommand,
-  PutPublicAccessBlockCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
 import { Action, Container, type Diff, DiffAction, Factory, type IResourceAction, hasNodeName } from '@quadnix/octo';
-import type { S3ClientFactory } from '../../../factories/aws-client.factory.js';
+import { OctoTerraform, type OctoTerraformFactory } from '../../../factories/octo-terraform.factory.js';
 import { PolicyUtility } from '../../../utilities/policy/policy.utility.js';
 import type { S3WebsiteSchema } from '../index.schema.js';
 import { S3Website } from '../s3-website.resource.js';
@@ -33,67 +26,90 @@ export class AddS3WebsiteResourceAction implements IResourceAction<S3Website> {
     const properties = s3Website.properties;
 
     // Get instances.
-    const s3Client = await this.container.get<S3Client, typeof S3ClientFactory>(S3Client, {
-      args: [properties.awsAccountId, properties.awsRegionId],
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
       metadata: { package: '@octo' },
     });
 
+    const s3WebsiteResource = octoTerraform.addOctoTerraformResource(diff.node);
+    const bucketNameTerraformVariable = octoTerraform.variable(
+      `${diff.node.resourceId}_website_bucket_name`,
+      'string',
+      {
+        default: properties.Bucket,
+        sensitive: false,
+      },
+    );
+
     // Create a new bucket.
-    await s3Client.send(
-      new CreateBucketCommand({
-        Bucket: properties.Bucket,
-      }),
+    const s3WebsiteTerraformResource = s3WebsiteResource.addTerraformResource(
+      'aws_s3_bucket',
+      `${diff.node.resourceId}_website_bucket`,
+    );
+    s3WebsiteTerraformResource.attribute('bucket', bucketNameTerraformVariable.ref);
+    const s3WebsiteArnTerraformResourceOutput = s3WebsiteTerraformResource.output(
+      `${diff.node.resourceId}_website_bucket_arn`,
+      octoTerraform.raw(`${s3WebsiteTerraformResource.address}.arn`),
     );
 
     // Add static website hosting to the bucket.
-    await s3Client.send(
-      new PutBucketWebsiteCommand({
-        Bucket: properties.Bucket,
-        WebsiteConfiguration: {
-          ErrorDocument: {
-            Key: properties.ErrorDocument,
-          },
-          IndexDocument: {
-            Suffix: properties.IndexDocument,
-          },
-        },
-      }),
+    const s3WebsiteConfigTerraformResource = s3WebsiteResource.addTerraformResource(
+      'aws_s3_bucket_website_configuration',
+      `${diff.node.resourceId}_website_bucket_config`,
     );
+    s3WebsiteConfigTerraformResource.attribute('bucket', octoTerraform.raw(`${s3WebsiteTerraformResource.address}.id`));
+    const s3WebsiteIndexDocumentTerraformBlock = s3WebsiteConfigTerraformResource.block('index_document');
+    s3WebsiteIndexDocumentTerraformBlock.attribute('suffix', properties.IndexDocument);
+    const s3WebsiteErrorDocumentTerraformBlock = s3WebsiteConfigTerraformResource.block('error_document');
+    s3WebsiteErrorDocumentTerraformBlock.attribute('key', properties.ErrorDocument);
 
     // Configure static website to be accessible to public.
-    await s3Client.send(
-      new PutPublicAccessBlockCommand({
-        Bucket: properties.Bucket,
-        PublicAccessBlockConfiguration: {
-          BlockPublicAcls: false,
-          BlockPublicPolicy: false,
-          IgnorePublicAcls: false,
-          RestrictPublicBuckets: false,
-        },
-      }),
+    const s3WebsitePublicAccessTerraformResource = s3WebsiteResource.addTerraformResource(
+      'aws_s3_bucket_public_access_block',
+      `${diff.node.resourceId}_website_bucket_public_access`,
     );
+    s3WebsitePublicAccessTerraformResource.attribute(
+      'bucket',
+      octoTerraform.raw(`${s3WebsiteTerraformResource.address}.id`),
+    );
+    s3WebsitePublicAccessTerraformResource.attribute('block_public_acls', false);
+    s3WebsitePublicAccessTerraformResource.attribute('block_public_policy', false);
+    s3WebsitePublicAccessTerraformResource.attribute('ignore_public_acls', false);
+    s3WebsitePublicAccessTerraformResource.attribute('restrict_public_buckets', false);
 
     // Allow bucket files to be read by everyone.
-    await s3Client.send(
-      new PutBucketPolicyCommand({
-        Bucket: properties.Bucket,
-        Policy: JSON.stringify({
-          Statement: [
-            {
-              Action: ['s3:GetObject'],
-              Effect: 'Allow',
-              Principal: '*',
-              Resource: [`arn:aws:s3:::${properties.Bucket}/*`],
-              Sid: PolicyUtility.getSafeSid('PublicReadGetObject'),
-            },
-          ],
-          Version: '2012-10-17',
-        }),
+    const s3WebsitePublicReadPolicyTerraformResource = s3WebsiteResource.addTerraformResource(
+      'aws_s3_bucket_policy',
+      `${diff.node.resourceId}_website_bucket_public_read_policy`,
+    );
+    s3WebsitePublicReadPolicyTerraformResource.attribute(
+      'bucket',
+      octoTerraform.raw(`${s3WebsiteTerraformResource.address}.id`),
+    );
+    s3WebsitePublicReadPolicyTerraformResource.attribute(
+      'policy',
+      octoTerraform.jsonencode({
+        Statement: [
+          {
+            Action: ['s3:GetObject'],
+            Effect: 'Allow',
+            Principal: '*',
+            Resource: [octoTerraform.raw(`"\${${s3WebsiteTerraformResource.address}.arn}/*"`)],
+            Sid: PolicyUtility.getSafeSid('PublicReadGetObject'),
+          },
+        ],
+        Version: '2012-10-17',
       }),
     );
 
+    const response = await octoTerraform.apply([
+      s3WebsiteTerraformResource.address,
+      s3WebsiteConfigTerraformResource.address,
+      s3WebsitePublicAccessTerraformResource.address,
+      s3WebsitePublicReadPolicyTerraformResource.address,
+    ]);
+
     return {
-      Arn: `arn:aws:s3:::${properties.Bucket}`,
+      Arn: response[s3WebsiteArnTerraformResourceOutput.address] as string,
       awsRegionId: properties.awsRegionId,
     };
   }
