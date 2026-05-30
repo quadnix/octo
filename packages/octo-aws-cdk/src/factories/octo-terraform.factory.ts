@@ -1,54 +1,19 @@
-import { spawnSync } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
-import { basename } from 'node:path';
-import { dirname, join } from 'path';
-import { type AResource, type BaseResourceSchema, Factory, MatchingResource } from '@quadnix/octo';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'path';
+import { type AResource, type BaseResourceSchema, Factory, MatchingResource, type ResourceSchema } from '@quadnix/octo';
 
 type LazyValue = (indent: string, step: string) => string;
 
 type TerraformType = 'any' | 'bool' | 'list' | 'map' | 'number' | 'object' | 'set' | 'string' | 'tuple';
 
-type SerializedTerraformAttribute = {
-  expression: string;
-  key: string;
-};
+interface TerraformLiteralObject {
+  [key: string]: TerraformLiteralType;
+}
+type TerraformLiteralType = string | number | boolean | null | TerraformLiteralType[] | TerraformLiteralObject;
 
-type SerializedTerraformBlock = {
-  attributes: SerializedTerraformAttribute[];
-  blocks: SerializedTerraformBlock[];
-  type: string;
-};
-
-type SerializedTerraformOutput = {
-  expression: string;
-  name: string;
-};
-
-type SerializedTerraformResource = {
-  attributes: SerializedTerraformAttribute[];
-  blocks: SerializedTerraformBlock[];
-  dependsOn: string[];
-  name: string;
-  octoResourceId: string;
-  outputs: SerializedTerraformOutput[];
-  type: string;
-};
-
-type SerializedTerraformVariable = {
-  defaultExpression: string;
-  name: string;
-  sensitive: boolean;
-  typeExpression: string;
-};
-
-type SerializedOctoTerraform = {
-  octoTerraformApplyEnabled: boolean;
-  octoTerraformFileIndentLength: number;
-  octoTerraformFilePath: string;
-  octoTerraformManifestFilePath: string;
-  terraformResources: SerializedTerraformResource[];
-  terraformVariables: SerializedTerraformVariable[];
-};
+function raw(value: unknown): string {
+  return `__RAW__${value}`;
+}
 
 class TerraformValue {
   constructor(public readonly value: unknown) {}
@@ -61,7 +26,12 @@ class TerraformValue {
     } else if (typeof this.value === 'string') {
       value = `"${this.value}"`;
     } else if (Array.isArray(this.value)) {
-      value = `[${this.value.map((v) => (typeof v === 'string' ? `"${v}"` : v)).join(', ')}]`;
+      value = `[${this.value.map((v) => new TerraformValue(v).render()).join(', ')}]`;
+    } else if (typeof this.value === 'object' && this.value !== null) {
+      const entries = Object.entries(this.value as Record<string, unknown>).map(
+        ([k, v]) => `${k} = ${new TerraformValue(v).render()}`,
+      );
+      value = `{ ${entries.join(', ')} }`;
     } else if (typeof this.value === 'function') {
       // For standalone render calls, we default to no indent and 2 spaces.
       value = (this.value as LazyValue)('', '  ');
@@ -85,16 +55,6 @@ class TerraformAttribute {
 
     return `${indent}${this.key} = ${renderedValue}`;
   }
-
-  toJSON(indent: string, step: string): SerializedTerraformAttribute {
-    const renderedValue =
-      typeof this.value.value === 'function' ? (this.value.value as LazyValue)(indent, step) : this.value.render();
-
-    return {
-      expression: renderedValue,
-      key: this.key,
-    };
-  }
 }
 
 class TerraformBlock {
@@ -117,26 +77,6 @@ class TerraformBlock {
     const childrenRendered = this.children.map((child) => child.render(childIndent, step));
     return `${indent}${this.type} {\n${childrenRendered.join('\n')}\n${indent}}`;
   }
-
-  toJSON(indent: string, step: string): SerializedTerraformBlock {
-    const childIndent = indent + step;
-    const attributes: SerializedTerraformAttribute[] = [];
-    const blocks: SerializedTerraformBlock[] = [];
-
-    for (const child of this.children) {
-      if (child instanceof TerraformAttribute) {
-        attributes.push(child.toJSON(childIndent, step));
-      } else {
-        blocks.push(child.toJSON(childIndent, step));
-      }
-    }
-
-    return {
-      attributes,
-      blocks,
-      type: this.type,
-    };
-  }
 }
 
 class TerraformOutput {
@@ -145,35 +85,16 @@ class TerraformOutput {
     private readonly value: TerraformValue,
   ) {}
 
-  get address(): string {
-    return this.name;
-  }
-
-  get defaultValue(): string {
-    return this.value.render();
-  }
-
   render(step: string): string {
     const renderedValue =
       typeof this.value.value === 'function' ? (this.value.value as LazyValue)(step, step) : this.value.render();
     const body = [`${step}value = ${renderedValue}`];
     return `output "${this.name}" {\n${body.join('\n')}\n}`;
   }
-
-  toJSON(step: string): SerializedTerraformOutput {
-    const renderedValue =
-      typeof this.value.value === 'function' ? (this.value.value as LazyValue)(step, step) : this.value.render();
-
-    return {
-      expression: renderedValue,
-      name: this.name,
-    };
-  }
 }
 
 class TerraformResource {
   private readonly children: (TerraformAttribute | TerraformBlock)[] = [];
-  public readonly terraformOutputs: TerraformOutput[] = [];
 
   constructor(
     private readonly type: string,
@@ -195,46 +116,14 @@ class TerraformResource {
     return newBlock;
   }
 
-  output(name: string, value: unknown): TerraformOutput {
-    const newOutput = new TerraformOutput(name, new TerraformValue(value));
-    this.terraformOutputs.push(newOutput);
-    return newOutput;
-  }
-
   render(step: string): string {
     const childrenRendered = this.children.map((child) => child.render(step, step));
     const dependsOnRendered =
       this.dependsOn.length > 0 ? `${step}depends_on = [${this.dependsOn.join(', ')}]` : undefined;
 
-    return [
-      `resource "${this.type}" "${this.name}" {\n${childrenRendered.join(
-        '\n',
-      )}${dependsOnRendered ? `\n\n${dependsOnRendered}` : ''}\n}`,
-      ...this.terraformOutputs.map((output) => output.render(step)),
-    ].join('\n\n');
-  }
-
-  toJSON(step: string, octoResourceId: string): SerializedTerraformResource {
-    const attributes: SerializedTerraformAttribute[] = [];
-    const blocks: SerializedTerraformBlock[] = [];
-
-    for (const child of this.children) {
-      if (child instanceof TerraformAttribute) {
-        attributes.push(child.toJSON(step, step));
-      } else {
-        blocks.push(child.toJSON(step, step));
-      }
-    }
-
-    return {
-      attributes,
-      blocks,
-      dependsOn: [...this.dependsOn],
-      name: this.name,
-      octoResourceId,
-      outputs: this.terraformOutputs.map((output) => output.toJSON(step)),
-      type: this.type,
-    };
+    return `resource "${this.type}" "${this.name}" {\n${childrenRendered.join(
+      '\n',
+    )}${dependsOnRendered ? `\n\n${dependsOnRendered}` : ''}\n}`;
   }
 }
 
@@ -242,11 +131,11 @@ class TerraformVariable {
   constructor(
     private readonly name: string,
     private readonly typeExpression: LazyValue | string,
-    private readonly options: { default: unknown; sensitive: boolean },
+    private readonly options: { default: TerraformLiteralType; sensitive: boolean },
   ) {}
 
   get ref(): string {
-    return `__RAW__var.${this.name}`;
+    return raw(`var.${this.name}`);
   }
 
   render(step: string): string {
@@ -261,14 +150,7 @@ class TerraformVariable {
           : `"${this.typeExpression}"`;
     body.push(`${step}type = ${renderedType}`);
 
-    // Render default value.
-    let renderedDefault: string;
-    if (typeof this.options.default === 'function') {
-      renderedDefault = (this.options.default as LazyValue)(step, step);
-    } else {
-      renderedDefault = new TerraformValue(this.options.default).render();
-    }
-    body.push(`${step}default = ${renderedDefault}`);
+    body.push(`${step}default = ${new TerraformValue(this.options.default).render()}`);
 
     // Render sensitive.
     if (this.options.sensitive) {
@@ -277,73 +159,85 @@ class TerraformVariable {
 
     return `variable "${this.name}" {\n${body.join('\n')}\n}`;
   }
-
-  toJSON(step: string): SerializedTerraformVariable {
-    let renderedType: string;
-    if (typeof this.typeExpression === 'function') {
-      renderedType = (this.typeExpression as LazyValue)(step, step);
-    } else if (this.typeExpression.startsWith('__RAW__')) {
-      renderedType = this.typeExpression.replace('__RAW__', '');
-    } else {
-      renderedType = `"${this.typeExpression}"`;
-    }
-
-    let renderedDefault: string;
-    if (typeof this.options.default === 'function') {
-      renderedDefault = (this.options.default as LazyValue)(step, step);
-    } else {
-      renderedDefault = new TerraformValue(this.options.default).render();
-    }
-
-    return {
-      defaultExpression: renderedDefault,
-      name: this.name,
-      sensitive: this.options.sensitive,
-      typeExpression: renderedType,
-    };
-  }
 }
 
-class OctoTerraformResource {
+class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = BaseResourceSchema['response']> {
   public readonly terraformResources: TerraformResource[] = [];
+  public readonly terraformResourceRefs: Partial<Record<keyof TResponse, string>> = {};
+  private readonly terraformOutputs: TerraformOutput[] = [];
 
-  constructor(private readonly dependsOn: string[] = []) {}
+  constructor(
+    private readonly dependsOn: string[] = [],
+    private readonly providerAlias?: string,
+  ) {}
 
-  addTerraformResource(type: string, name: string): TerraformResource {
+  addTerraformResource(type: string, name: string, spec: Record<string, unknown> = {}): TerraformResource {
     const intraResourceDependencies =
       this.terraformResources.length === 0 ? [] : [this.terraformResources[this.terraformResources.length - 1].address];
+
     const terraformResource = new TerraformResource(type, name, [...this.dependsOn, ...intraResourceDependencies]);
+    if (this.providerAlias && !('provider' in spec)) {
+      terraformResource.attribute('provider', raw(`aws.${this.providerAlias}`));
+    }
+    this.addTerraformResourceSpec(terraformResource, spec);
+
     this.terraformResources.push(terraformResource);
     return terraformResource;
   }
 
-  render(step: string): string {
-    return this.terraformResources.map((resource) => resource.render(step)).join('\n\n');
+  private addTerraformResourceSpec(target: TerraformResource | TerraformBlock, spec: Record<string, unknown>): void {
+    for (const [key, value] of Object.entries(spec)) {
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        this.addTerraformResourceSpec(target.block(key), value as Record<string, unknown>);
+      } else if (
+        Array.isArray(value) &&
+        value!.every((v) => v !== null && typeof v === 'object' && !Array.isArray(v))
+      ) {
+        for (const item of value) {
+          this.addTerraformResourceSpec(target.block(key), item as Record<string, unknown>);
+        }
+      } else {
+        target.attribute(key, value);
+      }
+    }
   }
 
-  toJSON(step: string, octoResourceId: string): SerializedTerraformResource[] {
-    return this.terraformResources.map((resource) => resource.toJSON(step, octoResourceId));
+  output(outputs: Record<keyof TResponse & string, string>): void {
+    for (const [name, value] of Object.entries(outputs)) {
+      this.terraformResourceRefs[name as keyof TResponse] = value;
+      this.terraformOutputs.push(new TerraformOutput(name, new TerraformValue(value)));
+    }
+  }
+
+  render(step: string): string {
+    const resources = this.terraformResources.map((resource) => resource.render(step)).join('\n\n');
+    const outputs = this.terraformOutputs.map((output) => output.render(step)).join('\n\n');
+    return [resources, outputs].filter(Boolean).join('\n\n');
   }
 }
 
 export class OctoTerraform {
+  private readonly terraformConfig: TerraformBlock = new TerraformBlock('terraform');
+  private readonly terraformProviders: Map<string, TerraformBlock> = new Map();
+  private readonly awsAccountIdToAlias: Map<string, string> = new Map();
   private readonly octoTerraformResources: Record<string, OctoTerraformResource> = {};
   private readonly terraformVariables: Record<string, TerraformVariable> = {};
 
   constructor(
     private readonly octoTerraformFilePath: string = '',
-    private readonly octoTerraformManifestFilePath: string = '',
     private readonly octoTerraformFileIndentLength: number = 2,
-    private readonly octoTerraformApplyEnabled: boolean = true,
   ) {}
 
-  addOctoTerraformResource<T extends AResource<BaseResourceSchema, any>>(octoResource: T): OctoTerraformResource {
+  addOctoTerraformResource<T extends AResource<BaseResourceSchema, any>>(
+    octoResource: T,
+    explicitParents: (AResource<BaseResourceSchema, any> | MatchingResource<BaseResourceSchema>)[] = [],
+  ): OctoTerraformResource<ResourceSchema<T>['response']> {
     if (octoResource.resourceId in this.octoTerraformResources) {
       throw new Error(`Resource with ID ${octoResource.resourceId} already exists in Terraform!`);
     }
 
     const dependsOn: string[] = [];
-    for (const parentResource of octoResource.parents) {
+    for (const parentResource of explicitParents) {
       const parentResourceId =
         parentResource instanceof MatchingResource
           ? parentResource.getSchemaInstanceInResourceAction().resourceId
@@ -353,111 +247,58 @@ export class OctoTerraform {
       }
     }
 
-    const newResource = new OctoTerraformResource(dependsOn);
+    const awsAccountId = (octoResource.properties as Record<string, unknown>)?.['awsAccountId'] as string | undefined;
+    const providerAlias = awsAccountId ? this.awsAccountIdToAlias.get(awsAccountId) : undefined;
+
+    const newResource = new OctoTerraformResource<ResourceSchema<T>['response']>(dependsOn, providerAlias);
     this.octoTerraformResources[octoResource.resourceId] = newResource;
     return newResource;
   }
 
-  async apply(targetAddresses: string[] = []): Promise<Record<string, unknown>> {
-    await this.write();
+  addTerraformConfig({
+    minAwsProviderVersion = '5.0',
+    minTerraformVersion = '1.6.0',
+  }: {
+    minAwsProviderVersion?: string;
+    minTerraformVersion?: string;
+  } = {}): void {
+    this.terraformConfig.attribute('required_version', `>= ${minTerraformVersion}`);
 
-    if (!this.octoTerraformApplyEnabled) {
-      const defaultOutputs: Record<string, unknown> = {};
-
-      const octoTerraformResources = Object.values(this.octoTerraformResources);
-      for (const octoTerraformResource of octoTerraformResources) {
-        for (const terraformResource of octoTerraformResource.terraformResources) {
-          for (const terraformOutput of terraformResource.terraformOutputs) {
-            defaultOutputs[terraformOutput.address] = terraformOutput.defaultValue;
-          }
-        }
-      }
-
-      return defaultOutputs;
-    }
-
-    const targets = targetAddresses.map((address) => `-target=${address}`);
-    const args = ['apply', ...targets, '-refresh=false', '-auto-approve', '-input=false'];
-
-    const terraformApplyResponse = spawnSync('terraform', args, {
-      cwd: dirname(this.octoTerraformFilePath),
-      encoding: 'utf-8',
-      env: { ...process.env, TF_IN_AUTOMATION: 'true' },
+    const requiredProviders = this.terraformConfig.block('required_providers');
+    requiredProviders.attribute('aws', (indent: string, step: string) => {
+      const nextIndent = indent + step;
+      return `{\n${nextIndent}source  = "hashicorp/aws"\n${nextIndent}version = ">= ${minAwsProviderVersion}"\n${indent}}`;
     });
-
-    if (terraformApplyResponse.status !== 0) {
-      throw new Error(`terraform apply failed! Error: ${terraformApplyResponse.stderr}`);
-    }
-
-    const terraformOutputResponse = spawnSync('terraform', ['output', '-json'], {
-      cwd: dirname(this.octoTerraformFilePath),
-      encoding: 'utf-8',
-    });
-
-    if (terraformOutputResponse.status !== 0) {
-      throw new Error(`terraform output failed! Error: ${terraformOutputResponse.stderr}`);
-    }
-
-    const parsedTerraformOutputResponse = JSON.parse(terraformOutputResponse.stdout);
-    return Object.keys(parsedTerraformOutputResponse).reduce<Record<string, unknown>>((accumulator, key) => {
-      accumulator[key] = parsedTerraformOutputResponse[key].value;
-      return accumulator;
-    }, {});
   }
 
-  static deserialize(serialized: SerializedOctoTerraform): OctoTerraform {
-    const terraform = new OctoTerraform(
-      serialized.octoTerraformFilePath,
-      serialized.octoTerraformManifestFilePath,
-      serialized.octoTerraformFileIndentLength,
-      serialized.octoTerraformApplyEnabled,
-    );
+  addTerraformProvider(awsAccountId: string, alias: string, spec: Record<string, unknown> = {}): void {
+    this.awsAccountIdToAlias.set(awsAccountId, alias);
 
-    for (const variable of serialized.terraformVariables) {
-      terraform.terraformVariables[variable.name] = new TerraformVariable(
-        variable.name,
-        terraform.raw(variable.typeExpression),
-        {
-          default: terraform.raw(variable.defaultExpression),
-          sensitive: variable.sensitive,
-        },
-      );
+    if (!this.terraformProviders.has(alias)) {
+      const providerBlock = new TerraformBlock('provider "aws"');
+      providerBlock.attribute('alias', alias);
+      for (const [k, v] of Object.entries(spec)) {
+        providerBlock.attribute(k, v);
+      }
+      this.terraformProviders.set(alias, providerBlock);
+    }
+  }
+
+  getRef<T extends AResource<BaseResourceSchema, any>>(
+    resource: T,
+    key: keyof ResourceSchema<T>['response'] & string,
+  ): string {
+    const octoTerraformResource = this.octoTerraformResources[resource.resourceId];
+    if (!octoTerraformResource) {
+      throw new Error(`Resource "${resource.resourceId}" not found in Octo Terraform!`);
     }
 
-    const deserializeBlock = (
-      serializedBlock: SerializedTerraformBlock,
-      parent: TerraformBlock | TerraformResource,
-    ): void => {
-      const block = parent.block(serializedBlock.type);
-      for (const attribute of serializedBlock.attributes) {
-        block.attribute(attribute.key, terraform.raw(attribute.expression));
-      }
-      for (const childBlock of serializedBlock.blocks) {
-        deserializeBlock(childBlock, block);
-      }
-    };
-
-    for (const resource of serialized.terraformResources) {
-      const terraformResource = new TerraformResource(resource.type, resource.name, resource.dependsOn);
-
-      for (const attribute of resource.attributes) {
-        terraformResource.attribute(attribute.key, terraform.raw(attribute.expression));
-      }
-      for (const block of resource.blocks) {
-        deserializeBlock(block, terraformResource);
-      }
-      for (const output of resource.outputs) {
-        terraformResource.output(output.name, terraform.raw(output.expression));
-      }
-
-      if (!(resource.octoResourceId in terraform.octoTerraformResources)) {
-        terraform.octoTerraformResources[resource.octoResourceId] = new OctoTerraformResource(resource.dependsOn);
-      }
-
-      terraform.octoTerraformResources[resource.octoResourceId].terraformResources.push(terraformResource);
+    const expression = octoTerraformResource.terraformResourceRefs[key];
+    if (expression === undefined) {
+      throw new Error(`Ref "${key}" not registered for resource "${resource.resourceId}" in Octo Terraform!`);
     }
 
-    return terraform;
+    return expression;
   }
 
   jsonencode(subject: object): LazyValue {
@@ -496,11 +337,15 @@ export class OctoTerraform {
   }
 
   raw(value: unknown): string {
-    return `__RAW__${value}`;
+    return raw(value);
   }
 
   render(): string {
     const step = ' '.repeat(this.octoTerraformFileIndentLength);
+
+    const configBlock = this.terraformConfig.render('', step);
+
+    const providers = [...this.terraformProviders.values()].map((block) => block.render('', step)).join('\n\n');
 
     const variables = Object.values(this.terraformVariables)
       .map((variable) => variable.render(step))
@@ -510,26 +355,7 @@ export class OctoTerraform {
       .map((resource) => resource.render(step))
       .join('\n\n');
 
-    return [variables, resources].filter(Boolean).join('\n\n');
-  }
-
-  serialize(): SerializedOctoTerraform {
-    const step = ' '.repeat(this.octoTerraformFileIndentLength);
-
-    const terraformVariables = Object.values(this.terraformVariables).map((variable) => variable.toJSON(step));
-
-    const terraformResources = Object.entries(this.octoTerraformResources).flatMap(([id, resource]) =>
-      resource.toJSON(step, id),
-    );
-
-    return {
-      octoTerraformApplyEnabled: this.octoTerraformApplyEnabled,
-      octoTerraformFileIndentLength: this.octoTerraformFileIndentLength,
-      octoTerraformFilePath: this.octoTerraformFilePath,
-      octoTerraformManifestFilePath: this.octoTerraformManifestFilePath,
-      terraformResources,
-      terraformVariables,
-    };
+    return [configBlock, providers, variables, resources].filter(Boolean).join('\n\n');
   }
 
   type(schema: unknown): LazyValue {
@@ -573,7 +399,7 @@ export class OctoTerraform {
   variable(
     name: string,
     typeExpression: unknown,
-    options: { default: unknown; sensitive: boolean },
+    options: { default: TerraformLiteralType; sensitive: boolean },
   ): TerraformVariable {
     const resolvedType =
       typeof typeExpression === 'string' && !['any', 'bool', 'number', 'string'].includes(typeExpression)
@@ -585,9 +411,8 @@ export class OctoTerraform {
     return variable;
   }
 
-  private async write(): Promise<void> {
+  async write(): Promise<void> {
     await writeFile(this.octoTerraformFilePath, this.render(), 'utf-8');
-    await writeFile(this.octoTerraformManifestFilePath, JSON.stringify(this.serialize(), null, 2), 'utf-8');
   }
 }
 
@@ -597,13 +422,9 @@ export class OctoTerraformFactory {
 
   static async create(
     {
-      deserializeFromManifest = true,
-      terraformApplyEnabled = true,
       terraformFileIndentLength = 2,
       terraformFilePath = '',
     }: {
-      deserializeFromManifest?: boolean;
-      terraformApplyEnabled?: boolean;
       terraformFileIndentLength?: number;
       terraformFilePath?: string;
     } = {},
@@ -613,35 +434,8 @@ export class OctoTerraformFactory {
       if (!terraformFilePath) {
         terraformFilePath = join(process.cwd(), 'octo-terraform.tf');
       }
-      const terraformManifestFilePath = join(
-        dirname(terraformFilePath),
-        basename(terraformFilePath).replace(/\.tf$/, '') + '.manifest.json',
-      );
 
-      if (deserializeFromManifest) {
-        try {
-          const content = await readFile(terraformManifestFilePath, 'utf-8');
-          this.instance = OctoTerraform.deserialize(JSON.parse(content));
-        } catch (error) {
-          if (error.code === 'ENOENT') {
-            this.instance = new OctoTerraform(
-              terraformFilePath,
-              terraformManifestFilePath,
-              terraformFileIndentLength,
-              terraformApplyEnabled,
-            );
-          } else {
-            throw error;
-          }
-        }
-      } else {
-        this.instance = new OctoTerraform(
-          terraformFilePath,
-          terraformManifestFilePath,
-          terraformFileIndentLength,
-          terraformApplyEnabled,
-        );
-      }
+      this.instance = new OctoTerraform(terraformFilePath, terraformFileIndentLength);
     }
 
     return this.instance;

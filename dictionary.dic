@@ -106,6 +106,7 @@ gitignore
 gitkeep
 globals
 grp
+hashicorp
 hideconstructor
 horiz
 hostnames
