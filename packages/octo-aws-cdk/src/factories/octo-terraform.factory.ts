@@ -287,15 +287,22 @@ export class OctoTerraform {
   getRef<T extends AResource<BaseResourceSchema, any>>(
     resource: T,
     key: keyof ResourceSchema<T>['response'] & string,
-  ): string {
-    const octoTerraformResource = this.octoTerraformResources[resource.resourceId];
+  ): string;
+  getRef<S extends BaseResourceSchema>(resource: MatchingResource<S>, key: keyof S['response'] & string): string;
+  getRef(resource: AResource<BaseResourceSchema, any> | MatchingResource<any>, key: string): string {
+    const resourceId =
+      resource instanceof MatchingResource
+        ? resource.getSchemaInstanceInResourceAction().resourceId
+        : resource.resourceId;
+
+    const octoTerraformResource = this.octoTerraformResources[resourceId];
     if (!octoTerraformResource) {
-      throw new Error(`Resource "${resource.resourceId}" not found in Octo Terraform!`);
+      throw new Error(`Resource "${resourceId}" not found in Octo Terraform!`);
     }
 
     const expression = octoTerraformResource.terraformResourceRefs[key];
     if (expression === undefined) {
-      throw new Error(`Ref "${key}" not registered for resource "${resource.resourceId}" in Octo Terraform!`);
+      throw new Error(`Ref "${key}" not registered for resource "${resourceId}" in Octo Terraform!`);
     }
 
     return expression;
