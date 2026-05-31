@@ -130,6 +130,19 @@ describe('OctoTerraform UT', () => {
          }"
         `);
       });
+
+      it('should render map attr', () => {
+        terraformResource.attribute('tags', terraform.mapAttr({ Env: 'prod', Name: 'my-vpc' }));
+        expect(terraformResource.render('  ')).toMatchInlineSnapshot(`
+         "resource "aws_vpc" "vpc-region" {
+           provider = aws.us-east-1
+           tags = {
+             Name = "my-vpc"
+             Env = "prod"
+           }
+         }"
+        `);
+      });
     });
 
     describe('TerraformAttribute', () => {
@@ -198,11 +211,11 @@ describe('OctoTerraform UT', () => {
            provider = aws.us-east-1
          }
 
-         output "output_raw_key" {
+         output "vpc-region-output_raw_key" {
            value = aws_vpc.vpc-region.id
          }
 
-         output "output_string_key" {
+         output "vpc-region-output_string_key" {
            value = "string_value"
          }"
         `);
@@ -223,7 +236,7 @@ describe('OctoTerraform UT', () => {
            }
          }
 
-         output "output_string_key" {
+         output "vpc-region-output_string_key" {
            value = "string_value"
          }"
         `);
@@ -298,7 +311,14 @@ describe('OctoTerraform UT', () => {
                key3 = string
              })
            })
-           default = { arrayKey = [true, false], nestedKey = { key1 = true, key2 = 1, key3 = "string_value" } }
+           default = {
+           arrayKey = [true, false]
+           nestedKey = {
+             key1 = true
+             key2 = 1
+             key3 = "string_value"
+           }
+         }
          }
 
          resource "aws_vpc" "vpc-region" {
@@ -306,7 +326,7 @@ describe('OctoTerraform UT', () => {
            string_key = var.var_string_key
          }
 
-         output "output_string_key" {
+         output "vpc-region-output_string_key" {
            value = var.var_string_key
          }"
         `);
@@ -381,7 +401,7 @@ describe('OctoTerraform UT', () => {
          }
        }
 
-       output "igw_output_string_key" {
+       output "igw-region-igw_output_string_key" {
          value = "string_value"
        }
 
@@ -392,7 +412,7 @@ describe('OctoTerraform UT', () => {
          }
        }
 
-       output "vpc_id" {
+       output "vpc-region-vpc_id" {
          value = aws_vpc.vpc-region.id
        }"
       `);
@@ -487,7 +507,7 @@ describe('OctoTerraform UT', () => {
          }
        }
 
-       output "igw_output_string_key" {
+       output "igw-region-igw_output_string_key" {
          value = "string_value"
        }
 
@@ -499,7 +519,7 @@ describe('OctoTerraform UT', () => {
          }
        }
 
-       output "vpc_id" {
+       output "vpc-region-vpc_id" {
          value = aws_vpc.vpc-region.id
        }"
       `);

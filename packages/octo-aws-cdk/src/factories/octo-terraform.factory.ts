@@ -18,7 +18,7 @@ function raw(value: unknown): string {
 class TerraformValue {
   constructor(public readonly value: unknown) {}
 
-  render(): string {
+  render(indent: string = '', step: string = '  '): string {
     let value: string;
 
     if (typeof this.value === 'string' && this.value.startsWith('__RAW__')) {
@@ -26,15 +26,15 @@ class TerraformValue {
     } else if (typeof this.value === 'string') {
       value = `"${this.value}"`;
     } else if (Array.isArray(this.value)) {
-      value = `[${this.value.map((v) => new TerraformValue(v).render()).join(', ')}]`;
+      value = `[${this.value.map((v) => new TerraformValue(v).render(indent, step)).join(', ')}]`;
     } else if (typeof this.value === 'object' && this.value !== null) {
+      const nextIndent = indent + step;
       const entries = Object.entries(this.value as Record<string, unknown>).map(
-        ([k, v]) => `${k} = ${new TerraformValue(v).render()}`,
+        ([k, v]) => `${nextIndent}${k} = ${new TerraformValue(v).render(nextIndent, step)}`,
       );
-      value = `{ ${entries.join(', ')} }`;
+      value = `{\n${entries.join('\n')}\n${indent}}`;
     } else if (typeof this.value === 'function') {
-      // For standalone render calls, we default to no indent and 2 spaces.
-      value = (this.value as LazyValue)('', '  ');
+      value = (this.value as LazyValue)(indent, step);
     } else {
       value = `${this.value}`;
     }
@@ -51,7 +51,9 @@ class TerraformAttribute {
 
   render(indent: string, step: string): string {
     const renderedValue =
-      typeof this.value.value === 'function' ? (this.value.value as LazyValue)(indent, step) : this.value.render();
+      typeof this.value.value === 'function'
+        ? (this.value.value as LazyValue)(indent, step)
+        : this.value.render(indent, step);
 
     return `${indent}${this.key} = ${renderedValue}`;
   }
@@ -87,7 +89,9 @@ class TerraformOutput {
 
   render(step: string): string {
     const renderedValue =
-      typeof this.value.value === 'function' ? (this.value.value as LazyValue)(step, step) : this.value.render();
+      typeof this.value.value === 'function'
+        ? (this.value.value as LazyValue)(step, step)
+        : this.value.render(step, step);
     const body = [`${step}value = ${renderedValue}`];
     return `output "${this.name}" {\n${body.join('\n')}\n}`;
   }
@@ -167,6 +171,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
   private readonly terraformOutputs: TerraformOutput[] = [];
 
   constructor(
+    private readonly resourceId: string,
     private readonly dependsOn: string[] = [],
     private readonly providerAlias?: string,
   ) {}
@@ -205,7 +210,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
   output(outputs: Record<keyof TResponse & string, string>): void {
     for (const [name, value] of Object.entries(outputs)) {
       this.terraformResourceRefs[name as keyof TResponse] = value;
-      this.terraformOutputs.push(new TerraformOutput(name, new TerraformValue(value)));
+      this.terraformOutputs.push(new TerraformOutput(`${this.resourceId}-${name}`, new TerraformValue(value)));
     }
   }
 
@@ -232,10 +237,6 @@ export class OctoTerraform {
     octoResource: T,
     explicitParents: (AResource<BaseResourceSchema, any> | MatchingResource<BaseResourceSchema>)[] = [],
   ): OctoTerraformResource<ResourceSchema<T>['response']> {
-    if (octoResource.resourceId in this.octoTerraformResources) {
-      throw new Error(`Resource with ID ${octoResource.resourceId} already exists in Terraform!`);
-    }
-
     const dependsOn: string[] = [];
     for (const parentResource of explicitParents) {
       const parentResourceId =
@@ -250,7 +251,11 @@ export class OctoTerraform {
     const awsAccountId = (octoResource.properties as Record<string, unknown>)?.['awsAccountId'] as string | undefined;
     const providerAlias = awsAccountId ? this.awsAccountIdToAlias.get(awsAccountId) : undefined;
 
-    const newResource = new OctoTerraformResource<ResourceSchema<T>['response']>(dependsOn, providerAlias);
+    const newResource = new OctoTerraformResource<ResourceSchema<T>['response']>(
+      octoResource.resourceId,
+      dependsOn,
+      providerAlias,
+    );
     this.octoTerraformResources[octoResource.resourceId] = newResource;
     return newResource;
   }
@@ -340,6 +345,21 @@ export class OctoTerraform {
         .join('\n');
 
       return `jsonencode({\n${body}\n${currentIndent}})`;
+    };
+  }
+
+  /**
+   * Use `mapAttr()` when the Terraform provider schema defines a **map/object attribute** (`key = { }`).
+   * Use a plain JS object in `addTerraformResource` spec when the schema expects a **block argument** (`key { }`).
+   * The distinction matters: blocks have no `=`, map attributes do. Check the provider docs for each argument.
+   */
+  mapAttr(value: Record<string, unknown>): LazyValue {
+    return (indent: string, step: string): string => {
+      const nextIndent = indent + step;
+      const entries = Object.entries(value).map(
+        ([k, v]) => `${nextIndent}${k} = ${new TerraformValue(v).render(nextIndent, step)}`,
+      );
+      return `{\n${entries.join('\n')}\n${indent}}`;
     };
   }
 

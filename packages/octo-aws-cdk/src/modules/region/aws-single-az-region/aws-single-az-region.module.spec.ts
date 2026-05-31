@@ -1,19 +1,6 @@
-import {
-  CreateInternetGatewayCommand,
-  CreateVpcCommand,
-  DescribeInternetGatewaysCommand,
-  EC2Client,
-} from '@aws-sdk/client-ec2';
-import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { jest } from '@jest/globals';
 import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import { AwsSingleAzRegionId } from './index.schema.js';
 import { AwsSingleAzRegionModule } from './index.js';
 
@@ -22,7 +9,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     account: [account],
     app: [app],
   } = await testModuleContainer.createTestModels('testModule', { account: ['aws,123'], app: ['test-app'] });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   account.addAnchor(
     testModuleContainer.createTestAnchor<AwsAccountAnchorSchema>('AwsAccountAnchor', { awsAccountId: '123' }, account),
@@ -32,38 +18,13 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 }
 
 describe('AwsSingleAzRegionModule UT', () => {
-  const originalRetryPromise = RetryUtility.retryPromise;
-
-  let retryPromiseSpy: jest.Spied<any>;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const EC2ClientMock = mockClient(EC2Client);
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-
   beforeEach(async () => {
-    EC2ClientMock.on(CreateVpcCommand)
-      .resolves({ Vpc: { VpcId: 'VpcId' } })
-      .on(CreateInternetGatewayCommand)
-      .resolves({ InternetGateway: { InternetGatewayId: 'InternetGatewayId' } })
-      .on(DescribeInternetGatewaysCommand)
-      .resolves({ InternetGateways: [{ InternetGatewayId: 'InternetGatewayId' }] });
-
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    await TestContainer.create(
+    const container = await TestContainer.create(
       {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: EC2Client,
-            value: EC2ClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-        ],
+        mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }],
       },
       { factoryTimeoutInMs: 500 },
     );
@@ -71,19 +32,14 @@ describe('AwsSingleAzRegionModule UT', () => {
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
 
-    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
-    });
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'test-account', { region: 'us-east-1' });
   });
 
   afterEach(async () => {
-    EC2ClientMock.restore();
-    ResourceGroupsTaggingAPIClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
-
-    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {
@@ -112,12 +68,57 @@ describe('AwsSingleAzRegionModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddVpcResourceAction",
+         "CaptureVpcResponseResourceAction",
        ],
        [
-         "AddInternetGatewayResourceAction",
+         "CaptureInternetGatewayResponseResourceAction",
        ],
      ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.0"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "test-account"
+       region = "us-east-1"
+     }
+
+     resource "aws_vpc" "vpc-test-region" {
+       provider = aws.test-account
+       cidr_block = "10.0.0.0/8"
+       enable_dns_hostnames = true
+       enable_dns_support = true
+       instance_tenancy = "default"
+     }
+
+     output "vpc-test-region-VpcArn" {
+       value = aws_vpc.vpc-test-region.arn
+     }
+
+     output "vpc-test-region-VpcId" {
+       value = aws_vpc.vpc-test-region.id
+     }
+
+     resource "aws_internet_gateway" "igw-test-region" {
+       provider = aws.test-account
+       vpc_id = aws_vpc.vpc-test-region.id
+     }
+
+     output "igw-test-region-InternetGatewayArn" {
+       value = aws_internet_gateway.igw-test-region.arn
+     }
+
+     output "igw-test-region-InternetGatewayId" {
+       value = aws_internet_gateway.igw-test-region.id
+     }"
     `);
   });
 
