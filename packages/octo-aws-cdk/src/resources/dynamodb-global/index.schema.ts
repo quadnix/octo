@@ -54,35 +54,14 @@ export class DynamoDBGlobalSchema extends BaseResourceSchema {
   }>();
 
   /**
-   * Saved response. For each account:region,
-   * * `response.string.LatestStreamArn` - The ARN of the latest DynamoDB Stream.
-   * * `response.string.TableArn` - The table ARN.
-   * * `response.string.TableId` - The unique table ID assigned by AWS.
+   * Saved response. Flat map keyed by `<accountId>:<regionId>:<field>`.
+   * * `response["<accountId>:<regionId>:TableArn"]` - The table ARN for that replica.
    */
   @Validate({
     destruct: (value: DynamoDBGlobalSchema['response']): string[] => {
-      return value && Object.keys(value).length > 0
-        ? Object.values(value).reduce<string[]>((accumulator, current) => {
-            if (current.LatestStreamArn) {
-              accumulator.push(current.LatestStreamArn);
-            }
-            if (current.TableArn) {
-              accumulator.push(current.TableArn);
-            }
-            if (current.TableId) {
-              accumulator.push(current.TableId);
-            }
-            return accumulator;
-          }, [])
-        : [];
+      return value ? Object.values(value).filter(Boolean) : [];
     },
     options: { minLength: 1 },
   })
-  override response = Schema<{
-    [key: string]: {
-      LatestStreamArn?: string;
-      TableArn?: string;
-      TableId?: string;
-    };
-  }>();
+  override response = Schema<{ [key: string]: string }>();
 }

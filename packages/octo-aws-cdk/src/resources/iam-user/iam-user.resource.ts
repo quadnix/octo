@@ -1,4 +1,7 @@
-import { AResource, Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
+import { Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
+import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
+import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
+import { ATFResource } from '../tf-resource.abstract.js';
 import { type IIamUserPolicyTypes, type IIamUserS3BucketPolicy, IamUserSchema } from './index.schema.js';
 
 /**
@@ -37,7 +40,7 @@ export function isDeletePolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUs
  * @internal
  */
 @Resource<IamUser>('@octo', 'iam-user', IamUserSchema)
-export class IamUser extends AResource<IamUserSchema, IamUser> {
+export class IamUser extends ATFResource<IamUserSchema, IamUser> {
   declare properties: IamUserSchema['properties'];
   declare response: IamUserSchema['response'];
 
@@ -175,6 +178,89 @@ export class IamUser extends AResource<IamUserSchema, IamUser> {
       return diffs;
     } else {
       return [diff];
+    }
+  }
+
+  override async toHCL(): Promise<void> {
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
+      metadata: { package: '@octo' },
+    });
+
+    const iamUserOctoResource = octoTerraform.addOctoTerraformResource(this as IamUser);
+
+    const iamUserTFResource = iamUserOctoResource.addTerraformResource('aws_iam_user', this.resourceId, {
+      name: this.properties.username,
+    });
+    iamUserOctoResource.output({
+      Arn: octoTerraform.raw(`${iamUserTFResource.address}.arn`),
+      UserId: octoTerraform.raw(`${iamUserTFResource.address}.unique_id`),
+      UserName: octoTerraform.raw(`${iamUserTFResource.address}.name`),
+    });
+
+    const s3Policies = this.properties.policies.filter((p) => p.policyType === 's3-storage-access-policy');
+    for (const policy of s3Policies) {
+      const s3Policy = policy.policy as IIamUserS3BucketPolicy;
+      const isRootPath = s3Policy.remoteDirectoryPath === '' || s3Policy.remoteDirectoryPath === '/';
+      const bucketReadResources = isRootPath
+        ? [`arn:aws:s3:::${s3Policy.bucketName}`, `arn:aws:s3:::${s3Policy.bucketName}/*`]
+        : [
+            `arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.remoteDirectoryPath}`,
+            `arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.remoteDirectoryPath}/*`,
+          ];
+      const bucketWriteResources = isRootPath
+        ? [`arn:aws:s3:::${s3Policy.bucketName}`, `arn:aws:s3:::${s3Policy.bucketName}/*`]
+        : [`arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.remoteDirectoryPath}/*`];
+
+      const policyStatements: object[] = [];
+      if (s3Policy.allowRead) {
+        policyStatements.push({
+          Action: [
+            's3:GetObject',
+            's3:GetObjectAttributes',
+            's3:GetObjectTagging',
+            's3:GetObjectVersionAcl',
+            's3:GetObjectVersionAttributes',
+            's3:GetObjectVersionTagging',
+            's3:ListBucket',
+          ],
+          Effect: 'Allow',
+          Resource: bucketReadResources,
+          Sid: PolicyUtility.getSafeSid(`Allow read from bucket ${s3Policy.bucketName}`),
+        });
+      }
+      if (s3Policy.allowWrite) {
+        policyStatements.push({
+          Action: ['s3:PutObject', 's3:DeleteObjectVersion', 's3:DeleteObject'],
+          Effect: 'Allow',
+          Resource: bucketWriteResources,
+          Sid: PolicyUtility.getSafeSid(`Allow write from bucket ${s3Policy.bucketName}`),
+        });
+      }
+
+      const iamPolicyTFResource = iamUserOctoResource.addTerraformResource(
+        'aws_iam_policy',
+        `${this.resourceId}_${policy.policyId}`,
+        {
+          name: policy.policyId,
+          policy: octoTerraform.jsonencode({
+            Statement: policyStatements,
+            Version: '2012-10-17',
+          }),
+        },
+      );
+
+      iamUserOctoResource.addTerraformResource(
+        'aws_iam_user_policy_attachment',
+        `${this.resourceId}_${policy.policyId}_attach`,
+        {
+          policy_arn: octoTerraform.raw(`${iamPolicyTFResource.address}.arn`),
+          user: octoTerraform.raw(`${iamUserTFResource.address}.name`),
+        },
+      );
+    }
+
+    if (Object.keys(this.tags).length > 0) {
+      iamUserTFResource.attribute('tags', this.tags);
     }
   }
 }

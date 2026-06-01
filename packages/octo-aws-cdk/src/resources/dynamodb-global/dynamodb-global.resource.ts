@@ -1,5 +1,4 @@
 import {
-  AResource,
   DependencyRelationship,
   Diff,
   DiffAction,
@@ -8,7 +7,9 @@ import {
   Resource,
   ResourceError,
 } from '@quadnix/octo';
+import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import type { DynamoDBSchema } from '../dynamodb/index.schema.js';
+import { ATFResource } from '../tf-resource.abstract.js';
 import { DynamoDBGlobalSchema } from './index.schema.js';
 
 export type ReplicaDiff = {
@@ -25,7 +26,7 @@ export type DynamoDBGlobalDiff = {
  * @internal
  */
 @Resource<DynamoDBGlobal>('@octo', 'dynamodb-global', DynamoDBGlobalSchema)
-export class DynamoDBGlobal extends AResource<DynamoDBGlobalSchema, DynamoDBGlobal> {
+export class DynamoDBGlobal extends ATFResource<DynamoDBGlobalSchema, DynamoDBGlobal> {
   declare parents: [MatchingResource<DynamoDBSchema>];
   declare properties: DynamoDBGlobalSchema['properties'];
   declare response: DynamoDBGlobalSchema['response'];
@@ -163,6 +164,38 @@ export class DynamoDBGlobal extends AResource<DynamoDBGlobalSchema, DynamoDBGlob
     } else {
       return [diff];
     }
+  }
+
+  override async toHCL(): Promise<void> {
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
+      metadata: { package: '@octo' },
+    });
+
+    const dynamoDBParent = this.parents[0] as MatchingResource<DynamoDBSchema>;
+    const dynamoDBGlobalOctoResource = octoTerraform.addOctoTerraformResource(this as DynamoDBGlobal);
+
+    const outputs: Record<string, string> = {};
+
+    for (const replica of this.properties.replicas) {
+      const replicaTFResource = dynamoDBGlobalOctoResource.addTerraformResource(
+        'aws_dynamodb_table_replica',
+        `${this.resourceId}_${replica.awsRegionId}`,
+        {
+          global_table_arn: octoTerraform.getRef(dynamoDBParent, 'TableArn'),
+          provider: octoTerraform.getProviderAliasRef(replica.awsAccountId, replica.awsRegionId),
+        },
+      );
+
+      const replicaTags = { ...this.tags, ...(replica.tags || {}) };
+      if (Object.keys(replicaTags).length > 0) {
+        replicaTFResource.attribute('tags', replicaTags);
+      }
+
+      const key = `${replica.awsAccountId}:${replica.awsRegionId}`;
+      outputs[`${key}:TableArn`] = octoTerraform.raw(`${replicaTFResource.address}.arn`);
+    }
+
+    dynamoDBGlobalOctoResource.output(outputs);
   }
 
   private updateDynamoDBGlobalDynamoDB(

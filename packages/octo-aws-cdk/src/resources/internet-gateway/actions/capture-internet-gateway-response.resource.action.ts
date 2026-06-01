@@ -14,15 +14,11 @@ export class CaptureInternetGatewayResponseResourceAction implements IResourceAc
   async handle(_diff: Diff<InternetGateway>): Promise<void> {}
 
   async mock(
-    diff: Diff<InternetGateway>,
+    _diff: Diff<InternetGateway>,
     capture: Partial<InternetGatewaySchema['response']>,
   ): Promise<InternetGatewaySchema['response']> {
-    // Get properties.
-    const internetGateway = diff.node;
-    const properties = internetGateway.properties;
-
     return {
-      InternetGatewayArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:internet-gateway/${capture.InternetGatewayId}`,
+      InternetGatewayArn: capture.InternetGatewayArn,
       InternetGatewayId: capture.InternetGatewayId,
     };
   }

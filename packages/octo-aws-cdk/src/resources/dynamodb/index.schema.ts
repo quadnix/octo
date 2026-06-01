@@ -223,29 +223,19 @@ export class DynamoDBSchema extends BaseResourceSchema {
 
   /**
    * Saved response.
-   * * `response.LatestStreamArn` - The ARN of the latest DynamoDB Stream.
    * * `response.TableArn` - The table ARN.
-   * * `response.TableId` - The unique table ID assigned by AWS.
    */
   @Validate({
     destruct: (value: DynamoDBSchema['response']): string[] => {
       const subjects: string[] = [];
-      if (value.LatestStreamArn) {
-        subjects.push(value.LatestStreamArn);
-      }
       if (value.TableArn) {
         subjects.push(value.TableArn);
-      }
-      if (value.TableId) {
-        subjects.push(value.TableId);
       }
       return subjects;
     },
     options: { minLength: 1 },
   })
   override response = Schema<{
-    LatestStreamArn?: string;
     TableArn?: string;
-    TableId?: string;
   }>();
 }

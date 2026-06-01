@@ -43,7 +43,6 @@ export class NatGatewaySchema extends BaseResourceSchema {
   /**
    * Saved response.
    * * `response.AllocationId` - The allocation id representing relationship between nat gateway and subnet.
-   * * `response.NatGatewayArn` - The nat gateway arn.
    * * `response.NatGatewayId` - The nat gateway id.
    */
   @Validate({
@@ -51,9 +50,6 @@ export class NatGatewaySchema extends BaseResourceSchema {
       const subjects: string[] = [];
       if (value.AllocationId) {
         subjects.push(value.AllocationId);
-      }
-      if (value.NatGatewayArn) {
-        subjects.push(value.NatGatewayArn);
       }
       if (value.NatGatewayId) {
         subjects.push(value.NatGatewayId);
@@ -64,7 +60,6 @@ export class NatGatewaySchema extends BaseResourceSchema {
   })
   override response = Schema<{
     AllocationId?: string;
-    NatGatewayArn?: string;
     NatGatewayId?: string;
   }>();
 }

@@ -35,15 +35,17 @@ export class InternetGateway extends ATFResource<InternetGatewaySchema, Internet
     });
 
     const igwOctoResource = octoTerraform.addOctoTerraformResource(this as InternetGateway);
+
     const igwTFResource = igwOctoResource.addTerraformResource('aws_internet_gateway', this.resourceId, {
       vpc_id: octoTerraform.getRef(this.parents[0], 'VpcId'),
     });
-    if (Object.keys(this.tags).length > 0) {
-      igwTFResource.attribute('tags', this.tags);
-    }
     igwOctoResource.output({
       InternetGatewayArn: octoTerraform.raw(`${igwTFResource.address}.arn`),
       InternetGatewayId: octoTerraform.raw(`${igwTFResource.address}.id`),
     });
+
+    if (Object.keys(this.tags).length > 0) {
+      igwTFResource.attribute('tags', this.tags);
+    }
   }
 }

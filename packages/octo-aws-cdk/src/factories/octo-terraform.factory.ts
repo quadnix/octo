@@ -224,7 +224,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
 export class OctoTerraform {
   private readonly terraformConfig: TerraformBlock = new TerraformBlock('terraform');
   private readonly terraformProviders: Map<string, TerraformBlock> = new Map();
-  private readonly awsAccountIdToAlias: Map<string, string> = new Map();
+  private readonly awsAccountRegionToAlias: Map<string, string> = new Map();
   private readonly octoTerraformResources: Record<string, OctoTerraformResource> = {};
   private readonly terraformVariables: Record<string, TerraformVariable> = {};
 
@@ -249,7 +249,12 @@ export class OctoTerraform {
     }
 
     const awsAccountId = (octoResource.properties as Record<string, unknown>)?.['awsAccountId'] as string | undefined;
-    const providerAlias = awsAccountId ? this.awsAccountIdToAlias.get(awsAccountId) : undefined;
+    const awsRegionId = (octoResource.properties as Record<string, unknown>)?.['awsRegionId'] as string | undefined;
+    const providerAlias = awsAccountId
+      ? awsRegionId
+        ? this.awsAccountRegionToAlias.get(`${awsAccountId}:${awsRegionId}`)
+        : [...this.awsAccountRegionToAlias.entries()].find(([k]) => k.startsWith(`${awsAccountId}:`))?.[1]
+      : undefined;
 
     const newResource = new OctoTerraformResource<ResourceSchema<T>['response']>(
       octoResource.resourceId,
@@ -261,7 +266,7 @@ export class OctoTerraform {
   }
 
   addTerraformConfig({
-    minAwsProviderVersion = '5.0',
+    minAwsProviderVersion = '5.49',
     minTerraformVersion = '1.6.0',
   }: {
     minAwsProviderVersion?: string;
@@ -276,17 +281,27 @@ export class OctoTerraform {
     });
   }
 
-  addTerraformProvider(awsAccountId: string, alias: string, spec: Record<string, unknown> = {}): void {
-    this.awsAccountIdToAlias.set(awsAccountId, alias);
+  addTerraformProvider(awsAccountId: string, awsRegionId: string, spec: Record<string, unknown> = {}): void {
+    const alias = `${awsAccountId}-${awsRegionId}`;
+    this.awsAccountRegionToAlias.set(`${awsAccountId}:${awsRegionId}`, alias);
 
     if (!this.terraformProviders.has(alias)) {
       const providerBlock = new TerraformBlock('provider "aws"');
       providerBlock.attribute('alias', alias);
+      providerBlock.attribute('region', awsRegionId);
       for (const [k, v] of Object.entries(spec)) {
         providerBlock.attribute(k, v);
       }
       this.terraformProviders.set(alias, providerBlock);
     }
+  }
+
+  getProviderAliasRef(awsAccountId: string, awsRegionId: string): string {
+    const alias = this.awsAccountRegionToAlias.get(`${awsAccountId}:${awsRegionId}`);
+    if (!alias) {
+      throw new Error(`No provider registered for account "${awsAccountId}" and region "${awsRegionId}"!`);
+    }
+    return raw(`aws.${alias}`);
   }
 
   getRef<T extends AResource<BaseResourceSchema, any>>(

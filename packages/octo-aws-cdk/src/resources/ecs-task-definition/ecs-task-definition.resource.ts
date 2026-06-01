@@ -9,16 +9,18 @@ import {
   ResourceError,
   hasNodeName,
 } from '@quadnix/octo';
+import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import { TaskDefinitionUtility } from '../../utilities/task-definition/task-definition.utility.js';
 import type { EfsSchema } from '../efs/index.schema.js';
 import type { IamRoleSchema } from '../iam-role/index.schema.js';
+import { ATFResource } from '../tf-resource.abstract.js';
 import { EcsTaskDefinitionSchema } from './index.schema.js';
 
 /**
  * @internal
  */
 @Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema)
-export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
+export class EcsTaskDefinition extends ATFResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
   declare parents: [MatchingResource<IamRoleSchema>, ...MatchingResource<EfsSchema>[]];
   declare properties: EcsTaskDefinitionSchema['properties'];
   declare response: EcsTaskDefinitionSchema['response'];
@@ -87,6 +89,65 @@ export class EcsTaskDefinition extends AResource<EcsTaskDefinitionSchema, EcsTas
       await this.cloneResourceInPlace(diff.node, deReferenceResource);
     } else {
       await super.diffInverse(diff, deReferenceResource);
+    }
+  }
+
+  override async toHCL(): Promise<void> {
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
+      metadata: { package: '@octo' },
+    });
+
+    const iamRoleParent = this.parents[0] as MatchingResource<IamRoleSchema>;
+    const efsParents = (this.parents as MatchingResource<EfsSchema>[]).slice(1);
+
+    const containerDefinitions = this.properties.images.map((image) => ({
+      command: image.command,
+      environment: this.properties.environmentVariables,
+      essential: image.essential,
+      image: image.uri,
+      mountPoints: efsParents.map((efs) => ({
+        containerPath: `/mnt/${efs.getSchemaInstance().properties.filesystemName}`,
+        readOnly: false,
+        sourceVolume: efs.getSchemaInstance().properties.filesystemName,
+      })),
+      name: image.name,
+      portMappings: image.ports.map((p) => ({
+        containerPort: p.containerPort,
+        hostPort: p.containerPort,
+        protocol: p.protocol,
+      })),
+    }));
+
+    const spec: Record<string, unknown> = {
+      container_definitions: octoTerraform.jsonencode(containerDefinitions),
+      cpu: String(this.properties.cpu),
+      execution_role_arn: octoTerraform.getRef(iamRoleParent, 'Arn'),
+      family: this.properties.family,
+      memory: String(this.properties.memory),
+      network_mode: 'awsvpc',
+      requires_compatibilities: ['FARGATE'],
+      task_role_arn: octoTerraform.getRef(iamRoleParent, 'Arn'),
+    };
+
+    if (efsParents.length > 0) {
+      spec['volume'] = efsParents.map((efs) => ({
+        efs_volume_configuration: {
+          file_system_id: octoTerraform.getRef(efs, 'FileSystemId'),
+        },
+        name: efs.getSchemaInstance().properties.filesystemName,
+      }));
+    }
+
+    const tdOctoResource = octoTerraform.addOctoTerraformResource(this as EcsTaskDefinition);
+
+    const tdTFResource = tdOctoResource.addTerraformResource('aws_ecs_task_definition', this.resourceId, spec);
+    tdOctoResource.output({
+      revision: octoTerraform.raw(`${tdTFResource.address}.revision`),
+      taskDefinitionArn: octoTerraform.raw(`${tdTFResource.address}.arn`),
+    });
+
+    if (Object.keys(this.tags).length > 0) {
+      tdTFResource.attribute('tags', this.tags);
     }
   }
 

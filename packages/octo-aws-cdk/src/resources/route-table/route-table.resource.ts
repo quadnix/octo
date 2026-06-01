@@ -1,5 +1,4 @@
 import {
-  AResource,
   DependencyRelationship,
   Diff,
   DiffAction,
@@ -9,9 +8,11 @@ import {
   ResourceError,
   hasNodeName,
 } from '@quadnix/octo';
+import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import type { InternetGatewaySchema } from '../internet-gateway/index.schema.js';
 import type { NatGatewaySchema } from '../nat-gateway/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
+import { ATFResource } from '../tf-resource.abstract.js';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { RouteTableSchema } from './index.schema.js';
 
@@ -19,7 +20,7 @@ import { RouteTableSchema } from './index.schema.js';
  * @internal
  */
 @Resource<RouteTable>('@octo', 'route-table', RouteTableSchema)
-export class RouteTable extends AResource<RouteTableSchema, RouteTable> {
+export class RouteTable extends ATFResource<RouteTableSchema, RouteTable> {
   declare parents: [
     MatchingResource<VpcSchema>,
     MatchingResource<InternetGatewaySchema>,
@@ -89,6 +90,63 @@ export class RouteTable extends AResource<RouteTableSchema, RouteTable> {
     }
 
     return super.diffProperties(previous);
+  }
+
+  override async toHCL(): Promise<void> {
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
+      metadata: { package: '@octo' },
+    });
+
+    const routes: Record<string, unknown>[] = [];
+
+    if (this.properties.associateWithInternetGateway) {
+      routes.push({
+        cidr_block: '0.0.0.0/0',
+        gateway_id: octoTerraform.getRef(this.parents[1], 'InternetGatewayId'),
+      });
+    }
+
+    // If there are multiple nat-gateways available, route to the first nat-gateway.
+    const natGatewayParent = (this.parents as MatchingResource<NatGatewaySchema>[])
+      .slice(3)
+      .find((p) => hasNodeName(p.getActual(), 'nat-gateway'));
+    if (natGatewayParent) {
+      routes.push({
+        cidr_block: '0.0.0.0/0',
+        nat_gateway_id: octoTerraform.getRef(natGatewayParent, 'NatGatewayId'),
+      });
+    }
+
+    const routeTableSpec: Record<string, unknown> = {
+      vpc_id: octoTerraform.getRef(this.parents[0], 'VpcId'),
+    };
+    if (routes.length > 0) {
+      routeTableSpec['route'] = routes;
+    }
+
+    const routeTableOctoResource = octoTerraform.addOctoTerraformResource(this as RouteTable);
+
+    const routeTableTFResource = routeTableOctoResource.addTerraformResource(
+      'aws_route_table',
+      this.resourceId,
+      routeTableSpec,
+    );
+    const routeTableAssocTFResource = routeTableOctoResource.addTerraformResource(
+      'aws_route_table_association',
+      `${this.resourceId}_assoc`,
+      {
+        route_table_id: octoTerraform.raw(`${routeTableTFResource.address}.id`),
+        subnet_id: octoTerraform.getRef(this.parents[2], 'SubnetId'),
+      },
+    );
+    routeTableOctoResource.output({
+      RouteTableId: octoTerraform.raw(`${routeTableTFResource.address}.id`),
+      subnetAssociationId: octoTerraform.raw(`${routeTableAssocTFResource.address}.id`),
+    });
+
+    if (Object.keys(this.tags).length > 0) {
+      routeTableTFResource.attribute('tags', this.tags);
+    }
   }
 
   private updateNatGatewayResourceDependencyBehaviors(

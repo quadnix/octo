@@ -8,9 +8,11 @@ import {
   ResourceError,
   hasNodeName,
 } from '@quadnix/octo';
+import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import type { AlbSchema } from '../alb/index.schema.js';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
-import { AlbListenerSchema } from './index.schema.js';
+import { ATFResource } from '../tf-resource.abstract.js';
+import { AlbListenerSchema, type IAlbListenerActionTypes, type IAlbListenerRuleTypes } from './index.schema.js';
 
 /**
  * @internal
@@ -25,7 +27,6 @@ export type IAlbListenerAddRuleDiff = {
 export type IAlbListenerDeleteRuleDiff = {
   action: 'delete';
   rule: AlbListenerSchema['properties']['rules'][0];
-  RuleArn: string;
 };
 /**
  * @internal
@@ -33,7 +34,6 @@ export type IAlbListenerDeleteRuleDiff = {
 export type IAlbListenerUpdateRuleDiff = {
   action: 'update';
   rule: AlbListenerSchema['properties']['rules'][0];
-  RuleArn: string;
 };
 /**
  * @internal
@@ -91,7 +91,7 @@ export function isAlbListenerPropertiesRuleDiff(
  * @internal
  */
 @Resource<AlbListener>('@octo', 'alb-listener', AlbListenerSchema)
-export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
+export class AlbListener extends ATFResource<AlbListenerSchema, AlbListener> {
   declare parents: [MatchingResource<AlbSchema>, ...MatchingResource<AlbTargetGroupSchema>[]];
   declare properties: AlbListenerSchema['properties'];
   declare response: AlbListenerSchema['response'];
@@ -240,13 +240,11 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
     // Diff rules.
     for (const previousRule of previous.properties.rules) {
       const currentRule = this.properties.rules.find((r) => r.Priority === previousRule.Priority);
-      const previousRuleResponse = previous.response.Rules!.find((r) => r.Priority === previousRule.Priority)!;
 
       if (!currentRule) {
         const deleteRuleDiff: IAlbListenerDeleteRuleDiff = {
           action: 'delete',
           rule: previousRule,
-          RuleArn: previousRuleResponse.RuleArn,
         };
         diffs.push(
           new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', {
@@ -257,7 +255,6 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
         const updateRuleDiff: IAlbListenerUpdateRuleDiff = {
           action: 'update',
           rule: currentRule,
-          RuleArn: previousRuleResponse.RuleArn,
         };
         diffs.push(
           new Diff<any, IAlbListenerPropertiesDiff>(this, DiffAction.UPDATE, 'properties', {
@@ -296,6 +293,116 @@ export class AlbListener extends AResource<AlbListenerSchema, AlbListener> {
       return diffs;
     } else {
       return [diff];
+    }
+  }
+
+  override async toHCL(): Promise<void> {
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
+      metadata: { package: '@octo' },
+    });
+
+    const targetGroupParents = (this.parents as MatchingResource<AlbTargetGroupSchema>[]).filter((p) =>
+      hasNodeName(p.getActual(), 'alb-target-group'),
+    );
+
+    const buildActionSpec = (action: {
+      actionType: keyof IAlbListenerActionTypes;
+      action: IAlbListenerActionTypes[keyof IAlbListenerActionTypes];
+    }): Record<string, unknown> => {
+      if (action.actionType === 'fixed-response') {
+        const a = action.action as IAlbListenerActionTypes['fixed-response'];
+        return {
+          fixed_response: {
+            content_type: a.ContentType,
+            message_body: a.MessageBody,
+            status_code: String(a.StatusCode),
+          },
+          type: 'fixed-response',
+        };
+      } else if (action.actionType === 'forward') {
+        const a = action.action as IAlbListenerActionTypes['forward'];
+        const forwardSpec: Record<string, unknown> = {
+          target_group: a.TargetGroups.map((tg) => {
+            const tgParent = targetGroupParents.find(
+              (p) => p.getSchemaInstance().properties.Name === tg.targetGroupName,
+            )!;
+            return {
+              arn: octoTerraform.getRef(tgParent, 'TargetGroupArn'),
+              weight: tg.Weight,
+            };
+          }),
+        };
+        if (a.TargetGroupStickinessConfig) {
+          forwardSpec['stickiness'] = {
+            duration: a.TargetGroupStickinessConfig.DurationSeconds,
+            enabled: a.TargetGroupStickinessConfig.Enabled,
+          };
+        }
+        return { forward: forwardSpec, type: 'forward' };
+      } else {
+        const a = action.action as IAlbListenerActionTypes['redirect'];
+        const redirectSpec: Record<string, unknown> = {
+          ...(a.Host ? { host: a.Host } : {}),
+          ...(a.Path ? { path: a.Path } : {}),
+          ...(a.Port ? { port: String(a.Port) } : {}),
+          ...(a.Protocol ? { protocol: a.Protocol } : {}),
+          ...(a.Query ? { query: a.Query } : {}),
+          status_code: `HTTP_${a.StatusCode}`,
+        };
+        return { redirect: redirectSpec, type: 'redirect' };
+      }
+    };
+
+    const buildConditionSpec = (condition: {
+      conditionType: keyof IAlbListenerRuleTypes;
+      condition: IAlbListenerRuleTypes[keyof IAlbListenerRuleTypes];
+    }): Record<string, unknown> => {
+      if (condition.conditionType === 'host-header') {
+        return { host_header: { values: (condition.condition as IAlbListenerRuleTypes['host-header']).Values } };
+      } else if (condition.conditionType === 'http-header') {
+        const c = condition.condition as IAlbListenerRuleTypes['http-header'];
+        return { http_header: { http_header_name: c.HttpHeaderName, values: c.Values } };
+      } else if (condition.conditionType === 'http-request-method') {
+        return {
+          http_request_method: { values: (condition.condition as IAlbListenerRuleTypes['http-request-method']).Values },
+        };
+      } else if (condition.conditionType === 'path-pattern') {
+        return { path_pattern: { values: (condition.condition as IAlbListenerRuleTypes['path-pattern']).Values } };
+      } else if (condition.conditionType === 'query-string') {
+        const c = condition.condition as IAlbListenerRuleTypes['query-string'];
+        return { query_string: c.Values.map((v) => ({ key: v.Key, value: v.Value })) };
+      } else {
+        return { source_ip: { values: (condition.condition as IAlbListenerRuleTypes['source-ip']).Values } };
+      }
+    };
+
+    const albListenerOctoResource = octoTerraform.addOctoTerraformResource(this as AlbListener);
+
+    const listenerTFResource = albListenerOctoResource.addTerraformResource('aws_lb_listener', this.resourceId, {
+      default_action: buildActionSpec(this.properties.DefaultActions[0]),
+      load_balancer_arn: octoTerraform.getRef(this.parents[0], 'LoadBalancerArn'),
+      port: this.properties.Port,
+      protocol: this.properties.Protocol,
+    });
+    albListenerOctoResource.output({
+      ListenerArn: octoTerraform.raw(`${listenerTFResource.address}.arn`),
+    });
+
+    for (const rule of this.properties.rules) {
+      albListenerOctoResource.addTerraformResource(
+        'aws_lb_listener_rule',
+        `${this.resourceId}_rule_${rule.Priority}`,
+        {
+          action: rule.actions.map((a) => buildActionSpec(a)),
+          condition: rule.conditions.map((c) => buildConditionSpec(c)),
+          listener_arn: octoTerraform.raw(`${listenerTFResource.address}.arn`),
+          priority: rule.Priority,
+        },
+      );
+    }
+
+    if (Object.keys(this.tags).length > 0) {
+      listenerTFResource.attribute('tags', this.tags);
     }
   }
 }

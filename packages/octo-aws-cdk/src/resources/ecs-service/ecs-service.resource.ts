@@ -9,19 +9,21 @@ import {
   ResourceError,
   hasNodeName,
 } from '@quadnix/octo';
+import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import type { AlbListenerSchema } from '../alb-listener/index.schema.js';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
 import type { EcsClusterSchema } from '../ecs-cluster/index.schema.js';
 import type { EcsTaskDefinitionSchema } from '../ecs-task-definition/index.schema.js';
 import type { SecurityGroupSchema } from '../security-group/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
+import { ATFResource } from '../tf-resource.abstract.js';
 import { EcsServiceSchema } from './index.schema.js';
 
 /**
  * @internal
  */
 @Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema)
-export class EcsService extends AResource<EcsServiceSchema, EcsService> {
+export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
   declare parents: [
     MatchingResource<EcsClusterSchema>,
     MatchingResource<EcsTaskDefinitionSchema>,
@@ -158,6 +160,73 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
     }
   }
 
+  override async diffProperties(previous: EcsService): Promise<Diff[]> {
+    if (
+      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
+        'assignPublicIp',
+        'desiredCount',
+        'loadBalancers',
+      ])
+    ) {
+      throw new ResourceError('Cannot update ECS Service immutable properties once it has been created!', this);
+    }
+
+    return super.diffProperties(previous);
+  }
+
+  override async toHCL(): Promise<void> {
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
+      metadata: { package: '@octo' },
+    });
+
+    const clusterParent = this.parents[0] as MatchingResource<EcsClusterSchema>;
+    const taskDefParent = this.parents[1] as MatchingResource<EcsTaskDefinitionSchema>;
+    const subnetParent = this.parents[2] as MatchingResource<SubnetSchema>;
+    const sgParents = (
+      this.parents as (MatchingResource<AlbTargetGroupSchema> | MatchingResource<SecurityGroupSchema>)[]
+    )
+      .slice(3)
+      .filter((p) => hasNodeName(p.getActual(), 'security-group')) as MatchingResource<SecurityGroupSchema>[];
+    const tgParents = (this.parents as MatchingResource<any>[])
+      .slice(3)
+      .filter((p) => hasNodeName(p.getActual(), 'alb-target-group')) as MatchingResource<AlbTargetGroupSchema>[];
+
+    const spec: Record<string, unknown> = {
+      cluster: octoTerraform.getRef(clusterParent, 'clusterArn'),
+      desired_count: this.properties.desiredCount,
+      launch_type: 'FARGATE',
+      name: this.properties.serviceName,
+      network_configuration: {
+        assign_public_ip: this.properties.assignPublicIp === 'ENABLED',
+        security_groups: sgParents.map((sg) => octoTerraform.getRef(sg, 'GroupId')),
+        subnets: [octoTerraform.getRef(subnetParent, 'SubnetId')],
+      },
+      task_definition: octoTerraform.getRef(taskDefParent, 'taskDefinitionArn'),
+    };
+
+    if (this.properties.loadBalancers.length > 0) {
+      spec['load_balancer'] = this.properties.loadBalancers.map((lb) => {
+        const tgParent = tgParents.find((p) => p.getSchemaInstance().properties.Name === lb.targetGroupName)!;
+        return {
+          container_name: lb.containerName,
+          container_port: lb.containerPort,
+          target_group_arn: octoTerraform.getRef(tgParent, 'TargetGroupArn'),
+        };
+      });
+    }
+
+    const ecsServiceOctoResource = octoTerraform.addOctoTerraformResource(this as EcsService);
+
+    const ecsServiceTFResource = ecsServiceOctoResource.addTerraformResource('aws_ecs_service', this.resourceId, spec);
+    ecsServiceOctoResource.output({
+      serviceArn: octoTerraform.raw(`${ecsServiceTFResource.address}.id`), // For EcsService arn and id are same in TF.
+    });
+
+    if (Object.keys(this.tags).length > 0) {
+      ecsServiceTFResource.attribute('tags', this.tags);
+    }
+  }
+
   private updateServiceAlbTargetGroups(
     albTargetGroupParents: ReturnType<MatchingResource<AlbTargetGroupSchema>['getActual']>[],
   ): void {
@@ -189,20 +258,6 @@ export class EcsService extends AResource<EcsServiceSchema, EcsService> {
       // Before deleting security-groups must update ecs-service.
       sgToEcsDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
     }
-  }
-
-  override async diffProperties(previous: EcsService): Promise<Diff[]> {
-    if (
-      !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
-        'assignPublicIp',
-        'desiredCount',
-        'loadBalancers',
-      ])
-    ) {
-      throw new ResourceError('Cannot update ECS Service immutable properties once it has been created!', this);
-    }
-
-    return super.diffProperties(previous);
   }
 
   private updateServiceTaskDefinition(

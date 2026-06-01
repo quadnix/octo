@@ -85,10 +85,13 @@ eslintcache
 eslintrc
 esm
 esnext
+etag
 fallthrough
 fas
 favicon
 favicons
+filemd
+filemd5
 filesystem
 filesystems
 firefox
@@ -106,6 +109,7 @@ gitignore
 gitkeep
 globals
 grp
+gsi
 hashicorp
 hideconstructor
 horiz
@@ -136,6 +140,7 @@ linkplain
 loadbalancer
 localstack
 loglayer
+lsi
 lstat
 marshall
 matcher
@@ -229,6 +234,7 @@ tsd
 tseslint
 tsparser
 tsx
+ttl
 typecheck
 typedoc
 udp

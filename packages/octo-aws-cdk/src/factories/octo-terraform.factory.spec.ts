@@ -47,7 +47,7 @@ describe('OctoTerraform UT', () => {
 
       terraform = new OctoTerraform();
       terraform.addTerraformConfig();
-      terraform.addTerraformProvider('123', 'us-east-1', { region: 'us-east-1' });
+      terraform.addTerraformProvider('123', 'us-east-1');
       octoTerraformResource = terraform.addOctoTerraformResource(vpcResource);
       terraformResource = octoTerraformResource.addTerraformResource('aws_vpc', 'vpc-region');
     });
@@ -66,7 +66,7 @@ describe('OctoTerraform UT', () => {
         terraformResource.attribute('array_key', [true, 1, 'string_value']);
         expect(terraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            array_key = [true, 1, "string_value"]
          }"
         `);
@@ -76,7 +76,7 @@ describe('OctoTerraform UT', () => {
         terraformResource.attribute('boolean_key', true);
         expect(terraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            boolean_key = true
          }"
         `);
@@ -86,7 +86,7 @@ describe('OctoTerraform UT', () => {
         terraformResource.attribute('number_key', 1);
         expect(terraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            number_key = 1
          }"
         `);
@@ -103,7 +103,7 @@ describe('OctoTerraform UT', () => {
         );
         expect(terraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            object_key = jsonencode({
              key1 = true
              key2 = 1
@@ -125,7 +125,7 @@ describe('OctoTerraform UT', () => {
         terraformResource.attribute('string_key', 'string_value');
         expect(terraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            string_key = "string_value"
          }"
         `);
@@ -135,10 +135,10 @@ describe('OctoTerraform UT', () => {
         terraformResource.attribute('tags', terraform.mapAttr({ Env: 'prod', Name: 'my-vpc' }));
         expect(terraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            tags = {
-             Name = "my-vpc"
              Env = "prod"
+             Name = "my-vpc"
            }
          }"
         `);
@@ -150,7 +150,7 @@ describe('OctoTerraform UT', () => {
         terraformResource.attribute('string_key', 'string_value');
         expect(terraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            string_key = "string_value"
          }"
         `);
@@ -170,7 +170,7 @@ describe('OctoTerraform UT', () => {
         );
         expect(terraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            block_key {
              string_key = "string_value"
              nested_object_key = jsonencode({
@@ -208,7 +208,7 @@ describe('OctoTerraform UT', () => {
         });
         expect(octoTerraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
          }
 
          output "vpc-region-output_raw_key" {
@@ -229,7 +229,7 @@ describe('OctoTerraform UT', () => {
         octoTerraformResource.output({ output_string_key: 'string_value' });
         expect(octoTerraformResource.render('  ')).toMatchInlineSnapshot(`
          "resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            string_key = "string_value"
            block_key {
              string_key = "string_value"
@@ -287,7 +287,7 @@ describe('OctoTerraform UT', () => {
          }
 
          provider "aws" {
-           alias = "us-east-1"
+           alias = "123-us-east-1"
            region = "us-east-1"
          }
 
@@ -322,7 +322,7 @@ describe('OctoTerraform UT', () => {
          }
 
          resource "aws_vpc" "vpc-region" {
-           provider = aws.us-east-1
+           provider = aws.123-us-east-1
            string_key = var.var_string_key
          }
 
@@ -459,7 +459,7 @@ describe('OctoTerraform UT', () => {
       vpcResource = _vpcResource;
       terraform = new OctoTerraform(join(__dirname, 'octo-terraform.tf'), 2);
       terraform.addTerraformConfig();
-      terraform.addTerraformProvider('123', 'us-east-1', { region: 'us-east-1' });
+      terraform.addTerraformProvider('123', 'us-east-1');
       igwOctoResource = terraform.addOctoTerraformResource(igwResource);
       igwTerraformResource = igwOctoResource.addTerraformResource('aws_igw', 'igw-region');
       vpcOctoResource = terraform.addOctoTerraformResource(vpcResource);
@@ -495,12 +495,12 @@ describe('OctoTerraform UT', () => {
        }
 
        provider "aws" {
-         alias = "us-east-1"
+         alias = "123-us-east-1"
          region = "us-east-1"
        }
 
        resource "aws_igw" "igw-region" {
-         provider = aws.us-east-1
+         provider = aws.123-us-east-1
          string_key = aws_vpc.vpc-region.id
          block_key {
            string_key = "string_value"
@@ -512,7 +512,7 @@ describe('OctoTerraform UT', () => {
        }
 
        resource "aws_vpc" "vpc-region" {
-         provider = aws.us-east-1
+         provider = aws.123-us-east-1
          string_key = "string_value"
          block_key {
            string_key = "string_value"

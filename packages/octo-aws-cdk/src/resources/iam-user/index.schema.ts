@@ -76,7 +76,6 @@ export class IamUserSchema extends BaseResourceSchema {
   /**
    * Saved response.
    * * `response.Arn`: The ARN of the user.
-   * * `response.policies`: A map of policy IDs to policy ARNs.
    * * `response.UserId`: The ID of the user.
    * * `response.UserName`: The name of the user.
    */
@@ -85,9 +84,6 @@ export class IamUserSchema extends BaseResourceSchema {
       const subjects: string[] = [];
       if (value.Arn) {
         subjects.push(value.Arn);
-      }
-      if (value.policies && Object.keys(value.policies).length > 0) {
-        subjects.push(...Object.values(value.policies).flat());
       }
       if (value.UserId) {
         subjects.push(value.UserId);
@@ -101,7 +97,6 @@ export class IamUserSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     Arn?: string;
-    policies?: { [key: string]: string[] };
     UserId?: string;
     UserName?: string;
   }>();

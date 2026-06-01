@@ -87,8 +87,6 @@ export class SecurityGroupSchema extends BaseResourceSchema {
    * Saved response.
    * * `response.Arn` - The security group arn.
    * * `response.GroupId` - The security group id.
-   * * `response.Rules` - The security group rules. It has an `egress` and `ingress` array,
-   * whose values correspond to the output from the AWS SDK V3.
    */
   @Validate({
     destruct: (value: SecurityGroupSchema['response']): string[] => {
@@ -99,12 +97,6 @@ export class SecurityGroupSchema extends BaseResourceSchema {
       if (value.GroupId) {
         subjects.push(value.GroupId);
       }
-      if (value.Rules?.egress) {
-        subjects.push(...value.Rules.egress.map((r) => r.SecurityGroupRuleId!).flat());
-      }
-      if (value.Rules?.ingress) {
-        subjects.push(...value.Rules.ingress.map((r) => r.SecurityGroupRuleId!).flat());
-      }
       return subjects;
     },
     options: { minLength: 1 },
@@ -112,9 +104,5 @@ export class SecurityGroupSchema extends BaseResourceSchema {
   override response = Schema<{
     Arn?: string;
     GroupId?: string;
-    Rules?: {
-      egress: AuthorizeSecurityGroupEgressCommandOutput['SecurityGroupRules'];
-      ingress: AuthorizeSecurityGroupEgressCommandOutput['SecurityGroupRules'];
-    };
   }>();
 }

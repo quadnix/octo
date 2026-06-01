@@ -93,23 +93,11 @@ export class NetworkAclSchema extends BaseResourceSchema {
 
   /**
    * Saved response.
-   * * `response.associationId` - The association id.
-   * * `response.defaultNetworkAclId` - The default network acl id.
-   * * `response.NetworkAclArn` - The network acl arn.
    * * `response.NetworkAclId` - The network acl id.
    */
   @Validate({
     destruct: (value: NetworkAclSchema['response']): string[] => {
       const subjects: string[] = [];
-      if (value.associationId) {
-        subjects.push(value.associationId);
-      }
-      if (value.defaultNetworkAclId) {
-        subjects.push(value.defaultNetworkAclId);
-      }
-      if (value.NetworkAclArn) {
-        subjects.push(value.NetworkAclArn);
-      }
       if (value.NetworkAclId) {
         subjects.push(value.NetworkAclId);
       }
@@ -118,9 +106,6 @@ export class NetworkAclSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    associationId?: string;
-    defaultNetworkAclId?: string;
-    NetworkAclArn?: string;
     NetworkAclId?: string;
   }>();
 }

@@ -1,4 +1,7 @@
-import { AResource, Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
+import { Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
+import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
+import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
+import { ATFResource } from '../tf-resource.abstract.js';
 import {
   type IIamRoleAssumeRolePolicy,
   type IIamRolePolicyTypes,
@@ -42,7 +45,7 @@ export function isDeletePolicyDiff(policy: IIamRolePolicyDiff): policy is IIamRo
  * @internal
  */
 @Resource<IamRole>('@octo', 'iam-role', IamRoleSchema)
-export class IamRole extends AResource<IamRoleSchema, IamRole> {
+export class IamRole extends ATFResource<IamRoleSchema, IamRole> {
   declare properties: IamRoleSchema['properties'];
   declare response: IamRoleSchema['response'];
 
@@ -51,6 +54,9 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
 
     if (properties.policies.length === 0) {
       throw new ResourceError('At least one policy is required!', this);
+    }
+    if (!properties.policies.some((p) => p.policyType === 'assume-role-policy')) {
+      throw new ResourceError('At least one assume-role-policy is required!', this);
     }
   }
 
@@ -224,6 +230,119 @@ export class IamRole extends AResource<IamRoleSchema, IamRole> {
       return diffs;
     } else {
       return [diff];
+    }
+  }
+
+  override async toHCL(): Promise<void> {
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
+      metadata: { package: '@octo' },
+    });
+
+    const assumeRolePolicies = this.properties.policies.filter((p) => p.policyType === 'assume-role-policy');
+    const policyStatement = assumeRolePolicies
+      .map((p) => {
+        if (p.policy === 'ecs-tasks.amazonaws.com') {
+          return {
+            Action: 'sts:AssumeRole',
+            Effect: 'Allow',
+            Principal: { Service: 'ecs-tasks.amazonaws.com' },
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    const iamRoleOctoResource = octoTerraform.addOctoTerraformResource(this as IamRole);
+
+    const iamRoleTFResource = iamRoleOctoResource.addTerraformResource('aws_iam_role', this.resourceId, {
+      assume_role_policy: octoTerraform.jsonencode({
+        Statement: policyStatement,
+        Version: '2012-10-17',
+      }),
+      name: this.properties.rolename,
+    });
+    iamRoleOctoResource.output({
+      Arn: octoTerraform.raw(`${iamRoleTFResource.address}.arn`),
+      RoleId: octoTerraform.raw(`${iamRoleTFResource.address}.unique_id`),
+      RoleName: octoTerraform.raw(`${iamRoleTFResource.address}.name`),
+    });
+
+    const awsPolicies = this.properties.policies.filter((p) => p.policyType === 'aws-policy');
+    for (const policy of awsPolicies) {
+      iamRoleOctoResource.addTerraformResource(
+        'aws_iam_role_policy_attachment',
+        `${this.resourceId}_${policy.policyId}`,
+        {
+          policy_arn: policy.policy as string,
+          role: octoTerraform.raw(`${iamRoleTFResource.address}.name`),
+        },
+      );
+    }
+
+    const s3Policies = this.properties.policies.filter((p) => p.policyType === 's3-storage-access-policy');
+    for (const policy of s3Policies) {
+      const s3Policy = policy.policy as IIamRoleS3BucketPolicy;
+      const isRootPath = s3Policy.remoteDirectoryPath === '' || s3Policy.remoteDirectoryPath === '/';
+      const bucketResources = isRootPath
+        ? [`arn:aws:s3:::${s3Policy.bucketName}`, `arn:aws:s3:::${s3Policy.bucketName}/*`]
+        : [
+            `arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.remoteDirectoryPath}`,
+            `arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.remoteDirectoryPath}/*`,
+          ];
+      const bucketWriteResources = isRootPath
+        ? [`arn:aws:s3:::${s3Policy.bucketName}`, `arn:aws:s3:::${s3Policy.bucketName}/*`]
+        : [`arn:aws:s3:::${s3Policy.bucketName}/${s3Policy.remoteDirectoryPath}/*`];
+
+      const policyStatements: object[] = [];
+      if (s3Policy.allowRead) {
+        policyStatements.push({
+          Action: [
+            's3:GetObject',
+            's3:GetObjectAttributes',
+            's3:GetObjectTagging',
+            's3:GetObjectVersionAcl',
+            's3:GetObjectVersionAttributes',
+            's3:GetObjectVersionTagging',
+            's3:ListBucket',
+          ],
+          Effect: 'Allow',
+          Resource: bucketResources,
+          Sid: PolicyUtility.getSafeSid(`Allow read from bucket ${s3Policy.bucketName}`),
+        });
+      }
+      if (s3Policy.allowWrite) {
+        policyStatements.push({
+          Action: ['s3:PutObject', 's3:DeleteObjectVersion', 's3:DeleteObject'],
+          Effect: 'Allow',
+          Resource: bucketWriteResources,
+          Sid: PolicyUtility.getSafeSid(`Allow write from bucket ${s3Policy.bucketName}`),
+        });
+      }
+
+      const iamPolicyTFResource = iamRoleOctoResource.addTerraformResource(
+        'aws_iam_policy',
+        `${this.resourceId}_${policy.policyId}`,
+        {
+          name: policy.policyId,
+          policy: octoTerraform.jsonencode({
+            Statement: policyStatements,
+            Version: '2012-10-17',
+          }),
+        },
+      );
+
+      iamRoleOctoResource.addTerraformResource(
+        'aws_iam_role_policy_attachment',
+        `${this.resourceId}_${policy.policyId}_attach`,
+        {
+          policy_arn: octoTerraform.raw(`${iamPolicyTFResource.address}.arn`),
+          role: octoTerraform.raw(`${iamRoleTFResource.address}.name`),
+        },
+      );
+    }
+
+    if (Object.keys(this.tags).length > 0) {
+      iamRoleTFResource.attribute('tags', this.tags);
     }
   }
 }

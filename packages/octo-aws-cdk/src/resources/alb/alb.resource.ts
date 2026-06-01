@@ -8,16 +8,18 @@ import {
   ResourceError,
   hasNodeName,
 } from '@quadnix/octo';
+import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import type { InternetGatewaySchema } from '../internet-gateway/index.schema.js';
 import type { SecurityGroupSchema } from '../security-group/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
+import { ATFResource } from '../tf-resource.abstract.js';
 import { AlbSchema } from './index.schema.js';
 
 /**
  * @internal
  */
 @Resource<Alb>('@octo', 'alb', AlbSchema)
-export class Alb extends AResource<AlbSchema, Alb> {
+export class Alb extends ATFResource<AlbSchema, Alb> {
   declare parents: [
     MatchingResource<InternetGatewaySchema>,
     MatchingResource<SecurityGroupSchema>,
@@ -71,5 +73,33 @@ export class Alb extends AResource<AlbSchema, Alb> {
     }
 
     return super.diffProperties(previous);
+  }
+
+  override async toHCL(): Promise<void> {
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
+      metadata: { package: '@octo' },
+    });
+
+    const subnetParents = (this.parents as MatchingResource<SubnetSchema>[]).slice(2);
+    const subnetIds = subnetParents.map((p) => octoTerraform.getRef(p, 'SubnetId'));
+
+    const albOctoResource = octoTerraform.addOctoTerraformResource(this as Alb, [this.parents[0]]);
+
+    const albTFResource = albOctoResource.addTerraformResource('aws_lb', this.resourceId, {
+      internal: this.properties.Scheme !== 'internet-facing',
+      ip_address_type: this.properties.IpAddressType,
+      load_balancer_type: this.properties.Type,
+      name: this.properties.Name,
+      security_groups: [octoTerraform.getRef(this.parents[1], 'GroupId')],
+      subnets: subnetIds,
+    });
+    albOctoResource.output({
+      DNSName: octoTerraform.raw(`${albTFResource.address}.dns_name`),
+      LoadBalancerArn: octoTerraform.raw(`${albTFResource.address}.arn`),
+    });
+
+    if (Object.keys(this.tags).length > 0) {
+      albTFResource.attribute('tags', this.tags);
+    }
   }
 }

@@ -99,7 +99,6 @@ export class IamRoleSchema extends BaseResourceSchema {
   /**
    * Saved response.
    * * `response.Arn`: The ARN of the role.
-   * * `response.policies`: A map of policy IDs to policy ARNs.
    * * `response.RoleId`: The ID of the role.
    * * `response.RoleName`: The name of the role.
    */
@@ -108,9 +107,6 @@ export class IamRoleSchema extends BaseResourceSchema {
       const subjects: string[] = [];
       if (value.Arn) {
         subjects.push(value.Arn);
-      }
-      if (value.policies && Object.keys(value.policies).length > 0) {
-        subjects.push(...Object.values(value.policies).flat());
       }
       if (value.RoleId) {
         subjects.push(value.RoleId);
@@ -124,7 +120,6 @@ export class IamRoleSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     Arn?: string;
-    policies?: { [key: string]: string[] };
     RoleId?: string;
     RoleName?: string;
   }>();

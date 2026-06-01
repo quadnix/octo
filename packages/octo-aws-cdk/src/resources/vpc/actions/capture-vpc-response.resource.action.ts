@@ -13,13 +13,9 @@ export class CaptureVpcResponseResourceAction implements IResourceAction<Vpc> {
 
   async handle(_diff: Diff<Vpc>): Promise<void> {}
 
-  async mock(diff: Diff<Vpc>, capture: Partial<VpcSchema['response']>): Promise<VpcSchema['response']> {
-    // Get properties.
-    const vpc = diff.node;
-    const properties = vpc.properties;
-
+  async mock(_diff: Diff<Vpc>, capture: Partial<VpcSchema['response']>): Promise<VpcSchema['response']> {
     return {
-      VpcArn: `arn:aws:ec2:${properties.awsRegionId}:${properties.awsAccountId}:vpc/${capture.VpcId}`,
+      VpcArn: capture.VpcArn,
       VpcId: capture.VpcId,
     };
   }

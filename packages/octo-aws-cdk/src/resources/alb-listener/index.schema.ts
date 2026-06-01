@@ -226,10 +226,10 @@ export class AlbListenerActionRedirectActionSchema {
    * HTTP redirect code. The redirect is either permanent (HTTP 301) or temporary (HTTP 302).
    */
   @Validate({
-    destruct: (value: AlbListenerActionRedirectActionSchema['StatusCode']): number[] => (value ? [value] : []),
+    destruct: (value: AlbListenerActionRedirectActionSchema['StatusCode']): number[] => [value],
     options: { maxLength: 302, minLength: 301 },
   })
-  StatusCode = Schema<301 | 302 | null>(null);
+  StatusCode = Schema<301 | 302>();
 }
 
 /**
@@ -550,7 +550,6 @@ export class AlbListenerSchema extends BaseResourceSchema {
   /**
    * Saved response.
    * * `response.ListenerArn` - ALB Listener ARN.
-   * * `response.Rules` - An array of ALB Listener Rule ARNs and priorities.
    */
   @Validate({
     destruct: (value: AlbListenerSchema['response']): string[] => {
@@ -558,16 +557,11 @@ export class AlbListenerSchema extends BaseResourceSchema {
       if (value.ListenerArn) {
         subjects.push(value.ListenerArn);
       }
-      if (value.Rules && value.Rules.length > 0) {
-        subjects.push(...value.Rules.map((r) => r.RuleArn));
-        subjects.push(...value.Rules.map((r) => String(r.Priority)));
-      }
       return subjects;
     },
     options: { minLength: 1 },
   })
   override response = Schema<{
     ListenerArn?: string;
-    Rules?: { Priority: number; RuleArn: string }[];
   }>();
 }

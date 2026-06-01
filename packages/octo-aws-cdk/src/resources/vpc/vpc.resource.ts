@@ -29,18 +29,20 @@ export class Vpc extends ATFResource<VpcSchema, Vpc> {
     });
 
     const vpcOctoResource = octoTerraform.addOctoTerraformResource(this as Vpc);
+
     const vpcTFResource = vpcOctoResource.addTerraformResource('aws_vpc', this.resourceId, {
       cidr_block: this.properties.CidrBlock,
       enable_dns_hostnames: true,
       enable_dns_support: true,
       instance_tenancy: this.properties.InstanceTenancy,
     });
-    if (Object.keys(this.tags).length > 0) {
-      vpcTFResource.attribute('tags', this.tags);
-    }
     vpcOctoResource.output({
       VpcArn: octoTerraform.raw(`${vpcTFResource.address}.arn`),
       VpcId: octoTerraform.raw(`${vpcTFResource.address}.id`),
     });
+
+    if (Object.keys(this.tags).length > 0) {
+      vpcTFResource.attribute('tags', this.tags);
+    }
   }
 }

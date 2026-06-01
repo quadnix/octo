@@ -7,6 +7,8 @@ import {
   Resource,
   ResourceError,
 } from '@quadnix/octo';
+import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
+import { ATFResource } from '../tf-resource.abstract.js';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { AlbTargetGroupSchema } from './index.schema.js';
 
@@ -14,7 +16,7 @@ import { AlbTargetGroupSchema } from './index.schema.js';
  * @internal
  */
 @Resource<AlbTargetGroup>('@octo', 'alb-target-group', AlbTargetGroupSchema)
-export class AlbTargetGroup extends AResource<AlbTargetGroupSchema, AlbTargetGroup> {
+export class AlbTargetGroup extends ATFResource<AlbTargetGroupSchema, AlbTargetGroup> {
   declare parents: [MatchingResource<VpcSchema>];
   declare properties: AlbTargetGroupSchema['properties'];
   declare response: AlbTargetGroupSchema['response'];
@@ -50,5 +52,50 @@ export class AlbTargetGroup extends AResource<AlbTargetGroupSchema, AlbTargetGro
     }
 
     return diffs;
+  }
+
+  override async toHCL(): Promise<void> {
+    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
+      metadata: { package: '@octo' },
+    });
+
+    const spec: Record<string, unknown> = {
+      ip_address_type: this.properties.IpAddressType,
+      name: this.properties.Name,
+      port: this.properties.Port,
+      protocol: this.properties.Protocol,
+      protocol_version: this.properties.ProtocolVersion,
+      target_type: this.properties.TargetType,
+      vpc_id: octoTerraform.getRef(this.parents[0], 'VpcId'),
+    };
+
+    if (this.properties.healthCheck) {
+      spec['health_check'] = {
+        enabled: true,
+        healthy_threshold: this.properties.healthCheck.HealthyThresholdCount,
+        interval: this.properties.healthCheck.HealthCheckIntervalSeconds,
+        matcher: String(this.properties.healthCheck.Matcher.HttpCode),
+        path: this.properties.healthCheck.HealthCheckPath,
+        port: String(this.properties.healthCheck.HealthCheckPort),
+        protocol: this.properties.healthCheck.HealthCheckProtocol,
+        timeout: this.properties.healthCheck.HealthCheckTimeoutSeconds,
+        unhealthy_threshold: this.properties.healthCheck.UnhealthyThresholdCount,
+      };
+    }
+
+    const albTargetGroupOctoResource = octoTerraform.addOctoTerraformResource(this as AlbTargetGroup);
+
+    const albTargetGroupTFResource = albTargetGroupOctoResource.addTerraformResource(
+      'aws_lb_target_group',
+      this.resourceId,
+      spec,
+    );
+    albTargetGroupOctoResource.output({
+      TargetGroupArn: octoTerraform.raw(`${albTargetGroupTFResource.address}.arn`),
+    });
+
+    if (Object.keys(this.tags).length > 0) {
+      albTargetGroupTFResource.attribute('tags', this.tags);
+    }
   }
 }

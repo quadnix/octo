@@ -43,16 +43,12 @@ export class RouteTableSchema extends BaseResourceSchema {
 
   /**
    * Saved response.
-   * * `response.RouteTableArn` - The route table ARN.
    * * `response.RouteTableId` - The route table ID.
    * * `response.subnetAssociationId` - The association ID representing relationship between route table and subnet.
    */
   @Validate({
     destruct: (value: RouteTableSchema['response']): string[] => {
       const subjects: string[] = [];
-      if (value.RouteTableArn) {
-        subjects.push(value.RouteTableArn);
-      }
       if (value.RouteTableId) {
         subjects.push(value.RouteTableId);
       }
@@ -64,7 +60,6 @@ export class RouteTableSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    RouteTableArn?: string;
     RouteTableId?: string;
     subnetAssociationId?: string;
   }>();
