@@ -43,7 +43,9 @@ export class AddAwsEcrImageModelAction implements IModelAction<AwsEcrImageModule
         awsRegionId,
         imageId: image.imageId,
       });
+
       actionOutputs[ecrImage.resourceId] = ecrImage;
+      await ecrImage.toHCL();
     }
 
     return actionOutputs;

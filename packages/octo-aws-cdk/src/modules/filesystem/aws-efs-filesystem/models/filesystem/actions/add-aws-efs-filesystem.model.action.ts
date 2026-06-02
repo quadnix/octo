@@ -44,6 +44,8 @@ export class AddAwsEfsFilesystemModelAction implements IModelAction<AwsEfsFilesy
     );
 
     actionOutputs[efs.resourceId] = efs;
+    await efs.toHCL();
+
     return actionOutputs;
   }
 }

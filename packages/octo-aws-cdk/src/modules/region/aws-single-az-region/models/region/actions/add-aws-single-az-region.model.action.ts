@@ -47,7 +47,6 @@ export class AddAwsSingleAzRegionModelAction implements IModelAction<AwsSingleAz
       CidrBlock: vpcCidrBlock,
       InstanceTenancy: 'default',
     });
-    await vpc.toHCL();
 
     // Create Internet Gateway.
     const internetGateway = new InternetGateway(
@@ -55,10 +54,13 @@ export class AddAwsSingleAzRegionModelAction implements IModelAction<AwsSingleAz
       { awsAccountId, awsRegionId: awsRegion.awsRegionId, internetGatewayName: 'default' },
       [new MatchingResource(vpc)],
     );
-    await internetGateway.toHCL();
 
     actionOutputs[vpc.resourceId] = vpc;
+    await vpc.toHCL();
+
     actionOutputs[internetGateway.resourceId] = internetGateway;
+    await internetGateway.toHCL();
+
     return actionOutputs;
   }
 }

@@ -42,7 +42,9 @@ export class AddAwsS3StorageServiceModelAction implements IModelAction<AwsS3Stor
       Bucket: bucketName,
       permissions: [],
     });
+
     actionOutputs[s3Storage.resourceId] = s3Storage;
+    await s3Storage.toHCL();
 
     return actionOutputs;
   }

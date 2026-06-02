@@ -1,18 +1,5 @@
-import {
-  AModule,
-  type App,
-  Container,
-  type Diff,
-  DiffAction,
-  type DiffMetadata,
-  type IModelAction,
-  Module,
-  StateManagementService,
-} from '@quadnix/octo';
-import type { S3Website } from '../../../resources/s3-website/index.js';
+import { AModule, type App, Module } from '@quadnix/octo';
 import { AwsS3StaticWebsiteServiceModuleSchema } from './index.schema.js';
-import { AddAwsS3StaticWebsiteServiceModelAction } from './models/service/actions/add-aws-s3-static-website-service.model.action.js';
-import { UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction } from './models/service/actions/update-aws-s3-static-website-service-source-paths.model.action.js';
 import { AwsS3StaticWebsiteService } from './models/service/index.js';
 
 /**
@@ -68,83 +55,6 @@ export class AwsS3StaticWebsiteServiceModule extends AModule<
     );
 
     return s3StaticWebsiteService;
-  }
-
-  override registerHooks(): {
-    postCommitHooks?: {
-      handle: (app: App, modelTransaction: DiffMetadata[][], resourceTransaction: DiffMetadata[][]) => Promise<void>;
-    }[];
-    preCommitHooks?: {
-      handle: (app: App, modelTransaction: DiffMetadata[][]) => Promise<void>;
-    }[];
-  } {
-    return {
-      postCommitHooks: [
-        {
-          handle: async (
-            _app: App,
-            _modelTransaction: DiffMetadata[][],
-            resourceTransaction: DiffMetadata[][],
-          ): Promise<void> => {
-            let shouldSaveS3WebsiteSourceManifest: false | Diff = false;
-
-            loop1: for (const diffsProcessedInSameLevel of resourceTransaction) {
-              for (const d of diffsProcessedInSameLevel) {
-                if (
-                  d.node.getContext().startsWith('@octo/s3-website=') &&
-                  d.field === 'resourceId' &&
-                  d.action === DiffAction.DELETE
-                ) {
-                  shouldSaveS3WebsiteSourceManifest = d.diff;
-                  break loop1;
-                }
-              }
-            }
-
-            if (shouldSaveS3WebsiteSourceManifest) {
-              const resource = shouldSaveS3WebsiteSourceManifest.node as S3Website;
-              const bucketName = resource.properties.Bucket;
-
-              const container = Container.getInstance();
-              const stateManagementService = await container.get(StateManagementService);
-
-              const manifestFileName = `${bucketName}-manifest.json`;
-              const manifestData = {};
-
-              await stateManagementService.saveState(manifestFileName, Buffer.from(JSON.stringify(manifestData)));
-            }
-          },
-        },
-      ],
-      preCommitHooks: [
-        {
-          handle: async (_app: App, modelTransaction: DiffMetadata[][]): Promise<void> => {
-            let shouldSaveS3WebsiteSourceManifest: false | Diff = false;
-
-            loop1: for (const diffsProcessedInSameLevel of modelTransaction) {
-              for (const d of diffsProcessedInSameLevel) {
-                for (const a of d.actions as IModelAction<any>[]) {
-                  if (
-                    [
-                      AddAwsS3StaticWebsiteServiceModelAction.name,
-                      UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction.name,
-                    ].includes(a.constructor.name)
-                  ) {
-                    shouldSaveS3WebsiteSourceManifest = d.diff;
-                    break loop1;
-                  }
-                }
-              }
-            }
-
-            if (shouldSaveS3WebsiteSourceManifest) {
-              const model = shouldSaveS3WebsiteSourceManifest.node as AwsS3StaticWebsiteService;
-              await model.saveSourceManifest();
-            }
-          },
-        },
-      ],
-    };
   }
 
   override async registerMetadata(

@@ -1,26 +1,10 @@
 import { lstat, readdir } from 'fs/promises';
 import { join, parse, resolve } from 'path';
-import {
-  Container,
-  Diff,
-  DiffAction,
-  Model,
-  ModelError,
-  Service,
-  StateManagementService,
-  Validate,
-} from '@quadnix/octo';
+import { Diff, DiffAction, Model, ModelError, Service, Validate } from '@quadnix/octo';
 import { FileUtility } from '../../../../../utilities/file/file.utility.js';
 import { AwsS3StaticWebsiteServiceSchema } from './aws-s3-static-website-service.schema.js';
 
-type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
-
-/**
- * @internal
- */
-export type S3WebsiteManifestDiff = {
-  [key: string]: ['add' | 'delete' | 'update', string];
-};
+export type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted'; filePath: string } };
 
 /**
  * @internal
@@ -134,17 +118,6 @@ export class AwsS3StaticWebsiteService extends Service {
   }
 
   override async diffProperties(): Promise<Diff[]> {
-    const container = Container.getInstance();
-    const stateManagementService = await container.get(StateManagementService);
-
-    const manifestFileName = `${this.bucketName}-manifest.json`;
-
-    // Get old manifest. It won't contain filePath.
-    const oldManifestDataBuffer = await stateManagementService.getState(manifestFileName, '{}');
-    const oldManifestData: {
-      [K in keyof IManifest]: Omit<IManifest[K], 'filePath'>;
-    } = JSON.parse(oldManifestDataBuffer.toString());
-
     // Generate new manifest.
     const newManifestData: IManifest = await this.generateSourceManifest();
 
@@ -153,51 +126,16 @@ export class AwsS3StaticWebsiteService extends Service {
       throw new ModelError('error.html/index.html missing in root of website!', this);
     }
 
-    // Generate difference in old/new manifest.
-    const manifestDiff: S3WebsiteManifestDiff = {};
-    for (const remotePath in oldManifestData) {
-      if (remotePath in newManifestData) {
-        if (
-          oldManifestData[remotePath].algorithm !== newManifestData[remotePath].algorithm ||
-          oldManifestData[remotePath].digest !== newManifestData[remotePath].digest
-        ) {
-          manifestDiff[remotePath] = ['update', newManifestData[remotePath].filePath];
-        }
-      } else {
-        manifestDiff[remotePath] = ['delete', ''];
-      }
-    }
-    for (const remotePath in newManifestData) {
-      if (!(remotePath in oldManifestData)) {
-        manifestDiff[remotePath] = ['add', newManifestData[remotePath].filePath];
-      }
-    }
-
-    if (Object.keys(manifestDiff).length === 0) {
+    if (Object.keys(newManifestData).length === 0) {
       return [];
     } else {
-      const diff = new Diff<any, S3WebsiteManifestDiff>(this, DiffAction.UPDATE, 'sourcePaths', manifestDiff);
+      const diff = new Diff<any, IManifest>(this, DiffAction.UPDATE, 'sourcePaths', newManifestData);
       this.addFieldDependency([
         { forAction: DiffAction.ADD, onAction: DiffAction.UPDATE, onField: 'sourcePaths', toField: 'serviceId' },
         { forAction: DiffAction.UPDATE, onAction: DiffAction.UPDATE, onField: 'sourcePaths', toField: 'serviceId' },
       ]);
       return [diff];
     }
-  }
-
-  async saveSourceManifest(): Promise<void> {
-    const container = Container.getInstance();
-    const stateManagementService = await container.get(StateManagementService);
-
-    const manifestFileName = `${this.bucketName}-manifest.json`;
-    const manifestData = await this.generateSourceManifest();
-
-    // Strip filePath from manifest data to avoid recording local file paths.
-    Object.entries(manifestData).map(([key, value]) => {
-      manifestData[key] = { algorithm: value.algorithm, digest: value.digest } as IManifest[string];
-    });
-
-    await stateManagementService.saveState(manifestFileName, Buffer.from(JSON.stringify(manifestData)));
   }
 
   override synth(): AwsS3StaticWebsiteServiceSchema {

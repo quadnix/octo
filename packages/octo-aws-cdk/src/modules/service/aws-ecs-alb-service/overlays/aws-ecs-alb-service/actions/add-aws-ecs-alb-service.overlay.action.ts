@@ -65,7 +65,10 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
         },
         [matchingVpcResource],
       );
+
       actionOutputs[albTargetGroup.resourceId] = albTargetGroup;
+      await albTargetGroup.toHCL();
+
       albTargetGroups.push(albTargetGroup);
     }
 
@@ -90,7 +93,10 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
           ...(albTargetGroups.map((t) => new MatchingResource(t)) as MatchingResource<AlbTargetGroupSchema>[]),
         ],
       );
+
       actionOutputs[albListener.resourceId] = albListener;
+      await albListener.toHCL();
+
       albListeners.push(albListener);
     }
 
@@ -119,7 +125,9 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
         albListeners.map((l) => new MatchingResource(l)),
         target.containerName,
       );
+
       actionOutputs[matchingEcsService.getActual().resourceId] = matchingEcsService.getActual();
+      await (matchingEcsService.getActual() as EcsService).toHCL();
     }
 
     return actionOutputs;

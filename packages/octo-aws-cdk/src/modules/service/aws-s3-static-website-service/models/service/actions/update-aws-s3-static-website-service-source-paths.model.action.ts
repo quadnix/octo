@@ -10,7 +10,7 @@ import {
 } from '@quadnix/octo';
 import type { S3Website } from '../../../../../../resources/s3-website/index.js';
 import type { AwsS3StaticWebsiteServiceModule } from '../../../aws-s3-static-website-service.module.js';
-import { AwsS3StaticWebsiteService, type S3WebsiteManifestDiff } from '../aws-s3-static-website-service.model.js';
+import { AwsS3StaticWebsiteService, type IManifest } from '../aws-s3-static-website-service.model.js';
 
 /**
  * @internal
@@ -29,16 +29,18 @@ export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction
   }
 
   async handle(
-    diff: Diff<AwsS3StaticWebsiteService, S3WebsiteManifestDiff>,
+    diff: Diff<AwsS3StaticWebsiteService, IManifest>,
     actionInputs: EnhancedModuleSchema<AwsS3StaticWebsiteServiceModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
     const { bucketName } = diff.node;
 
     const s3Website = actionInputs.resources[`bucket-${bucketName.replace(/[^\w-]/g, '-')}`] as S3Website;
-    s3Website.updateManifestDiff(diff.value);
+    s3Website.updateManifest(diff.value);
 
     actionOutputs[s3Website.resourceId] = s3Website;
+    await s3Website.toHCL();
+
     return actionOutputs;
   }
 }

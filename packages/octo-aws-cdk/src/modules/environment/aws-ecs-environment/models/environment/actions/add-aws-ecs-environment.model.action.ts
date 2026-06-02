@@ -40,6 +40,8 @@ export class AddAwsEcsEnvironmentModelAction implements IModelAction<AwsEcsEnvir
     });
 
     actionOutputs[ecsCluster.resourceId] = ecsCluster;
+    await ecsCluster.toHCL();
+
     return actionOutputs;
   }
 }

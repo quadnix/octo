@@ -51,6 +51,8 @@ export class AddAwsDynamoDBServiceModelAction implements IModelAction<AwsDynamoD
     });
 
     actionOutputs[dynamoDb.resourceId] = dynamoDb;
+    await dynamoDb.toHCL();
+
     return actionOutputs;
   }
 }
