@@ -1,4 +1,3 @@
-import type { NetworkAclEntry } from '@aws-sdk/client-ec2';
 import type { NetworkAclSchema } from '../../resources/network-acl/index.schema.js';
 
 /**
@@ -20,7 +19,10 @@ export class NetworkAclUtility {
     return entries;
   }
 
-  static isNAclEntryEqual(ce: NetworkAclEntry, pe: NetworkAclEntry): boolean {
+  static isNAclEntryEqual(
+    ce: Omit<NetworkAclSchema['properties']['entries'][0], 'RuleNumber'>,
+    pe: Omit<NetworkAclSchema['properties']['entries'][0], 'RuleNumber'>,
+  ): boolean {
     return (
       ce.CidrBlock === pe.CidrBlock &&
       ce.Egress === pe.Egress &&

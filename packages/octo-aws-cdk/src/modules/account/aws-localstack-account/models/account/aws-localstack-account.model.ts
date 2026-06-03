@@ -1,5 +1,4 @@
 import { Account, AccountType, Model } from '@quadnix/octo';
-import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsLocalstackAccountSchema } from './aws-localstack-account.schema.js';
 
 /**
@@ -9,13 +8,6 @@ import { AwsLocalstackAccountSchema } from './aws-localstack-account.schema.js';
 export class AwsLocalstackAccount extends Account {
   constructor(accountId: string) {
     super(AccountType.AWS, accountId);
-  }
-
-  override getCredentials(): AwsCredentialIdentityProvider {
-    return async () => ({
-      accessKeyId: 'test',
-      secretAccessKey: 'test',
-    });
   }
 
   override synth(): AwsLocalstackAccountSchema {

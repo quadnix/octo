@@ -1,4 +1,3 @@
-import type { AuthorizeSecurityGroupEgressCommandOutput } from '@aws-sdk/client-ec2';
 import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
 
 /**

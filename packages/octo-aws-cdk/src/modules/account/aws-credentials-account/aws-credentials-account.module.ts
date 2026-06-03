@@ -1,7 +1,5 @@
-import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { AModule, Container, Module, ModuleError } from '@quadnix/octo';
+import { AModule, Module } from '@quadnix/octo';
 import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
-import { STSClientFactory } from '../../../factories/aws-client.factory.js';
 import { AwsCredentialsAccountModuleSchema } from './index.schema.js';
 import { AwsCredentialsAccount } from './models/account/index.js';
 
@@ -38,7 +36,6 @@ import { AwsCredentialsAccount } from './models/account/index.js';
 export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountModuleSchema, AwsCredentialsAccount> {
   async onInit(inputs: AwsCredentialsAccountModuleSchema): Promise<AwsCredentialsAccount> {
     const app = inputs.app;
-    const container = Container.getInstance();
 
     // Create a new account.
     const account = new AwsCredentialsAccount(inputs.accountId, inputs.credentials);
@@ -46,25 +43,6 @@ export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountMo
 
     // Add anchors.
     account.addAnchor(new AwsAccountAnchor('AwsAccountAnchor', { awsAccountId: inputs.accountId }, account));
-
-    // Register AWS credentials.
-    const credentials = account.getCredentials();
-    container.registerValue('AwsCredentialIdentityProvider', credentials, {
-      metadata: { awsAccountId: inputs.accountId, package: '@octo' },
-    });
-
-    // Ensure credentials are valid, and the account ID matches.
-    const stsClient = await container.get<STSClient, typeof STSClientFactory>(STSClient, {
-      args: [inputs.accountId],
-      metadata: { package: '@octo' },
-    });
-    const data = await stsClient.send(new GetCallerIdentityCommand({}));
-    if (data.Account !== inputs.accountId) {
-      throw new ModuleError(
-        `Account ID "${inputs.accountId}" does not belong to given credentials!`,
-        this.constructor.name,
-      );
-    }
 
     return account;
   }

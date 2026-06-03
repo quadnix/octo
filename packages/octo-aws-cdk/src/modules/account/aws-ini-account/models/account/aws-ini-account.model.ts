@@ -1,6 +1,4 @@
-import { fromIni } from '@aws-sdk/credential-providers';
 import { Account, AccountType, Model } from '@quadnix/octo';
-import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsIniAccountSchema } from './aws-ini-account.schema.js';
 
 /**
@@ -14,10 +12,6 @@ export class AwsIniAccount extends Account {
     super(AccountType.AWS, accountId);
 
     this.iniProfile = iniProfile;
-  }
-
-  override getCredentials(): AwsCredentialIdentityProvider {
-    return fromIni({ profile: this.iniProfile });
   }
 
   override synth(): AwsIniAccountSchema {

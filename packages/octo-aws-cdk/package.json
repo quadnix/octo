@@ -1,21 +1,8 @@
 {
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "~3.743.0",
-    "@aws-sdk/client-ec2": "~3.743.0",
-    "@aws-sdk/client-ecr": "~3.743.0",
-    "@aws-sdk/client-ecs": "~3.743.0",
-    "@aws-sdk/client-efs": "~3.743.0",
-    "@aws-sdk/client-elastic-load-balancing-v2": "~3.743.0",
-    "@aws-sdk/client-iam": "~3.743.0",
-    "@aws-sdk/client-resource-groups-tagging-api": "~3.743.0",
-    "@aws-sdk/client-s3": "~3.743.0",
-    "@aws-sdk/client-sts": "~3.743.0",
-    "@aws-sdk/credential-providers": "~3.743.0",
-    "@aws-sdk/lib-storage": "~3.743.0",
     "@quadnix/octo": "~0.0.30",
     "fast-cidr-tools": "~0.3.2",
-    "mime": "~4.0.6",
-    "p-limit": "~6.2.0"
+    "mime": "~4.0.6"
   },
   "description": "Octo-AWS-CDK is an AWS specific implementation of the Octo interface.",
   "devDependencies": {},

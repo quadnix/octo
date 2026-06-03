@@ -1,5 +1,4 @@
 import { Account, AccountType, Model } from '@quadnix/octo';
-import type { AwsCredentialIdentityProvider } from '@smithy/types';
 import { AwsCredentialsAccountSchema } from './aws-credentials-account.schema.js';
 
 /**
@@ -13,13 +12,6 @@ export class AwsCredentialsAccount extends Account {
     super(AccountType.AWS, accountId);
 
     this.credentials = credentials;
-  }
-
-  override getCredentials(): AwsCredentialIdentityProvider {
-    return async () => ({
-      accessKeyId: this.credentials.accessKeyId,
-      secretAccessKey: this.credentials.secretAccessKey,
-    });
   }
 
   override synth(): AwsCredentialsAccountSchema {
