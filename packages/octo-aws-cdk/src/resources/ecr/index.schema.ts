@@ -33,15 +33,22 @@ export class EcrImageSchema extends BaseResourceSchema {
 
   /**
    * Saved response.
+   * * `response.authorizationToken` - The base64-encoded authorization token for authenticating to the registry.
+   * * `response.proxyEndpoint` - The registry URL for container image push and pull operations.
    * * `response.registryId` - The AWS account ID associated with the registry that contains the repository.
    * * `response.repositoryArn` - The ARN of the repository.
    * * `response.repositoryName` - The name of the repository.
    * * `response.repositoryUri` - The URI of the repository.
-   * You can use this URI for container image push and pull operations.
    */
   @Validate({
     destruct: (value: EcrImageSchema['response']): string[] => {
       const subjects: string[] = [];
+      if (value.authorizationToken) {
+        subjects.push(value.authorizationToken);
+      }
+      if (value.proxyEndpoint) {
+        subjects.push(value.proxyEndpoint);
+      }
       if (value.registryId) {
         subjects.push(value.registryId);
       }
@@ -59,6 +66,8 @@ export class EcrImageSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
+    authorizationToken?: string;
+    proxyEndpoint?: string;
     registryId?: string;
     repositoryArn?: string;
     repositoryName?: string;

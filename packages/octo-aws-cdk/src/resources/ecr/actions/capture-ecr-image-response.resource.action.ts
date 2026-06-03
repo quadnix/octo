@@ -15,6 +15,8 @@ export class CaptureEcrImageResponseResourceAction implements IResourceAction<Ec
 
   async mock(_diff: Diff<EcrImage>, capture: Partial<EcrImageSchema['response']>): Promise<EcrImageSchema['response']> {
     return {
+      authorizationToken: capture.authorizationToken,
+      proxyEndpoint: capture.proxyEndpoint,
       registryId: capture.registryId,
       repositoryArn: capture.repositoryArn,
       repositoryName: capture.repositoryName,

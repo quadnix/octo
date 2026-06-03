@@ -36,7 +36,14 @@ export class EcrImage extends ATFResource<EcrImageSchema, EcrImage> {
       image_tag_mutability: 'IMMUTABLE',
       name: this.properties.imageId,
     });
+
+    const ecrAuthToken = octoTerraform.addTerraformData('aws_ecr_authorization_token', this.resourceId, {
+      registry_id: octoTerraform.raw(`${ecrImageTFResource.address}.registry_id`),
+    });
+
     ecrImageOctoResource.output({
+      authorizationToken: ecrAuthToken.ref('authorization_token'),
+      proxyEndpoint: ecrAuthToken.ref('proxy_endpoint'),
       registryId: octoTerraform.raw(`${ecrImageTFResource.address}.registry_id`),
       repositoryArn: octoTerraform.raw(`${ecrImageTFResource.address}.arn`),
       repositoryName: octoTerraform.raw(`${ecrImageTFResource.address}.name`),
