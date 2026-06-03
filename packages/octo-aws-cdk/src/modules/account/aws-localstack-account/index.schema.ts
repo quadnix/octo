@@ -20,24 +20,12 @@ export class AwsLocalstackAccountModuleSchema {
   app = Schema<App>();
 
   /**
-   * The primary endpoint URL for LocalStack services.
-   * This is used for most AWS services when communicating with LocalStack.
-   * Defaults to the standard LocalStack endpoint.
+   * A map of AWS service name to endpoint URL for LocalStack services.
+   * Keys are Terraform AWS provider service names (e.g. `s3`, `ec2`, `sts`).
    */
   @Validate({
-    destruct: (value: AwsLocalstackAccountModuleSchema['endpoint']): string[] => [value!],
+    destruct: (value: AwsLocalstackAccountModuleSchema['endpoints']): string[] => Object.values(value!),
     options: { minLength: 1 },
   })
-  endpoint? = Schema<string>('http://localhost:4566');
-
-  /**
-   * The specific endpoint URL for S3 services in LocalStack.
-   * This allows for separate configuration of S3 endpoints when needed.
-   * Defaults to the LocalStack S3 endpoint with domain-style bucket access.
-   */
-  @Validate({
-    destruct: (value: AwsLocalstackAccountModuleSchema['endpointS3']): string[] => [value!],
-    options: { minLength: 1 },
-  })
-  endpointS3? = Schema<string>('http://s3.localhost.localstack.cloud:4566');
+  endpoints? = Schema<Record<string, string>>({});
 }

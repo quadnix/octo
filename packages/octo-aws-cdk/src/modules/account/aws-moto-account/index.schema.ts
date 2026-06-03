@@ -20,13 +20,12 @@ export class AwsMotoAccountModuleSchema {
   app = Schema<App>();
 
   /**
-   * The endpoint URL for Moto server services.
-   * This is used for AWS services when communicating with Moto mock server.
-   * Defaults to the standard Moto server endpoint.
+   * A map of AWS service name to endpoint URL for Moto server services.
+   * Keys are Terraform AWS provider service names (e.g. `s3`, `ec2`, `sts`).
    */
   @Validate({
-    destruct: (value: AwsMotoAccountModuleSchema['endpoint']): string[] => [value!],
+    destruct: (value: AwsMotoAccountModuleSchema['endpoints']): string[] => Object.values(value!),
     options: { minLength: 1 },
   })
-  endpoint? = Schema<string>('http://localhost:5000');
+  endpoints? = Schema<Record<string, string>>({});
 }

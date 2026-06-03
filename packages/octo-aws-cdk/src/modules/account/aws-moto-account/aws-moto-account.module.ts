@@ -47,15 +47,6 @@ export class AwsMotoAccountModule extends AModule<AwsMotoAccountModuleSchema, Aw
       metadata: { awsAccountId: accountId, package: '@octo' },
     });
 
-    // Register Endpoint.
-    container.registerValue(
-      'EndpointInputConfig',
-      { endpoint: inputs.endpoint! },
-      {
-        metadata: { awsAccountId: accountId, package: '@octo' },
-      },
-    );
-
     // Ensure credentials are valid, and the account ID matches.
     const stsClient = await container.get<STSClient, typeof STSClientFactory>(STSClient, {
       args: [accountId],

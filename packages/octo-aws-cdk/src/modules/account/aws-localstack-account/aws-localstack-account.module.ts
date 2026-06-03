@@ -1,4 +1,3 @@
-import { S3Client } from '@aws-sdk/client-s3';
 import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
 import { AModule, Container, Module, ModuleError } from '@quadnix/octo';
 import { AwsAccountAnchor } from '../../../anchors/aws-account/aws-account.anchor.js';
@@ -49,34 +48,6 @@ export class AwsLocalstackAccountModule extends AModule<AwsLocalstackAccountModu
     container.registerValue('AwsCredentialIdentityProvider', credentials, {
       metadata: { awsAccountId: accountId, package: '@octo' },
     });
-
-    // Register Endpoint.
-    container.registerValue(
-      'EndpointInputConfig',
-      { endpoint: inputs.endpoint! },
-      {
-        metadata: { awsAccountId: accountId, package: '@octo' },
-      },
-    );
-
-    // Re-register S3Client Factory.
-    if (container.has(S3Client, { metadata: { package: '@octo' } })) {
-      container.unRegisterFactory(S3Client, { metadata: { package: '@octo' } });
-
-      container.registerFactory(
-        S3Client,
-        class {
-          static async create(_awsAccountId: string, awsRegionId: string): Promise<S3Client> {
-            return new S3Client({
-              ...credentials,
-              endpoint: inputs.endpointS3,
-              region: awsRegionId,
-            });
-          }
-        },
-        { metadata: { package: '@octo' } },
-      );
-    }
 
     // Ensure credentials are valid, and the account ID matches.
     const stsClient = await container.get<STSClient, typeof STSClientFactory>(STSClient, {

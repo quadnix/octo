@@ -33,4 +33,14 @@ export class AwsIniAccountModuleSchema {
    */
   @Validate({ options: { minLength: 1 } })
   iniProfile? = Schema<string>('default');
+
+  /**
+   * A map of AWS service name to endpoint URL.
+   * Keys are Terraform AWS provider service names (e.g. `s3`, `ec2`, `sts`).
+   */
+  @Validate({
+    destruct: (value: AwsIniAccountModuleSchema['endpoints']): string[] => Object.values(value!),
+    options: { minLength: 1 },
+  })
+  endpoints? = Schema<Record<string, string>>({});
 }

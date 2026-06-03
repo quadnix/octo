@@ -41,13 +41,12 @@ export class AwsCredentialsAccountModuleSchema {
   credentials = Schema<{ accessKeyId: string; secretAccessKey: string }>();
 
   /**
-   * Optional custom endpoint URL for AWS services.
-   * This is useful for testing with LocalStack or other AWS-compatible services.
-   * When not provided, the default AWS endpoints will be used.
+   * A map of AWS service name to endpoint URL.
+   * Keys are Terraform AWS provider service names (e.g. `s3`, `ec2`, `sts`).
    */
   @Validate({
-    destruct: (value: AwsCredentialsAccountModuleSchema['endpoint']): string[] => (value ? [value] : []),
+    destruct: (value: AwsCredentialsAccountModuleSchema['endpoints']): string[] => Object.values(value!),
     options: { minLength: 1 },
   })
-  endpoint? = Schema<string | null>(null);
+  endpoints? = Schema<Record<string, string>>({});
 }

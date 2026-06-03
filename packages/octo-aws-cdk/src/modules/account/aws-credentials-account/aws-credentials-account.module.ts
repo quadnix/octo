@@ -53,17 +53,6 @@ export class AwsCredentialsAccountModule extends AModule<AwsCredentialsAccountMo
       metadata: { awsAccountId: inputs.accountId, package: '@octo' },
     });
 
-    // Register Endpoint.
-    if (inputs.endpoint) {
-      container.registerValue(
-        'EndpointInputConfig',
-        { endpoint: inputs.endpoint },
-        {
-          metadata: { awsAccountId: inputs.accountId, package: '@octo' },
-        },
-      );
-    }
-
     // Ensure credentials are valid, and the account ID matches.
     const stsClient = await container.get<STSClient, typeof STSClientFactory>(STSClient, {
       args: [inputs.accountId],
