@@ -15,6 +15,20 @@ function raw(value: unknown): string {
   return `__RAW__${value}`;
 }
 
+function addTerraformResourceSpec(target: TerraformResource | TerraformBlock, spec: Record<string, unknown>): void {
+  for (const [key, value] of Object.entries(spec)) {
+    if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+      addTerraformResourceSpec(target.block(key), value as Record<string, unknown>);
+    } else if (Array.isArray(value) && value!.every((v) => v !== null && typeof v === 'object' && !Array.isArray(v))) {
+      for (const item of value) {
+        addTerraformResourceSpec(target.block(key), item as Record<string, unknown>);
+      }
+    } else {
+      target.attribute(key, value);
+    }
+  }
+}
+
 class TerraformValue {
   constructor(public readonly value: unknown) {}
 
@@ -184,27 +198,10 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     if (this.providerAlias && !('provider' in spec)) {
       terraformResource.attribute('provider', raw(`aws.${this.providerAlias}`));
     }
-    this.addTerraformResourceSpec(terraformResource, spec);
+    addTerraformResourceSpec(terraformResource, spec);
 
     this.terraformResources.push(terraformResource);
     return terraformResource;
-  }
-
-  private addTerraformResourceSpec(target: TerraformResource | TerraformBlock, spec: Record<string, unknown>): void {
-    for (const [key, value] of Object.entries(spec)) {
-      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-        this.addTerraformResourceSpec(target.block(key), value as Record<string, unknown>);
-      } else if (
-        Array.isArray(value) &&
-        value!.every((v) => v !== null && typeof v === 'object' && !Array.isArray(v))
-      ) {
-        for (const item of value) {
-          this.addTerraformResourceSpec(target.block(key), item as Record<string, unknown>);
-        }
-      } else {
-        target.attribute(key, value);
-      }
-    }
   }
 
   output(outputs: Record<keyof TResponse & string, string>): void {
@@ -281,6 +278,16 @@ export class OctoTerraform {
     });
   }
 
+  /**
+   * Registers a Terraform AWS provider block for the given account and region.
+   *
+   * @param awsAccountId - The AWS account ID.
+   * @param awsRegionId - The AWS region ID.
+   * @param spec - Provider arguments beyond `alias` and `region`.
+   *   - Primitives become attributes (`key = value`).
+   *   - Plain objects become blocks (`key { }`).
+   *   - Wrap with `mapAttr()` when the provider schema expects a map attribute (`key = { }`).
+   */
   addTerraformProvider(awsAccountId: string, awsRegionId: string, spec: Record<string, unknown> = {}): void {
     const alias = `${awsAccountId}-${awsRegionId}`;
     this.awsAccountRegionToAlias.set(`${awsAccountId}:${awsRegionId}`, alias);
@@ -289,9 +296,7 @@ export class OctoTerraform {
       const providerBlock = new TerraformBlock('provider "aws"');
       providerBlock.attribute('alias', alias);
       providerBlock.attribute('region', awsRegionId);
-      for (const [k, v] of Object.entries(spec)) {
-        providerBlock.attribute(k, v);
-      }
+      addTerraformResourceSpec(providerBlock, spec);
       this.terraformProviders.set(alias, providerBlock);
     }
   }
