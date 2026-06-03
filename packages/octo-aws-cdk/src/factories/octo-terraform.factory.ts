@@ -15,7 +15,7 @@ function raw(value: unknown): string {
   return `__RAW__${value}`;
 }
 
-function addTerraformResourceSpec(target: TerraformResource | TerraformBlock, spec: Record<string, unknown>): void {
+function addTerraformResourceSpec(target: TerraformResource | TerraformData | TerraformBlock, spec: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(spec)) {
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       addTerraformResourceSpec(target.block(key), value as Record<string, unknown>);
@@ -92,6 +92,38 @@ class TerraformBlock {
     const childIndent = indent + step;
     const childrenRendered = this.children.map((child) => child.render(childIndent, step));
     return `${indent}${this.type} {\n${childrenRendered.join('\n')}\n${indent}}`;
+  }
+}
+
+class TerraformData {
+  private readonly children: (TerraformAttribute | TerraformBlock)[] = [];
+
+  constructor(
+    private readonly type: string,
+    private readonly name: string,
+  ) {}
+
+  get address(): string {
+    return `data.${this.type}.${this.name}`;
+  }
+
+  ref(attribute: string): string {
+    return raw(`${this.address}.${attribute}`);
+  }
+
+  attribute(key: string, value: unknown): void {
+    this.children.push(new TerraformAttribute(key, new TerraformValue(value)));
+  }
+
+  block(type: string): TerraformBlock {
+    const newBlock = new TerraformBlock(type);
+    this.children.push(newBlock);
+    return newBlock;
+  }
+
+  render(step: string): string {
+    const childrenRendered = this.children.map((child) => child.render(step, step));
+    return `data "${this.type}" "${this.name}" {\n${childrenRendered.join('\n')}\n}`;
   }
 }
 
@@ -219,10 +251,14 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
 }
 
 export class OctoTerraform {
+  private readonly awsAccountRegionToAlias: Map<string, string> = new Map();
+
+  private readonly octoTerraformResources: Record<string, OctoTerraformResource> = {};
+
   private readonly terraformConfig: TerraformBlock = new TerraformBlock('terraform');
   private readonly terraformProviders: Map<string, TerraformBlock> = new Map();
-  private readonly awsAccountRegionToAlias: Map<string, string> = new Map();
-  private readonly octoTerraformResources: Record<string, OctoTerraformResource> = {};
+
+  private readonly terraformDataSources: Map<string, TerraformData> = new Map();
   private readonly terraformVariables: Record<string, TerraformVariable> = {};
 
   constructor(
@@ -276,6 +312,13 @@ export class OctoTerraform {
       const nextIndent = indent + step;
       return `{\n${nextIndent}source  = "hashicorp/aws"\n${nextIndent}version = ">= ${minAwsProviderVersion}"\n${indent}}`;
     });
+  }
+
+  addTerraformData(type: string, name: string, spec: Record<string, unknown> = {}): TerraformData {
+    const dataSource = new TerraformData(type, name);
+    addTerraformResourceSpec(dataSource, spec);
+    this.terraformDataSources.set(`${type}.${name}`, dataSource);
+    return dataSource;
   }
 
   /**
@@ -394,6 +437,8 @@ export class OctoTerraform {
 
     const providers = [...this.terraformProviders.values()].map((block) => block.render('', step)).join('\n\n');
 
+    const dataSources = [...this.terraformDataSources.values()].map((d) => d.render(step)).join('\n\n');
+
     const variables = Object.values(this.terraformVariables)
       .map((variable) => variable.render(step))
       .join('\n\n');
@@ -402,7 +447,7 @@ export class OctoTerraform {
       .map((resource) => resource.render(step))
       .join('\n\n');
 
-    return [configBlock, providers, variables, resources].filter(Boolean).join('\n\n');
+    return [configBlock, providers, dataSources, variables, resources].filter(Boolean).join('\n\n');
   }
 
   type(schema: unknown): LazyValue {
