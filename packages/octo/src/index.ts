@@ -67,6 +67,8 @@ export { StateManagementService } from './services/state-management/state-manage
 export { type IStateProvider } from './services/state-management/state-provider.interface.js';
 export { TestStateProvider } from './services/state-management/test.state-provider.js';
 
+export { DiffAssert } from './utilities/test-helpers/test-diff-assert.js';
+
 export {
   type ActionOutputs,
   type AnchorSchema,
