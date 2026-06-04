@@ -111,6 +111,7 @@ globals
 grp
 gsi
 hashicorp
+hcl
 hideconstructor
 horiz
 hostnames
