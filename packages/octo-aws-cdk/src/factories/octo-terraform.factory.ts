@@ -15,7 +15,10 @@ function raw(value: unknown): string {
   return `__RAW__${value}`;
 }
 
-function addTerraformResourceSpec(target: TerraformResource | TerraformData | TerraformBlock, spec: Record<string, unknown>): void {
+function addTerraformResourceSpec(
+  target: TerraformResource | TerraformData | TerraformBlock,
+  spec: Record<string, unknown>,
+): void {
   for (const [key, value] of Object.entries(spec)) {
     if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
       addTerraformResourceSpec(target.block(key), value as Record<string, unknown>);
@@ -448,6 +451,16 @@ export class OctoTerraform {
       .join('\n\n');
 
     return [configBlock, providers, dataSources, variables, resources].filter(Boolean).join('\n\n');
+  }
+
+  reset(): void {
+    for (const key of Object.keys(this.octoTerraformResources)) {
+      delete this.octoTerraformResources[key];
+    }
+    this.terraformDataSources.clear();
+    for (const key of Object.keys(this.terraformVariables)) {
+      delete this.terraformVariables[key];
+    }
   }
 
   type(schema: unknown): LazyValue {
