@@ -1,12 +1,9 @@
-import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { GetCallerIdentityCommand, STSClient } from '@aws-sdk/client-sts';
-import { type App, type Container, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
+import { type App, DiffAssert, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
+import { HclAssert, type HclShape } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsIniAccountModule } from './index.js';
+
+const BASE_HCL_SHAPE: HclShape = {};
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
   const {
@@ -16,43 +13,26 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: A
 }
 
 describe('AwsIniAccountModule UT', () => {
-  let container: Container;
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const STSClientMock = mockClient(STSClient);
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-
   beforeEach(async () => {
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    STSClientMock.on(GetCallerIdentityCommand).resolves({ Account: '123' });
-
-    container = await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: STSClient,
-            value: STSClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
+
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+
+    hcl = new HclAssert(octoTerraform, BASE_HCL_SHAPE);
   });
 
   afterEach(async () => {
-    ResourceGroupsTaggingAPIClientMock.restore();
-    STSClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
   });
@@ -71,6 +51,7 @@ describe('AwsIniAccountModule UT', () => {
       enableResourceCapture: true,
       filterByModuleIds: ['account'],
     });
+
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
@@ -79,10 +60,11 @@ describe('AwsIniAccountModule UT', () => {
      ]
     `);
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`[]`);
+    hcl.assert();
   });
 
   it('should CUD', async () => {
-    const { app } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsIniAccountModule>({
       inputs: {
         accountId: '123',
@@ -91,13 +73,14 @@ describe('AwsIniAccountModule UT', () => {
       moduleId: 'account',
       type: AwsIniAccountModule,
     });
-    const result = await testModuleContainer.commit(app, { enableResourceCapture: true });
-    expect(result.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    new DiffAssert(resultCreate.resourceDiffs).hasNoChanges();
+    hcl.assert();
+
+    const { app: appDelete } = await setup(testModuleContainer);
+    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
+    new DiffAssert(resultDelete.resourceDiffs).hasNoChanges();
+    hcl.assertShape({});
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -115,19 +98,9 @@ describe('AwsIniAccountModule UT', () => {
       type: AwsIniAccountModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultCreate.resourceDiffs).hasNoChanges();
+    hcl.assert();
 
-    container.unRegisterFactory('AwsCredentialIdentityProvider', {
-      metadata: {
-        awsAccountId: '123',
-        package: '@octo',
-      },
-    });
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsIniAccountModule>({
@@ -139,19 +112,9 @@ describe('AwsIniAccountModule UT', () => {
       type: AwsIniAccountModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultUpdateTags.resourceDiffs).hasNoChanges();
+    hcl.assert();
 
-    container.unRegisterFactory('AwsCredentialIdentityProvider', {
-      metadata: {
-        awsAccountId: '123',
-        package: '@octo',
-      },
-    });
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsIniAccountModule>({
       inputs: {
@@ -162,12 +125,95 @@ describe('AwsIniAccountModule UT', () => {
       type: AwsIniAccountModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultDeleteTags.resourceDiffs).hasNoChanges();
+    hcl.assert();
+  });
+
+  describe('input changes', () => {
+    it('should handle accountId change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsIniAccountModule>({
+        inputs: {
+          accountId: '123',
+          app: stub('${{testModule.model.app}}'),
+        },
+        moduleId: 'account',
+        type: AwsIniAccountModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.assert();
+
+      const { app: appUpdate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsIniAccountModule>({
+        inputs: {
+          accountId: '456',
+          app: stub('${{testModule.model.app}}'),
+        },
+        moduleId: 'account',
+        type: AwsIniAccountModule,
+      });
+      const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
+      new DiffAssert(resultUpdate.resourceDiffs).hasNoChanges();
+      hcl.assert();
+    });
+
+    it('should handle iniProfile change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsIniAccountModule>({
+        inputs: {
+          accountId: '123',
+          app: stub('${{testModule.model.app}}'),
+          iniProfile: 'default',
+        },
+        moduleId: 'account',
+        type: AwsIniAccountModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.assert();
+
+      const { app: appUpdate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsIniAccountModule>({
+        inputs: {
+          accountId: '123',
+          app: stub('${{testModule.model.app}}'),
+          iniProfile: 'production',
+        },
+        moduleId: 'account',
+        type: AwsIniAccountModule,
+      });
+      const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
+      new DiffAssert(resultUpdate.resourceDiffs).hasNoChanges();
+      hcl.assert();
+    });
+
+    it('should handle endpoints change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsIniAccountModule>({
+        inputs: {
+          accountId: '123',
+          app: stub('${{testModule.model.app}}'),
+          endpoints: {},
+        },
+        moduleId: 'account',
+        type: AwsIniAccountModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.assert();
+
+      const { app: appUpdate } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsIniAccountModule>({
+        inputs: {
+          accountId: '123',
+          app: stub('${{testModule.model.app}}'),
+          endpoints: { s3: 'http://localhost:4566' },
+        },
+        moduleId: 'account',
+        type: AwsIniAccountModule,
+      });
+      const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
+      new DiffAssert(resultUpdate.resourceDiffs).hasNoChanges();
+      hcl.assert();
+    });
   });
 
   it('should handle moduleId change', async () => {
@@ -181,14 +227,9 @@ describe('AwsIniAccountModule UT', () => {
       type: AwsIniAccountModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.assert();
 
-    container.unRegisterFactory('AwsCredentialIdentityProvider', {
-      metadata: {
-        awsAccountId: '123',
-        package: '@octo',
-      },
-    });
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    const { app: appUpdate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsIniAccountModule>({
       inputs: {
         accountId: '123',
@@ -197,12 +238,54 @@ describe('AwsIniAccountModule UT', () => {
       moduleId: 'account-2',
       type: AwsIniAccountModule,
     });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
+    new DiffAssert(resultUpdate.resourceDiffs).hasNoChanges();
+    hcl.assert();
+  });
+
+  describe('validation', () => {
+    it('should validate accountId is not empty', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsIniAccountModule>({
+          inputs: {
+            accountId: '',
+            app: stub('${{testModule.model.app}}'),
+          },
+          moduleId: 'account',
+          type: AwsIniAccountModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "accountId" in schema could not be validated!"`);
+    });
+
+    it('should validate iniProfile is not empty', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsIniAccountModule>({
+          inputs: {
+            accountId: '123',
+            app: stub('${{testModule.model.app}}'),
+            iniProfile: '',
+          },
+          moduleId: 'account',
+          type: AwsIniAccountModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "iniProfile" in schema could not be validated!"`);
+    });
+
+    it('should validate endpoints values are not empty', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsIniAccountModule>({
+          inputs: {
+            accountId: '123',
+            app: stub('${{testModule.model.app}}'),
+            endpoints: { s3: '' },
+          },
+          moduleId: 'account',
+          type: AwsIniAccountModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "endpoints" in schema could not be validated!"`);
+    });
   });
 });

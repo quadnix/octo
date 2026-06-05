@@ -1,15 +1,41 @@
-import { CreateFileSystemCommand, DescribeFileSystemsCommand, EFSClient } from '@aws-sdk/client-efs';
 import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { jest } from '@jest/globals';
-import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
+  type Account,
+  type App,
+  DiffAssert,
+  type Region,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
+import { HclAssert, type HclShape } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsEfsFilesystemModule } from './index.js';
+
+const BASE_HCL_SHAPE: HclShape = {
+  'output.efs-region-test-filesystem-FileSystemArn': {
+    value: 'aws_efs_file_system.efs-region-test-filesystem.arn',
+  },
+  'output.efs-region-test-filesystem-FileSystemId': {
+    value: 'aws_efs_file_system.efs-region-test-filesystem.id',
+  },
+  'resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy': {
+    backup_policy: {
+      status: 'DISABLED',
+    },
+    depends_on: '[aws_efs_file_system.efs-region-test-filesystem]',
+    file_system_id: 'aws_efs_file_system.efs-region-test-filesystem.id',
+    provider: 'aws.123-us-east-1',
+  },
+  'resource.aws_efs_file_system.efs-region-test-filesystem': {
+    encrypted: 'false',
+    Name: 'test-filesystem',
+    performance_mode: 'generalPurpose',
+    provider: 'aws.123-us-east-1',
+    tags: '{',
+    throughput_mode: 'bursting',
+  },
+};
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -23,7 +49,6 @@ async function setup(
     app: ['test-app'],
     region: ['region'],
   });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
@@ -42,75 +67,29 @@ async function setup(
 }
 
 describe('AwsEfsFilesystemModule UT', () => {
-  const originalRetryPromise = RetryUtility.retryPromise;
-
-  let retryPromiseSpy: jest.Spied<any>;
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const EFSClientMock = mockClient(EFSClient);
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-
   beforeEach(async () => {
-    EFSClientMock.on(CreateFileSystemCommand)
-      .resolves({
-        FileSystemArn: 'FileSystemArn',
-        FileSystemId: 'FileSystemId',
-      })
-      .on(DescribeFileSystemsCommand)
-      .callsFake(() => {
-        const states = ['available', 'deleted'];
-        return {
-          FileSystems: [
-            {
-              FileSystemId: 'FileSystemId',
-              LifeCycleState: states[Math.floor(Math.random() * states.length)],
-            },
-          ],
-        };
-      });
-
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: EFSClient,
-            value: EFSClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
 
-    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, {
-        ...options,
-        initialDelayInMs: 0,
-        maxRetries: 15,
-        retryDelayInMs: 0,
-        throwOnError: true,
-      });
-    });
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'us-east-1');
+
+    hcl = new HclAssert(octoTerraform, BASE_HCL_SHAPE);
   });
 
   afterEach(async () => {
-    EFSClientMock.restore();
-    ResourceGroupsTaggingAPIClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
-
-    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {
@@ -137,10 +116,11 @@ describe('AwsEfsFilesystemModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddEfsResourceAction",
+         "CaptureEfsResponseResourceAction",
        ],
      ]
     `);
+    hcl.assert();
   });
 
   it('should CUD', async () => {
@@ -154,35 +134,13 @@ describe('AwsEfsFilesystemModule UT', () => {
       type: AwsEfsFilesystemModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/efs=efs-region-test-filesystem",
-           "value": "@octo/efs=efs-region-test-filesystem",
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultCreate.resourceDiffs).hasAdded('@octo/efs=efs-region-test-filesystem');
+    hcl.assert();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/efs=efs-region-test-filesystem",
-           "value": "@octo/efs=efs-region-test-filesystem",
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultDelete.resourceDiffs).hasDeleted('@octo/efs=efs-region-test-filesystem');
+    hcl.assertShape({});
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -200,19 +158,8 @@ describe('AwsEfsFilesystemModule UT', () => {
       type: AwsEfsFilesystemModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/efs=efs-region-test-filesystem",
-           "value": "@octo/efs=efs-region-test-filesystem",
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultCreate.resourceDiffs).hasAdded('@octo/efs=efs-region-test-filesystem');
+    hcl.assert();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -225,27 +172,12 @@ describe('AwsEfsFilesystemModule UT', () => {
       type: AwsEfsFilesystemModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/efs=efs-region-test-filesystem",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultUpdateTags.resourceDiffs).hasTagUpdate('@octo/efs=efs-region-test-filesystem', {
+      add: { tag2: 'value2' },
+      delete: [],
+      update: { tag1: 'value1_1' },
+    });
+    hcl.assert();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEfsFilesystemModule>({
@@ -257,26 +189,12 @@ describe('AwsEfsFilesystemModule UT', () => {
       type: AwsEfsFilesystemModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/efs=efs-region-test-filesystem",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultDeleteTags.resourceDiffs).hasTagUpdate('@octo/efs=efs-region-test-filesystem', {
+      add: {},
+      delete: ['tag1', 'tag2'],
+      update: {},
+    });
+    hcl.assert();
   });
 
   describe('input changes', () => {
@@ -291,6 +209,7 @@ describe('AwsEfsFilesystemModule UT', () => {
         type: AwsEfsFilesystemModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.assert();
 
       const { app: appUpdateFilesystemName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEfsFilesystemModule>({
@@ -304,25 +223,33 @@ describe('AwsEfsFilesystemModule UT', () => {
       const resultUpdateFilesystemName = await testModuleContainer.commit(appUpdateFilesystemName, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateFilesystemName.resourceDiffs).toMatchInlineSnapshot(`
-       [
-         [
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/efs=efs-region-test-filesystem",
-             "value": "@octo/efs=efs-region-test-filesystem",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/efs=efs-region-changed-filesystem",
-             "value": "@octo/efs=efs-region-changed-filesystem",
-           },
-         ],
-         [],
-       ]
-      `);
+      new DiffAssert(resultUpdateFilesystemName.resourceDiffs)
+        .hasDeleted('@octo/efs=efs-region-test-filesystem')
+        .hasAdded('@octo/efs=efs-region-changed-filesystem');
+      hcl.assertShape({
+        'output.efs-region-changed-filesystem-FileSystemArn': {
+          value: 'aws_efs_file_system.efs-region-changed-filesystem.arn',
+        },
+        'output.efs-region-changed-filesystem-FileSystemId': {
+          value: 'aws_efs_file_system.efs-region-changed-filesystem.id',
+        },
+        'resource.aws_efs_backup_policy.efs-region-changed-filesystem_backup_policy': {
+          backup_policy: {
+            status: 'DISABLED',
+          },
+          depends_on: '[aws_efs_file_system.efs-region-changed-filesystem]',
+          file_system_id: 'aws_efs_file_system.efs-region-changed-filesystem.id',
+          provider: 'aws.123-us-east-1',
+        },
+        'resource.aws_efs_file_system.efs-region-changed-filesystem': {
+          encrypted: 'false',
+          Name: 'changed-filesystem',
+          performance_mode: 'generalPurpose',
+          provider: 'aws.123-us-east-1',
+          tags: '{',
+          throughput_mode: 'bursting',
+        },
+      });
     });
   });
 
@@ -337,6 +264,7 @@ describe('AwsEfsFilesystemModule UT', () => {
       type: AwsEfsFilesystemModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.assert();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEfsFilesystemModule>({
@@ -348,11 +276,23 @@ describe('AwsEfsFilesystemModule UT', () => {
       type: AwsEfsFilesystemModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultUpdateModuleId.resourceDiffs).hasNoChanges();
+    hcl.assert();
+  });
+
+  describe('validation', () => {
+    it('should validate filesystemName length', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsEfsFilesystemModule>({
+          inputs: {
+            filesystemName: '',
+            region: stub('${{testModule.model.region}}'),
+          },
+          moduleId: 'filesystem',
+          type: AwsEfsFilesystemModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "filesystemName" in schema could not be validated!"`);
+    });
   });
 });

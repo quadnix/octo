@@ -1,28 +1,20 @@
-import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { jest } from '@jest/globals';
-import { type Account, type App, type Server, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
+import { type App, DiffAssert, type Server, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsEcsServerAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
 import type { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-role.anchor.schema.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
+import { HclAssert, type HclShape } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsEcsDeploymentModule } from './index.js';
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-): Promise<{ account: Account; app: App; server: Server }> {
+const BASE_HCL_SHAPE: HclShape = {};
+
+async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App; server: Server }> {
   const {
-    account: [account],
     app: [app],
     server: [server],
   } = await testModuleContainer.createTestModels('testModule', {
-    account: ['aws,123'],
     app: ['test-app'],
     server: ['backend'],
   });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   server.addAnchor(
     testModuleContainer.createTestAnchor<AwsEcsServerAnchorSchema>(
@@ -39,37 +31,30 @@ async function setup(
     ),
   );
 
-  return { account, app, server };
+  return { app, server };
 }
 
 describe('AwsEcsDeploymentModule UT', () => {
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-
   beforeEach(async () => {
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
+
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+
+    hcl = new HclAssert(octoTerraform, BASE_HCL_SHAPE);
   });
 
   afterEach(async () => {
-    ResourceGroupsTaggingAPIClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
   });
@@ -105,6 +90,7 @@ describe('AwsEcsDeploymentModule UT', () => {
      ]
     `);
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`[]`);
+    hcl.assert();
   });
 
   it('should CUD', async () => {
@@ -127,21 +113,35 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultCreate.resourceDiffs).hasNoChanges();
+    hcl.assert();
+
+    const { app: appUpdate } = await setup(testModuleContainer);
+    await testModuleContainer.runModule<AwsEcsDeploymentModule>({
+      inputs: {
+        deploymentContainerProperties: {
+          cpu: 512,
+          image: {
+            command: 'changed-command',
+            ports: [{ containerPort: 8080, protocol: 'tcp' }],
+            uri: 'changed-uri',
+          },
+          memory: 1024,
+        },
+        deploymentTag: 'v1',
+        server: stub('${{testModule.model.server}}'),
+      },
+      moduleId: 'deployment',
+      type: AwsEcsDeploymentModule,
+    });
+    const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
+    new DiffAssert(resultUpdate.resourceDiffs).hasNoChanges();
+    hcl.assert();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultDelete.resourceDiffs).hasNoChanges();
+    hcl.assertShape({});
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -168,12 +168,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultCreate.resourceDiffs).hasNoChanges();
+    hcl.assert();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -195,12 +191,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultUpdateTags.resourceDiffs).hasNoChanges();
+    hcl.assert();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsDeploymentModule>({
@@ -221,12 +213,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultDeleteTags.resourceDiffs).hasNoChanges();
+    hcl.assert();
   });
 
   describe('input changes', () => {
@@ -250,6 +238,7 @@ describe('AwsEcsDeploymentModule UT', () => {
         type: AwsEcsDeploymentModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.assert();
 
       const { app: appUpdateDeploymentContainerProperties } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsDeploymentModule>({
@@ -257,9 +246,9 @@ describe('AwsEcsDeploymentModule UT', () => {
           deploymentContainerProperties: {
             cpu: 512,
             image: {
-              command: 'change-command',
+              command: 'changed-command',
               ports: [{ containerPort: 8080, protocol: 'tcp' }],
-              uri: 'change-uri',
+              uri: 'changed-uri',
             },
             memory: 1024,
           },
@@ -275,12 +264,8 @@ describe('AwsEcsDeploymentModule UT', () => {
           enableResourceCapture: true,
         },
       );
-      expect(resultUpdateDeploymentContainerProperties.resourceDiffs).toMatchInlineSnapshot(`
-       [
-         [],
-         [],
-       ]
-      `);
+      new DiffAssert(resultUpdateDeploymentContainerProperties.resourceDiffs).hasNoChanges();
+      hcl.assertShape({});
     });
 
     it('should handle deploymentTag change', async () => {
@@ -303,6 +288,7 @@ describe('AwsEcsDeploymentModule UT', () => {
         type: AwsEcsDeploymentModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.assert();
 
       const { app: appUpdateDeploymentTag } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsDeploymentModule>({
@@ -316,7 +302,7 @@ describe('AwsEcsDeploymentModule UT', () => {
             },
             memory: 512,
           },
-          deploymentTag: 'change-v1',
+          deploymentTag: 'changed-v1',
           server: stub('${{testModule.model.server}}'),
         },
         moduleId: 'deployment',
@@ -325,12 +311,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       const resultUpdateDeploymentTag = await testModuleContainer.commit(appUpdateDeploymentTag, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateDeploymentTag.resourceDiffs).toMatchInlineSnapshot(`
-       [
-         [],
-         [],
-       ]
-      `);
+      new DiffAssert(resultUpdateDeploymentTag.resourceDiffs).hasNoChanges();
+      hcl.assertShape({});
     });
   });
 
@@ -354,6 +336,7 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.assert();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsDeploymentModule>({
@@ -374,11 +357,32 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultUpdateModuleId.resourceDiffs).hasNoChanges();
+    hcl.assert();
+  });
+
+  describe('validation', () => {
+    it('should validate deploymentTag length', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsEcsDeploymentModule>({
+          inputs: {
+            deploymentContainerProperties: {
+              cpu: 256,
+              image: {
+                command: 'command',
+                ports: [{ containerPort: 80, protocol: 'tcp' }],
+                uri: 'uri',
+              },
+              memory: 512,
+            },
+            deploymentTag: '',
+            server: stub('${{testModule.model.server}}'),
+          },
+          moduleId: 'deployment',
+          type: AwsEcsDeploymentModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "deploymentTag" in schema could not be validated!"`);
+    });
   });
 });

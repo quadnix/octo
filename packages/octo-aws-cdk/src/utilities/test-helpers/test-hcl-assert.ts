@@ -3,9 +3,11 @@ import type { OctoTerraform } from '../../factories/octo-terraform.factory.js';
 /**
  * A parsed snapshot of non-blacklisted HCL blocks.
  * Keys are block addresses (e.g. `resource.aws_vpc.vpc-name`);
- * values map top-level property names to their normalized HCL values.
+ * values are nested maps of property names to their normalized HCL values.
+ * Repeated nested blocks (e.g. multiple `ingress` blocks) are represented as arrays.
  */
-export type HclShape = Record<string, Record<string, string>>;
+export type HclBlock = { [key: string]: string | HclBlock | HclBlock[] };
+export type HclShape = Record<string, HclBlock>;
 
 /**
  * `HclAssert` provides assertion helpers for the HCL string produced by
@@ -48,10 +50,60 @@ export class HclAssert {
     const shape: HclShape = {};
     for (const address of this.extractAddresses(rendered)) {
       const block = this.extractBlock(this.addressToKeyword(address), rendered);
-      const props = this.extractProperties(block);
-      shape[address] = Object.fromEntries(props.map((p) => [p.key, this.normalizeValue(p.value)]));
+      const lines = block.split('\n');
+      shape[address] = this.parseBlockLines(lines.slice(1, -1));
     }
     return shape;
+  }
+
+  private parseBlockLines(lines: string[]): HclBlock {
+    const result: HclBlock = {};
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i];
+
+      const kvMatch = line.match(/^\s+(\w+)\s*=\s*(.+)$/);
+      if (kvMatch) {
+        result[kvMatch[1]] = this.normalizeValue(kvMatch[2].trim());
+        i++;
+        continue;
+      }
+
+      const blockMatch = line.match(/^\s+(\w+)(?:\s+"[^"]*")?\s*\{/);
+      if (blockMatch) {
+        const blockKey = blockMatch[1];
+        let depth = 0;
+        let end = lines.length - 1;
+        for (let j = i; j < lines.length; j++) {
+          depth += (lines[j].match(/\{/g) ?? []).length;
+          depth -= (lines[j].match(/}/g) ?? []).length;
+          if (depth === 0) {
+            end = j;
+            break;
+          }
+        }
+        const nested = this.parseBlockLines(lines.slice(i + 1, end));
+
+        const existing = result[blockKey];
+        if (existing !== undefined) {
+          if (Array.isArray(existing)) {
+            existing.push(nested);
+          } else {
+            result[blockKey] = [existing as HclBlock, nested];
+          }
+        } else {
+          result[blockKey] = nested;
+        }
+
+        i = end + 1;
+        continue;
+      }
+
+      i++;
+    }
+
+    return result;
   }
 
   private addressToKeyword(address: string): string {
@@ -93,34 +145,6 @@ export class HclAssert {
       }
     }
     throw new Error(`Un-closed block "${startKeyword}" in rendered HCL.`);
-  }
-
-  private extractProperties(blockContent: string): { key: string; value: string }[] {
-    const properties: { key: string; value: string }[] = [];
-    let depth = 0;
-    let firstLine = true;
-
-    for (const line of blockContent.split('\n')) {
-      if (firstLine) {
-        firstLine = false;
-        continue;
-      }
-
-      const opens = (line.match(/\{/g) ?? []).length;
-      const closes = (line.match(/}/g) ?? []).length;
-
-      if (depth === 0) {
-        const match = line.match(/^\s+(\w+)\s*=\s*(.+)$/);
-        if (match) {
-          properties.push({ key: match[1], value: match[2].trim() });
-        }
-      }
-
-      depth += opens - closes;
-      if (depth < 0) break;
-    }
-
-    return properties;
   }
 
   private normalizeValue(hclValue: string): string {

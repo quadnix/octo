@@ -1,28 +1,33 @@
-import {
-  CreateInternetGatewayCommand,
-  CreateVpcCommand,
-  DescribeInternetGatewaysCommand,
-  EC2Client,
-} from '@aws-sdk/client-ec2';
-import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { jest } from '@jest/globals';
-import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
+import { type Account, type App, DiffAssert, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
+import { HclAssert, type HclShape } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsMultiAzRegionId } from './index.schema.js';
 import { AwsMultiAzRegionModule } from './index.js';
+
+const BASE_HCL_SHAPE: HclShape = {
+  'output.igw-test-region-InternetGatewayArn': { value: 'aws_internet_gateway.igw-test-region.arn' },
+  'output.igw-test-region-InternetGatewayId': { value: 'aws_internet_gateway.igw-test-region.id' },
+  'output.vpc-test-region-VpcArn': { value: 'aws_vpc.vpc-test-region.arn' },
+  'output.vpc-test-region-VpcId': { value: 'aws_vpc.vpc-test-region.id' },
+  'resource.aws_internet_gateway.igw-test-region': {
+    provider: 'aws.123-us-east-1',
+    vpc_id: 'aws_vpc.vpc-test-region.id',
+  },
+  'resource.aws_vpc.vpc-test-region': {
+    cidr_block: '10.0.0.0/8',
+    enable_dns_hostnames: 'true',
+    enable_dns_support: 'true',
+    instance_tenancy: 'default',
+    provider: 'aws.123-us-east-1',
+  },
+};
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
   const {
     account: [account],
     app: [app],
   } = await testModuleContainer.createTestModels('testModule', { account: ['aws,123'], app: ['test-app'] });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   account.addAnchor(
     testModuleContainer.createTestAnchor<AwsAccountAnchorSchema>('AwsAccountAnchor', { awsAccountId: '123' }, account),
@@ -32,38 +37,14 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 }
 
 describe('AwsMultiAzRegionModule UT', () => {
-  const originalRetryPromise = RetryUtility.retryPromise;
-
-  let retryPromiseSpy: jest.Spied<any>;
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const EC2ClientMock = mockClient(EC2Client);
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-
   beforeEach(async () => {
-    EC2ClientMock.on(CreateVpcCommand)
-      .resolves({ Vpc: { VpcId: 'VpcId' } })
-      .on(CreateInternetGatewayCommand)
-      .resolves({ InternetGateway: { InternetGatewayId: 'InternetGatewayId' } })
-      .on(DescribeInternetGatewaysCommand)
-      .resolves({ InternetGateways: [{ InternetGatewayId: 'InternetGatewayId' }] });
-
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    await TestContainer.create(
+    const container = await TestContainer.create(
       {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: EC2Client,
-            value: EC2ClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-        ],
+        mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }],
       },
       { factoryTimeoutInMs: 500 },
     );
@@ -71,19 +52,16 @@ describe('AwsMultiAzRegionModule UT', () => {
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
 
-    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
-    });
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'us-east-1');
+
+    hcl = new HclAssert(octoTerraform, BASE_HCL_SHAPE);
   });
 
   afterEach(async () => {
-    EC2ClientMock.restore();
-    ResourceGroupsTaggingAPIClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
-
-    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {
@@ -112,13 +90,14 @@ describe('AwsMultiAzRegionModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddVpcResourceAction",
+         "CaptureVpcResponseResourceAction",
        ],
        [
-         "AddInternetGatewayResourceAction",
+         "CaptureInternetGatewayResponseResourceAction",
        ],
      ]
     `);
+    hcl.assert();
   });
 
   it('should CUD', async () => {
@@ -134,47 +113,17 @@ describe('AwsMultiAzRegionModule UT', () => {
       type: AwsMultiAzRegionModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/vpc=vpc-test-region",
-           "value": "@octo/vpc=vpc-test-region",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-test-region",
-           "value": "@octo/internet-gateway=igw-test-region",
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultCreate.resourceDiffs)
+      .hasAdded('@octo/vpc=vpc-test-region')
+      .hasAdded('@octo/internet-gateway=igw-test-region');
+    hcl.assert();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/vpc=vpc-test-region",
-           "value": "@octo/vpc=vpc-test-region",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-test-region",
-           "value": "@octo/internet-gateway=igw-test-region",
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultDelete.resourceDiffs)
+      .hasDeleted('@octo/vpc=vpc-test-region')
+      .hasDeleted('@octo/internet-gateway=igw-test-region');
+    hcl.assertShape({});
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -194,25 +143,10 @@ describe('AwsMultiAzRegionModule UT', () => {
       type: AwsMultiAzRegionModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/vpc=vpc-test-region",
-           "value": "@octo/vpc=vpc-test-region",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/internet-gateway=igw-test-region",
-           "value": "@octo/internet-gateway=igw-test-region",
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultCreate.resourceDiffs)
+      .hasAdded('@octo/vpc=vpc-test-region')
+      .hasAdded('@octo/internet-gateway=igw-test-region');
+    hcl.assert();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -227,41 +161,14 @@ describe('AwsMultiAzRegionModule UT', () => {
       type: AwsMultiAzRegionModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/vpc=vpc-test-region",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/internet-gateway=igw-test-region",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultUpdateTags.resourceDiffs)
+      .hasTagUpdate('@octo/vpc=vpc-test-region', { add: { tag2: 'value2' }, delete: [], update: { tag1: 'value1_1' } })
+      .hasTagUpdate('@octo/internet-gateway=igw-test-region', {
+        add: { tag2: 'value2' },
+        delete: [],
+        update: { tag1: 'value1_1' },
+      });
+    hcl.assert();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsMultiAzRegionModule>({
@@ -275,39 +182,10 @@ describe('AwsMultiAzRegionModule UT', () => {
       type: AwsMultiAzRegionModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/vpc=vpc-test-region",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/internet-gateway=igw-test-region",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-       ],
-       [],
-     ]
-    `);
+    new DiffAssert(resultDeleteTags.resourceDiffs)
+      .hasTagUpdate('@octo/vpc=vpc-test-region', { add: {}, delete: ['tag1', 'tag2'], update: {} })
+      .hasTagUpdate('@octo/internet-gateway=igw-test-region', { add: {}, delete: ['tag1', 'tag2'], update: {} });
+    hcl.assert();
   });
 
   describe('input changes', () => {
@@ -324,6 +202,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         type: AwsMultiAzRegionModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.assert();
 
       const { app: appUpdateName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsMultiAzRegionModule>({
@@ -337,37 +216,28 @@ describe('AwsMultiAzRegionModule UT', () => {
         type: AwsMultiAzRegionModule,
       });
       const resultUpdateName = await testModuleContainer.commit(appUpdateName, { enableResourceCapture: true });
-      expect(resultUpdateName.resourceDiffs).toMatchInlineSnapshot(`
-       [
-         [
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/vpc=vpc-test-region",
-             "value": "@octo/vpc=vpc-test-region",
-           },
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/internet-gateway=igw-test-region",
-             "value": "@octo/internet-gateway=igw-test-region",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/vpc=vpc-changed-region",
-             "value": "@octo/vpc=vpc-changed-region",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/internet-gateway=igw-changed-region",
-             "value": "@octo/internet-gateway=igw-changed-region",
-           },
-         ],
-         [],
-       ]
-      `);
+      new DiffAssert(resultUpdateName.resourceDiffs)
+        .hasDeleted('@octo/vpc=vpc-test-region')
+        .hasDeleted('@octo/internet-gateway=igw-test-region')
+        .hasAdded('@octo/vpc=vpc-changed-region')
+        .hasAdded('@octo/internet-gateway=igw-changed-region');
+      hcl.assertShape({
+        'output.igw-changed-region-InternetGatewayArn': { value: 'aws_internet_gateway.igw-changed-region.arn' },
+        'output.igw-changed-region-InternetGatewayId': { value: 'aws_internet_gateway.igw-changed-region.id' },
+        'output.vpc-changed-region-VpcArn': { value: 'aws_vpc.vpc-changed-region.arn' },
+        'output.vpc-changed-region-VpcId': { value: 'aws_vpc.vpc-changed-region.id' },
+        'resource.aws_internet_gateway.igw-changed-region': {
+          provider: 'aws.123-us-east-1',
+          vpc_id: 'aws_vpc.vpc-changed-region.id',
+        },
+        'resource.aws_vpc.vpc-changed-region': {
+          cidr_block: '10.0.0.0/8',
+          enable_dns_hostnames: 'true',
+          enable_dns_support: 'true',
+          instance_tenancy: 'default',
+          provider: 'aws.123-us-east-1',
+        },
+      });
     });
 
     it('should handle regionId change', async () => {
@@ -383,6 +253,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         type: AwsMultiAzRegionModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.assert();
 
       const { app: appUpdateRegionId } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsMultiAzRegionModule>({
@@ -417,6 +288,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         type: AwsMultiAzRegionModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.assert();
 
       const { app: appUpdateVpcCidrBlock } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsMultiAzRegionModule>({
@@ -452,6 +324,7 @@ describe('AwsMultiAzRegionModule UT', () => {
       type: AwsMultiAzRegionModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.assert();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsMultiAzRegionModule>({
@@ -465,12 +338,8 @@ describe('AwsMultiAzRegionModule UT', () => {
       type: AwsMultiAzRegionModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    new DiffAssert(resultUpdateModuleId.resourceDiffs).hasNoChanges();
+    hcl.assert();
   });
 
   describe('validation', () => {
@@ -488,6 +357,32 @@ describe('AwsMultiAzRegionModule UT', () => {
           type: AwsMultiAzRegionModule,
         });
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"At least 2 regionIds are required!"`);
+    });
+
+    it('should validate duplicate region name', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region',
+            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region1',
+          type: AwsMultiAzRegionModule,
+        });
+        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region',
+            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
+            vpcCidrBlock: '192.168.0.0/24',
+          },
+          moduleId: 'region2',
+          type: AwsMultiAzRegionModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Region "test-region" already exists!"`);
     });
 
     it('should validate overlapping CIDR blocks', async () => {
