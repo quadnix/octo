@@ -1,63 +1,16 @@
 import {
-  CreateTableCommand,
-  DeleteTableCommand,
-  DescribeTableCommand,
-  type DescribeTableCommandOutput,
-  DescribeTimeToLiveCommand,
-  DynamoDBClient,
-  ResourceNotFoundException,
-  TableStatus,
-  UpdateTableCommand,
-  UpdateTimeToLiveCommand,
-} from '@aws-sdk/client-dynamodb';
-import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { jest } from '@jest/globals';
-import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
+  type Account,
+  type App,
+  DiffAssert,
+  type Region,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsDynamoDBServiceModule } from './index.js';
-
-const TABLE_ARN = 'arn:aws:dynamodb:us-east-1:123:table/test-table';
-const TABLE_ID = 'test-table-id';
-const STREAM_ARN = 'arn:aws:dynamodb:us-east-1:123:table/test-table/stream/2024-01-01T00:00:00.000';
-
-function makeDescribeTableResponse(
-  options: {
-    GlobalSecondaryIndexes?: {
-      IndexName: string;
-      IndexStatus: string;
-      KeySchema: { AttributeName: string; KeyType: string }[];
-      Projection: { ProjectionType: string };
-    }[];
-    LocalSecondaryIndexes?: {
-      IndexName: string;
-      KeySchema: { AttributeName: string; KeyType: string }[];
-      Projection: { ProjectionType: string };
-    }[];
-    streamArn?: string;
-    streamEnabled?: boolean;
-    streamViewType?: string;
-  } = {},
-): Partial<DescribeTableCommandOutput> {
-  return {
-    Table: {
-      GlobalSecondaryIndexes: options.GlobalSecondaryIndexes as any,
-      LatestStreamArn: options.streamArn,
-      LocalSecondaryIndexes: options.LocalSecondaryIndexes as any,
-      StreamSpecification: options.streamEnabled
-        ? { StreamEnabled: true, StreamViewType: options.streamViewType as any }
-        : undefined,
-      TableArn: TABLE_ARN,
-      TableId: TABLE_ID,
-      TableStatus: TableStatus.ACTIVE,
-    },
-  };
-}
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -71,7 +24,6 @@ async function setup(
     app: ['test-app'],
     region: ['region'],
   });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
@@ -90,64 +42,28 @@ async function setup(
 }
 
 describe('AwsDynamoDBServiceModule UT', () => {
-  const originalRetryPromise = RetryUtility.retryPromise;
-
-  let retryPromiseSpy: jest.Spied<any>;
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const DynamoDBClientMock = mockClient(DynamoDBClient);
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-
   beforeEach(async () => {
-    DynamoDBClientMock.on(CreateTableCommand).resolves({
-      TableDescription: {
-        TableArn: TABLE_ARN,
-        TableId: TABLE_ID,
-        TableStatus: 'ACTIVE',
-      },
-    });
-    DynamoDBClientMock.on(DescribeTableCommand).resolves(makeDescribeTableResponse());
-    DynamoDBClientMock.on(DescribeTimeToLiveCommand).resolves({ TimeToLiveDescription: {} });
-    DynamoDBClientMock.on(DeleteTableCommand).resolves({});
-    DynamoDBClientMock.on(UpdateTableCommand).resolves({});
-    DynamoDBClientMock.on(UpdateTimeToLiveCommand).resolves({});
-
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: DynamoDBClient,
-            value: DynamoDBClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
-
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
 
-    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
-    });
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'us-east-1');
+
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
-    DynamoDBClientMock.restore();
-    ResourceGroupsTaggingAPIClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
-
-    retryPromiseSpy.mockRestore();
   });
 
   it('should call correct actions', async () => {
@@ -180,9 +96,49 @@ describe('AwsDynamoDBServiceModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddDynamoDBResourceAction",
+         "CaptureDynamoDBResponseResourceAction",
        ],
      ]
+    `);
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/dynamodb=dynamodb-test-table",
+     ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "123-us-east-1"
+       region = "us-east-1"
+     }
+
+     resource "aws_dynamodb_table" "dynamodb-test-table" {
+       provider = aws.123-us-east-1
+       attribute {
+         name = "AccountId"
+         type = "S"
+       }
+       billing_mode = "PROVISIONED"
+       deletion_protection_enabled = false
+       hash_key = "AccountId"
+       name = "test-table"
+       table_class = "STANDARD"
+       read_capacity = 5
+       write_capacity = 5
+     }
+
+     output "dynamodb-test-table-TableArn" {
+       value = aws_dynamodb_table.dynamodb-test-table.arn
+     }"
     `);
   });
 
@@ -203,17 +159,15 @@ describe('AwsDynamoDBServiceModule UT', () => {
       type: AwsDynamoDBServiceModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/dynamodb=dynamodb-test-table",
-           "value": "@octo/dynamodb=dynamodb-test-table",
-         },
-       ],
-       [],
+       "+ @octo/dynamodb=dynamodb-test-table",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
+       "+ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 8",
      ]
     `);
 
@@ -233,33 +187,20 @@ describe('AwsDynamoDBServiceModule UT', () => {
       type: AwsDynamoDBServiceModule,
     });
     const resultNoChange = await testModuleContainer.commit(appNoChange, { enableResourceCapture: true });
-    expect(resultNoChange.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
-
-    // Mocks for table not found.
-    DynamoDBClientMock.reset();
-    DynamoDBClientMock.on(DeleteTableCommand).resolves({});
-    DynamoDBClientMock.on(DescribeTableCommand).rejects(
-      new ResourceNotFoundException({ $metadata: {}, message: 'Table not found' }),
-    );
+    expect(new DiffAssert(resultNoChange.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/dynamodb=dynamodb-test-table",
-           "value": "@octo/dynamodb=dynamodb-test-table",
-         },
-       ],
-       [],
+       "- @octo/dynamodb=dynamodb-test-table",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
+       "- resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 8",
      ]
     `);
 
@@ -285,17 +226,15 @@ describe('AwsDynamoDBServiceModule UT', () => {
       type: AwsDynamoDBServiceModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/dynamodb=dynamodb-test-table",
-           "value": "@octo/dynamodb=dynamodb-test-table",
-         },
-       ],
-       [],
+       "+ @octo/dynamodb=dynamodb-test-table",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
+       "+ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 8",
      ]
     `);
 
@@ -316,27 +255,12 @@ describe('AwsDynamoDBServiceModule UT', () => {
       type: AwsDynamoDBServiceModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/dynamodb=dynamodb-test-table",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-       ],
-       [],
+       "~ @octo/dynamodb=dynamodb-test-table",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -354,26 +278,12 @@ describe('AwsDynamoDBServiceModule UT', () => {
       type: AwsDynamoDBServiceModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/dynamodb=dynamodb-test-table",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-       ],
-       [],
+       "~ @octo/dynamodb=dynamodb-test-table",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
@@ -394,6 +304,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         type: AwsDynamoDBServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
       const { app: appUpdateBillingProvisionedThroughput } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -414,21 +325,14 @@ describe('AwsDynamoDBServiceModule UT', () => {
         appUpdateBillingProvisionedThroughput,
         { enableResourceCapture: true },
       );
-      expect(resultUpdateBillingProvisionedThroughput.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateBillingProvisionedThroughput.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/dynamodb=dynamodb-test-table",
-             "value": {
-               "GlobalSecondaryIndexDiffs": [],
-               "StreamSpecification": false,
-               "billingMode": true,
-             },
-           },
-         ],
-         [],
+         "~ @octo/dynamodb=dynamodb-test-table",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 0 | properties: 2",
        ]
       `);
 
@@ -450,21 +354,14 @@ describe('AwsDynamoDBServiceModule UT', () => {
       const resultUpdateBillingPayPerRequest = await testModuleContainer.commit(appUpdateBillingPayPerRequest, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateBillingPayPerRequest.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateBillingPayPerRequest.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/dynamodb=dynamodb-test-table",
-             "value": {
-               "GlobalSecondaryIndexDiffs": [],
-               "StreamSpecification": false,
-               "billingMode": true,
-             },
-           },
-         ],
-         [],
+         "~ @octo/dynamodb=dynamodb-test-table",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 3",
        ]
       `);
     });
@@ -498,17 +395,15 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-        expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+        expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
          [
-           [
-             {
-               "action": "add",
-               "field": "resourceId",
-               "node": "@octo/dynamodb=dynamodb-test-table",
-               "value": "@octo/dynamodb=dynamodb-test-table",
-             },
-           ],
-           [],
+           "+ @octo/dynamodb=dynamodb-test-table",
+         ]
+        `);
+        expect(hcl.digest()).toMatchInlineSnapshot(`
+         [
+           "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
+           "+ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 10",
          ]
         `);
       });
@@ -531,23 +426,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-
-        // Mocks to describe GSI.
-        DynamoDBClientMock.on(DescribeTableCommand).resolves(
-          makeDescribeTableResponse({
-            GlobalSecondaryIndexes: [
-              {
-                IndexName: 'GSI-email',
-                IndexStatus: 'ACTIVE',
-                KeySchema: [{ AttributeName: 'email', KeyType: 'HASH' }],
-                Projection: { ProjectionType: 'ALL' },
-              },
-            ],
-            streamArn: STREAM_ARN,
-            streamEnabled: true,
-            streamViewType: 'NEW_AND_OLD_IMAGES',
-          }),
-        );
+        hcl.digest();
 
         const { app: appAddGSI } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -576,67 +455,19 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         const resultAddGSI = await testModuleContainer.commit(appAddGSI, { enableResourceCapture: true });
-        expect(resultAddGSI.resourceDiffs).toMatchInlineSnapshot(`
+        expect(new DiffAssert(resultAddGSI.resourceDiffs).digest()).toMatchInlineSnapshot(`
          [
-           [
-             {
-               "action": "update",
-               "field": "properties",
-               "node": "@octo/dynamodb=dynamodb-test-table",
-               "value": {
-                 "GlobalSecondaryIndexDiffs": [
-                   {
-                     "action": "add",
-                     "properties": {
-                       "IndexName": "GSI-email",
-                       "KeySchema": [
-                         {
-                           "AttributeName": "email",
-                           "KeyType": "HASH",
-                         },
-                       ],
-                       "Projection": {
-                         "ProjectionType": "ALL",
-                       },
-                     },
-                   },
-                 ],
-                 "StreamSpecification": false,
-                 "billingMode": false,
-               },
-             },
-           ],
-           [],
+           "~ @octo/dynamodb=dynamodb-test-table",
+         ]
+        `);
+        expect(hcl.digest()).toMatchInlineSnapshot(`
+         [
+           "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 0",
          ]
         `);
       });
 
       it('should throw error updating a GSI in an existing table', async () => {
-        // Mocks to describe GSI.
-        DynamoDBClientMock.on(CreateTableCommand).resolves({
-          TableDescription: {
-            LatestStreamArn: STREAM_ARN,
-            TableArn: TABLE_ARN,
-            TableId: TABLE_ID,
-            TableStatus: 'ACTIVE',
-          },
-        });
-        DynamoDBClientMock.on(DescribeTableCommand).resolves(
-          makeDescribeTableResponse({
-            GlobalSecondaryIndexes: [
-              {
-                IndexName: 'GSI-email',
-                IndexStatus: 'ACTIVE',
-                KeySchema: [{ AttributeName: 'email', KeyType: 'HASH' }],
-                Projection: { ProjectionType: 'ALL' },
-              },
-            ],
-            streamArn: STREAM_ARN,
-            streamEnabled: true,
-            streamViewType: 'NEW_AND_OLD_IMAGES',
-          }),
-        );
-
         const { app: appCreate } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
           inputs: {
@@ -664,15 +495,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-
-        // Mocks to describe GSI.
-        DynamoDBClientMock.on(DescribeTableCommand).resolves(
-          makeDescribeTableResponse({
-            streamArn: STREAM_ARN,
-            streamEnabled: true,
-            streamViewType: 'NEW_AND_OLD_IMAGES',
-          }),
-        );
+        hcl.digest();
 
         const { app: appUpdateGSIWithoutUpdatingIndex } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -710,31 +533,6 @@ describe('AwsDynamoDBServiceModule UT', () => {
       });
 
       it('should replace a GSI in an existing table', async () => {
-        // Mocks to describe GSI.
-        DynamoDBClientMock.on(CreateTableCommand).resolves({
-          TableDescription: {
-            LatestStreamArn: STREAM_ARN,
-            TableArn: TABLE_ARN,
-            TableId: TABLE_ID,
-            TableStatus: 'ACTIVE',
-          },
-        });
-        DynamoDBClientMock.on(DescribeTableCommand).resolves(
-          makeDescribeTableResponse({
-            GlobalSecondaryIndexes: [
-              {
-                IndexName: 'GSI-email',
-                IndexStatus: 'ACTIVE',
-                KeySchema: [{ AttributeName: 'email', KeyType: 'HASH' }],
-                Projection: { ProjectionType: 'ALL' },
-              },
-            ],
-            streamArn: STREAM_ARN,
-            streamEnabled: true,
-            streamViewType: 'NEW_AND_OLD_IMAGES',
-          }),
-        );
-
         const { app: appCreate } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
           inputs: {
@@ -762,15 +560,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-
-        // Mocks to describe GSI.
-        DynamoDBClientMock.on(DescribeTableCommand).resolves(
-          makeDescribeTableResponse({
-            streamArn: STREAM_ARN,
-            streamEnabled: true,
-            streamViewType: 'NEW_AND_OLD_IMAGES',
-          }),
-        );
+        hcl.digest();
 
         const { app: appUpdateGSI } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -799,82 +589,19 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         const resultUpdateGSI = await testModuleContainer.commit(appUpdateGSI, { enableResourceCapture: true });
-        expect(resultUpdateGSI.resourceDiffs).toMatchInlineSnapshot(`
+        expect(new DiffAssert(resultUpdateGSI.resourceDiffs).digest()).toMatchInlineSnapshot(`
          [
-           [
-             {
-               "action": "update",
-               "field": "properties",
-               "node": "@octo/dynamodb=dynamodb-test-table",
-               "value": {
-                 "GlobalSecondaryIndexDiffs": [
-                   {
-                     "action": "delete",
-                     "properties": {
-                       "IndexName": "GSI-email",
-                       "KeySchema": [
-                         {
-                           "AttributeName": "email",
-                           "KeyType": "HASH",
-                         },
-                       ],
-                       "Projection": {
-                         "ProjectionType": "ALL",
-                       },
-                     },
-                   },
-                   {
-                     "action": "add",
-                     "properties": {
-                       "IndexName": "GSI-user",
-                       "KeySchema": [
-                         {
-                           "AttributeName": "UserId",
-                           "KeyType": "HASH",
-                         },
-                       ],
-                       "Projection": {
-                         "ProjectionType": "ALL",
-                       },
-                     },
-                   },
-                 ],
-                 "StreamSpecification": false,
-                 "billingMode": false,
-               },
-             },
-           ],
-           [],
+           "~ @octo/dynamodb=dynamodb-test-table",
+         ]
+        `);
+        expect(hcl.digest()).toMatchInlineSnapshot(`
+         [
+           "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 0",
          ]
         `);
       });
 
       it('should delete a GSI from an existing table', async () => {
-        // Mocks to describe GSI.
-        DynamoDBClientMock.on(CreateTableCommand).resolves({
-          TableDescription: {
-            LatestStreamArn: STREAM_ARN,
-            TableArn: TABLE_ARN,
-            TableId: TABLE_ID,
-            TableStatus: 'ACTIVE',
-          },
-        });
-        DynamoDBClientMock.on(DescribeTableCommand).resolves(
-          makeDescribeTableResponse({
-            GlobalSecondaryIndexes: [
-              {
-                IndexName: 'GSI-email',
-                IndexStatus: 'ACTIVE',
-                KeySchema: [{ AttributeName: 'email', KeyType: 'HASH' }],
-                Projection: { ProjectionType: 'ALL' },
-              },
-            ],
-            streamArn: STREAM_ARN,
-            streamEnabled: true,
-            streamViewType: 'NEW_AND_OLD_IMAGES',
-          }),
-        );
-
         const { app: appCreate } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
           inputs: {
@@ -902,15 +629,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-
-        // Mocks to describe GSI.
-        DynamoDBClientMock.on(DescribeTableCommand).resolves(
-          makeDescribeTableResponse({
-            streamArn: STREAM_ARN,
-            streamEnabled: true,
-            streamViewType: 'NEW_AND_OLD_IMAGES',
-          }),
-        );
+        hcl.digest();
 
         const { app: appRemoveGSI } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -929,37 +648,14 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         const resultRemoveGSI = await testModuleContainer.commit(appRemoveGSI, { enableResourceCapture: true });
-        expect(resultRemoveGSI.resourceDiffs).toMatchInlineSnapshot(`
+        expect(new DiffAssert(resultRemoveGSI.resourceDiffs).digest()).toMatchInlineSnapshot(`
          [
-           [
-             {
-               "action": "update",
-               "field": "properties",
-               "node": "@octo/dynamodb=dynamodb-test-table",
-               "value": {
-                 "GlobalSecondaryIndexDiffs": [
-                   {
-                     "action": "delete",
-                     "properties": {
-                       "IndexName": "GSI-email",
-                       "KeySchema": [
-                         {
-                           "AttributeName": "email",
-                           "KeyType": "HASH",
-                         },
-                       ],
-                       "Projection": {
-                         "ProjectionType": "ALL",
-                       },
-                     },
-                   },
-                 ],
-                 "StreamSpecification": false,
-                 "billingMode": false,
-               },
-             },
-           ],
-           [],
+           "~ @octo/dynamodb=dynamodb-test-table",
+         ]
+        `);
+        expect(hcl.digest()).toMatchInlineSnapshot(`
+         [
+           "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 0",
          ]
         `);
       });
@@ -967,22 +663,6 @@ describe('AwsDynamoDBServiceModule UT', () => {
 
     describe('should handle LocalSecondaryIndexes change', () => {
       it('should create table with LSI', async () => {
-        // Mocks to describe LSI.
-        DynamoDBClientMock.on(DescribeTableCommand).resolves(
-          makeDescribeTableResponse({
-            LocalSecondaryIndexes: [
-              {
-                IndexName: 'LSI-created',
-                KeySchema: [
-                  { AttributeName: 'AccountId', KeyType: 'HASH' },
-                  { AttributeName: 'created', KeyType: 'RANGE' },
-                ],
-                Projection: { ProjectionType: 'ALL' },
-              },
-            ],
-          }),
-        );
-
         const { app: appCreate } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
           inputs: {
@@ -1016,38 +696,20 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-        expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+        expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
          [
-           [
-             {
-               "action": "add",
-               "field": "resourceId",
-               "node": "@octo/dynamodb=dynamodb-test-table",
-               "value": "@octo/dynamodb=dynamodb-test-table",
-             },
-           ],
-           [],
+           "+ @octo/dynamodb=dynamodb-test-table",
+         ]
+        `);
+        expect(hcl.digest()).toMatchInlineSnapshot(`
+         [
+           "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
+           "+ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 9",
          ]
         `);
       });
 
       it('should throw error updating a LSI on an existing table', async () => {
-        // Mocks to describe LSI.
-        DynamoDBClientMock.on(DescribeTableCommand).resolves(
-          makeDescribeTableResponse({
-            LocalSecondaryIndexes: [
-              {
-                IndexName: 'LSI-created',
-                KeySchema: [
-                  { AttributeName: 'AccountId', KeyType: 'HASH' },
-                  { AttributeName: 'created', KeyType: 'RANGE' },
-                ],
-                Projection: { ProjectionType: 'ALL' },
-              },
-            ],
-          }),
-        );
-
         const { app: appCreate } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
           inputs: {
@@ -1081,6 +743,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+        hcl.digest();
 
         const { app: appUpdateLSI } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -1140,11 +803,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         type: AwsDynamoDBServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-
-      // Mocks to add stream.
-      DynamoDBClientMock.on(DescribeTableCommand).resolves(
-        makeDescribeTableResponse({ streamArn: STREAM_ARN, streamEnabled: true, streamViewType: 'NEW_AND_OLD_IMAGES' }),
-      );
+      hcl.digest();
 
       const { app: appAddStream } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -1163,26 +822,16 @@ describe('AwsDynamoDBServiceModule UT', () => {
         type: AwsDynamoDBServiceModule,
       });
       const resultAddStream = await testModuleContainer.commit(appAddStream, { enableResourceCapture: true });
-      expect(resultAddStream.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultAddStream.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/dynamodb=dynamodb-test-table",
-             "value": {
-               "GlobalSecondaryIndexDiffs": [],
-               "StreamSpecification": true,
-               "billingMode": false,
-             },
-           },
-         ],
-         [],
+         "~ @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-
-      // Mocks to remove stream.
-      DynamoDBClientMock.on(DescribeTableCommand).resolves(makeDescribeTableResponse());
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 0 | properties: 2",
+       ]
+      `);
 
       const { app: appRemoveStream } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -1200,21 +849,14 @@ describe('AwsDynamoDBServiceModule UT', () => {
         type: AwsDynamoDBServiceModule,
       });
       const resultRemoveStream = await testModuleContainer.commit(appRemoveStream, { enableResourceCapture: true });
-      expect(resultRemoveStream.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultRemoveStream.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/dynamodb=dynamodb-test-table",
-             "value": {
-               "GlobalSecondaryIndexDiffs": [],
-               "StreamSpecification": true,
-               "billingMode": false,
-             },
-           },
-         ],
-         [],
+         "~ @octo/dynamodb=dynamodb-test-table",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 0 | properties: 2",
        ]
       `);
     });
@@ -1236,6 +878,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         type: AwsDynamoDBServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
       const { app: appAddTTL } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -1254,28 +897,16 @@ describe('AwsDynamoDBServiceModule UT', () => {
         type: AwsDynamoDBServiceModule,
       });
       const resultAddTTL = await testModuleContainer.commit(appAddTTL, { enableResourceCapture: true });
-      expect(resultAddTTL.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultAddTTL.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/dynamodb=dynamodb-test-table",
-             "value": {
-               "GlobalSecondaryIndexDiffs": [],
-               "StreamSpecification": false,
-               "billingMode": false,
-             },
-           },
-         ],
-         [],
+         "~ @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-
-      // Mocks to describe TTL.
-      DynamoDBClientMock.on(DescribeTimeToLiveCommand).resolves({
-        TimeToLiveDescription: { AttributeName: 'expiresAt', TimeToLiveStatus: 'ENABLED' },
-      });
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 0",
+       ]
+      `);
 
       const { app: appRemoveTTL } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -1293,21 +924,14 @@ describe('AwsDynamoDBServiceModule UT', () => {
         type: AwsDynamoDBServiceModule,
       });
       const resultRemoveTTL = await testModuleContainer.commit(appRemoveTTL, { enableResourceCapture: true });
-      expect(resultRemoveTTL.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultRemoveTTL.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/dynamodb=dynamodb-test-table",
-             "value": {
-               "GlobalSecondaryIndexDiffs": [],
-               "StreamSpecification": false,
-               "billingMode": false,
-             },
-           },
-         ],
-         [],
+         "~ @octo/dynamodb=dynamodb-test-table",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 0",
        ]
       `);
     });
@@ -1330,6 +954,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
       type: AwsDynamoDBServiceModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.digest();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -1347,11 +972,51 @@ describe('AwsDynamoDBServiceModule UT', () => {
       type: AwsDynamoDBServiceModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+  });
+
+  describe('validation', () => {
+    it('should validate TableName', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
+          inputs: {
+            AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
+            billingMode: {
+              settings: { ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 } },
+              type: 'PROVISIONED',
+            },
+            KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
+            region: stub('${{testModule.model.region}}'),
+            TableName: 'tb',
+          },
+          moduleId: 'service',
+          type: AwsDynamoDBServiceModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "TableName" in schema could not be validated!"`);
+    });
+
+    it('should validate AttributeType', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
+          inputs: {
+            AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'X' as any }],
+            billingMode: {
+              settings: { ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 } },
+              type: 'PROVISIONED',
+            },
+            KeySchema: [{ AttributeName: 'AccountId', KeyType: 'HASH' }],
+            region: stub('${{testModule.model.region}}'),
+            TableName: 'test-table',
+          },
+          moduleId: 'service',
+          type: AwsDynamoDBServiceModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Property "AttributeDefinitions" in schema could not be validated!"`,
+      );
+    });
   });
 });

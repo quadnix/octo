@@ -1,32 +1,8 @@
 import {
-  AuthorizeSecurityGroupEgressCommand,
-  AuthorizeSecurityGroupIngressCommand,
-  CreateSecurityGroupCommand,
-  DeleteSecurityGroupCommand,
-  DescribeSecurityGroupsCommand,
-  EC2Client,
-} from '@aws-sdk/client-ec2';
-import { DescribeServicesCommand, ECSClient, UpdateServiceCommand } from '@aws-sdk/client-ecs';
-import {
-  CreateListenerCommand,
-  CreateLoadBalancerCommand,
-  CreateRuleCommand,
-  CreateTargetGroupCommand,
-  DeleteListenerCommand,
-  DeleteLoadBalancerCommand,
-  DescribeLoadBalancersCommand,
-  ElasticLoadBalancingV2Client,
-} from '@aws-sdk/client-elastic-load-balancing-v2';
-import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { jest } from '@jest/globals';
-import {
   type AResource,
   type Account,
   type App,
+  DiffAssert,
   MatchingResource,
   type Region,
   SubnetType,
@@ -34,21 +10,21 @@ import {
   TestModuleContainer,
   stub,
 } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsEcsServiceAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
-// eslint-disable-next-line boundaries/element-types
 import { EcsService } from '../../../resources/ecs-service/index.js';
 import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsEcsAlbServiceModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
+  octoTerraform: OctoTerraform,
 ): Promise<{ account: Account; app: App; region: Region }> {
   const {
     account: [account],
@@ -65,7 +41,6 @@ async function setup(
     region: ['region'],
     server: ['backend'],
   });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   const {
     subnet: [subnet1],
@@ -133,9 +108,11 @@ async function setup(
     ),
   );
 
-  const testModuleResources = await testModuleContainer.createTestResources<
-    [EcsClusterSchema, InternetGatewaySchema, VpcSchema]
-  >(
+  const {
+    '@octo/ecs-cluster=ecs-cluster-region-qa': ecsClusterResource,
+    '@octo/internet-gateway=igw-region': igwResource,
+    '@octo/vpc=vpc-region': vpcResource,
+  } = await testModuleContainer.createTestResources<[EcsClusterSchema, InternetGatewaySchema, VpcSchema]>(
     'testModule',
     [
       {
@@ -172,41 +149,45 @@ async function setup(
     ],
     { save: true },
   );
-  const testSubnet1ModuleResources = await testModuleContainer.createTestResources<[SubnetSchema]>(
-    'testSubnet1Module',
-    [
-      {
-        properties: {
-          AvailabilityZone: 'us-east-1a',
-          awsAccountId: '123',
-          awsRegionId: 'us-east-1',
-          CidrBlock: '10.0.0.0/24',
-          subnetName: 'public-subnet-1',
+  const { '@octo/subnet=subnet-region-public-subnet-1': subnet1Resource } =
+    await testModuleContainer.createTestResources<[SubnetSchema]>(
+      'testSubnet1Module',
+      [
+        {
+          properties: {
+            AvailabilityZone: 'us-east-1a',
+            awsAccountId: '123',
+            awsRegionId: 'us-east-1',
+            CidrBlock: '10.0.0.0/24',
+            subnetName: 'public-subnet-1',
+          },
+          resourceContext: '@octo/subnet=subnet-region-public-subnet-1',
+          response: { SubnetId: 'SubnetId' },
         },
-        resourceContext: '@octo/subnet=subnet-region-public-subnet-1',
-        response: { SubnetId: 'SubnetId' },
-      },
-    ],
-    { save: true },
-  );
-  await testModuleContainer.createTestResources<[SubnetSchema]>(
-    'testSubnet2Module',
-    [
-      {
-        properties: {
-          AvailabilityZone: 'us-east-1a',
-          awsAccountId: '123',
-          awsRegionId: 'us-east-1',
-          CidrBlock: '10.1.0.0/24',
-          subnetName: 'public-subnet-2',
+      ],
+      { save: true },
+    );
+  const { '@octo/subnet=subnet-region-public-subnet-2': subnet2Resource } =
+    await testModuleContainer.createTestResources<[SubnetSchema]>(
+      'testSubnet2Module',
+      [
+        {
+          properties: {
+            AvailabilityZone: 'us-east-1a',
+            awsAccountId: '123',
+            awsRegionId: 'us-east-1',
+            CidrBlock: '10.1.0.0/24',
+            subnetName: 'public-subnet-2',
+          },
+          resourceContext: '@octo/subnet=subnet-region-public-subnet-2',
+          response: { SubnetId: 'SubnetId' },
         },
-        resourceContext: '@octo/subnet=subnet-region-public-subnet-2',
-        response: { SubnetId: 'SubnetId' },
-      },
-    ],
-    { save: true },
-  );
-  const testExecutionModuleResources = await testModuleContainer.createTestResources<[EcsTaskDefinitionSchema]>(
+      ],
+      { save: true },
+    );
+  const {
+    '@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-public-subnet-1': ecsTaskDefinitionResource,
+  } = await testModuleContainer.createTestResources<[EcsTaskDefinitionSchema]>(
     'testExecutionModule',
     [
       {
@@ -247,14 +228,40 @@ async function setup(
     ],
     { save: true },
   );
-  const ecsCluster = testModuleResources['@octo/ecs-cluster=ecs-cluster-region-qa'] as AResource<EcsClusterSchema, any>;
-  const ecsTaskDefinition = testExecutionModuleResources[
-    '@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-public-subnet-1'
-  ] as AResource<EcsTaskDefinitionSchema, any>;
-  const publicSubnet = testSubnet1ModuleResources['@octo/subnet=subnet-region-public-subnet-1'] as AResource<
-    SubnetSchema,
-    any
-  >;
+
+  const ecsClusterOctoResource = octoTerraform.addOctoTerraformResource(ecsClusterResource);
+  ecsClusterOctoResource.output({
+    clusterArn: octoTerraform.raw('aws_ecs_cluster.ecs-cluster-region-qa.arn'),
+  });
+  const igwOctoResource = octoTerraform.addOctoTerraformResource(igwResource);
+  igwOctoResource.output({
+    InternetGatewayId: octoTerraform.raw('aws_internet_gateway.igw-region.id'),
+  });
+  const vpcOctoResource = octoTerraform.addOctoTerraformResource(vpcResource);
+  vpcOctoResource.output({
+    VpcId: octoTerraform.raw('aws_vpc.vpc-region.id'),
+  });
+  const subnet1OctoResource = octoTerraform.addOctoTerraformResource(subnet1Resource);
+  subnet1OctoResource.output({
+    SubnetArn: 'SubnetArn',
+    SubnetId: octoTerraform.raw('aws_subnet.subnet-region-public-subnet-1.id'),
+  });
+  const subnet2OctoResource = octoTerraform.addOctoTerraformResource(subnet2Resource);
+  subnet2OctoResource.output({
+    SubnetArn: 'SubnetArn',
+    SubnetId: octoTerraform.raw('aws_subnet.subnet-region-public-subnet-2.id'),
+  });
+  const ecsTaskDefinitionOctoResource = octoTerraform.addOctoTerraformResource(ecsTaskDefinitionResource);
+  ecsTaskDefinitionOctoResource.output({
+    revision: '1',
+    taskDefinitionArn: octoTerraform.raw(
+      'aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-public-subnet-1.arn',
+    ),
+  });
+
+  const ecsCluster = ecsClusterResource as AResource<EcsClusterSchema, any>;
+  const ecsTaskDefinition = ecsTaskDefinitionResource as AResource<EcsTaskDefinitionSchema, any>;
+  const publicSubnet = subnet1Resource as AResource<SubnetSchema, any>;
 
   const ecsService = new EcsService(
     'ecs-service-backend-v1-region-qa-public-subnet-1',
@@ -274,143 +281,32 @@ async function setup(
 }
 
 describe('AwsEcsAlbServiceModule UT', () => {
-  const originalRetryPromise = RetryUtility.retryPromise;
-
-  let retryPromiseSpy: jest.Spied<any>;
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const EC2ClientMock = mockClient(EC2Client);
-  const ECSClientMock = mockClient(ECSClient);
-  const ElasticLoadBalancingV2ClientMock = mockClient(ElasticLoadBalancingV2Client);
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-
   beforeEach(async () => {
-    EC2ClientMock.on(CreateSecurityGroupCommand)
-      .resolves({ GroupId: 'GroupId' })
-      .on(AuthorizeSecurityGroupEgressCommand)
-      .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Egress' }] })
-      .on(AuthorizeSecurityGroupIngressCommand)
-      .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Ingress' }] })
-      .on(DeleteSecurityGroupCommand)
-      .resolves({})
-      .on(DescribeSecurityGroupsCommand)
-      .resolves({ SecurityGroups: [] });
-
-    ECSClientMock.on(UpdateServiceCommand)
-      .resolves({
-        service: {
-          serviceArn: 'arn:aws:ecs:us-east-1:123:service/cluster/service-name',
-          serviceName: 'service-name',
-        },
-      })
-      .on(DescribeServicesCommand)
-      .resolves({
-        failures: [],
-        services: [
-          {
-            deployments: [{}],
-            desiredCount: 1,
-            runningCount: 1,
-            status: 'ACTIVE',
-          },
-        ],
-      });
-
-    ElasticLoadBalancingV2ClientMock.on(CreateTargetGroupCommand)
-      .resolves({
-        TargetGroups: [
-          {
-            TargetGroupArn: 'TargetGroupArn',
-          },
-        ],
-      })
-      .on(CreateLoadBalancerCommand)
-      .resolves({
-        LoadBalancers: [
-          {
-            DNSName: 'DNSName',
-            LoadBalancerArn: 'LoadBalancerArn',
-          },
-        ],
-      })
-      .on(CreateListenerCommand)
-      .resolves({
-        Listeners: [
-          {
-            ListenerArn: 'ListenerArn',
-          },
-        ],
-      })
-      .on(CreateRuleCommand)
-      .resolves({
-        Rules: [
-          {
-            RuleArn: 'RuleArn1',
-          },
-        ],
-      })
-      .on(DeleteLoadBalancerCommand)
-      .resolves({})
-      .on(DeleteListenerCommand)
-      .resolves({})
-      .on(DescribeLoadBalancersCommand)
-      .resolvesOnce({
-        LoadBalancers: [{ State: { Code: 'active' } }],
-      })
-      .resolves({ LoadBalancers: [] });
-
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: EC2Client,
-            value: EC2ClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ECSClient,
-            value: ECSClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ElasticLoadBalancingV2Client,
-            value: ElasticLoadBalancingV2ClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
-
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
 
-    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
-    });
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'us-east-1');
+
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
-    EC2ClientMock.reset();
-    ECSClientMock.reset();
-    ElasticLoadBalancingV2ClientMock.reset();
-    ResourceGroupsTaggingAPIClientMock.reset();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
-
-    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    const { app } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -487,25 +383,231 @@ describe('AwsEcsAlbServiceModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddSecurityGroupResourceAction",
-         "AddAlbTargetGroupResourceAction",
+         "CaptureSecurityGroupResponseResourceAction",
+         "CaptureAlbTargetGroupResponseResourceAction",
        ],
        [
-         "AddAlbResourceAction",
+         "CaptureAlbResponseResourceAction",
        ],
        [
-         "AddAlbListenerResourceAction",
+         "CaptureAlbListenerResponseResourceAction",
        ],
        [
-         "UpdateAlbListenerResourceAction",
-         "UpdateAlbListenerRuleResourceAction",
+         "CaptureAlbListenerResponseResourceAction",
+         "CaptureAlbListenerResponseResourceAction",
        ],
      ]
+    `);
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/security-group=sec-grp-region-test-alb",
+       "+ @octo/alb=alb-region-test-alb",
+       "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+       "+ @octo/alb-listener=alb-listener-test-alb",
+       "~ @octo/alb-listener=alb-listener-test-alb",
+     ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "123-us-east-1"
+       region = "us-east-1"
+     }
+
+     output "ecs-cluster-region-qa-clusterArn" {
+       value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+     }
+
+     output "igw-region-InternetGatewayId" {
+       value = aws_internet_gateway.igw-region.id
+     }
+
+     output "vpc-region-VpcId" {
+       value = aws_vpc.vpc-region.id
+     }
+
+     output "subnet-region-public-subnet-1-SubnetArn" {
+       value = "SubnetArn"
+     }
+
+     output "subnet-region-public-subnet-1-SubnetId" {
+       value = aws_subnet.subnet-region-public-subnet-1.id
+     }
+
+     output "subnet-region-public-subnet-2-SubnetArn" {
+       value = "SubnetArn"
+     }
+
+     output "subnet-region-public-subnet-2-SubnetId" {
+       value = aws_subnet.subnet-region-public-subnet-2.id
+     }
+
+     output "ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision" {
+       value = "1"
+     }
+
+     output "ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn" {
+       value = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-public-subnet-1.arn
+     }
+
+     resource "aws_security_group" "sec-grp-region-test-alb" {
+       provider = aws.123-us-east-1
+       vpc_id = aws_vpc.vpc-region.id
+     }
+
+     resource "aws_vpc_security_group_ingress_rule" "sec-grp-region-test-alb_ingress_0" {
+       provider = aws.123-us-east-1
+       cidr_ipv4 = "0.0.0.0/0"
+       description = "tcp 80-80 0.0.0.0/0"
+       ip_protocol = "tcp"
+       security_group_id = aws_security_group.sec-grp-region-test-alb.id
+       from_port = 80
+       to_port = 80
+
+       depends_on = [aws_security_group.sec-grp-region-test-alb]
+     }
+
+     resource "aws_vpc_security_group_egress_rule" "sec-grp-region-test-alb_egress_0" {
+       provider = aws.123-us-east-1
+       cidr_ipv4 = "0.0.0.0/0"
+       description = "tcp 0-65535 0.0.0.0/0"
+       ip_protocol = "tcp"
+       security_group_id = aws_security_group.sec-grp-region-test-alb.id
+       from_port = 0
+       to_port = 65535
+
+       depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]
+     }
+
+     output "sec-grp-region-test-alb-Arn" {
+       value = aws_security_group.sec-grp-region-test-alb.arn
+     }
+
+     output "sec-grp-region-test-alb-GroupId" {
+       value = aws_security_group.sec-grp-region-test-alb.id
+     }
+
+     resource "aws_lb" "alb-region-test-alb" {
+       provider = aws.123-us-east-1
+       internal = false
+       ip_address_type = "ipv4"
+       load_balancer_type = "application"
+       name = "test-alb"
+       security_groups = [aws_security_group.sec-grp-region-test-alb.id]
+       subnets = [aws_subnet.subnet-region-public-subnet-1.id, aws_subnet.subnet-region-public-subnet-2.id]
+     }
+
+     output "alb-region-test-alb-DNSName" {
+       value = aws_lb.alb-region-test-alb.dns_name
+     }
+
+     output "alb-region-test-alb-LoadBalancerArn" {
+       value = aws_lb.alb-region-test-alb.arn
+     }
+
+     resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+       provider = aws.123-us-east-1
+       ip_address_type = "ipv4"
+       name = "test-container-80"
+       port = 80
+       protocol = "HTTP"
+       protocol_version = "HTTP1"
+       target_type = "ip"
+       vpc_id = aws_vpc.vpc-region.id
+       health_check {
+         enabled = true
+         healthy_threshold = 3
+         interval = 30
+         matcher = "200"
+         path = "/health"
+         port = "80"
+         protocol = "HTTP"
+         timeout = 5
+         unhealthy_threshold = 3
+       }
+     }
+
+     output "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" {
+       value = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+     }
+
+     resource "aws_lb_listener" "alb-listener-test-alb" {
+       provider = aws.123-us-east-1
+       default_action {
+         forward {
+           target_group {
+             arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+             weight = 100
+           }
+         }
+         type = "forward"
+       }
+       load_balancer_arn = aws_lb.alb-region-test-alb.arn
+       port = 80
+       protocol = "HTTP"
+     }
+
+     resource "aws_lb_listener_rule" "alb-listener-test-alb_rule_1" {
+       provider = aws.123-us-east-1
+       action {
+         forward {
+           target_group {
+             arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+             weight = 100
+           }
+         }
+         type = "forward"
+       }
+       condition {
+         path_pattern {
+           values = ["/api"]
+         }
+       }
+       listener_arn = aws_lb_listener.alb-listener-test-alb.arn
+       priority = 1
+
+       depends_on = [aws_lb_listener.alb-listener-test-alb]
+     }
+
+     output "alb-listener-test-alb-ListenerArn" {
+       value = aws_lb_listener.alb-listener-test-alb.arn
+     }
+
+     resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-public-subnet-1" {
+       provider = aws.123-us-east-1
+       cluster = aws_ecs_cluster.ecs-cluster-region-qa.arn
+       desired_count = 1
+       launch_type = "FARGATE"
+       name = "backend"
+       network_configuration {
+         assign_public_ip = true
+         subnets = [aws_subnet.subnet-region-public-subnet-1.id]
+       }
+       task_definition = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-public-subnet-1.arn
+       load_balancer {
+         container_name = "test-container"
+         container_port = 80
+         target_group_arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+       }
+     }
+
+     output "ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn" {
+       value = aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id
+     }"
     `);
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -548,54 +650,45 @@ describe('AwsEcsAlbServiceModule UT', () => {
       type: AwsEcsAlbServiceModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-region-test-alb",
-           "value": "@octo/security-group=sec-grp-region-test-alb",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/alb=alb-region-test-alb",
-           "value": "@octo/alb=alb-region-test-alb",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-           "value": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": "@octo/alb-listener=alb-listener-test-alb",
-         },
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": {
-             "DefaultActions": [],
-           },
-         },
-       ],
-       [
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-           "value": "",
-         },
-       ],
+       "+ @octo/security-group=sec-grp-region-test-alb",
+       "+ @octo/alb=alb-region-test-alb",
+       "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+       "+ @octo/alb-listener=alb-listener-test-alb",
+       "~ @octo/alb-listener=alb-listener-test-alb",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.alb-listener-test-alb-ListenerArn | blocks: 0 | properties: 1",
+       "+ output.alb-region-test-alb-DNSName | blocks: 0 | properties: 1",
+       "+ output.alb-region-test-alb-LoadBalancerArn | blocks: 0 | properties: 1",
+       "+ output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn | blocks: 0 | properties: 1",
+       "+ output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
+       "+ output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn | blocks: 0 | properties: 1",
+       "+ output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision | blocks: 0 | properties: 1",
+       "+ output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn | blocks: 0 | properties: 1",
+       "+ output.igw-region-InternetGatewayId | blocks: 0 | properties: 1",
+       "+ output.sec-grp-region-test-alb-Arn | blocks: 0 | properties: 1",
+       "+ output.sec-grp-region-test-alb-GroupId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-1-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-1-SubnetId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-2-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-2-SubnetId | blocks: 0 | properties: 1",
+       "+ output.vpc-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1 | blocks: 2 | properties: 6",
+       "+ resource.aws_lb_listener.alb-listener-test-alb | blocks: 1 | properties: 4",
+       "+ resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1 | blocks: 1 | properties: 8",
+       "+ resource.aws_lb.alb-region-test-alb | blocks: 0 | properties: 7",
+       "+ resource.aws_security_group.sec-grp-region-test-alb | blocks: 0 | properties: 2",
+       "+ resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0 | blocks: 0 | properties: 8",
+       "+ resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0 | blocks: 0 | properties: 8",
      ]
     `);
 
-    const { app: appAddListenerRule } = await setup(testModuleContainer);
+    const { app: appAddListenerRule } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -649,48 +742,18 @@ describe('AwsEcsAlbServiceModule UT', () => {
       type: AwsEcsAlbServiceModule,
     });
     const resultAddListenerRule = await testModuleContainer.commit(appAddListenerRule, { enableResourceCapture: true });
-    expect(resultAddListenerRule.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultAddListenerRule.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": {
-             "Rule": {
-               "action": "add",
-               "rule": {
-                 "Priority": 1,
-                 "actions": [
-                   {
-                     "action": {
-                       "ContentType": "text/plain",
-                       "MessageBody": "Not implemented!",
-                       "StatusCode": 404,
-                     },
-                     "actionType": "fixed-response",
-                   },
-                 ],
-                 "conditions": [
-                   {
-                     "condition": {
-                       "Values": [
-                         "/api",
-                       ],
-                     },
-                     "conditionType": "path-pattern",
-                   },
-                 ],
-               },
-             },
-           },
-         },
-       ],
-       [],
+       "~ @octo/alb-listener=alb-listener-test-alb",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ resource.aws_lb_listener_rule.alb-listener-test-alb_rule_1 | blocks: 2 | properties: 4",
      ]
     `);
 
-    const { app: appUpdateListenerRule } = await setup(testModuleContainer);
+    const { app: appUpdateListenerRule } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -746,121 +809,46 @@ describe('AwsEcsAlbServiceModule UT', () => {
     const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule, {
       enableResourceCapture: true,
     });
-    expect(resultUpdateListenerRule.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateListenerRule.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": {
-             "Rule": {
-               "RuleArn": "RuleArn1",
-               "action": "delete",
-               "rule": {
-                 "Priority": 1,
-                 "actions": [
-                   {
-                     "action": {
-                       "ContentType": "text/plain",
-                       "MessageBody": "Not implemented!",
-                       "StatusCode": 404,
-                     },
-                     "actionType": "fixed-response",
-                   },
-                 ],
-                 "conditions": [
-                   {
-                     "condition": {
-                       "Values": [
-                         "/api",
-                       ],
-                     },
-                     "conditionType": "path-pattern",
-                   },
-                 ],
-               },
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": {
-             "Rule": {
-               "action": "add",
-               "rule": {
-                 "Priority": 2,
-                 "actions": [
-                   {
-                     "action": {
-                       "TargetGroups": [
-                         {
-                           "Weight": 100,
-                           "targetGroupName": "test-container-80",
-                         },
-                       ],
-                     },
-                     "actionType": "forward",
-                   },
-                 ],
-                 "conditions": [
-                   {
-                     "condition": {
-                       "Values": [
-                         "/api",
-                       ],
-                     },
-                     "conditionType": "path-pattern",
-                   },
-                 ],
-               },
-             },
-           },
-         },
-       ],
-       [],
+       "~ @octo/alb-listener=alb-listener-test-alb",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ resource.aws_lb_listener_rule.alb-listener-test-alb_rule_2 | blocks: 2 | properties: 4",
+       "- resource.aws_lb_listener_rule.alb-listener-test-alb_rule_1 | blocks: 2 | properties: 4",
      ]
     `);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    const { app: appDelete } = await setup(testModuleContainer, octoTerraform);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-           "value": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-region-test-alb",
-           "value": "@octo/security-group=sec-grp-region-test-alb",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/alb=alb-region-test-alb",
-           "value": "@octo/alb=alb-region-test-alb",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": "@octo/alb-listener=alb-listener-test-alb",
-         },
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-           "value": "",
-         },
-       ],
-       [],
+       "- @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+       "- @octo/security-group=sec-grp-region-test-alb",
+       "- @octo/alb=alb-region-test-alb",
+       "- @octo/alb-listener=alb-listener-test-alb",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.alb-listener-test-alb-ListenerArn | blocks: 0 | properties: 1",
+       "- output.alb-region-test-alb-DNSName | blocks: 0 | properties: 1",
+       "- output.alb-region-test-alb-LoadBalancerArn | blocks: 0 | properties: 1",
+       "- output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn | blocks: 0 | properties: 1",
+       "- output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn | blocks: 0 | properties: 1",
+       "- output.sec-grp-region-test-alb-Arn | blocks: 0 | properties: 1",
+       "- output.sec-grp-region-test-alb-GroupId | blocks: 0 | properties: 1",
+       "- resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1 | blocks: 2 | properties: 6",
+       "- resource.aws_lb_listener_rule.alb-listener-test-alb_rule_2 | blocks: 2 | properties: 4",
+       "- resource.aws_lb_listener.alb-listener-test-alb | blocks: 1 | properties: 4",
+       "- resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1 | blocks: 1 | properties: 8",
+       "- resource.aws_lb.alb-region-test-alb | blocks: 0 | properties: 7",
+       "- resource.aws_security_group.sec-grp-region-test-alb | blocks: 0 | properties: 2",
+       "- resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0 | blocks: 0 | properties: 8",
+       "- resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0 | blocks: 0 | properties: 8",
      ]
     `);
 
@@ -870,7 +858,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -913,67 +901,46 @@ describe('AwsEcsAlbServiceModule UT', () => {
       type: AwsEcsAlbServiceModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-region-test-alb",
-           "value": "@octo/security-group=sec-grp-region-test-alb",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/alb=alb-region-test-alb",
-           "value": "@octo/alb=alb-region-test-alb",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-           "value": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": "@octo/alb-listener=alb-listener-test-alb",
-         },
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": {
-             "DefaultActions": [],
-           },
-         },
-       ],
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-           "value": {
-             "add": {
-               "tag1": "value1",
-             },
-             "delete": [],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-           "value": "",
-         },
-       ],
+       "+ @octo/security-group=sec-grp-region-test-alb",
+       "+ @octo/alb=alb-region-test-alb",
+       "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+       "+ @octo/alb-listener=alb-listener-test-alb",
+       "~ @octo/alb-listener=alb-listener-test-alb",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.alb-listener-test-alb-ListenerArn | blocks: 0 | properties: 1",
+       "+ output.alb-region-test-alb-DNSName | blocks: 0 | properties: 1",
+       "+ output.alb-region-test-alb-LoadBalancerArn | blocks: 0 | properties: 1",
+       "+ output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn | blocks: 0 | properties: 1",
+       "+ output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
+       "+ output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn | blocks: 0 | properties: 1",
+       "+ output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision | blocks: 0 | properties: 1",
+       "+ output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn | blocks: 0 | properties: 1",
+       "+ output.igw-region-InternetGatewayId | blocks: 0 | properties: 1",
+       "+ output.sec-grp-region-test-alb-Arn | blocks: 0 | properties: 1",
+       "+ output.sec-grp-region-test-alb-GroupId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-1-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-1-SubnetId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-2-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-2-SubnetId | blocks: 0 | properties: 1",
+       "+ output.vpc-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1 | blocks: 2 | properties: 6",
+       "+ resource.aws_lb_listener.alb-listener-test-alb | blocks: 1 | properties: 4",
+       "+ resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1 | blocks: 1 | properties: 8",
+       "+ resource.aws_lb.alb-region-test-alb | blocks: 0 | properties: 7",
+       "+ resource.aws_security_group.sec-grp-region-test-alb | blocks: 0 | properties: 2",
+       "+ resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0 | blocks: 0 | properties: 8",
+       "+ resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0 | blocks: 0 | properties: 8",
      ]
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -1016,85 +983,18 @@ describe('AwsEcsAlbServiceModule UT', () => {
       type: AwsEcsAlbServiceModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/security-group=sec-grp-region-test-alb",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/alb=alb-region-test-alb",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-       ],
-       [],
+       "~ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+       "~ @octo/security-group=sec-grp-region-test-alb",
+       "~ @octo/alb=alb-region-test-alb",
+       "~ @octo/alb-listener=alb-listener-test-alb",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -1137,83 +1037,21 @@ describe('AwsEcsAlbServiceModule UT', () => {
       type: AwsEcsAlbServiceModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/security-group=sec-grp-region-test-alb",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/alb=alb-region-test-alb",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/alb-listener=alb-listener-test-alb",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-       ],
-       [],
+       "~ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+       "~ @octo/security-group=sec-grp-region-test-alb",
+       "~ @octo/alb=alb-region-test-alb",
+       "~ @octo/alb-listener=alb-listener-test-alb",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
     it('should handle albName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1256,8 +1094,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateAlbName } = await setup(testModuleContainer);
+      const { app: appUpdateAlbName } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'changed-alb',
@@ -1301,63 +1140,23 @@ describe('AwsEcsAlbServiceModule UT', () => {
       });
       const resultUpdateAlbName = await testModuleContainer.commit(appUpdateAlbName, {
         enableResourceCapture: true,
-        skipResourceTransaction: true,
       });
-      expect(resultUpdateAlbName.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateAlbName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/security-group=sec-grp-region-test-alb",
-             "value": "@octo/security-group=sec-grp-region-test-alb",
-           },
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/alb=alb-region-test-alb",
-             "value": "@octo/alb=alb-region-test-alb",
-           },
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/alb-listener=alb-listener-test-alb",
-             "value": "@octo/alb-listener=alb-listener-test-alb",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/security-group=sec-grp-region-changed-alb",
-             "value": "@octo/security-group=sec-grp-region-changed-alb",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/alb=alb-region-changed-alb",
-             "value": "@octo/alb=alb-region-changed-alb",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/alb-listener=alb-listener-changed-alb",
-             "value": "@octo/alb-listener=alb-listener-changed-alb",
-           },
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/alb-listener=alb-listener-changed-alb",
-             "value": {
-               "DefaultActions": [],
-             },
-           },
-         ],
-         [],
+         "+ @octo/alb-listener=alb-listener-changed-alb",
+         "+ @octo/alb=alb-region-changed-alb",
+         "+ @octo/security-group=sec-grp-region-changed-alb",
+         "- @octo/alb-listener=alb-listener-test-alb",
+         "- @octo/alb=alb-region-test-alb",
+         "- @octo/security-group=sec-grp-region-test-alb",
+         "~ @octo/alb-listener=alb-listener-changed-alb",
        ]
       `);
+      expect(hcl.digest()).toMatchInlineSnapshot();
     });
 
     it('should handle listener DefaultActions change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1400,8 +1199,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateListenerDefaultAction } = await setup(testModuleContainer);
+      const { app: appUpdateListenerDefaultAction } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1426,39 +1226,19 @@ describe('AwsEcsAlbServiceModule UT', () => {
       });
       const resultUpdateListenerDefaultAction = await testModuleContainer.commit(appUpdateListenerDefaultAction, {
         enableResourceCapture: true,
-        skipResourceTransaction: true,
       });
-      expect(resultUpdateListenerDefaultAction.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateListenerDefaultAction.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-             "value": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-           },
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/alb-listener=alb-listener-test-alb",
-             "value": {
-               "DefaultActions": [],
-             },
-           },
-           {
-             "action": "update",
-             "field": "resourceId",
-             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-             "value": "",
-           },
-         ],
-         [],
+         "- @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "~ @octo/alb-listener=alb-listener-test-alb",
+         "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
        ]
       `);
+      expect(hcl.digest()).toMatchInlineSnapshot();
     });
 
     it('should handle listener Port change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1501,8 +1281,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateListenerPort } = await setup(testModuleContainer);
+      const { app: appUpdateListenerPort } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1546,27 +1327,21 @@ describe('AwsEcsAlbServiceModule UT', () => {
       });
       const resultUpdateListenerPort = await testModuleContainer.commit(appUpdateListenerPort, {
         enableResourceCapture: true,
-        skipResourceTransaction: true,
       });
-      expect(resultUpdateListenerPort.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateListenerPort.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/alb-listener=alb-listener-test-alb",
-             "value": {
-               "DefaultActions": [],
-             },
-           },
-         ],
-         [],
+         "~ @octo/alb-listener=alb-listener-test-alb",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_lb_listener.alb-listener-test-alb | blocks: 0 | properties: 1",
        ]
       `);
     });
 
     it('should handle listener rules change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1609,8 +1384,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateListenerRule } = await setup(testModuleContainer);
+      const { app: appUpdateListenerRule } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1665,52 +1441,21 @@ describe('AwsEcsAlbServiceModule UT', () => {
       });
       const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule, {
         enableResourceCapture: true,
-        skipResourceTransaction: true,
       });
-      expect(resultUpdateListenerRule.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateListenerRule.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/alb-listener=alb-listener-test-alb",
-             "value": {
-               "Rule": {
-                 "action": "add",
-                 "rule": {
-                   "Priority": 1,
-                   "actions": [
-                     {
-                       "action": {
-                         "ContentType": "text/plain",
-                         "MessageBody": "Not implemented!",
-                         "StatusCode": 404,
-                       },
-                       "actionType": "fixed-response",
-                     },
-                   ],
-                   "conditions": [
-                     {
-                       "condition": {
-                         "Values": [
-                           "/api",
-                         ],
-                       },
-                       "conditionType": "path-pattern",
-                     },
-                   ],
-                 },
-               },
-             },
-           },
-         ],
-         [],
+         "~ @octo/alb-listener=alb-listener-test-alb",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "+ resource.aws_lb_listener_rule.alb-listener-test-alb_rule_1 | blocks: 2 | properties: 4",
        ]
       `);
     });
 
     it('should handle target add change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1734,8 +1479,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateTargetAddNewTarget } = await setup(testModuleContainer);
+      const { app: appUpdateTargetAddNewTarget } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1779,39 +1525,19 @@ describe('AwsEcsAlbServiceModule UT', () => {
       });
       const resultUpdateTargetAddNewTarget = await testModuleContainer.commit(appUpdateTargetAddNewTarget, {
         enableResourceCapture: true,
-        skipResourceTransaction: true,
       });
-      expect(resultUpdateTargetAddNewTarget.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateTargetAddNewTarget.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "resourceId",
-             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-             "value": "",
-           },
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/alb-listener=alb-listener-test-alb",
-             "value": {
-               "DefaultActions": [],
-             },
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-             "value": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-           },
-         ],
-         [],
+         "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "~ @octo/alb-listener=alb-listener-test-alb",
+         "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
        ]
       `);
+      expect(hcl.digest()).toMatchInlineSnapshot();
     });
 
     it('should handle target containerName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1854,8 +1580,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateTargetContainerName } = await setup(testModuleContainer);
+      const { app: appUpdateTargetContainerName } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1899,25 +1626,21 @@ describe('AwsEcsAlbServiceModule UT', () => {
       });
       const resultUpdateTargetContainerName = await testModuleContainer.commit(appUpdateTargetContainerName, {
         enableResourceCapture: true,
-        skipResourceTransaction: true,
       });
-      expect(resultUpdateTargetContainerName.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateTargetContainerName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "resourceId",
-             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-             "value": "",
-           },
-         ],
-         [],
+         "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1 | blocks: 1 | properties: 0",
        ]
       `);
     });
 
     it('should handle target containerPort change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1960,8 +1683,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateTargetContainerPort } = await setup(testModuleContainer);
+      const { app: appUpdateTargetContainerPort } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -2006,15 +1730,14 @@ describe('AwsEcsAlbServiceModule UT', () => {
       await expect(async () => {
         await testModuleContainer.commit(appUpdateTargetContainerPort, {
           enableResourceCapture: true,
-          skipResourceTransaction: true,
         });
-      }).rejects.toMatchInlineSnapshot(
-        `[Error: Cannot update ALB Target Group immutable properties once it has been created!]`,
+      }).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Cannot update ALB Target Group immutable properties once it has been created!"`,
       );
     });
 
     it('should handle target healthCheck change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -2057,8 +1780,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateTargetHealthCheck } = await setup(testModuleContainer);
+      const { app: appUpdateTargetHealthCheck } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -2102,31 +1826,22 @@ describe('AwsEcsAlbServiceModule UT', () => {
       });
       const resultUpdateTargetHealthCheck = await testModuleContainer.commit(appUpdateTargetHealthCheck, {
         enableResourceCapture: true,
-        skipResourceTransaction: true,
       });
-      expect(resultUpdateTargetHealthCheck.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateTargetHealthCheck.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-             "value": "",
-           },
-           {
-             "action": "update",
-             "field": "resourceId",
-             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
-             "value": "",
-           },
-         ],
-         [],
+         "~ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1 | blocks: 1 | properties: 0",
        ]
       `);
     });
 
     it('should handle target name change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -2169,8 +1884,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateTargetName } = await setup(testModuleContainer);
+      const { app: appUpdateTargetName } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -2215,16 +1931,15 @@ describe('AwsEcsAlbServiceModule UT', () => {
       await expect(async () => {
         await testModuleContainer.commit(appUpdateTargetName, {
           enableResourceCapture: true,
-          skipResourceTransaction: true,
         });
-      }).rejects.toMatchInlineSnapshot(
-        `[Error: Cannot update ALB Target Group immutable properties once it has been created!]`,
+      }).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Cannot update ALB Target Group immutable properties once it has been created!"`,
       );
     });
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -2267,8 +1982,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
       type: AwsEcsAlbServiceModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.digest();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    const { app: appUpdateModuleId } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -2311,11 +2027,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
       type: AwsEcsAlbServiceModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 });

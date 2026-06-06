@@ -1,37 +1,7 @@
 import {
-  AllocateAddressCommand,
-  AssociateRouteTableCommand,
-  AuthorizeSecurityGroupEgressCommand,
-  AuthorizeSecurityGroupIngressCommand,
-  CreateNatGatewayCommand,
-  CreateNetworkAclCommand,
-  CreateRouteTableCommand,
-  CreateSecurityGroupCommand,
-  CreateSubnetCommand,
-  DescribeNatGatewaysCommand,
-  DescribeNetworkAclsCommand,
-  EC2Client,
-  ReplaceNetworkAclAssociationCommand,
-} from '@aws-sdk/client-ec2';
-import {
-  CreateFileSystemCommand,
-  CreateMountTargetCommand,
-  DescribeFileSystemsCommand,
-  DescribeMountTargetsCommand,
-  EFSClient,
-  type FileSystemDescription,
-} from '@aws-sdk/client-efs';
-import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { jest } from '@jest/globals';
-import {
-  type AResource,
   type Account,
   type App,
-  type BaseResourceSchema,
+  DiffAssert,
   type Filesystem,
   type Region,
   SubnetType,
@@ -39,17 +9,18 @@ import {
   TestModuleContainer,
   stub,
 } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsSimpleSubnetModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
+  octoTerraform: OctoTerraform,
 ): Promise<{ account: Account; app: App; filesystem: Filesystem; region: Region }> {
   const {
     account: [account],
@@ -62,7 +33,6 @@ async function setup(
     filesystem: ['test-filesystem'],
     region: ['region'],
   });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   filesystem.addAnchor(
     testModuleContainer.createTestAnchor<AwsEfsAnchorSchema>(
@@ -84,7 +54,11 @@ async function setup(
     ),
   );
 
-  await testModuleContainer.createTestResources<[EfsSchema, InternetGatewaySchema, VpcSchema]>(
+  const {
+    '@octo/efs=efs-region-test-filesystem': efsResource,
+    '@octo/internet-gateway=igw-region': igwResource,
+    '@octo/vpc=vpc-region': vpcResource,
+  } = await testModuleContainer.createTestResources<[EfsSchema, InternetGatewaySchema, VpcSchema]>(
     'testModule',
     [
       {
@@ -112,164 +86,49 @@ async function setup(
     { save: true },
   );
 
+  const efsOctoResource = octoTerraform.addOctoTerraformResource(efsResource);
+  efsOctoResource.output({
+    FileSystemId: octoTerraform.raw('aws_efs_file_system.efs-region-test-filesystem.id'),
+  });
+  const igwOctoResource = octoTerraform.addOctoTerraformResource(igwResource);
+  igwOctoResource.output({
+    InternetGatewayId: octoTerraform.raw('aws_internet_gateway.igw-region.id'),
+  });
+  const vpcOctoResource = octoTerraform.addOctoTerraformResource(vpcResource);
+  vpcOctoResource.output({
+    VpcId: octoTerraform.raw('aws_vpc.vpc-region.id'),
+  });
+
   return { account, app, filesystem, region };
 }
 
 describe('AwsSimpleSubnetModule UT', () => {
-  const originalRetryPromise = RetryUtility.retryPromise;
-
-  let retryPromiseSpy: jest.Spied<any>;
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const EC2ClientMock = mockClient(EC2Client);
-  const EFSClientMock = mockClient(EFSClient);
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-
   beforeEach(async () => {
-    EC2ClientMock.on(CreateSubnetCommand, { CidrBlock: '10.0.1.0/24' })
-      .resolves({
-        Subnet: {
-          SubnetId: 'SubnetId-Private',
-        },
-      })
-      .on(CreateSubnetCommand, { CidrBlock: '10.0.0.0/24' })
-      .resolves({
-        Subnet: {
-          SubnetId: 'SubnetId-Public',
-        },
-      })
-      .on(CreateSecurityGroupCommand)
-      .resolves({
-        GroupId: 'GroupId',
-      })
-      .on(AuthorizeSecurityGroupEgressCommand)
-      .resolves({ SecurityGroupRules: [] })
-      .on(AuthorizeSecurityGroupIngressCommand)
-      .resolves({ SecurityGroupRules: [] })
-      .on(CreateRouteTableCommand)
-      .resolves({ RouteTable: { RouteTableId: 'RouteTableId' } })
-      .on(AssociateRouteTableCommand, { SubnetId: 'SubnetId-Private' })
-      .resolves({ AssociationId: 'subnetAssociationId-Private' })
-      .on(AssociateRouteTableCommand, { SubnetId: 'SubnetId-Public' })
-      .resolves({ AssociationId: 'subnetAssociationId-Public' })
-      .on(DescribeNetworkAclsCommand, {
-        Filters: [
-          {
-            Name: 'association.subnet-id',
-            Values: ['SubnetId-Private'],
-          },
-        ],
-      })
-      .resolves({
-        NetworkAcls: [
-          {
-            Associations: [{ NetworkAclAssociationId: 'defaultNetworkAclId-Private', SubnetId: 'SubnetId-Private' }],
-            Entries: [],
-            NetworkAclId: 'defaultNetworkAclId-Private',
-          },
-        ],
-      })
-      .on(DescribeNetworkAclsCommand, {
-        Filters: [
-          {
-            Name: 'association.subnet-id',
-            Values: ['SubnetId-Public'],
-          },
-        ],
-      })
-      .resolves({
-        NetworkAcls: [
-          {
-            Associations: [{ NetworkAclAssociationId: 'defaultNetworkAclId-Public', SubnetId: 'SubnetId-Public' }],
-            Entries: [],
-            NetworkAclId: 'defaultNetworkAclId-Public',
-          },
-        ],
-      })
-      .on(CreateNetworkAclCommand)
-      .resolves({ NetworkAcl: { NetworkAclId: 'NetworkAclId' } })
-      .on(ReplaceNetworkAclAssociationCommand, { AssociationId: 'defaultNetworkAclId-Private' })
-      .resolves({ NewAssociationId: 'subnetNetworkAclId-Private' })
-      .on(ReplaceNetworkAclAssociationCommand, { AssociationId: 'defaultNetworkAclId-Public' })
-      .resolves({ NewAssociationId: 'subnetNetworkAclId-Public' })
-      .on(AllocateAddressCommand)
-      .resolves({ AllocationId: 'AllocationId' })
-      .on(CreateNatGatewayCommand)
-      .resolves({ NatGateway: { NatGatewayId: 'NatGatewayId' } })
-      .on(DescribeNatGatewaysCommand)
-      .resolvesOnce({ NatGateways: [{ State: 'available' }] })
-      .resolves({ NatGateways: [{ State: 'deleted' }] });
-
-    EFSClientMock.on(CreateFileSystemCommand)
-      .resolves({ FileSystemId: 'FileSystemId' })
-      .on(DescribeFileSystemsCommand)
-      .resolves({
-        FileSystems: [{ FileSystemId: 'FileSystemId', LifeCycleState: 'available' } as FileSystemDescription],
-      })
-      .on(CreateMountTargetCommand)
-      .resolves({ MountTargetId: 'MountTargetId', NetworkInterfaceId: 'NetworkInterfaceId' })
-      .on(DescribeMountTargetsCommand)
-      .callsFake(() => {
-        const states = ['available', 'deleted'];
-        return {
-          MountTargets: [
-            { FileSystemId: 'FileSystemId', LifeCycleState: states[Math.floor(Math.random() * states.length)] },
-          ],
-        };
-      });
-
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: EC2Client,
-            value: EC2ClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: EFSClient,
-            value: EFSClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
-
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
 
-    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, {
-        ...options,
-        initialDelayInMs: 0,
-        maxRetries: 15,
-        retryDelayInMs: 0,
-        throwOnError: true,
-      });
-    });
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'us-east-1');
+
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
-    EC2ClientMock.reset();
-    EFSClientMock.reset();
-    ResourceGroupsTaggingAPIClientMock.reset();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
-
-    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    const { app } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         localFilesystems: [stub('${{testModule.model.filesystem}}')],
@@ -298,20 +157,159 @@ describe('AwsSimpleSubnetModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddSubnetResourceAction",
-         "AddSecurityGroupResourceAction",
+         "CaptureSubnetResponseResourceAction",
+         "CaptureSecurityGroupResponseResourceAction",
        ],
        [
-         "AddRouteTableResourceAction",
-         "AddNetworkAclResourceAction",
-         "AddEfsMountTargetResourceAction",
+         "CaptureRouteTableResponseResourceAction",
+         "CaptureNetworkAclResponseResourceAction",
+         "CaptureEfsMountTargetResponseResourceAction",
        ],
      ]
+    `);
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/subnet=subnet-region-private-subnet",
+       "+ @octo/route-table=rt-region-private-subnet",
+       "+ @octo/network-acl=nacl-region-private-subnet",
+       "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
+       "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+     ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "123-us-east-1"
+       region = "us-east-1"
+     }
+
+     output "efs-region-test-filesystem-FileSystemId" {
+       value = aws_efs_file_system.efs-region-test-filesystem.id
+     }
+
+     output "igw-region-InternetGatewayId" {
+       value = aws_internet_gateway.igw-region.id
+     }
+
+     output "vpc-region-VpcId" {
+       value = aws_vpc.vpc-region.id
+     }
+
+     resource "aws_subnet" "subnet-region-private-subnet" {
+       provider = aws.123-us-east-1
+       availability_zone = "us-east-1a"
+       cidr_block = "10.0.1.0/24"
+       vpc_id = aws_vpc.vpc-region.id
+     }
+
+     output "subnet-region-private-subnet-SubnetArn" {
+       value = aws_subnet.subnet-region-private-subnet.arn
+     }
+
+     output "subnet-region-private-subnet-SubnetId" {
+       value = aws_subnet.subnet-region-private-subnet.id
+     }
+
+     resource "aws_route_table" "rt-region-private-subnet" {
+       provider = aws.123-us-east-1
+       vpc_id = aws_vpc.vpc-region.id
+     }
+
+     resource "aws_route_table_association" "rt-region-private-subnet_assoc" {
+       provider = aws.123-us-east-1
+       route_table_id = aws_route_table.rt-region-private-subnet.id
+       subnet_id = aws_subnet.subnet-region-private-subnet.id
+
+       depends_on = [aws_route_table.rt-region-private-subnet]
+     }
+
+     output "rt-region-private-subnet-RouteTableId" {
+       value = aws_route_table.rt-region-private-subnet.id
+     }
+
+     output "rt-region-private-subnet-subnetAssociationId" {
+       value = aws_route_table_association.rt-region-private-subnet_assoc.id
+     }
+
+     resource "aws_network_acl" "nacl-region-private-subnet" {
+       provider = aws.123-us-east-1
+       subnet_ids = [aws_subnet.subnet-region-private-subnet.id]
+       vpc_id = aws_vpc.vpc-region.id
+       ingress {
+         action = "allow"
+         cidr_block = "10.0.1.0/24"
+         from_port = -1
+         protocol = "-1"
+         rule_no = 10
+         to_port = -1
+       }
+       egress {
+         action = "allow"
+         cidr_block = "10.0.1.0/24"
+         from_port = -1
+         protocol = "-1"
+         rule_no = 10
+         to_port = -1
+       }
+     }
+
+     output "nacl-region-private-subnet-NetworkAclId" {
+       value = aws_network_acl.nacl-region-private-subnet.id
+     }
+
+     resource "aws_security_group" "sec-grp-efs-mount-region-private-subnet-test-filesystem" {
+       provider = aws.123-us-east-1
+       vpc_id = aws_vpc.vpc-region.id
+     }
+
+     resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0" {
+       provider = aws.123-us-east-1
+       cidr_ipv4 = "10.0.1.0/24"
+       description = "tcp 2049-2049 10.0.1.0/24"
+       ip_protocol = "tcp"
+       security_group_id = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id
+       from_port = 2049
+       to_port = 2049
+
+       depends_on = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem]
+     }
+
+     output "sec-grp-efs-mount-region-private-subnet-test-filesystem-Arn" {
+       value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.arn
+     }
+
+     output "sec-grp-efs-mount-region-private-subnet-test-filesystem-GroupId" {
+       value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id
+     }
+
+     resource "aws_efs_mount_target" "efs-mount-region-private-subnet-test-filesystem" {
+       provider = aws.123-us-east-1
+       file_system_id = aws_efs_file_system.efs-region-test-filesystem.id
+       security_groups = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id]
+       subnet_id = aws_subnet.subnet-region-private-subnet.id
+     }
+
+     output "efs-mount-region-private-subnet-test-filesystem-MountTargetId" {
+       value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.id
+     }
+
+     output "efs-mount-region-private-subnet-test-filesystem-NetworkInterfaceId" {
+       value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.network_interface_id
+     }"
     `);
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -323,64 +321,31 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-private-subnet",
-           "value": "@octo/subnet=subnet-region-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": "@octo/route-table=rt-region-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": "@octo/network-acl=nacl-region-private-subnet",
-         },
-       ],
-       [],
+       "+ @octo/subnet=subnet-region-private-subnet",
+       "+ @octo/route-table=rt-region-private-subnet",
+       "+ @octo/network-acl=nacl-region-private-subnet",
      ]
     `);
-    expect((resultCreate.resourceDiffs[0][2].diff.node as AResource<BaseResourceSchema, any>).properties)
-      .toMatchInlineSnapshot(`
-     {
-       "awsAccountId": "123",
-       "awsRegionId": "us-east-1",
-       "entries": [
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-       ],
-     }
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
+       "+ output.igw-region-InternetGatewayId | blocks: 0 | properties: 1",
+       "+ output.nacl-region-private-subnet-NetworkAclId | blocks: 0 | properties: 1",
+       "+ output.rt-region-private-subnet-RouteTableId | blocks: 0 | properties: 1",
+       "+ output.rt-region-private-subnet-subnetAssociationId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetId | blocks: 0 | properties: 1",
+       "+ output.vpc-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 3",
+       "+ resource.aws_route_table_association.rt-region-private-subnet_assoc | blocks: 0 | properties: 4",
+       "+ resource.aws_route_table.rt-region-private-subnet | blocks: 0 | properties: 2",
+       "+ resource.aws_subnet.subnet-region-private-subnet | blocks: 0 | properties: 4",
+     ]
     `);
 
-    const { app: appAddSubnetOptions } = await setup(testModuleContainer);
+    const { app: appAddSubnetOptions } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -399,47 +364,18 @@ describe('AwsSimpleSubnetModule UT', () => {
     const resultAddSubnetOptions = await testModuleContainer.commit(appAddSubnetOptions, {
       enableResourceCapture: true,
     });
-    expect(resultAddSubnetOptions.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultAddSubnetOptions.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": {
-             "key": "entries",
-             "value": [
-               {
-                 "CidrBlock": "10.0.1.0/24",
-                 "Egress": false,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "deny",
-                 "RuleNumber": 10,
-               },
-               {
-                 "CidrBlock": "10.0.1.0/24",
-                 "Egress": true,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "deny",
-                 "RuleNumber": 10,
-               },
-             ],
-           },
-         },
-       ],
-       [],
+       "~ @octo/network-acl=nacl-region-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "~ resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 0",
      ]
     `);
 
-    const { app: appAddLocalFilesystem } = await setup(testModuleContainer);
+    const { app: appAddLocalFilesystem } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         localFilesystems: [stub('${{testModule.model.filesystem}}')],
@@ -459,63 +395,53 @@ describe('AwsSimpleSubnetModule UT', () => {
     const resultAddLocalFilesystem = await testModuleContainer.commit(appAddLocalFilesystem, {
       enableResourceCapture: true,
     });
-    expect(resultAddLocalFilesystem.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultAddLocalFilesystem.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
-           "value": "@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
-           "value": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
-         },
-       ],
-       [],
+       "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
+       "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.efs-mount-region-private-subnet-test-filesystem-MountTargetId | blocks: 0 | properties: 1",
+       "+ output.efs-mount-region-private-subnet-test-filesystem-NetworkInterfaceId | blocks: 0 | properties: 1",
+       "+ output.sec-grp-efs-mount-region-private-subnet-test-filesystem-Arn | blocks: 0 | properties: 1",
+       "+ output.sec-grp-efs-mount-region-private-subnet-test-filesystem-GroupId | blocks: 0 | properties: 1",
+       "+ resource.aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem | blocks: 0 | properties: 4",
+       "+ resource.aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem | blocks: 0 | properties: 2",
+       "+ resource.aws_vpc_security_group_ingress_rule.sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0 | blocks: 0 | properties: 8",
      ]
     `);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    const { app: appDelete } = await setup(testModuleContainer, octoTerraform);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
-           "value": "@octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-private-subnet",
-           "value": "@octo/subnet=subnet-region-private-subnet",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
-           "value": "@octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": "@octo/network-acl=nacl-region-private-subnet",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": "@octo/route-table=rt-region-private-subnet",
-         },
-       ],
-       [],
+       "- @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
+       "- @octo/subnet=subnet-region-private-subnet",
+       "- @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+       "- @octo/network-acl=nacl-region-private-subnet",
+       "- @octo/route-table=rt-region-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.efs-mount-region-private-subnet-test-filesystem-MountTargetId | blocks: 0 | properties: 1",
+       "- output.efs-mount-region-private-subnet-test-filesystem-NetworkInterfaceId | blocks: 0 | properties: 1",
+       "- output.nacl-region-private-subnet-NetworkAclId | blocks: 0 | properties: 1",
+       "- output.rt-region-private-subnet-RouteTableId | blocks: 0 | properties: 1",
+       "- output.rt-region-private-subnet-subnetAssociationId | blocks: 0 | properties: 1",
+       "- output.sec-grp-efs-mount-region-private-subnet-test-filesystem-Arn | blocks: 0 | properties: 1",
+       "- output.sec-grp-efs-mount-region-private-subnet-test-filesystem-GroupId | blocks: 0 | properties: 1",
+       "- output.subnet-region-private-subnet-SubnetArn | blocks: 0 | properties: 1",
+       "- output.subnet-region-private-subnet-SubnetId | blocks: 0 | properties: 1",
+       "- resource.aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem | blocks: 0 | properties: 4",
+       "- resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 3",
+       "- resource.aws_route_table_association.rt-region-private-subnet_assoc | blocks: 0 | properties: 4",
+       "- resource.aws_route_table.rt-region-private-subnet | blocks: 0 | properties: 2",
+       "- resource.aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem | blocks: 0 | properties: 2",
+       "- resource.aws_subnet.subnet-region-private-subnet | blocks: 0 | properties: 4",
+       "- resource.aws_vpc_security_group_ingress_rule.sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0 | blocks: 0 | properties: 8",
      ]
     `);
 
@@ -524,7 +450,7 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should associate and disassociate subnet with siblings', async () => {
-    const { app: appAssociateSubnet } = await setup(testModuleContainer);
+    const { app: appAssociateSubnet } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -557,179 +483,43 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
     const resultAssociateSubnet = await testModuleContainer.commit(appAssociateSubnet, { enableResourceCapture: true });
-    expect(resultAssociateSubnet.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultAssociateSubnet.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-private-subnet",
-           "value": "@octo/subnet=subnet-region-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": "@octo/route-table=rt-region-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": "@octo/network-acl=nacl-region-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-public-subnet",
-           "value": "@octo/subnet=subnet-region-public-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/route-table=rt-region-public-subnet",
-           "value": "@octo/route-table=rt-region-public-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-public-subnet",
-           "value": "@octo/network-acl=nacl-region-public-subnet",
-         },
-       ],
-       [],
+       "+ @octo/subnet=subnet-region-private-subnet",
+       "+ @octo/route-table=rt-region-private-subnet",
+       "+ @octo/network-acl=nacl-region-private-subnet",
+       "+ @octo/subnet=subnet-region-public-subnet",
+       "+ @octo/route-table=rt-region-public-subnet",
+       "+ @octo/network-acl=nacl-region-public-subnet",
      ]
     `);
-    expect((resultAssociateSubnet.resourceDiffs[0][2].diff.node as AResource<BaseResourceSchema, any>).properties)
-      .toMatchInlineSnapshot(`
-     {
-       "awsAccountId": "123",
-       "awsRegionId": "us-east-1",
-       "entries": [
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-         {
-           "CidrBlock": "10.0.0.0/24",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 20,
-         },
-         {
-           "CidrBlock": "10.0.0.0/24",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 20,
-         },
-       ],
-     }
-    `);
-    expect((resultAssociateSubnet.resourceDiffs[0][5].diff.node as AResource<BaseResourceSchema, any>).properties)
-      .toMatchInlineSnapshot(`
-     {
-       "awsAccountId": "123",
-       "awsRegionId": "us-east-1",
-       "entries": [
-         {
-           "CidrBlock": "10.0.0.0/24",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-         {
-           "CidrBlock": "10.0.0.0/24",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-         {
-           "CidrBlock": "0.0.0.0/0",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 20,
-         },
-         {
-           "CidrBlock": "0.0.0.0/0",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 20,
-         },
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 30,
-         },
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 30,
-         },
-       ],
-     }
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
+       "+ output.igw-region-InternetGatewayId | blocks: 0 | properties: 1",
+       "+ output.nacl-region-private-subnet-NetworkAclId | blocks: 0 | properties: 1",
+       "+ output.nacl-region-public-subnet-NetworkAclId | blocks: 0 | properties: 1",
+       "+ output.rt-region-private-subnet-RouteTableId | blocks: 0 | properties: 1",
+       "+ output.rt-region-private-subnet-subnetAssociationId | blocks: 0 | properties: 1",
+       "+ output.rt-region-public-subnet-RouteTableId | blocks: 0 | properties: 1",
+       "+ output.rt-region-public-subnet-subnetAssociationId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-SubnetId | blocks: 0 | properties: 1",
+       "+ output.vpc-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 3",
+       "+ resource.aws_network_acl.nacl-region-public-subnet | blocks: 2 | properties: 3",
+       "+ resource.aws_route_table_association.rt-region-private-subnet_assoc | blocks: 0 | properties: 4",
+       "+ resource.aws_route_table_association.rt-region-public-subnet_assoc | blocks: 0 | properties: 4",
+       "+ resource.aws_route_table.rt-region-private-subnet | blocks: 0 | properties: 2",
+       "+ resource.aws_route_table.rt-region-public-subnet | blocks: 1 | properties: 2",
+       "+ resource.aws_subnet.subnet-region-private-subnet | blocks: 0 | properties: 4",
+       "+ resource.aws_subnet.subnet-region-public-subnet | blocks: 0 | properties: 4",
+     ]
     `);
 
-    const { app: appDisassociateSubnet } = await setup(testModuleContainer);
+    const { app: appDisassociateSubnet } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -760,103 +550,22 @@ describe('AwsSimpleSubnetModule UT', () => {
     const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet, {
       enableResourceCapture: true,
     });
-    expect(resultDisassociateSubnet.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDisassociateSubnet.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": {
-             "key": "entries",
-             "value": [
-               {
-                 "CidrBlock": "10.0.1.0/24",
-                 "Egress": false,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 10,
-               },
-               {
-                 "CidrBlock": "10.0.1.0/24",
-                 "Egress": true,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 10,
-               },
-             ],
-           },
-         },
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/network-acl=nacl-region-public-subnet",
-           "value": {
-             "key": "entries",
-             "value": [
-               {
-                 "CidrBlock": "10.0.0.0/24",
-                 "Egress": false,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 10,
-               },
-               {
-                 "CidrBlock": "10.0.0.0/24",
-                 "Egress": true,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 10,
-               },
-               {
-                 "CidrBlock": "0.0.0.0/0",
-                 "Egress": false,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 20,
-               },
-               {
-                 "CidrBlock": "0.0.0.0/0",
-                 "Egress": true,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 20,
-               },
-             ],
-           },
-         },
-       ],
-       [],
+       "~ @octo/network-acl=nacl-region-private-subnet",
+       "~ @octo/network-acl=nacl-region-public-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "~ resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 0",
+       "~ resource.aws_network_acl.nacl-region-public-subnet | blocks: 2 | properties: 0",
      ]
     `);
   });
 
   it('should associate and disassociate private subnet with public subnet with a NAT Gateway', async () => {
-    const { app: appAssociateSubnet } = await setup(testModuleContainer);
+    const { app: appAssociateSubnet } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -890,213 +599,48 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     const resultAssociateSubnet = await testModuleContainer.commit(appAssociateSubnet, { enableResourceCapture: true });
-    expect(resultAssociateSubnet.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultAssociateSubnet.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-public-subnet",
-           "value": "@octo/subnet=subnet-region-public-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/nat-gateway=nat-gateway-region-public-subnet",
-           "value": "@octo/nat-gateway=nat-gateway-region-public-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/route-table=rt-region-public-subnet",
-           "value": "@octo/route-table=rt-region-public-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-public-subnet",
-           "value": "@octo/network-acl=nacl-region-public-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-private-subnet",
-           "value": "@octo/subnet=subnet-region-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": "@octo/route-table=rt-region-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "parent",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": "@octo/nat-gateway=nat-gateway-region-public-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": "@octo/network-acl=nacl-region-private-subnet",
-         },
-       ],
-       [],
+       "+ @octo/subnet=subnet-region-public-subnet",
+       "+ @octo/nat-gateway=nat-gateway-region-public-subnet",
+       "+ @octo/route-table=rt-region-public-subnet",
+       "+ @octo/network-acl=nacl-region-public-subnet",
+       "+ @octo/subnet=subnet-region-private-subnet",
+       "+ @octo/route-table=rt-region-private-subnet",
+       "+ @octo/network-acl=nacl-region-private-subnet",
      ]
     `);
-    expect((resultAssociateSubnet.resourceDiffs[0][3].diff.node as AResource<BaseResourceSchema, any>).properties)
-      .toMatchInlineSnapshot(`
-     {
-       "awsAccountId": "123",
-       "awsRegionId": "us-east-1",
-       "entries": [
-         {
-           "CidrBlock": "10.0.0.0/24",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-         {
-           "CidrBlock": "10.0.0.0/24",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-         {
-           "CidrBlock": "0.0.0.0/0",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 20,
-         },
-         {
-           "CidrBlock": "0.0.0.0/0",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 20,
-         },
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 30,
-         },
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 30,
-         },
-       ],
-     }
-    `);
-    expect((resultAssociateSubnet.resourceDiffs[0][7].diff.node as AResource<BaseResourceSchema, any>).properties)
-      .toMatchInlineSnapshot(`
-     {
-       "awsAccountId": "123",
-       "awsRegionId": "us-east-1",
-       "entries": [
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-         {
-           "CidrBlock": "10.0.1.0/24",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 10,
-         },
-         {
-           "CidrBlock": "10.0.0.0/24",
-           "Egress": false,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 20,
-         },
-         {
-           "CidrBlock": "10.0.0.0/24",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 20,
-         },
-         {
-           "CidrBlock": "0.0.0.0/0",
-           "Egress": true,
-           "PortRange": {
-             "From": -1,
-             "To": -1,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 30,
-         },
-         {
-           "CidrBlock": "0.0.0.0/0",
-           "Egress": false,
-           "PortRange": {
-             "From": 1024,
-             "To": 65535,
-           },
-           "Protocol": "-1",
-           "RuleAction": "allow",
-           "RuleNumber": 30,
-         },
-       ],
-     }
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
+       "+ output.igw-region-InternetGatewayId | blocks: 0 | properties: 1",
+       "+ output.nacl-region-private-subnet-NetworkAclId | blocks: 0 | properties: 1",
+       "+ output.nacl-region-public-subnet-NetworkAclId | blocks: 0 | properties: 1",
+       "+ output.nat-gateway-region-public-subnet-AllocationId | blocks: 0 | properties: 1",
+       "+ output.nat-gateway-region-public-subnet-NatGatewayId | blocks: 0 | properties: 1",
+       "+ output.rt-region-private-subnet-RouteTableId | blocks: 0 | properties: 1",
+       "+ output.rt-region-private-subnet-subnetAssociationId | blocks: 0 | properties: 1",
+       "+ output.rt-region-public-subnet-RouteTableId | blocks: 0 | properties: 1",
+       "+ output.rt-region-public-subnet-subnetAssociationId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-public-subnet-SubnetId | blocks: 0 | properties: 1",
+       "+ output.vpc-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_eip.nat-gateway-region-public-subnet_eip | blocks: 0 | properties: 2",
+       "+ resource.aws_nat_gateway.nat-gateway-region-public-subnet | blocks: 0 | properties: 5",
+       "+ resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 3",
+       "+ resource.aws_network_acl.nacl-region-public-subnet | blocks: 2 | properties: 3",
+       "+ resource.aws_route_table_association.rt-region-private-subnet_assoc | blocks: 0 | properties: 4",
+       "+ resource.aws_route_table_association.rt-region-public-subnet_assoc | blocks: 0 | properties: 4",
+       "+ resource.aws_route_table.rt-region-private-subnet | blocks: 1 | properties: 2",
+       "+ resource.aws_route_table.rt-region-public-subnet | blocks: 1 | properties: 2",
+       "+ resource.aws_subnet.subnet-region-private-subnet | blocks: 0 | properties: 4",
+       "+ resource.aws_subnet.subnet-region-public-subnet | blocks: 0 | properties: 4",
+     ]
     `);
 
-    const { app: appDisassociateSubnet } = await setup(testModuleContainer);
+    const { app: appDisassociateSubnet } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1126,107 +670,21 @@ describe('AwsSimpleSubnetModule UT', () => {
     const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet, {
       enableResourceCapture: true,
     });
-    expect(resultDisassociateSubnet.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDisassociateSubnet.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": {
-             "key": "entries",
-             "value": [
-               {
-                 "CidrBlock": "10.0.1.0/24",
-                 "Egress": false,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 10,
-               },
-               {
-                 "CidrBlock": "10.0.1.0/24",
-                 "Egress": true,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 10,
-               },
-             ],
-           },
-         },
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/network-acl=nacl-region-public-subnet",
-           "value": {
-             "key": "entries",
-             "value": [
-               {
-                 "CidrBlock": "10.0.0.0/24",
-                 "Egress": false,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 10,
-               },
-               {
-                 "CidrBlock": "10.0.0.0/24",
-                 "Egress": true,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 10,
-               },
-               {
-                 "CidrBlock": "0.0.0.0/0",
-                 "Egress": false,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 20,
-               },
-               {
-                 "CidrBlock": "0.0.0.0/0",
-                 "Egress": true,
-                 "PortRange": {
-                   "From": -1,
-                   "To": -1,
-                 },
-                 "Protocol": "-1",
-                 "RuleAction": "allow",
-                 "RuleNumber": 20,
-               },
-             ],
-           },
-         },
-         {
-           "action": "delete",
-           "field": "parent",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": "@octo/nat-gateway=nat-gateway-region-public-subnet",
-         },
-       ],
-       [],
+       "~ @octo/network-acl=nacl-region-private-subnet",
+       "~ @octo/network-acl=nacl-region-public-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "~ resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 0",
+       "~ resource.aws_network_acl.nacl-region-public-subnet | blocks: 2 | properties: 0",
+       "~ resource.aws_route_table.rt-region-private-subnet | blocks: 1 | properties: 0",
      ]
     `);
 
-    const { app: appDeleteNATGateway } = await setup(testModuleContainer);
+    const { app: appDeleteNATGateway } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1256,24 +714,24 @@ describe('AwsSimpleSubnetModule UT', () => {
     const resultDeleteNATGateway = await testModuleContainer.commit(appDeleteNATGateway, {
       enableResourceCapture: true,
     });
-    expect(resultDeleteNATGateway.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDeleteNATGateway.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/nat-gateway=nat-gateway-region-public-subnet",
-           "value": "@octo/nat-gateway=nat-gateway-region-public-subnet",
-         },
-       ],
-       [],
+       "- @octo/nat-gateway=nat-gateway-region-public-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.nat-gateway-region-public-subnet-AllocationId | blocks: 0 | properties: 1",
+       "- output.nat-gateway-region-public-subnet-NatGatewayId | blocks: 0 | properties: 1",
+       "- resource.aws_eip.nat-gateway-region-public-subnet_eip | blocks: 0 | properties: 2",
+       "- resource.aws_nat_gateway.nat-gateway-region-public-subnet | blocks: 0 | properties: 5",
      ]
     `);
   });
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1285,34 +743,32 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/subnet=subnet-region-private-subnet",
-           "value": "@octo/subnet=subnet-region-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": "@octo/route-table=rt-region-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": "@octo/network-acl=nacl-region-private-subnet",
-         },
-       ],
-       [],
+       "+ @octo/subnet=subnet-region-private-subnet",
+       "+ @octo/route-table=rt-region-private-subnet",
+       "+ @octo/network-acl=nacl-region-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
+       "+ output.igw-region-InternetGatewayId | blocks: 0 | properties: 1",
+       "+ output.nacl-region-private-subnet-NetworkAclId | blocks: 0 | properties: 1",
+       "+ output.rt-region-private-subnet-RouteTableId | blocks: 0 | properties: 1",
+       "+ output.rt-region-private-subnet-subnetAssociationId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetArn | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetId | blocks: 0 | properties: 1",
+       "+ output.vpc-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 3",
+       "+ resource.aws_route_table_association.rt-region-private-subnet_assoc | blocks: 0 | properties: 4",
+       "+ resource.aws_route_table.rt-region-private-subnet | blocks: 0 | properties: 2",
+       "+ resource.aws_subnet.subnet-region-private-subnet | blocks: 0 | properties: 4",
      ]
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1324,57 +780,16 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/subnet=subnet-region-private-subnet",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-       ],
-       [],
+       "~ @octo/subnet=subnet-region-private-subnet",
+       "~ @octo/network-acl=nacl-region-private-subnet",
+       "~ @octo/route-table=rt-region-private-subnet",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1386,57 +801,19 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/subnet=subnet-region-private-subnet",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/network-acl=nacl-region-private-subnet",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/route-table=rt-region-private-subnet",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-       ],
-       [],
+       "~ @octo/subnet=subnet-region-private-subnet",
+       "~ @octo/network-acl=nacl-region-private-subnet",
+       "~ @octo/route-table=rt-region-private-subnet",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
     it('should handle subnetAvailabilityZone change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -1448,8 +825,9 @@ describe('AwsSimpleSubnetModule UT', () => {
         type: AwsSimpleSubnetModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateAvailabilityZone } = await setup(testModuleContainer);
+      const { app: appUpdateAvailabilityZone } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -1470,7 +848,7 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should handle subnetCidrBlock change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -1482,8 +860,9 @@ describe('AwsSimpleSubnetModule UT', () => {
         type: AwsSimpleSubnetModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateCidrBlock } = await setup(testModuleContainer);
+      const { app: appUpdateCidrBlock } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -1504,7 +883,7 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should handle subnetName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -1516,8 +895,9 @@ describe('AwsSimpleSubnetModule UT', () => {
         type: AwsSimpleSubnetModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateSubnetName } = await setup(testModuleContainer);
+      const { app: appUpdateSubnetName } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -1531,54 +911,89 @@ describe('AwsSimpleSubnetModule UT', () => {
       const resultUpdateSubnetName = await testModuleContainer.commit(appUpdateSubnetName, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateSubnetName.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateSubnetName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/subnet=subnet-region-private-subnet",
-             "value": "@octo/subnet=subnet-region-private-subnet",
-           },
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/network-acl=nacl-region-private-subnet",
-             "value": "@octo/network-acl=nacl-region-private-subnet",
-           },
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/route-table=rt-region-private-subnet",
-             "value": "@octo/route-table=rt-region-private-subnet",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/subnet=subnet-region-changed-subnet",
-             "value": "@octo/subnet=subnet-region-changed-subnet",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/route-table=rt-region-changed-subnet",
-             "value": "@octo/route-table=rt-region-changed-subnet",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/network-acl=nacl-region-changed-subnet",
-             "value": "@octo/network-acl=nacl-region-changed-subnet",
-           },
-         ],
-         [],
+         "+ @octo/subnet=subnet-region-changed-subnet",
+         "+ @octo/route-table=rt-region-changed-subnet",
+         "+ @octo/network-acl=nacl-region-changed-subnet",
+         "- @octo/subnet=subnet-region-private-subnet",
+         "- @octo/network-acl=nacl-region-private-subnet",
+         "- @octo/route-table=rt-region-private-subnet",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "+ output.nacl-region-changed-subnet-NetworkAclId | blocks: 0 | properties: 1",
+         "+ output.rt-region-changed-subnet-RouteTableId | blocks: 0 | properties: 1",
+         "+ output.rt-region-changed-subnet-subnetAssociationId | blocks: 0 | properties: 1",
+         "+ output.subnet-region-changed-subnet-SubnetArn | blocks: 0 | properties: 1",
+         "+ output.subnet-region-changed-subnet-SubnetId | blocks: 0 | properties: 1",
+         "+ resource.aws_network_acl.nacl-region-changed-subnet | blocks: 2 | properties: 3",
+         "+ resource.aws_route_table_association.rt-region-changed-subnet_assoc | blocks: 0 | properties: 4",
+         "+ resource.aws_route_table.rt-region-changed-subnet | blocks: 0 | properties: 2",
+         "+ resource.aws_subnet.subnet-region-changed-subnet | blocks: 0 | properties: 4",
+         "- output.nacl-region-private-subnet-NetworkAclId | blocks: 0 | properties: 1",
+         "- output.rt-region-private-subnet-RouteTableId | blocks: 0 | properties: 1",
+         "- output.rt-region-private-subnet-subnetAssociationId | blocks: 0 | properties: 1",
+         "- output.subnet-region-private-subnet-SubnetArn | blocks: 0 | properties: 1",
+         "- output.subnet-region-private-subnet-SubnetId | blocks: 0 | properties: 1",
+         "- resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 3",
+         "- resource.aws_route_table_association.rt-region-private-subnet_assoc | blocks: 0 | properties: 4",
+         "- resource.aws_route_table.rt-region-private-subnet | blocks: 0 | properties: 2",
+         "- resource.aws_subnet.subnet-region-private-subnet | blocks: 0 | properties: 4",
+       ]
+      `);
+    });
+
+    it('should handle subnetOptions change', async () => {
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+        inputs: {
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1a',
+          subnetCidrBlock: '10.0.1.0/24',
+          subnetName: 'private-subnet',
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
+      });
+      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
+
+      const { app: appUpdateSubnetOptions } = await setup(testModuleContainer, octoTerraform);
+      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+        inputs: {
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1a',
+          subnetCidrBlock: '10.0.1.0/24',
+          subnetName: 'private-subnet',
+          subnetOptions: {
+            createNatGateway: false,
+            disableSubnetIntraNetwork: true,
+            subnetType: SubnetType.PRIVATE,
+          },
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
+      });
+      const resultUpdateSubnetOptions = await testModuleContainer.commit(appUpdateSubnetOptions, {
+        enableResourceCapture: true,
+      });
+      expect(new DiffAssert(resultUpdateSubnetOptions.resourceDiffs).digest()).toMatchInlineSnapshot(`
+       [
+         "~ @octo/network-acl=nacl-region-private-subnet",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_network_acl.nacl-region-private-subnet | blocks: 2 | properties: 0",
        ]
       `);
     });
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1590,8 +1005,9 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.digest();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    const { app: appUpdateModuleId } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -1603,11 +1019,62 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+  });
+
+  describe('validation', () => {
+    it('should validate invalid subnet availability zone', async () => {
+      await setup(testModuleContainer, octoTerraform);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+          inputs: {
+            region: stub('${{testModule.model.region}}'),
+            subnetAvailabilityZone: 'us-west-2a',
+            subnetCidrBlock: '10.0.1.0/24',
+            subnetName: 'private-subnet',
+          },
+          moduleId: 'subnet',
+          type: AwsSimpleSubnetModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Invalid subnet availability zone!"`);
+    });
+
+    it('should validate NAT Gateway only for public subnets', async () => {
+      await setup(testModuleContainer, octoTerraform);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+          inputs: {
+            region: stub('${{testModule.model.region}}'),
+            subnetAvailabilityZone: 'us-east-1a',
+            subnetCidrBlock: '10.0.1.0/24',
+            subnetName: 'private-subnet',
+            subnetOptions: {
+              createNatGateway: true,
+              disableSubnetIntraNetwork: false,
+              subnetType: SubnetType.PRIVATE,
+            },
+          },
+          moduleId: 'subnet',
+          type: AwsSimpleSubnetModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"NAT Gateway can only be created for public subnets!"`);
+    });
+
+    it('should validate subnet CIDR within region CIDR', async () => {
+      await setup(testModuleContainer, octoTerraform);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+          inputs: {
+            region: stub('${{testModule.model.region}}'),
+            subnetAvailabilityZone: 'us-east-1a',
+            subnetCidrBlock: '192.168.1.0/24',
+            subnetName: 'private-subnet',
+          },
+          moduleId: 'subnet',
+          type: AwsSimpleSubnetModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Subnet CIDR is not within region CIDR!"`);
+    });
   });
 });

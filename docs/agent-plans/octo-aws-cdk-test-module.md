@@ -13,7 +13,7 @@ each commit, and the HCL rendered by `OctoTerraform` after each commit.
 
 ## Reference implementation
 
-`packages/octo-aws-cdk/src/modules/environment/aws-ecs-environment/aws-ecs-environment.module.spec.ts`
+`packages/octo-aws-cdk/src/modules/subnet/aws-simple-subnet/aws-simple-subnet.module.spec.ts`
 
 ## Test structure
 
@@ -294,3 +294,8 @@ Only change what the fix actually requires.
 - [ ] Section 4 has one test per input, correctly classified.
 - [ ] Section 6 has one test per validation rule in the module's schema or actions.
 - [ ] No variable names or input values were changed beyond what the fix requires.
+- [ ] No AWS SDK mocks — `TestContainer.create` mocks list contains only `OctoTerraform`. No `mockClient`,
+  no `jest.spyOn(account, 'getCredentials')`, no mock restore in `afterEach`.
+- [ ] If module resources call `getRef()`, pre-existing resources are registered via
+  `octoTerraform.addOctoTerraformResource()` + `.output({...})` in `setup()`, and `setup()` accepts
+  `octoTerraform` as a second parameter.

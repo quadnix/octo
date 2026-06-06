@@ -9,20 +9,8 @@ import {
 } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
-import { HclAssert, type HclShape } from '../../../utilities/test-helpers/test-hcl-assert.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsEcsEnvironmentModule } from './index.js';
-
-const BASE_HCL_SHAPE: HclShape = {
-  'output.ecs-cluster-region-qa-clusterArn': { value: 'aws_ecs_cluster.ecs-cluster-region-qa.arn' },
-  'resource.aws_ecs_cluster.ecs-cluster-region-qa': {
-    name: 'region-qa',
-    provider: 'aws.123-us-east-1',
-    setting: {
-      name: 'containerInsights',
-      value: 'disabled',
-    },
-  },
-};
 
 async function setup(
   testModuleContainer: TestModuleContainer,
@@ -71,7 +59,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
     octoTerraform.addTerraformConfig();
     octoTerraform.addTerraformProvider('123', 'us-east-1');
 
-    hcl = new HclAssert(octoTerraform, BASE_HCL_SHAPE);
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
@@ -109,7 +97,40 @@ describe('AwsEcsEnvironmentModule UT', () => {
        ],
      ]
     `);
-    hcl.assert();
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/ecs-cluster=ecs-cluster-region-qa",
+     ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "123-us-east-1"
+       region = "us-east-1"
+     }
+
+     resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+       provider = aws.123-us-east-1
+       name = "region-qa"
+       setting {
+         name = "containerInsights"
+         value = "disabled"
+       }
+     }
+
+     output "ecs-cluster-region-qa-clusterArn" {
+       value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+     }"
+    `);
   });
 
   it('should CUD', async () => {
@@ -123,13 +144,31 @@ describe('AwsEcsEnvironmentModule UT', () => {
       type: AwsEcsEnvironmentModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    new DiffAssert(resultCreate.resourceDiffs).hasAdded('@octo/ecs-cluster=ecs-cluster-region-qa');
-    hcl.assert();
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/ecs-cluster=ecs-cluster-region-qa",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
+       "+ resource.aws_ecs_cluster.ecs-cluster-region-qa | blocks: 1 | properties: 2",
+     ]
+    `);
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    new DiffAssert(resultDelete.resourceDiffs).hasDeleted('@octo/ecs-cluster=ecs-cluster-region-qa');
-    hcl.assertShape({});
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "- @octo/ecs-cluster=ecs-cluster-region-qa",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
+       "- resource.aws_ecs_cluster.ecs-cluster-region-qa | blocks: 1 | properties: 2",
+     ]
+    `);
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -148,8 +187,17 @@ describe('AwsEcsEnvironmentModule UT', () => {
       type: AwsEcsEnvironmentModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    new DiffAssert(resultCreate.resourceDiffs).hasAdded('@octo/ecs-cluster=ecs-cluster-region-qa');
-    hcl.assert();
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/ecs-cluster=ecs-cluster-region-qa",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
+       "+ resource.aws_ecs_cluster.ecs-cluster-region-qa | blocks: 1 | properties: 2",
+     ]
+    `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -163,12 +211,12 @@ describe('AwsEcsEnvironmentModule UT', () => {
       type: AwsEcsEnvironmentModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    new DiffAssert(resultUpdateTags.resourceDiffs).hasTagUpdate('@octo/ecs-cluster=ecs-cluster-region-qa', {
-      add: { tag2: 'value2' },
-      delete: [],
-      update: { tag1: 'value1_1' },
-    });
-    hcl.assert();
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "~ @octo/ecs-cluster=ecs-cluster-region-qa",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
@@ -181,12 +229,12 @@ describe('AwsEcsEnvironmentModule UT', () => {
       type: AwsEcsEnvironmentModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    new DiffAssert(resultDeleteTags.resourceDiffs).hasTagUpdate('@octo/ecs-cluster=ecs-cluster-region-qa', {
-      add: {},
-      delete: ['tag1', 'tag2'],
-      update: {},
-    });
-    hcl.assert();
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "~ @octo/ecs-cluster=ecs-cluster-region-qa",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
@@ -201,7 +249,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
         type: AwsEcsEnvironmentModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.assert();
+      hcl.digest();
 
       const { app: appUpdateEnvironmentName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
@@ -215,22 +263,20 @@ describe('AwsEcsEnvironmentModule UT', () => {
       const resultUpdateEnvironmentName = await testModuleContainer.commit(appUpdateEnvironmentName, {
         enableResourceCapture: true,
       });
-      new DiffAssert(resultUpdateEnvironmentName.resourceDiffs)
-        .hasDeleted('@octo/ecs-cluster=ecs-cluster-region-qa')
-        .hasAdded('@octo/ecs-cluster=ecs-cluster-region-changed-qa');
-      hcl.assertShape({
-        'output.ecs-cluster-region-changed-qa-clusterArn': {
-          value: 'aws_ecs_cluster.ecs-cluster-region-changed-qa.arn',
-        },
-        'resource.aws_ecs_cluster.ecs-cluster-region-changed-qa': {
-          name: 'region-changed-qa',
-          provider: 'aws.123-us-east-1',
-          setting: {
-            name: 'containerInsights',
-            value: 'disabled',
-          },
-        },
-      });
+      expect(new DiffAssert(resultUpdateEnvironmentName.resourceDiffs).digest()).toMatchInlineSnapshot(`
+       [
+         "+ @octo/ecs-cluster=ecs-cluster-region-changed-qa",
+         "- @octo/ecs-cluster=ecs-cluster-region-qa",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "+ output.ecs-cluster-region-changed-qa-clusterArn | blocks: 0 | properties: 1",
+         "+ resource.aws_ecs_cluster.ecs-cluster-region-changed-qa | blocks: 1 | properties: 2",
+         "- output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
+         "- resource.aws_ecs_cluster.ecs-cluster-region-qa | blocks: 1 | properties: 2",
+       ]
+      `);
     });
 
     it('should handle environmentVariables change', async () => {
@@ -245,9 +291,9 @@ describe('AwsEcsEnvironmentModule UT', () => {
         type: AwsEcsEnvironmentModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.assert();
+      hcl.digest();
 
-      const { app: appUpdate } = await setup(testModuleContainer);
+      const { app: appUpdateEnvironmentVariables } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
         inputs: {
           environmentName: 'qa',
@@ -257,9 +303,11 @@ describe('AwsEcsEnvironmentModule UT', () => {
         moduleId: 'environment',
         type: AwsEcsEnvironmentModule,
       });
-      const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
-      new DiffAssert(resultUpdate.resourceDiffs).hasNoChanges();
-      hcl.assert();
+      const resultUpdateEnvironmentVariables = await testModuleContainer.commit(appUpdateEnvironmentVariables, {
+        enableResourceCapture: true,
+      });
+      expect(new DiffAssert(resultUpdateEnvironmentVariables.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+      expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
     });
   });
 
@@ -274,7 +322,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
       type: AwsEcsEnvironmentModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    hcl.assert();
+    hcl.digest();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
@@ -286,8 +334,8 @@ describe('AwsEcsEnvironmentModule UT', () => {
       type: AwsEcsEnvironmentModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    new DiffAssert(resultUpdateModuleId.resourceDiffs).hasNoChanges();
-    hcl.assert();
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {

@@ -1,27 +1,9 @@
 import { type Account, type App, DiffAssert, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
-import { HclAssert, type HclShape } from '../../../utilities/test-helpers/test-hcl-assert.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsSingleAzRegionId } from './index.schema.js';
 import { AwsSingleAzRegionModule } from './index.js';
-
-const BASE_HCL_SHAPE: HclShape = {
-  'output.igw-test-region-InternetGatewayArn': { value: 'aws_internet_gateway.igw-test-region.arn' },
-  'output.igw-test-region-InternetGatewayId': { value: 'aws_internet_gateway.igw-test-region.id' },
-  'output.vpc-test-region-VpcArn': { value: 'aws_vpc.vpc-test-region.arn' },
-  'output.vpc-test-region-VpcId': { value: 'aws_vpc.vpc-test-region.id' },
-  'resource.aws_internet_gateway.igw-test-region': {
-    provider: 'aws.123-us-east-1',
-    vpc_id: 'aws_vpc.vpc-test-region.id',
-  },
-  'resource.aws_vpc.vpc-test-region': {
-    cidr_block: '10.0.0.0/8',
-    enable_dns_hostnames: 'true',
-    enable_dns_support: 'true',
-    instance_tenancy: 'default',
-    provider: 'aws.123-us-east-1',
-  },
-};
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
   const {
@@ -56,7 +38,7 @@ describe('AwsSingleAzRegionModule UT', () => {
     octoTerraform.addTerraformConfig();
     octoTerraform.addTerraformProvider('123', 'us-east-1');
 
-    hcl = new HclAssert(octoTerraform, BASE_HCL_SHAPE);
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
@@ -97,8 +79,57 @@ describe('AwsSingleAzRegionModule UT', () => {
        ],
      ]
     `);
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/vpc=vpc-test-region",
+       "+ @octo/internet-gateway=igw-test-region",
+     ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
 
-    hcl.assert();
+     provider "aws" {
+       alias = "123-us-east-1"
+       region = "us-east-1"
+     }
+
+     resource "aws_vpc" "vpc-test-region" {
+       provider = aws.123-us-east-1
+       cidr_block = "10.0.0.0/8"
+       enable_dns_hostnames = true
+       enable_dns_support = true
+       instance_tenancy = "default"
+     }
+
+     output "vpc-test-region-VpcArn" {
+       value = aws_vpc.vpc-test-region.arn
+     }
+
+     output "vpc-test-region-VpcId" {
+       value = aws_vpc.vpc-test-region.id
+     }
+
+     resource "aws_internet_gateway" "igw-test-region" {
+       provider = aws.123-us-east-1
+       vpc_id = aws_vpc.vpc-test-region.id
+     }
+
+     output "igw-test-region-InternetGatewayArn" {
+       value = aws_internet_gateway.igw-test-region.arn
+     }
+
+     output "igw-test-region-InternetGatewayId" {
+       value = aws_internet_gateway.igw-test-region.id
+     }"
+    `);
   });
 
   it('should CUD', async () => {
@@ -114,17 +145,41 @@ describe('AwsSingleAzRegionModule UT', () => {
       type: AwsSingleAzRegionModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    new DiffAssert(resultCreate.resourceDiffs)
-      .hasAdded('@octo/vpc=vpc-test-region')
-      .hasAdded('@octo/internet-gateway=igw-test-region');
-    hcl.assert();
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/vpc=vpc-test-region",
+       "+ @octo/internet-gateway=igw-test-region",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.igw-test-region-InternetGatewayArn | blocks: 0 | properties: 1",
+       "+ output.igw-test-region-InternetGatewayId | blocks: 0 | properties: 1",
+       "+ output.vpc-test-region-VpcArn | blocks: 0 | properties: 1",
+       "+ output.vpc-test-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_internet_gateway.igw-test-region | blocks: 0 | properties: 2",
+       "+ resource.aws_vpc.vpc-test-region | blocks: 0 | properties: 5",
+     ]
+    `);
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    new DiffAssert(resultDelete.resourceDiffs)
-      .hasDeleted('@octo/vpc=vpc-test-region')
-      .hasDeleted('@octo/internet-gateway=igw-test-region');
-    hcl.assertShape({});
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "- @octo/vpc=vpc-test-region",
+       "- @octo/internet-gateway=igw-test-region",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.igw-test-region-InternetGatewayArn | blocks: 0 | properties: 1",
+       "- output.igw-test-region-InternetGatewayId | blocks: 0 | properties: 1",
+       "- output.vpc-test-region-VpcArn | blocks: 0 | properties: 1",
+       "- output.vpc-test-region-VpcId | blocks: 0 | properties: 1",
+       "- resource.aws_internet_gateway.igw-test-region | blocks: 0 | properties: 2",
+       "- resource.aws_vpc.vpc-test-region | blocks: 0 | properties: 5",
+     ]
+    `);
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -144,10 +199,22 @@ describe('AwsSingleAzRegionModule UT', () => {
       type: AwsSingleAzRegionModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    new DiffAssert(resultCreate.resourceDiffs)
-      .hasAdded('@octo/vpc=vpc-test-region')
-      .hasAdded('@octo/internet-gateway=igw-test-region');
-    hcl.assert();
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/vpc=vpc-test-region",
+       "+ @octo/internet-gateway=igw-test-region",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.igw-test-region-InternetGatewayArn | blocks: 0 | properties: 1",
+       "+ output.igw-test-region-InternetGatewayId | blocks: 0 | properties: 1",
+       "+ output.vpc-test-region-VpcArn | blocks: 0 | properties: 1",
+       "+ output.vpc-test-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_internet_gateway.igw-test-region | blocks: 0 | properties: 2",
+       "+ resource.aws_vpc.vpc-test-region | blocks: 0 | properties: 5",
+     ]
+    `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -162,14 +229,13 @@ describe('AwsSingleAzRegionModule UT', () => {
       type: AwsSingleAzRegionModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    new DiffAssert(resultUpdateTags.resourceDiffs)
-      .hasTagUpdate('@octo/vpc=vpc-test-region', { add: { tag2: 'value2' }, delete: [], update: { tag1: 'value1_1' } })
-      .hasTagUpdate('@octo/internet-gateway=igw-test-region', {
-        add: { tag2: 'value2' },
-        delete: [],
-        update: { tag1: 'value1_1' },
-      });
-    hcl.assert();
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "~ @octo/vpc=vpc-test-region",
+       "~ @octo/internet-gateway=igw-test-region",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSingleAzRegionModule>({
@@ -183,10 +249,13 @@ describe('AwsSingleAzRegionModule UT', () => {
       type: AwsSingleAzRegionModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    new DiffAssert(resultDeleteTags.resourceDiffs)
-      .hasTagUpdate('@octo/vpc=vpc-test-region', { add: {}, delete: ['tag1', 'tag2'], update: {} })
-      .hasTagUpdate('@octo/internet-gateway=igw-test-region', { add: {}, delete: ['tag1', 'tag2'], update: {} });
-    hcl.assert();
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "~ @octo/vpc=vpc-test-region",
+       "~ @octo/internet-gateway=igw-test-region",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
@@ -203,7 +272,7 @@ describe('AwsSingleAzRegionModule UT', () => {
         type: AwsSingleAzRegionModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.assert();
+      hcl.digest();
 
       const { app: appUpdateName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSingleAzRegionModule>({
@@ -217,28 +286,30 @@ describe('AwsSingleAzRegionModule UT', () => {
         type: AwsSingleAzRegionModule,
       });
       const resultUpdateName = await testModuleContainer.commit(appUpdateName, { enableResourceCapture: true });
-      new DiffAssert(resultUpdateName.resourceDiffs)
-        .hasDeleted('@octo/vpc=vpc-test-region')
-        .hasDeleted('@octo/internet-gateway=igw-test-region')
-        .hasAdded('@octo/vpc=vpc-changed-region')
-        .hasAdded('@octo/internet-gateway=igw-changed-region');
-      hcl.assertShape({
-        'output.igw-changed-region-InternetGatewayArn': { value: 'aws_internet_gateway.igw-changed-region.arn' },
-        'output.igw-changed-region-InternetGatewayId': { value: 'aws_internet_gateway.igw-changed-region.id' },
-        'output.vpc-changed-region-VpcArn': { value: 'aws_vpc.vpc-changed-region.arn' },
-        'output.vpc-changed-region-VpcId': { value: 'aws_vpc.vpc-changed-region.id' },
-        'resource.aws_internet_gateway.igw-changed-region': {
-          provider: 'aws.123-us-east-1',
-          vpc_id: 'aws_vpc.vpc-changed-region.id',
-        },
-        'resource.aws_vpc.vpc-changed-region': {
-          cidr_block: '10.0.0.0/8',
-          enable_dns_hostnames: 'true',
-          enable_dns_support: 'true',
-          instance_tenancy: 'default',
-          provider: 'aws.123-us-east-1',
-        },
-      });
+      expect(new DiffAssert(resultUpdateName.resourceDiffs).digest()).toMatchInlineSnapshot(`
+       [
+         "+ @octo/vpc=vpc-changed-region",
+         "+ @octo/internet-gateway=igw-changed-region",
+         "- @octo/vpc=vpc-test-region",
+         "- @octo/internet-gateway=igw-test-region",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "+ output.igw-changed-region-InternetGatewayArn | blocks: 0 | properties: 1",
+         "+ output.igw-changed-region-InternetGatewayId | blocks: 0 | properties: 1",
+         "+ output.vpc-changed-region-VpcArn | blocks: 0 | properties: 1",
+         "+ output.vpc-changed-region-VpcId | blocks: 0 | properties: 1",
+         "+ resource.aws_internet_gateway.igw-changed-region | blocks: 0 | properties: 2",
+         "+ resource.aws_vpc.vpc-changed-region | blocks: 0 | properties: 5",
+         "- output.igw-test-region-InternetGatewayArn | blocks: 0 | properties: 1",
+         "- output.igw-test-region-InternetGatewayId | blocks: 0 | properties: 1",
+         "- output.vpc-test-region-VpcArn | blocks: 0 | properties: 1",
+         "- output.vpc-test-region-VpcId | blocks: 0 | properties: 1",
+         "- resource.aws_internet_gateway.igw-test-region | blocks: 0 | properties: 2",
+         "- resource.aws_vpc.vpc-test-region | blocks: 0 | properties: 5",
+       ]
+      `);
     });
 
     it('should handle regionId change', async () => {
@@ -254,7 +325,7 @@ describe('AwsSingleAzRegionModule UT', () => {
         type: AwsSingleAzRegionModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.assert();
+      hcl.digest();
 
       const { app: appUpdateRegionId } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSingleAzRegionModule>({
@@ -287,7 +358,7 @@ describe('AwsSingleAzRegionModule UT', () => {
         type: AwsSingleAzRegionModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.assert();
+      hcl.digest();
 
       const { app: appUpdateVpcCidrBlock } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSingleAzRegionModule>({
@@ -321,7 +392,7 @@ describe('AwsSingleAzRegionModule UT', () => {
       type: AwsSingleAzRegionModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    hcl.assert();
+    hcl.digest();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSingleAzRegionModule>({
@@ -335,8 +406,8 @@ describe('AwsSingleAzRegionModule UT', () => {
       type: AwsSingleAzRegionModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    new DiffAssert(resultUpdateModuleId.resourceDiffs).hasNoChanges();
-    hcl.assert();
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {

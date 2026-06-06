@@ -1,28 +1,8 @@
 import {
-  AuthorizeSecurityGroupEgressCommand,
-  AuthorizeSecurityGroupIngressCommand,
-  CreateSecurityGroupCommand,
-  DescribeSecurityGroupsCommand,
-  EC2Client,
-} from '@aws-sdk/client-ec2';
-import {
-  CreateServiceCommand,
-  DeleteTaskDefinitionsCommand,
-  DescribeServicesCommand,
-  ECSClient,
-  RegisterTaskDefinitionCommand,
-  UpdateServiceCommand,
-} from '@aws-sdk/client-ecs';
-import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { jest } from '@jest/globals';
-import {
   type Account,
   type App,
   type Deployment,
+  DiffAssert,
   type Environment,
   type Filesystem,
   type Region,
@@ -32,7 +12,6 @@ import {
   TestModuleContainer,
   stub,
 } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
 import type { AwsEcsClusterAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-cluster.anchor.schema.js';
 import type { AwsEcsTaskDefinitionAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-task-definition.anchor.schema.js';
 import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
@@ -41,16 +20,20 @@ import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-regi
 import type { AwsSecurityGroupAnchorSchema } from '../../../anchors/aws-security-group/aws-security-group.anchor.schema.js';
 import type { AwsSubnetLocalFilesystemMountAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.schema.js';
 import type { AwsSubnetAnchorSchema } from '../../../anchors/aws-subnet/aws-subnet.anchor.schema.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import type { EfsMountTargetSchema } from '../../../resources/efs-mount-target/index.schema.js';
 import type { IamRoleSchema } from '../../../resources/iam-role/index.schema.js';
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsEcsExecutionModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{
+async function setup(
+  testModuleContainer: TestModuleContainer,
+  octoTerraform: OctoTerraform,
+): Promise<{
   account: Account;
   app: App;
   deployment: Deployment;
@@ -79,8 +62,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     server: ['backend'],
     subnet: ['private-subnet'],
   });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
-
   deployment.addAnchor(
     testModuleContainer.createTestAnchor<AwsEcsTaskDefinitionAnchorSchema>(
       'AwsEcsTaskDefinitionAnchor',
@@ -180,7 +161,13 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     ),
   );
 
-  await testModuleContainer.createTestResources<
+  const {
+    '@octo/ecs-cluster=ecs-cluster-region-qa': ecsClusterResource,
+    '@octo/efs=efs-region-test-filesystem': efsResource,
+    '@octo/iam-role=iam-role-ServerRole-backend': iamRoleResource,
+    '@octo/subnet=subnet-region-private-subnet': subnetResource,
+    '@octo/vpc=vpc-region': vpcResource,
+  } = await testModuleContainer.createTestResources<
     [EcsClusterSchema, EfsSchema, EfsMountTargetSchema, IamRoleSchema, SubnetSchema, VpcSchema]
   >(
     'testModule',
@@ -203,7 +190,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
       {
         properties: { awsAccountId: '123', policies: [], rolename: 'iam-role-ServerRole-backend' },
         resourceContext: '@octo/iam-role=iam-role-ServerRole-backend',
-        response: { Arn: 'Arn', policies: {}, RoleId: 'RoleId', RoleName: 'iam-role-ServerRole-backend' },
+        response: { Arn: 'Arn', RoleId: 'RoleId', RoleName: 'iam-role-ServerRole-backend' },
       },
       {
         properties: {
@@ -231,101 +218,58 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{
     { save: true },
   );
 
+  const ecsClusterOctoResource = octoTerraform.addOctoTerraformResource(ecsClusterResource);
+  ecsClusterOctoResource.output({
+    clusterArn: octoTerraform.raw('aws_ecs_cluster.ecs-cluster-region-qa.arn'),
+  });
+  const efsOctoResource = octoTerraform.addOctoTerraformResource(efsResource);
+  efsOctoResource.output({
+    FileSystemId: octoTerraform.raw('aws_efs_file_system.efs-region-test-filesystem.id'),
+  });
+  const iamRoleOctoResource = octoTerraform.addOctoTerraformResource(iamRoleResource);
+  iamRoleOctoResource.output({
+    Arn: octoTerraform.raw('aws_iam_role.iam-role-ServerRole-backend.arn'),
+  });
+  const subnetOctoResource = octoTerraform.addOctoTerraformResource(subnetResource);
+  subnetOctoResource.output({
+    SubnetId: octoTerraform.raw('aws_subnet.subnet-region-private-subnet.id'),
+  });
+  const vpcOctoResource = octoTerraform.addOctoTerraformResource(vpcResource);
+  vpcOctoResource.output({
+    VpcId: octoTerraform.raw('aws_vpc.vpc-region.id'),
+  });
+
   return { account, app, deployment, environment, filesystem, region, server, subnet };
 }
 
 describe('AwsEcsExecutionModule UT', () => {
-  const originalRetryPromise = RetryUtility.retryPromise;
-
-  let retryPromiseSpy: jest.Spied<any>;
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const EC2ClientMock = mockClient(EC2Client);
-  const ECSClientMock = mockClient(ECSClient);
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-
   beforeEach(async () => {
-    EC2ClientMock.on(CreateSecurityGroupCommand)
-      .resolves({ GroupId: 'GroupId' })
-      .on(AuthorizeSecurityGroupEgressCommand)
-      .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Egress' }] })
-      .on(AuthorizeSecurityGroupIngressCommand)
-      .resolves({ SecurityGroupRules: [{ SecurityGroupRuleId: 'SecurityGroupRuleId-Ingress' }] })
-      .on(DescribeSecurityGroupsCommand)
-      .resolves({ SecurityGroups: [] });
-
-    ECSClientMock.on(RegisterTaskDefinitionCommand)
-      .resolves({
-        taskDefinition: {
-          revision: 1,
-          taskDefinitionArn: 'arn:aws:ecs:us-east-1:123:task-definition/family:1',
-        },
-      })
-      .on(CreateServiceCommand)
-      .resolves({
-        service: {
-          serviceArn: 'arn:aws:ecs:us-east-1:123:service/cluster/service-name',
-          serviceName: 'service-name',
-        },
-      })
-      .on(UpdateServiceCommand)
-      .resolves({
-        service: {
-          serviceArn: 'arn:aws:ecs:us-east-1:123:service/cluster/service-name',
-          serviceName: 'service-name',
-        },
-      })
-      .on(DescribeServicesCommand)
-      .resolves({ services: [] })
-      .on(DeleteTaskDefinitionsCommand)
-      .resolves({ failures: [] });
-
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: EC2Client,
-            value: EC2ClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ECSClient,
-            value: ECSClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
 
-    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
-    });
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'us-east-1');
+
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
-    EC2ClientMock.reset();
-    ECSClientMock.reset();
-    ResourceGroupsTaggingAPIClientMock.reset();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
-
-    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    const { app } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -368,19 +312,144 @@ describe('AwsEcsExecutionModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddSecurityGroupResourceAction",
-         "AddSecurityGroupResourceAction",
-         "AddEcsTaskDefinitionResourceAction",
+         "CaptureSecurityGroupResponseResourceAction",
+         "CaptureSecurityGroupResponseResourceAction",
+         "CaptureEcsTaskDefinitionResponseResourceAction",
        ],
        [
-         "AddEcsServiceResourceAction",
+         "CaptureEcsServiceResponseResourceAction",
        ],
      ]
+    `);
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "123-us-east-1"
+       region = "us-east-1"
+     }
+
+     output "ecs-cluster-region-qa-clusterArn" {
+       value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+     }
+
+     output "efs-region-test-filesystem-FileSystemId" {
+       value = aws_efs_file_system.efs-region-test-filesystem.id
+     }
+
+     output "iam-role-ServerRole-backend-Arn" {
+       value = aws_iam_role.iam-role-ServerRole-backend.arn
+     }
+
+     output "subnet-region-private-subnet-SubnetId" {
+       value = aws_subnet.subnet-region-private-subnet.id
+     }
+
+     output "vpc-region-VpcId" {
+       value = aws_vpc.vpc-region.id
+     }
+
+     resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
+       provider = aws.123-us-east-1
+       vpc_id = aws_vpc.vpc-region.id
+     }
+
+     output "sec-grp-SecurityGroup-backend-Arn" {
+       value = aws_security_group.sec-grp-SecurityGroup-backend.arn
+     }
+
+     output "sec-grp-SecurityGroup-backend-GroupId" {
+       value = aws_security_group.sec-grp-SecurityGroup-backend.id
+     }
+
+     resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet" {
+       provider = aws.123-us-east-1
+       vpc_id = aws_vpc.vpc-region.id
+     }
+
+     output "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn" {
+       value = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn
+     }
+
+     output "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId" {
+       value = aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id
+     }
+
+     resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
+       provider = aws.123-us-east-1
+       container_definitions = jsonencode([
+         {
+           command = ["/bin/sh"]
+           environment = [{
+               name = "NODE_ENV"
+               value = "qa"
+             }]
+           essential = true
+           image = "docker.io"
+           mountPoints = []
+           name = "backend-v1"
+           portMappings = [{
+               containerPort = 8080
+               hostPort = 8080
+               protocol = "tcp"
+             }]
+         }
+       ])
+       cpu = "256"
+       execution_role_arn = aws_iam_role.iam-role-ServerRole-backend.arn
+       family = "qa-region-private-subnet-backend"
+       memory = "512"
+       network_mode = "awsvpc"
+       requires_compatibilities = ["FARGATE"]
+       task_role_arn = aws_iam_role.iam-role-ServerRole-backend.arn
+     }
+
+     output "ecs-task-definition-backend-v1-region-qa-private-subnet-revision" {
+       value = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision
+     }
+
+     output "ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn" {
+       value = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn
+     }
+
+     resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
+       provider = aws.123-us-east-1
+       cluster = aws_ecs_cluster.ecs-cluster-region-qa.arn
+       desired_count = 1
+       launch_type = "FARGATE"
+       name = "backend-v1-region-qa-private-subnet"
+       network_configuration {
+         assign_public_ip = false
+         security_groups = [aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]
+         subnets = [aws_subnet.subnet-region-private-subnet.id]
+       }
+       task_definition = aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn
+     }
+
+     output "ecs-service-backend-v1-region-qa-private-subnet-serviceArn" {
+       value = aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id
+     }"
     `);
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -404,39 +473,36 @@ describe('AwsEcsExecutionModule UT', () => {
       type: AwsEcsExecutionModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend",
-           "value": "@octo/security-group=sec-grp-SecurityGroup-backend",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-           "value": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-           "value": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-         },
-       ],
-       [],
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
+       "+ output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn | blocks: 0 | properties: 1",
+       "+ output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision | blocks: 0 | properties: 1",
+       "+ output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn | blocks: 0 | properties: 1",
+       "+ output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
+       "+ output.iam-role-ServerRole-backend-Arn | blocks: 0 | properties: 1",
+       "+ output.sec-grp-SecurityGroup-backend-Arn | blocks: 0 | properties: 1",
+       "+ output.sec-grp-SecurityGroup-backend-GroupId | blocks: 0 | properties: 1",
+       "+ output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn | blocks: 0 | properties: 1",
+       "+ output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetId | blocks: 0 | properties: 1",
+       "+ output.vpc-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet | blocks: 1 | properties: 6",
+       "+ resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 20",
+       "+ resource.aws_security_group.sec-grp-SecurityGroup-backend | blocks: 0 | properties: 2",
+       "+ resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 2",
      ]
     `);
 
-    const { app: appUpdateDeployment } = await setup(testModuleContainer);
+    const { app: appUpdateDeployment } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -463,27 +529,19 @@ describe('AwsEcsExecutionModule UT', () => {
     const resultUpdateDeployment = await testModuleContainer.commit(appUpdateDeployment, {
       enableResourceCapture: true,
     });
-    expect(resultUpdateDeployment.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateDeployment.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-           "value": "",
-         },
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": "",
-         },
-       ],
-       [],
+       "~ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "~ resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 1",
      ]
     `);
 
-    const { app: appUpdateDeploymentRevert } = await setup(testModuleContainer);
+    const { app: appUpdateDeploymentRevert } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -509,27 +567,19 @@ describe('AwsEcsExecutionModule UT', () => {
     const resultUpdateDeploymentRevert = await testModuleContainer.commit(appUpdateDeploymentRevert, {
       enableResourceCapture: true,
     });
-    expect(resultUpdateDeploymentRevert.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateDeploymentRevert.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-           "value": "",
-         },
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": "",
-         },
-       ],
-       [],
+       "~ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "~ resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 1",
      ]
     `);
 
-    const { app: appUpdateDesiredCount } = await setup(testModuleContainer);
+    const { app: appUpdateDesiredCount } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -555,21 +605,18 @@ describe('AwsEcsExecutionModule UT', () => {
     const resultUpdateDesiredCount = await testModuleContainer.commit(appUpdateDesiredCount, {
       enableResourceCapture: true,
     });
-    expect(resultUpdateDesiredCount.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateDesiredCount.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": "",
-         },
-       ],
-       [],
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "~ resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 1",
      ]
     `);
 
-    const { app: appAddFilesystem } = await setup(testModuleContainer);
+    const { app: appAddFilesystem } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -594,27 +641,19 @@ describe('AwsEcsExecutionModule UT', () => {
       type: AwsEcsExecutionModule,
     });
     const resultAddFilesystem = await testModuleContainer.commit(appAddFilesystem, { enableResourceCapture: true });
-    expect(resultAddFilesystem.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultAddFilesystem.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-           "value": "",
-         },
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": "",
-         },
-       ],
-       [],
+       "~ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "~ resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet | blocks: 1 | properties: 4",
      ]
     `);
 
-    const { app: appAddSecurityGroupRule } = await setup(testModuleContainer);
+    const { app: appAddSecurityGroupRule } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -650,68 +689,42 @@ describe('AwsEcsExecutionModule UT', () => {
     const resultAddSecurityGroupRule = await testModuleContainer.commit(appAddSecurityGroupRule, {
       enableResourceCapture: true,
     });
-    expect(resultAddSecurityGroupRule.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultAddSecurityGroupRule.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-           "value": {
-             "key": "rules",
-             "value": [
-               {
-                 "CidrBlock": "10.0.0.0/8",
-                 "Egress": true,
-                 "FromPort": 8080,
-                 "IpProtocol": "tcp",
-                 "ToPort": 8080,
-               },
-             ],
-           },
-         },
-         {
-           "action": "update",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": "",
-         },
-       ],
-       [],
+       "~ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ resource.aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0 | blocks: 0 | properties: 8",
      ]
     `);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    const { app: appDelete } = await setup(testModuleContainer, octoTerraform);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-           "value": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend",
-           "value": "@octo/security-group=sec-grp-SecurityGroup-backend",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-           "value": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-         },
-       ],
-       [],
+       "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "- @octo/security-group=sec-grp-SecurityGroup-backend",
+       "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+       "- @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn | blocks: 0 | properties: 1",
+       "- output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision | blocks: 0 | properties: 1",
+       "- output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn | blocks: 0 | properties: 1",
+       "- output.sec-grp-SecurityGroup-backend-Arn | blocks: 0 | properties: 1",
+       "- output.sec-grp-SecurityGroup-backend-GroupId | blocks: 0 | properties: 1",
+       "- output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn | blocks: 0 | properties: 1",
+       "- output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId | blocks: 0 | properties: 1",
+       "- resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet | blocks: 1 | properties: 6",
+       "- resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet | blocks: 1 | properties: 23",
+       "- resource.aws_security_group.sec-grp-SecurityGroup-backend | blocks: 0 | properties: 2",
+       "- resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 2",
+       "- resource.aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0 | blocks: 0 | properties: 8",
      ]
     `);
 
@@ -721,7 +734,7 @@ describe('AwsEcsExecutionModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -745,40 +758,37 @@ describe('AwsEcsExecutionModule UT', () => {
       type: AwsEcsExecutionModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend",
-           "value": "@octo/security-group=sec-grp-SecurityGroup-backend",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-           "value": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-           "value": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-         },
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-         },
-       ],
-       [],
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend",
+       "+ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+       "+ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "+ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
+       "+ output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn | blocks: 0 | properties: 1",
+       "+ output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision | blocks: 0 | properties: 1",
+       "+ output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn | blocks: 0 | properties: 1",
+       "+ output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
+       "+ output.iam-role-ServerRole-backend-Arn | blocks: 0 | properties: 1",
+       "+ output.sec-grp-SecurityGroup-backend-Arn | blocks: 0 | properties: 1",
+       "+ output.sec-grp-SecurityGroup-backend-GroupId | blocks: 0 | properties: 1",
+       "+ output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn | blocks: 0 | properties: 1",
+       "+ output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId | blocks: 0 | properties: 1",
+       "+ output.subnet-region-private-subnet-SubnetId | blocks: 0 | properties: 1",
+       "+ output.vpc-region-VpcId | blocks: 0 | properties: 1",
+       "+ resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet | blocks: 1 | properties: 6",
+       "+ resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 20",
+       "+ resource.aws_security_group.sec-grp-SecurityGroup-backend | blocks: 0 | properties: 2",
+       "+ resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 2",
      ]
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -802,71 +812,17 @@ describe('AwsEcsExecutionModule UT', () => {
       type: AwsEcsExecutionModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-       ],
-       [],
+       "~ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "~ @octo/security-group=sec-grp-SecurityGroup-backend",
+       "~ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -890,70 +846,20 @@ describe('AwsEcsExecutionModule UT', () => {
       type: AwsEcsExecutionModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-       ],
-       [],
+       "~ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+       "~ @octo/security-group=sec-grp-SecurityGroup-backend",
+       "~ @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+       "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
     it('should handle deployment change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsExecutionModule>({
         inputs: {
           deployments: {
@@ -977,8 +883,9 @@ describe('AwsEcsExecutionModule UT', () => {
         type: AwsEcsExecutionModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateDeployment } = await setup(testModuleContainer);
+      const { app: appUpdateDeployment } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsExecutionModule>({
         inputs: {
           deployments: {
@@ -1004,29 +911,21 @@ describe('AwsEcsExecutionModule UT', () => {
       const resultUpdateDeployment = await testModuleContainer.commit(appUpdateDeployment, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateDeployment.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateDeployment.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "resourceId",
-             "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-             "value": "",
-           },
-           {
-             "action": "update",
-             "field": "resourceId",
-             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-             "value": "",
-           },
-         ],
-         [],
+         "~ @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+         "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 1",
        ]
       `);
     });
 
     it('should handle desiredCount change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsExecutionModule>({
         inputs: {
           deployments: {
@@ -1050,8 +949,9 @@ describe('AwsEcsExecutionModule UT', () => {
         type: AwsEcsExecutionModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateDesiredCount } = await setup(testModuleContainer);
+      const { app: appUpdateDesiredCount } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsExecutionModule>({
         inputs: {
           deployments: {
@@ -1077,23 +977,20 @@ describe('AwsEcsExecutionModule UT', () => {
       const resultUpdateDesiredCount = await testModuleContainer.commit(appUpdateDesiredCount, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateDesiredCount.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateDesiredCount.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "resourceId",
-             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-             "value": "",
-           },
-         ],
-         [],
+         "~ @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 1",
        ]
       `);
     });
 
     it('should handle executionId change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsExecutionModule>({
         inputs: {
           deployments: {
@@ -1117,8 +1014,9 @@ describe('AwsEcsExecutionModule UT', () => {
         type: AwsEcsExecutionModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateExecutionId } = await setup(testModuleContainer);
+      const { app: appUpdateExecutionId } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsEcsExecutionModule>({
         inputs: {
           deployments: {
@@ -1144,54 +1042,41 @@ describe('AwsEcsExecutionModule UT', () => {
       const resultUpdateExecutionId = await testModuleContainer.commit(appUpdateExecutionId, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateExecutionId.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateExecutionId.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-             "value": "@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
-           },
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-             "value": "@octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
-           },
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-             "value": "@octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/security-group=sec-grp-SecurityGroup-changed-execution-id",
-             "value": "@octo/security-group=sec-grp-SecurityGroup-changed-execution-id",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/ecs-task-definition=ecs-task-definition-changed-execution-id",
-             "value": "@octo/ecs-task-definition=ecs-task-definition-changed-execution-id",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/ecs-service=ecs-service-changed-execution-id",
-             "value": "@octo/ecs-service=ecs-service-changed-execution-id",
-           },
-         ],
-         [],
+         "+ @octo/security-group=sec-grp-SecurityGroup-changed-execution-id",
+         "+ @octo/ecs-task-definition=ecs-task-definition-changed-execution-id",
+         "+ @octo/ecs-service=ecs-service-changed-execution-id",
+         "- @octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-private-subnet",
+         "- @octo/security-group=sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet",
+         "- @octo/ecs-service=ecs-service-backend-v1-region-qa-private-subnet",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "+ output.ecs-service-changed-execution-id-serviceArn | blocks: 0 | properties: 1",
+         "+ output.ecs-task-definition-changed-execution-id-revision | blocks: 0 | properties: 1",
+         "+ output.ecs-task-definition-changed-execution-id-taskDefinitionArn | blocks: 0 | properties: 1",
+         "+ output.sec-grp-SecurityGroup-changed-execution-id-Arn | blocks: 0 | properties: 1",
+         "+ output.sec-grp-SecurityGroup-changed-execution-id-GroupId | blocks: 0 | properties: 1",
+         "+ resource.aws_ecs_service.ecs-service-changed-execution-id | blocks: 1 | properties: 6",
+         "+ resource.aws_ecs_task_definition.ecs-task-definition-changed-execution-id | blocks: 0 | properties: 20",
+         "+ resource.aws_security_group.sec-grp-SecurityGroup-changed-execution-id | blocks: 0 | properties: 2",
+         "- output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn | blocks: 0 | properties: 1",
+         "- output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision | blocks: 0 | properties: 1",
+         "- output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn | blocks: 0 | properties: 1",
+         "- output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn | blocks: 0 | properties: 1",
+         "- output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId | blocks: 0 | properties: 1",
+         "- resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet | blocks: 1 | properties: 6",
+         "- resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 20",
+         "- resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet | blocks: 0 | properties: 2",
        ]
       `);
     });
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -1215,8 +1100,9 @@ describe('AwsEcsExecutionModule UT', () => {
       type: AwsEcsExecutionModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.digest();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    const { app: appUpdateModuleId } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsEcsExecutionModule>({
       inputs: {
         deployments: {
@@ -1240,11 +1126,7 @@ describe('AwsEcsExecutionModule UT', () => {
       type: AwsEcsExecutionModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 });

@@ -1,20 +1,15 @@
-import {
-  DescribeTableCommand,
-  DynamoDBClient,
-  TableStatus,
-  TagResourceCommand,
-  UpdateTableCommand,
-} from '@aws-sdk/client-dynamodb';
-import { jest } from '@jest/globals';
-import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
+import { type Account, type App, DiffAssert, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import type { DynamoDBSchema } from '../../../resources/dynamodb/index.schema.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsDynamoDBGlobalServiceModule } from './index.js';
 
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
+async function setup(
+  testModuleContainer: TestModuleContainer,
+  octoTerraform: OctoTerraform,
+): Promise<{ account: Account; app: App }> {
   const {
     account: [account],
     app: [app],
@@ -24,7 +19,6 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     app: ['test-app'],
     service: [['dynamodb-service', { tableName: 'test-table' }]],
   });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   const {
     region: [region1],
@@ -76,7 +70,9 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     ),
   );
 
-  await testModuleContainer.createTestResources<[DynamoDBSchema]>(
+  const { '@octo/dynamodb=dynamodb-test-table': dynamoDBResource } = await testModuleContainer.createTestResources<
+    [DynamoDBSchema]
+  >(
     'testModule',
     [
       {
@@ -97,9 +93,7 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
         },
         resourceContext: '@octo/dynamodb=dynamodb-test-table',
         response: {
-          LatestStreamArn: 'LatestStreamArn',
           TableArn: 'TableArn',
-          TableId: 'TableId',
         },
       },
     ],
@@ -108,61 +102,42 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
     },
   );
 
+  const dynamoDBOctoResource = octoTerraform.addOctoTerraformResource(dynamoDBResource);
+  dynamoDBOctoResource.output({
+    TableArn: octoTerraform.raw('aws_dynamodb_table.dynamodb-test-table.arn'),
+  });
+
   return { account, app };
 }
 
 describe('AwsDynamoDBGlobalServiceModule UT', () => {
-  const originalRetryPromise = RetryUtility.retryPromise;
-
-  let retryPromiseSpy: jest.Spied<any>;
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const DynamoDBClientMock = mockClient(DynamoDBClient);
-
   beforeEach(async () => {
-    DynamoDBClientMock.on(DescribeTableCommand).resolves({
-      Table: {
-        LatestStreamArn: 'arn:aws:dynamodb:us-east-1:123:table/test-table/stream/2024-01-01T00:00:00.000',
-        TableArn: 'arn:aws:dynamodb:us-east-1:123:table/test-table',
-        TableId: 'test-table-id',
-        TableStatus: TableStatus.ACTIVE,
-      },
-    });
-    DynamoDBClientMock.on(UpdateTableCommand).resolves({});
-    DynamoDBClientMock.on(TagResourceCommand).resolves({});
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: DynamoDBClient,
-            value: DynamoDBClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
-
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
 
-    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
-    });
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'us-east-1');
+    octoTerraform.addTerraformProvider('123', 'us-west-2');
+
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
-    DynamoDBClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
-
-    retryPromiseSpy.mockRestore();
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer);
+    const { app } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -185,14 +160,56 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "UpdateDynamoDBGlobalResourceAction",
+         "CaptureDynamoDBGlobalResponseResourceAction",
        ],
      ]
+    `);
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+     ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "123-us-east-1"
+       region = "us-east-1"
+     }
+
+     provider "aws" {
+       alias = "123-us-west-2"
+       region = "us-west-2"
+     }
+
+     output "dynamodb-test-table-TableArn" {
+       value = aws_dynamodb_table.dynamodb-test-table.arn
+     }
+
+     resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
+       global_table_arn = aws_dynamodb_table.dynamodb-test-table.arn
+       provider = aws.123-us-east-1
+       tags = {
+         key1 = "value1"
+       }
+     }
+
+     output "dynamodb-global-test-table-123:us-east-1:TableArn" {
+       value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
+     }"
     `);
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -202,40 +219,20 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       type: AwsDynamoDBGlobalServiceModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-           "value": {
-             "replicaDiffs": [
-               {
-                 "action": "add",
-                 "properties": {
-                   "awsAccountId": "123",
-                   "awsRegionId": "us-east-1",
-                 },
-               },
-             ],
-             "tagUpdates": [
-               {
-                 "awsAccountId": "123",
-                 "awsRegionId": "us-east-1",
-                 "tags": {
-                   "key1": "value1",
-                 },
-               },
-             ],
-           },
-         },
-       ],
-       [],
+       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.dynamodb-global-test-table-123:us-east-1:TableArn | blocks: 0 | properties: 1",
+       "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
+       "+ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 2",
      ]
     `);
 
-    const { app: appNoChange } = await setup(testModuleContainer);
+    const { app: appNoChange } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -245,14 +242,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       type: AwsDynamoDBGlobalServiceModule,
     });
     const resultNoChange = await testModuleContainer.commit(appNoChange, { enableResourceCapture: true });
-    expect(resultNoChange.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultNoChange.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
-    const { app: appAddReplica } = await setup(testModuleContainer);
+    const { app: appAddReplica } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -265,45 +258,19 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       type: AwsDynamoDBGlobalServiceModule,
     });
     const resultAddReplica = await testModuleContainer.commit(appAddReplica, { enableResourceCapture: true });
-    expect(resultAddReplica.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultAddReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-           "value": {
-             "replicaDiffs": [
-               {
-                 "action": "add",
-                 "properties": {
-                   "awsAccountId": "123",
-                   "awsRegionId": "us-west-2",
-                 },
-               },
-             ],
-             "tagUpdates": [
-               {
-                 "awsAccountId": "123",
-                 "awsRegionId": "us-east-1",
-                 "tags": {
-                   "key1": "value1",
-                 },
-               },
-               {
-                 "awsAccountId": "123",
-                 "awsRegionId": "us-west-2",
-                 "tags": {},
-               },
-             ],
-           },
-         },
-       ],
-       [],
+       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.dynamodb-global-test-table-123:us-west-2:TableArn | blocks: 0 | properties: 1",
+       "+ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2 | blocks: 0 | properties: 3",
      ]
     `);
 
-    const { app: appRemoveReplica } = await setup(testModuleContainer);
+    const { app: appRemoveReplica } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -313,63 +280,25 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       type: AwsDynamoDBGlobalServiceModule,
     });
     const resultRemoveReplica = await testModuleContainer.commit(appRemoveReplica, { enableResourceCapture: true });
-    expect(resultRemoveReplica.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultRemoveReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-           "value": {
-             "replicaDiffs": [
-               {
-                 "action": "delete",
-                 "properties": {
-                   "awsAccountId": "123",
-                   "awsRegionId": "us-west-2",
-                 },
-               },
-             ],
-             "tagUpdates": [
-               {
-                 "awsAccountId": "123",
-                 "awsRegionId": "us-east-1",
-                 "tags": {
-                   "key1": "value1",
-                 },
-               },
-             ],
-           },
-         },
-       ],
-       [],
+       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.dynamodb-global-test-table-123:us-west-2:TableArn | blocks: 0 | properties: 1",
+       "- resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2 | blocks: 0 | properties: 3",
      ]
     `);
 
-    const { app: appDelete } = await setup(testModuleContainer);
+    const { app: appDelete } = await setup(testModuleContainer, octoTerraform);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "delete",
-           "field": "properties",
-           "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-           "value": {
-             "replicaDiffs": [
-               {
-                 "action": "delete",
-                 "properties": {
-                   "awsAccountId": "123",
-                   "awsRegionId": "us-east-1",
-                 },
-               },
-             ],
-             "tagUpdates": [],
-           },
-         },
-       ],
-       [],
+       "- output.dynamodb-global-test-table-123:us-east-1:TableArn | blocks: 0 | properties: 1",
+       "- resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 2",
      ]
     `);
 
@@ -379,7 +308,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
 
   it('should CUD tags', async () => {
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -389,41 +318,21 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       type: AwsDynamoDBGlobalServiceModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-           "value": {
-             "replicaDiffs": [
-               {
-                 "action": "add",
-                 "properties": {
-                   "awsAccountId": "123",
-                   "awsRegionId": "us-east-1",
-                 },
-               },
-             ],
-             "tagUpdates": [
-               {
-                 "awsAccountId": "123",
-                 "awsRegionId": "us-east-1",
-                 "tags": {
-                   "tag1": "value1",
-                 },
-               },
-             ],
-           },
-         },
-       ],
-       [],
+       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.dynamodb-global-test-table-123:us-east-1:TableArn | blocks: 0 | properties: 1",
+       "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
+       "+ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 0 | properties: 2",
      ]
     `);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer);
+    const { app: appUpdateTags } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -435,33 +344,18 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       type: AwsDynamoDBGlobalServiceModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-           "value": {
-             "replicaDiffs": [],
-             "tagUpdates": [
-               {
-                 "awsAccountId": "123",
-                 "awsRegionId": "us-east-1",
-                 "tags": {
-                   "tag1": "value1_1",
-                   "tag2": "value2_1",
-                 },
-               },
-             ],
-           },
-         },
-       ],
-       [],
+       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "~ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 0",
      ]
     `);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer);
+    const { app: appDeleteTags } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -471,33 +365,21 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       type: AwsDynamoDBGlobalServiceModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "properties",
-           "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-           "value": {
-             "replicaDiffs": [],
-             "tagUpdates": [
-               {
-                 "awsAccountId": "123",
-                 "awsRegionId": "us-east-1",
-                 "tags": {},
-               },
-             ],
-           },
-         },
-       ],
-       [],
+       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "~ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 0",
      ]
     `);
   });
 
   describe('input changes', () => {
     it('should handle replica add', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -507,8 +389,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         type: AwsDynamoDBGlobalServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appAddReplica } = await setup(testModuleContainer);
+      const { app: appAddReplica } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -521,47 +404,21 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         type: AwsDynamoDBGlobalServiceModule,
       });
       const resultAddReplica = await testModuleContainer.commit(appAddReplica, { enableResourceCapture: true });
-      expect(resultAddReplica.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultAddReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-             "value": {
-               "replicaDiffs": [
-                 {
-                   "action": "add",
-                   "properties": {
-                     "awsAccountId": "123",
-                     "awsRegionId": "us-west-2",
-                   },
-                 },
-               ],
-               "tagUpdates": [
-                 {
-                   "awsAccountId": "123",
-                   "awsRegionId": "us-east-1",
-                   "tags": {},
-                 },
-                 {
-                   "awsAccountId": "123",
-                   "awsRegionId": "us-west-2",
-                   "tags": {
-                     "env": "replica2",
-                   },
-                 },
-               ],
-             },
-           },
-         ],
-         [],
+         "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "+ output.dynamodb-global-test-table-123:us-west-2:TableArn | blocks: 0 | properties: 1",
+         "+ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2 | blocks: 1 | properties: 3",
        ]
       `);
     });
 
     it('should handle replica delete', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -574,8 +431,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         type: AwsDynamoDBGlobalServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appRemoveReplica } = await setup(testModuleContainer);
+      const { app: appRemoveReplica } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -585,40 +443,21 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         type: AwsDynamoDBGlobalServiceModule,
       });
       const resultRemoveReplica = await testModuleContainer.commit(appRemoveReplica, { enableResourceCapture: true });
-      expect(resultRemoveReplica.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultRemoveReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-             "value": {
-               "replicaDiffs": [
-                 {
-                   "action": "delete",
-                   "properties": {
-                     "awsAccountId": "123",
-                     "awsRegionId": "us-west-2",
-                   },
-                 },
-               ],
-               "tagUpdates": [
-                 {
-                   "awsAccountId": "123",
-                   "awsRegionId": "us-east-1",
-                   "tags": {},
-                 },
-               ],
-             },
-           },
-         ],
-         [],
+         "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "- output.dynamodb-global-test-table-123:us-west-2:TableArn | blocks: 0 | properties: 1",
+         "- resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2 | blocks: 0 | properties: 3",
        ]
       `);
     });
 
     it('should handle replica tags update', async () => {
-      const { app: appCreate } = await setup(testModuleContainer);
+      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -628,8 +467,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         type: AwsDynamoDBGlobalServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
-      const { app: appUpdateReplicaTags } = await setup(testModuleContainer);
+      const { app: appUpdateReplicaTags } = await setup(testModuleContainer, octoTerraform);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -641,36 +481,21 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       const resultUpdateReplicaTags = await testModuleContainer.commit(appUpdateReplicaTags, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateReplicaTags.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateReplicaTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "properties",
-             "node": "@octo/dynamodb-global=dynamodb-global-test-table",
-             "value": {
-               "replicaDiffs": [],
-               "tagUpdates": [
-                 {
-                   "awsAccountId": "123",
-                   "awsRegionId": "us-east-1",
-                   "tags": {
-                     "a": "2",
-                     "b": "3",
-                   },
-                 },
-               ],
-             },
-           },
-         ],
-         [],
+         "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "~ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 0",
        ]
       `);
     });
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer);
+    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -680,8 +505,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       type: AwsDynamoDBGlobalServiceModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.digest();
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer);
+    const { app: appUpdateModuleId } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -693,11 +519,37 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, {
       enableResourceCapture: true,
     });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+  });
+
+  describe('validation', () => {
+    it('should validate replicas is not empty', async () => {
+      await setup(testModuleContainer, octoTerraform);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
+          inputs: {
+            dynamoDBService: stub('${{testModule.model.service}}'),
+            replicas: [],
+          },
+          moduleId: 'global-dynamodb-module',
+          type: AwsDynamoDBGlobalServiceModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "replicas" in schema could not be validated!"`);
+    });
+
+    it('should validate replica tag keys and values are non-empty', async () => {
+      await setup(testModuleContainer, octoTerraform);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
+          inputs: {
+            dynamoDBService: stub('${{testModule.model.service}}'),
+            replicas: [{ region: stub('${{testRegion1Module.model.region}}'), tags: { '': 'value1' } }],
+          },
+          moduleId: 'global-dynamodb-module',
+          type: AwsDynamoDBGlobalServiceModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "replicas" in schema could not be validated!"`);
+    });
   });
 });

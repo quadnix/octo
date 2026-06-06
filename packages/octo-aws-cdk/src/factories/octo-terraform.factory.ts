@@ -379,7 +379,7 @@ export class OctoTerraform {
     return expression;
   }
 
-  jsonencode(subject: object): LazyValue {
+  jsonencode(subject: object | unknown[]): LazyValue {
     return (currentIndent: string, step: string) => {
       const formatValue = (value: unknown, indent: string): string => {
         if (typeof value === 'string' && value.startsWith('__RAW__')) {
@@ -406,6 +406,13 @@ export class OctoTerraform {
       };
 
       const innerIndent = currentIndent + step;
+
+      if (Array.isArray(subject)) {
+        if (subject.length === 0) return 'jsonencode([])';
+        const items = subject.map((v) => `${innerIndent}${formatValue(v, innerIndent)}`).join('\n');
+        return `jsonencode([\n${items}\n${currentIndent}])`;
+      }
+
       const body = Object.entries(subject)
         .map(([k, v]) => `${innerIndent}${k} = ${formatValue(v, innerIndent)}`)
         .join('\n');

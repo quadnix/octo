@@ -1,25 +1,18 @@
 import {
-  CreatePolicyCommand,
-  CreateRoleCommand,
-  GetRoleCommand,
-  IAMClient,
-  ListAttachedRolePoliciesCommand,
-} from '@aws-sdk/client-iam';
-import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { S3Client } from '@aws-sdk/client-s3';
-import { jest } from '@jest/globals';
-import { type Account, type App, type Service, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
+  type Account,
+  type App,
+  DiffAssert,
+  type Service,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
 import type { AwsS3StorageServiceDirectoryAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service-directory.anchor.schema.js';
 import type { AwsS3StorageServiceAnchorSchema } from '../../../anchors/aws-s3-storage-service/aws-s3-storage-service.anchor.schema.js';
-// eslint-disable-next-line boundaries/element-types
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import { S3Storage } from '../../../resources/s3-storage/index.js';
-import { RetryUtility } from '../../../utilities/retry/retry.utility.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsEcsServerS3AccessDirectoryPermission } from './index.schema.js';
 import { AwsEcsServerModule } from './index.js';
 
@@ -35,7 +28,6 @@ async function setup(
     app: ['test-app'],
     service: [['test-bucket', { bucketName: 'test-bucket' }]],
   });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   account.addAnchor(
     testModuleContainer.createTestAnchor<AwsAccountAnchorSchema>('AwsAccountAnchor', { awsAccountId: '123' }, account),
@@ -68,87 +60,28 @@ async function setup(
 }
 
 describe('AwsEcsServerModule UT', () => {
-  const originalRetryPromise = RetryUtility.retryPromise;
-
-  let retryPromiseSpy: jest.Spied<any>;
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const IAMClientMock = mockClient(IAMClient);
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-  const S3ClientMock = mockClient(S3Client);
-
   beforeEach(async () => {
-    IAMClientMock.on(CreateRoleCommand)
-      .resolves({
-        Role: {
-          Arn: 'arn:aws:iam::123:role/RoleName',
-          CreateDate: new Date(),
-          Path: 'Path',
-          RoleId: 'RoleId',
-          RoleName: 'RoleName',
-        },
-      })
-      .on(GetRoleCommand)
-      .resolves({
-        Role: {
-          Arn: 'arn:aws:iam::123:role/RoleName',
-          CreateDate: new Date(),
-          Path: 'Path',
-          RoleId: 'RoleId',
-          RoleName: 'RoleName',
-        },
-      })
-      .on(CreatePolicyCommand)
-      .resolves({
-        Policy: {
-          Arn: 'arn:aws:iam::123:policy/PolicyName',
-        },
-      })
-      .on(ListAttachedRolePoliciesCommand)
-      .resolves({ AttachedPolicies: [] });
-
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: IAMClient,
-            value: IAMClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: S3Client,
-            value: S3ClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
-
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
 
-    retryPromiseSpy = jest.spyOn(RetryUtility, 'retryPromise').mockImplementation(async (fn, options) => {
-      await originalRetryPromise(fn, { ...options, initialDelayInMs: 0, retryDelayInMs: 0, throwOnError: true });
-    });
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'us-east-1');
+
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
-    IAMClientMock.restore();
-    ResourceGroupsTaggingAPIClientMock.restore();
-    S3ClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
-
-    retryPromiseSpy.mockReset();
   });
 
   it('should call correct actions', async () => {
@@ -184,14 +117,125 @@ describe('AwsEcsServerModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddIamRoleResourceAction",
+         "CaptureIamRoleResponseResourceAction",
        ],
        [
-         "UpdateIamRoleWithAwsPolicyResourceAction",
-         "UpdateIamRoleWithS3StoragePolicyResourceAction",
+         "CaptureIamRoleResponseResourceAction",
+         "CaptureIamRoleResponseResourceAction",
        ],
      ]
     `);
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/iam-role=iam-role-ServerRole-backend",
+       "~ @octo/iam-role=iam-role-ServerRole-backend",
+     ]
+    `);
+    /* eslint-disable spellcheck/spell-checker */
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "123-us-east-1"
+       region = "us-east-1"
+     }
+
+     resource "aws_iam_role" "iam-role-ServerRole-backend" {
+       provider = aws.123-us-east-1
+       assume_role_policy = jsonencode({
+         Statement = [{
+             Action = "sts:AssumeRole"
+             Effect = "Allow"
+             Principal = {
+               Service = "ecs-tasks.amazonaws.com"
+             }
+           }]
+         Version = "2012-10-17"
+       })
+       name = "ServerRole-backend"
+     }
+
+     resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
+       provider = aws.123-us-east-1
+       policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+       role = aws_iam_role.iam-role-ServerRole-backend.name
+
+       depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+     }
+
+     resource "aws_iam_policy" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e" {
+       provider = aws.123-us-east-1
+       name = "aws-ecs-server-s3-access-overlay-e9dc96db328e"
+       policy = jsonencode({
+         Statement = [{
+             Action = ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectTagging", "s3:GetObjectVersionAcl", "s3:GetObjectVersionAttributes", "s3:GetObjectVersionTagging", "s3:ListBucket"]
+             Effect = "Allow"
+             Resource = ["arn:aws:s3:::test-bucket/uploads", "arn:aws:s3:::test-bucket/uploads/*"]
+             Sid = "Allowreadfrombuckettestbucket"
+           }]
+         Version = "2012-10-17"
+       })
+
+       depends_on = [aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]
+     }
+
+     resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach" {
+       provider = aws.123-us-east-1
+       policy_arn = aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e.arn
+       role = aws_iam_role.iam-role-ServerRole-backend.name
+
+       depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e]
+     }
+
+     output "iam-role-ServerRole-backend-Arn" {
+       value = aws_iam_role.iam-role-ServerRole-backend.arn
+     }
+
+     output "iam-role-ServerRole-backend-RoleId" {
+       value = aws_iam_role.iam-role-ServerRole-backend.unique_id
+     }
+
+     output "iam-role-ServerRole-backend-RoleName" {
+       value = aws_iam_role.iam-role-ServerRole-backend.name
+     }
+
+     resource "aws_s3_bucket" "bucket-test-bucket" {
+       provider = aws.123-us-east-1
+       bucket = "test-bucket"
+     }
+
+     resource "aws_s3_bucket_policy" "bucket-test-bucket-policy" {
+       provider = aws.123-us-east-1
+       bucket = aws_s3_bucket.bucket-test-bucket.id
+       policy = jsonencode({
+         Statement = [{
+             Action = ["s3:GetObject"]
+             Effect = "Allow"
+             Principal = {
+               AWS = [aws_iam_role.iam-role-ServerRole-backend.arn]
+             }
+             Resource = ["arn:aws:s3:::test-bucket/uploads", "arn:aws:s3:::test-bucket/uploads/*"]
+             Sid = "iamroleServerRolebackendReadPermission"
+           }]
+         Version = "2012-10-17"
+       })
+
+       depends_on = [aws_s3_bucket.bucket-test-bucket]
+     }
+
+     output "bucket-test-bucket-Arn" {
+       value = aws_s3_bucket.bucket-test-bucket.arn
+     }"
+    `);
+    /* eslint-enable */
   });
 
   it('should CUD', async () => {
@@ -205,28 +249,19 @@ describe('AwsEcsServerModule UT', () => {
       type: AwsEcsServerModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": "@octo/iam-role=iam-role-ServerRole-backend",
-         },
-         {
-           "action": "update",
-           "field": "aws-policy",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "action": "add",
-             "policy": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-             "policyId": "AmazonECSTaskExecutionRolePolicy",
-             "policyType": "aws-policy",
-           },
-         },
-       ],
-       [],
+       "+ @octo/iam-role=iam-role-ServerRole-backend",
+       "~ @octo/iam-role=iam-role-ServerRole-backend",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.iam-role-ServerRole-backend-Arn | blocks: 0 | properties: 1",
+       "+ output.iam-role-ServerRole-backend-RoleId | blocks: 0 | properties: 1",
+       "+ output.iam-role-ServerRole-backend-RoleName | blocks: 0 | properties: 1",
+       "+ resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy | blocks: 0 | properties: 4",
+       "+ resource.aws_iam_role.iam-role-ServerRole-backend | blocks: 1 | properties: 7",
      ]
     `);
 
@@ -252,12 +287,8 @@ describe('AwsEcsServerModule UT', () => {
     const resultAddSecurityGroups = await testModuleContainer.commit(appAddSecurityGroups, {
       enableResourceCapture: true,
     });
-    expect(resultAddSecurityGroups.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultAddSecurityGroups.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     // Add S3 Storage.
     const { app: appAddS3Storage } = await setup(testModuleContainer);
@@ -285,95 +316,43 @@ describe('AwsEcsServerModule UT', () => {
       type: AwsEcsServerModule,
     });
     const resultAddS3Storage = await testModuleContainer.commit(appAddS3Storage, { enableResourceCapture: true });
-    expect(resultAddS3Storage.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultAddS3Storage.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "s3-storage-access-policy",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "action": "add",
-             "policy": {
-               "allowRead": true,
-               "allowWrite": false,
-               "bucketName": "test-bucket",
-               "remoteDirectoryPath": "uploads",
-             },
-             "policyId": "aws-ecs-server-s3-access-overlay-e9dc96db328e",
-             "policyType": "s3-storage-access-policy",
-           },
-         },
-         {
-           "action": "update",
-           "field": "update-permissions",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": {
-             "uploads": {
-               "iam-role-ServerRole-backend": "addDirectoryPermissions",
-             },
-           },
-         },
-         {
-           "action": "add",
-           "field": "parent",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": "@octo/iam-role=iam-role-ServerRole-backend",
-         },
-       ],
-       [],
+       "~ @octo/iam-role=iam-role-ServerRole-backend",
+       "~ @octo/s3-storage=bucket-test-bucket",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
+       "+ resource.aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e | blocks: 0 | properties: 10",
+       "+ resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach | blocks: 0 | properties: 4",
+       "+ resource.aws_s3_bucket_policy.bucket-test-bucket-policy | blocks: 1 | properties: 10",
+       "+ resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
      ]
     `);
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "aws-policy",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "action": "delete",
-             "policyId": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-             "policyType": "aws-policy",
-           },
-         },
-         {
-           "action": "update",
-           "field": "s3-storage-access-policy",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "action": "delete",
-             "policyId": "aws-ecs-server-s3-access-overlay-e9dc96db328e",
-             "policyType": "s3-storage-access-policy",
-           },
-         },
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": "@octo/iam-role=iam-role-ServerRole-backend",
-         },
-         {
-           "action": "update",
-           "field": "update-permissions",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": {
-             "uploads": {
-               "iam-role-ServerRole-backend": "deleteDirectoryPermissions",
-             },
-           },
-         },
-         {
-           "action": "delete",
-           "field": "parent",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": "@octo/iam-role=iam-role-ServerRole-backend",
-         },
-       ],
-       [],
+       "- @octo/iam-role=iam-role-ServerRole-backend",
+       "~ @octo/iam-role=iam-role-ServerRole-backend",
+       "~ @octo/s3-storage=bucket-test-bucket",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
+       "- output.iam-role-ServerRole-backend-Arn | blocks: 0 | properties: 1",
+       "- output.iam-role-ServerRole-backend-RoleId | blocks: 0 | properties: 1",
+       "- output.iam-role-ServerRole-backend-RoleName | blocks: 0 | properties: 1",
+       "- resource.aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e | blocks: 0 | properties: 10",
+       "- resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy | blocks: 0 | properties: 4",
+       "- resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach | blocks: 0 | properties: 4",
+       "- resource.aws_iam_role.iam-role-ServerRole-backend | blocks: 1 | properties: 7",
+       "- resource.aws_s3_bucket_policy.bucket-test-bucket-policy | blocks: 1 | properties: 10",
+       "- resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
      ]
     `);
 
@@ -393,28 +372,19 @@ describe('AwsEcsServerModule UT', () => {
       type: AwsEcsServerModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": "@octo/iam-role=iam-role-ServerRole-backend",
-         },
-         {
-           "action": "update",
-           "field": "aws-policy",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "action": "add",
-             "policy": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-             "policyId": "AmazonECSTaskExecutionRolePolicy",
-             "policyType": "aws-policy",
-           },
-         },
-       ],
-       [],
+       "+ @octo/iam-role=iam-role-ServerRole-backend",
+       "~ @octo/iam-role=iam-role-ServerRole-backend",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.iam-role-ServerRole-backend-Arn | blocks: 0 | properties: 1",
+       "+ output.iam-role-ServerRole-backend-RoleId | blocks: 0 | properties: 1",
+       "+ output.iam-role-ServerRole-backend-RoleName | blocks: 0 | properties: 1",
+       "+ resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy | blocks: 0 | properties: 4",
+       "+ resource.aws_iam_role.iam-role-ServerRole-backend | blocks: 1 | properties: 7",
      ]
     `);
 
@@ -429,27 +399,12 @@ describe('AwsEcsServerModule UT', () => {
       type: AwsEcsServerModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-       ],
-       [],
+       "~ @octo/iam-role=iam-role-ServerRole-backend",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsServerModule>({
@@ -461,26 +416,12 @@ describe('AwsEcsServerModule UT', () => {
       type: AwsEcsServerModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/iam-role=iam-role-ServerRole-backend",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-       ],
-       [],
+       "~ @octo/iam-role=iam-role-ServerRole-backend",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
@@ -495,6 +436,7 @@ describe('AwsEcsServerModule UT', () => {
         type: AwsEcsServerModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
       const { app: appUpdateServerKey } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsServerModule>({
@@ -508,44 +450,26 @@ describe('AwsEcsServerModule UT', () => {
       const resultUpdateServerKey = await testModuleContainer.commit(appUpdateServerKey, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateServerKey.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateServerKey.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "update",
-             "field": "aws-policy",
-             "node": "@octo/iam-role=iam-role-ServerRole-backend",
-             "value": {
-               "action": "delete",
-               "policyId": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-               "policyType": "aws-policy",
-             },
-           },
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/iam-role=iam-role-ServerRole-backend",
-             "value": "@octo/iam-role=iam-role-ServerRole-backend",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/iam-role=iam-role-ServerRole-changed-backend",
-             "value": "@octo/iam-role=iam-role-ServerRole-changed-backend",
-           },
-           {
-             "action": "update",
-             "field": "aws-policy",
-             "node": "@octo/iam-role=iam-role-ServerRole-changed-backend",
-             "value": {
-               "action": "add",
-               "policy": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-               "policyId": "AmazonECSTaskExecutionRolePolicy",
-               "policyType": "aws-policy",
-             },
-           },
-         ],
-         [],
+         "+ @octo/iam-role=iam-role-ServerRole-changed-backend",
+         "- @octo/iam-role=iam-role-ServerRole-backend",
+         "~ @octo/iam-role=iam-role-ServerRole-backend",
+         "~ @octo/iam-role=iam-role-ServerRole-changed-backend",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "+ output.iam-role-ServerRole-changed-backend-Arn | blocks: 0 | properties: 1",
+         "+ output.iam-role-ServerRole-changed-backend-RoleId | blocks: 0 | properties: 1",
+         "+ output.iam-role-ServerRole-changed-backend-RoleName | blocks: 0 | properties: 1",
+         "+ resource.aws_iam_role_policy_attachment.iam-role-ServerRole-changed-backend_AmazonECSTaskExecutionRolePolicy | blocks: 0 | properties: 4",
+         "+ resource.aws_iam_role.iam-role-ServerRole-changed-backend | blocks: 1 | properties: 7",
+         "- output.iam-role-ServerRole-backend-Arn | blocks: 0 | properties: 1",
+         "- output.iam-role-ServerRole-backend-RoleId | blocks: 0 | properties: 1",
+         "- output.iam-role-ServerRole-backend-RoleName | blocks: 0 | properties: 1",
+         "- resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy | blocks: 0 | properties: 4",
+         "- resource.aws_iam_role.iam-role-ServerRole-backend | blocks: 1 | properties: 7",
        ]
       `);
     });
@@ -562,6 +486,7 @@ describe('AwsEcsServerModule UT', () => {
       type: AwsEcsServerModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.digest();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsServerModule>({
@@ -573,11 +498,7 @@ describe('AwsEcsServerModule UT', () => {
       type: AwsEcsServerModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 });

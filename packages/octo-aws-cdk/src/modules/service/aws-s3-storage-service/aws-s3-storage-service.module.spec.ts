@@ -1,13 +1,15 @@
 import {
-  ResourceGroupsTaggingAPIClient,
-  TagResourcesCommand,
-  UntagResourcesCommand,
-} from '@aws-sdk/client-resource-groups-tagging-api';
-import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3';
-import { jest } from '@jest/globals';
-import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
-import { mockClient } from 'aws-sdk-client-mock';
+  type Account,
+  type App,
+  DiffAssert,
+  type Region,
+  TestContainer,
+  TestModuleContainer,
+  stub,
+} from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
+import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsS3StorageServiceModule } from './index.js';
 
 async function setup(
@@ -22,7 +24,6 @@ async function setup(
     app: ['test-app'],
     region: ['region'],
   });
-  jest.spyOn(account, 'getCredentials').mockReturnValue({});
 
   region.addAnchor(
     testModuleContainer.createTestAnchor<AwsRegionAnchorSchema>(
@@ -41,42 +42,27 @@ async function setup(
 }
 
 describe('AwsS3StorageServiceModule UT', () => {
+  let hcl: HclAssert;
+  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
-  const ResourceGroupsTaggingAPIClientMock = mockClient(ResourceGroupsTaggingAPIClient);
-  const S3ClientMock = mockClient(S3Client);
-
   beforeEach(async () => {
-    ResourceGroupsTaggingAPIClientMock.on(TagResourcesCommand).resolves({}).on(UntagResourcesCommand).resolves({});
-
-    S3ClientMock.on(ListObjectsV2Command).resolves({ Contents: [] });
-
-    await TestContainer.create(
-      {
-        mocks: [
-          {
-            metadata: { package: '@octo' },
-            type: ResourceGroupsTaggingAPIClient,
-            value: ResourceGroupsTaggingAPIClientMock,
-          },
-          {
-            metadata: { package: '@octo' },
-            type: S3Client,
-            value: S3ClientMock,
-          },
-        ],
-      },
+    const container = await TestContainer.create(
+      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
       { factoryTimeoutInMs: 500 },
     );
 
     testModuleContainer = new TestModuleContainer();
     await testModuleContainer.initialize();
+
+    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
+    octoTerraform.addTerraformConfig();
+    octoTerraform.addTerraformProvider('123', 'us-east-1');
+
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
-    ResourceGroupsTaggingAPIClientMock.restore();
-    S3ClientMock.restore();
-
     await testModuleContainer.reset();
     await TestContainer.reset();
   });
@@ -106,9 +92,39 @@ describe('AwsS3StorageServiceModule UT', () => {
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
      [
        [
-         "AddS3StorageResourceAction",
+         "CaptureS3StorageResponseResourceAction",
        ],
      ]
+    `);
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+     [
+       "+ @octo/s3-storage=bucket-test-bucket",
+     ]
+    `);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "123-us-east-1"
+       region = "us-east-1"
+     }
+
+     resource "aws_s3_bucket" "bucket-test-bucket" {
+       provider = aws.123-us-east-1
+       bucket = "test-bucket"
+     }
+
+     output "bucket-test-bucket-Arn" {
+       value = aws_s3_bucket.bucket-test-bucket.arn
+     }"
     `);
   });
 
@@ -123,17 +139,15 @@ describe('AwsS3StorageServiceModule UT', () => {
       type: AwsS3StorageServiceModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": "@octo/s3-storage=bucket-test-bucket",
-         },
-       ],
-       [],
+       "+ @octo/s3-storage=bucket-test-bucket",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
+       "+ resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
      ]
     `);
 
@@ -149,26 +163,20 @@ describe('AwsS3StorageServiceModule UT', () => {
       type: AwsS3StorageServiceModule,
     });
     const resultAddDirectory = await testModuleContainer.commit(appAddDirectory, { enableResourceCapture: true });
-    expect(resultAddDirectory.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultAddDirectory.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(resultDelete.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "delete",
-           "field": "resourceId",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": "@octo/s3-storage=bucket-test-bucket",
-         },
-       ],
-       [],
+       "- @octo/s3-storage=bucket-test-bucket",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "- output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
+       "- resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
      ]
     `);
 
@@ -189,29 +197,16 @@ describe('AwsS3StorageServiceModule UT', () => {
       type: AwsS3StorageServiceModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(resultCreate.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "add",
-           "field": "resourceId",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": "@octo/s3-storage=bucket-test-bucket",
-         },
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": {
-             "add": {
-               "tag1": "value1",
-             },
-             "delete": [],
-             "update": {},
-           },
-         },
-       ],
-       [],
+       "+ @octo/s3-storage=bucket-test-bucket",
+       "~ @octo/s3-storage=bucket-test-bucket",
+     ]
+    `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`
+     [
+       "+ output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
+       "+ resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
      ]
     `);
 
@@ -227,27 +222,12 @@ describe('AwsS3StorageServiceModule UT', () => {
       type: AwsS3StorageServiceModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(resultUpdateTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": {
-             "add": {
-               "tag2": "value2",
-             },
-             "delete": [],
-             "update": {
-               "tag1": "value1_1",
-             },
-           },
-         },
-       ],
-       [],
+       "~ @octo/s3-storage=bucket-test-bucket",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StorageServiceModule>({
@@ -260,26 +240,12 @@ describe('AwsS3StorageServiceModule UT', () => {
       type: AwsS3StorageServiceModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(resultDeleteTags.resourceDiffs).toMatchInlineSnapshot(`
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       [
-         {
-           "action": "update",
-           "field": "tags",
-           "node": "@octo/s3-storage=bucket-test-bucket",
-           "value": {
-             "add": {},
-             "delete": [
-               "tag1",
-               "tag2",
-             ],
-             "update": {},
-           },
-         },
-       ],
-       [],
+       "~ @octo/s3-storage=bucket-test-bucket",
      ]
     `);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
@@ -294,6 +260,7 @@ describe('AwsS3StorageServiceModule UT', () => {
         type: AwsS3StorageServiceModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+      hcl.digest();
 
       const { app: appUpdateBucketName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsS3StorageServiceModule>({
@@ -307,23 +274,18 @@ describe('AwsS3StorageServiceModule UT', () => {
       const resultUpdateBucketName = await testModuleContainer.commit(appUpdateBucketName, {
         enableResourceCapture: true,
       });
-      expect(resultUpdateBucketName.resourceDiffs).toMatchInlineSnapshot(`
+      expect(new DiffAssert(resultUpdateBucketName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         [
-           {
-             "action": "delete",
-             "field": "resourceId",
-             "node": "@octo/s3-storage=bucket-test-bucket",
-             "value": "@octo/s3-storage=bucket-test-bucket",
-           },
-           {
-             "action": "add",
-             "field": "resourceId",
-             "node": "@octo/s3-storage=bucket-changed-bucket",
-             "value": "@octo/s3-storage=bucket-changed-bucket",
-           },
-         ],
-         [],
+         "+ @octo/s3-storage=bucket-changed-bucket",
+         "- @octo/s3-storage=bucket-test-bucket",
+       ]
+      `);
+      expect(hcl.digest()).toMatchInlineSnapshot(`
+       [
+         "+ output.bucket-changed-bucket-Arn | blocks: 0 | properties: 1",
+         "+ resource.aws_s3_bucket.bucket-changed-bucket | blocks: 0 | properties: 2",
+         "- output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
+         "- resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
        ]
       `);
     });
@@ -340,6 +302,7 @@ describe('AwsS3StorageServiceModule UT', () => {
       type: AwsS3StorageServiceModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+    hcl.digest();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StorageServiceModule>({
@@ -351,11 +314,40 @@ describe('AwsS3StorageServiceModule UT', () => {
       type: AwsS3StorageServiceModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(resultUpdateModuleId.resourceDiffs).toMatchInlineSnapshot(`
-     [
-       [],
-       [],
-     ]
-    `);
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+  });
+
+  describe('validation', () => {
+    it('should validate bucketName is not empty', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsS3StorageServiceModule>({
+          inputs: {
+            bucketName: '',
+            region: stub('${{testModule.model.region}}'),
+          },
+          moduleId: 'service',
+          type: AwsS3StorageServiceModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(`"Property "bucketName" in schema could not be validated!"`);
+    });
+
+    it('should validate remoteDirectoryPaths elements are not empty', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsS3StorageServiceModule>({
+          inputs: {
+            bucketName: 'test-bucket',
+            region: stub('${{testModule.model.region}}'),
+            remoteDirectoryPaths: [''],
+          },
+          moduleId: 'service',
+          type: AwsS3StorageServiceModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Property "remoteDirectoryPaths" in schema could not be validated!"`,
+      );
+    });
   });
 });

@@ -20,9 +20,9 @@ export class DiffAssert {
     }
 
     return [
-      ...[...add].sort().map((context) => `+ ${context}`),
-      ...[...del].sort().map((context) => `- ${context}`),
-      ...[...update].sort().map((context) => `~ ${context}`),
+      ...[...add].map((context) => `+ ${context}`),
+      ...[...del].map((context) => `- ${context}`),
+      ...[...update].map((context) => `~ ${context}`),
     ];
   }
 }

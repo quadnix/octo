@@ -2,10 +2,8 @@ import { type App, DiffAssert, type Server, TestContainer, TestModuleContainer, 
 import type { AwsEcsServerAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-server.anchor.schema.js';
 import type { AwsIamRoleAnchorSchema } from '../../../anchors/aws-iam/aws-iam-role.anchor.schema.js';
 import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
-import { HclAssert, type HclShape } from '../../../utilities/test-helpers/test-hcl-assert.js';
+import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsEcsDeploymentModule } from './index.js';
-
-const BASE_HCL_SHAPE: HclShape = {};
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App; server: Server }> {
   const {
@@ -51,7 +49,7 @@ describe('AwsEcsDeploymentModule UT', () => {
     octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
     octoTerraform.addTerraformConfig();
 
-    hcl = new HclAssert(octoTerraform, BASE_HCL_SHAPE);
+    hcl = new HclAssert(octoTerraform);
   });
 
   afterEach(async () => {
@@ -90,7 +88,18 @@ describe('AwsEcsDeploymentModule UT', () => {
      ]
     `);
     expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`[]`);
-    hcl.assert();
+    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(octoTerraform.render()).toMatchInlineSnapshot(`
+     "terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source  = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }"
+    `);
   });
 
   it('should CUD', async () => {
@@ -113,8 +122,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    new DiffAssert(resultCreate.resourceDiffs).hasNoChanges();
-    hcl.assert();
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appUpdate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsDeploymentModule>({
@@ -135,13 +144,13 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
-    new DiffAssert(resultUpdate.resourceDiffs).hasNoChanges();
-    hcl.assert();
+    expect(new DiffAssert(resultUpdate.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    new DiffAssert(resultDelete.resourceDiffs).hasNoChanges();
-    hcl.assertShape({});
+    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -168,8 +177,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    new DiffAssert(resultCreate.resourceDiffs).hasNoChanges();
-    hcl.assert();
+    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -191,8 +200,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    new DiffAssert(resultUpdateTags.resourceDiffs).hasNoChanges();
-    hcl.assert();
+    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsDeploymentModule>({
@@ -213,8 +222,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    new DiffAssert(resultDeleteTags.resourceDiffs).hasNoChanges();
-    hcl.assert();
+    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
@@ -238,7 +247,7 @@ describe('AwsEcsDeploymentModule UT', () => {
         type: AwsEcsDeploymentModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.assert();
+      hcl.digest();
 
       const { app: appUpdateDeploymentContainerProperties } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsDeploymentModule>({
@@ -264,8 +273,10 @@ describe('AwsEcsDeploymentModule UT', () => {
           enableResourceCapture: true,
         },
       );
-      new DiffAssert(resultUpdateDeploymentContainerProperties.resourceDiffs).hasNoChanges();
-      hcl.assertShape({});
+      expect(new DiffAssert(resultUpdateDeploymentContainerProperties.resourceDiffs).digest()).toMatchInlineSnapshot(
+        `[]`,
+      );
+      expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
     });
 
     it('should handle deploymentTag change', async () => {
@@ -288,7 +299,7 @@ describe('AwsEcsDeploymentModule UT', () => {
         type: AwsEcsDeploymentModule,
       });
       await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.assert();
+      hcl.digest();
 
       const { app: appUpdateDeploymentTag } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsDeploymentModule>({
@@ -311,8 +322,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       const resultUpdateDeploymentTag = await testModuleContainer.commit(appUpdateDeploymentTag, {
         enableResourceCapture: true,
       });
-      new DiffAssert(resultUpdateDeploymentTag.resourceDiffs).hasNoChanges();
-      hcl.assertShape({});
+      expect(new DiffAssert(resultUpdateDeploymentTag.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+      expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
     });
   });
 
@@ -336,7 +347,7 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    hcl.assert();
+    hcl.digest();
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsDeploymentModule>({
@@ -357,8 +368,8 @@ describe('AwsEcsDeploymentModule UT', () => {
       type: AwsEcsDeploymentModule,
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    new DiffAssert(resultUpdateModuleId.resourceDiffs).hasNoChanges();
-    hcl.assert();
+    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {
