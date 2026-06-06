@@ -13,46 +13,14 @@ each commit, and the HCL rendered by `OctoTerraform` after each commit.
 
 ## Reference implementation
 
-`packages/octo-aws-cdk/src/modules/region/aws-single-az-region/aws-single-az-region.module.spec.ts`
+`packages/octo-aws-cdk/src/modules/environment/aws-ecs-environment/aws-ecs-environment.module.spec.ts`
 
----
-
-## How to discover what HCL a module produces
-
-Before writing any test assertions, do this three-step read to learn exactly which HCL blocks the module
-creates and what their fields look like. This is the fastest path to a correct `BASE_HCL_SHAPE`.
-
-### Step 1 — Find the model actions
-
-The module directory contains `model/` and `overlay/` sub-folders. Each holds one or more action files
-(e.g. `add-<model>.model.action.ts`, `update-<model>.model.action.ts`). Open every action file and look
-at its `actionOutputs` property — it lists the resource class(es) the action creates or touches.
-
-### Step 2 — Trace each resource
-
-For every resource class listed in `actionOutputs`, open its source file and read the `constructor` to
-understand how the resource id is formed and what properties it stores. This tells you both the block
-address key (`resource.<type>.<name>`) and what data flows in.
-
-### Step 3 — Read `toHCL()`
-
-Each resource class has a `toHCL()` method that returns the exact HCL object the module will emit.
-Read it to enumerate every top-level key you need to assert in `BASE_HCL_SHAPE`. Use the literal values
-(or a representative example value) as expected values in the shape.
-
-After these three steps you have everything needed to write `BASE_HCL_SHAPE` and the diff assertions —
-no guessing required.
-
----
-
-## File structure
+## Test structure
 
 ```
 // imports
 
-const BASE_HCL_SHAPE: HclShape = { ... };
-
-async function setup(testModuleContainer: TestModuleContainer): Promise<{ ... }> { ... }
+async function setup(testModuleContainer: TestModuleContainer, octoTerraform?: OctoTerraform): Promise<{ ... }> { ... }
 
 describe('<Module> UT', () => {
   // 1. Smoke
@@ -63,8 +31,6 @@ describe('<Module> UT', () => {
   // 6. describe('validation') { one it() per rule }
 });
 ```
-
----
 
 ## Boilerplate: beforeEach / afterEach
 
@@ -85,7 +51,7 @@ beforeEach(async () => {
   octoTerraform.addTerraformConfig();
   octoTerraform.addTerraformProvider('<accountId>', '<region>');
 
-  hcl = new HclAssert(octoTerraform, BASE_HCL_SHAPE);
+  hcl = new HclAssert(octoTerraform);
 });
 
 afterEach(async () => {
@@ -94,28 +60,71 @@ afterEach(async () => {
 });
 ```
 
-`BASE_HCL_SHAPE` covers post-create state. Keys are block addresses (`resource.<type>.<name>`, `output.<name>`,
-`data.<type>.<name>`). Values map top-level property name → expected value. `HclAssert` strips the outer `"..."`
-from HCL string values, so always write without surrounding quotes: `'10.0.0.0/8'` not `'"10.0.0.0/8"'`.
+## Assertions: digest pattern
 
----
+Every `commit()` must be followed by exactly one `DiffAssert.digest()` call on the resource diffs,
+and one `hcl.digest()` call (to drain and reset the factory).
+
+Both return `string[]` and are always snapshotted with `toMatchInlineSnapshot`. Write the calls without
+snapshot values, run once with `--updateSnapshot`, then review and lock:
+
+```ts
+expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot();
+expect(hcl.digest()).toMatchInlineSnapshot();
+```
+
+### DiffAssert.digest() format
+
+Each line is a resource context prefixed by the action that happened to it:
+
+```
+[
+  "+ @octo/ecs-cluster=ecs-cluster-region-qa",   // resource added
+  "- @octo/vpc=vpc-region",                       // resource deleted
+  "~ @octo/ecs-cluster=ecs-cluster-region-qa",   // resource updated (e.g. tag change)
+]
+```
+
+An empty array `[]` means no resource diffs — this is the expected snapshot for no-op commits.
+
+### HclAssert.digest() format
+
+Each line is an HCL block address prefixed by the action, with counts of how many top-level properties
+and nested blocks changed:
+
+```
+[
+  "+ resource.aws_ecs_cluster.ecs-cluster-region-qa | blocks: 1 | properties: 2",  // block added
+  "- output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",          // block removed
+  "~ resource.aws_vpc.vpc-region | blocks: 0 | properties: 1",                      // 1 property changed
+]
+```
+
+- For `+`: counts are the total properties and blocks in the newly added HCL block.
+- For `-`: counts are what the block had before it was removed.
+- For `~`: counts are the number of properties/blocks that **changed**, not the total.
+- An empty array `[]` means HCL did not change (e.g., a tag-only update not rendered in HCL).
+
+Lines within each prefix group are sorted alphabetically by address. Order is: `+` then `-` then `~`.
 
 ## Section 1 — Smoke / contract (`'should call correct actions'`)
 
-Canonical snapshot of what the module produces. Run once, assert model actions, resource actions, and HCL.
+Canonical snapshot of what the module produces. Asserts model actions, resource actions, resource diffs,
+and HCL shape — all in one commit.
 
 ```ts
 it('should call correct actions', async () => {
   const { app } = await setup(testModuleContainer);
-  await testModuleContainer.runModule<Module>({ inputs: { ... }, moduleId: 'region', type: Module });
+  await testModuleContainer.runModule<Module>({ inputs: { ... }, moduleId: 'module', type: Module });
   const result = await testModuleContainer.commit(app, {
     enableResourceCapture: true,
-    filterByModuleIds: ['region'],
+    filterByModuleIds: ['module'],
   });
 
-  expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`...`);
-  expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`...`);
-  hcl.assert();
+  expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot();
+  expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot();
+  expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot();
+  expect(hcl.digest()).toMatchInlineSnapshot();
 });
 ```
 
@@ -125,71 +134,108 @@ it('should call correct actions', async () => {
 
 ## Section 2 — Lifecycle (`'should CUD'`)
 
-Assert `hasAdded` diffs after creation and `hasDeleted` diffs after delete. Call `hcl.assert()` after create
-and `hcl.assertShape({})` after delete. End with `isResourceStateEqual`.
+Create, then delete operation. Assert diffs and HCL after each step. End with `isResourceStateEqual`.
 
-- Delete step: call `setup()` again with the same inputs but do **not** call `runModule` — the absent module signals
-  deletion.
-- `isResourceStateEqual` confirms state fully converged.
+- Delete step: call `setup()` again with the same inputs but do **not** call `runModule` — the absent module
+  signals deletion.
+- `isResourceStateEqual` confirms state fully converged, and no resources are left behind.
 - If the module has non-tag mutable properties, insert an update step between creation and delete.
 
----
+```ts
+it('should CUD', async () => {
+  const { app: appCreate } = await setup(testModuleContainer);
+  await testModuleContainer.runModule<Module>({ inputs: { ... }, moduleId: 'module', type: Module });
+  const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+  expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot();
+  expect(hcl.digest()).toMatchInlineSnapshot();
+
+  const { app: appDelete } = await setup(testModuleContainer);
+  const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
+  expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot();
+  expect(hcl.digest()).toMatchInlineSnapshot();
+
+  const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
+  expect(isResourceStateEqual).toBe(true);
+});
+```
 
 ## Section 3 — Tags (`'should CUD tags'`)
 
-Three steps: add tags (create with tags), update tags, delete tags (run module with no tags registered).
-Assert `hasTagUpdate` diffs on every tagged resource in the update and delete steps.
+Three steps: create with tags, update tags, delete tags (run module with no tags registered).
 
 ```ts
-// update step — shows the key call shapes
-testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-// ...setup + runModule...
-new DiffAssert(resultUpdateTags.resourceDiffs)
-  .hasTagUpdate('<resourceType>=<resourceId>', { add: { tag2: 'value2' }, delete: [], update: { tag1: 'value1_1' } });
-hcl.assert();
+it('should CUD tags', async () => {
+  testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+  // ...setup + runModule...
+  const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+  expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot();
+  expect(hcl.digest()).toMatchInlineSnapshot();
+
+  testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+  // ...setup + runModule...
+  const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
+  expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot();
+  expect(hcl.digest()).toMatchInlineSnapshot();
+
+  // delete: setup + runModule with no tags registered
+  const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
+  expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot();
+  expect(hcl.digest()).toMatchInlineSnapshot();
+});
 ```
 
-- `registerTags` replaces the full tag set each step; accumulate expected deltas manually.
-- `delete` in `hasTagUpdate` is an array of key names, not a map.
-- Every resource that receives tags must appear in every `hasTagUpdate` call.
-
----
+- `registerTags` replaces the full tag set each step.
+- The update step DiffAssert snapshot will show `~` for each tagged resource.
+- The HCL digest for tag steps is typically `[]` — tags are tracked in the diff layer but often not
+  rendered in HCL. Confirm this by checking `toHCL()`.
 
 ## Section 4 — Input changes (`describe('input changes')`)
 
-**Exclusion:** Do not write tests for model reference inputs (e.g. `account`). These represent external models
-and their behavior is the responsibility of their own modules and tests.
+**Exclusion:** Do not write tests for model reference inputs (e.g. `region`, `account`). These represent
+external models, and their behavior is the responsibility of their own modules and tests.
 
 One `it()` per remaining module input. Classify each input:
 
-| Class           | Behavior                               | Assertion                                           |
-|-----------------|----------------------------------------|-----------------------------------------------------|
-| **Immutable**   | Cannot change after create; must throw | `rejects.toThrowErrorMatchingInlineSnapshot(...)`   |
-| **Replaceable** | Change triggers delete-old + add-new   | `DiffAssert.hasDeleted(...).hasAdded(...)`          |
-| **Updatable**   | Change triggers update diff            | `DiffAssert.hasUpdated(...)` or `hasTagUpdate(...)` |
+| Class           | Behavior                               | Expected DiffAssert snapshot                 |
+|-----------------|----------------------------------------|----------------------------------------------|
+| **Immutable**   | Cannot change after create; must throw | `rejects.toThrowErrorMatchingInlineSnapshot` |
+| **Replaceable** | Change triggers delete-old + add-new   | Lines with both `+` and `-`                  |
+| **Updatable**   | Change triggers update diff            | Lines with `~`                               |
+| **No-op**       | Change has no effect on resources      | `[]`                                         |
 
-Each test: create with the original input, then commit again with the changed input.
+Each test: create with the original input, commit, then commit again with the changed input.
 For immutable inputs the error is thrown from `commit`, not `runModule`.
 
----
+```ts
+it('should handle <inputName> change', async () => {
+  // ...create...
+  await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+  expect(hcl.digest()).toMatchInlineSnapshot();
+
+  // ...setup + runModule with changed input...
+  const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
+  expect(new DiffAssert(resultUpdate.resourceDiffs).digest()).toMatchInlineSnapshot();
+  expect(hcl.digest()).toMatchInlineSnapshot();
+});
+```
 
 ## Section 5 — ModuleId change (`'should handle moduleId change'`)
 
 Resources are keyed by model identity, not moduleId — changing it must always be a no-op.
+Both DiffAssert and HCL digests must produce snapshot as `[]`.
 
 ```ts
 it('should handle moduleId change', async () => {
-  // ...create with moduleId: 'region-1' and hcl.assert()...
+  // ...create with moduleId: 'module-1'...
+  await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
+  expect(hcl.digest()).toMatchInlineSnapshot();
 
-  const { app: appUpdate } = await setup(testModuleContainer);
-  await testModuleContainer.runModule<Module>({ ..., moduleId: 'region-2', type: Module });
+  // ...setup + runModule with moduleId: 'module-2'...
   const resultUpdate = await testModuleContainer.commit(appUpdate, { enableResourceCapture: true });
-  new DiffAssert(resultUpdate.resourceDiffs).hasNoChanges();
-  hcl.assert();
+  expect(new DiffAssert(resultUpdate.resourceDiffs).digest()).toMatchInlineSnapshot();
+  expect(hcl.digest()).toMatchInlineSnapshot();
 });
 ```
-
----
 
 ## Section 6 — Validation (`describe('validation')`)
 
@@ -207,39 +253,44 @@ describe('validation', () => {
 });
 ```
 
----
+## Validation: How to discover what HCL a module produces
 
-## HclAssert cheat sheet
+### Step 1 — Find the model actions
 
-| Call                     | When to use                                                         |
-|--------------------------|---------------------------------------------------------------------|
-| `hcl.assert()`           | HCL matches `BASE_HCL_SHAPE`. Resets factory.                       |
-| `hcl.assertShape(shape)` | HCL differs from baseline (e.g. after name change). Resets factory. |
-| `hcl.assertShape({})`    | HCL must be empty (post-delete). Resets factory.                    |
+The module directory contains `model/` and `overlay/` sub-folders. Each holds one or more action files
+(e.g. `add-<model>.model.action.ts`, `update-<model>.model.action.ts`). Open every action file and look
+at its `actionOutputs` property — it lists the resource class(es) the action creates or touches.
 
-Must be called after **every** `commit()` — the factory accumulates blocks across commits, so a missing
-call causes false positives in the next assertion.
+### Step 2 — Trace each resource
 
----
+For every resource class listed in `actionOutputs`, open its source file and read the `constructor` to
+understand how the resource id is formed and what properties it stores. This tells you the block
+address (`resource.<type>.<name>`) and what data flows in.
+
+### Step 3 — Read `toHCL()`
+
+Each resource class has a `toHCL()` method. Read it to know how many top-level properties and nested blocks
+each resource emits. This lets you verify that the autopopulated `hcl.digest()` snapshots show the right
+counts.
 
 ## Constraints
 
-When fixing or rewriting an existing test file, treat the following as read-only unless the change is the direct subject
-of the fix:
+When fixing or rewriting an existing test file, treat the following as read-only unless the change is the
+direct subject of the fix:
 
 - **Variable names** — preserve exactly as written (e.g. `resultUpdateFilesystemName`, not `resultUpdate`).
 - **Input values** — preserve original input values.
 
 Only change what the fix actually requires.
 
----
-
 ## Checklist
 
-- [ ] `BASE_HCL_SHAPE` covers every resource, output, and data block the module creates.
-- [ ] Section 1 inline snapshots are populated (run once with `--updateSnapshot`, then lock them).
+- [ ] No `BASE_HCL_SHAPE` constant — the file has none.
+- [ ] `HclAssert` is constructed with only the factory: `new HclAssert(octoTerraform)`.
+- [ ] Every `commit()` is followed by exactly one `expect(hcl.digest()).toMatchInlineSnapshot()`.
+- [ ] Every `commit()` result has a matching `expect(new DiffAssert(...).digest()).toMatchInlineSnapshot()`.
+- [ ] All inline snapshots are populated (run once with `--updateSnapshot`, then review and lock).
 - [ ] Section 2 includes an update step if the module has non-tag mutable properties.
 - [ ] Section 4 has one test per input, correctly classified.
 - [ ] Section 6 has one test per validation rule in the module's schema or actions.
-- [ ] Every `commit()` is followed by exactly one `hcl.assert()` or `hcl.assertShape()`.
 - [ ] No variable names or input values were changed beyond what the fix requires.
