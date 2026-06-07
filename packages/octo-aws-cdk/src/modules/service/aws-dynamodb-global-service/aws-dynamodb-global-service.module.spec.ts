@@ -104,7 +104,7 @@ async function setup(
 
   const dynamoDBOctoResource = octoTerraform.addOctoTerraformResource(dynamoDBResource);
   dynamoDBOctoResource.output({
-    TableArn: octoTerraform.raw('aws_dynamodb_table.dynamodb-test-table.arn'),
+    TableArn: octoTerraform.raw('mock.TableArn'),
   });
 
   return { account, app };
@@ -166,7 +166,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     `);
     expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
     expect(octoTerraform.render()).toMatchInlineSnapshot(`
@@ -191,11 +191,11 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
      }
 
      output "dynamodb-test-table-TableArn" {
-       value = aws_dynamodb_table.dynamodb-test-table.arn
+       value = mock.TableArn
      }
 
      resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
-       global_table_arn = aws_dynamodb_table.dynamodb-test-table.arn
+       global_table_arn = mock.TableArn
        provider = aws.123-us-east-1
        tags = {
          key1 = "value1"
@@ -221,16 +221,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
     expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.dynamodb-global-test-table-123:us-east-1:TableArn | blocks: 0 | properties: 1",
-       "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
-       "+ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 2",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appNoChange } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
@@ -243,7 +237,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     });
     const resultNoChange = await testModuleContainer.commit(appNoChange, { enableResourceCapture: true });
     expect(new DiffAssert(resultNoChange.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appAddReplica } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
@@ -260,15 +254,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     const resultAddReplica = await testModuleContainer.commit(appAddReplica, { enableResourceCapture: true });
     expect(new DiffAssert(resultAddReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.dynamodb-global-test-table-123:us-west-2:TableArn | blocks: 0 | properties: 1",
-       "+ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2 | blocks: 0 | properties: 3",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appRemoveReplica } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
@@ -282,25 +271,15 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     const resultRemoveReplica = await testModuleContainer.commit(appRemoveReplica, { enableResourceCapture: true });
     expect(new DiffAssert(resultRemoveReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "- output.dynamodb-global-test-table-123:us-west-2:TableArn | blocks: 0 | properties: 1",
-       "- resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2 | blocks: 0 | properties: 3",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer, octoTerraform);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
     expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "- output.dynamodb-global-test-table-123:us-east-1:TableArn | blocks: 0 | properties: 1",
-       "- resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 2",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -320,16 +299,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
     expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.dynamodb-global-test-table-123:us-east-1:TableArn | blocks: 0 | properties: 1",
-       "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
-       "+ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 0 | properties: 2",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer, octoTerraform);
@@ -346,14 +319,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "~ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 0",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer, octoTerraform);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
@@ -367,14 +336,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/dynamodb-global=dynamodb-global-test-table",
+       "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "~ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 0",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -406,15 +371,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       const resultAddReplica = await testModuleContainer.commit(appAddReplica, { enableResourceCapture: true });
       expect(new DiffAssert(resultAddReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/dynamodb-global=dynamodb-global-test-table",
+         "* @octo/dynamodb-global=dynamodb-global-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "+ output.dynamodb-global-test-table-123:us-west-2:TableArn | blocks: 0 | properties: 1",
-         "+ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2 | blocks: 1 | properties: 3",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle replica delete', async () => {
@@ -445,15 +405,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       const resultRemoveReplica = await testModuleContainer.commit(appRemoveReplica, { enableResourceCapture: true });
       expect(new DiffAssert(resultRemoveReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/dynamodb-global=dynamodb-global-test-table",
+         "* @octo/dynamodb-global=dynamodb-global-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "- output.dynamodb-global-test-table-123:us-west-2:TableArn | blocks: 0 | properties: 1",
-         "- resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2 | blocks: 0 | properties: 3",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle replica tags update', async () => {
@@ -483,14 +438,10 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       });
       expect(new DiffAssert(resultUpdateReplicaTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/dynamodb-global=dynamodb-global-test-table",
+         "* @octo/dynamodb-global=dynamodb-global-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "~ resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1 | blocks: 1 | properties: 0",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -520,7 +471,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       enableResourceCapture: true,
     });
     expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('validation', () => {

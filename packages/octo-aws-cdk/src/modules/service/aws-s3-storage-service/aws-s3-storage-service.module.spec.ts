@@ -144,12 +144,7 @@ describe('AwsS3StorageServiceModule UT', () => {
        "+ @octo/s3-storage=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
-       "+ resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     // Adding directories should have no effect as they only create anchors.
     const { app: appAddDirectory } = await setup(testModuleContainer);
@@ -164,7 +159,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     });
     const resultAddDirectory = await testModuleContainer.commit(appAddDirectory, { enableResourceCapture: true });
     expect(new DiffAssert(resultAddDirectory.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
@@ -173,12 +168,7 @@ describe('AwsS3StorageServiceModule UT', () => {
        "- @octo/s3-storage=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "- output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
-       "- resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -200,15 +190,10 @@ describe('AwsS3StorageServiceModule UT', () => {
     expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
        "+ @octo/s3-storage=bucket-test-bucket",
-       "~ @octo/s3-storage=bucket-test-bucket",
+       "* @octo/s3-storage=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
-       "+ resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -224,10 +209,10 @@ describe('AwsS3StorageServiceModule UT', () => {
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/s3-storage=bucket-test-bucket",
+       "* @octo/s3-storage=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StorageServiceModule>({
@@ -242,10 +227,10 @@ describe('AwsS3StorageServiceModule UT', () => {
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/s3-storage=bucket-test-bucket",
+       "* @octo/s3-storage=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -276,18 +261,11 @@ describe('AwsS3StorageServiceModule UT', () => {
       });
       expect(new DiffAssert(resultUpdateBucketName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "+ @octo/s3-storage=bucket-changed-bucket",
          "- @octo/s3-storage=bucket-test-bucket",
+         "+ @octo/s3-storage=bucket-changed-bucket",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "+ output.bucket-changed-bucket-Arn | blocks: 0 | properties: 1",
-         "+ resource.aws_s3_bucket.bucket-changed-bucket | blocks: 0 | properties: 2",
-         "- output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
-         "- resource.aws_s3_bucket.bucket-test-bucket | blocks: 0 | properties: 2",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -315,7 +293,7 @@ describe('AwsS3StorageServiceModule UT', () => {
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('validation', () => {

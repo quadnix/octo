@@ -1,5 +1,6 @@
 import {
   AResource,
+  DependencyRelationship,
   Diff,
   DiffAction,
   DiffUtility,
@@ -146,6 +147,8 @@ export class AlbListener extends ATFResource<AlbListenerSchema, AlbListener> {
     if (priorities.size !== properties.rules.length) {
       throw new ResourceError('Rules have duplicate priorities!', this);
     }
+
+    this.updateListenerAlbTargetGroups(albTargetGroupMatchingParents);
   }
 
   override async diff(previous: AlbListener): Promise<Diff[]> {
@@ -176,37 +179,8 @@ export class AlbListener extends ATFResource<AlbListenerSchema, AlbListener> {
       resourceId: string,
     ) => Promise<AResource<AlbSchema, any> | AResource<AlbTargetGroupSchema, any>>,
   ): Promise<void> {
-    if (
-      diff.action === DiffAction.UPDATE &&
-      diff.field === 'properties' &&
-      isAlbListenerPropertiesDefaultActionsDiff(diff.value as IAlbListenerPropertiesDiff)
-    ) {
-      this.properties.DefaultActions = JSON.parse(JSON.stringify(diff.node.properties.DefaultActions));
-    } else if (
-      diff.action === DiffAction.UPDATE &&
-      diff.field === 'properties' &&
-      isAlbListenerPropertiesRuleDiff(diff.value as IAlbListenerPropertiesDiff)
-    ) {
-      const rule = (diff.value as { Rule: IAlbListenerRuleDiff }).Rule;
-
-      if (isAddRuleDiff(rule)) {
-        if (this.properties.rules.findIndex((r) => r.Priority === rule.rule.Priority) === -1) {
-          this.properties.rules.push(JSON.parse(JSON.stringify(rule.rule)));
-        }
-      } else if (isDeleteRuleDiff(rule)) {
-        this.properties.rules.splice(
-          this.properties.rules.findIndex((r) => r.Priority === rule.rule.Priority),
-          1,
-        );
-      } else if (isUpdateRuleDiff(rule)) {
-        this.properties.rules.splice(
-          this.properties.rules.findIndex((r) => r.Priority === rule.rule.Priority),
-          1,
-          JSON.parse(JSON.stringify(rule.rule)),
-        );
-      }
-
-      this.cloneResponseInPlace(diff.node);
+    if (diff.action === DiffAction.UPDATE && diff.field === 'properties') {
+      await this.cloneResourceInPlace(diff.node, deReferenceResource);
     } else {
       return super.diffInverse(diff, deReferenceResource);
     }
@@ -389,20 +363,33 @@ export class AlbListener extends ATFResource<AlbListenerSchema, AlbListener> {
     });
 
     for (const rule of this.properties.rules) {
-      albListenerOctoResource.addTerraformResource(
-        'aws_lb_listener_rule',
-        `${this.resourceId}_rule_${rule.Priority}`,
-        {
-          action: rule.actions.map((a) => buildActionSpec(a)),
-          condition: rule.conditions.map((c) => buildConditionSpec(c)),
-          listener_arn: octoTerraform.raw(`${listenerTFResource.address}.arn`),
-          priority: rule.Priority,
-        },
-      );
+      albListenerOctoResource.addTerraformResource('aws_lb_listener_rule', `${this.resourceId}_rule_${rule.Priority}`, {
+        action: rule.actions.map((a) => buildActionSpec(a)),
+        condition: rule.conditions.map((c) => buildConditionSpec(c)),
+        listener_arn: octoTerraform.raw(`${listenerTFResource.address}.arn`),
+        priority: rule.Priority,
+      });
     }
 
     if (Object.keys(this.tags).length > 0) {
       listenerTFResource.attribute('tags', this.tags);
+    }
+  }
+
+  private updateListenerAlbTargetGroups(albTargetGroupMatchingParents: MatchingResource<AlbTargetGroupSchema>[]): void {
+    for (const albTargetGroupParent of albTargetGroupMatchingParents) {
+      const listenerToAlbTargetGroupDep = this.getDependency(
+        albTargetGroupParent.getActual(),
+        DependencyRelationship.CHILD,
+      )!;
+      const albTargetGroupToListenerDep = albTargetGroupParent
+        .getActual()
+        .getDependency(this, DependencyRelationship.PARENT)!;
+
+      // Before updating alb-listener must add alb-target-group.
+      listenerToAlbTargetGroupDep.addBehavior('properties', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+      // Before deleting alb-target-group must update  alb-listener.
+      albTargetGroupToListenerDep.addBehavior('resourceId', DiffAction.DELETE, 'properties', DiffAction.UPDATE);
     }
   }
 }

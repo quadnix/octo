@@ -162,14 +162,7 @@ describe('AwsEfsFilesystemModule UT', () => {
        "+ @octo/efs=efs-region-test-filesystem",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.efs-region-test-filesystem-FileSystemArn | blocks: 0 | properties: 1",
-       "+ output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
-       "+ resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy | blocks: 1 | properties: 3",
-       "+ resource.aws_efs_file_system.efs-region-test-filesystem | blocks: 1 | properties: 4",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
@@ -178,14 +171,7 @@ describe('AwsEfsFilesystemModule UT', () => {
        "- @octo/efs=efs-region-test-filesystem",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "- output.efs-region-test-filesystem-FileSystemArn | blocks: 0 | properties: 1",
-       "- output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
-       "- resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy | blocks: 1 | properties: 3",
-       "- resource.aws_efs_file_system.efs-region-test-filesystem | blocks: 1 | properties: 4",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -208,14 +194,7 @@ describe('AwsEfsFilesystemModule UT', () => {
        "+ @octo/efs=efs-region-test-filesystem",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.efs-region-test-filesystem-FileSystemArn | blocks: 0 | properties: 1",
-       "+ output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
-       "+ resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy | blocks: 1 | properties: 3",
-       "+ resource.aws_efs_file_system.efs-region-test-filesystem | blocks: 1 | properties: 4",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -230,10 +209,10 @@ describe('AwsEfsFilesystemModule UT', () => {
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/efs=efs-region-test-filesystem",
+       "* @octo/efs=efs-region-test-filesystem",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEfsFilesystemModule>({
@@ -247,10 +226,10 @@ describe('AwsEfsFilesystemModule UT', () => {
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/efs=efs-region-test-filesystem",
+       "* @octo/efs=efs-region-test-filesystem",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -281,22 +260,11 @@ describe('AwsEfsFilesystemModule UT', () => {
       });
       expect(new DiffAssert(resultUpdateFilesystemName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "+ @octo/efs=efs-region-changed-filesystem",
          "- @octo/efs=efs-region-test-filesystem",
+         "+ @octo/efs=efs-region-changed-filesystem",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "+ output.efs-region-changed-filesystem-FileSystemArn | blocks: 0 | properties: 1",
-         "+ output.efs-region-changed-filesystem-FileSystemId | blocks: 0 | properties: 1",
-         "+ resource.aws_efs_backup_policy.efs-region-changed-filesystem_backup_policy | blocks: 1 | properties: 3",
-         "+ resource.aws_efs_file_system.efs-region-changed-filesystem | blocks: 1 | properties: 4",
-         "- output.efs-region-test-filesystem-FileSystemArn | blocks: 0 | properties: 1",
-         "- output.efs-region-test-filesystem-FileSystemId | blocks: 0 | properties: 1",
-         "- resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy | blocks: 1 | properties: 3",
-         "- resource.aws_efs_file_system.efs-region-test-filesystem | blocks: 1 | properties: 4",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -324,7 +292,7 @@ describe('AwsEfsFilesystemModule UT', () => {
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('validation', () => {

@@ -149,12 +149,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
        "+ @octo/ecs-cluster=ecs-cluster-region-qa",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
-       "+ resource.aws_ecs_cluster.ecs-cluster-region-qa | blocks: 1 | properties: 2",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
@@ -163,12 +158,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
        "- @octo/ecs-cluster=ecs-cluster-region-qa",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "- output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
-       "- resource.aws_ecs_cluster.ecs-cluster-region-qa | blocks: 1 | properties: 2",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -192,12 +182,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
        "+ @octo/ecs-cluster=ecs-cluster-region-qa",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
-       "+ resource.aws_ecs_cluster.ecs-cluster-region-qa | blocks: 1 | properties: 2",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -213,10 +198,10 @@ describe('AwsEcsEnvironmentModule UT', () => {
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/ecs-cluster=ecs-cluster-region-qa",
+       "* @octo/ecs-cluster=ecs-cluster-region-qa",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsEnvironmentModule>({
@@ -231,10 +216,10 @@ describe('AwsEcsEnvironmentModule UT', () => {
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/ecs-cluster=ecs-cluster-region-qa",
+       "* @octo/ecs-cluster=ecs-cluster-region-qa",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -265,18 +250,11 @@ describe('AwsEcsEnvironmentModule UT', () => {
       });
       expect(new DiffAssert(resultUpdateEnvironmentName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "+ @octo/ecs-cluster=ecs-cluster-region-changed-qa",
          "- @octo/ecs-cluster=ecs-cluster-region-qa",
+         "+ @octo/ecs-cluster=ecs-cluster-region-changed-qa",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "+ output.ecs-cluster-region-changed-qa-clusterArn | blocks: 0 | properties: 1",
-         "+ resource.aws_ecs_cluster.ecs-cluster-region-changed-qa | blocks: 1 | properties: 2",
-         "- output.ecs-cluster-region-qa-clusterArn | blocks: 0 | properties: 1",
-         "- resource.aws_ecs_cluster.ecs-cluster-region-qa | blocks: 1 | properties: 2",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle environmentVariables change', async () => {
@@ -307,7 +285,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
         enableResourceCapture: true,
       });
       expect(new DiffAssert(resultUpdateEnvironmentVariables.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-      expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -335,7 +313,7 @@ describe('AwsEcsEnvironmentModule UT', () => {
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('validation', () => {

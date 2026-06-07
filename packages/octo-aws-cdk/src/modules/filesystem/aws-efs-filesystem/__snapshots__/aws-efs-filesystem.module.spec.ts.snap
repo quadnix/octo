@@ -1,0 +1,143 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`AwsEfsFilesystemModule UT input changes should handle filesystemName change 2`] = `
+"- Expected
++ Received
+
+  Object {
+-   "output.efs-region-test-filesystem-FileSystemArn": Object {
+-     "value": "aws_efs_file_system.efs-region-test-filesystem.arn",
++   "output.efs-region-changed-filesystem-FileSystemArn": Object {
++     "value": "aws_efs_file_system.efs-region-changed-filesystem.arn",
+    },
+-   "output.efs-region-test-filesystem-FileSystemId": Object {
+-     "value": "aws_efs_file_system.efs-region-test-filesystem.id",
++   "output.efs-region-changed-filesystem-FileSystemId": Object {
++     "value": "aws_efs_file_system.efs-region-changed-filesystem.id",
+    },
+-   "resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy": Object {
++   "resource.aws_efs_backup_policy.efs-region-changed-filesystem_backup_policy": Object {
+      "backup_policy": Object {
+        "status": "DISABLED",
+      },
+-     "depends_on": "[aws_efs_file_system.efs-region-test-filesystem]",
+-     "file_system_id": "aws_efs_file_system.efs-region-test-filesystem.id",
++     "depends_on": "[aws_efs_file_system.efs-region-changed-filesystem]",
++     "file_system_id": "aws_efs_file_system.efs-region-changed-filesystem.id",
+      "provider": "aws.123-us-east-1",
+    },
+-   "resource.aws_efs_file_system.efs-region-test-filesystem": Object {
++   "resource.aws_efs_file_system.efs-region-changed-filesystem": Object {
+      "encrypted": "false",
+      "performance_mode": "generalPurpose",
+      "provider": "aws.123-us-east-1",
+      "tags": Object {
+-       "Name": "test-filesystem",
++       "Name": "changed-filesystem",
+      },
+      "throughput_mode": "bursting",
+    },
+  }"
+`;
+
+exports[`AwsEfsFilesystemModule UT should CUD 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.efs-region-test-filesystem-FileSystemArn": Object {
++     "value": "aws_efs_file_system.efs-region-test-filesystem.arn",
++   },
++   "output.efs-region-test-filesystem-FileSystemId": Object {
++     "value": "aws_efs_file_system.efs-region-test-filesystem.id",
++   },
++   "resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy": Object {
++     "backup_policy": Object {
++       "status": "DISABLED",
++     },
++     "depends_on": "[aws_efs_file_system.efs-region-test-filesystem]",
++     "file_system_id": "aws_efs_file_system.efs-region-test-filesystem.id",
++     "provider": "aws.123-us-east-1",
++   },
++   "resource.aws_efs_file_system.efs-region-test-filesystem": Object {
++     "encrypted": "false",
++     "performance_mode": "generalPurpose",
++     "provider": "aws.123-us-east-1",
++     "tags": Object {
++       "Name": "test-filesystem",
++     },
++     "throughput_mode": "bursting",
++   },
++ }"
+`;
+
+exports[`AwsEfsFilesystemModule UT should CUD 4`] = `
+"- Expected
++ Received
+
+- Object {
+-   "output.efs-region-test-filesystem-FileSystemArn": Object {
+-     "value": "aws_efs_file_system.efs-region-test-filesystem.arn",
+-   },
+-   "output.efs-region-test-filesystem-FileSystemId": Object {
+-     "value": "aws_efs_file_system.efs-region-test-filesystem.id",
+-   },
+-   "resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy": Object {
+-     "backup_policy": Object {
+-       "status": "DISABLED",
+-     },
+-     "depends_on": "[aws_efs_file_system.efs-region-test-filesystem]",
+-     "file_system_id": "aws_efs_file_system.efs-region-test-filesystem.id",
+-     "provider": "aws.123-us-east-1",
+-   },
+-   "resource.aws_efs_file_system.efs-region-test-filesystem": Object {
+-     "encrypted": "false",
+-     "performance_mode": "generalPurpose",
+-     "provider": "aws.123-us-east-1",
+-     "tags": Object {
+-       "Name": "test-filesystem",
+-     },
+-     "throughput_mode": "bursting",
+-   },
+- }
++ Object {}"
+`;
+
+exports[`AwsEfsFilesystemModule UT should CUD tags 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.efs-region-test-filesystem-FileSystemArn": Object {
++     "value": "aws_efs_file_system.efs-region-test-filesystem.arn",
++   },
++   "output.efs-region-test-filesystem-FileSystemId": Object {
++     "value": "aws_efs_file_system.efs-region-test-filesystem.id",
++   },
++   "resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy": Object {
++     "backup_policy": Object {
++       "status": "DISABLED",
++     },
++     "depends_on": "[aws_efs_file_system.efs-region-test-filesystem]",
++     "file_system_id": "aws_efs_file_system.efs-region-test-filesystem.id",
++     "provider": "aws.123-us-east-1",
++   },
++   "resource.aws_efs_file_system.efs-region-test-filesystem": Object {
++     "encrypted": "false",
++     "performance_mode": "generalPurpose",
++     "provider": "aws.123-us-east-1",
++     "tags": Object {
++       "Name": "test-filesystem",
++     },
++     "throughput_mode": "bursting",
++   },
++ }"
+`;
+
+exports[`AwsEfsFilesystemModule UT should CUD tags 4`] = `"Compared values have no visual difference."`;
+
+exports[`AwsEfsFilesystemModule UT should CUD tags 6`] = `"Compared values have no visual difference."`;
+
+exports[`AwsEfsFilesystemModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;

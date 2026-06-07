@@ -1,0 +1,145 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`AwsSingleAzRegionModule UT input changes should handle name change 2`] = `
+"- Expected
++ Received
+
+  Object {
+-   "output.igw-test-region-InternetGatewayArn": Object {
+-     "value": "aws_internet_gateway.igw-test-region.arn",
++   "output.igw-changed-region-InternetGatewayArn": Object {
++     "value": "aws_internet_gateway.igw-changed-region.arn",
+    },
+-   "output.igw-test-region-InternetGatewayId": Object {
+-     "value": "aws_internet_gateway.igw-test-region.id",
++   "output.igw-changed-region-InternetGatewayId": Object {
++     "value": "aws_internet_gateway.igw-changed-region.id",
+    },
+-   "output.vpc-test-region-VpcArn": Object {
+-     "value": "aws_vpc.vpc-test-region.arn",
++   "output.vpc-changed-region-VpcArn": Object {
++     "value": "aws_vpc.vpc-changed-region.arn",
+    },
+-   "output.vpc-test-region-VpcId": Object {
+-     "value": "aws_vpc.vpc-test-region.id",
++   "output.vpc-changed-region-VpcId": Object {
++     "value": "aws_vpc.vpc-changed-region.id",
+    },
+-   "resource.aws_internet_gateway.igw-test-region": Object {
++   "resource.aws_internet_gateway.igw-changed-region": Object {
+      "provider": "aws.123-us-east-1",
+-     "vpc_id": "aws_vpc.vpc-test-region.id",
++     "vpc_id": "aws_vpc.vpc-changed-region.id",
+    },
+-   "resource.aws_vpc.vpc-test-region": Object {
++   "resource.aws_vpc.vpc-changed-region": Object {
+      "cidr_block": "10.0.0.0/8",
+      "enable_dns_hostnames": "true",
+      "enable_dns_support": "true",
+      "instance_tenancy": "default",
+      "provider": "aws.123-us-east-1",
+    },
+  }"
+`;
+
+exports[`AwsSingleAzRegionModule UT should CUD 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.igw-test-region-InternetGatewayArn": Object {
++     "value": "aws_internet_gateway.igw-test-region.arn",
++   },
++   "output.igw-test-region-InternetGatewayId": Object {
++     "value": "aws_internet_gateway.igw-test-region.id",
++   },
++   "output.vpc-test-region-VpcArn": Object {
++     "value": "aws_vpc.vpc-test-region.arn",
++   },
++   "output.vpc-test-region-VpcId": Object {
++     "value": "aws_vpc.vpc-test-region.id",
++   },
++   "resource.aws_internet_gateway.igw-test-region": Object {
++     "provider": "aws.123-us-east-1",
++     "vpc_id": "aws_vpc.vpc-test-region.id",
++   },
++   "resource.aws_vpc.vpc-test-region": Object {
++     "cidr_block": "10.0.0.0/8",
++     "enable_dns_hostnames": "true",
++     "enable_dns_support": "true",
++     "instance_tenancy": "default",
++     "provider": "aws.123-us-east-1",
++   },
++ }"
+`;
+
+exports[`AwsSingleAzRegionModule UT should CUD 4`] = `
+"- Expected
++ Received
+
+- Object {
+-   "output.igw-test-region-InternetGatewayArn": Object {
+-     "value": "aws_internet_gateway.igw-test-region.arn",
+-   },
+-   "output.igw-test-region-InternetGatewayId": Object {
+-     "value": "aws_internet_gateway.igw-test-region.id",
+-   },
+-   "output.vpc-test-region-VpcArn": Object {
+-     "value": "aws_vpc.vpc-test-region.arn",
+-   },
+-   "output.vpc-test-region-VpcId": Object {
+-     "value": "aws_vpc.vpc-test-region.id",
+-   },
+-   "resource.aws_internet_gateway.igw-test-region": Object {
+-     "provider": "aws.123-us-east-1",
+-     "vpc_id": "aws_vpc.vpc-test-region.id",
+-   },
+-   "resource.aws_vpc.vpc-test-region": Object {
+-     "cidr_block": "10.0.0.0/8",
+-     "enable_dns_hostnames": "true",
+-     "enable_dns_support": "true",
+-     "instance_tenancy": "default",
+-     "provider": "aws.123-us-east-1",
+-   },
+- }
++ Object {}"
+`;
+
+exports[`AwsSingleAzRegionModule UT should CUD tags 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.igw-test-region-InternetGatewayArn": Object {
++     "value": "aws_internet_gateway.igw-test-region.arn",
++   },
++   "output.igw-test-region-InternetGatewayId": Object {
++     "value": "aws_internet_gateway.igw-test-region.id",
++   },
++   "output.vpc-test-region-VpcArn": Object {
++     "value": "aws_vpc.vpc-test-region.arn",
++   },
++   "output.vpc-test-region-VpcId": Object {
++     "value": "aws_vpc.vpc-test-region.id",
++   },
++   "resource.aws_internet_gateway.igw-test-region": Object {
++     "provider": "aws.123-us-east-1",
++     "vpc_id": "aws_vpc.vpc-test-region.id",
++   },
++   "resource.aws_vpc.vpc-test-region": Object {
++     "cidr_block": "10.0.0.0/8",
++     "enable_dns_hostnames": "true",
++     "enable_dns_support": "true",
++     "instance_tenancy": "default",
++     "provider": "aws.123-us-east-1",
++   },
++ }"
+`;
+
+exports[`AwsSingleAzRegionModule UT should CUD tags 4`] = `"Compared values have no visual difference."`;
+
+exports[`AwsSingleAzRegionModule UT should CUD tags 6`] = `"Compared values have no visual difference."`;
+
+exports[`AwsSingleAzRegionModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;

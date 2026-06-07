@@ -10,7 +10,6 @@ import {
   hasNodeName,
 } from '@quadnix/octo';
 import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
-import type { AlbListenerSchema } from '../alb-listener/index.schema.js';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
 import type { EcsClusterSchema } from '../ecs-cluster/index.schema.js';
 import type { EcsTaskDefinitionSchema } from '../ecs-task-definition/index.schema.js';
@@ -60,11 +59,7 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
     );
   }
 
-  addAlbTargetGroup(
-    albTargetGroup: MatchingResource<AlbTargetGroupSchema>,
-    albListeners: MatchingResource<AlbListenerSchema>[],
-    containerName: string,
-  ): void {
+  addAlbTargetGroup(albTargetGroup: MatchingResource<AlbTargetGroupSchema>, containerName: string): void {
     const { Name: targetGroupName, Port: containerPort } = albTargetGroup.getSchemaInstance().properties;
     const existingAlbTargetGroupParentDependencies = this.getParents('alb-target-group')['alb-target-group'];
     const existingTaskDefinitionParent = this.getParents('ecs-task-definition')['ecs-task-definition'][0]
@@ -95,16 +90,6 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
 
     albTargetGroup.addChild('resourceId', this, 'resourceId');
     this.updateServiceAlbTargetGroups([albTargetGroup.getActual()]);
-
-    for (const albListener of albListeners) {
-      const { childToParentDependency, parentToChildDependency } = albListener.addChild(
-        'resourceId',
-        this,
-        'resourceId',
-      );
-      childToParentDependency.addBehavior('resourceId', DiffAction.ADD, 'properties', DiffAction.UPDATE);
-      parentToChildDependency.addBehavior('properties', DiffAction.UPDATE, 'resourceId', DiffAction.DELETE);
-    }
   }
 
   override async diff(previous: EcsService): Promise<Diff[]> {
@@ -130,9 +115,6 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
         // Consolidate all AlbTargetGroup parent updates into a single UPDATE diff.
         shouldConsolidateDiffs = true;
         diffs.splice(i, 1);
-      } else if (diffs[i].field === 'parent' && hasNodeName(diffs[i].value as AResource<any, any>, 'alb-listener')) {
-        // Remove the diff since we don't care when the listener is updated.
-        diffs.splice(i, 1);
       } else if (diffs[i].field === 'properties' && diffs[i].action === DiffAction.UPDATE) {
         // Consolidate property diffs - desiredCount.
         shouldConsolidateDiffs = true;
@@ -141,7 +123,7 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
     }
 
     if (shouldConsolidateDiffs) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'resourceId', ''));
+      diffs.push(new Diff(this, DiffAction.UPDATE, 'properties', ''));
     }
 
     return diffs;
@@ -153,7 +135,7 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
       resourceId: string,
     ) => Promise<AResource<EcsTaskDefinitionSchema, any> | AResource<SecurityGroupSchema, any>>,
   ): Promise<void> {
-    if (diff.field === 'resourceId' && diff.action === DiffAction.UPDATE) {
+    if (diff.field === 'properties' && diff.action === DiffAction.UPDATE) {
       await this.cloneResourceInPlace(diff.node, deReferenceResource);
     } else {
       await super.diffInverse(diff, deReferenceResource);
@@ -235,9 +217,9 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
       const albTargetGroupToEcsDep = albTargetGroupParent.getDependency(this, DependencyRelationship.PARENT)!;
 
       // Before updating ecs-service must add alb-target-groups.
-      ecsToAlbTargetGroupDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+      ecsToAlbTargetGroupDep.addBehavior('properties', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
       // Before deleting alb-target-groups must update ecs-service.
-      albTargetGroupToEcsDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
+      albTargetGroupToEcsDep.addBehavior('resourceId', DiffAction.DELETE, 'properties', DiffAction.UPDATE);
     }
   }
 
@@ -254,9 +236,9 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
       const sgToEcsDep = sgParent.getDependency(this, DependencyRelationship.PARENT)!;
 
       // Before updating ecs-service must add security-groups.
-      ecsToSgDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+      ecsToSgDep.addBehavior('properties', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
       // Before deleting security-groups must update ecs-service.
-      sgToEcsDep.addBehavior('resourceId', DiffAction.DELETE, 'resourceId', DiffAction.UPDATE);
+      sgToEcsDep.addBehavior('resourceId', DiffAction.DELETE, 'properties', DiffAction.UPDATE);
     }
   }
 
@@ -266,8 +248,8 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
     const ecsToTdDep = this.getDependency(taskDefinitionParent, DependencyRelationship.CHILD)!;
 
     // Before updating ecs-service must add ecs-task-definition.
-    ecsToTdDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
+    ecsToTdDep.addBehavior('properties', DiffAction.UPDATE, 'resourceId', DiffAction.ADD);
     // Before updating ecs-service must update ecs-task-definition.
-    ecsToTdDep.addBehavior('resourceId', DiffAction.UPDATE, 'resourceId', DiffAction.UPDATE);
+    ecsToTdDep.addBehavior('properties', DiffAction.UPDATE, 'resourceId', DiffAction.UPDATE);
   }
 }

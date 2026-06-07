@@ -175,18 +175,7 @@ describe('AwsEcrImageModule UT', () => {
        "+ @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ data.aws_ecr_authorization_token.ecr-us-east-1-family/image | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-authorizationToken | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-proxyEndpoint | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-registryId | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-repositoryArn | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-repositoryName | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-repositoryUri | blocks: 0 | properties: 1",
-       "+ resource.aws_ecr_repository.ecr-us-east-1-family/image | blocks: 1 | properties: 4",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
@@ -195,18 +184,7 @@ describe('AwsEcrImageModule UT', () => {
        "- @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "- data.aws_ecr_authorization_token.ecr-us-east-1-family/image | blocks: 0 | properties: 1",
-       "- output.ecr-us-east-1-family/image-authorizationToken | blocks: 0 | properties: 1",
-       "- output.ecr-us-east-1-family/image-proxyEndpoint | blocks: 0 | properties: 1",
-       "- output.ecr-us-east-1-family/image-registryId | blocks: 0 | properties: 1",
-       "- output.ecr-us-east-1-family/image-repositoryArn | blocks: 0 | properties: 1",
-       "- output.ecr-us-east-1-family/image-repositoryName | blocks: 0 | properties: 1",
-       "- output.ecr-us-east-1-family/image-repositoryUri | blocks: 0 | properties: 1",
-       "- resource.aws_ecr_repository.ecr-us-east-1-family/image | blocks: 1 | properties: 4",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -230,18 +208,7 @@ describe('AwsEcrImageModule UT', () => {
        "+ @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ data.aws_ecr_authorization_token.ecr-us-east-1-family/image | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-authorizationToken | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-proxyEndpoint | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-registryId | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-repositoryArn | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-repositoryName | blocks: 0 | properties: 1",
-       "+ output.ecr-us-east-1-family/image-repositoryUri | blocks: 0 | properties: 1",
-       "+ resource.aws_ecr_repository.ecr-us-east-1-family/image | blocks: 1 | properties: 4",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -257,10 +224,10 @@ describe('AwsEcrImageModule UT', () => {
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/ecr-image=ecr-us-east-1-family/image",
+       "* @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcrImageModule>({
@@ -275,10 +242,10 @@ describe('AwsEcrImageModule UT', () => {
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/ecr-image=ecr-us-east-1-family/image",
+       "* @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -311,30 +278,11 @@ describe('AwsEcrImageModule UT', () => {
       });
       expect(new DiffAssert(resultUpdateImageFamily.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "+ @octo/ecr-image=ecr-us-east-1-changed-family/image",
          "- @octo/ecr-image=ecr-us-east-1-family/image",
+         "+ @octo/ecr-image=ecr-us-east-1-changed-family/image",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "+ data.aws_ecr_authorization_token.ecr-us-east-1-changed-family/image | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-changed-family/image-authorizationToken | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-changed-family/image-proxyEndpoint | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-changed-family/image-registryId | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-changed-family/image-repositoryArn | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-changed-family/image-repositoryName | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-changed-family/image-repositoryUri | blocks: 0 | properties: 1",
-         "+ resource.aws_ecr_repository.ecr-us-east-1-changed-family/image | blocks: 1 | properties: 4",
-         "- data.aws_ecr_authorization_token.ecr-us-east-1-family/image | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-authorizationToken | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-proxyEndpoint | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-registryId | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-repositoryArn | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-repositoryName | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-repositoryUri | blocks: 0 | properties: 1",
-         "- resource.aws_ecr_repository.ecr-us-east-1-family/image | blocks: 1 | properties: 4",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle imageName change', async () => {
@@ -366,30 +314,11 @@ describe('AwsEcrImageModule UT', () => {
       });
       expect(new DiffAssert(resultUpdateImageName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "+ @octo/ecr-image=ecr-us-east-1-family/changed-image",
          "- @octo/ecr-image=ecr-us-east-1-family/image",
+         "+ @octo/ecr-image=ecr-us-east-1-family/changed-image",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "+ data.aws_ecr_authorization_token.ecr-us-east-1-family/changed-image | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-family/changed-image-authorizationToken | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-family/changed-image-proxyEndpoint | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-family/changed-image-registryId | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-family/changed-image-repositoryArn | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-family/changed-image-repositoryName | blocks: 0 | properties: 1",
-         "+ output.ecr-us-east-1-family/changed-image-repositoryUri | blocks: 0 | properties: 1",
-         "+ resource.aws_ecr_repository.ecr-us-east-1-family/changed-image | blocks: 1 | properties: 4",
-         "- data.aws_ecr_authorization_token.ecr-us-east-1-family/image | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-authorizationToken | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-proxyEndpoint | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-registryId | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-repositoryArn | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-repositoryName | blocks: 0 | properties: 1",
-         "- output.ecr-us-east-1-family/image-repositoryUri | blocks: 0 | properties: 1",
-         "- resource.aws_ecr_repository.ecr-us-east-1-family/image | blocks: 1 | properties: 4",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -419,7 +348,7 @@ describe('AwsEcrImageModule UT', () => {
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('validation', () => {

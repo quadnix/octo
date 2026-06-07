@@ -1,0 +1,464 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should add a GSI to an existing table 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.dynamodb-test-table-TableArn": Object {
+      "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+    },
+    "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+-     "attribute": Object {
++     "attribute": Array [
++       Object {
+          "name": "AccountId",
++         "type": "S",
++       },
++       Object {
++         "name": "email",
+          "type": "S",
+        },
++     ],
+      "billing_mode": "PROVISIONED",
+      "deletion_protection_enabled": "false",
++     "global_secondary_index": Object {
++       "hash_key": "email",
++       "name": "GSI-email",
++       "projection_type": "ALL",
++       "read_capacity": "5",
++       "write_capacity": "5",
++     },
+      "hash_key": "AccountId",
+      "name": "test-table",
+      "provider": "aws.123-us-east-1",
+      "read_capacity": "5",
+      "stream_enabled": "true",
+      "stream_view_type": "NEW_AND_OLD_IMAGES",
+      "table_class": "STANDARD",
+      "write_capacity": "5",
+    },
+  }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should create table with GSI 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.dynamodb-test-table-TableArn": Object {
++     "value": "aws_dynamodb_table.dynamodb-test-table.arn",
++   },
++   "resource.aws_dynamodb_table.dynamodb-test-table": Object {
++     "attribute": Array [
++       Object {
++         "name": "AccountId",
++         "type": "S",
++       },
++       Object {
++         "name": "email",
++         "type": "S",
++       },
++     ],
++     "billing_mode": "PROVISIONED",
++     "deletion_protection_enabled": "false",
++     "global_secondary_index": Object {
++       "hash_key": "email",
++       "name": "GSI-email",
++       "projection_type": "ALL",
++       "read_capacity": "5",
++       "write_capacity": "5",
++     },
++     "hash_key": "AccountId",
++     "name": "test-table",
++     "provider": "aws.123-us-east-1",
++     "read_capacity": "5",
++     "stream_enabled": "true",
++     "stream_view_type": "NEW_AND_OLD_IMAGES",
++     "table_class": "STANDARD",
++     "write_capacity": "5",
++   },
++ }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should delete a GSI from an existing table 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.dynamodb-test-table-TableArn": Object {
+      "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+    },
+    "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+-     "attribute": Array [
+-       Object {
++     "attribute": Object {
+        "name": "AccountId",
+-         "type": "S",
+-       },
+-       Object {
+-         "name": "email",
+        "type": "S",
+      },
+-     ],
+      "billing_mode": "PROVISIONED",
+      "deletion_protection_enabled": "false",
+-     "global_secondary_index": Object {
+-       "hash_key": "email",
+-       "name": "GSI-email",
+-       "projection_type": "ALL",
+-       "read_capacity": "5",
+-       "write_capacity": "5",
+-     },
+      "hash_key": "AccountId",
+      "name": "test-table",
+      "provider": "aws.123-us-east-1",
+      "read_capacity": "5",
+      "stream_enabled": "true",
+      "stream_view_type": "NEW_AND_OLD_IMAGES",
+      "table_class": "STANDARD",
+      "write_capacity": "5",
+    },
+  }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle GlobalSecondaryIndexes change should replace a GSI in an existing table 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.dynamodb-test-table-TableArn": Object {
+      "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+    },
+    "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+      "attribute": Array [
+        Object {
+          "name": "AccountId",
+          "type": "S",
+        },
+        Object {
+-         "name": "email",
++         "name": "UserId",
+          "type": "S",
+        },
+      ],
+      "billing_mode": "PROVISIONED",
+      "deletion_protection_enabled": "false",
+      "global_secondary_index": Object {
+-       "hash_key": "email",
+-       "name": "GSI-email",
++       "hash_key": "UserId",
++       "name": "GSI-user",
+        "projection_type": "ALL",
+        "read_capacity": "5",
+        "write_capacity": "5",
+      },
+      "hash_key": "AccountId",
+      "name": "test-table",
+      "provider": "aws.123-us-east-1",
+      "read_capacity": "5",
+      "stream_enabled": "true",
+      "stream_view_type": "NEW_AND_OLD_IMAGES",
+      "table_class": "STANDARD",
+      "write_capacity": "5",
+    },
+  }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle LocalSecondaryIndexes change should create table with LSI 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.dynamodb-test-table-TableArn": Object {
++     "value": "aws_dynamodb_table.dynamodb-test-table.arn",
++   },
++   "resource.aws_dynamodb_table.dynamodb-test-table": Object {
++     "attribute": Array [
++       Object {
++         "name": "AccountId",
++         "type": "S",
++       },
++       Object {
++         "name": "SortKey",
++         "type": "S",
++       },
++       Object {
++         "name": "created",
++         "type": "N",
++       },
++     ],
++     "billing_mode": "PROVISIONED",
++     "deletion_protection_enabled": "false",
++     "hash_key": "AccountId",
++     "local_secondary_index": Object {
++       "name": "LSI-created",
++       "projection_type": "ALL",
++       "range_key": "created",
++     },
++     "name": "test-table",
++     "provider": "aws.123-us-east-1",
++     "range_key": "SortKey",
++     "read_capacity": "5",
++     "table_class": "STANDARD",
++     "write_capacity": "5",
++   },
++ }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle StreamSpecification change 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.dynamodb-test-table-TableArn": Object {
+      "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+    },
+    "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+      "attribute": Object {
+        "name": "AccountId",
+        "type": "S",
+      },
+      "billing_mode": "PROVISIONED",
+      "deletion_protection_enabled": "false",
+      "hash_key": "AccountId",
+      "name": "test-table",
+      "provider": "aws.123-us-east-1",
+      "read_capacity": "5",
++     "stream_enabled": "true",
++     "stream_view_type": "NEW_AND_OLD_IMAGES",
+      "table_class": "STANDARD",
+      "write_capacity": "5",
+    },
+  }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle StreamSpecification change 4`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.dynamodb-test-table-TableArn": Object {
+      "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+    },
+    "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+      "attribute": Object {
+        "name": "AccountId",
+        "type": "S",
+      },
+      "billing_mode": "PROVISIONED",
+      "deletion_protection_enabled": "false",
+      "hash_key": "AccountId",
+      "name": "test-table",
+      "provider": "aws.123-us-east-1",
+      "read_capacity": "5",
+-     "stream_enabled": "true",
+-     "stream_view_type": "NEW_AND_OLD_IMAGES",
+      "table_class": "STANDARD",
+      "write_capacity": "5",
+    },
+  }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle billingMode change 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.dynamodb-test-table-TableArn": Object {
+      "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+    },
+    "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+      "attribute": Object {
+        "name": "AccountId",
+        "type": "S",
+      },
+      "billing_mode": "PROVISIONED",
+      "deletion_protection_enabled": "false",
+      "hash_key": "AccountId",
+      "name": "test-table",
+      "provider": "aws.123-us-east-1",
+-     "read_capacity": "5",
++     "read_capacity": "10",
+      "table_class": "STANDARD",
+-     "write_capacity": "5",
++     "write_capacity": "10",
+    },
+  }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle billingMode change 4`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.dynamodb-test-table-TableArn": Object {
+      "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+    },
+    "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+      "attribute": Object {
+        "name": "AccountId",
+        "type": "S",
+      },
+-     "billing_mode": "PROVISIONED",
++     "billing_mode": "PAY_PER_REQUEST",
+      "deletion_protection_enabled": "false",
+      "hash_key": "AccountId",
+      "name": "test-table",
++     "on_demand_throughput": Object {
++       "max_read_request_units": "5",
++       "max_write_request_units": "5",
++     },
+      "provider": "aws.123-us-east-1",
+-     "read_capacity": "10",
+      "table_class": "STANDARD",
+-     "write_capacity": "10",
+    },
+  }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle timeToLiveAttribute change 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.dynamodb-test-table-TableArn": Object {
+      "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+    },
+    "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+      "attribute": Object {
+        "name": "AccountId",
+        "type": "S",
+      },
+      "billing_mode": "PROVISIONED",
+      "deletion_protection_enabled": "false",
+      "hash_key": "AccountId",
+      "name": "test-table",
+      "provider": "aws.123-us-east-1",
+      "read_capacity": "5",
+      "table_class": "STANDARD",
++     "ttl": Object {
++       "attribute_name": "expiresAt",
++       "enabled": "true",
++     },
+      "write_capacity": "5",
+    },
+  }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT input changes should handle timeToLiveAttribute change 4`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.dynamodb-test-table-TableArn": Object {
+      "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+    },
+    "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+      "attribute": Object {
+        "name": "AccountId",
+        "type": "S",
+      },
+      "billing_mode": "PROVISIONED",
+      "deletion_protection_enabled": "false",
+      "hash_key": "AccountId",
+      "name": "test-table",
+      "provider": "aws.123-us-east-1",
+      "read_capacity": "5",
+      "table_class": "STANDARD",
+-     "ttl": Object {
+-       "attribute_name": "expiresAt",
+-       "enabled": "true",
+-     },
+      "write_capacity": "5",
+    },
+  }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT should CUD 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.dynamodb-test-table-TableArn": Object {
++     "value": "aws_dynamodb_table.dynamodb-test-table.arn",
++   },
++   "resource.aws_dynamodb_table.dynamodb-test-table": Object {
++     "attribute": Object {
++       "name": "AccountId",
++       "type": "S",
++     },
++     "billing_mode": "PROVISIONED",
++     "deletion_protection_enabled": "false",
++     "hash_key": "AccountId",
++     "name": "test-table",
++     "provider": "aws.123-us-east-1",
++     "read_capacity": "5",
++     "table_class": "STANDARD",
++     "write_capacity": "5",
++   },
++ }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT should CUD 4`] = `"Compared values have no visual difference."`;
+
+exports[`AwsDynamoDBServiceModule UT should CUD 6`] = `
+"- Expected
++ Received
+
+- Object {
+-   "output.dynamodb-test-table-TableArn": Object {
+-     "value": "aws_dynamodb_table.dynamodb-test-table.arn",
+-   },
+-   "resource.aws_dynamodb_table.dynamodb-test-table": Object {
+-     "attribute": Object {
+-       "name": "AccountId",
+-       "type": "S",
+-     },
+-     "billing_mode": "PROVISIONED",
+-     "deletion_protection_enabled": "false",
+-     "hash_key": "AccountId",
+-     "name": "test-table",
+-     "provider": "aws.123-us-east-1",
+-     "read_capacity": "5",
+-     "table_class": "STANDARD",
+-     "write_capacity": "5",
+-   },
+- }
++ Object {}"
+`;
+
+exports[`AwsDynamoDBServiceModule UT should CUD tags 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.dynamodb-test-table-TableArn": Object {
++     "value": "aws_dynamodb_table.dynamodb-test-table.arn",
++   },
++   "resource.aws_dynamodb_table.dynamodb-test-table": Object {
++     "attribute": Object {
++       "name": "AccountId",
++       "type": "S",
++     },
++     "billing_mode": "PROVISIONED",
++     "deletion_protection_enabled": "false",
++     "hash_key": "AccountId",
++     "name": "test-table",
++     "provider": "aws.123-us-east-1",
++     "read_capacity": "5",
++     "table_class": "STANDARD",
++     "write_capacity": "5",
++   },
++ }"
+`;
+
+exports[`AwsDynamoDBServiceModule UT should CUD tags 4`] = `"Compared values have no visual difference."`;
+
+exports[`AwsDynamoDBServiceModule UT should CUD tags 6`] = `"Compared values have no visual difference."`;
+
+exports[`AwsDynamoDBServiceModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;

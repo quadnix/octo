@@ -91,7 +91,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
        "+ @octo/s3-website=bucket-test-bucket",
-       "~ @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
     /* eslint-disable spellcheck/spell-checker */
@@ -217,24 +217,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
        "+ @octo/s3-website=bucket-test-bucket",
-       "~ @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    /* eslint-disable spellcheck/spell-checker */
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
-       "+ output.bucket-test-bucket-awsRegionId | blocks: 0 | properties: 1",
-       "+ resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy | blocks: 0 | properties: 11",
-       "+ resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access | blocks: 0 | properties: 7",
-       "+ resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config | blocks: 2 | properties: 3",
-       "+ resource.aws_s3_bucket.bucket-test-bucket_website_bucket | blocks: 0 | properties: 2",
-       "+ resource.aws_s3_object.bucket-test-bucket_file_errorhtml | blocks: 0 | properties: 7",
-       "+ resource.aws_s3_object.bucket-test-bucket_file_indexhtml | blocks: 0 | properties: 7",
-       "+ resource.aws_s3_object.bucket-test-bucket_file_page1html | blocks: 0 | properties: 7",
-     ]
-    `);
-    /* eslint-enable */
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appUpdateNoChange } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
@@ -250,10 +236,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const resultUpdateNoChange = await testModuleContainer.commit(appUpdateNoChange, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateNoChange.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
@@ -262,21 +248,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
        "- @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    /* eslint-disable spellcheck/spell-checker */
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "- output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
-       "- output.bucket-test-bucket-awsRegionId | blocks: 0 | properties: 1",
-       "- resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy | blocks: 0 | properties: 11",
-       "- resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access | blocks: 0 | properties: 7",
-       "- resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config | blocks: 2 | properties: 3",
-       "- resource.aws_s3_bucket.bucket-test-bucket_website_bucket | blocks: 0 | properties: 2",
-       "- resource.aws_s3_object.bucket-test-bucket_file_errorhtml | blocks: 0 | properties: 7",
-       "- resource.aws_s3_object.bucket-test-bucket_file_indexhtml | blocks: 0 | properties: 7",
-       "- resource.aws_s3_object.bucket-test-bucket_file_page1html | blocks: 0 | properties: 7",
-     ]
-    `);
-    /* eslint-enable */
+    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -299,24 +271,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
        "+ @octo/s3-website=bucket-test-bucket",
-       "~ @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    /* eslint-disable spellcheck/spell-checker */
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
-       "+ output.bucket-test-bucket-awsRegionId | blocks: 0 | properties: 1",
-       "+ resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy | blocks: 0 | properties: 11",
-       "+ resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access | blocks: 0 | properties: 7",
-       "+ resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config | blocks: 2 | properties: 3",
-       "+ resource.aws_s3_bucket.bucket-test-bucket_website_bucket | blocks: 1 | properties: 2",
-       "+ resource.aws_s3_object.bucket-test-bucket_file_errorhtml | blocks: 0 | properties: 7",
-       "+ resource.aws_s3_object.bucket-test-bucket_file_indexhtml | blocks: 0 | properties: 7",
-       "+ resource.aws_s3_object.bucket-test-bucket_file_page1html | blocks: 0 | properties: 7",
-     ]
-    `);
-    /* eslint-enable */
+    expect(hcl.digest()).toMatchSnapshot();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -333,14 +291,11 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "~ resource.aws_s3_bucket.bucket-test-bucket_website_bucket | blocks: 1 | properties: 0",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
@@ -356,14 +311,11 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "~ resource.aws_s3_bucket.bucket-test-bucket_website_bucket | blocks: 1 | properties: 0",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -433,35 +385,12 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       });
       expect(new DiffAssert(resultUpdateBucketName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "+ @octo/s3-website=bucket-changed-bucket",
          "- @octo/s3-website=bucket-test-bucket",
-         "~ @octo/s3-website=bucket-changed-bucket",
+         "+ @octo/s3-website=bucket-changed-bucket",
+         "* @octo/s3-website=bucket-changed-bucket",
        ]
       `);
-      /* eslint-disable spellcheck/spell-checker */
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "+ output.bucket-changed-bucket-Arn | blocks: 0 | properties: 1",
-         "+ output.bucket-changed-bucket-awsRegionId | blocks: 0 | properties: 1",
-         "+ resource.aws_s3_bucket_policy.bucket-changed-bucket_website_bucket_public_read_policy | blocks: 0 | properties: 11",
-         "+ resource.aws_s3_bucket_public_access_block.bucket-changed-bucket_website_bucket_public_access | blocks: 0 | properties: 7",
-         "+ resource.aws_s3_bucket_website_configuration.bucket-changed-bucket_website_bucket_config | blocks: 2 | properties: 3",
-         "+ resource.aws_s3_bucket.bucket-changed-bucket_website_bucket | blocks: 0 | properties: 2",
-         "+ resource.aws_s3_object.bucket-changed-bucket_file_errorhtml | blocks: 0 | properties: 7",
-         "+ resource.aws_s3_object.bucket-changed-bucket_file_indexhtml | blocks: 0 | properties: 7",
-         "+ resource.aws_s3_object.bucket-changed-bucket_file_page1html | blocks: 0 | properties: 7",
-         "- output.bucket-test-bucket-Arn | blocks: 0 | properties: 1",
-         "- output.bucket-test-bucket-awsRegionId | blocks: 0 | properties: 1",
-         "- resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy | blocks: 0 | properties: 11",
-         "- resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access | blocks: 0 | properties: 7",
-         "- resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config | blocks: 2 | properties: 3",
-         "- resource.aws_s3_bucket.bucket-test-bucket_website_bucket | blocks: 0 | properties: 2",
-         "- resource.aws_s3_object.bucket-test-bucket_file_errorhtml | blocks: 0 | properties: 7",
-         "- resource.aws_s3_object.bucket-test-bucket_file_indexhtml | blocks: 0 | properties: 7",
-         "- resource.aws_s3_object.bucket-test-bucket_file_page1html | blocks: 0 | properties: 7",
-       ]
-      `);
-      /* eslint-enable */
+      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle directoryPath change', async () => {
@@ -495,18 +424,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       });
       expect(new DiffAssert(resultUpdateDirectoryPath.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/s3-website=bucket-test-bucket",
+         "* @octo/s3-website=bucket-test-bucket",
        ]
       `);
-      /* eslint-disable spellcheck/spell-checker */
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "- resource.aws_s3_object.bucket-test-bucket_file_errorhtml | blocks: 0 | properties: 7",
-         "- resource.aws_s3_object.bucket-test-bucket_file_page1html | blocks: 0 | properties: 7",
-         "~ resource.aws_s3_object.bucket-test-bucket_file_indexhtml | blocks: 0 | properties: 1",
-       ]
-      `);
-      /* eslint-enable */
+      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -539,10 +460,10 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('validation', () => {

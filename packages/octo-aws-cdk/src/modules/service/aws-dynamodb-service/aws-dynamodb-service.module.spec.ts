@@ -164,12 +164,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
        "+ @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
-       "+ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 8",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appNoChange } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -188,7 +183,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
     });
     const resultNoChange = await testModuleContainer.commit(appNoChange, { enableResourceCapture: true });
     expect(new DiffAssert(resultNoChange.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
@@ -197,12 +192,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
        "- @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "- output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
-       "- resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 8",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -231,12 +221,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
        "+ @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
-       "+ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 8",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -257,10 +242,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/dynamodb=dynamodb-test-table",
+       "* @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -280,10 +265,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/dynamodb=dynamodb-test-table",
+       "* @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -327,14 +312,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
       );
       expect(new DiffAssert(resultUpdateBillingProvisionedThroughput.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 0 | properties: 2",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
 
       const { app: appUpdateBillingPayPerRequest } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -356,14 +337,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
       });
       expect(new DiffAssert(resultUpdateBillingPayPerRequest.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 3",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
 
     describe('should handle GlobalSecondaryIndexes change', () => {
@@ -400,12 +377,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
            "+ @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchInlineSnapshot(`
-         [
-           "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
-           "+ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 10",
-         ]
-        `);
+        expect(hcl.digest()).toMatchSnapshot();
       });
 
       it('should add a GSI to an existing table', async () => {
@@ -457,14 +429,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
         const resultAddGSI = await testModuleContainer.commit(appAddGSI, { enableResourceCapture: true });
         expect(new DiffAssert(resultAddGSI.resourceDiffs).digest()).toMatchInlineSnapshot(`
          [
-           "~ @octo/dynamodb=dynamodb-test-table",
+           "* @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchInlineSnapshot(`
-         [
-           "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 0",
-         ]
-        `);
+        expect(hcl.digest()).toMatchSnapshot();
       });
 
       it('should throw error updating a GSI in an existing table', async () => {
@@ -591,14 +559,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
         const resultUpdateGSI = await testModuleContainer.commit(appUpdateGSI, { enableResourceCapture: true });
         expect(new DiffAssert(resultUpdateGSI.resourceDiffs).digest()).toMatchInlineSnapshot(`
          [
-           "~ @octo/dynamodb=dynamodb-test-table",
+           "* @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchInlineSnapshot(`
-         [
-           "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 0",
-         ]
-        `);
+        expect(hcl.digest()).toMatchSnapshot();
       });
 
       it('should delete a GSI from an existing table', async () => {
@@ -650,14 +614,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
         const resultRemoveGSI = await testModuleContainer.commit(appRemoveGSI, { enableResourceCapture: true });
         expect(new DiffAssert(resultRemoveGSI.resourceDiffs).digest()).toMatchInlineSnapshot(`
          [
-           "~ @octo/dynamodb=dynamodb-test-table",
+           "* @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchInlineSnapshot(`
-         [
-           "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 0",
-         ]
-        `);
+        expect(hcl.digest()).toMatchSnapshot();
       });
     });
 
@@ -701,12 +661,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
            "+ @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchInlineSnapshot(`
-         [
-           "+ output.dynamodb-test-table-TableArn | blocks: 0 | properties: 1",
-           "+ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 2 | properties: 9",
-         ]
-        `);
+        expect(hcl.digest()).toMatchSnapshot();
       });
 
       it('should throw error updating a LSI on an existing table', async () => {
@@ -824,14 +779,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
       const resultAddStream = await testModuleContainer.commit(appAddStream, { enableResourceCapture: true });
       expect(new DiffAssert(resultAddStream.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 0 | properties: 2",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
 
       const { app: appRemoveStream } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -851,14 +802,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
       const resultRemoveStream = await testModuleContainer.commit(appRemoveStream, { enableResourceCapture: true });
       expect(new DiffAssert(resultRemoveStream.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 0 | properties: 2",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle timeToLiveAttribute change', async () => {
@@ -899,14 +846,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
       const resultAddTTL = await testModuleContainer.commit(appAddTTL, { enableResourceCapture: true });
       expect(new DiffAssert(resultAddTTL.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 0",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
 
       const { app: appRemoveTTL } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -926,14 +869,10 @@ describe('AwsDynamoDBServiceModule UT', () => {
       const resultRemoveTTL = await testModuleContainer.commit(appRemoveTTL, { enableResourceCapture: true });
       expect(new DiffAssert(resultRemoveTTL.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "~ @octo/dynamodb=dynamodb-test-table",
+         "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "~ resource.aws_dynamodb_table.dynamodb-test-table | blocks: 1 | properties: 0",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -973,7 +912,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('validation', () => {

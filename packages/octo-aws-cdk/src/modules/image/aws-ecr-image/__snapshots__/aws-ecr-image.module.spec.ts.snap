@@ -1,0 +1,232 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`AwsEcrImageModule UT input changes should handle imageFamily change 2`] = `
+"- Expected
++ Received
+
+  Object {
+-   "data.aws_ecr_authorization_token.ecr-us-east-1-family/image": Object {
+-     "registry_id": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
++   "data.aws_ecr_authorization_token.ecr-us-east-1-changed-family/image": Object {
++     "registry_id": "aws_ecr_repository.ecr-us-east-1-changed-family/image.registry_id",
+    },
+-   "output.ecr-us-east-1-family/image-authorizationToken": Object {
+-     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.authorization_token",
++   "output.ecr-us-east-1-changed-family/image-authorizationToken": Object {
++     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-changed-family/image.authorization_token",
+    },
+-   "output.ecr-us-east-1-family/image-proxyEndpoint": Object {
+-     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.proxy_endpoint",
++   "output.ecr-us-east-1-changed-family/image-proxyEndpoint": Object {
++     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-changed-family/image.proxy_endpoint",
+    },
+-   "output.ecr-us-east-1-family/image-registryId": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
++   "output.ecr-us-east-1-changed-family/image-registryId": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-changed-family/image.registry_id",
+    },
+-   "output.ecr-us-east-1-family/image-repositoryArn": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.arn",
++   "output.ecr-us-east-1-changed-family/image-repositoryArn": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-changed-family/image.arn",
+    },
+-   "output.ecr-us-east-1-family/image-repositoryName": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.name",
++   "output.ecr-us-east-1-changed-family/image-repositoryName": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-changed-family/image.name",
+    },
+-   "output.ecr-us-east-1-family/image-repositoryUri": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.repository_url",
++   "output.ecr-us-east-1-changed-family/image-repositoryUri": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-changed-family/image.repository_url",
+    },
+-   "resource.aws_ecr_repository.ecr-us-east-1-family/image": Object {
++   "resource.aws_ecr_repository.ecr-us-east-1-changed-family/image": Object {
+      "force_delete": "true",
+      "image_scanning_configuration": Object {
+        "scan_on_push": "false",
+      },
+      "image_tag_mutability": "IMMUTABLE",
+-     "name": "family/image",
++     "name": "changed-family/image",
+      "provider": "aws.123-us-east-1",
+    },
+  }"
+`;
+
+exports[`AwsEcrImageModule UT input changes should handle imageName change 2`] = `
+"- Expected
++ Received
+
+  Object {
+-   "data.aws_ecr_authorization_token.ecr-us-east-1-family/image": Object {
+-     "registry_id": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
++   "data.aws_ecr_authorization_token.ecr-us-east-1-family/changed-image": Object {
++     "registry_id": "aws_ecr_repository.ecr-us-east-1-family/changed-image.registry_id",
+    },
+-   "output.ecr-us-east-1-family/image-authorizationToken": Object {
+-     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.authorization_token",
++   "output.ecr-us-east-1-family/changed-image-authorizationToken": Object {
++     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/changed-image.authorization_token",
+    },
+-   "output.ecr-us-east-1-family/image-proxyEndpoint": Object {
+-     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.proxy_endpoint",
++   "output.ecr-us-east-1-family/changed-image-proxyEndpoint": Object {
++     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/changed-image.proxy_endpoint",
+    },
+-   "output.ecr-us-east-1-family/image-registryId": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
++   "output.ecr-us-east-1-family/changed-image-registryId": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/changed-image.registry_id",
+    },
+-   "output.ecr-us-east-1-family/image-repositoryArn": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.arn",
++   "output.ecr-us-east-1-family/changed-image-repositoryArn": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/changed-image.arn",
+    },
+-   "output.ecr-us-east-1-family/image-repositoryName": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.name",
++   "output.ecr-us-east-1-family/changed-image-repositoryName": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/changed-image.name",
+    },
+-   "output.ecr-us-east-1-family/image-repositoryUri": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.repository_url",
++   "output.ecr-us-east-1-family/changed-image-repositoryUri": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/changed-image.repository_url",
+    },
+-   "resource.aws_ecr_repository.ecr-us-east-1-family/image": Object {
++   "resource.aws_ecr_repository.ecr-us-east-1-family/changed-image": Object {
+      "force_delete": "true",
+      "image_scanning_configuration": Object {
+        "scan_on_push": "false",
+      },
+      "image_tag_mutability": "IMMUTABLE",
+-     "name": "family/image",
++     "name": "family/changed-image",
+      "provider": "aws.123-us-east-1",
+    },
+  }"
+`;
+
+exports[`AwsEcrImageModule UT should CUD 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "data.aws_ecr_authorization_token.ecr-us-east-1-family/image": Object {
++     "registry_id": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
++   },
++   "output.ecr-us-east-1-family/image-authorizationToken": Object {
++     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.authorization_token",
++   },
++   "output.ecr-us-east-1-family/image-proxyEndpoint": Object {
++     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.proxy_endpoint",
++   },
++   "output.ecr-us-east-1-family/image-registryId": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
++   },
++   "output.ecr-us-east-1-family/image-repositoryArn": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/image.arn",
++   },
++   "output.ecr-us-east-1-family/image-repositoryName": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/image.name",
++   },
++   "output.ecr-us-east-1-family/image-repositoryUri": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/image.repository_url",
++   },
++   "resource.aws_ecr_repository.ecr-us-east-1-family/image": Object {
++     "force_delete": "true",
++     "image_scanning_configuration": Object {
++       "scan_on_push": "false",
++     },
++     "image_tag_mutability": "IMMUTABLE",
++     "name": "family/image",
++     "provider": "aws.123-us-east-1",
++   },
++ }"
+`;
+
+exports[`AwsEcrImageModule UT should CUD 4`] = `
+"- Expected
++ Received
+
+- Object {
+-   "data.aws_ecr_authorization_token.ecr-us-east-1-family/image": Object {
+-     "registry_id": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
+-   },
+-   "output.ecr-us-east-1-family/image-authorizationToken": Object {
+-     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.authorization_token",
+-   },
+-   "output.ecr-us-east-1-family/image-proxyEndpoint": Object {
+-     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.proxy_endpoint",
+-   },
+-   "output.ecr-us-east-1-family/image-registryId": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
+-   },
+-   "output.ecr-us-east-1-family/image-repositoryArn": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.arn",
+-   },
+-   "output.ecr-us-east-1-family/image-repositoryName": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.name",
+-   },
+-   "output.ecr-us-east-1-family/image-repositoryUri": Object {
+-     "value": "aws_ecr_repository.ecr-us-east-1-family/image.repository_url",
+-   },
+-   "resource.aws_ecr_repository.ecr-us-east-1-family/image": Object {
+-     "force_delete": "true",
+-     "image_scanning_configuration": Object {
+-       "scan_on_push": "false",
+-     },
+-     "image_tag_mutability": "IMMUTABLE",
+-     "name": "family/image",
+-     "provider": "aws.123-us-east-1",
+-   },
+- }
++ Object {}"
+`;
+
+exports[`AwsEcrImageModule UT should CUD tags 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "data.aws_ecr_authorization_token.ecr-us-east-1-family/image": Object {
++     "registry_id": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
++   },
++   "output.ecr-us-east-1-family/image-authorizationToken": Object {
++     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.authorization_token",
++   },
++   "output.ecr-us-east-1-family/image-proxyEndpoint": Object {
++     "value": "data.aws_ecr_authorization_token.ecr-us-east-1-family/image.proxy_endpoint",
++   },
++   "output.ecr-us-east-1-family/image-registryId": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/image.registry_id",
++   },
++   "output.ecr-us-east-1-family/image-repositoryArn": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/image.arn",
++   },
++   "output.ecr-us-east-1-family/image-repositoryName": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/image.name",
++   },
++   "output.ecr-us-east-1-family/image-repositoryUri": Object {
++     "value": "aws_ecr_repository.ecr-us-east-1-family/image.repository_url",
++   },
++   "resource.aws_ecr_repository.ecr-us-east-1-family/image": Object {
++     "force_delete": "true",
++     "image_scanning_configuration": Object {
++       "scan_on_push": "false",
++     },
++     "image_tag_mutability": "IMMUTABLE",
++     "name": "family/image",
++     "provider": "aws.123-us-east-1",
++   },
++ }"
+`;
+
+exports[`AwsEcrImageModule UT should CUD tags 4`] = `"Compared values have no visual difference."`;
+
+exports[`AwsEcrImageModule UT should CUD tags 6`] = `"Compared values have no visual difference."`;
+
+exports[`AwsEcrImageModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;

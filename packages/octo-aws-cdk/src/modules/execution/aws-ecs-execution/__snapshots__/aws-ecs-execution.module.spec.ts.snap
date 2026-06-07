@@ -1,0 +1,1035 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`AwsEcsExecutionModule UT input changes should handle deployment change 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.ecs-cluster-region-qa-clusterArn": Object {
+      "value": "mock.clusterArn",
+    },
+    "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
+      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.efs-region-test-filesystem-FileSystemId": Object {
+      "value": "mock.FileSystemId",
+    },
+    "output.iam-role-ServerRole-backend-Arn": Object {
+      "value": "mock.Arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.subnet-region-private-subnet-SubnetId": Object {
+      "value": "mock.SubnetId",
+    },
+    "output.vpc-region-VpcId": Object {
+      "value": "mock.VpcId",
+    },
+    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
+      "cluster": "mock.clusterArn",
+      "desired_count": "1",
+      "launch_type": "FARGATE",
+      "name": "backend-v1-region-qa-private-subnet",
+      "network_configuration": Object {
+        "assign_public_ip": "false",
+        "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
+        "subnets": "[mock.SubnetId]",
+      },
+      "provider": "aws.123-us-east-1",
+      "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
+      "command": "[\\"/bin/sh\\"]",
+      "containerPort": "8080",
+      "container_definitions": "jsonencode([",
+      "cpu": "256",
+      "environment": "[{",
+      "essential": "true",
+      "execution_role_arn": "mock.Arn",
+      "family": "qa-region-private-subnet-backend",
+      "hostPort": "8080",
+      "image": "docker.io",
+      "memory": "512",
+      "mountPoints": "[]",
+-     "name": "backend-v1",
++     "name": "change-backend-v1",
+      "network_mode": "awsvpc",
+      "portMappings": "[{",
+      "protocol": "tcp",
+      "provider": "aws.123-us-east-1",
+      "requires_compatibilities": "[\\"FARGATE\\"]",
+      "task_role_arn": "mock.Arn",
+      "value": "qa",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+  }"
+`;
+
+exports[`AwsEcsExecutionModule UT input changes should handle desiredCount change 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.ecs-cluster-region-qa-clusterArn": Object {
+      "value": "mock.clusterArn",
+    },
+    "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
+      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.efs-region-test-filesystem-FileSystemId": Object {
+      "value": "mock.FileSystemId",
+    },
+    "output.iam-role-ServerRole-backend-Arn": Object {
+      "value": "mock.Arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.subnet-region-private-subnet-SubnetId": Object {
+      "value": "mock.SubnetId",
+    },
+    "output.vpc-region-VpcId": Object {
+      "value": "mock.VpcId",
+    },
+    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
+      "cluster": "mock.clusterArn",
+-     "desired_count": "1",
++     "desired_count": "2",
+      "launch_type": "FARGATE",
+      "name": "backend-v1-region-qa-private-subnet",
+      "network_configuration": Object {
+        "assign_public_ip": "false",
+        "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
+        "subnets": "[mock.SubnetId]",
+      },
+      "provider": "aws.123-us-east-1",
+      "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
+      "command": "[\\"/bin/sh\\"]",
+      "containerPort": "8080",
+      "container_definitions": "jsonencode([",
+      "cpu": "256",
+      "environment": "[{",
+      "essential": "true",
+      "execution_role_arn": "mock.Arn",
+      "family": "qa-region-private-subnet-backend",
+      "hostPort": "8080",
+      "image": "docker.io",
+      "memory": "512",
+      "mountPoints": "[]",
+      "name": "backend-v1",
+      "network_mode": "awsvpc",
+      "portMappings": "[{",
+      "protocol": "tcp",
+      "provider": "aws.123-us-east-1",
+      "requires_compatibilities": "[\\"FARGATE\\"]",
+      "task_role_arn": "mock.Arn",
+      "value": "qa",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+  }"
+`;
+
+exports[`AwsEcsExecutionModule UT input changes should handle executionId change 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.ecs-cluster-region-qa-clusterArn": Object {
+      "value": "mock.clusterArn",
+    },
+-   "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
+-     "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
++   "output.ecs-service-changed-execution-id-serviceArn": Object {
++     "value": "aws_ecs_service.ecs-service-changed-execution-id.id",
+    },
+-   "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
+-     "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
++   "output.ecs-task-definition-changed-execution-id-revision": Object {
++     "value": "aws_ecs_task_definition.ecs-task-definition-changed-execution-id.revision",
+    },
+-   "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
+-     "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
++   "output.ecs-task-definition-changed-execution-id-taskDefinitionArn": Object {
++     "value": "aws_ecs_task_definition.ecs-task-definition-changed-execution-id.arn",
+    },
+    "output.efs-region-test-filesystem-FileSystemId": Object {
+      "value": "mock.FileSystemId",
+    },
+    "output.iam-role-ServerRole-backend-Arn": Object {
+      "value": "mock.Arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
+    },
+-   "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
+-     "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
++   "output.sec-grp-SecurityGroup-changed-execution-id-Arn": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-changed-execution-id.arn",
+    },
+-   "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
+-     "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
++   "output.sec-grp-SecurityGroup-changed-execution-id-GroupId": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-changed-execution-id.id",
+    },
+    "output.subnet-region-private-subnet-SubnetId": Object {
+      "value": "mock.SubnetId",
+    },
+    "output.vpc-region-VpcId": Object {
+      "value": "mock.VpcId",
+    },
+-   "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
++   "resource.aws_ecs_service.ecs-service-changed-execution-id": Object {
+      "cluster": "mock.clusterArn",
+      "desired_count": "1",
+      "launch_type": "FARGATE",
+-     "name": "backend-v1-region-qa-private-subnet",
++     "name": "changed-execution-id",
+      "network_configuration": Object {
+        "assign_public_ip": "false",
+-       "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
++       "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-changed-execution-id.id]",
+        "subnets": "[mock.SubnetId]",
+      },
+      "provider": "aws.123-us-east-1",
+-     "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
++     "task_definition": "aws_ecs_task_definition.ecs-task-definition-changed-execution-id.arn",
+    },
+-   "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
++   "resource.aws_ecs_task_definition.ecs-task-definition-changed-execution-id": Object {
+      "command": "[\\"/bin/sh\\"]",
+      "containerPort": "8080",
+      "container_definitions": "jsonencode([",
+      "cpu": "256",
+      "environment": "[{",
+      "essential": "true",
+      "execution_role_arn": "mock.Arn",
+      "family": "qa-region-private-subnet-backend",
+      "hostPort": "8080",
+      "image": "docker.io",
+      "memory": "512",
+      "mountPoints": "[]",
+      "name": "backend-v1",
+      "network_mode": "awsvpc",
+      "portMappings": "[{",
+      "protocol": "tcp",
+      "provider": "aws.123-us-east-1",
+      "requires_compatibilities": "[\\"FARGATE\\"]",
+      "task_role_arn": "mock.Arn",
+      "value": "qa",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+-   "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
++   "resource.aws_security_group.sec-grp-SecurityGroup-changed-execution-id": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+  }"
+`;
+
+exports[`AwsEcsExecutionModule UT should CUD 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.ecs-cluster-region-qa-clusterArn": Object {
++     "value": "mock.clusterArn",
++   },
++   "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
++     "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
++   },
++   "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
++     "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
++   },
++   "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
++     "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
++   },
++   "output.efs-region-test-filesystem-FileSystemId": Object {
++     "value": "mock.FileSystemId",
++   },
++   "output.iam-role-ServerRole-backend-Arn": Object {
++     "value": "mock.Arn",
++   },
++   "output.sec-grp-SecurityGroup-backend-Arn": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
++   },
++   "output.sec-grp-SecurityGroup-backend-GroupId": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
++   },
++   "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
++   },
++   "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
++   },
++   "output.subnet-region-private-subnet-SubnetId": Object {
++     "value": "mock.SubnetId",
++   },
++   "output.vpc-region-VpcId": Object {
++     "value": "mock.VpcId",
++   },
++   "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
++     "cluster": "mock.clusterArn",
++     "desired_count": "1",
++     "launch_type": "FARGATE",
++     "name": "backend-v1-region-qa-private-subnet",
++     "network_configuration": Object {
++       "assign_public_ip": "false",
++       "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
++       "subnets": "[mock.SubnetId]",
++     },
++     "provider": "aws.123-us-east-1",
++     "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
++   },
++   "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
++     "command": "[\\"/bin/sh\\"]",
++     "containerPort": "8080",
++     "container_definitions": "jsonencode([",
++     "cpu": "256",
++     "environment": "[{",
++     "essential": "true",
++     "execution_role_arn": "mock.Arn",
++     "family": "qa-region-private-subnet-backend",
++     "hostPort": "8080",
++     "image": "docker.io",
++     "memory": "512",
++     "mountPoints": "[]",
++     "name": "backend-v1",
++     "network_mode": "awsvpc",
++     "portMappings": "[{",
++     "protocol": "tcp",
++     "provider": "aws.123-us-east-1",
++     "requires_compatibilities": "[\\"FARGATE\\"]",
++     "task_role_arn": "mock.Arn",
++     "value": "qa",
++   },
++   "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
++     "provider": "aws.123-us-east-1",
++     "vpc_id": "mock.VpcId",
++   },
++   "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
++     "provider": "aws.123-us-east-1",
++     "vpc_id": "mock.VpcId",
++   },
++ }"
+`;
+
+exports[`AwsEcsExecutionModule UT should CUD 4`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.ecs-cluster-region-qa-clusterArn": Object {
+      "value": "mock.clusterArn",
+    },
+    "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
+      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.efs-region-test-filesystem-FileSystemId": Object {
+      "value": "mock.FileSystemId",
+    },
+    "output.iam-role-ServerRole-backend-Arn": Object {
+      "value": "mock.Arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.subnet-region-private-subnet-SubnetId": Object {
+      "value": "mock.SubnetId",
+    },
+    "output.vpc-region-VpcId": Object {
+      "value": "mock.VpcId",
+    },
+    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
+      "cluster": "mock.clusterArn",
+      "desired_count": "1",
+      "launch_type": "FARGATE",
+      "name": "backend-v1-region-qa-private-subnet",
+      "network_configuration": Object {
+        "assign_public_ip": "false",
+        "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
+        "subnets": "[mock.SubnetId]",
+      },
+      "provider": "aws.123-us-east-1",
+      "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
+-     "command": "[\\"/bin/sh\\"]",
++     "command": "[\\"npm\\", \\"start\\"]",
+      "containerPort": "8080",
+      "container_definitions": "jsonencode([",
+      "cpu": "256",
+      "environment": "[{",
+      "essential": "true",
+      "execution_role_arn": "mock.Arn",
+      "family": "qa-region-private-subnet-backend",
+      "hostPort": "8080",
+      "image": "docker.io",
+      "memory": "512",
+      "mountPoints": "[]",
+      "name": "backend-v1",
+      "network_mode": "awsvpc",
+      "portMappings": "[{",
+      "protocol": "tcp",
+      "provider": "aws.123-us-east-1",
+      "requires_compatibilities": "[\\"FARGATE\\"]",
+      "task_role_arn": "mock.Arn",
+      "value": "qa",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+  }"
+`;
+
+exports[`AwsEcsExecutionModule UT should CUD 6`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.ecs-cluster-region-qa-clusterArn": Object {
+      "value": "mock.clusterArn",
+    },
+    "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
+      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.efs-region-test-filesystem-FileSystemId": Object {
+      "value": "mock.FileSystemId",
+    },
+    "output.iam-role-ServerRole-backend-Arn": Object {
+      "value": "mock.Arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.subnet-region-private-subnet-SubnetId": Object {
+      "value": "mock.SubnetId",
+    },
+    "output.vpc-region-VpcId": Object {
+      "value": "mock.VpcId",
+    },
+    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
+      "cluster": "mock.clusterArn",
+      "desired_count": "1",
+      "launch_type": "FARGATE",
+      "name": "backend-v1-region-qa-private-subnet",
+      "network_configuration": Object {
+        "assign_public_ip": "false",
+        "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
+        "subnets": "[mock.SubnetId]",
+      },
+      "provider": "aws.123-us-east-1",
+      "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
+-     "command": "[\\"npm\\", \\"start\\"]",
++     "command": "[\\"/bin/sh\\"]",
+      "containerPort": "8080",
+      "container_definitions": "jsonencode([",
+      "cpu": "256",
+      "environment": "[{",
+      "essential": "true",
+      "execution_role_arn": "mock.Arn",
+      "family": "qa-region-private-subnet-backend",
+      "hostPort": "8080",
+      "image": "docker.io",
+      "memory": "512",
+      "mountPoints": "[]",
+      "name": "backend-v1",
+      "network_mode": "awsvpc",
+      "portMappings": "[{",
+      "protocol": "tcp",
+      "provider": "aws.123-us-east-1",
+      "requires_compatibilities": "[\\"FARGATE\\"]",
+      "task_role_arn": "mock.Arn",
+      "value": "qa",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+  }"
+`;
+
+exports[`AwsEcsExecutionModule UT should CUD 8`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.ecs-cluster-region-qa-clusterArn": Object {
+      "value": "mock.clusterArn",
+    },
+    "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
+      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.efs-region-test-filesystem-FileSystemId": Object {
+      "value": "mock.FileSystemId",
+    },
+    "output.iam-role-ServerRole-backend-Arn": Object {
+      "value": "mock.Arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.subnet-region-private-subnet-SubnetId": Object {
+      "value": "mock.SubnetId",
+    },
+    "output.vpc-region-VpcId": Object {
+      "value": "mock.VpcId",
+    },
+    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
+      "cluster": "mock.clusterArn",
+-     "desired_count": "1",
++     "desired_count": "2",
+      "launch_type": "FARGATE",
+      "name": "backend-v1-region-qa-private-subnet",
+      "network_configuration": Object {
+        "assign_public_ip": "false",
+        "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
+        "subnets": "[mock.SubnetId]",
+      },
+      "provider": "aws.123-us-east-1",
+      "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
+      "command": "[\\"/bin/sh\\"]",
+      "containerPort": "8080",
+      "container_definitions": "jsonencode([",
+      "cpu": "256",
+      "environment": "[{",
+      "essential": "true",
+      "execution_role_arn": "mock.Arn",
+      "family": "qa-region-private-subnet-backend",
+      "hostPort": "8080",
+      "image": "docker.io",
+      "memory": "512",
+      "mountPoints": "[]",
+      "name": "backend-v1",
+      "network_mode": "awsvpc",
+      "portMappings": "[{",
+      "protocol": "tcp",
+      "provider": "aws.123-us-east-1",
+      "requires_compatibilities": "[\\"FARGATE\\"]",
+      "task_role_arn": "mock.Arn",
+      "value": "qa",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+  }"
+`;
+
+exports[`AwsEcsExecutionModule UT should CUD 10`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.ecs-cluster-region-qa-clusterArn": Object {
+      "value": "mock.clusterArn",
+    },
+    "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
+      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.efs-region-test-filesystem-FileSystemId": Object {
+      "value": "mock.FileSystemId",
+    },
+    "output.iam-role-ServerRole-backend-Arn": Object {
+      "value": "mock.Arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.subnet-region-private-subnet-SubnetId": Object {
+      "value": "mock.SubnetId",
+    },
+    "output.vpc-region-VpcId": Object {
+      "value": "mock.VpcId",
+    },
+    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
+      "cluster": "mock.clusterArn",
+      "desired_count": "2",
+      "launch_type": "FARGATE",
+      "name": "backend-v1-region-qa-private-subnet",
+      "network_configuration": Object {
+        "assign_public_ip": "false",
+        "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
+        "subnets": "[mock.SubnetId]",
+      },
+      "provider": "aws.123-us-east-1",
+      "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
+      "command": "[\\"/bin/sh\\"]",
++     "containerPath": "/mnt/test-filesystem",
+      "containerPort": "8080",
+      "container_definitions": "jsonencode([",
+      "cpu": "256",
+      "environment": "[{",
+      "essential": "true",
+      "execution_role_arn": "mock.Arn",
+      "family": "qa-region-private-subnet-backend",
+      "hostPort": "8080",
+      "image": "docker.io",
+      "memory": "512",
+-     "mountPoints": "[]",
++     "mountPoints": "[{",
+      "name": "backend-v1",
+      "network_mode": "awsvpc",
+      "portMappings": "[{",
+      "protocol": "tcp",
+      "provider": "aws.123-us-east-1",
++     "readOnly": "false",
+      "requires_compatibilities": "[\\"FARGATE\\"]",
++     "sourceVolume": "test-filesystem",
+      "task_role_arn": "mock.Arn",
+      "value": "qa",
++     "volume": Object {
++       "efs_volume_configuration": Object {
++         "file_system_id": "mock.FileSystemId",
++       },
++       "name": "test-filesystem",
++     },
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+  }"
+`;
+
+exports[`AwsEcsExecutionModule UT should CUD 12`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.ecs-cluster-region-qa-clusterArn": Object {
+      "value": "mock.clusterArn",
+    },
+    "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
+      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
+    },
+    "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
+      "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.efs-region-test-filesystem-FileSystemId": Object {
+      "value": "mock.FileSystemId",
+    },
+    "output.iam-role-ServerRole-backend-Arn": Object {
+      "value": "mock.Arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
+    },
+    "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
+      "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
+    },
+    "output.subnet-region-private-subnet-SubnetId": Object {
+      "value": "mock.SubnetId",
+    },
+    "output.vpc-region-VpcId": Object {
+      "value": "mock.VpcId",
+    },
+    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
+      "cluster": "mock.clusterArn",
+      "desired_count": "2",
+      "launch_type": "FARGATE",
+      "name": "backend-v1-region-qa-private-subnet",
+      "network_configuration": Object {
+        "assign_public_ip": "false",
+        "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
+        "subnets": "[mock.SubnetId]",
+      },
+      "provider": "aws.123-us-east-1",
+      "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+    },
+    "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
+      "command": "[\\"/bin/sh\\"]",
+      "containerPath": "/mnt/test-filesystem",
+      "containerPort": "8080",
+      "container_definitions": "jsonencode([",
+      "cpu": "256",
+      "environment": "[{",
+      "essential": "true",
+      "execution_role_arn": "mock.Arn",
+      "family": "qa-region-private-subnet-backend",
+      "hostPort": "8080",
+      "image": "docker.io",
+      "memory": "512",
+      "mountPoints": "[{",
+      "name": "backend-v1",
+      "network_mode": "awsvpc",
+      "portMappings": "[{",
+      "protocol": "tcp",
+      "provider": "aws.123-us-east-1",
+      "readOnly": "false",
+      "requires_compatibilities": "[\\"FARGATE\\"]",
+      "sourceVolume": "test-filesystem",
+      "task_role_arn": "mock.Arn",
+      "value": "qa",
+      "volume": Object {
+        "efs_volume_configuration": Object {
+          "file_system_id": "mock.FileSystemId",
+        },
+        "name": "test-filesystem",
+      },
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
+    "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
+      "provider": "aws.123-us-east-1",
+      "vpc_id": "mock.VpcId",
+    },
++   "resource.aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0": Object {
++     "cidr_ipv4": "10.0.0.0/8",
++     "depends_on": "[aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet]",
++     "description": "tcp 8080-8080 10.0.0.0/8",
++     "from_port": "8080",
++     "ip_protocol": "tcp",
++     "provider": "aws.123-us-east-1",
++     "security_group_id": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
++     "to_port": "8080",
++   },
+  }"
+`;
+
+exports[`AwsEcsExecutionModule UT should CUD 14`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.ecs-cluster-region-qa-clusterArn": Object {
+      "value": "mock.clusterArn",
+    },
+-   "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
+-     "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
+-   },
+-   "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
+-     "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
+-   },
+-   "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
+-     "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+-   },
+    "output.efs-region-test-filesystem-FileSystemId": Object {
+      "value": "mock.FileSystemId",
+    },
+    "output.iam-role-ServerRole-backend-Arn": Object {
+      "value": "mock.Arn",
+-   },
+-   "output.sec-grp-SecurityGroup-backend-Arn": Object {
+-     "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
+-   },
+-   "output.sec-grp-SecurityGroup-backend-GroupId": Object {
+-     "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
+    },
+-   "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
+-     "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
+-   },
+-   "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
+-     "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
+-   },
+    "output.subnet-region-private-subnet-SubnetId": Object {
+      "value": "mock.SubnetId",
+    },
+    "output.vpc-region-VpcId": Object {
+      "value": "mock.VpcId",
+-   },
+-   "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
+-     "cluster": "mock.clusterArn",
+-     "desired_count": "2",
+-     "launch_type": "FARGATE",
+-     "name": "backend-v1-region-qa-private-subnet",
+-     "network_configuration": Object {
+-       "assign_public_ip": "false",
+-       "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
+-       "subnets": "[mock.SubnetId]",
+-     },
+-     "provider": "aws.123-us-east-1",
+-     "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
+-   },
+-   "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
+-     "command": "[\\"/bin/sh\\"]",
+-     "containerPath": "/mnt/test-filesystem",
+-     "containerPort": "8080",
+-     "container_definitions": "jsonencode([",
+-     "cpu": "256",
+-     "environment": "[{",
+-     "essential": "true",
+-     "execution_role_arn": "mock.Arn",
+-     "family": "qa-region-private-subnet-backend",
+-     "hostPort": "8080",
+-     "image": "docker.io",
+-     "memory": "512",
+-     "mountPoints": "[{",
+-     "name": "backend-v1",
+-     "network_mode": "awsvpc",
+-     "portMappings": "[{",
+-     "protocol": "tcp",
+-     "provider": "aws.123-us-east-1",
+-     "readOnly": "false",
+-     "requires_compatibilities": "[\\"FARGATE\\"]",
+-     "sourceVolume": "test-filesystem",
+-     "task_role_arn": "mock.Arn",
+-     "value": "qa",
+-     "volume": Object {
+-       "efs_volume_configuration": Object {
+-         "file_system_id": "mock.FileSystemId",
+-       },
+-       "name": "test-filesystem",
+-     },
+-   },
+-   "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
+-     "provider": "aws.123-us-east-1",
+-     "vpc_id": "mock.VpcId",
+-   },
+-   "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
+-     "provider": "aws.123-us-east-1",
+-     "vpc_id": "mock.VpcId",
+-   },
+-   "resource.aws_vpc_security_group_egress_rule.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0": Object {
+-     "cidr_ipv4": "10.0.0.0/8",
+-     "depends_on": "[aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet]",
+-     "description": "tcp 8080-8080 10.0.0.0/8",
+-     "from_port": "8080",
+-     "ip_protocol": "tcp",
+-     "provider": "aws.123-us-east-1",
+-     "security_group_id": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
+-     "to_port": "8080",
+    },
+  }"
+`;
+
+exports[`AwsEcsExecutionModule UT should CUD tags 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.ecs-cluster-region-qa-clusterArn": Object {
++     "value": "mock.clusterArn",
++   },
++   "output.ecs-service-backend-v1-region-qa-private-subnet-serviceArn": Object {
++     "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet.id",
++   },
++   "output.ecs-task-definition-backend-v1-region-qa-private-subnet-revision": Object {
++     "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.revision",
++   },
++   "output.ecs-task-definition-backend-v1-region-qa-private-subnet-taskDefinitionArn": Object {
++     "value": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
++   },
++   "output.efs-region-test-filesystem-FileSystemId": Object {
++     "value": "mock.FileSystemId",
++   },
++   "output.iam-role-ServerRole-backend-Arn": Object {
++     "value": "mock.Arn",
++   },
++   "output.sec-grp-SecurityGroup-backend-Arn": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-backend.arn",
++   },
++   "output.sec-grp-SecurityGroup-backend-GroupId": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-backend.id",
++   },
++   "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-Arn": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.arn",
++   },
++   "output.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet-GroupId": Object {
++     "value": "aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id",
++   },
++   "output.subnet-region-private-subnet-SubnetId": Object {
++     "value": "mock.SubnetId",
++   },
++   "output.vpc-region-VpcId": Object {
++     "value": "mock.VpcId",
++   },
++   "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-private-subnet": Object {
++     "cluster": "mock.clusterArn",
++     "desired_count": "1",
++     "launch_type": "FARGATE",
++     "name": "backend-v1-region-qa-private-subnet",
++     "network_configuration": Object {
++       "assign_public_ip": "false",
++       "security_groups": "[aws_security_group.sec-grp-SecurityGroup-backend.id, aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet.id]",
++       "subnets": "[mock.SubnetId]",
++     },
++     "provider": "aws.123-us-east-1",
++     "task_definition": "aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet.arn",
++   },
++   "resource.aws_ecs_task_definition.ecs-task-definition-backend-v1-region-qa-private-subnet": Object {
++     "command": "[\\"/bin/sh\\"]",
++     "containerPort": "8080",
++     "container_definitions": "jsonencode([",
++     "cpu": "256",
++     "environment": "[{",
++     "essential": "true",
++     "execution_role_arn": "mock.Arn",
++     "family": "qa-region-private-subnet-backend",
++     "hostPort": "8080",
++     "image": "docker.io",
++     "memory": "512",
++     "mountPoints": "[]",
++     "name": "backend-v1",
++     "network_mode": "awsvpc",
++     "portMappings": "[{",
++     "protocol": "tcp",
++     "provider": "aws.123-us-east-1",
++     "requires_compatibilities": "[\\"FARGATE\\"]",
++     "task_role_arn": "mock.Arn",
++     "value": "qa",
++   },
++   "resource.aws_security_group.sec-grp-SecurityGroup-backend": Object {
++     "provider": "aws.123-us-east-1",
++     "vpc_id": "mock.VpcId",
++   },
++   "resource.aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet": Object {
++     "provider": "aws.123-us-east-1",
++     "vpc_id": "mock.VpcId",
++   },
++ }"
+`;
+
+exports[`AwsEcsExecutionModule UT should CUD tags 4`] = `"Compared values have no visual difference."`;
+
+exports[`AwsEcsExecutionModule UT should CUD tags 6`] = `"Compared values have no visual difference."`;
+
+exports[`AwsEcsExecutionModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;

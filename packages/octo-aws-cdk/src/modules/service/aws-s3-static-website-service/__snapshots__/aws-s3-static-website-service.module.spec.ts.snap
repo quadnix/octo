@@ -1,0 +1,591 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`AwsS3StaticWebsiteServiceModule UT input changes should handle bucketName change 2`] = `
+"- Expected
++ Received
+
+  Object {
+-   "output.bucket-test-bucket-Arn": Object {
+-     "value": "aws_s3_bucket.bucket-test-bucket_website_bucket.arn",
++   "output.bucket-changed-bucket-Arn": Object {
++     "value": "aws_s3_bucket.bucket-changed-bucket_website_bucket.arn",
+    },
+-   "output.bucket-test-bucket-awsRegionId": Object {
++   "output.bucket-changed-bucket-awsRegionId": Object {
+      "value": "us-east-1",
+    },
+-   "resource.aws_s3_bucket.bucket-test-bucket_website_bucket": Object {
+-     "bucket": "test-bucket",
++   "resource.aws_s3_bucket.bucket-changed-bucket_website_bucket": Object {
++     "bucket": "changed-bucket",
+      "provider": "aws.123-us-east-1",
+    },
+-   "resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy": Object {
++   "resource.aws_s3_bucket_policy.bucket-changed-bucket_website_bucket_public_read_policy": Object {
+      "Action": "[\\"s3:GetObject\\"]",
+      "Effect": "Allow",
+      "Principal": "*",
+-     "Resource": "[\\"\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*\\"]",
++     "Resource": "[\\"\${aws_s3_bucket.bucket-changed-bucket_website_bucket.arn}/*\\"]",
+      "Sid": "PublicReadGetObject",
+      "Statement": "[{",
+      "Version": "2012-10-17",
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "depends_on": "[aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]",
++     "bucket": "aws_s3_bucket.bucket-changed-bucket_website_bucket.id",
++     "depends_on": "[aws_s3_bucket_public_access_block.bucket-changed-bucket_website_bucket_public_access]",
+      "policy": "jsonencode({",
+      "provider": "aws.123-us-east-1",
+    },
+-   "resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access": Object {
++   "resource.aws_s3_bucket_public_access_block.bucket-changed-bucket_website_bucket_public_access": Object {
+      "block_public_acls": "false",
+      "block_public_policy": "false",
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "depends_on": "[aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]",
++     "bucket": "aws_s3_bucket.bucket-changed-bucket_website_bucket.id",
++     "depends_on": "[aws_s3_bucket_website_configuration.bucket-changed-bucket_website_bucket_config]",
+      "ignore_public_acls": "false",
+      "provider": "aws.123-us-east-1",
+      "restrict_public_buckets": "false",
+    },
+-   "resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "depends_on": "[aws_s3_bucket.bucket-test-bucket_website_bucket]",
++   "resource.aws_s3_bucket_website_configuration.bucket-changed-bucket_website_bucket_config": Object {
++     "bucket": "aws_s3_bucket.bucket-changed-bucket_website_bucket.id",
++     "depends_on": "[aws_s3_bucket.bucket-changed-bucket_website_bucket]",
+      "error_document": Object {
+        "key": "error.html",
+      },
+      "index_document": Object {
+        "suffix": "index.html",
+      },
+      "provider": "aws.123-us-east-1",
+    },
+-   "resource.aws_s3_object.bucket-test-bucket_file_errorhtml": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++   "resource.aws_s3_object.bucket-changed-bucket_file_errorhtml": Object {
++     "bucket": "aws_s3_bucket.bucket-changed-bucket_website_bucket.id",
+      "content_type": "text/html",
+-     "depends_on": "[aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]",
++     "depends_on": "[aws_s3_bucket_policy.bucket-changed-bucket_website_bucket_public_read_policy]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html\\")",
+      "key": "error.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html",
+    },
+-   "resource.aws_s3_object.bucket-test-bucket_file_indexhtml": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++   "resource.aws_s3_object.bucket-changed-bucket_file_indexhtml": Object {
++     "bucket": "aws_s3_bucket.bucket-changed-bucket_website_bucket.id",
+      "content_type": "text/html",
+-     "depends_on": "[aws_s3_object.bucket-test-bucket_file_errorhtml]",
++     "depends_on": "[aws_s3_object.bucket-changed-bucket_file_errorhtml]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html\\")",
+      "key": "index.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html",
+    },
+-   "resource.aws_s3_object.bucket-test-bucket_file_page1html": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++   "resource.aws_s3_object.bucket-changed-bucket_file_page1html": Object {
++     "bucket": "aws_s3_bucket.bucket-changed-bucket_website_bucket.id",
+      "content_type": "text/html",
+-     "depends_on": "[aws_s3_object.bucket-test-bucket_file_indexhtml]",
++     "depends_on": "[aws_s3_object.bucket-changed-bucket_file_indexhtml]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html\\")",
+      "key": "page-1.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html",
+    },
+  }"
+`;
+
+exports[`AwsS3StaticWebsiteServiceModule UT input changes should handle directoryPath change 2`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.bucket-test-bucket-Arn": Object {
+      "value": "aws_s3_bucket.bucket-test-bucket_website_bucket.arn",
+    },
+    "output.bucket-test-bucket-awsRegionId": Object {
+      "value": "us-east-1",
+    },
+    "resource.aws_s3_bucket.bucket-test-bucket_website_bucket": Object {
+      "bucket": "test-bucket",
+      "provider": "aws.123-us-east-1",
+    },
+    "resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy": Object {
+      "Action": "[\\"s3:GetObject\\"]",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Resource": "[\\"\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*\\"]",
+      "Sid": "PublicReadGetObject",
+      "Statement": "[{",
+      "Version": "2012-10-17",
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "depends_on": "[aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]",
+      "policy": "jsonencode({",
+      "provider": "aws.123-us-east-1",
+    },
+    "resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access": Object {
+      "block_public_acls": "false",
+      "block_public_policy": "false",
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "depends_on": "[aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]",
+      "ignore_public_acls": "false",
+      "provider": "aws.123-us-east-1",
+      "restrict_public_buckets": "false",
+    },
+    "resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "depends_on": "[aws_s3_bucket.bucket-test-bucket_website_bucket]",
+      "error_document": Object {
+        "key": "error.html",
+      },
+      "index_document": Object {
+        "suffix": "index.html",
+      },
+      "provider": "aws.123-us-east-1",
+    },
+-   "resource.aws_s3_object.bucket-test-bucket_file_errorhtml": Object {
++   "resource.aws_s3_object.bucket-test-bucket_file_indexhtml": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "content_type": "text/html",
+      "depends_on": "[aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]",
+-     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html\\")",
+-     "key": "error.html",
+-     "provider": "aws.123-us-east-1",
+-     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html",
+-   },
+-   "resource.aws_s3_object.bucket-test-bucket_file_indexhtml": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "content_type": "text/html",
+-     "depends_on": "[aws_s3_object.bucket-test-bucket_file_errorhtml]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html\\")",
+      "key": "index.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html",
+-   },
+-   "resource.aws_s3_object.bucket-test-bucket_file_page1html": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "content_type": "text/html",
+-     "depends_on": "[aws_s3_object.bucket-test-bucket_file_indexhtml]",
+-     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html\\")",
+-     "key": "page-1.html",
+-     "provider": "aws.123-us-east-1",
+-     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html",
+    },
+  }"
+`;
+
+exports[`AwsS3StaticWebsiteServiceModule UT should CUD 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.bucket-test-bucket-Arn": Object {
++     "value": "aws_s3_bucket.bucket-test-bucket_website_bucket.arn",
++   },
++   "output.bucket-test-bucket-awsRegionId": Object {
++     "value": "us-east-1",
++   },
++   "resource.aws_s3_bucket.bucket-test-bucket_website_bucket": Object {
++     "bucket": "test-bucket",
++     "provider": "aws.123-us-east-1",
++   },
++   "resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy": Object {
++     "Action": "[\\"s3:GetObject\\"]",
++     "Effect": "Allow",
++     "Principal": "*",
++     "Resource": "[\\"\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*\\"]",
++     "Sid": "PublicReadGetObject",
++     "Statement": "[{",
++     "Version": "2012-10-17",
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "depends_on": "[aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]",
++     "policy": "jsonencode({",
++     "provider": "aws.123-us-east-1",
++   },
++   "resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access": Object {
++     "block_public_acls": "false",
++     "block_public_policy": "false",
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "depends_on": "[aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]",
++     "ignore_public_acls": "false",
++     "provider": "aws.123-us-east-1",
++     "restrict_public_buckets": "false",
++   },
++   "resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config": Object {
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "depends_on": "[aws_s3_bucket.bucket-test-bucket_website_bucket]",
++     "error_document": Object {
++       "key": "error.html",
++     },
++     "index_document": Object {
++       "suffix": "index.html",
++     },
++     "provider": "aws.123-us-east-1",
++   },
++   "resource.aws_s3_object.bucket-test-bucket_file_errorhtml": Object {
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "content_type": "text/html",
++     "depends_on": "[aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]",
++     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html\\")",
++     "key": "error.html",
++     "provider": "aws.123-us-east-1",
++     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html",
++   },
++   "resource.aws_s3_object.bucket-test-bucket_file_indexhtml": Object {
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "content_type": "text/html",
++     "depends_on": "[aws_s3_object.bucket-test-bucket_file_errorhtml]",
++     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html\\")",
++     "key": "index.html",
++     "provider": "aws.123-us-east-1",
++     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html",
++   },
++   "resource.aws_s3_object.bucket-test-bucket_file_page1html": Object {
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "content_type": "text/html",
++     "depends_on": "[aws_s3_object.bucket-test-bucket_file_indexhtml]",
++     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html\\")",
++     "key": "page-1.html",
++     "provider": "aws.123-us-east-1",
++     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html",
++   },
++ }"
+`;
+
+exports[`AwsS3StaticWebsiteServiceModule UT should CUD 4`] = `"Compared values have no visual difference."`;
+
+exports[`AwsS3StaticWebsiteServiceModule UT should CUD 6`] = `
+"- Expected
++ Received
+
+- Object {
+-   "output.bucket-test-bucket-Arn": Object {
+-     "value": "aws_s3_bucket.bucket-test-bucket_website_bucket.arn",
+-   },
+-   "output.bucket-test-bucket-awsRegionId": Object {
+-     "value": "us-east-1",
+-   },
+-   "resource.aws_s3_bucket.bucket-test-bucket_website_bucket": Object {
+-     "bucket": "test-bucket",
+-     "provider": "aws.123-us-east-1",
+-   },
+-   "resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy": Object {
+-     "Action": "[\\"s3:GetObject\\"]",
+-     "Effect": "Allow",
+-     "Principal": "*",
+-     "Resource": "[\\"\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*\\"]",
+-     "Sid": "PublicReadGetObject",
+-     "Statement": "[{",
+-     "Version": "2012-10-17",
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "depends_on": "[aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]",
+-     "policy": "jsonencode({",
+-     "provider": "aws.123-us-east-1",
+-   },
+-   "resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access": Object {
+-     "block_public_acls": "false",
+-     "block_public_policy": "false",
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "depends_on": "[aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]",
+-     "ignore_public_acls": "false",
+-     "provider": "aws.123-us-east-1",
+-     "restrict_public_buckets": "false",
+-   },
+-   "resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "depends_on": "[aws_s3_bucket.bucket-test-bucket_website_bucket]",
+-     "error_document": Object {
+-       "key": "error.html",
+-     },
+-     "index_document": Object {
+-       "suffix": "index.html",
+-     },
+-     "provider": "aws.123-us-east-1",
+-   },
+-   "resource.aws_s3_object.bucket-test-bucket_file_errorhtml": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "content_type": "text/html",
+-     "depends_on": "[aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]",
+-     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html\\")",
+-     "key": "error.html",
+-     "provider": "aws.123-us-east-1",
+-     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html",
+-   },
+-   "resource.aws_s3_object.bucket-test-bucket_file_indexhtml": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "content_type": "text/html",
+-     "depends_on": "[aws_s3_object.bucket-test-bucket_file_errorhtml]",
+-     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html\\")",
+-     "key": "index.html",
+-     "provider": "aws.123-us-east-1",
+-     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html",
+-   },
+-   "resource.aws_s3_object.bucket-test-bucket_file_page1html": Object {
+-     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+-     "content_type": "text/html",
+-     "depends_on": "[aws_s3_object.bucket-test-bucket_file_indexhtml]",
+-     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html\\")",
+-     "key": "page-1.html",
+-     "provider": "aws.123-us-east-1",
+-     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html",
+-   },
+- }
++ Object {}"
+`;
+
+exports[`AwsS3StaticWebsiteServiceModule UT should CUD tags 2`] = `
+"- Expected
++ Received
+
+- Object {}
++ Object {
++   "output.bucket-test-bucket-Arn": Object {
++     "value": "aws_s3_bucket.bucket-test-bucket_website_bucket.arn",
++   },
++   "output.bucket-test-bucket-awsRegionId": Object {
++     "value": "us-east-1",
++   },
++   "resource.aws_s3_bucket.bucket-test-bucket_website_bucket": Object {
++     "bucket": "test-bucket",
++     "provider": "aws.123-us-east-1",
++     "tags": Object {
++       "tag1": "value1",
++     },
++   },
++   "resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy": Object {
++     "Action": "[\\"s3:GetObject\\"]",
++     "Effect": "Allow",
++     "Principal": "*",
++     "Resource": "[\\"\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*\\"]",
++     "Sid": "PublicReadGetObject",
++     "Statement": "[{",
++     "Version": "2012-10-17",
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "depends_on": "[aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]",
++     "policy": "jsonencode({",
++     "provider": "aws.123-us-east-1",
++   },
++   "resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access": Object {
++     "block_public_acls": "false",
++     "block_public_policy": "false",
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "depends_on": "[aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]",
++     "ignore_public_acls": "false",
++     "provider": "aws.123-us-east-1",
++     "restrict_public_buckets": "false",
++   },
++   "resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config": Object {
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "depends_on": "[aws_s3_bucket.bucket-test-bucket_website_bucket]",
++     "error_document": Object {
++       "key": "error.html",
++     },
++     "index_document": Object {
++       "suffix": "index.html",
++     },
++     "provider": "aws.123-us-east-1",
++   },
++   "resource.aws_s3_object.bucket-test-bucket_file_errorhtml": Object {
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "content_type": "text/html",
++     "depends_on": "[aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]",
++     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html\\")",
++     "key": "error.html",
++     "provider": "aws.123-us-east-1",
++     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html",
++   },
++   "resource.aws_s3_object.bucket-test-bucket_file_indexhtml": Object {
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "content_type": "text/html",
++     "depends_on": "[aws_s3_object.bucket-test-bucket_file_errorhtml]",
++     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html\\")",
++     "key": "index.html",
++     "provider": "aws.123-us-east-1",
++     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html",
++   },
++   "resource.aws_s3_object.bucket-test-bucket_file_page1html": Object {
++     "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
++     "content_type": "text/html",
++     "depends_on": "[aws_s3_object.bucket-test-bucket_file_indexhtml]",
++     "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html\\")",
++     "key": "page-1.html",
++     "provider": "aws.123-us-east-1",
++     "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html",
++   },
++ }"
+`;
+
+exports[`AwsS3StaticWebsiteServiceModule UT should CUD tags 4`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.bucket-test-bucket-Arn": Object {
+      "value": "aws_s3_bucket.bucket-test-bucket_website_bucket.arn",
+    },
+    "output.bucket-test-bucket-awsRegionId": Object {
+      "value": "us-east-1",
+    },
+    "resource.aws_s3_bucket.bucket-test-bucket_website_bucket": Object {
+      "bucket": "test-bucket",
+      "provider": "aws.123-us-east-1",
+      "tags": Object {
+-       "tag1": "value1",
++       "tag1": "value1_1",
++       "tag2": "value2",
+      },
+    },
+    "resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy": Object {
+      "Action": "[\\"s3:GetObject\\"]",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Resource": "[\\"\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*\\"]",
+      "Sid": "PublicReadGetObject",
+      "Statement": "[{",
+      "Version": "2012-10-17",
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "depends_on": "[aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]",
+      "policy": "jsonencode({",
+      "provider": "aws.123-us-east-1",
+    },
+    "resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access": Object {
+      "block_public_acls": "false",
+      "block_public_policy": "false",
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "depends_on": "[aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]",
+      "ignore_public_acls": "false",
+      "provider": "aws.123-us-east-1",
+      "restrict_public_buckets": "false",
+    },
+    "resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "depends_on": "[aws_s3_bucket.bucket-test-bucket_website_bucket]",
+      "error_document": Object {
+        "key": "error.html",
+      },
+      "index_document": Object {
+        "suffix": "index.html",
+      },
+      "provider": "aws.123-us-east-1",
+    },
+    "resource.aws_s3_object.bucket-test-bucket_file_errorhtml": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "content_type": "text/html",
+      "depends_on": "[aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html\\")",
+      "key": "error.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html",
+    },
+    "resource.aws_s3_object.bucket-test-bucket_file_indexhtml": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "content_type": "text/html",
+      "depends_on": "[aws_s3_object.bucket-test-bucket_file_errorhtml]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html\\")",
+      "key": "index.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html",
+    },
+    "resource.aws_s3_object.bucket-test-bucket_file_page1html": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "content_type": "text/html",
+      "depends_on": "[aws_s3_object.bucket-test-bucket_file_indexhtml]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html\\")",
+      "key": "page-1.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html",
+    },
+  }"
+`;
+
+exports[`AwsS3StaticWebsiteServiceModule UT should CUD tags 6`] = `
+"- Expected
++ Received
+
+  Object {
+    "output.bucket-test-bucket-Arn": Object {
+      "value": "aws_s3_bucket.bucket-test-bucket_website_bucket.arn",
+    },
+    "output.bucket-test-bucket-awsRegionId": Object {
+      "value": "us-east-1",
+    },
+    "resource.aws_s3_bucket.bucket-test-bucket_website_bucket": Object {
+      "bucket": "test-bucket",
+      "provider": "aws.123-us-east-1",
+-     "tags": Object {
+-       "tag1": "value1_1",
+-       "tag2": "value2",
+-     },
+    },
+    "resource.aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy": Object {
+      "Action": "[\\"s3:GetObject\\"]",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Resource": "[\\"\${aws_s3_bucket.bucket-test-bucket_website_bucket.arn}/*\\"]",
+      "Sid": "PublicReadGetObject",
+      "Statement": "[{",
+      "Version": "2012-10-17",
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "depends_on": "[aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access]",
+      "policy": "jsonencode({",
+      "provider": "aws.123-us-east-1",
+    },
+    "resource.aws_s3_bucket_public_access_block.bucket-test-bucket_website_bucket_public_access": Object {
+      "block_public_acls": "false",
+      "block_public_policy": "false",
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "depends_on": "[aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config]",
+      "ignore_public_acls": "false",
+      "provider": "aws.123-us-east-1",
+      "restrict_public_buckets": "false",
+    },
+    "resource.aws_s3_bucket_website_configuration.bucket-test-bucket_website_bucket_config": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "depends_on": "[aws_s3_bucket.bucket-test-bucket_website_bucket]",
+      "error_document": Object {
+        "key": "error.html",
+      },
+      "index_document": Object {
+        "suffix": "index.html",
+      },
+      "provider": "aws.123-us-east-1",
+    },
+    "resource.aws_s3_object.bucket-test-bucket_file_errorhtml": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "content_type": "text/html",
+      "depends_on": "[aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html\\")",
+      "key": "error.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/error.html",
+    },
+    "resource.aws_s3_object.bucket-test-bucket_file_indexhtml": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "content_type": "text/html",
+      "depends_on": "[aws_s3_object.bucket-test-bucket_file_errorhtml]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html\\")",
+      "key": "index.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/index.html",
+    },
+    "resource.aws_s3_object.bucket-test-bucket_file_page1html": Object {
+      "bucket": "aws_s3_bucket.bucket-test-bucket_website_bucket.id",
+      "content_type": "text/html",
+      "depends_on": "[aws_s3_object.bucket-test-bucket_file_indexhtml]",
+      "etag": "filemd5(\\"/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html\\")",
+      "key": "page-1.html",
+      "provider": "aws.123-us-east-1",
+      "source": "/Users/rash/Workspace/quadnix/octo/packages/octo-aws-cdk/resources/s3-static-website/page-1.html",
+    },
+  }"
+`;
+
+exports[`AwsS3StaticWebsiteServiceModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;

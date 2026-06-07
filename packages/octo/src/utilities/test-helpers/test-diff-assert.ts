@@ -9,20 +9,20 @@ export class DiffAssert {
   }
 
   digest(): string[] {
-    const add = new Set<string>();
-    const del = new Set<string>();
-    const update = new Set<string>();
+    const changes: string[] = [];
 
     for (const d of this.flat) {
-      if (d.action === DiffAction.ADD && d.field === 'resourceId') add.add(d.node.getContext());
-      else if (d.action === DiffAction.DELETE && d.field === 'resourceId') del.add(d.node.getContext());
-      else if (d.action === DiffAction.UPDATE) update.add(d.node.getContext());
+      if (d.action === DiffAction.ADD && d.field === 'resourceId') {
+        changes.push(`+ ${d.node.getContext()}`);
+      } else if (d.action === DiffAction.DELETE && d.field === 'resourceId') {
+        changes.push(`- ${d.node.getContext()}`);
+      } else if (d.action === DiffAction.REPLACE && d.field === 'resourceId') {
+        changes.push(`^ ${d.node.getContext()}`);
+      } else if (d.action === DiffAction.UPDATE) {
+        changes.push(`* ${d.node.getContext()}`);
+      }
     }
 
-    return [
-      ...[...add].map((context) => `+ ${context}`),
-      ...[...del].map((context) => `- ${context}`),
-      ...[...update].map((context) => `~ ${context}`),
-    ];
+    return changes;
   }
 }

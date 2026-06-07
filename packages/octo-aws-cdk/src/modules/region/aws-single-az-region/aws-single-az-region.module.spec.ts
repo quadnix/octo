@@ -151,16 +151,7 @@ describe('AwsSingleAzRegionModule UT', () => {
        "+ @octo/internet-gateway=igw-test-region",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.igw-test-region-InternetGatewayArn | blocks: 0 | properties: 1",
-       "+ output.igw-test-region-InternetGatewayId | blocks: 0 | properties: 1",
-       "+ output.vpc-test-region-VpcArn | blocks: 0 | properties: 1",
-       "+ output.vpc-test-region-VpcId | blocks: 0 | properties: 1",
-       "+ resource.aws_internet_gateway.igw-test-region | blocks: 0 | properties: 2",
-       "+ resource.aws_vpc.vpc-test-region | blocks: 0 | properties: 5",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer);
     const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
@@ -170,16 +161,7 @@ describe('AwsSingleAzRegionModule UT', () => {
        "- @octo/internet-gateway=igw-test-region",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "- output.igw-test-region-InternetGatewayArn | blocks: 0 | properties: 1",
-       "- output.igw-test-region-InternetGatewayId | blocks: 0 | properties: 1",
-       "- output.vpc-test-region-VpcArn | blocks: 0 | properties: 1",
-       "- output.vpc-test-region-VpcId | blocks: 0 | properties: 1",
-       "- resource.aws_internet_gateway.igw-test-region | blocks: 0 | properties: 2",
-       "- resource.aws_vpc.vpc-test-region | blocks: 0 | properties: 5",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
@@ -205,16 +187,7 @@ describe('AwsSingleAzRegionModule UT', () => {
        "+ @octo/internet-gateway=igw-test-region",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`
-     [
-       "+ output.igw-test-region-InternetGatewayArn | blocks: 0 | properties: 1",
-       "+ output.igw-test-region-InternetGatewayId | blocks: 0 | properties: 1",
-       "+ output.vpc-test-region-VpcArn | blocks: 0 | properties: 1",
-       "+ output.vpc-test-region-VpcId | blocks: 0 | properties: 1",
-       "+ resource.aws_internet_gateway.igw-test-region | blocks: 0 | properties: 2",
-       "+ resource.aws_vpc.vpc-test-region | blocks: 0 | properties: 5",
-     ]
-    `);
+    expect(hcl.digest()).toMatchSnapshot();
 
     testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
@@ -231,11 +204,11 @@ describe('AwsSingleAzRegionModule UT', () => {
     const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/vpc=vpc-test-region",
-       "~ @octo/internet-gateway=igw-test-region",
+       "* @octo/vpc=vpc-test-region",
+       "* @octo/internet-gateway=igw-test-region",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSingleAzRegionModule>({
@@ -251,11 +224,11 @@ describe('AwsSingleAzRegionModule UT', () => {
     const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
     expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
      [
-       "~ @octo/vpc=vpc-test-region",
-       "~ @octo/internet-gateway=igw-test-region",
+       "* @octo/vpc=vpc-test-region",
+       "* @octo/internet-gateway=igw-test-region",
      ]
     `);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -288,28 +261,13 @@ describe('AwsSingleAzRegionModule UT', () => {
       const resultUpdateName = await testModuleContainer.commit(appUpdateName, { enableResourceCapture: true });
       expect(new DiffAssert(resultUpdateName.resourceDiffs).digest()).toMatchInlineSnapshot(`
        [
-         "+ @octo/vpc=vpc-changed-region",
-         "+ @octo/internet-gateway=igw-changed-region",
          "- @octo/vpc=vpc-test-region",
          "- @octo/internet-gateway=igw-test-region",
+         "+ @octo/vpc=vpc-changed-region",
+         "+ @octo/internet-gateway=igw-changed-region",
        ]
       `);
-      expect(hcl.digest()).toMatchInlineSnapshot(`
-       [
-         "+ output.igw-changed-region-InternetGatewayArn | blocks: 0 | properties: 1",
-         "+ output.igw-changed-region-InternetGatewayId | blocks: 0 | properties: 1",
-         "+ output.vpc-changed-region-VpcArn | blocks: 0 | properties: 1",
-         "+ output.vpc-changed-region-VpcId | blocks: 0 | properties: 1",
-         "+ resource.aws_internet_gateway.igw-changed-region | blocks: 0 | properties: 2",
-         "+ resource.aws_vpc.vpc-changed-region | blocks: 0 | properties: 5",
-         "- output.igw-test-region-InternetGatewayArn | blocks: 0 | properties: 1",
-         "- output.igw-test-region-InternetGatewayId | blocks: 0 | properties: 1",
-         "- output.vpc-test-region-VpcArn | blocks: 0 | properties: 1",
-         "- output.vpc-test-region-VpcId | blocks: 0 | properties: 1",
-         "- resource.aws_internet_gateway.igw-test-region | blocks: 0 | properties: 2",
-         "- resource.aws_vpc.vpc-test-region | blocks: 0 | properties: 5",
-       ]
-      `);
+      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle regionId change', async () => {
@@ -407,7 +365,7 @@ describe('AwsSingleAzRegionModule UT', () => {
     });
     const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
     expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchInlineSnapshot(`[]`);
+    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('validation', () => {
