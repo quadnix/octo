@@ -1,0 +1,190 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`TerraformService UT addOctoTerraformExternalResource() should generate the null_resource and data external wrapper with cross-module inputs 1`] = `
+"terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    external = {
+      source = "hashicorp/external"
+    }
+    null = {
+      source = "hashicorp/null"
+    }
+  }
+}
+
+data "external" "igw-1" {
+  program = ["cat", "\${path.module}/.octo-outputs/igw-1.json"]
+  depends_on = [null_resource.igw-1]
+}
+
+resource "null_resource" "igw-1" {
+  triggers = {
+    octo_properties_hash = "9af69fdcd9e2821b"
+    input_vpc_1_VpcId = "\${var.vpc_1_VpcId}"
+  }
+  provisioner "local-exec" {
+    command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=igw-1 --input vpc-1.VpcId=\${var.vpc_1_VpcId} > \${path.module}/.octo-outputs/igw-1.json"
+  }
+  provisioner "local-exec" {
+    when = destroy
+    command = "octo --mode=run-action --resourceId=igw-1 --input vpc-1.VpcId=\${self.triggers.input_vpc_1_VpcId}"
+  }
+}
+"
+`;
+
+exports[`TerraformService UT addOctoTerraformExternalResource() should generate the null_resource and data external wrapper with cross-module inputs 2`] = `
+"output "igw-1-igwId" {
+  value = data.external.igw-1.result.igwId
+}
+
+output "igw-1-igwArn" {
+  value = data.external.igw-1.result.igwArn
+}
+"
+`;
+
+exports[`TerraformService UT addOctoTerraformExternalResource() should resolve parent inputs inline when parent is in the same module 1`] = `
+"terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    external = {
+      source = "hashicorp/external"
+    }
+    null = {
+      source = "hashicorp/null"
+    }
+  }
+}
+
+data "external" "igw-1" {
+  program = ["cat", "\${path.module}/.octo-outputs/igw-1.json"]
+  depends_on = [null_resource.igw-1]
+}
+
+resource "aws_vpc" "vpc-1" {
+
+}
+
+resource "null_resource" "igw-1" {
+  triggers = {
+    octo_properties_hash = "9af69fdcd9e2821b"
+    input_vpc_1_VpcId = "\${aws_vpc.vpc-1.id}"
+  }
+  provisioner "local-exec" {
+    command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=igw-1 --input vpc-1.VpcId=\${aws_vpc.vpc-1.id} > \${path.module}/.octo-outputs/igw-1.json"
+  }
+  provisioner "local-exec" {
+    when = destroy
+    command = "octo --mode=run-action --resourceId=igw-1 --input vpc-1.VpcId=\${self.triggers.input_vpc_1_VpcId}"
+  }
+
+  depends_on = [aws_vpc.vpc-1]
+}
+"
+`;
+
+exports[`TerraformService UT addTerraformProvider() should render multiple provider types in the same module 1`] = `
+"terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+    google = {
+      source = "hashicorp/google"
+      version = ">= 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  alias = "111111111-us-east-1"
+  region = "us-east-1"
+}
+
+provider "google" {
+  alias = "my-project-us-central1"
+  region = "us-central1"
+}
+
+resource "aws_vpc" "vpc-1" {
+  provider = aws.111111111-us-east-1
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "google_compute_network" "network-1" {
+  provider = google.my-project-us-central1
+  name = "network-1"
+}
+"
+`;
+
+exports[`TerraformService UT getRef() should resolve cross-module refs to variables with terragrunt wiring 1`] = `
+"dependency "vpc-module" {
+  config_path = "../vpc-module"
+
+  mock_outputs = {
+    "vpc-1-VpcId" = "mock-vpc-1-VpcId"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+inputs = {
+  vpc_1_VpcId = dependency.vpc-module.outputs["vpc-1-VpcId"]
+}
+"
+`;
+
+exports[`TerraformService UT jsonencode() should render a plain object wrapped in jsonencode(...) 1`] = `
+"terraform {
+  required_version = ">= 1.6.0"
+}
+
+resource "aws_iam_policy" "policy-1" {
+  policy = jsonencode({
+    Statement = []
+    Version = "2012-10-17"
+  })
+}
+"
+`;
+
+exports[`TerraformService UT renderAllModules() intra-resource depends_on should chain multiple TF blocks of the same octo resource via depends_on 1`] = `
+"terraform {
+  required_version = ">= 1.6.0"
+}
+
+resource "aws_s3_bucket" "bucket-1" {
+
+}
+
+resource "aws_s3_bucket_policy" "bucket-1-policy" {
+
+
+  depends_on = [aws_s3_bucket.bucket-1]
+}
+"
+`;
+
+exports[`TerraformService UT variable() should render a string variable with default and sensitive flag 1`] = `
+"variable "db_password" {
+  type = string
+  default = null
+  sensitive = true
+}
+"
+`;
+
+exports[`TerraformService UT variable() should render an object-type variable 1`] = `
+"variable "config" {
+  type = object({
+    host = string
+    port = number
+  })
+  default = null
+}
+"
+`;
