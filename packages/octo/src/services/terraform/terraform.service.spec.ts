@@ -1,21 +1,10 @@
 import { NodeType, type UnknownResource } from '../../app.type.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
-import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
+import { createTerraformResource } from '../../utilities/test-helpers/test-resources.js';
 import { TerraformService } from './terraform.service.js';
 
-class TestTfResource extends ATerraformResource<BaseResourceSchema, TestTfResource> {
-  static override readonly NODE_NAME: string = 'test-tf-resource';
-  static override readonly NODE_PACKAGE: string = '@octo';
-  static override readonly NODE_SCHEMA = {};
-  static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
-
-  constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
-    super(resourceId, properties, parents);
-  }
-
-  override async toHCL(): Promise<void> {}
-}
+const TestTfResource = createTerraformResource('test-tf-resource');
 
 class TestExternalResource extends AResource<BaseResourceSchema, TestExternalResource> {
   static override readonly NODE_NAME: string = 'test-sdk-resource';

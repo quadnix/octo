@@ -357,7 +357,7 @@ export class TerraformService {
     const octoTerraformResource = this.addOctoTerraformResource(moduleId, octoResource, { explicitParents: parents });
     this.module(moduleId).hasExternalResources = true;
 
-    // The null_resource shell. Its triggers and provisioners are added by wireExternalResourceInputs(),
+    // The null_resource shell. Its triggers and provisioner are added by wireExternalResourceInputs(),
     // once every parent's outputs are known.
     const nullResource = octoTerraformResource.addTerraformResource('null_resource', name);
 

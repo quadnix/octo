@@ -31,12 +31,16 @@ import {
 } from '../../utilities/test-helpers/test-classes.js';
 import { create } from '../../utilities/test-helpers/test-models.js';
 import { createTestOverlays } from '../../utilities/test-helpers/test-overlays.js';
-import { commitResources, createTestResources } from '../../utilities/test-helpers/test-resources.js';
-import { CaptureService } from '../capture/capture.service.js';
+import {
+  commitResources,
+  createTerraformResource,
+  createTestResources,
+} from '../../utilities/test-helpers/test-resources.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
 import { TestStateProvider } from '../state-management/test.state-provider.js';
+import { TerraformService } from '../terraform/terraform.service.js';
 import { TransactionService } from './transaction.service.js';
 
 describe('TransactionService UT', () => {
@@ -46,27 +50,33 @@ describe('TransactionService UT', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const [captureService, eventService, inputService, moduleContainer, overlayDataRepository, resourceDataRepository] =
-      await Promise.all([
-        container.get(CaptureService),
-        container.get(EventService),
-        container.get(InputService),
-        container.get(ModuleContainer),
-        container.get(OverlayDataRepository),
-        container.get(ResourceDataRepository),
-      ]);
+    const [
+      eventService,
+      inputService,
+      moduleContainer,
+      overlayDataRepository,
+      resourceDataRepository,
+      terraformService,
+    ] = await Promise.all([
+      container.get(EventService),
+      container.get(InputService),
+      container.get(ModuleContainer),
+      container.get(OverlayDataRepository),
+      container.get(ResourceDataRepository),
+      container.get(TerraformService),
+    ]);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
     container.unRegisterFactory(ResourceSerializationService);
     container.registerValue(ResourceSerializationService, resourceSerializationService);
 
     const transactionService = new TransactionService(
-      captureService,
       eventService,
       inputService,
       moduleContainer,
       overlayDataRepository,
       resourceDataRepository,
+      terraformService,
     );
     container.unRegisterFactory(TransactionService);
     container.registerValue(TransactionService, transactionService);
@@ -306,13 +316,11 @@ describe('TransactionService UT', () => {
     const universalResourceAction: IResourceAction<UnknownResource> = {
       filter: () => true,
       handle: jest.fn() as jest.Mocked<any>,
-      mock: jest.fn() as jest.Mocked<any>,
     };
     const universalResourceActionWithTimeout: IResourceAction<UnknownResource> = {
       actionTimeoutInMs: 100,
       filter: () => true,
       handle: jest.fn() as jest.Mocked<any>,
-      mock: jest.fn() as jest.Mocked<any>,
     };
 
     let applyResources: TransactionService['applyResources'];
@@ -325,9 +333,7 @@ describe('TransactionService UT', () => {
 
     afterEach(() => {
       (universalResourceAction.handle as jest.Mock).mockReset();
-      (universalResourceAction.mock as jest.Mock).mockReset();
       (universalResourceActionWithTimeout.handle as jest.Mock).mockReset();
-      (universalResourceActionWithTimeout.mock as jest.Mock).mockReset();
     });
 
     it('should return empty transaction if diffs is empty', async () => {
@@ -388,27 +394,6 @@ describe('TransactionService UT', () => {
       const result = await applyResources([diffMetadata2, diffMetadata1]);
 
       expect(result).toMatchSnapshot();
-    });
-
-    it('should call mock when run with enableResourceCapture flag on', async () => {
-      const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
-        { resourceContext: '@octo/test-resource=resource-1' },
-      ]);
-
-      const inputService = await container.get(InputService);
-      inputService.registerResource('moduleId', resource1);
-
-      const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
-      const diffMetadata = new DiffMetadata(diff, [universalResourceAction]);
-      diffMetadata.applyOrder = 0;
-
-      const captureService = await container.get(CaptureService);
-      captureService.registerCapture('@octo/test-resource=resource-1', { 'key-1': 'value-1' });
-
-      await applyResources([diffMetadata], { enableResourceCapture: true });
-
-      expect(universalResourceAction.mock).toHaveBeenCalledTimes(1);
-      expect((universalResourceAction.mock as jest.Mock).mock.calls[0][1]).toEqual({ 'key-1': 'value-1' });
     });
 
     describe('when resource action throws error', () => {
@@ -493,6 +478,116 @@ describe('TransactionService UT', () => {
         expect(universalResourceActionWithTimeout.handle).toHaveBeenCalledTimes(1);
         expect(universalResourceAction.handle).toHaveBeenCalledTimes(1);
       });
+    });
+
+    describe('with skipActualResourceUpdate', () => {
+      it('should run the action but not maintain the actual resource graph', async () => {
+        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+        ]);
+        const resourceDataRepository = await container.get(ResourceDataRepository);
+
+        const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+        const diffMetadata = new DiffMetadata(diff, [universalResourceAction]);
+        diffMetadata.applyOrder = 0;
+
+        await applyResources([diffMetadata], { skipActualResourceUpdate: true });
+
+        // The action ran (terraform invoked octo for this resource) ...
+        expect(universalResourceAction.handle).toHaveBeenCalledTimes(1);
+        // ... but octo stayed stateless: terraform owns the actual state until the next commit.
+        expect(resourceDataRepository.getActualResourcesByProperties()).toEqual([]);
+      });
+
+      it('should maintain the actual resource graph by default', async () => {
+        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
+        const { '@octo/test-resource=resource-1': resource1 } = await createTestResources([
+          { resourceContext: '@octo/test-resource=resource-1' },
+        ]);
+        const resourceDataRepository = await container.get(ResourceDataRepository);
+
+        const diff = new Diff(resource1, DiffAction.ADD, 'resourceId', 'resource-1');
+        const diffMetadata = new DiffMetadata(diff, [universalResourceAction]);
+        diffMetadata.applyOrder = 0;
+
+        await applyResources([diffMetadata]);
+
+        expect(resourceDataRepository.getActualResourcesByProperties().map((r) => r.resourceId)).toEqual([
+          'resource-1',
+        ]);
+      });
+    });
+  });
+
+  describe('generateTerraform()', () => {
+    let generateTerraform: TransactionService['generateTerraform'];
+
+    beforeEach(async () => {
+      const service = await container.get(TransactionService);
+      generateTerraform = service['generateTerraform'].bind(service);
+    });
+
+    it('should route terraform resources through toHCL() and external resources through the external wrapper', async () => {
+      const terraformService = await container.get(TerraformService);
+      const { '@octo/test-tf-resource=vpc-1': vpc } = await testModuleContainer.createTestResources('region-module', [
+        { resourceContext: '@octo/test-tf-resource=vpc-1', terraform: true },
+        { parents: ['@octo/test-tf-resource=vpc-1'], resourceContext: '@octo/test-external-resource=igw-1' },
+      ]);
+      const toHCLSpy = jest.spyOn(vpc as any, 'toHCL');
+
+      await generateTerraform();
+
+      // The terraform resource is contributed via toHCL().
+      expect(toHCLSpy).toHaveBeenCalledTimes(1);
+
+      const mappings = terraformService.getOctoTerraformResourceMappings();
+      const vpcMapping = mappings.find((m) => m.resourceId === 'vpc-1')!;
+      expect(vpcMapping.moduleId).toBe('region-module');
+      // The external resource is wrapped: its lifecycle runs through a generated null_resource.
+      const igwMapping = mappings.find((m) => m.resourceId === 'igw-1')!;
+      expect(igwMapping.moduleId).toBe('region-module');
+      expect(igwMapping.terraformAddresses.some((a) => a.startsWith('null_resource.'))).toBe(true);
+    });
+
+    it('should reset prior contributions so a re-run over the same graph does not throw', async () => {
+      const terraformService = await container.get(TerraformService);
+      await testModuleContainer.createTestResources('region-module', [
+        { resourceContext: '@octo/test-tf-resource=vpc-1', terraform: true },
+      ]);
+
+      await generateTerraform();
+      // Without reset() the duplicate registration would throw; the sweep must be repeatable.
+      await expect(generateTerraform()).resolves.not.toThrow();
+
+      expect(terraformService.getOctoTerraformResourceMappings().filter((m) => m.resourceId === 'vpc-1')).toHaveLength(
+        1,
+      );
+    });
+
+    it('should skip resources marked for deletion', async () => {
+      const terraformService = await container.get(TerraformService);
+      const { '@octo/test-external-resource=igw-1': igw } = await testModuleContainer.createTestResources(
+        'region-module',
+        [
+          { resourceContext: '@octo/test-tf-resource=vpc-1', terraform: true },
+          { parents: ['@octo/test-tf-resource=vpc-1'], resourceContext: '@octo/test-external-resource=igw-1' },
+        ],
+      );
+      igw.remove();
+
+      await generateTerraform();
+
+      const mappings = terraformService.getOctoTerraformResourceMappings();
+      expect(mappings.some((m) => m.resourceId === 'igw-1')).toBe(false);
+      expect(mappings.some((m) => m.resourceId === 'vpc-1')).toBe(true);
+    });
+
+    it('should throw when a resource is not attributed to any module', async () => {
+      // Added straight to the repository, bypassing module registration.
+      await createTestResources([{ resourceContext: '@octo/test-resource=orphan-1' }]);
+
+      await expect(generateTerraform()).rejects.toThrow('Resource "orphan-1" is not associated with any module!');
     });
   });
 
@@ -736,12 +831,10 @@ describe('TransactionService UT', () => {
       const universalResourceAction: IResourceAction<UnknownResource> = {
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
-        mock: jest.fn() as jest.Mocked<any>,
       };
 
       afterEach(() => {
         (universalResourceAction.handle as jest.Mock).mockReset();
-        (universalResourceAction.mock as jest.Mock).mockReset();
       });
 
       it('should generate validation diffs', async () => {
@@ -763,6 +856,94 @@ describe('TransactionService UT', () => {
         const result = await generator.next();
 
         expect(result.value).toMatchSnapshot();
+      });
+    });
+
+    describe('filterResourceDiffsByResourceId', () => {
+      const universalResourceAction: IResourceAction<UnknownResource> = {
+        filter: () => true,
+        handle: jest.fn() as jest.Mocked<any>,
+      };
+
+      afterEach(() => {
+        (universalResourceAction.handle as jest.Mock).mockReset();
+      });
+
+      it('should scope the transaction to only the targeted resource', async () => {
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-2' },
+        ]);
+
+        const service = await container.get(TransactionService);
+        const generator = service.beginTransaction([], {
+          filterResourceDiffsByResourceId: 'resource-2',
+          yieldResourceDiffs: true,
+        });
+        const [newGroup, dirtyGroup] = (await generator.next()).value as DiffMetadata[][];
+
+        const targeted = [...newGroup, ...dirtyGroup].map((d) => (d.node as UnknownResource).resourceId);
+        expect(targeted).toEqual(['resource-2']);
+      });
+
+      it('should prefer the mutable actual-graph diff over the frozen old-graph diff for a delete', async () => {
+        (universalResourceAction.handle as jest.Mocked<any>).mockResolvedValue();
+
+        // Apply resource-1 so it lands in both the old graph (frozen on reload) and the actual graph.
+        await createTestResources([
+          { resourceActions: [universalResourceAction], resourceContext: '@octo/test-resource=resource-1' },
+        ]);
+        const service = await container.get(TransactionService);
+        await service.beginTransaction([]).next();
+        await commitResources({ skipAddActualResource: true });
+
+        // resource-1 is no longer desired: a delete that appears as both a new diff (old-graph node,
+        // frozen) and a dirty diff (actual-graph node, mutable).
+        const generator = service.beginTransaction([], {
+          filterResourceDiffsByResourceId: 'resource-1',
+          yieldResourceDiffs: true,
+        });
+        const [newGroup, dirtyGroup] = (await generator.next()).value as DiffMetadata[][];
+
+        // The frozen old-graph diff is dropped in preference of the mutable actual-graph diff, which
+        // is the one run-action can inject inputs into.
+        expect(newGroup).toHaveLength(0);
+        expect(dirtyGroup.map((d) => (d.node as UnknownResource).resourceId)).toEqual(['resource-1']);
+
+        const resourceDataRepository = await container.get(ResourceDataRepository);
+        expect(dirtyGroup[0].node).toBe(
+          resourceDataRepository.getActualResourceByContext('@octo/test-resource=resource-1'),
+        );
+        expect(Object.isFrozen(dirtyGroup[0].node)).toBe(false);
+      });
+    });
+
+    describe('generateTerraform', () => {
+      it('should contribute the desired graph and back terraform-resource diffs with a no-op action', async () => {
+        const terraformService = await container.get(TerraformService);
+        await testModuleContainer.createTestResources('region-module', [
+          { resourceContext: '@octo/test-tf-resource=vpc-1', terraform: true },
+          { parents: ['@octo/test-tf-resource=vpc-1'], resourceContext: '@octo/test-external-resource=igw-1' },
+        ]);
+
+        const service = await container.get(TransactionService);
+        const generator = service.beginTransaction([], { generateTerraform: true, yieldResourceDiffs: true });
+        const [newGroup] = (await generator.next()).value as DiffMetadata[][];
+
+        // The full desired state was contributed to terraform.
+        expect(
+          terraformService
+            .getOctoTerraformResourceMappings()
+            .map((m) => m.resourceId)
+            .sort(),
+        ).toEqual(['igw-1', 'vpc-1']);
+
+        // Terraform owns the terraform resource's lifecycle, so its diff carries the internal
+        // no-op action; the external resource keeps its real action.
+        const vpcDiff = newGroup.find((d) => (d.node as UnknownResource).resourceId === 'vpc-1')!;
+        const igwDiff = newGroup.find((d) => (d.node as UnknownResource).resourceId === 'igw-1')!;
+        expect(vpcDiff.actions.map((a: any) => a.constructor.name)).toEqual(['TerraformNoopResourceAction']);
+        expect(igwDiff.actions.map((a: any) => a.constructor.name)).toEqual(['UniversalResourceAction']);
       });
     });
 
@@ -874,12 +1055,10 @@ describe('TransactionService UT', () => {
       const universalResourceAction: IResourceAction<UnknownResource> = {
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
-        mock: jest.fn() as jest.Mocked<any>,
       };
 
       afterEach(() => {
         (universalResourceAction.handle as jest.Mock).mockReset();
-        (universalResourceAction.mock as jest.Mock).mockReset();
       });
 
       it('should yield resource diffs', async () => {
@@ -908,12 +1087,10 @@ describe('TransactionService UT', () => {
       const universalResourceAction: IResourceAction<UnknownResource> = {
         filter: () => true,
         handle: jest.fn() as jest.Mocked<any>,
-        mock: jest.fn() as jest.Mocked<any>,
       };
 
       afterEach(() => {
         (universalResourceAction.handle as jest.Mock).mockReset();
-        (universalResourceAction.mock as jest.Mock).mockReset();
       });
 
       it('should yield resource transaction', async () => {
@@ -938,6 +1115,18 @@ describe('TransactionService UT', () => {
 
         expect(result.value).toMatchSnapshot();
       });
+    });
+  });
+
+  describe('registerResourceActions()', () => {
+    it('should throw when called with a terraform resource class', async () => {
+      const service = await container.get(TransactionService);
+      const TerraformResource = createTerraformResource('test-tf-resource');
+      Object.defineProperty(TerraformResource, 'name', { value: 'TestTerraformResource' });
+
+      expect(() => service.registerResourceActions(TerraformResource, [])).toThrow(
+        'Cannot register resource actions for terraform resource "TestTerraformResource"!',
+      );
     });
   });
 });

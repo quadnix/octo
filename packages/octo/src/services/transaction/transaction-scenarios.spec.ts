@@ -7,17 +7,16 @@ import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { commitResources, createTestResources } from '../../utilities/test-helpers/test-resources.js';
-import { CaptureService } from '../capture/capture.service.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
 import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
+import { TerraformService } from '../terraform/terraform.service.js';
 import { TransactionService } from './transaction.service.js';
 
 describe('Transaction Scenarios UT', () => {
   const universalResourceAction: IResourceAction<UnknownResource> = {
     filter: () => true,
     handle: jest.fn() as jest.Mocked<any>,
-    mock: jest.fn() as jest.Mocked<any>,
   };
 
   let container: Container;
@@ -25,27 +24,33 @@ describe('Transaction Scenarios UT', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const [captureService, eventService, inputService, moduleContainer, overlayDataRepository, resourceDataRepository] =
-      await Promise.all([
-        container.get(CaptureService),
-        container.get(EventService),
-        container.get(InputService),
-        container.get(ModuleContainer),
-        container.get(OverlayDataRepository),
-        container.get(ResourceDataRepository),
-      ]);
+    const [
+      eventService,
+      inputService,
+      moduleContainer,
+      overlayDataRepository,
+      resourceDataRepository,
+      terraformService,
+    ] = await Promise.all([
+      container.get(EventService),
+      container.get(InputService),
+      container.get(ModuleContainer),
+      container.get(OverlayDataRepository),
+      container.get(ResourceDataRepository),
+      container.get(TerraformService),
+    ]);
 
     const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
     container.unRegisterFactory(ResourceSerializationService);
     container.registerValue(ResourceSerializationService, resourceSerializationService);
 
     const transactionService = new TransactionService(
-      captureService,
       eventService,
       inputService,
       moduleContainer,
       overlayDataRepository,
       resourceDataRepository,
+      terraformService,
     );
     container.unRegisterFactory(TransactionService);
     container.registerValue(TransactionService, transactionService);

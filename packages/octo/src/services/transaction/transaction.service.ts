@@ -26,7 +26,6 @@ import {
   ModelDiffsTransactionEvent,
   ModelTransactionTransactionEvent,
   ResourceActionCompletedTransactionEvent,
-  ResourceActionInformationTransactionEvent,
   ResourceActionInitiatedTransactionEvent,
   ResourceActionRegistrationEvent,
   ResourceActionSummaryTransactionEvent,
@@ -44,9 +43,24 @@ import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js
 import { AOverlay } from '../../overlays/overlay.abstract.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
-import { CaptureService } from '../capture/capture.service.js';
+import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
 import { EventService } from '../event/event.service.js';
 import { InputService } from '../input/input.service.js';
+import { TerraformService } from '../terraform/terraform.service.js';
+
+/**
+ * No-op resource action backing terraform resource diffs. Terraform manages the resource's lifecycle;
+ * octo only carries the diff for review and validation.
+ *
+ * @internal
+ */
+class TerraformNoopResourceAction implements IUnknownResourceAction {
+  filter(): boolean {
+    return true;
+  }
+
+  async handle(): Promise<void> {}
+}
 
 /**
  * @internal
@@ -57,12 +71,12 @@ export class TransactionService {
   private resourceActions: { resourceClass: Constructable<UnknownResource>; actions: IUnknownResourceAction[] }[] = [];
 
   constructor(
-    private readonly captureService: CaptureService,
     private readonly eventService: EventService,
     private readonly inputService: InputService,
     private readonly moduleContainer: ModuleContainer,
     private readonly overlayDataRepository: OverlayDataRepository,
     private readonly resourceDataRepository: ResourceDataRepository,
+    private readonly terraformService: TerraformService,
   ) {}
 
   private async applyModels(diffs: DiffMetadata[]): Promise<DiffMetadata[][]> {
@@ -188,47 +202,9 @@ export class TransactionService {
     return transaction;
   }
 
-  private applyResourcesDryRun(
-    diffs: DiffMetadata[],
-    { enableResourceCapture = false }: { enableResourceCapture?: boolean } = {},
-  ): void {
-    const captures = this.captureService.getAllCaptures();
-    const captureContexts = Object.keys(captures);
-
-    const missingCaptureContexts: string[] = [];
-    if (enableResourceCapture) {
-      for (const capturedContext of captureContexts) {
-        if (!diffs.some((d) => d.node.getContext() === capturedContext)) {
-          missingCaptureContexts.push(capturedContext);
-        }
-      }
-    }
-    if (missingCaptureContexts.length > 0) {
-      throw new TransactionError(
-        `Provided capture contexts do not match any resource diffs! ${missingCaptureContexts.join(', ')}`,
-      );
-    }
-
-    for (const diff of diffs) {
-      const capture =
-        enableResourceCapture && captureContexts.includes(diff.node.getContext())
-          ? this.captureService.getCapture((diff.node as UnknownResource).getContext())
-          : undefined;
-      for (const a of diff.actions as IUnknownResourceAction[]) {
-        this.eventService.emit(
-          new ResourceActionInformationTransactionEvent(a.constructor.name, {
-            action: { name: a.constructor.name },
-            capture: a.mock ? capture : undefined,
-            diff,
-          }),
-        );
-      }
-    }
-  }
-
   private async applyResources(
     diffs: DiffMetadata[],
-    { enableResourceCapture = false }: { enableResourceCapture?: boolean } = {},
+    { skipActualResourceUpdate = false }: { skipActualResourceUpdate?: boolean } = {},
   ): Promise<DiffMetadata[][]> {
     const transaction: DiffMetadata[][] = [];
     const validationErrors: Error[] = [];
@@ -254,55 +230,56 @@ export class TransactionService {
         for (const a of diff.actions as IUnknownResourceAction[]) {
           this.eventService.emit(new ResourceActionInitiatedTransactionEvent(a.constructor.name, diff));
 
-          const capture = this.captureService.getCapture((diff.node as UnknownResource).getContext());
-          if (enableResourceCapture && capture?.response && a.mock) {
-            const response = await a.mock(diff, capture.response);
-            this.resourceDataRepository.getNewResourceByContext(diffToProcess.node.getContext())?.setResponse(response);
-          } else {
-            let actionTimeoutId: NodeJS.Timeout | undefined;
-            try {
-              await Promise.race([
-                new Promise<void>(async (resolve, reject) => {
-                  try {
-                    const response = await a.handle(diffToProcess);
-                    this.resourceDataRepository
-                      .getNewResourceByContext(diffToProcess.node.getContext())
-                      ?.setResponse(response);
+          let actionTimeoutId: NodeJS.Timeout | undefined;
+          try {
+            await Promise.race([
+              new Promise<void>(async (resolve, reject) => {
+                try {
+                  const response = await a.handle(diffToProcess);
+                  this.resourceDataRepository
+                    .getNewResourceByContext(diffToProcess.node.getContext())
+                    ?.setResponse(response);
+                  resolve();
+                } catch (error) {
+                  if (diffToProcess.action === DiffAction.VALIDATE) {
+                    validationErrors.push(error);
                     resolve();
-                  } catch (error) {
-                    if (diffToProcess.action === DiffAction.VALIDATE) {
-                      validationErrors.push(error);
-                      resolve();
-                    } else {
-                      reject(
-                        new ResourceActionExceptionTransactionError(
-                          error.message,
-                          error,
-                          diffToProcess,
-                          a.constructor.name,
-                        ),
-                      );
-                    }
+                  } else {
+                    reject(
+                      new ResourceActionExceptionTransactionError(
+                        error.message,
+                        error,
+                        diffToProcess,
+                        a.constructor.name,
+                      ),
+                    );
                   }
-                }),
-                new Promise(
-                  (_resolve, reject) =>
-                    (actionTimeoutId = setTimeout(() => {
-                      reject(
-                        new ResourceActionTimeoutTransactionError(
-                          `Resource action ${a.constructor.name} timed out after ${a.actionTimeoutInMs || 90000}ms!`,
-                          diffToProcess,
-                          a.constructor.name,
-                        ),
-                      );
-                    }, a.actionTimeoutInMs || 90000)), // 1.5 minutes.
-                ),
-              ]);
-            } finally {
-              if (actionTimeoutId) {
-                clearTimeout(actionTimeoutId);
-              }
+                }
+              }),
+              new Promise(
+                (_resolve, reject) =>
+                  (actionTimeoutId = setTimeout(() => {
+                    reject(
+                      new ResourceActionTimeoutTransactionError(
+                        `Resource action ${a.constructor.name} timed out after ${a.actionTimeoutInMs || 90000}ms!`,
+                        diffToProcess,
+                        a.constructor.name,
+                      ),
+                    );
+                  }, a.actionTimeoutInMs || 90000)), // 1.5 minutes.
+              ),
+            ]);
+          } finally {
+            if (actionTimeoutId) {
+              clearTimeout(actionTimeoutId);
             }
+          }
+
+          if (skipActualResourceUpdate) {
+            // Stateless invocation (run-action): the actual resource graph is not maintained;
+            // terraform state is the source of truth until the next commit.
+            this.eventService.emit(new ResourceActionCompletedTransactionEvent(a.constructor.name, diff));
+            continue;
           }
 
           // De-reference from actual resources.
@@ -364,6 +341,38 @@ export class TransactionService {
     }
 
     return transaction;
+  }
+
+  /**
+   * Contributes every resource in the new (desired) resource graph to the shared
+   * {@link TerraformService}: terraform resources via `toHCL()`, external resources via
+   * `addOctoTerraformExternalResource()`. Always processes the full desired state — terraform
+   * computes the actual create/update/delete against its own state.
+   *
+   * Order does not matter: terraform resources reference each other through deferred refs, and
+   * external resources defer their parent-input wiring — both are resolved later, once every
+   * resource is registered (see {@link TerraformService}'s wiring phase).
+   */
+  private async generateTerraform(): Promise<void> {
+    this.terraformService.reset();
+
+    const resources = this.resourceDataRepository.getNewResourcesByProperties().filter((r) => !r.isMarkedDeleted());
+
+    for (const resource of resources) {
+      // Every resource is produced by a model action inside a module, so it is always module-bound.
+      // A missing attribution means the resource was registered out-of-band — a hard error.
+      const moduleId = this.inputService.getModuleIdFromResource(resource);
+      if (moduleId === undefined) {
+        throw new TransactionError(`Resource "${resource.resourceId}" is not associated with any module!`);
+      }
+
+      const scope = this.terraformService.scope(moduleId);
+      if (resource instanceof ATerraformResource) {
+        await resource.toHCL(scope);
+      } else {
+        scope.addOctoTerraformExternalResource(resource);
+      }
+    }
   }
 
   private getDiffsOfSameNode(diff: DiffMetadata, diffs: DiffMetadata[], diffAction: DiffAction): DiffMetadata[] {
@@ -455,8 +464,10 @@ export class TransactionService {
   async *beginTransaction(
     diffs: Diff[],
     {
-      enableResourceCapture = false,
       enableResourceValidation = false,
+      filterResourceDiffsByResourceId = undefined,
+      generateTerraform = false,
+      skipActualResourceUpdate = false,
       yieldModelDiffs = false,
       yieldModelTransaction = false,
       yieldResourceDiffs = false,
@@ -507,9 +518,37 @@ export class TransactionService {
       yield modelTransaction;
     }
 
+    // Contribute the full desired resource graph to terraform.
+    if (generateTerraform) {
+      await this.generateTerraform();
+    }
+
     // Generate resource diffs.
-    const newDiffs = await this.resourceDataRepository.diff();
-    const dirtyDiffs = await this.resourceDataRepository.diffDirty();
+    let newDiffs = await this.resourceDataRepository.diff();
+    let dirtyDiffs = await this.resourceDataRepository.diffDirty();
+
+    // Scope diffs to a single resource, e.g. when terraform invokes octo for one resource action.
+    if (filterResourceDiffsByResourceId !== undefined) {
+      newDiffs = newDiffs.filter((d) => (d.node as UnknownResource).resourceId === filterResourceDiffsByResourceId);
+      dirtyDiffs = dirtyDiffs.filter((d) => (d.node as UnknownResource).resourceId === filterResourceDiffsByResourceId);
+
+      // Prefer dirty diffs (actual-graph nodes) over equal new diffs (old-graph nodes) for
+      // execution: deserialized old resources are frozen and cannot receive injected inputs.
+      for (let i = newDiffs.length - 1; i >= 0; i--) {
+        const newDiff = newDiffs[i];
+        if (
+          dirtyDiffs.some(
+            (d) =>
+              d.node.getContext() === newDiff.node.getContext() &&
+              d.action === newDiff.action &&
+              d.field === newDiff.field &&
+              DiffUtility.isObjectDeepEquals(d.value, newDiff.value),
+          )
+        ) {
+          newDiffs.splice(i, 1);
+        }
+      }
+    }
 
     if (enableResourceValidation && (newDiffs.length > 0 || dirtyDiffs.length > 0)) {
       throw new TransactionError('Cannot run resource validation with pending resource diffs!');
@@ -557,53 +596,40 @@ export class TransactionService {
       }
     }
 
+    // Terraform resources have no resource actions - terraform owns their lifecycle. Their diffs
+    // remain part of the transaction as review artifacts, backed by a no-op action.
+    const resolveResourceActions = (d: Diff): IUnknownResourceAction[] => {
+      if (d.node instanceof ATerraformResource) {
+        return [new TerraformNoopResourceAction()];
+      }
+      return (
+        this.resourceActions.find(
+          (a) => (a.resourceClass as unknown as typeof AResource) === (d.node.constructor as typeof AResource),
+        )?.actions || []
+      ).filter((a) => a.filter(d));
+    };
+
     // Generate diff on resources.
-    const resourceDiffs = newDiffs.map(
-      (d) =>
-        new DiffMetadata(
-          d,
-          (
-            this.resourceActions.find(
-              (a) => (a.resourceClass as unknown as typeof AResource) === (d.node.constructor as typeof AResource),
-            )?.actions || []
-          ).filter((a) => a.filter(d)),
-        ),
-    );
+    const resourceDiffs = newDiffs.map((d) => new DiffMetadata(d, resolveResourceActions(d)));
     // Set apply order on resource diffs.
     for (const diff of resourceDiffs) {
       this.setApplyOrder(diff, resourceDiffs);
     }
     // Generate diff on dirty resources.
-    const dirtyResourceDiffs = dirtyDiffs.map(
-      (d) =>
-        new DiffMetadata(
-          d,
-          (
-            this.resourceActions.find(
-              (a) => (a.resourceClass as unknown as typeof AResource) === (d.node.constructor as typeof AResource),
-            )?.actions || []
-          ).filter((a) => a.filter(d)),
-        ),
-    );
+    const dirtyResourceDiffs = dirtyDiffs.map((d) => new DiffMetadata(d, resolveResourceActions(d)));
     // Set apply order on dirty resource diffs.
     for (const diff of dirtyResourceDiffs) {
       this.setApplyOrder(diff, dirtyResourceDiffs);
     }
-    this.applyResourcesDryRun([...resourceDiffs, ...dirtyResourceDiffs], { enableResourceCapture });
-
     this.eventService.emit(new ResourceDiffsTransactionEvent(undefined, [[resourceDiffs], [dirtyResourceDiffs]]));
     if (yieldResourceDiffs) {
       yield [resourceDiffs, dirtyResourceDiffs];
     }
 
     // Apply resource diffs.
-    const resourceTransaction = await this.applyResources(resourceDiffs, {
-      enableResourceCapture,
-    });
+    const resourceTransaction = await this.applyResources(resourceDiffs, { skipActualResourceUpdate });
     // Apply dirty resource diffs.
-    const dirtyResourceTransaction = await this.applyResources(dirtyResourceDiffs, {
-      enableResourceCapture,
-    });
+    const dirtyResourceTransaction = await this.applyResources(dirtyResourceDiffs, { skipActualResourceUpdate });
 
     this.eventService.emit(
       new ResourceTransactionTransactionEvent(undefined, [resourceTransaction, dirtyResourceTransaction]),
@@ -647,6 +673,13 @@ export class TransactionService {
 
   @EventSource(ResourceActionRegistrationEvent)
   registerResourceActions(forResource: Constructable<UnknownResource>, actions: IUnknownResourceAction[]): void {
+    if (forResource.prototype instanceof ATerraformResource) {
+      throw new TransactionError(
+        `Cannot register resource actions for terraform resource "${forResource.name}"! ` +
+          'Terraform resources are managed by terraform via toHCL().',
+      );
+    }
+
     const resourceActions = this.resourceActions.find((a) => a.resourceClass === forResource);
     if (!resourceActions) {
       this.resourceActions.push({ actions: actions, resourceClass: forResource });
@@ -688,24 +721,30 @@ export class TransactionServiceFactory {
 
   static async create(): Promise<TransactionService> {
     const container = Container.getInstance();
-    const [captureService, eventService, inputService, moduleContainer, overlayDataRepository, resourceDataRepository] =
-      await Promise.all([
-        container.get(CaptureService),
-        container.get(EventService),
-        container.get(InputService),
-        container.get(ModuleContainer),
-        container.get(OverlayDataRepository),
-        container.get(ResourceDataRepository),
-      ]);
+    const [
+      eventService,
+      inputService,
+      moduleContainer,
+      overlayDataRepository,
+      resourceDataRepository,
+      terraformService,
+    ] = await Promise.all([
+      container.get(EventService),
+      container.get(InputService),
+      container.get(ModuleContainer),
+      container.get(OverlayDataRepository),
+      container.get(ResourceDataRepository),
+      container.get(TerraformService),
+    ]);
 
     if (!this.instance) {
       this.instance = new TransactionService(
-        captureService,
         eventService,
         inputService,
         moduleContainer,
         overlayDataRepository,
         resourceDataRepository,
+        terraformService,
       );
     }
 
