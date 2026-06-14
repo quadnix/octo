@@ -60,12 +60,15 @@ export { BaseOverlaySchema } from './overlays/overlay.schema.js';
 export { AResource } from './resources/resource.abstract.js';
 export { BaseResourceSchema } from './resources/resource.schema.js';
 export { type IResourceAction } from './resources/resource-action.interface.js';
+export { ATerraformResource } from './resources/terraform-resource.abstract.js';
 
-export { LocalEncryptionStateProvider } from './services/state-management/local-encryption.state-provider.js';
 export { LocalStateProvider } from './services/state-management/local.state-provider.js';
+export { LocalEncryptionStateProvider } from './services/state-management/local-encryption.state-provider.js';
 export { StateManagementService } from './services/state-management/state-management.service.js';
 export { type IStateProvider } from './services/state-management/state-provider.interface.js';
 export { TestStateProvider } from './services/state-management/test.state-provider.js';
+
+export type { OctoTerraformResourceScope, TerraformModuleScope } from './services/terraform/terraform.service.js';
 
 export { DiffAssert } from './utilities/test-helpers/test-diff-assert.js';
 

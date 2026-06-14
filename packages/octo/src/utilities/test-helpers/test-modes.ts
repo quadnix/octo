@@ -37,7 +37,17 @@ export class TfVpcResource extends ATerraformResource<BaseResourceSchema, TfVpcR
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {
-    const vpcTf = terraform.addOctoTerraformResource(this as TfVpcResource);
+    // Bind a provider only when the resource carries an accountId, so the default (provider-less)
+    // graph keeps exercising the no-provider path while a provider-aware test can opt in.
+    const provider = this.properties['accountId']
+      ? {
+          provider: {
+            accountId: this.properties['accountId'] as string,
+            regionId: this.properties['regionId'] as string | undefined,
+          },
+        }
+      : undefined;
+    const vpcTf = terraform.addOctoTerraformResource(this as TfVpcResource, provider);
     vpcTf.addTerraformResource('aws_vpc', this.resourceId, { cidr_block: this.properties['CidrBlock'] });
     vpcTf.output({ VpcId: terraform.raw(`aws_vpc.${this.resourceId}.id`) });
   }
@@ -170,6 +180,34 @@ export class TestModes {
     await this.testModuleContainer.createResources('sg-module', [sg], options);
 
     return { app: app as App, igw, sg, vpc };
+  }
+
+  /**
+   * Registers an additional resource into an existing module folder, the way a model action would
+   * contribute a new resource on a re-run. Use after {@link createResourceGraph} to exercise an add
+   * of a brand-new resource (module-attributed, so it lands in the named folder rather than the
+   * provider-less `default` folder).
+   */
+  async addResource(moduleId: string, resource: UnknownResource): Promise<void> {
+    await this.testModuleContainer.createResources(moduleId, [resource]);
+  }
+
+  async createProviderBoundResourceGraph(provider: { accountId: string; regionId?: string }): Promise<{
+    app: App;
+    vpc: TfVpcResource;
+  }> {
+    const {
+      app: [app],
+    } = await this.testModuleContainer.createTestModels('app-module', { app: ['test-app'] });
+
+    const vpc = new TfVpcResource('vpc-1', {
+      accountId: provider.accountId,
+      CidrBlock: '10.0.0.0/16',
+      regionId: provider.regionId,
+    });
+    await this.testModuleContainer.createResources('region-module', [vpc]);
+
+    return { app: app as App, vpc };
   }
 
   async teardown(): Promise<void> {

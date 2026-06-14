@@ -1,8 +1,7 @@
 import type { App } from '../models/app/app.model.js';
 import { ExternalIgwResource, TestModes, TfSgResource, TfVpcResource } from '../utilities/test-helpers/test-modes.js';
 import { commitResources } from '../utilities/test-helpers/test-resources.js';
-import type { PersistedTerraformMapping } from './octo-mode.shared.js';
-import { validate } from './validate.mode.js';
+import { type PersistedTerraformMapping, validate } from './validate.mode.js';
 
 describe('validate()', () => {
   let testModes: TestModes;

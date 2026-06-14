@@ -1,20 +1,15 @@
 import { strict as assert } from 'assert';
-import type {
-  Constructable,
-  ModuleSchemaInputs,
-  TransactionOptions,
-  UnknownModule,
-  UnknownResource,
-} from './app.type.js';
+import type { Constructable, ModuleSchemaInputs, UnknownModule, UnknownResource } from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
-import { TransactionError } from './errors/index.js';
 import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
 import { App } from './models/app/app.model.js';
+import { commit as runCommit } from './modes/commit.mode.js';
+import { generate as runGenerate } from './modes/generate.mode.js';
+import { runAction as runRunAction } from './modes/run-action.mode.js';
+import { type PersistedTerraformMapping, validate as runValidate } from './modes/validate.mode.js';
 import { ModuleContainer } from './modules/module.container.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
-import { BaseResourceSchema } from './resources/resource.schema.js';
-import { CaptureService } from './services/capture/capture.service.js';
 import { InputService } from './services/input/input.service.js';
 import { SchemaTranslationService } from './services/schema-translation/schema-translation.service.js';
 import { ModelSerializationService } from './services/serialization/model/model-serialization.service.js';
@@ -24,7 +19,7 @@ import {
   StateManagementServiceFactory,
 } from './services/state-management/state-management.service.js';
 import type { IStateProvider } from './services/state-management/state-provider.interface.js';
-import { TransactionService } from './services/transaction/transaction.service.js';
+import { TerraformService } from './services/terraform/terraform.service.js';
 
 /**
  * @group Main
@@ -33,78 +28,15 @@ export class Octo {
   private readonly modelStateFileName: string = 'models.json';
   private readonly actualResourceStateFileName: string = 'resources-actual.json';
   private readonly oldResourceStateFileName: string = 'resources-old.json';
+  private readonly terraformMappingStateFileName: string = 'terraform-mapping.json';
 
-  private captureService: CaptureService;
   private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
   private moduleContainer: ModuleContainer;
   private resourceSerializationService: ResourceSerializationService;
   private schemaTranslationService: SchemaTranslationService;
   private stateManagementService: StateManagementService;
-  private transactionService: TransactionService;
-
-  async *beginTransaction(
-    app: App,
-    {
-      appLockId = undefined,
-      enableResourceCapture = false,
-      enableResourceValidation = false,
-      yieldModelDiffs = false,
-      yieldModelTransaction = false,
-      yieldResourceDiffs = false,
-      yieldResourceTransaction = false,
-    }: TransactionOptions & { appLockId?: string } = {},
-  ): ReturnType<TransactionService['beginTransaction']> {
-    const diffs = await app.diff();
-    const transaction = this.transactionService.beginTransaction(diffs, {
-      enableResourceCapture,
-      enableResourceValidation,
-      yieldModelDiffs: true,
-      yieldModelTransaction: true,
-      yieldResourceDiffs: true,
-      yieldResourceTransaction: true,
-    });
-
-    const modelDiffs = await transaction.next();
-    if (yieldModelDiffs) {
-      yield modelDiffs.value;
-    }
-
-    const modelTransaction = await transaction.next();
-    if (yieldModelTransaction) {
-      yield modelTransaction.value;
-    }
-
-    const resourceDiffs = await transaction.next();
-    if (yieldResourceDiffs) {
-      yield resourceDiffs.value;
-    }
-
-    if (!appLockId) {
-      throw new TransactionError('App is not in lock state!');
-    }
-
-    const isAppLocked = await this.stateManagementService.isAppLocked(appLockId);
-    if (!isAppLocked) {
-      throw new TransactionError('App is not in lock state!');
-    }
-    await this.stateManagementService.updateAppLockTransaction(appLockId);
-
-    let resourceTransaction:
-      | IteratorYieldResult<DiffMetadata[][]>
-      | IteratorReturnResult<DiffMetadata[][]>
-      | undefined = undefined;
-    try {
-      resourceTransaction = await transaction.next();
-      if (yieldResourceTransaction) {
-        yield resourceTransaction.value;
-      }
-
-      return (await transaction.next()).value;
-    } finally {
-      await this.commitTransaction(app, modelTransaction.value, resourceTransaction ? resourceTransaction.value : []);
-    }
-  }
+  private terraformService: TerraformService;
 
   @EnableHook('CommitHook')
   private async commitTransaction(
@@ -124,8 +56,28 @@ export class Octo {
     await this.retrieveResourceState();
   }
 
+  /**
+   * Commits the result of a terraform apply back into octo's state.
+   *
+   * Delegates the tfstate → response mapping to the `commit` mode, then persists octo's state
+   * (model + old + actual) and the octo→terraform mapping. All-or-nothing: the mode errors before
+   * mutating anything if an expected output is missing, leaving state untouched.
+   */
+  async commit(app: App, { tfDir }: { tfDir: string }): Promise<void> {
+    const { modelTransaction } = await runCommit(app, { tfDir });
+    await this.saveTerraformMapping();
+    await this.commitTransaction(app, modelTransaction, []);
+  }
+
   async compose(): Promise<{ [key: string]: unknown }> {
     return await this.moduleContainer.apply();
+  }
+
+  /**
+   * Generates terragrunt module folders representing the full desired state.
+   */
+  async generate(app: App, options: { outputDir: string }): ReturnType<typeof runGenerate> {
+    return runGenerate(app, options);
   }
 
   getModule<M extends UnknownModule>(...args: Parameters<InputService['getModule']>): M | undefined {
@@ -134,6 +86,31 @@ export class Octo {
 
   getModuleResources(...args: Parameters<InputService['getModuleResources']>): UnknownResource[] {
     return this.inputService.getModuleResources(...args);
+  }
+
+  /**
+   * Reads the octo→terraform mapping persisted by the last commit, keyed by resource context.
+   * Returns an empty map when nothing has been committed yet.
+   */
+  private async getPersistedTerraformMappings(): Promise<Map<string, PersistedTerraformMapping>> {
+    const result = new Map<string, PersistedTerraformMapping>();
+
+    let content: string;
+    try {
+      const buffer = await this.stateManagementService.getState(this.terraformMappingStateFileName);
+      content = buffer.toString();
+    } catch (error) {
+      if (error.message === 'No state found!') {
+        return result;
+      }
+      throw error;
+    }
+
+    const parsed = JSON.parse(content) as { data: PersistedTerraformMapping[] };
+    for (const mapping of parsed.data ?? []) {
+      result.set(mapping.resourceContext, mapping);
+    }
+    return result;
   }
 
   async initialize(
@@ -149,16 +126,14 @@ export class Octo {
     const container = Container.getInstance();
 
     [
-      this.captureService,
       this.inputService,
       this.modelSerializationService,
       this.moduleContainer,
       this.resourceSerializationService,
       this.schemaTranslationService,
       this.stateManagementService,
-      this.transactionService,
+      this.terraformService,
     ] = await Promise.all([
-      container.get(CaptureService),
       container.get(InputService),
       container.get(ModelSerializationService),
       container.get(ModuleContainer),
@@ -167,7 +142,7 @@ export class Octo {
       container.get<StateManagementService, typeof StateManagementServiceFactory>(StateManagementService, {
         args: [stateProvider],
       }),
-      container.get(TransactionService),
+      container.get(TerraformService),
     ]);
 
     for (const exclude of excludeInContainer) {
@@ -196,10 +171,6 @@ export class Octo {
     this.moduleContainer.order(...args);
   }
 
-  registerCapture<S extends BaseResourceSchema>(resourceContext: string, response: Partial<S['response']>): void {
-    this.captureService.registerCapture(resourceContext, response);
-  }
-
   registerHooks(...args: Parameters<ModuleContainer['registerHooks']>): ReturnType<ModuleContainer['registerHooks']> {
     this.moduleContainer.registerHooks(...args);
   }
@@ -219,6 +190,27 @@ export class Octo {
     }
   }
 
+  /**
+   * Sets the minimum terraform version and the `required_providers` sources/versions rendered
+   * into every generated module folder. Call after `initialize()`, before `generate()`.
+   */
+  registerTerraformConfig(
+    ...args: Parameters<TerraformService['addTerraformConfig']>
+  ): ReturnType<TerraformService['addTerraformConfig']> {
+    return this.terraformService.addTerraformConfig(...args);
+  }
+
+  /**
+   * Registers a terraform provider block for a deployment target (provider type + account +
+   * region). Resources bind to providers by `{ accountId, regionId }` alone — registration is
+   * the one place a provider type is named. Call after `initialize()`, before `generate()`.
+   */
+  registerTerraformProvider(
+    ...args: Parameters<TerraformService['addTerraformProvider']>
+  ): ReturnType<TerraformService['addTerraformProvider']> {
+    return this.terraformService.addTerraformProvider(...args);
+  }
+
   private async retrieveResourceState(): Promise<void> {
     const { data: actualSerializedOutput } = await this.stateManagementService.getResourceState(
       this.actualResourceStateFileName,
@@ -229,6 +221,17 @@ export class Octo {
 
     // Initialize previous resource state.
     await this.resourceSerializationService.deserialize(actualSerializedOutput, oldSerializedOutput);
+  }
+
+  /**
+   * Runs a single resource action, invoked by terraform mid-apply for an external resource.
+   * See the `runAction` mode.
+   */
+  async runAction(
+    app: App,
+    options: { inputs?: Record<string, unknown>; inputsFilePath?: string; resourceId: string },
+  ): ReturnType<typeof runRunAction> {
+    return runRunAction(app, options);
   }
 
   private async saveModelState(app: App): Promise<void> {
@@ -253,5 +256,31 @@ export class Octo {
     await this.stateManagementService.saveResourceState(this.oldResourceStateFileName, oldSerializedOutput, {
       version: 1,
     });
+  }
+
+  /**
+   * Persists the current octo→terraform mapping so a later validate can recover the addresses of
+   * resources that get deleted afterwards. Written only on a successful commit (last-applied state).
+   */
+  private async saveTerraformMapping(): Promise<void> {
+    const mappings = this.terraformService.getOctoTerraformResourceMappings();
+    const data: PersistedTerraformMapping[] = mappings.map((m) => ({
+      moduleId: m.moduleId,
+      resourceContext: m.resourceContext,
+      resourceId: m.resourceId,
+      terraformAddresses: m.terraformAddresses,
+    }));
+    await this.stateManagementService.saveState(
+      this.terraformMappingStateFileName,
+      Buffer.from(JSON.stringify({ data })),
+    );
+  }
+
+  /**
+   * Validates the generated terraform plans against octo's resource diff.
+   */
+  async validate(app: App, { tfDir }: { tfDir: string }): ReturnType<typeof runValidate> {
+    const persistedMappings = await this.getPersistedTerraformMappings();
+    return runValidate(app, { persistedMappings, tfDir });
   }
 }

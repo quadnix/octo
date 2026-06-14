@@ -372,7 +372,7 @@ describe('TerraformService UT', () => {
       expect(mainTf).toContain('hashicorp/external');
     });
 
-    it('should feed an external parent\'s whole result into a child external resource as one input (same module)', () => {
+    it("should feed an external parent's whole result into a child external resource as one input (same module)", () => {
       const scope = service.scope('m1');
 
       const igw = new TestExternalResource('igw-1', {});
@@ -388,7 +388,7 @@ describe('TerraformService UT', () => {
       expect(mainTf).toContain('input_igw_1 = "${jsonencode(data.external.igw-1.result)}"');
     });
 
-    it('should wire an external parent\'s whole result into a child external resource across modules', () => {
+    it("should wire an external parent's whole result into a child external resource across modules", () => {
       const igw = new TestExternalResource('igw-1', {});
       service.scope('igw-module').addOctoTerraformExternalResource(igw);
 

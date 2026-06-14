@@ -7,7 +7,18 @@ import { DiffAction } from '../functions/diff/diff.js';
 import type { App } from '../models/app/app.model.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
-import type { PersistedTerraformMapping } from './octo-mode.shared.js';
+
+/**
+ * One resource's octo→terraform mapping, persisted at commit so a later validate can recover the
+ * exact terraform addresses (and owning module) of resources that have since been deleted — they
+ * are gone from the freshly generated files, but were present at the last apply.
+ */
+export interface PersistedTerraformMapping {
+  moduleId: string;
+  resourceContext: string;
+  resourceId: string;
+  terraformAddresses: string[];
+}
 
 interface ValidateResult {
   errors: { message: string; moduleId?: string }[];
