@@ -21,6 +21,7 @@ automations
 aws
 awsvpc
 axios
+azurerm
 backticks
 balancer
 balancers
@@ -77,6 +78,7 @@ ecs
 efs
 eip
 ejs
+eks
 elasticfilesystem
 elasticloadbalancing
 elbv
@@ -104,6 +106,7 @@ frontend
 frontmatter
 fs
 gcm
+gcp
 gfm
 gitignore
 gitkeep

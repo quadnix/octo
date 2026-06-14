@@ -235,8 +235,10 @@ export type ResourceSerializedOutput = {
  * @internal
  */
 export type TransactionOptions = {
-  enableResourceCapture?: boolean;
   enableResourceValidation?: boolean;
+  filterResourceDiffsByResourceId?: string;
+  generateTerraform?: boolean;
+  skipActualResourceUpdate?: boolean;
   yieldModelDiffs?: boolean;
   yieldModelTransaction?: boolean;
   yieldResourceDiffs?: boolean;

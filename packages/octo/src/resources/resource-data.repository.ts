@@ -195,6 +195,16 @@ export class ResourceDataRepository {
     return this.newResources.filter((r) => filters.every((c) => r.properties[c.key] === c.value));
   }
 
+  /**
+   * Marks the new (desired) resource graph as fully applied: the actual graph becomes the new
+   * graph and nothing is dirty. Used by terraform commit, where terraform has already applied
+   * the full desired state.
+   */
+  syncActualToNew(): void {
+    this.actualResources = [...this.newResources];
+    this.dirtyResources = [];
+  }
+
   removeNewResource(resource: UnknownResource): void {
     if ((resource.constructor as typeof AResource).NODE_TYPE !== NodeType.RESOURCE) {
       throw new ResourceError('Removing non-resource node!', resource);
