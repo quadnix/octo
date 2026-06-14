@@ -96,7 +96,7 @@ export class TfSgResource extends ATerraformResource<BaseResourceSchema, TfSgRes
  */
 export class TestModes {
   readonly igwActionHandledDiffs: Diff[] = [];
-  private igwResponse: BaseResourceSchema['response'] = { igwId: 'igw-0real' };
+  private readonly igwResponse: BaseResourceSchema['response'] = { igwId: 'igw-0real' };
 
   private constructor(
     readonly octo: Octo,
@@ -170,10 +170,6 @@ export class TestModes {
     await this.testModuleContainer.createResources('sg-module', [sg], options);
 
     return { app: app as App, igw, sg, vpc };
-  }
-
-  setIgwResponse(response: BaseResourceSchema['response']): void {
-    this.igwResponse = response;
   }
 
   async teardown(): Promise<void> {
