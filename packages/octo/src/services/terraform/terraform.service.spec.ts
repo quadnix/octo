@@ -12,8 +12,6 @@ class TestExternalResource extends AResource<BaseResourceSchema, TestExternalRes
   static override readonly NODE_SCHEMA = {};
   static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
 
-  static override responseKeys: string[] = ['igwId', 'igwArn'];
-
   constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
     super(resourceId, properties, parents);
   }
@@ -316,7 +314,7 @@ describe('TerraformService UT', () => {
       expect(files.get('igw-module')!.terragruntHcl).toContain('dependency "vpc-module"');
     });
 
-    it('should expose declared responseKeys as outputs consumable via getRef', () => {
+    it('should resolve a ref to an external resource by indexing its whole result map', () => {
       const scope = service.scope('m1');
 
       const vpc = new TestTfResource('vpc-1', {});
@@ -372,6 +370,37 @@ describe('TerraformService UT', () => {
       const mainTf = service.renderAllModules().get('m1')!.mainTf;
       expect(mainTf).toContain('hashicorp/null');
       expect(mainTf).toContain('hashicorp/external');
+    });
+
+    it('should feed an external parent\'s whole result into a child external resource as one input (same module)', () => {
+      const scope = service.scope('m1');
+
+      const igw = new TestExternalResource('igw-1', {});
+      scope.addOctoTerraformExternalResource(igw);
+
+      const nat = new TestExternalResource('nat-1', {}, [igw]);
+      scope.addOctoTerraformExternalResource(nat);
+
+      const mainTf = service.renderAllModules().get('m1')!.mainTf;
+      // The parent's keys are unknown at generation time, so the entire result map is handed over as
+      // a single jsonencode'd input, keyed bare by the parent id (no per-key suffix).
+      expect(mainTf).toContain('--input igw-1=${jsonencode(data.external.igw-1.result)}');
+      expect(mainTf).toContain('input_igw_1 = "${jsonencode(data.external.igw-1.result)}"');
+    });
+
+    it('should wire an external parent\'s whole result into a child external resource across modules', () => {
+      const igw = new TestExternalResource('igw-1', {});
+      service.scope('igw-module').addOctoTerraformExternalResource(igw);
+
+      const nat = new TestExternalResource('nat-1', {}, [igw]);
+      service.scope('nat-module').addOctoTerraformExternalResource(nat);
+
+      const files = service.renderAllModules();
+      // Cross module: one variable carries the parent's whole result map, sourced via terragrunt from
+      // the parent's single output, and consumed whole (jsonencode) in the child's input.
+      expect(files.get('nat-module')!.mainTf).toContain('--input igw-1=${jsonencode(var.igw_1)}');
+      expect(files.get('nat-module')!.variablesTf).toContain('variable "igw_1" {}');
+      expect(files.get('nat-module')!.terragruntHcl).toContain('igw_1 = dependency.igw-module.outputs["igw-1"]');
     });
   });
 
@@ -627,13 +656,11 @@ describe('TerraformService UT', () => {
         },
         {
           moduleId: 'm1',
-          outputMappings: [
-            { key: 'igwId', outputName: 'igw-1-igwId' },
-            { key: 'igwArn', outputName: 'igw-1-igwArn' },
-          ],
+          outputMappings: [],
           resourceContext: internetGateway.getContext(),
           resourceId: 'igw-1',
           terraformAddresses: ['null_resource.igw-1'],
+          entireResponseOutput: 'igw-1',
         },
       ]);
     });

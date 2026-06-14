@@ -35,12 +35,8 @@ resource "null_resource" "igw-1" {
 `;
 
 exports[`TerraformService UT addOctoTerraformExternalResource() should generate the null_resource and data external wrapper with cross-module inputs 2`] = `
-"output "igw-1-igwId" {
-  value = data.external.igw-1.result.igwId
-}
-
-output "igw-1-igwArn" {
-  value = data.external.igw-1.result.igwArn
+"output "igw-1" {
+  value = data.external.igw-1.result
 }
 "
 `;

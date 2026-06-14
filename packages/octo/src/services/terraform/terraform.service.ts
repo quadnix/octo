@@ -1,6 +1,5 @@
 import { MatchingResource, type ResourceSchema, type UnknownResource } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
-import type { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 import { StringUtility } from '../../utilities/string/string.utility.js';
 import {
@@ -35,10 +34,15 @@ interface OctoTerraformResourceMapping {
   moduleId: string;
 
   /**
-   * The output mappings for this octo resource, keyed by the octo resource's response key.
-   * The value is the name of the output it is published under.
+   * Per response key, and the name of the output it is published under.
+   * Empty array for external resources (see {@link entireResponseOutput}).
    */
   outputMappings: { key: string; outputName: string }[];
+
+  /**
+   * Set for external resources only: the single output carrying the entire response map.
+   */
+  entireResponseOutput?: string;
 
   /**
    * The octo resource context, used during validate to match a TF plan entry back to its octo resource.
@@ -262,7 +266,16 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     readonly moduleId: string,
     readonly explicitParentResourceIds: string[] = [],
     private readonly providerRef?: string, // Fully-qualified provider reference (`aws.111111111-us-east-1`).
-  ) {}
+    readonly externalResultExpression?: string, // External resource marker with `data.external.<name>.result` value.
+  ) {
+    // When an external script, publish the whole-result map as one output, keyed only by resource id, no output key.
+    if (externalResultExpression !== undefined) {
+      this.outputs.set(resourceId, {
+        name: StringUtility.sanitizeForIdentifier(resourceId),
+        value: new ExpressionHclNode(externalResultExpression),
+      });
+    }
+  }
 
   addTerraformResource(type: string, name: string, spec: Record<string, unknown> = {}): TerraformResource {
     const intraResourceDependencies =
@@ -333,10 +346,14 @@ export class TerraformService {
    * Only the parts that depend on no other resource are built here:
    * - the `null_resource` shell (its triggers and `local-exec` provisioners are filled in later),
    * - the `data "external"` read of `.octo-outputs/<id>.json`, deferred to apply time via `depends_on`,
-   * - one output per statically declared response key (`static responseKeys`).
+   * - the single whole-result output (`data.external.<name>.result`) that carries the entire response.
    *
-   * The parent-input wiring (triggers + create/destroy commands) reads every parent's declared
-   * outputs, which only all exist once registration is complete. It is therefore deferred to
+   * The external resource is never enumerated per response key: its response shape is unknown at
+   * generation time (the action has not run) and is, by the `data "external"` protocol, a flat map of
+   * strings. Refs to it (`getRef`) resolve by indexing this one expression; commit reads the whole map back.
+   *
+   * The parent-input wiring (triggers + create/destroy commands) reads every parent's outputs, which
+   * only all exist once registration is complete. It is therefore deferred to
    * {@link wireExternalResourceInputs} (run at the start of {@link computeWiring}). This deferral is
    * what lets the generate sweep contribute resources in any order, rather than parents-first.
    */
@@ -347,14 +364,14 @@ export class TerraformService {
     const resourceId = octoResource.resourceId;
     const name = StringUtility.sanitizeForIdentifier(resourceId);
 
-    const responseKeys: string[] =
-      ((octoResource.constructor as typeof AResource<BaseResourceSchema, any>).responseKeys as string[]) ?? [];
-
     const parents: UnknownResource[] = (octoResource.parents || []).map((p) =>
       p instanceof MatchingResource ? p.getActual() : p,
     );
 
-    const octoTerraformResource = this.addOctoTerraformResource(moduleId, octoResource, { explicitParents: parents });
+    const octoTerraformResource = this.addOctoTerraformResource(moduleId, octoResource, {
+      explicitParents: parents,
+      externalResultExpression: `data.external.${name}.result`,
+    });
     this.module(moduleId).hasExternalResources = true;
 
     // The null_resource shell. Its triggers and provisioner are added by wireExternalResourceInputs(),
@@ -367,14 +384,6 @@ export class TerraformService {
     });
     dataExternal.attribute('depends_on', new ExpressionHclNode(`[null_resource.${name}]`));
 
-    // Expose every declared response key as an output. These must be declared eagerly: other external
-    // resources read them when their own deferred input wiring is resolved.
-    const outputs: Record<string, HclExpression> = {};
-    for (const key of responseKeys) {
-      outputs[key] = new ExpressionHclNode(`data.external.${name}.result.${key}`);
-    }
-    octoTerraformResource.output(outputs);
-
     this.pendingExternalResourcesInputWiring.push({ name, nullResource, octoResource, resourceId });
 
     return octoTerraformResource;
@@ -385,9 +394,10 @@ export class TerraformService {
     octoResource: T,
     options: {
       explicitParents?: (UnknownResource | MatchingResource<BaseResourceSchema>)[];
+      externalResultExpression?: string;
       provider?: TerraformProviderContext;
     } = {},
-  ): OctoTerraformResourceScope<ResourceSchema<T>['response']> {
+  ): OctoTerraformResource<ResourceSchema<T>['response']> {
     const explicitParentResourceIds = (options.explicitParents || []).map((p) =>
       p instanceof MatchingResource ? p.getSchemaInstanceInResourceAction().resourceId : p.resourceId,
     );
@@ -422,6 +432,7 @@ export class TerraformService {
       moduleId,
       explicitParentResourceIds,
       providerRef,
+      options.externalResultExpression,
     );
     module.resources.push(newResource);
     this.resourceRegistry.set(octoResource.resourceId, newResource);
@@ -558,6 +569,30 @@ export class TerraformService {
         const producer = this.resourceRegistry.get(ref.resourceId);
         if (!producer) {
           throw new Error(`Resource "${ref.resourceId}" not found in Octo Terraform!`);
+        }
+
+        if (producer.externalResultExpression !== undefined) {
+          if (producer.moduleId === module.moduleId) {
+            moduleWiring.resolvedRefs.set(
+              `${ref.resourceId}.${ref.key}`,
+              ref.entireResponse
+                ? producer.externalResultExpression
+                : `${producer.externalResultExpression}.${ref.key}`,
+            );
+          } else {
+            const variableName = StringUtility.sanitizeForEnvironmentVariable(ref.resourceId);
+            const entireResponseOutput = producer.outputs.get(producer.resourceId)!;
+            moduleWiring.autoVariables.set(variableName, {
+              outputName: entireResponseOutput.name,
+              producerModuleId: producer.moduleId,
+            });
+            addModuleDependency(moduleWiring, producer.moduleId, `ref "${ref.resourceId}.${ref.key}"`);
+            moduleWiring.resolvedRefs.set(
+              `${ref.resourceId}.${ref.key}`,
+              ref.entireResponse ? `var.${variableName}` : `var.${variableName}.${ref.key}`,
+            );
+          }
+          continue;
         }
 
         const output = producer.outputs.get(ref.key);
@@ -703,13 +738,17 @@ export class TerraformService {
   }
 
   getOctoTerraformResourceMappings(): OctoTerraformResourceMapping[] {
-    return [...this.resourceRegistry.values()].map((r) => ({
-      moduleId: r.moduleId,
-      outputMappings: [...r.outputs.entries()].map(([key, o]) => ({ key, outputName: o.name })),
-      resourceContext: r.resourceContext,
-      resourceId: r.resourceId,
-      terraformAddresses: r.terraformResources.map((t) => t.address),
-    }));
+    return [...this.resourceRegistry.values()].map((r) => {
+      const isExternal = r.externalResultExpression !== undefined;
+      return {
+        entireResponseOutput: isExternal ? r.outputs.get(r.resourceId)!.name : undefined,
+        moduleId: r.moduleId,
+        outputMappings: isExternal ? [] : [...r.outputs.entries()].map(([key, o]) => ({ key, outputName: o.name })),
+        resourceContext: r.resourceContext,
+        resourceId: r.resourceId,
+        terraformAddresses: r.terraformResources.map((t) => t.address),
+      };
+    });
   }
 
   private jsonencode(subject: object | unknown[]): HclExpression {
@@ -938,7 +977,7 @@ export class TerraformService {
         p instanceof MatchingResource ? p.getActual() : p,
       );
 
-      // Every parent response key becomes one explicit input.
+      // A native parent contributes one input per output key; an external parent its whole result as a single input.
       const inputs: { argKey: string; ref: RefHclNode; triggerKey: string }[] = [];
       for (const parent of parents) {
         const parentOctoResource = this.resourceRegistry.get(parent.resourceId);
@@ -947,12 +986,20 @@ export class TerraformService {
             `Parent resource "${parent.resourceId}" of external resource "${resourceId}" is not registered with Terraform!`,
           );
         }
-        for (const key of parentOctoResource.outputs.keys()) {
+        if (parentOctoResource.externalResultExpression !== undefined) {
           inputs.push({
-            argKey: `${parent.resourceId}.${key}`,
-            ref: new RefHclNode(parent.resourceId, key),
-            triggerKey: StringUtility.sanitizeForEnvironmentVariable(`input_${parent.resourceId}_${key}`),
+            argKey: parent.resourceId,
+            ref: new RefHclNode(parent.resourceId, '', true),
+            triggerKey: StringUtility.sanitizeForEnvironmentVariable(`input_${parent.resourceId}`),
           });
+        } else {
+          for (const key of parentOctoResource.outputs.keys()) {
+            inputs.push({
+              argKey: `${parent.resourceId}.${key}`,
+              ref: new RefHclNode(parent.resourceId, key),
+              triggerKey: StringUtility.sanitizeForEnvironmentVariable(`input_${parent.resourceId}_${key}`),
+            });
+          }
         }
       }
 

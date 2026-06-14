@@ -210,10 +210,23 @@ export class MapHclNodeRaw extends HclExpression {
   }
 }
 
+/**
+ * This is the deferred cross-reference primitive in the terraform layer.
+ * When one resource needs another resource's output,
+ * we can't write the final HCL until every resource has been registered
+ * to find out if the producer is in the same module folder or different one.
+ * It is a placeholder that stands in for "resource X's response key Y" and gets resolved to HCL at the very end.
+ *
+ * - `entireResponse`: A normal RefHclNode targets one key (vpc-1.VpcId).
+ * When true, the ref points at the producer's entire response map rather than a single key (and `key` is empty).
+ * Used to feed an external resource's whole result into a child external resource's inputs.
+ * The map is wrapped in `jsonencode(...)` so it survives as a single string argument/trigger value.
+ */
 export class RefHclNode extends HclExpression {
   constructor(
     readonly resourceId: string,
     readonly key: string,
+    readonly entireResponse: boolean = false,
   ) {
     super();
   }
@@ -224,7 +237,8 @@ export class RefHclNode extends HclExpression {
    * This is what `getRef()` returns. Resolution happens via {@link RenderContext.resolveRef}.
    */
   override render(_indent: string, context: RenderContext): string {
-    return context.resolveRef(this);
+    const resolved = context.resolveRef(this);
+    return this.entireResponse ? `jsonencode(${resolved})` : resolved;
   }
 
   override collectRefs(into: RefHclNode[]): void {
