@@ -1,5 +1,3 @@
-import { TerraformService } from './terraform.service.js';
-
 type TerraformType = 'any' | 'bool' | 'list' | 'map' | 'number' | 'object' | 'set' | 'string' | 'tuple';
 
 export type TerraformLiteralType =

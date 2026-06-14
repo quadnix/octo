@@ -655,12 +655,12 @@ describe('TerraformService UT', () => {
           terraformAddresses: ['aws_vpc.vpc-1'],
         },
         {
+          entireResponseOutput: 'igw-1',
           moduleId: 'm1',
           outputMappings: [],
           resourceContext: internetGateway.getContext(),
           resourceId: 'igw-1',
           terraformAddresses: ['null_resource.igw-1'],
-          entireResponseOutput: 'igw-1',
         },
       ]);
     });

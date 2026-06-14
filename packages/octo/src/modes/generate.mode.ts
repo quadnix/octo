@@ -1,0 +1,48 @@
+import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { join } from 'path';
+import { Container } from '../functions/container/container.js';
+import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
+import type { App } from '../models/app/app.model.js';
+import { TerraformService } from '../services/terraform/terraform.service.js';
+import { TransactionService } from '../services/transaction/transaction.service.js';
+
+/**
+ * Generates terragrunt module folders representing the full desired state.
+ *
+ * Boots normally (modules → model actions → resource graph), contributes every resource to
+ * terraform (terraform resources via `toHCL()`, external resources via the `null_resource`
+ * wrapper), wipes `outputDir`, and writes one folder per octo module. Persists nothing to
+ * octo state — the returned resource diffs are a review artifact only.
+ *
+ * @internal
+ */
+export async function generate(app: App, { outputDir }: { outputDir: string }): Promise<DiffMetadata[][]> {
+  const container = Container.getInstance();
+  const [terraformService, transactionService] = await Promise.all([
+    container.get(TerraformService),
+    container.get(TransactionService),
+  ]);
+
+  const diffs = await app.diff();
+  const transaction = transactionService.beginTransaction(diffs, {
+    generateTerraform: true,
+    yieldResourceDiffs: true,
+  });
+
+  const resourceDiffs = await transaction.next();
+
+  const moduleFiles = terraformService.renderAllModules();
+
+  // The output directory is fully octo-owned: wipe and regenerate.
+  await rm(outputDir, { force: true, recursive: true });
+  for (const [moduleId, files] of moduleFiles.entries()) {
+    const moduleDir = join(outputDir, moduleId);
+    await mkdir(moduleDir, { recursive: true });
+    await writeFile(join(moduleDir, 'main.tf'), files.mainTf, 'utf-8');
+    await writeFile(join(moduleDir, 'variables.tf'), files.variablesTf, 'utf-8');
+    await writeFile(join(moduleDir, 'outputs.tf'), files.outputsTf, 'utf-8');
+    await writeFile(join(moduleDir, 'terragrunt.hcl'), files.terragruntHcl, 'utf-8');
+  }
+
+  return resourceDiffs.value as DiffMetadata[][];
+}

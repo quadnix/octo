@@ -1,0 +1,75 @@
+import { existsSync } from 'node:fs';
+import { readFile, writeFile } from 'node:fs/promises';
+import { join } from 'path';
+import { TestModes } from '../utilities/test-helpers/test-modes.js';
+import { generate } from './generate.mode.js';
+
+describe('generate()', () => {
+  let testModes: TestModes;
+
+  beforeEach(async () => {
+    testModes = await TestModes.create();
+  });
+
+  afterEach(async () => {
+    await testModes.teardown();
+  });
+
+  it('should write one folder per module with cross-module wiring', async () => {
+    const { app } = await testModes.createResourceGraph();
+
+    // generate returns the raw resource diffs (DiffMetadata[][]); octo-build consumes them directly.
+    const resourceDiffs = await generate(app, { outputDir: testModes.outputDir });
+
+    expect(
+      resourceDiffs
+        .flat()
+        .filter((d) => d.action === 'add' && d.field === 'resourceId')
+        .map((d) => d.node.getContext()),
+    ).toEqual([expect.stringContaining('vpc-1'), expect.stringContaining('igw-1'), expect.stringContaining('sg-1')]);
+
+    // One folder per module is written (verified further by the per-file reads below).
+    expect(existsSync(join(testModes.outputDir, 'region-module'))).toBe(true);
+    expect(existsSync(join(testModes.outputDir, 'sg-module'))).toBe(true);
+
+    const regionMainTf = await readFile(join(testModes.outputDir, 'region-module', 'main.tf'), 'utf-8');
+    expect(regionMainTf).toContain('resource "aws_vpc" "vpc-1"');
+    expect(regionMainTf).toContain('resource "null_resource" "igw-1"');
+    expect(regionMainTf).toContain('vpc-1.VpcId=${aws_vpc.vpc-1.id}');
+
+    const regionOutputsTf = await readFile(join(testModes.outputDir, 'region-module', 'outputs.tf'), 'utf-8');
+    expect(regionOutputsTf).toContain('output "vpc-1-VpcId"');
+    expect(regionOutputsTf).toContain('output "igw-1"'); // External resource publishes whole response.
+
+    const sgMainTf = await readFile(join(testModes.outputDir, 'sg-module', 'main.tf'), 'utf-8');
+    expect(sgMainTf).toContain('igw_id = var.igw_1.igwId');
+
+    const sgVariablesTf = await readFile(join(testModes.outputDir, 'sg-module', 'variables.tf'), 'utf-8');
+    expect(sgVariablesTf).toContain('variable "igw_1" {}');
+
+    const sgTerragruntHcl = await readFile(join(testModes.outputDir, 'sg-module', 'terragrunt.hcl'), 'utf-8');
+    expect(sgTerragruntHcl).toContain('dependency "region-module"');
+    expect(sgTerragruntHcl).toContain('igw_1 = dependency.region-module.outputs["igw-1"]');
+
+    expect(existsSync(join(testModes.outputDir, 'region-module', 'terragrunt.hcl'))).toBe(true);
+  });
+
+  it('should wipe stale module folders on regenerate', async () => {
+    const { app } = await testModes.createResourceGraph();
+
+    await writeFile(join(testModes.outputDir, 'stale-file.hcl'), 'stale', 'utf-8');
+    await generate(app, { outputDir: testModes.outputDir });
+
+    expect(existsSync(join(testModes.outputDir, 'stale-file.hcl'))).toBe(false);
+  });
+
+  it('should not persist any octo state', async () => {
+    const { app } = await testModes.createResourceGraph();
+
+    await generate(app, { outputDir: testModes.outputDir });
+
+    // A fresh repository diff still shows all adds - nothing was committed.
+    const diffs = await testModes.resourceDataRepository.diff();
+    expect(diffs.filter((d) => d.action === 'add' && d.field === 'resourceId')).toHaveLength(3);
+  });
+});
