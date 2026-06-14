@@ -6,12 +6,6 @@ import { AModel } from '../model.abstract.js';
 import { Region } from '../region/region.model.js';
 import { AccountSchema, AccountType } from './account.schema.js';
 
-type AwsCredentials = {
-  readonly accessKeyId: string;
-
-  readonly secretAccessKey: string;
-};
-
 /**
  * @group Models/Account
  */
@@ -41,17 +35,6 @@ export class Account extends AModel<AccountSchema, Account> {
       throw new ModelError('Region already exists!', this);
     }
     this.addChild('accountId', region, 'regionId');
-  }
-
-  isAwsCredentials(credentials: ReturnType<Account['getCredentials']>): credentials is AwsCredentials {
-    return (
-      Object.prototype.hasOwnProperty.call(credentials, 'accessKeyId') &&
-      Object.prototype.hasOwnProperty.call(credentials, 'secretAccessKey')
-    );
-  }
-
-  getCredentials(): object {
-    throw new ModelError('Method not implemented! Use subclass', this);
   }
 
   override setContext(): string | undefined {

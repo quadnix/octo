@@ -5,8 +5,8 @@ import {
   ResourceDataRepository,
   type ResourceDataRepositoryFactory,
 } from '../../resources/resource-data.repository.js';
-import { CaptureService, type CaptureServiceFactory } from '../../services/capture/capture.service.js';
 import { InputService, type InputServiceFactory } from '../../services/input/input.service.js';
+import { TerraformService, type TerraformServiceFactory } from '../../services/terraform/terraform.service.js';
 import { Container } from './container.js';
 
 type FactoryMock<T> = {
@@ -39,6 +39,19 @@ type TestContainerOptions = { factoryTimeoutInMs?: number };
 export class TestContainer {
   private static originalFactories: Container['factories'];
 
+  /**
+   * Bootstrap the Container with the necessary factories internal to Octo.
+   * Between test runs, when the container is reset, many of Octo's internal classes must be reset as well.
+   * Since these classes are not exposed outside of Octo, we must bootstrap them.
+   *
+   * Some factories defined in Octo using `@Factory` must be placed here,
+   * the exact criteria being any factory that needs to reset its state.
+   *
+   * Exceptions:
+   * - {@link ModelSerializationService}: We do not want to loose class mapping already instantiated via decorators.
+   * - {@link ResourceSerializationService}: We do not want to loose class mapping already instantiated via decorators.
+   * - {@link TransactionService}: Factory only points to other instances already reset here.
+   */
   private static async bootstrap(container: Container): Promise<void> {
     await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
       args: [true, []],
@@ -48,11 +61,11 @@ export class TestContainer {
       args: [true, [], [], []],
     });
 
-    await container.get<CaptureService, typeof CaptureServiceFactory>(CaptureService, { args: [true] });
-
     await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
 
     await container.get<ModuleContainer, typeof ModuleContainerFactory>(ModuleContainer, { args: [true] });
+
+    await container.get<TerraformService, typeof TerraformServiceFactory>(TerraformService, { args: [{}, true] });
   }
 
   /**

@@ -77,10 +77,10 @@ export class InputService {
     return key.split('.')[0];
   }
 
-  getModuleIdFromResource(resource: UnknownResource): string {
+  getModuleIdFromResource(resource: UnknownResource): string | undefined {
     const context = resource.getContext();
-    const [key] = Object.entries(this.resources).find(([, r]) => r === context)!;
-    return key.split('.')[0];
+    const entry = Object.entries(this.resources).find(([, r]) => r === context);
+    return entry?.[0].split('.')[0];
   }
 
   getModuleResources(moduleId: string): UnknownResource[] {

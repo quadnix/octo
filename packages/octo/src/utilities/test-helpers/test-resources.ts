@@ -3,7 +3,9 @@ import { Container } from '../../functions/container/container.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
+import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
 import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
+import type { TerraformModuleScope } from '../../services/terraform/terraform.service.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
 import { NodeUtility } from '../node/node.utility.js';
 
@@ -53,6 +55,35 @@ function createResource(nodeName: string): Constructable<AResource<any, any>> {
       parents: UnknownResource[] = [],
     ) {
       super(resourceId, properties, parents);
+    }
+  };
+}
+
+/**
+ * Builds a minimal {@link ATerraformResource} subclass for tests. Its `toHCL()` contributes the
+ * resource to terraform as a native terraform resource (no blocks/outputs needed) so the generate
+ * sweep, the terraform no-op action path, and the registration guard can all be exercised against a
+ * realistic terraform resource without hand-rolling a class per spec.
+ *
+ * @internal
+ */
+export function createTerraformResource(nodeName: string): Constructable<ATerraformResource<any, any>> {
+  return class extends ATerraformResource<BaseResourceSchema, any> {
+    static override readonly NODE_NAME: string = nodeName;
+    static override readonly NODE_PACKAGE: string = '@octo';
+    static override readonly NODE_SCHEMA = {};
+    static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
+
+    constructor(
+      resourceId: string,
+      properties: BaseResourceSchema['properties'] = {},
+      parents: UnknownResource[] = [],
+    ) {
+      super(resourceId, properties, parents);
+    }
+
+    override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+      terraform.addOctoTerraformResource(this);
     }
   };
 }
@@ -113,6 +144,7 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
       parents?: string[] | UnknownResource[];
       resourceActions?: IUnknownResourceAction[];
       resourceContext: string;
+      terraform?: boolean;
     };
   },
   options?: { save?: boolean },
@@ -159,9 +191,12 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
       }),
     );
 
-    const Resource = createResource(NODE_NAME);
+    const Resource = arg.terraform ? createTerraformResource(NODE_NAME) : createResource(NODE_NAME);
     Object.defineProperty(Resource, 'name', { value: NODE_NAME });
-    transactionService.registerResourceActions(Resource, arg.resourceActions || []);
+    // Terraform resources are managed by terraform via toHCL() and cannot have resource actions.
+    if (!arg.terraform) {
+      transactionService.registerResourceActions(Resource, arg.resourceActions || []);
+    }
 
     const resource = new Resource(resourceId, {}, parentsResolved);
     if (properties) {

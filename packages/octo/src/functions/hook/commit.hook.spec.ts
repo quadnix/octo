@@ -27,7 +27,6 @@ describe('CommitHook UT', () => {
     const preCommitHookMock = jest.fn();
 
     const stateProvider = new TestStateProvider();
-    const { lockId } = await stateProvider.lockApp();
 
     const octo = new Octo();
     await octo.initialize(stateProvider);
@@ -36,8 +35,7 @@ describe('CommitHook UT', () => {
       postCommitHooks: [{ handle: postCommitHookMock as any }],
       preCommitHooks: [{ handle: preCommitHookMock as any }],
     });
-    const generator = octo.beginTransaction(new App('test-app'), { appLockId: lockId });
-    await generator.next();
+    await octo.commit(new App('test-app'), { tfDir: '/tmp/octo-tf-does-not-exist' });
 
     expect(postCommitHookMock).toHaveBeenCalledTimes(1);
     expect(preCommitHookMock).toHaveBeenCalledTimes(1);

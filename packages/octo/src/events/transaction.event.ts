@@ -1,5 +1,4 @@
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
-import type { BaseResourceSchema } from '../resources/resource.schema.js';
 import { Event } from './event.model.js';
 
 /**
@@ -47,20 +46,6 @@ export class ModelTransactionTransactionEvent extends TransactionEvent<DiffMetad
  * @returns The Event instance.
  */
 export class ResourceActionCompletedTransactionEvent extends TransactionEvent<DiffMetadata> {}
-
-/**
- * This event is emitted pre-transaction to provide information for resource actions about to be executed
- * in the transaction.
- *
- * @group Events/Transaction
- *
- * @returns The Event instance.
- */
-export class ResourceActionInformationTransactionEvent extends TransactionEvent<{
-  action: { name: string };
-  capture?: { response: Partial<BaseResourceSchema['response']> };
-  diff: DiffMetadata;
-}> {}
 
 /**
  * This event is emitted when a resource action in a transaction begins executing.
