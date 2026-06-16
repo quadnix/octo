@@ -52,7 +52,6 @@ export class AddAwsEcsServerModelAction implements IModelAction<AwsEcsServerModu
     });
 
     actionOutputs[iamRole.resourceId] = iamRole;
-    await iamRole.toHCL();
 
     return actionOutputs;
   }

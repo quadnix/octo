@@ -63,7 +63,6 @@ export class AddAwsEcsExecutionServerSecurityGroupOverlayAction implements IMode
       );
 
       actionOutputs[securityGroup.resourceId] = securityGroup;
-      await securityGroup.toHCL();
     }
 
     return actionOutputs;

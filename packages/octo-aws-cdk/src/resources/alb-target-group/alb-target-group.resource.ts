@@ -1,14 +1,14 @@
 import {
   AResource,
+  ATerraformResource,
   Diff,
   DiffAction,
   DiffUtility,
   type MatchingResource,
   Resource,
   ResourceError,
+  type TerraformModuleScope,
 } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { AlbTargetGroupSchema } from './index.schema.js';
 
@@ -16,7 +16,7 @@ import { AlbTargetGroupSchema } from './index.schema.js';
  * @internal
  */
 @Resource<AlbTargetGroup>('@octo', 'alb-target-group', AlbTargetGroupSchema)
-export class AlbTargetGroup extends ATFResource<AlbTargetGroupSchema, AlbTargetGroup> {
+export class AlbTargetGroup extends ATerraformResource<AlbTargetGroupSchema, AlbTargetGroup> {
   declare parents: [MatchingResource<VpcSchema>];
   declare properties: AlbTargetGroupSchema['properties'];
   declare response: AlbTargetGroupSchema['response'];
@@ -54,11 +54,7 @@ export class AlbTargetGroup extends ATFResource<AlbTargetGroupSchema, AlbTargetG
     return diffs;
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
-    });
-
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const spec: Record<string, unknown> = {
       ip_address_type: this.properties.IpAddressType,
       name: this.properties.Name,
@@ -66,7 +62,7 @@ export class AlbTargetGroup extends ATFResource<AlbTargetGroupSchema, AlbTargetG
       protocol: this.properties.Protocol,
       protocol_version: this.properties.ProtocolVersion,
       target_type: this.properties.TargetType,
-      vpc_id: octoTerraform.getRef(this.parents[0], 'VpcId'),
+      vpc_id: terraform.getRef(this.parents[0], 'VpcId'),
     };
 
     if (this.properties.healthCheck) {
@@ -83,7 +79,9 @@ export class AlbTargetGroup extends ATFResource<AlbTargetGroupSchema, AlbTargetG
       };
     }
 
-    const albTargetGroupOctoResource = octoTerraform.addOctoTerraformResource(this as AlbTargetGroup);
+    const albTargetGroupOctoResource = terraform.addOctoTerraformResource(this as AlbTargetGroup, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
+    });
 
     const albTargetGroupTFResource = albTargetGroupOctoResource.addTerraformResource(
       'aws_lb_target_group',
@@ -91,7 +89,7 @@ export class AlbTargetGroup extends ATFResource<AlbTargetGroupSchema, AlbTargetG
       spec,
     );
     albTargetGroupOctoResource.output({
-      TargetGroupArn: octoTerraform.raw(`${albTargetGroupTFResource.address}.arn`),
+      TargetGroupArn: terraform.raw(`${albTargetGroupTFResource.address}.arn`),
     });
 
     if (Object.keys(this.tags).length > 0) {

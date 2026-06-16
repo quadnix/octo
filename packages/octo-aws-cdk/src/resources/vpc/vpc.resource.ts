@@ -1,13 +1,18 @@
-import { Diff, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
-import { ATFResource } from '../tf-resource.abstract.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffUtility,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import { VpcSchema } from './index.schema.js';
 
 /**
  * @internal
  */
 @Resource<Vpc>('@octo', 'vpc', VpcSchema)
-export class Vpc extends ATFResource<VpcSchema, Vpc> {
+export class Vpc extends ATerraformResource<VpcSchema, Vpc> {
   declare properties: VpcSchema['properties'];
   declare response: VpcSchema['response'];
 
@@ -23,12 +28,10 @@ export class Vpc extends ATFResource<VpcSchema, Vpc> {
     return super.diffProperties(previous);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const vpcOctoResource = terraform.addOctoTerraformResource(this as Vpc, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
-
-    const vpcOctoResource = octoTerraform.addOctoTerraformResource(this as Vpc);
 
     const vpcTFResource = vpcOctoResource.addTerraformResource('aws_vpc', this.resourceId, {
       cidr_block: this.properties.CidrBlock,
@@ -37,8 +40,8 @@ export class Vpc extends ATFResource<VpcSchema, Vpc> {
       instance_tenancy: this.properties.InstanceTenancy,
     });
     vpcOctoResource.output({
-      VpcArn: octoTerraform.raw(`${vpcTFResource.address}.arn`),
-      VpcId: octoTerraform.raw(`${vpcTFResource.address}.id`),
+      VpcArn: terraform.raw(`${vpcTFResource.address}.arn`),
+      VpcId: terraform.raw(`${vpcTFResource.address}.id`),
     });
 
     if (Object.keys(this.tags).length > 0) {

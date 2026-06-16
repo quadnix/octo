@@ -56,10 +56,8 @@ export class AddAwsMultiAzRegionModelAction implements IModelAction<AwsMultiAzRe
     );
 
     actionOutputs[vpc.resourceId] = vpc;
-    await vpc.toHCL();
 
     actionOutputs[internetGateway.resourceId] = internetGateway;
-    await internetGateway.toHCL();
 
     return actionOutputs;
   }

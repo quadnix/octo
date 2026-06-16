@@ -1,8 +1,14 @@
-import { Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
+import {
+  ATerraformResource,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import mime from 'mime';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import { S3WebsiteSchema } from './index.schema.js';
 
 /**
@@ -14,7 +20,7 @@ type IManifest = { [key: string]: { algorithm: 'sha1'; digest: string | 'deleted
  * @internal
  */
 @Resource<S3Website>('@octo', 's3-website', S3WebsiteSchema)
-export class S3Website extends ATFResource<S3WebsiteSchema, S3Website> {
+export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
   declare properties: S3WebsiteSchema['properties'];
   declare response: S3WebsiteSchema['response'];
 
@@ -74,12 +80,10 @@ export class S3Website extends ATFResource<S3WebsiteSchema, S3Website> {
     }
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const s3WebsiteOctoResource = terraform.addOctoTerraformResource(this as S3Website, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
-
-    const s3WebsiteOctoResource = octoTerraform.addOctoTerraformResource(this as S3Website);
 
     const s3WebsiteTFResource = s3WebsiteOctoResource.addTerraformResource(
       'aws_s3_bucket',
@@ -87,7 +91,7 @@ export class S3Website extends ATFResource<S3WebsiteSchema, S3Website> {
       { bucket: this.properties.Bucket },
     );
     s3WebsiteOctoResource.output({
-      Arn: octoTerraform.raw(`${s3WebsiteTFResource.address}.arn`),
+      Arn: terraform.raw(`${s3WebsiteTFResource.address}.arn`),
       awsRegionId: this.properties.awsRegionId,
     });
 
@@ -95,7 +99,7 @@ export class S3Website extends ATFResource<S3WebsiteSchema, S3Website> {
       'aws_s3_bucket_website_configuration',
       `${this.resourceId}_website_bucket_config`,
       {
-        bucket: octoTerraform.raw(`${s3WebsiteTFResource.address}.id`),
+        bucket: terraform.raw(`${s3WebsiteTFResource.address}.id`),
         error_document: { key: this.properties.ErrorDocument },
         index_document: { suffix: this.properties.IndexDocument },
       },
@@ -106,7 +110,7 @@ export class S3Website extends ATFResource<S3WebsiteSchema, S3Website> {
       {
         block_public_acls: false,
         block_public_policy: false,
-        bucket: octoTerraform.raw(`${s3WebsiteTFResource.address}.id`),
+        bucket: terraform.raw(`${s3WebsiteTFResource.address}.id`),
         ignore_public_acls: false,
         restrict_public_buckets: false,
       },
@@ -115,14 +119,14 @@ export class S3Website extends ATFResource<S3WebsiteSchema, S3Website> {
       'aws_s3_bucket_policy',
       `${this.resourceId}_website_bucket_public_read_policy`,
       {
-        bucket: octoTerraform.raw(`${s3WebsiteTFResource.address}.id`),
-        policy: octoTerraform.jsonencode({
+        bucket: terraform.raw(`${s3WebsiteTFResource.address}.id`),
+        policy: terraform.jsonencode({
           Statement: [
             {
               Action: ['s3:GetObject'],
               Effect: 'Allow',
               Principal: '*',
-              Resource: [octoTerraform.raw(`"\${${s3WebsiteTFResource.address}.arn}/*"`)],
+              Resource: [terraform.raw(`"\${${s3WebsiteTFResource.address}.arn}/*"`)],
               Sid: PolicyUtility.getSafeSid('PublicReadGetObject'),
             },
           ],
@@ -139,9 +143,9 @@ export class S3Website extends ATFResource<S3WebsiteSchema, S3Website> {
       const safeLabel = PolicyUtility.getSafeSid(remotePath);
       const contentType = mime.getType(remotePath) ?? 'application/octet-stream';
       s3WebsiteOctoResource.addTerraformResource('aws_s3_object', `${this.resourceId}_file_${safeLabel}`, {
-        bucket: octoTerraform.raw(`${s3WebsiteTFResource.address}.id`),
+        bucket: terraform.raw(`${s3WebsiteTFResource.address}.id`),
         content_type: contentType,
-        etag: octoTerraform.raw(`filemd5(${JSON.stringify(filePath)})`),
+        etag: terraform.raw(`filemd5(${JSON.stringify(filePath)})`),
         key: remotePath,
         source: filePath,
       });

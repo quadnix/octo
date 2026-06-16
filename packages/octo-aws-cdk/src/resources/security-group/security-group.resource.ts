@@ -1,6 +1,12 @@
-import { Diff, DiffUtility, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
-import { ATFResource } from '../tf-resource.abstract.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffUtility,
+  type MatchingResource,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { SecurityGroupSchema } from './index.schema.js';
 
@@ -8,7 +14,7 @@ import { SecurityGroupSchema } from './index.schema.js';
  * @internal
  */
 @Resource<SecurityGroup>('@octo', 'security-group', SecurityGroupSchema)
-export class SecurityGroup extends ATFResource<SecurityGroupSchema, SecurityGroup> {
+export class SecurityGroup extends ATerraformResource<SecurityGroupSchema, SecurityGroup> {
   declare parents: [MatchingResource<VpcSchema>];
   declare properties: SecurityGroupSchema['properties'];
   declare response: SecurityGroupSchema['response'];
@@ -29,19 +35,17 @@ export class SecurityGroup extends ATFResource<SecurityGroupSchema, SecurityGrou
     return super.diffProperties(previous);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const sgOctoResource = terraform.addOctoTerraformResource(this as SecurityGroup, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
-
-    const sgOctoResource = octoTerraform.addOctoTerraformResource(this as SecurityGroup);
 
     const sgTFResource = sgOctoResource.addTerraformResource('aws_security_group', this.resourceId, {
-      vpc_id: octoTerraform.getRef(this.parents[0], 'VpcId'),
+      vpc_id: terraform.getRef(this.parents[0], 'VpcId'),
     });
     sgOctoResource.output({
-      Arn: octoTerraform.raw(`${sgTFResource.address}.arn`),
-      GroupId: octoTerraform.raw(`${sgTFResource.address}.id`),
+      Arn: terraform.raw(`${sgTFResource.address}.arn`),
+      GroupId: terraform.raw(`${sgTFResource.address}.id`),
     });
 
     const ingressRules = this.properties.rules.filter((r) => !r.Egress);
@@ -53,7 +57,7 @@ export class SecurityGroup extends ATFResource<SecurityGroupSchema, SecurityGrou
         cidr_ipv4: r.CidrBlock,
         description: `${r.IpProtocol} ${r.FromPort}-${r.ToPort} ${r.CidrBlock}`,
         ip_protocol: r.IpProtocol,
-        security_group_id: octoTerraform.raw(`${sgTFResource.address}.id`),
+        security_group_id: terraform.raw(`${sgTFResource.address}.id`),
       };
       if (r.IpProtocol !== '-1') {
         spec['from_port'] = r.FromPort;
@@ -72,7 +76,7 @@ export class SecurityGroup extends ATFResource<SecurityGroupSchema, SecurityGrou
         cidr_ipv4: r.CidrBlock,
         description: `${r.IpProtocol} ${r.FromPort}-${r.ToPort} ${r.CidrBlock}`,
         ip_protocol: r.IpProtocol,
-        security_group_id: octoTerraform.raw(`${sgTFResource.address}.id`),
+        security_group_id: terraform.raw(`${sgTFResource.address}.id`),
       };
       if (r.IpProtocol !== '-1') {
         spec['from_port'] = r.FromPort;

@@ -70,7 +70,6 @@ export class AddAwsDynamoDBGlobalServiceModelAction implements IModelAction<AwsD
     );
 
     actionOutputs[dynamoDbGlobal.resourceId] = dynamoDbGlobal;
-    await dynamoDbGlobal.toHCL();
 
     return actionOutputs;
   }

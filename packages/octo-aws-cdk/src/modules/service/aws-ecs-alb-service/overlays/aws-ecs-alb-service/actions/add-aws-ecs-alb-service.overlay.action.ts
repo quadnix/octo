@@ -67,7 +67,6 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
       );
 
       actionOutputs[albTargetGroup.resourceId] = albTargetGroup;
-      await albTargetGroup.toHCL();
 
       albTargetGroups.push(albTargetGroup);
     }
@@ -94,7 +93,6 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
       );
 
       actionOutputs[albListener.resourceId] = albListener;
-      await albListener.toHCL();
     }
 
     for (const target of actionInputs.inputs.targets!) {
@@ -123,7 +121,6 @@ export class AddAwsEcsAlbServiceOverlayAction implements IModelAction<AwsEcsAlbS
       );
 
       actionOutputs[matchingEcsService.getActual().resourceId] = matchingEcsService.getActual();
-      await (matchingEcsService.getActual() as EcsService).toHCL();
     }
 
     return actionOutputs;

@@ -199,18 +199,14 @@ export class AddAwsSimpleSubnetModelAction implements IModelAction<AwsSimpleSubn
     );
 
     actionOutputs[subnetSubnet.resourceId] = subnetSubnet;
-    await subnetSubnet.toHCL();
 
     if (subnetNatGateway) {
       actionOutputs[subnetNatGateway.resourceId] = subnetNatGateway;
-      await subnetNatGateway.toHCL();
     }
 
     actionOutputs[subnetRT.resourceId] = subnetRT;
-    await subnetRT.toHCL();
 
     actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
-    await subnetNAcl.toHCL();
 
     return actionOutputs;
   }

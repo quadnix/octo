@@ -45,7 +45,6 @@ export class AddAwsS3StaticWebsiteServiceModelAction implements IModelAction<Aws
     });
 
     actionOutputs[s3Website.resourceId] = s3Website;
-    await s3Website.toHCL();
 
     return actionOutputs;
   }

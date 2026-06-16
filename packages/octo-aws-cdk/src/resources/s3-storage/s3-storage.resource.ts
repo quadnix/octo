@@ -1,5 +1,6 @@
 import {
   AResource,
+  ATerraformResource,
   DependencyRelationship,
   Diff,
   DiffAction,
@@ -8,10 +9,9 @@ import {
   MatchingResource,
   Resource,
   ResourceError,
+  type TerraformModuleScope,
 } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import { type PrincipalResourceSchema, S3StorageSchema } from './index.schema.js';
 
 /**
@@ -27,7 +27,7 @@ export type S3StorageManifestDiff = {
  * @internal
  */
 @Resource<S3Storage>('@octo', 's3-storage', S3StorageSchema)
-export class S3Storage extends ATFResource<S3StorageSchema, S3Storage> {
+export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
   declare parents: MatchingResource<PrincipalResourceSchema>[];
   declare properties: S3StorageSchema['properties'];
   declare response: S3StorageSchema['response'];
@@ -198,18 +198,16 @@ export class S3Storage extends ATFResource<S3StorageSchema, S3Storage> {
     }
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const s3StorageOctoResource = terraform.addOctoTerraformResource(this as S3Storage, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
-
-    const s3StorageOctoResource = octoTerraform.addOctoTerraformResource(this as S3Storage);
 
     const s3StorageTFResource = s3StorageOctoResource.addTerraformResource('aws_s3_bucket', this.resourceId, {
       bucket: this.properties.Bucket,
     });
     s3StorageOctoResource.output({
-      Arn: octoTerraform.raw(`${s3StorageTFResource.address}.arn`),
+      Arn: terraform.raw(`${s3StorageTFResource.address}.arn`),
     });
 
     if (this.properties.permissions.length > 0) {
@@ -217,7 +215,7 @@ export class S3Storage extends ATFResource<S3StorageSchema, S3Storage> {
 
       for (const permission of this.properties.permissions) {
         const principalParent = this.parents.find((p) => p.getActual().resourceId === permission.principalResourceId)!;
-        const principalArn = octoTerraform.getRef(principalParent, 'Arn');
+        const principalArn = terraform.getRef(principalParent, 'Arn');
         const resources = [
           `arn:aws:s3:::${this.properties.Bucket}/${permission.remoteDirectoryPath}`,
           `arn:aws:s3:::${this.properties.Bucket}/${permission.remoteDirectoryPath}/*`,
@@ -246,8 +244,8 @@ export class S3Storage extends ATFResource<S3StorageSchema, S3Storage> {
 
       if (statements.length > 0) {
         s3StorageOctoResource.addTerraformResource('aws_s3_bucket_policy', `${this.resourceId}-policy`, {
-          bucket: octoTerraform.raw(`${s3StorageTFResource.address}.id`),
-          policy: octoTerraform.jsonencode({
+          bucket: terraform.raw(`${s3StorageTFResource.address}.id`),
+          policy: terraform.jsonencode({
             Statement: statements,
             Version: '2012-10-17',
           }),

@@ -56,10 +56,8 @@ export class AddAwsSingleAzRegionModelAction implements IModelAction<AwsSingleAz
     );
 
     actionOutputs[vpc.resourceId] = vpc;
-    await vpc.toHCL();
 
     actionOutputs[internetGateway.resourceId] = internetGateway;
-    await internetGateway.toHCL();
 
     return actionOutputs;
   }

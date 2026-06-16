@@ -1,8 +1,14 @@
-import { Diff, DiffUtility, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffUtility,
+  type MatchingResource,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import { NetworkAclUtility } from '../../utilities/network-acl/network-acl.utility.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { NetworkAclSchema } from './index.schema.js';
 
@@ -10,7 +16,7 @@ import { NetworkAclSchema } from './index.schema.js';
  * @internal
  */
 @Resource<NetworkAcl>('@octo', 'network-acl', NetworkAclSchema)
-export class NetworkAcl extends ATFResource<NetworkAclSchema, NetworkAcl> {
+export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl> {
   declare parents: [MatchingResource<VpcSchema>, MatchingResource<SubnetSchema>];
   declare properties: NetworkAclSchema['properties'];
   declare response: NetworkAclSchema['response'];
@@ -37,11 +43,7 @@ export class NetworkAcl extends ATFResource<NetworkAclSchema, NetworkAcl> {
     NetworkAclUtility.assignRuleNumber(this.properties.entries);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
-    });
-
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const ingressEntries = this.properties.entries
       .filter((e) => !e.Egress)
       .map((e) => ({
@@ -65,8 +67,8 @@ export class NetworkAcl extends ATFResource<NetworkAclSchema, NetworkAcl> {
       }));
 
     const spec: Record<string, unknown> = {
-      subnet_ids: [octoTerraform.getRef(this.parents[1], 'SubnetId')],
-      vpc_id: octoTerraform.getRef(this.parents[0], 'VpcId'),
+      subnet_ids: [terraform.getRef(this.parents[1], 'SubnetId')],
+      vpc_id: terraform.getRef(this.parents[0], 'VpcId'),
     };
     if (ingressEntries.length > 0) {
       spec['ingress'] = ingressEntries;
@@ -75,11 +77,13 @@ export class NetworkAcl extends ATFResource<NetworkAclSchema, NetworkAcl> {
       spec['egress'] = egressEntries;
     }
 
-    const naclOctoResource = octoTerraform.addOctoTerraformResource(this as NetworkAcl);
+    const naclOctoResource = terraform.addOctoTerraformResource(this as NetworkAcl, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
+    });
 
     const naclTFResource = naclOctoResource.addTerraformResource('aws_network_acl', this.resourceId, spec);
     naclOctoResource.output({
-      NetworkAclId: octoTerraform.raw(`${naclTFResource.address}.id`),
+      NetworkAclId: terraform.raw(`${naclTFResource.address}.id`),
     });
 
     if (Object.keys(this.tags).length > 0) {

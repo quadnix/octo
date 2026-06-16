@@ -125,10 +125,8 @@ export class AddAwsEcsAlbServiceModelAction implements IModelAction<AwsEcsAlbSer
     );
 
     actionOutputs[albSG.resourceId] = albSG;
-    await albSG.toHCL();
 
     actionOutputs[alb.resourceId] = alb;
-    await alb.toHCL();
 
     return actionOutputs;
   }

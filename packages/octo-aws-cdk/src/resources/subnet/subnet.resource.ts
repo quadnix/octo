@@ -1,6 +1,12 @@
-import { Diff, DiffUtility, MatchingResource, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
-import { ATFResource } from '../tf-resource.abstract.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffUtility,
+  MatchingResource,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { SubnetSchema } from './index.schema.js';
 
@@ -8,7 +14,7 @@ import { SubnetSchema } from './index.schema.js';
  * @internal
  */
 @Resource<Subnet>('@octo', 'subnet', SubnetSchema)
-export class Subnet extends ATFResource<SubnetSchema, Subnet> {
+export class Subnet extends ATerraformResource<SubnetSchema, Subnet> {
   declare parents: [MatchingResource<VpcSchema>];
   declare properties: SubnetSchema['properties'];
   declare response: SubnetSchema['response'];
@@ -25,21 +31,19 @@ export class Subnet extends ATFResource<SubnetSchema, Subnet> {
     return super.diffProperties(previous);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const subnetOctoResource = terraform.addOctoTerraformResource(this as Subnet, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
-
-    const subnetOctoResource = octoTerraform.addOctoTerraformResource(this as Subnet);
 
     const subnetTFResource = subnetOctoResource.addTerraformResource('aws_subnet', this.resourceId, {
       availability_zone: this.properties.AvailabilityZone,
       cidr_block: this.properties.CidrBlock,
-      vpc_id: octoTerraform.getRef(this.parents[0], 'VpcId'),
+      vpc_id: terraform.getRef(this.parents[0], 'VpcId'),
     });
     subnetOctoResource.output({
-      SubnetArn: octoTerraform.raw(`${subnetTFResource.address}.arn`),
-      SubnetId: octoTerraform.raw(`${subnetTFResource.address}.id`),
+      SubnetArn: terraform.raw(`${subnetTFResource.address}.arn`),
+      SubnetId: terraform.raw(`${subnetTFResource.address}.id`),
     });
 
     if (Object.keys(this.tags).length > 0) {

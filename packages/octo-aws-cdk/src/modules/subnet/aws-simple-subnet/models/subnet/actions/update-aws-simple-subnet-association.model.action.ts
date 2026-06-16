@@ -125,14 +125,11 @@ export class UpdateAwsSimpleSubnetAssociationModelAction implements IModelAction
 
     if (siblingSubnet.subnetType === SubnetType.PUBLIC && siblingSubnet.createNatGateway) {
       actionOutputs[subnetRouteTable.resourceId] = subnetRouteTable;
-      await subnetRouteTable.toHCL();
     }
 
     actionOutputs[subnetNAcl.resourceId] = subnetNAcl;
-    await subnetNAcl.toHCL();
 
     actionOutputs[matchingSiblingSubnetNAcl.getActual().resourceId] = matchingSiblingSubnetNAcl.getActual();
-    await (matchingSiblingSubnetNAcl.getActual() as NetworkAcl).toHCL();
 
     return actionOutputs;
   }

@@ -1,6 +1,12 @@
-import { Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
-import { ATFResource } from '../tf-resource.abstract.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import {
   DynamoDBBillingPayPerRequestSchema,
   DynamoDBBillingProvisionedSchema,
@@ -23,7 +29,7 @@ export type DynamoDBDiff = {
  * @internal
  */
 @Resource<DynamoDB>('@octo', 'dynamodb', DynamoDBSchema)
-export class DynamoDB extends ATFResource<DynamoDBSchema, DynamoDB> {
+export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
   declare properties: DynamoDBSchema['properties'];
   declare response: DynamoDBSchema['response'];
 
@@ -252,11 +258,7 @@ export class DynamoDB extends ATFResource<DynamoDBSchema, DynamoDB> {
     return super.diffProperties(previous);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
-    });
-
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const hashKeyAttr = this.properties.KeySchema.find((s) => s.KeyType === 'HASH')!;
     const rangeKeyAttr = this.properties.KeySchema.find((s) => s.KeyType === 'RANGE');
 
@@ -367,11 +369,13 @@ export class DynamoDB extends ATFResource<DynamoDBSchema, DynamoDB> {
       });
     }
 
-    const dynamoDBOctoResource = octoTerraform.addOctoTerraformResource(this as DynamoDB);
+    const dynamoDBOctoResource = terraform.addOctoTerraformResource(this as DynamoDB, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
+    });
 
     const dynamoDBTFResource = dynamoDBOctoResource.addTerraformResource('aws_dynamodb_table', this.resourceId, spec);
     dynamoDBOctoResource.output({
-      TableArn: octoTerraform.raw(`${dynamoDBTFResource.address}.arn`),
+      TableArn: terraform.raw(`${dynamoDBTFResource.address}.arn`),
     });
 
     if (Object.keys(this.tags).length > 0) {

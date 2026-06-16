@@ -39,7 +39,6 @@ export class UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction
     s3Website.updateManifest(diff.value);
 
     actionOutputs[s3Website.resourceId] = s3Website;
-    await s3Website.toHCL();
 
     return actionOutputs;
   }

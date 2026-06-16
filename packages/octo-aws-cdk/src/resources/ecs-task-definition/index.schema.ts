@@ -168,7 +168,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
     destruct: (value: EcsTaskDefinitionSchema['response']): string[] => {
       const subjects: string[] = [];
       if (value.revision) {
-        subjects.push(String(value.revision));
+        subjects.push(value.revision);
       }
       if (value.taskDefinitionArn) {
         subjects.push(value.taskDefinitionArn);
@@ -178,7 +178,7 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
     options: { minLength: 1 },
   })
   override response = Schema<{
-    revision?: number;
+    revision?: string;
     taskDefinitionArn?: string;
   }>();
 }

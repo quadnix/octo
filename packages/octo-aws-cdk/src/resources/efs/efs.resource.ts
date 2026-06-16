@@ -1,13 +1,18 @@
-import { Diff, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
-import { ATFResource } from '../tf-resource.abstract.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffUtility,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import { EfsSchema } from './index.schema.js';
 
 /**
  * @internal
  */
 @Resource<Efs>('@octo', 'efs', EfsSchema)
-export class Efs extends ATFResource<EfsSchema, Efs> {
+export class Efs extends ATerraformResource<EfsSchema, Efs> {
   declare properties: EfsSchema['properties'];
   declare response: EfsSchema['response'];
 
@@ -23,12 +28,10 @@ export class Efs extends ATFResource<EfsSchema, Efs> {
     return super.diffProperties(previous);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const efsOctoResource = terraform.addOctoTerraformResource(this as Efs, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
-
-    const efsOctoResource = octoTerraform.addOctoTerraformResource(this as Efs);
 
     const efsTFResource = efsOctoResource.addTerraformResource('aws_efs_file_system', this.resourceId, {
       encrypted: false,
@@ -36,13 +39,13 @@ export class Efs extends ATFResource<EfsSchema, Efs> {
       throughput_mode: 'bursting',
     });
     efsOctoResource.output({
-      FileSystemArn: octoTerraform.raw(`${efsTFResource.address}.arn`),
-      FileSystemId: octoTerraform.raw(`${efsTFResource.address}.id`),
+      FileSystemArn: terraform.raw(`${efsTFResource.address}.arn`),
+      FileSystemId: terraform.raw(`${efsTFResource.address}.id`),
     });
 
     efsOctoResource.addTerraformResource('aws_efs_backup_policy', `${this.resourceId}_backup_policy`, {
       backup_policy: { status: 'DISABLED' },
-      file_system_id: octoTerraform.raw(`${efsTFResource.address}.id`),
+      file_system_id: terraform.raw(`${efsTFResource.address}.id`),
     });
 
     const tags =

@@ -1,8 +1,14 @@
-import { Diff, DiffUtility, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffUtility,
+  type MatchingResource,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import type { InternetGatewaySchema } from '../internet-gateway/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { NatGatewaySchema } from './index.schema.js';
 
@@ -10,7 +16,7 @@ import { NatGatewaySchema } from './index.schema.js';
  * @internal
  */
 @Resource<NatGateway>('@octo', 'nat-gateway', NatGatewaySchema)
-export class NatGateway extends ATFResource<NatGatewaySchema, NatGateway> {
+export class NatGateway extends ATerraformResource<NatGatewaySchema, NatGateway> {
   declare parents: [
     MatchingResource<VpcSchema>,
     MatchingResource<InternetGatewaySchema>,
@@ -35,28 +41,24 @@ export class NatGateway extends ATFResource<NatGatewaySchema, NatGateway> {
     return super.diffProperties(previous);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const natGatewayOctoResource = terraform.addOctoTerraformResource(this as NatGateway, {
+      explicitParents: [this.parents[0], this.parents[1]],
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
-
-    const natGatewayOctoResource = octoTerraform.addOctoTerraformResource(this as NatGateway, [
-      this.parents[0],
-      this.parents[1],
-    ]);
 
     const eipTFResource = natGatewayOctoResource.addTerraformResource('aws_eip', `${this.resourceId}_eip`, {
       domain: 'vpc',
     });
 
     const natGatewayTFResource = natGatewayOctoResource.addTerraformResource('aws_nat_gateway', this.resourceId, {
-      allocation_id: octoTerraform.raw(`${eipTFResource.address}.id`),
+      allocation_id: terraform.raw(`${eipTFResource.address}.id`),
       connectivity_type: this.properties.ConnectivityType,
-      subnet_id: octoTerraform.getRef(this.parents[2], 'SubnetId'),
+      subnet_id: terraform.getRef(this.parents[2], 'SubnetId'),
     });
     natGatewayOctoResource.output({
-      AllocationId: octoTerraform.raw(`${eipTFResource.address}.id`),
-      NatGatewayId: octoTerraform.raw(`${natGatewayTFResource.address}.id`),
+      AllocationId: terraform.raw(`${eipTFResource.address}.id`),
+      NatGatewayId: terraform.raw(`${natGatewayTFResource.address}.id`),
     });
 
     if (Object.keys(this.tags).length > 0) {

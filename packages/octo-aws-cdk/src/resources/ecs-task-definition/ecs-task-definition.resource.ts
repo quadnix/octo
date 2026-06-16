@@ -1,5 +1,6 @@
 import {
   AResource,
+  ATerraformResource,
   DependencyRelationship,
   Diff,
   DiffAction,
@@ -7,20 +8,19 @@ import {
   type MatchingResource,
   Resource,
   ResourceError,
+  type TerraformModuleScope,
   hasNodeName,
 } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import { TaskDefinitionUtility } from '../../utilities/task-definition/task-definition.utility.js';
 import type { EfsSchema } from '../efs/index.schema.js';
 import type { IamRoleSchema } from '../iam-role/index.schema.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import { EcsTaskDefinitionSchema } from './index.schema.js';
 
 /**
  * @internal
  */
 @Resource<EcsTaskDefinition>('@octo', 'ecs-task-definition', EcsTaskDefinitionSchema)
-export class EcsTaskDefinition extends ATFResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
+export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchema, EcsTaskDefinition> {
   declare parents: [MatchingResource<IamRoleSchema>, ...MatchingResource<EfsSchema>[]];
   declare properties: EcsTaskDefinitionSchema['properties'];
   declare response: EcsTaskDefinitionSchema['response'];
@@ -92,11 +92,7 @@ export class EcsTaskDefinition extends ATFResource<EcsTaskDefinitionSchema, EcsT
     }
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
-    });
-
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const iamRoleParent = this.parents[0] as MatchingResource<IamRoleSchema>;
     const efsParents = (this.parents as MatchingResource<EfsSchema>[]).slice(1);
 
@@ -119,31 +115,33 @@ export class EcsTaskDefinition extends ATFResource<EcsTaskDefinitionSchema, EcsT
     }));
 
     const spec: Record<string, unknown> = {
-      container_definitions: octoTerraform.jsonencode(containerDefinitions),
+      container_definitions: terraform.jsonencode(containerDefinitions),
       cpu: String(this.properties.cpu),
-      execution_role_arn: octoTerraform.getRef(iamRoleParent, 'Arn'),
+      execution_role_arn: terraform.getRef(iamRoleParent, 'Arn'),
       family: this.properties.family,
       memory: String(this.properties.memory),
       network_mode: 'awsvpc',
       requires_compatibilities: ['FARGATE'],
-      task_role_arn: octoTerraform.getRef(iamRoleParent, 'Arn'),
+      task_role_arn: terraform.getRef(iamRoleParent, 'Arn'),
     };
 
     if (efsParents.length > 0) {
       spec['volume'] = efsParents.map((efs) => ({
         efs_volume_configuration: {
-          file_system_id: octoTerraform.getRef(efs, 'FileSystemId'),
+          file_system_id: terraform.getRef(efs, 'FileSystemId'),
         },
         name: efs.getSchemaInstance().properties.filesystemName,
       }));
     }
 
-    const tdOctoResource = octoTerraform.addOctoTerraformResource(this as EcsTaskDefinition);
+    const tdOctoResource = terraform.addOctoTerraformResource(this as EcsTaskDefinition, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
+    });
 
     const tdTFResource = tdOctoResource.addTerraformResource('aws_ecs_task_definition', this.resourceId, spec);
     tdOctoResource.output({
-      revision: octoTerraform.raw(`${tdTFResource.address}.revision`),
-      taskDefinitionArn: octoTerraform.raw(`${tdTFResource.address}.arn`),
+      revision: terraform.raw(`${tdTFResource.address}.revision`),
+      taskDefinitionArn: terraform.raw(`${tdTFResource.address}.arn`),
     });
 
     if (Object.keys(this.tags).length > 0) {

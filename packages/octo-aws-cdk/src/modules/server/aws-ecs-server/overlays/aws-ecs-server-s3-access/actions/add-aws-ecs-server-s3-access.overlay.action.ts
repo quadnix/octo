@@ -68,10 +68,8 @@ export class AddAwsEcsServerS3AccessOverlayAction implements IModelAction<AwsEcs
     );
 
     actionOutputs[iamRole.resourceId] = iamRole;
-    await iamRole.toHCL();
 
     actionOutputs[matchingS3StorageResource.getActual().resourceId] = matchingS3StorageResource.getActual();
-    await (matchingS3StorageResource.getActual() as S3Storage).toHCL();
 
     return actionOutputs;
   }

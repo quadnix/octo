@@ -1,5 +1,6 @@
 import {
   AResource,
+  ATerraformResource,
   DependencyRelationship,
   Diff,
   DiffAction,
@@ -7,22 +8,21 @@ import {
   type MatchingResource,
   Resource,
   ResourceError,
+  type TerraformModuleScope,
   hasNodeName,
 } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
 import type { EcsClusterSchema } from '../ecs-cluster/index.schema.js';
 import type { EcsTaskDefinitionSchema } from '../ecs-task-definition/index.schema.js';
 import type { SecurityGroupSchema } from '../security-group/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import { EcsServiceSchema } from './index.schema.js';
 
 /**
  * @internal
  */
 @Resource<EcsService>('@octo', 'ecs-service', EcsServiceSchema)
-export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
+export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService> {
   declare parents: [
     MatchingResource<EcsClusterSchema>,
     MatchingResource<EcsTaskDefinitionSchema>,
@@ -156,11 +156,7 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
     return super.diffProperties(previous);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
-    });
-
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const clusterParent = this.parents[0] as MatchingResource<EcsClusterSchema>;
     const taskDefParent = this.parents[1] as MatchingResource<EcsTaskDefinitionSchema>;
     const subnetParent = this.parents[2] as MatchingResource<SubnetSchema>;
@@ -174,16 +170,16 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
       .filter((p) => hasNodeName(p.getActual(), 'alb-target-group')) as MatchingResource<AlbTargetGroupSchema>[];
 
     const spec: Record<string, unknown> = {
-      cluster: octoTerraform.getRef(clusterParent, 'clusterArn'),
+      cluster: terraform.getRef(clusterParent, 'clusterArn'),
       desired_count: this.properties.desiredCount,
       launch_type: 'FARGATE',
       name: this.properties.serviceName,
       network_configuration: {
         assign_public_ip: this.properties.assignPublicIp === 'ENABLED',
-        security_groups: sgParents.map((sg) => octoTerraform.getRef(sg, 'GroupId')),
-        subnets: [octoTerraform.getRef(subnetParent, 'SubnetId')],
+        security_groups: sgParents.map((sg) => terraform.getRef(sg, 'GroupId')),
+        subnets: [terraform.getRef(subnetParent, 'SubnetId')],
       },
-      task_definition: octoTerraform.getRef(taskDefParent, 'taskDefinitionArn'),
+      task_definition: terraform.getRef(taskDefParent, 'taskDefinitionArn'),
     };
 
     if (this.properties.loadBalancers.length > 0) {
@@ -192,16 +188,18 @@ export class EcsService extends ATFResource<EcsServiceSchema, EcsService> {
         return {
           container_name: lb.containerName,
           container_port: lb.containerPort,
-          target_group_arn: octoTerraform.getRef(tgParent, 'TargetGroupArn'),
+          target_group_arn: terraform.getRef(tgParent, 'TargetGroupArn'),
         };
       });
     }
 
-    const ecsServiceOctoResource = octoTerraform.addOctoTerraformResource(this as EcsService);
+    const ecsServiceOctoResource = terraform.addOctoTerraformResource(this as EcsService, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
+    });
 
     const ecsServiceTFResource = ecsServiceOctoResource.addTerraformResource('aws_ecs_service', this.resourceId, spec);
     ecsServiceOctoResource.output({
-      serviceArn: octoTerraform.raw(`${ecsServiceTFResource.address}.id`), // For EcsService arn and id are same in TF.
+      serviceArn: terraform.raw(`${ecsServiceTFResource.address}.id`), // For EcsService arn and id are same in TF.
     });
 
     if (Object.keys(this.tags).length > 0) {

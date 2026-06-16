@@ -85,10 +85,8 @@ export class AddAwsSimpleSubnetLocalFilesystemMountOverlayAction implements IMod
     );
 
     actionOutputs[efsMountTargetSG.resourceId] = efsMountTargetSG;
-    await efsMountTargetSG.toHCL();
 
     actionOutputs[efsMountTarget.resourceId] = efsMountTarget;
-    await efsMountTarget.toHCL();
 
     return actionOutputs;
   }

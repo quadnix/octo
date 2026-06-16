@@ -1,5 +1,6 @@
 import {
   AResource,
+  ATerraformResource,
   DependencyRelationship,
   Diff,
   DiffAction,
@@ -7,12 +8,11 @@ import {
   type MatchingResource,
   Resource,
   ResourceError,
+  type TerraformModuleScope,
   hasNodeName,
 } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
 import type { AlbSchema } from '../alb/index.schema.js';
 import type { AlbTargetGroupSchema } from '../alb-target-group/index.schema.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import { AlbListenerSchema, type IAlbListenerActionTypes, type IAlbListenerRuleTypes } from './index.schema.js';
 
 /**
@@ -92,7 +92,7 @@ export function isAlbListenerPropertiesRuleDiff(
  * @internal
  */
 @Resource<AlbListener>('@octo', 'alb-listener', AlbListenerSchema)
-export class AlbListener extends ATFResource<AlbListenerSchema, AlbListener> {
+export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListener> {
   declare parents: [MatchingResource<AlbSchema>, ...MatchingResource<AlbTargetGroupSchema>[]];
   declare properties: AlbListenerSchema['properties'];
   declare response: AlbListenerSchema['response'];
@@ -270,11 +270,7 @@ export class AlbListener extends ATFResource<AlbListenerSchema, AlbListener> {
     }
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
-    });
-
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const targetGroupParents = (this.parents as MatchingResource<AlbTargetGroupSchema>[]).filter((p) =>
       hasNodeName(p.getActual(), 'alb-target-group'),
     );
@@ -301,7 +297,7 @@ export class AlbListener extends ATFResource<AlbListenerSchema, AlbListener> {
               (p) => p.getSchemaInstance().properties.Name === tg.targetGroupName,
             )!;
             return {
-              arn: octoTerraform.getRef(tgParent, 'TargetGroupArn'),
+              arn: terraform.getRef(tgParent, 'TargetGroupArn'),
               weight: tg.Weight,
             };
           }),
@@ -350,23 +346,25 @@ export class AlbListener extends ATFResource<AlbListenerSchema, AlbListener> {
       }
     };
 
-    const albListenerOctoResource = octoTerraform.addOctoTerraformResource(this as AlbListener);
+    const albListenerOctoResource = terraform.addOctoTerraformResource(this as AlbListener, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
+    });
 
     const listenerTFResource = albListenerOctoResource.addTerraformResource('aws_lb_listener', this.resourceId, {
       default_action: buildActionSpec(this.properties.DefaultActions[0]),
-      load_balancer_arn: octoTerraform.getRef(this.parents[0], 'LoadBalancerArn'),
+      load_balancer_arn: terraform.getRef(this.parents[0], 'LoadBalancerArn'),
       port: this.properties.Port,
       protocol: this.properties.Protocol,
     });
     albListenerOctoResource.output({
-      ListenerArn: octoTerraform.raw(`${listenerTFResource.address}.arn`),
+      ListenerArn: terraform.raw(`${listenerTFResource.address}.arn`),
     });
 
     for (const rule of this.properties.rules) {
       albListenerOctoResource.addTerraformResource('aws_lb_listener_rule', `${this.resourceId}_rule_${rule.Priority}`, {
         action: rule.actions.map((a) => buildActionSpec(a)),
         condition: rule.conditions.map((c) => buildConditionSpec(c)),
-        listener_arn: octoTerraform.raw(`${listenerTFResource.address}.arn`),
+        listener_arn: terraform.raw(`${listenerTFResource.address}.arn`),
         priority: rule.Priority,
       });
     }

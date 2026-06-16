@@ -1,6 +1,12 @@
-import { Diff, DiffUtility, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
-import { ATFResource } from '../tf-resource.abstract.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffUtility,
+  type MatchingResource,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
 import { InternetGatewaySchema } from './index.schema.js';
 
@@ -8,7 +14,7 @@ import { InternetGatewaySchema } from './index.schema.js';
  * @internal
  */
 @Resource<InternetGateway>('@octo', 'internet-gateway', InternetGatewaySchema)
-export class InternetGateway extends ATFResource<InternetGatewaySchema, InternetGateway> {
+export class InternetGateway extends ATerraformResource<InternetGatewaySchema, InternetGateway> {
   declare parents: [MatchingResource<VpcSchema>];
   declare properties: InternetGatewaySchema['properties'];
   declare response: InternetGatewaySchema['response'];
@@ -29,19 +35,17 @@ export class InternetGateway extends ATFResource<InternetGatewaySchema, Internet
     return super.diffProperties(previous);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const igwOctoResource = terraform.addOctoTerraformResource(this as InternetGateway, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
-
-    const igwOctoResource = octoTerraform.addOctoTerraformResource(this as InternetGateway);
 
     const igwTFResource = igwOctoResource.addTerraformResource('aws_internet_gateway', this.resourceId, {
-      vpc_id: octoTerraform.getRef(this.parents[0], 'VpcId'),
+      vpc_id: terraform.getRef(this.parents[0], 'VpcId'),
     });
     igwOctoResource.output({
-      InternetGatewayArn: octoTerraform.raw(`${igwTFResource.address}.arn`),
-      InternetGatewayId: octoTerraform.raw(`${igwTFResource.address}.id`),
+      InternetGatewayArn: terraform.raw(`${igwTFResource.address}.arn`),
+      InternetGatewayId: terraform.raw(`${igwTFResource.address}.id`),
     });
 
     if (Object.keys(this.tags).length > 0) {

@@ -189,10 +189,8 @@ export class AddAwsEcsExecutionOverlayAction implements IModelAction<AwsEcsExecu
     );
 
     actionOutputs[ecsTaskDefinition.resourceId] = ecsTaskDefinition;
-    await ecsTaskDefinition.toHCL();
 
     actionOutputs[ecsService.resourceId] = ecsService;
-    await ecsService.toHCL();
 
     return actionOutputs;
   }

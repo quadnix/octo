@@ -1,16 +1,22 @@
-import { Diff, DiffUtility, type MatchingResource, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffUtility,
+  type MatchingResource,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import type { EfsSchema } from '../efs/index.schema.js';
 import type { SecurityGroupSchema } from '../security-group/index.schema.js';
 import type { SubnetSchema } from '../subnet/index.schema.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import { EfsMountTargetSchema } from './index.schema.js';
 
 /**
  * @internal
  */
 @Resource<EfsMountTarget>('@octo', 'efs-mount-target', EfsMountTargetSchema)
-export class EfsMountTarget extends ATFResource<EfsMountTargetSchema, EfsMountTarget> {
+export class EfsMountTarget extends ATerraformResource<EfsMountTargetSchema, EfsMountTarget> {
   declare parents: [MatchingResource<EfsSchema>, MatchingResource<SubnetSchema>, MatchingResource<SecurityGroupSchema>];
   declare properties: EfsMountTargetSchema['properties'];
   declare response: EfsMountTargetSchema['response'];
@@ -31,25 +37,23 @@ export class EfsMountTarget extends ATFResource<EfsMountTargetSchema, EfsMountTa
     return super.diffProperties(previous);
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const efsMountTargetOctoResource = terraform.addOctoTerraformResource(this as EfsMountTarget, {
+      provider: { accountId: this.properties.awsAccountId, regionId: this.properties.awsRegionId },
     });
-
-    const efsMountTargetOctoResource = octoTerraform.addOctoTerraformResource(this as EfsMountTarget);
 
     const efsMountTargetTFResource = efsMountTargetOctoResource.addTerraformResource(
       'aws_efs_mount_target',
       this.resourceId,
       {
-        file_system_id: octoTerraform.getRef(this.parents[0], 'FileSystemId'),
-        security_groups: [octoTerraform.getRef(this.parents[2], 'GroupId')],
-        subnet_id: octoTerraform.getRef(this.parents[1], 'SubnetId'),
+        file_system_id: terraform.getRef(this.parents[0], 'FileSystemId'),
+        security_groups: [terraform.getRef(this.parents[2], 'GroupId')],
+        subnet_id: terraform.getRef(this.parents[1], 'SubnetId'),
       },
     );
     efsMountTargetOctoResource.output({
-      MountTargetId: octoTerraform.raw(`${efsMountTargetTFResource.address}.id`),
-      NetworkInterfaceId: octoTerraform.raw(`${efsMountTargetTFResource.address}.network_interface_id`),
+      MountTargetId: terraform.raw(`${efsMountTargetTFResource.address}.id`),
+      NetworkInterfaceId: terraform.raw(`${efsMountTargetTFResource.address}.network_interface_id`),
     });
 
     if (Object.keys(this.tags).length > 0) {

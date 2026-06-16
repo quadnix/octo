@@ -1,7 +1,13 @@
-import { Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import {
   type IIamRoleAssumeRolePolicy,
   type IIamRolePolicyTypes,
@@ -45,7 +51,7 @@ export function isDeletePolicyDiff(policy: IIamRolePolicyDiff): policy is IIamRo
  * @internal
  */
 @Resource<IamRole>('@octo', 'iam-role', IamRoleSchema)
-export class IamRole extends ATFResource<IamRoleSchema, IamRole> {
+export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
   declare properties: IamRoleSchema['properties'];
   declare response: IamRoleSchema['response'];
 
@@ -233,11 +239,7 @@ export class IamRole extends ATFResource<IamRoleSchema, IamRole> {
     }
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
-    });
-
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
     const assumeRolePolicies = this.properties.policies.filter((p) => p.policyType === 'assume-role-policy');
     const policyStatement = assumeRolePolicies
       .map((p) => {
@@ -252,19 +254,21 @@ export class IamRole extends ATFResource<IamRoleSchema, IamRole> {
       })
       .filter(Boolean);
 
-    const iamRoleOctoResource = octoTerraform.addOctoTerraformResource(this as IamRole);
+    const iamRoleOctoResource = terraform.addOctoTerraformResource(this as IamRole, {
+      provider: { accountId: this.properties.awsAccountId },
+    });
 
     const iamRoleTFResource = iamRoleOctoResource.addTerraformResource('aws_iam_role', this.resourceId, {
-      assume_role_policy: octoTerraform.jsonencode({
+      assume_role_policy: terraform.jsonencode({
         Statement: policyStatement,
         Version: '2012-10-17',
       }),
       name: this.properties.rolename,
     });
     iamRoleOctoResource.output({
-      Arn: octoTerraform.raw(`${iamRoleTFResource.address}.arn`),
-      RoleId: octoTerraform.raw(`${iamRoleTFResource.address}.unique_id`),
-      RoleName: octoTerraform.raw(`${iamRoleTFResource.address}.name`),
+      Arn: terraform.raw(`${iamRoleTFResource.address}.arn`),
+      RoleId: terraform.raw(`${iamRoleTFResource.address}.unique_id`),
+      RoleName: terraform.raw(`${iamRoleTFResource.address}.name`),
     });
 
     const awsPolicies = this.properties.policies.filter((p) => p.policyType === 'aws-policy');
@@ -274,7 +278,7 @@ export class IamRole extends ATFResource<IamRoleSchema, IamRole> {
         `${this.resourceId}_${policy.policyId}`,
         {
           policy_arn: policy.policy as string,
-          role: octoTerraform.raw(`${iamRoleTFResource.address}.name`),
+          role: terraform.raw(`${iamRoleTFResource.address}.name`),
         },
       );
     }
@@ -324,7 +328,7 @@ export class IamRole extends ATFResource<IamRoleSchema, IamRole> {
         `${this.resourceId}_${policy.policyId}`,
         {
           name: policy.policyId,
-          policy: octoTerraform.jsonencode({
+          policy: terraform.jsonencode({
             Statement: policyStatements,
             Version: '2012-10-17',
           }),
@@ -335,8 +339,8 @@ export class IamRole extends ATFResource<IamRoleSchema, IamRole> {
         'aws_iam_role_policy_attachment',
         `${this.resourceId}_${policy.policyId}_attach`,
         {
-          policy_arn: octoTerraform.raw(`${iamPolicyTFResource.address}.arn`),
-          role: octoTerraform.raw(`${iamRoleTFResource.address}.name`),
+          policy_arn: terraform.raw(`${iamPolicyTFResource.address}.arn`),
+          role: terraform.raw(`${iamRoleTFResource.address}.name`),
         },
       );
     }

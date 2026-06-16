@@ -1,7 +1,13 @@
-import { Diff, DiffAction, DiffUtility, Resource, ResourceError } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../factories/octo-terraform.factory.js';
+import {
+  ATerraformResource,
+  Diff,
+  DiffAction,
+  DiffUtility,
+  Resource,
+  ResourceError,
+  type TerraformModuleScope,
+} from '@quadnix/octo';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
-import { ATFResource } from '../tf-resource.abstract.js';
 import { type IIamUserPolicyTypes, type IIamUserS3BucketPolicy, IamUserSchema } from './index.schema.js';
 
 /**
@@ -40,7 +46,7 @@ export function isDeletePolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUs
  * @internal
  */
 @Resource<IamUser>('@octo', 'iam-user', IamUserSchema)
-export class IamUser extends ATFResource<IamUserSchema, IamUser> {
+export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
   declare properties: IamUserSchema['properties'];
   declare response: IamUserSchema['response'];
 
@@ -181,20 +187,18 @@ export class IamUser extends ATFResource<IamUserSchema, IamUser> {
     }
   }
 
-  override async toHCL(): Promise<void> {
-    const octoTerraform = await this.container.get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const iamUserOctoResource = terraform.addOctoTerraformResource(this as IamUser, {
+      provider: { accountId: this.properties.awsAccountId },
     });
-
-    const iamUserOctoResource = octoTerraform.addOctoTerraformResource(this as IamUser);
 
     const iamUserTFResource = iamUserOctoResource.addTerraformResource('aws_iam_user', this.resourceId, {
       name: this.properties.username,
     });
     iamUserOctoResource.output({
-      Arn: octoTerraform.raw(`${iamUserTFResource.address}.arn`),
-      UserId: octoTerraform.raw(`${iamUserTFResource.address}.unique_id`),
-      UserName: octoTerraform.raw(`${iamUserTFResource.address}.name`),
+      Arn: terraform.raw(`${iamUserTFResource.address}.arn`),
+      UserId: terraform.raw(`${iamUserTFResource.address}.unique_id`),
+      UserName: terraform.raw(`${iamUserTFResource.address}.name`),
     });
 
     const s3Policies = this.properties.policies.filter((p) => p.policyType === 's3-storage-access-policy');
@@ -242,7 +246,7 @@ export class IamUser extends ATFResource<IamUserSchema, IamUser> {
         `${this.resourceId}_${policy.policyId}`,
         {
           name: policy.policyId,
-          policy: octoTerraform.jsonencode({
+          policy: terraform.jsonencode({
             Statement: policyStatements,
             Version: '2012-10-17',
           }),
@@ -253,8 +257,8 @@ export class IamUser extends ATFResource<IamUserSchema, IamUser> {
         'aws_iam_user_policy_attachment',
         `${this.resourceId}_${policy.policyId}_attach`,
         {
-          policy_arn: octoTerraform.raw(`${iamPolicyTFResource.address}.arn`),
-          user: octoTerraform.raw(`${iamUserTFResource.address}.name`),
+          policy_arn: terraform.raw(`${iamPolicyTFResource.address}.arn`),
+          user: terraform.raw(`${iamUserTFResource.address}.name`),
         },
       );
     }
