@@ -1052,8 +1052,12 @@ export class TerraformServiceFactory {
     } = {},
     forceNew: boolean = false,
   ): Promise<TerraformService> {
-    if (!this.instance || forceNew) {
+    if (!this.instance) {
       this.instance = new TerraformService(runOctoResourceActionCommandPrefix, terraformFileIndentLength);
+    }
+
+    if (forceNew) {
+      this.instance.reset();
     }
 
     return this.instance;

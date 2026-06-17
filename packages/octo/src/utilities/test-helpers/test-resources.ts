@@ -83,7 +83,10 @@ export function createTerraformResource(nodeName: string): Constructable<ATerraf
     }
 
     override async toHCL(terraform: TerraformModuleScope): Promise<void> {
-      terraform.addOctoTerraformResource(this);
+      const octoResource = terraform.addOctoTerraformResource(this);
+      if (Object.keys(this.response).length > 0) {
+        octoResource.output(this.response as Parameters<typeof octoResource.output>[0]);
+      }
     }
   };
 }

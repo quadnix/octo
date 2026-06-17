@@ -70,8 +70,6 @@ export { TestStateProvider } from './services/state-management/test.state-provid
 
 export type { OctoTerraformResourceScope, TerraformModuleScope } from './services/terraform/terraform.service.js';
 
-export { DiffAssert } from './utilities/test-helpers/test-diff-assert.js';
-
 export {
   type ActionOutputs,
   type AnchorSchema,
