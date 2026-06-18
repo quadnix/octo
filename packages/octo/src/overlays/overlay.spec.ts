@@ -1,10 +1,12 @@
 import { TestContainer } from '../functions/container/test-container.js';
 import type { ANode } from '../functions/node/node.abstract.js';
 import { App } from '../models/app/app.model.js';
-import { TestAnchor, TestOverlay } from '../utilities/test-helpers/test-classes.js';
 import { create } from '../utilities/test-helpers/test-models.js';
-import { createTestOverlays } from '../utilities/test-helpers/test-overlays.js';
+import { createAnchor, createOverlay, createTestOverlays } from '../utilities/test-helpers/test-overlays.js';
 import { AOverlay } from './overlay.abstract.js';
+
+const TestAnchor = createAnchor().setClassName('TestAnchor');
+const TestOverlay = createOverlay('test-overlay').setClassName('TestOverlay');
 
 describe('Overlay UT', () => {
   beforeEach(async () => {

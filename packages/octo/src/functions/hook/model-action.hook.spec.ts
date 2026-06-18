@@ -6,10 +6,12 @@ import type { IModelAction } from '../../models/model-action.interface.js';
 import { TestModuleContainer } from '../../modules/test-module.container.js';
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
-import { TestAppModule } from '../../utilities/test-helpers/test-classes.js';
+import { createAppModule } from '../../utilities/test-helpers/test-modules.js';
 import { TestContainer } from '../container/test-container.js';
 import { DiffMetadata } from '../diff/diff-metadata.js';
 import { Diff, DiffAction } from '../diff/diff.js';
+
+const TestAppModule = createAppModule().setClassName('TestAppModule');
 
 describe('ModelActionHook UT', () => {
   const universalModelAction: IModelAction<UnknownModule> = {
@@ -43,7 +45,7 @@ describe('ModelActionHook UT', () => {
     applyModels = service['applyModels'];
     applyModels = applyModels.bind(service);
 
-    testModuleContainer = new TestModuleContainer();
+    testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize(new TestStateProvider());
   });
 
@@ -58,11 +60,11 @@ describe('ModelActionHook UT', () => {
     const postModelActionHookMock = (jest.fn() as jest.Mocked<any>).mockResolvedValue({});
     const preModelActionHookMock = (jest.fn() as jest.Mocked<any>).mockResolvedValue({});
 
-    testModuleContainer.octo.registerHooks({
+    testModuleContainer.registerHooks({
       postModelActionHooks: [{ action: universalModelAction, handle: postModelActionHookMock as any }],
       preModelActionHooks: [{ action: universalModelAction, handle: preModelActionHookMock as any }],
     });
-    const { 'moduleId.model.app': app } = await testModuleContainer.runModule<TestAppModule>({
+    const { 'moduleId.model.app': app } = await testModuleContainer.runModule({
       inputs: { name: 'app' },
       moduleId: 'moduleId',
       type: TestAppModule,

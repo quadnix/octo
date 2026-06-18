@@ -2,15 +2,8 @@ import { jest } from '@jest/globals';
 import type { UnknownResource } from '../../app.type.js';
 import type { Container } from '../../functions/container/container.js';
 import { TestContainer } from '../../functions/container/test-container.js';
-import { ModuleContainer } from '../../modules/module.container.js';
-import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
-import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { commitResources, createTestResources } from '../../utilities/test-helpers/test-resources.js';
-import { EventService } from '../event/event.service.js';
-import { InputService } from '../input/input.service.js';
-import { ResourceSerializationService } from '../serialization/resource/resource-serialization.service.js';
-import { TerraformService } from '../terraform/terraform.service.js';
 import { TransactionService } from './transaction.service.js';
 
 describe('Transaction Scenarios UT', () => {
@@ -22,38 +15,7 @@ describe('Transaction Scenarios UT', () => {
   let container: Container;
 
   beforeEach(async () => {
-    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
-
-    const [
-      eventService,
-      inputService,
-      moduleContainer,
-      overlayDataRepository,
-      resourceDataRepository,
-      terraformService,
-    ] = await Promise.all([
-      container.get(EventService),
-      container.get(InputService),
-      container.get(ModuleContainer),
-      container.get(OverlayDataRepository),
-      container.get(ResourceDataRepository),
-      container.get(TerraformService),
-    ]);
-
-    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    container.unRegisterFactory(ResourceSerializationService);
-    container.registerValue(ResourceSerializationService, resourceSerializationService);
-
-    const transactionService = new TransactionService(
-      eventService,
-      inputService,
-      moduleContainer,
-      overlayDataRepository,
-      resourceDataRepository,
-      terraformService,
-    );
-    container.unRegisterFactory(TransactionService);
-    container.registerValue(TransactionService, transactionService);
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500, force: true });
   });
 
   afterEach(async () => {

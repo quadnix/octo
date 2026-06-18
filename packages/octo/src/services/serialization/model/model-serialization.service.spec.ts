@@ -9,18 +9,20 @@ import { Region } from '../../../models/region/region.model.js';
 import { Service } from '../../../models/service/service.model.js';
 import { Subnet } from '../../../models/subnet/subnet.model.js';
 import { OverlayDataRepository } from '../../../overlays/overlay-data.repository.js';
-import { TestAnchor, TestOverlay } from '../../../utilities/test-helpers/test-classes.js';
 import { commit, create } from '../../../utilities/test-helpers/test-models.js';
-import { createTestOverlays } from '../../../utilities/test-helpers/test-overlays.js';
+import { createAnchor, createOverlay, createTestOverlays } from '../../../utilities/test-helpers/test-overlays.js';
+
+const TestAnchor = createAnchor().setClassName('TestAnchor');
+const TestOverlay = createOverlay('test-overlay').setClassName('TestOverlay');
 import { ModelSerializationService } from './model-serialization.service.js';
 
 describe('Model Serialization Service UT', () => {
   let container: Container;
 
   beforeEach(async () => {
-    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500, force: true });
 
-    const modelSerializationService = new ModelSerializationService();
+    const modelSerializationService = await container.get(ModelSerializationService);
     modelSerializationService.registerClass('@octo/Account', Account);
     modelSerializationService.registerClass('@octo/App', App);
     modelSerializationService.registerClass('@octo/Image', Image);
@@ -29,8 +31,6 @@ describe('Model Serialization Service UT', () => {
     modelSerializationService.registerClass('@octo/Subnet', Subnet);
     modelSerializationService.registerClass('@octo/TestAnchor', TestAnchor);
     modelSerializationService.registerClass('@octo/TestOverlay', TestOverlay);
-    container.unRegisterFactory(ModelSerializationService);
-    container.registerValue(ModelSerializationService, modelSerializationService);
   });
 
   afterEach(async () => {

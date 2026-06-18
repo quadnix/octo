@@ -1,5 +1,7 @@
-import { TestResource } from '../test-helpers/test-classes.js';
+import { createResource } from '../test-helpers/test-resources.js';
 import { ObjectUtility } from './object.utility.js';
+
+const TestResource = createResource('test-resource').setClassName('TestResource');
 
 describe('Object Utility Test', () => {
   describe('deepFreeze()', () => {

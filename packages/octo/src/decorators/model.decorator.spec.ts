@@ -3,8 +3,11 @@ import { NodeType } from '../app.type.js';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { ModelSerializationService } from '../services/serialization/model/model-serialization.service.js';
-import { TestModelWithoutUnsynth, TestOverlay } from '../utilities/test-helpers/test-classes.js';
+import { TestModelWithoutUnsynth } from '../utilities/test-helpers/test-classes.js';
+import { createOverlay } from '../utilities/test-helpers/test-overlays.js';
 import { Model } from './model.decorator.js';
+
+const TestOverlay = createOverlay('test-overlay').setClassName('TestOverlay');
 
 class TestModelSchema {}
 

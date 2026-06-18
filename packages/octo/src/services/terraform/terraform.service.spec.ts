@@ -1,21 +1,8 @@
-import { NodeType, type UnknownResource } from '../../app.type.js';
-import { AResource } from '../../resources/resource.abstract.js';
-import type { BaseResourceSchema } from '../../resources/resource.schema.js';
-import { createTerraformResource } from '../../utilities/test-helpers/test-resources.js';
+import { createResource, createTerraformResource } from '../../utilities/test-helpers/test-resources.js';
 import { TerraformService } from './terraform.service.js';
 
-const TestTfResource = createTerraformResource('test-tf-resource');
-
-class TestExternalResource extends AResource<BaseResourceSchema, TestExternalResource> {
-  static override readonly NODE_NAME: string = 'test-sdk-resource';
-  static override readonly NODE_PACKAGE: string = '@octo';
-  static override readonly NODE_SCHEMA = {};
-  static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
-
-  constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
-    super(resourceId, properties, parents);
-  }
-}
+const TestExternalResource = createResource('test-resource').setClassName('TestResource');
+const TestTerraformResource = createTerraformResource('test-tf-resource');
 
 describe('TerraformService UT', () => {
   let service: TerraformService;
@@ -29,7 +16,7 @@ describe('TerraformService UT', () => {
   describe('addTerraformConfig()', () => {
     it('should use the default required_version when addTerraformConfig is never called', () => {
       const scope = service.scope('m1');
-      const bucket = new TestTfResource('bucket-1', {});
+      const bucket = new TestTerraformResource('bucket-1', {});
       scope.addOctoTerraformResource(bucket).addTerraformResource('aws_s3_bucket', 'bucket-1', {});
 
       expect(service.renderAllModules().get('m1')!.mainTf).toContain('required_version = ">= 1.6.0"');
@@ -40,7 +27,7 @@ describe('TerraformService UT', () => {
       service.addTerraformProvider('aws', '111111111', 'us-east-1');
 
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope
         .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-east-1' } })
         .addTerraformResource('aws_vpc', 'vpc-1', {});
@@ -54,7 +41,7 @@ describe('TerraformService UT', () => {
       service.addTerraformProvider('aws', '111111111', 'us-east-1');
 
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope
         .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-east-1' } })
         .addTerraformResource('aws_vpc', 'vpc-1', {});
@@ -71,7 +58,7 @@ describe('TerraformService UT', () => {
       service.addTerraformProvider('aws', '111111111', 'us-east-1');
 
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope
         .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-east-1' } })
         .addTerraformResource('aws_vpc', 'vpc-1', {});
@@ -87,7 +74,7 @@ describe('TerraformService UT', () => {
       service.addTerraformProvider('azurerm', 'sub-1', 'east-us', { features: {} }, { setRegionAttribute: false });
 
       const scope = service.scope('azure-module');
-      const resourceGroup = new TestTfResource('rg-1', {});
+      const resourceGroup = new TestTerraformResource('rg-1', {});
       scope
         .addOctoTerraformResource(resourceGroup, { provider: { accountId: 'sub-1', regionId: 'east-us' } })
         .addTerraformResource('azurerm_resource_group', 'rg-1', { name: 'rg-1' });
@@ -103,7 +90,7 @@ describe('TerraformService UT', () => {
       service.addTerraformProvider('aws', '111111111', 'us-east-1');
 
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope
         .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-east-1' } })
         .addTerraformResource('aws_vpc', 'vpc-1', {});
@@ -131,7 +118,7 @@ describe('TerraformService UT', () => {
       service.addTerraformProvider('aws', '111111111', 'us-east-1', { profile: 'production' });
 
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope
         .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-east-1' } })
         .addTerraformResource('aws_vpc', 'vpc-1', {});
@@ -152,14 +139,14 @@ describe('TerraformService UT', () => {
 
       const scope = service.scope('region-module');
 
-      const vpc = new TestTfResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+      const vpc = new TestTerraformResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
       const vpcTf = scope.addOctoTerraformResource(vpc, {
         provider: { accountId: '111111111', regionId: 'us-east-1' },
       });
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', { cidr_block: '10.0.0.0/16' });
       vpcTf.output({ VpcId: scope.raw('aws_vpc.vpc-1.id') });
 
-      const network = new TestTfResource('network-1', {});
+      const network = new TestTerraformResource('network-1', {});
       scope
         .addOctoTerraformResource(network, { provider: { accountId: 'my-project', regionId: 'us-central1' } })
         .addTerraformResource('google_compute_network', 'network-1', { name: 'network-1' });
@@ -176,13 +163,13 @@ describe('TerraformService UT', () => {
     });
 
     it('should return all registered module IDs in insertion order', () => {
-      const bucket = new TestTfResource('bucket-1', {});
+      const bucket = new TestTerraformResource('bucket-1', {});
       service.scope('module-z').addOctoTerraformResource(bucket).addTerraformResource('aws_s3_bucket', 'bucket-1', {});
 
-      const queue = new TestTfResource('queue-1', {});
+      const queue = new TestTerraformResource('queue-1', {});
       service.scope('module-a').addOctoTerraformResource(queue).addTerraformResource('aws_queue', 'queue-1', {});
 
-      const table = new TestTfResource('table-1', {});
+      const table = new TestTerraformResource('table-1', {});
       service
         .scope('module-m')
         .addOctoTerraformResource(table)
@@ -197,7 +184,7 @@ describe('TerraformService UT', () => {
   describe('addOctoTerraformResource()', () => {
     it('should register the resource so it is addressable by other resources', () => {
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcId: scope.raw('aws_vpc.vpc-1.id') });
@@ -213,7 +200,7 @@ describe('TerraformService UT', () => {
       service.addTerraformProvider('aws', '111111111', 'us-east-1');
 
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope
         .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-east-1' } })
         .addTerraformResource('aws_vpc', 'vpc-1', {});
@@ -222,7 +209,7 @@ describe('TerraformService UT', () => {
     });
 
     it('should throw when the target provider is not registered', () => {
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       expect(() =>
         service
           .scope('m1')
@@ -232,18 +219,18 @@ describe('TerraformService UT', () => {
 
     it('should throw when the same resource ID is registered twice', () => {
       const scope = service.scope('m1');
-      scope.addOctoTerraformResource(new TestTfResource('vpc-1', {}));
+      scope.addOctoTerraformResource(new TestTerraformResource('vpc-1', {}));
 
-      expect(() => scope.addOctoTerraformResource(new TestTfResource('vpc-1', {}))).toThrow(
+      expect(() => scope.addOctoTerraformResource(new TestTerraformResource('vpc-1', {}))).toThrow(
         'Resource id "vpc-1" is already registered!',
       );
     });
 
     it('should throw when two distinct resource IDs collide after sanitization', () => {
       const scope = service.scope('m1');
-      scope.addOctoTerraformResource(new TestTfResource('vpc/1', {}));
+      scope.addOctoTerraformResource(new TestTerraformResource('vpc/1', {}));
 
-      expect(() => scope.addOctoTerraformResource(new TestTfResource('vpc-1', {}))).toThrow(
+      expect(() => scope.addOctoTerraformResource(new TestTerraformResource('vpc-1', {}))).toThrow(
         'Resource id "vpc-1" collides with resource id "vpc/1" after sanitization!',
       );
     });
@@ -251,10 +238,10 @@ describe('TerraformService UT', () => {
     it('should add depends_on for explicit parents in the same module', () => {
       const scope = service.scope('m1');
 
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope.addOctoTerraformResource(vpc).addTerraformResource('aws_vpc', 'vpc-1', {});
 
-      const internetGateway = new TestTfResource('igw-1', {});
+      const internetGateway = new TestTerraformResource('igw-1', {});
       scope
         .addOctoTerraformResource(internetGateway, { explicitParents: [vpc] })
         .addTerraformResource('aws_internet_gateway', 'igw-1', {});
@@ -264,11 +251,11 @@ describe('TerraformService UT', () => {
 
     it('should add a terragrunt dependency for cross-module explicit parents without depends_on', () => {
       const vpcScope = service.scope('vpc-module');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       vpcScope.addOctoTerraformResource(vpc).addTerraformResource('aws_vpc', 'vpc-1', {});
 
       const igwScope = service.scope('igw-module');
-      const internetGateway = new TestTfResource('igw-1', {});
+      const internetGateway = new TestTerraformResource('igw-1', {});
       igwScope
         .addOctoTerraformResource(internetGateway, { explicitParents: [vpc] })
         .addTerraformResource('aws_internet_gateway', 'igw-1', {});
@@ -282,9 +269,9 @@ describe('TerraformService UT', () => {
 
     it('should throw when an explicit parent is not registered in terraform', () => {
       const scope = service.scope('m1');
-      const phantomVpc = new TestTfResource('phantom-vpc-1', {});
+      const phantomVpc = new TestTerraformResource('phantom-vpc-1', {});
 
-      const subnet = new TestTfResource('subnet-1', {});
+      const subnet = new TestTerraformResource('subnet-1', {});
       scope
         .addOctoTerraformResource(subnet, { explicitParents: [phantomVpc] })
         .addTerraformResource('aws_subnet', 'subnet-1', {});
@@ -298,7 +285,7 @@ describe('TerraformService UT', () => {
   describe('addOctoTerraformExternalResource()', () => {
     it('should generate the null_resource and data external wrapper with cross-module inputs', () => {
       const vpcScope = service.scope('vpc-module');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = vpcScope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcId: vpcScope.raw('aws_vpc.vpc-1.id') });
@@ -317,7 +304,7 @@ describe('TerraformService UT', () => {
     it('should resolve a ref to an external resource by indexing its whole result map', () => {
       const scope = service.scope('m1');
 
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcId: scope.raw('aws_vpc.vpc-1.id') });
@@ -325,7 +312,7 @@ describe('TerraformService UT', () => {
       const internetGateway = new TestExternalResource('igw-1', {}, [vpc]);
       scope.addOctoTerraformExternalResource(internetGateway);
 
-      const securityGroup = new TestTfResource('sg-1', {});
+      const securityGroup = new TestTerraformResource('sg-1', {});
       scope
         .addOctoTerraformResource(securityGroup)
         .addTerraformResource('aws_security_group', 'sg-1', { igw_id: scope.getRef(internetGateway, 'igwId') });
@@ -334,7 +321,7 @@ describe('TerraformService UT', () => {
     });
 
     it('should throw when an external resource parent is never registered in terraform', () => {
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const internetGateway = new TestExternalResource('igw-1', {}, [vpc]);
 
       // Parent-input wiring is deferred to the render phase, so registration succeeds; the missing
@@ -349,7 +336,7 @@ describe('TerraformService UT', () => {
     it('should resolve parent inputs inline when parent is in the same module', () => {
       const scope = service.scope('m1');
 
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcId: scope.raw('aws_vpc.vpc-1.id') });
@@ -383,7 +370,7 @@ describe('TerraformService UT', () => {
 
       const mainTf = service.renderAllModules().get('m1')!.mainTf;
       // The parent's keys are unknown at generation time, so the entire result map is handed over as
-      // a single jsonencode'd input, keyed bare by the parent id (no per-key suffix).
+      // a single jsonencode input, keyed bare by the parent id (no per-key suffix).
       expect(mainTf).toContain('--input igw-1=${jsonencode(data.external.igw-1.result)}');
       expect(mainTf).toContain('input_igw_1 = "${jsonencode(data.external.igw-1.result)}"');
     });
@@ -416,7 +403,7 @@ describe('TerraformService UT', () => {
       const scope = service.scope('m1');
       const callerIdentity = scope.addTerraformData('aws_caller_identity', 'current');
 
-      const policy = new TestTfResource('policy-1', {});
+      const policy = new TestTerraformResource('policy-1', {});
       scope
         .addOctoTerraformResource(policy)
         .addTerraformResource('aws_iam_policy', 'policy-1', { account_id: callerIdentity.ref('account_id') });
@@ -433,12 +420,12 @@ describe('TerraformService UT', () => {
     it('should resolve same-module refs to native terraform expressions', () => {
       const scope = service.scope('m1');
 
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcId: scope.raw('aws_vpc.vpc-1.id') });
 
-      const subnet = new TestTfResource('subnet-1', {});
+      const subnet = new TestTerraformResource('subnet-1', {});
       scope
         .addOctoTerraformResource(subnet)
         .addTerraformResource('aws_subnet', 'subnet-1', { vpc_id: scope.getRef(vpc, 'VpcId') });
@@ -451,13 +438,13 @@ describe('TerraformService UT', () => {
 
     it('should resolve cross-module refs to variables with terragrunt wiring', () => {
       const vpcScope = service.scope('vpc-module');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = vpcScope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcArn: vpcScope.raw('aws_vpc.vpc-1.arn'), VpcId: vpcScope.raw('aws_vpc.vpc-1.id') });
 
       const subnetScope = service.scope('subnet-module');
-      const subnet = new TestTfResource('subnet-1', {});
+      const subnet = new TestTerraformResource('subnet-1', {});
       subnetScope
         .addOctoTerraformResource(subnet)
         .addTerraformResource('aws_subnet', 'subnet-1', { vpc_id: subnetScope.getRef(vpc, 'VpcId') });
@@ -472,10 +459,10 @@ describe('TerraformService UT', () => {
     it('should throw on refs to output keys not declared via output()', () => {
       const scope = service.scope('m1');
 
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope.addOctoTerraformResource(vpc).addTerraformResource('aws_vpc', 'vpc-1', {});
 
-      const subnet = new TestTfResource('subnet-1', {});
+      const subnet = new TestTerraformResource('subnet-1', {});
       scope
         .addOctoTerraformResource(subnet)
         .addTerraformResource('aws_subnet', 'subnet-1', { vpc_id: scope.getRef(vpc, 'VpcId') });
@@ -492,7 +479,7 @@ describe('TerraformService UT', () => {
       service.addTerraformProvider('aws', '222222222', 'us-west-2');
 
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope
         .addOctoTerraformResource(vpc)
         .addTerraformResource('aws_vpc', 'vpc-1', { provider: scope.getProviderAliasRef('222222222', 'us-west-2') });
@@ -507,7 +494,7 @@ describe('TerraformService UT', () => {
   describe('raw()', () => {
     it('should emit the value verbatim as an unquoted terraform expression', () => {
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       scope
         .addOctoTerraformResource(vpc)
         .addTerraformResource('aws_vpc', 'vpc-1', { tags: scope.raw('local.common_tags') });
@@ -528,7 +515,7 @@ describe('TerraformService UT', () => {
   describe('jsonencode()', () => {
     it('should render a plain object wrapped in jsonencode(...)', () => {
       const scope = service.scope('m1');
-      const iamPolicy = new TestTfResource('policy-1', {});
+      const iamPolicy = new TestTerraformResource('policy-1', {});
       scope.addOctoTerraformResource(iamPolicy).addTerraformResource('aws_iam_policy', 'policy-1', {
         policy: scope.jsonencode({ Statement: [], Version: '2012-10-17' }),
       });
@@ -539,12 +526,12 @@ describe('TerraformService UT', () => {
     it('should resolve HCL refs embedded inside jsonencode arguments', () => {
       const scope = service.scope('m1');
 
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcId: scope.raw('aws_vpc.vpc-1.id') });
 
-      const securityGroup = new TestTfResource('sg-1', {});
+      const securityGroup = new TestTerraformResource('sg-1', {});
       scope.addOctoTerraformResource(securityGroup).addTerraformResource('aws_sg', 'sg-1', {
         policy: scope.jsonencode({ vpc_id: scope.getRef(vpc, 'VpcId') }),
       });
@@ -556,7 +543,7 @@ describe('TerraformService UT', () => {
   describe('mapAttr()', () => {
     it('should render as a map attribute (key = { }) not a block (key { })', () => {
       const scope = service.scope('m1');
-      const instance = new TestTfResource('instance-1', {});
+      const instance = new TestTerraformResource('instance-1', {});
       scope.addOctoTerraformResource(instance).addTerraformResource('aws_instance', 'instance-1', {
         tags: scope.mapAttr({ Env: 'prod', Name: 'my-instance' }),
       });
@@ -588,7 +575,7 @@ describe('TerraformService UT', () => {
       const scope = service.scope('m1');
       const bucketNameVar = scope.variable('bucket_name', 'string', { default: 'my-bucket', sensitive: false });
 
-      const bucket = new TestTfResource('bucket-1', {});
+      const bucket = new TestTerraformResource('bucket-1', {});
       scope
         .addOctoTerraformResource(bucket)
         .addTerraformResource('aws_s3_bucket', 'bucket-1', { bucket: bucketNameVar.ref });
@@ -602,7 +589,7 @@ describe('TerraformService UT', () => {
   describe('output()', () => {
     it('should register each key so it can be queried via getOctoTerraformResourceMappings', () => {
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcArn: scope.raw('aws_vpc.vpc-1.arn'), VpcId: scope.raw('aws_vpc.vpc-1.id') });
@@ -615,7 +602,7 @@ describe('TerraformService UT', () => {
 
     it('should use the sanitized resourceId as the output name prefix', () => {
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc/us-east-1', {});
+      const vpc = new TestTerraformResource('vpc/us-east-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcId: scope.raw('aws_vpc.vpc-1.id') });
@@ -625,7 +612,7 @@ describe('TerraformService UT', () => {
 
     it('should render each output value correctly in outputsTf', () => {
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcId: scope.raw('aws_vpc.vpc-1.id') });
@@ -638,7 +625,7 @@ describe('TerraformService UT', () => {
     it('should map each octo resource to its terraform addresses and output names', () => {
       const scope = service.scope('m1');
 
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
       vpcTf.output({ VpcId: scope.raw('aws_vpc.vpc-1.id') });
@@ -685,13 +672,13 @@ describe('TerraformService UT', () => {
         service.addTerraformProvider('google', 'my-project', 'us-central1');
 
         const awsScope = service.scope('aws-module');
-        const vpc = new TestTfResource('vpc-1', {});
+        const vpc = new TestTerraformResource('vpc-1', {});
         awsScope
           .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-east-1' } })
           .addTerraformResource('aws_vpc', 'vpc-1', {});
 
         const googleScope = service.scope('google-module');
-        const network = new TestTfResource('network-1', {});
+        const network = new TestTerraformResource('network-1', {});
         googleScope
           .addOctoTerraformResource(network, { provider: { accountId: 'my-project', regionId: 'us-central1' } })
           .addTerraformResource('google_compute_network', 'network-1', {});
@@ -707,7 +694,7 @@ describe('TerraformService UT', () => {
     describe('intra-resource depends_on', () => {
       it('should not add depends_on to the first TF block of an octo resource', () => {
         const scope = service.scope('m1');
-        const bucket = new TestTfResource('bucket-1', {});
+        const bucket = new TestTerraformResource('bucket-1', {});
         scope.addOctoTerraformResource(bucket).addTerraformResource('aws_s3_bucket', 'bucket-1', {});
 
         expect(service.renderAllModules().get('m1')!.mainTf).not.toContain('depends_on');
@@ -715,7 +702,7 @@ describe('TerraformService UT', () => {
 
       it('should chain multiple TF blocks of the same octo resource via depends_on', () => {
         const scope = service.scope('m1');
-        const bucket = new TestTfResource('bucket-1', {});
+        const bucket = new TestTerraformResource('bucket-1', {});
         const bucketTf = scope.addOctoTerraformResource(bucket);
         bucketTf.addTerraformResource('aws_s3_bucket', 'bucket-1', {});
         bucketTf.addTerraformResource('aws_s3_bucket_policy', 'bucket-1-policy', {});
@@ -726,10 +713,10 @@ describe('TerraformService UT', () => {
       it('should merge intra-resource and explicit-parent depends_on into a single list', () => {
         const scope = service.scope('m1');
 
-        const vpc = new TestTfResource('vpc-1', {});
+        const vpc = new TestTerraformResource('vpc-1', {});
         scope.addOctoTerraformResource(vpc).addTerraformResource('aws_vpc', 'vpc-1', {});
 
-        const subnet = new TestTfResource('subnet-1', {});
+        const subnet = new TestTerraformResource('subnet-1', {});
         const subnetTf = scope.addOctoTerraformResource(subnet, { explicitParents: [vpc] });
         subnetTf.addTerraformResource('aws_subnet', 'subnet-1a', {});
         subnetTf.addTerraformResource('aws_subnet', 'subnet-1b', {});
@@ -743,13 +730,13 @@ describe('TerraformService UT', () => {
     describe('cross-module wiring', () => {
       it('should correctly wire a three-level dependency chain', () => {
         const clusterScope = service.scope('cluster-module');
-        const clusterResource = new TestTfResource('cluster-1', {});
+        const clusterResource = new TestTerraformResource('cluster-1', {});
         const clusterTf = clusterScope.addOctoTerraformResource(clusterResource);
         clusterTf.addTerraformResource('aws_eks_cluster', 'cluster-1', {});
         clusterTf.output({ ClusterId: clusterScope.raw('aws_eks_cluster.cluster-1.id') });
 
         const nodeGroupScope = service.scope('node-group-module');
-        const nodeGroupResource = new TestTfResource('node-group-1', {});
+        const nodeGroupResource = new TestTerraformResource('node-group-1', {});
         const nodeGroupTf = nodeGroupScope.addOctoTerraformResource(nodeGroupResource);
         nodeGroupTf.addTerraformResource('aws_eks_node_group', 'node-group-1', {
           cluster_id: nodeGroupScope.getRef(clusterResource, 'ClusterId'),
@@ -757,7 +744,7 @@ describe('TerraformService UT', () => {
         nodeGroupTf.output({ NodeGroupId: nodeGroupScope.raw('aws_eks_node_group.node-group-1.id') });
 
         const addonScope = service.scope('addon-module');
-        const addonResource = new TestTfResource('addon-1', {});
+        const addonResource = new TestTerraformResource('addon-1', {});
         addonScope.addOctoTerraformResource(addonResource).addTerraformResource('aws_eks_addon', 'addon-1', {
           node_group_id: addonScope.getRef(nodeGroupResource, 'NodeGroupId'),
         });
@@ -772,13 +759,13 @@ describe('TerraformService UT', () => {
 
       it('should handle a diamond dependency without false cycle errors', () => {
         const vpcScope = service.scope('vpc-module');
-        const vpcResource = new TestTfResource('vpc-1', {});
+        const vpcResource = new TestTerraformResource('vpc-1', {});
         const vpcTf = vpcScope.addOctoTerraformResource(vpcResource);
         vpcTf.addTerraformResource('aws_vpc', 'vpc-1', {});
         vpcTf.output({ VpcId: vpcScope.raw('aws_vpc.vpc-1.id') });
 
         const publicSubnetScope = service.scope('public-subnet-module');
-        const publicSubnetResource = new TestTfResource('public-subnet-1', {});
+        const publicSubnetResource = new TestTerraformResource('public-subnet-1', {});
         const publicSubnetTf = publicSubnetScope.addOctoTerraformResource(publicSubnetResource);
         publicSubnetTf.addTerraformResource('aws_subnet', 'public-subnet-1', {
           vpc_id: publicSubnetScope.getRef(vpcResource, 'VpcId'),
@@ -786,7 +773,7 @@ describe('TerraformService UT', () => {
         publicSubnetTf.output({ SubnetId: publicSubnetScope.raw('aws_subnet.public-subnet-1.id') });
 
         const privateSubnetScope = service.scope('private-subnet-module');
-        const privateSubnetResource = new TestTfResource('private-subnet-1', {});
+        const privateSubnetResource = new TestTerraformResource('private-subnet-1', {});
         const privateSubnetTf = privateSubnetScope.addOctoTerraformResource(privateSubnetResource);
         privateSubnetTf.addTerraformResource('aws_subnet', 'private-subnet-1', {
           vpc_id: privateSubnetScope.getRef(vpcResource, 'VpcId'),
@@ -794,7 +781,7 @@ describe('TerraformService UT', () => {
         privateSubnetTf.output({ SubnetId: privateSubnetScope.raw('aws_subnet.private-subnet-1.id') });
 
         const routeTableScope = service.scope('route-table-module');
-        const routeTableResource = new TestTfResource('route-table-1', {});
+        const routeTableResource = new TestTerraformResource('route-table-1', {});
         routeTableScope
           .addOctoTerraformResource(routeTableResource)
           .addTerraformResource('aws_route_table', 'route-table-1', {
@@ -809,7 +796,7 @@ describe('TerraformService UT', () => {
 
       it('should include only consumed outputs as mock_outputs in terragrunt', () => {
         const clusterScope = service.scope('cluster-module');
-        const clusterResource = new TestTfResource('cluster-1', {});
+        const clusterResource = new TestTerraformResource('cluster-1', {});
         const clusterTf = clusterScope.addOctoTerraformResource(clusterResource);
         clusterTf.addTerraformResource('aws_eks_cluster', 'cluster-1', {});
         clusterTf.output({
@@ -819,7 +806,7 @@ describe('TerraformService UT', () => {
         });
 
         const nodeGroupScope = service.scope('node-group-module');
-        const nodeGroupResource = new TestTfResource('node-group-1', {});
+        const nodeGroupResource = new TestTerraformResource('node-group-1', {});
         nodeGroupScope
           .addOctoTerraformResource(nodeGroupResource)
           .addTerraformResource('aws_eks_node_group', 'node-group-1', {
@@ -836,12 +823,12 @@ describe('TerraformService UT', () => {
 
       it('should throw when a cross-module dependency cycle is detected', () => {
         const m1 = service.scope('m1');
-        const resourceA = new TestTfResource('resource-a', {});
+        const resourceA = new TestTerraformResource('resource-a', {});
         const resourceATf = m1.addOctoTerraformResource(resourceA);
         resourceATf.output({ KeyA: m1.raw('resource_a.a.id') });
 
         const m2 = service.scope('m2');
-        const resourceB = new TestTfResource('resource-b', {});
+        const resourceB = new TestTerraformResource('resource-b', {});
         const resourceBTf = m2.addOctoTerraformResource(resourceB);
         resourceBTf.output({ KeyB: m2.raw('resource_b.b.id') });
         resourceBTf.addTerraformResource('resource_b', 'b', { a_ref: m2.getRef(resourceA, 'KeyA') });
@@ -858,13 +845,13 @@ describe('TerraformService UT', () => {
     describe('resource ID sanitization', () => {
       it('should sanitize IDs with special characters across output names, variable names, and TF identifiers', () => {
         const vpcScope = service.scope('vpc-module');
-        const vpc = new TestTfResource('vpc/us-east-1/prod', {});
+        const vpc = new TestTerraformResource('vpc/us-east-1/prod', {});
         const vpcTf = vpcScope.addOctoTerraformResource(vpc);
         vpcTf.addTerraformResource('aws_vpc', 'vpc/us-east-1/prod', {});
         vpcTf.output({ VpcId: vpcScope.raw('aws_vpc.vpc_us-east-1_prod.id') });
 
         const subnetScope = service.scope('subnet-module');
-        const subnet = new TestTfResource('subnet-1', {});
+        const subnet = new TestTerraformResource('subnet-1', {});
         subnetScope
           .addOctoTerraformResource(subnet)
           .addTerraformResource('aws_subnet', 'subnet-1', { vpc_id: subnetScope.getRef(vpc, 'VpcId') });
@@ -879,18 +866,18 @@ describe('TerraformService UT', () => {
         // "res" + key "a_Id" and "res_a" + key "Id" both sanitize to the same variable name "res_a_Id".
         const producerScope = service.scope('producer-module');
 
-        const resResource = new TestTfResource('res', {});
+        const resResource = new TestTerraformResource('res', {});
         const resTf = producerScope.addOctoTerraformResource(resResource);
         resTf.addTerraformResource('aws_resource', 'res', {});
         resTf.output({ a_Id: producerScope.raw('aws_resource.res.id') });
 
-        const resAResource = new TestTfResource('res_a', {});
+        const resAResource = new TestTerraformResource('res_a', {});
         const resATf = producerScope.addOctoTerraformResource(resAResource);
         resATf.addTerraformResource('aws_resource', 'res_a', {});
         resATf.output({ Id: producerScope.raw('aws_resource.res_a.id') });
 
         const consumerScope = service.scope('consumer-module');
-        const consumerResource = new TestTfResource('consumer-1', {});
+        const consumerResource = new TestTerraformResource('consumer-1', {});
         const consumerTf = consumerScope.addOctoTerraformResource(consumerResource);
         consumerTf.addTerraformResource('aws_resource', 'consumer-1', {
           first_ref: consumerScope.getRef(resResource, 'a_Id'),
@@ -910,7 +897,7 @@ describe('TerraformService UT', () => {
   describe('reset()', () => {
     it('should clear all modules so getModuleIds returns empty', () => {
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.addTerraformResource('aws_resource', 'vpc-1', {});
       vpcTf.output({ VpcId: scope.raw('aws_resource.vpc-1.id') });
@@ -922,14 +909,14 @@ describe('TerraformService UT', () => {
 
     it('should make previously-registered resources inaccessible after reset', () => {
       const scope = service.scope('m1');
-      const vpc = new TestTfResource('vpc-1', {});
+      const vpc = new TestTerraformResource('vpc-1', {});
       const vpcTf = scope.addOctoTerraformResource(vpc);
       vpcTf.output({ VpcId: scope.raw('aws_resource.vpc-1.id') });
 
       service.reset();
 
       const scope2 = service.scope('m2');
-      const subnet = new TestTfResource('subnet-1', {});
+      const subnet = new TestTerraformResource('subnet-1', {});
       scope2
         .addOctoTerraformResource(subnet)
         .addTerraformResource('aws_resource', 'subnet-1', { dep: scope2.getRef(vpc, 'VpcId') });
@@ -939,13 +926,13 @@ describe('TerraformService UT', () => {
 
     it('should clear the sanitized-ID map so a previously-colliding ID can be re-registered', () => {
       const scope = service.scope('m1');
-      scope.addOctoTerraformResource(new TestTfResource('vpc/1', {}));
-      expect(() => scope.addOctoTerraformResource(new TestTfResource('vpc-1', {}))).toThrow();
+      scope.addOctoTerraformResource(new TestTerraformResource('vpc/1', {}));
+      expect(() => scope.addOctoTerraformResource(new TestTerraformResource('vpc-1', {}))).toThrow();
 
       service.reset();
 
       const scope2 = service.scope('m2');
-      expect(() => scope2.addOctoTerraformResource(new TestTfResource('vpc-1', {}))).not.toThrow();
+      expect(() => scope2.addOctoTerraformResource(new TestTerraformResource('vpc-1', {}))).not.toThrow();
     });
   });
 });

@@ -1,11 +1,40 @@
-import { type Constructable, NodeType, type UnknownAnchor, type UnknownOverlay } from '../../app.type.js';
+import {
+  type Constructable,
+  type IUnknownModelAction,
+  NodeType,
+  type UnknownAnchor,
+  type UnknownModel,
+  type UnknownOverlay,
+} from '../../app.type.js';
 import { Container } from '../../functions/container/container.js';
+import { AAnchor } from '../../overlays/anchor.abstract.js';
+import type { BaseAnchorSchema } from '../../overlays/anchor.schema.js';
 import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import { AOverlay } from '../../overlays/overlay.abstract.js';
 import type { BaseOverlaySchema } from '../../overlays/overlay.schema.js';
 import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
+import { TransactionService } from '../../services/transaction/transaction.service.js';
 
-function createOverlay(nodeName: string): Constructable<AOverlay<any, any>> {
+export function createAnchor(): Constructable<AAnchor<BaseAnchorSchema, UnknownModel>> & {
+  setClassName(className: string): Constructable<AAnchor<BaseAnchorSchema, UnknownModel>>;
+} {
+  return class extends AAnchor<BaseAnchorSchema, UnknownModel> {
+    static override readonly NODE_PACKAGE: string = '@octo';
+
+    constructor(anchorId: string, properties: BaseAnchorSchema['properties'], parent: UnknownModel) {
+      super(anchorId, properties, parent);
+    }
+
+    static setClassName(className: string): Constructable<AAnchor<BaseAnchorSchema, UnknownModel>> {
+      Object.defineProperty(this, 'name', { value: className });
+      return this;
+    }
+  };
+}
+
+export function createOverlay(
+  nodeName: string,
+): Constructable<AOverlay<any, any>> & { setClassName(className: string): Constructable<AOverlay<any, any>> } {
   return class extends AOverlay<BaseOverlaySchema, any> {
     static override readonly NODE_NAME: string = nodeName;
     static override readonly NODE_PACKAGE: string = '@octo';
@@ -14,6 +43,11 @@ function createOverlay(nodeName: string): Constructable<AOverlay<any, any>> {
 
     constructor(overlayId: string, properties: BaseOverlaySchema['properties'] = {}, anchors: UnknownAnchor[] = []) {
       super(overlayId, properties, anchors);
+    }
+
+    static setClassName(className: string): Constructable<AOverlay<any, any>> {
+      Object.defineProperty(this, 'name', { value: className });
+      return this;
     }
   };
 }
@@ -25,13 +59,15 @@ export async function createTestOverlays(
   args: {
     anchors: UnknownAnchor[];
     context: string;
+    overlayActions?: IUnknownModelAction[];
     properties?: { [key: string]: unknown };
   }[],
 ): Promise<{ [key: string]: UnknownOverlay }> {
   const container = Container.getInstance();
-  const [modelSerializationService, overlayDataRepository] = await Promise.all([
+  const [modelSerializationService, overlayDataRepository, transactionService] = await Promise.all([
     container.get(ModelSerializationService),
     container.get(OverlayDataRepository),
+    container.get(TransactionService),
   ]);
   const overlays: { [key: string]: UnknownOverlay } = {};
 
@@ -40,8 +76,16 @@ export async function createTestOverlays(
     const [overlayMeta, overlayId] = context.split('=');
     const [, NODE_NAME] = overlayMeta.split('/');
 
-    const Overlay = createOverlay(NODE_NAME);
-    Object.defineProperty(Overlay, 'name', { value: NODE_NAME });
+    const Overlay = createOverlay(NODE_NAME).setClassName(NODE_NAME);
+
+    try {
+      transactionService.registerOverlayActions(Overlay, arg.overlayActions || []);
+    } catch (error) {
+      if (!/^Action ".*" already registered for overlay ".*"!$/.test(error.message)) {
+        throw error;
+      }
+    }
+
     const overlay = new Overlay(overlayId, {}, anchors);
     if (properties) {
       for (const [key, value] of Object.entries(properties)) {

@@ -1,9 +1,6 @@
 import { NodeType, type UnknownAnchor, type UnknownModel, type UnknownResource } from '../../app.type.js';
 import type { Diff } from '../../functions/diff/diff.js';
-import { Schema } from '../../functions/schema/schema.js';
-import { App } from '../../models/app/app.model.js';
 import { AModel } from '../../models/model.abstract.js';
-import { AModule } from '../../modules/module.abstract.js';
 import { AAnchor } from '../../overlays/anchor.abstract.js';
 import type { BaseAnchorSchema } from '../../overlays/anchor.schema.js';
 import { AOverlay } from '../../overlays/overlay.abstract.js';
@@ -24,26 +21,6 @@ export class TestAnchor extends AAnchor<BaseAnchorSchema, UnknownModel> {
 
   constructor(anchorId: string, properties: BaseAnchorSchema['properties'], parent: UnknownModel) {
     super(anchorId, properties, parent);
-  }
-}
-
-/**
- * @internal
- */
-export class TestAppModuleSchema {
-  name = Schema<string>();
-}
-
-/**
- * @internal
- */
-export class TestAppModule extends AModule<TestAppModuleSchema, App> {
-  static override readonly MODULE_PACKAGE = '@octo';
-
-  static override readonly MODULE_SCHEMA = TestAppModuleSchema;
-
-  async onInit(inputs: TestAppModuleSchema): Promise<App> {
-    return new App(inputs.name);
   }
 }
 
@@ -84,28 +61,6 @@ export class TestOverlay extends AOverlay<BaseOverlaySchema, TestOverlay> {
     anchors: UnknownAnchor[],
   ) {
     super(overlayId, properties, anchors);
-  }
-}
-
-/**
- * @internal
- */
-export class TestOverlayModuleSchema {
-  anchorName = Schema<string>();
-  app = Schema<App>();
-}
-
-/**
- * @internal
- */
-export class TestOverlayModule extends AModule<TestOverlayModuleSchema, TestOverlay> {
-  static override readonly MODULE_PACKAGE = '@octo';
-
-  static override readonly MODULE_SCHEMA = TestOverlayModuleSchema;
-
-  async onInit(inputs: TestOverlayModuleSchema): Promise<TestOverlay> {
-    const anchor = inputs.app.getAnchor(inputs.anchorName)!;
-    return new TestOverlay('test-overlay', {}, [anchor]);
   }
 }
 

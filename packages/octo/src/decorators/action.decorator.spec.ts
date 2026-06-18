@@ -2,13 +2,13 @@ import { jest } from '@jest/globals';
 import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
-import {
-  TestAction,
-  TestModelWithoutUnsynth,
-  TestOverlay,
-  TestResource,
-} from '../utilities/test-helpers/test-classes.js';
+import { TestAction, TestModelWithoutUnsynth } from '../utilities/test-helpers/test-classes.js';
+import { createOverlay } from '../utilities/test-helpers/test-overlays.js';
+import { createResource } from '../utilities/test-helpers/test-resources.js';
 import { Action } from './action.decorator.js';
+
+const TestOverlay = createOverlay('test-overlay').setClassName('TestOverlay');
+const TestResource = createResource('test-resource').setClassName('TestResource');
 
 describe('Action UT', () => {
   let container: Container;

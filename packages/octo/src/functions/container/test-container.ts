@@ -5,8 +5,12 @@ import {
   ResourceDataRepository,
   type ResourceDataRepositoryFactory,
 } from '../../resources/resource-data.repository.js';
+import { EventService } from '../../services/event/event.service.js';
 import { InputService, type InputServiceFactory } from '../../services/input/input.service.js';
+import { ModelSerializationService } from '../../services/serialization/model/model-serialization.service.js';
+import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
 import { TerraformService, type TerraformServiceFactory } from '../../services/terraform/terraform.service.js';
+import { TransactionService } from '../../services/transaction/transaction.service.js';
 import { Container } from './container.js';
 
 type FactoryMock<T> = {
@@ -18,7 +22,7 @@ type FactoryMock<T> = {
 type TestContainerSubjects = {
   mocks?: FactoryMock<unknown>[];
 };
-type TestContainerOptions = { factoryTimeoutInMs?: number };
+type TestContainerOptions = { factoryTimeoutInMs?: number; force?: boolean };
 
 /**
  * The TestContainer class is an isolated {@link Container} for tests.
@@ -50,22 +54,53 @@ export class TestContainer {
    * Exceptions:
    * - {@link ModelSerializationService}: We do not want to loose class mapping already instantiated via decorators.
    * - {@link ResourceSerializationService}: We do not want to loose class mapping already instantiated via decorators.
-   * - {@link TransactionService}: Factory only points to other instances already reset here.
+   * - {@link TransactionService}: We do not want to loose action mapping already instantiated via decorators.
    */
-  private static async bootstrap(container: Container): Promise<void> {
-    await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
-      args: [true, []],
+  private static async bootstrap(container: Container, force: boolean = false): Promise<void> {
+    const overlayDataRepository = await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(
+      OverlayDataRepository,
+      { args: [true, []] },
+    );
+
+    const resourceDataRepository = await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(
+      ResourceDataRepository,
+      { args: [true, [], [], []] },
+    );
+
+    const inputService = await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
+
+    const moduleContainer = await container.get<ModuleContainer, typeof ModuleContainerFactory>(ModuleContainer, {
+      args: [true],
     });
-
-    await container.get<ResourceDataRepository, typeof ResourceDataRepositoryFactory>(ResourceDataRepository, {
-      args: [true, [], [], []],
-    });
-
-    await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
-
-    await container.get<ModuleContainer, typeof ModuleContainerFactory>(ModuleContainer, { args: [true] });
 
     await container.get<TerraformService, typeof TerraformServiceFactory>(TerraformService, { args: [{}, true] });
+
+    if (force) {
+      const eventService = await container.get(EventService);
+
+      const modelSerializationService = new ModelSerializationService();
+      container.unRegisterFactory(ModelSerializationService);
+      container.registerValue(ModelSerializationService, modelSerializationService);
+
+      const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
+      container.unRegisterFactory(ResourceSerializationService);
+      container.registerValue(ResourceSerializationService, resourceSerializationService);
+
+      const terraformService = new TerraformService();
+      container.unRegisterFactory(TerraformService);
+      container.registerValue(TerraformService, terraformService);
+
+      const transactionService = new TransactionService(
+        eventService,
+        inputService,
+        moduleContainer,
+        overlayDataRepository,
+        resourceDataRepository,
+        terraformService,
+      );
+      container.unRegisterFactory(TransactionService);
+      container.registerValue(TransactionService, transactionService);
+    }
   }
 
   /**
@@ -90,6 +125,7 @@ export class TestContainer {
    *   - Use `value: T` to provide the mocked value.
    * @param options Options to configure TestContainer.
    * - `factoryTimeoutInMs?: number` is to override the default container timeout.
+   * - `force?: boolean` performs a complete container reset.
    */
   static async create(subjects: TestContainerSubjects, options?: TestContainerOptions): Promise<Container> {
     if (!TestContainer.originalFactories) {
@@ -101,7 +137,7 @@ export class TestContainer {
     container.setFactories(this.originalFactories);
     // Reset state of eligible factories.
     // A factory is eligible if it has an internal structure and should be reset on every test.
-    await this.bootstrap(container);
+    await this.bootstrap(container, options?.force ?? false);
 
     if (options?.factoryTimeoutInMs) {
       container.setFactoryTimeout(options.factoryTimeoutInMs);

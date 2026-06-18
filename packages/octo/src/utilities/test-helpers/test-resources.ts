@@ -42,7 +42,9 @@ export async function commitResources({
   await resourceSerializationService.deserialize(actualSerializedResources, oldSerializedResources);
 }
 
-function createResource(nodeName: string): Constructable<AResource<any, any>> {
+export function createResource(
+  nodeName: string,
+): Constructable<AResource<any, any>> & { setClassName(className: string): Constructable<AResource<any, any>> } {
   return class extends AResource<BaseResourceSchema, any> {
     static override readonly NODE_NAME: string = nodeName;
     static override readonly NODE_PACKAGE: string = '@octo';
@@ -55,6 +57,11 @@ function createResource(nodeName: string): Constructable<AResource<any, any>> {
       parents: UnknownResource[] = [],
     ) {
       super(resourceId, properties, parents);
+    }
+
+    static setClassName(className: string): Constructable<AResource<any, any>> {
+      Object.defineProperty(this, 'name', { value: className });
+      return this;
     }
   };
 }
@@ -198,7 +205,13 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
     Object.defineProperty(Resource, 'name', { value: NODE_NAME });
     // Terraform resources are managed by terraform via toHCL() and cannot have resource actions.
     if (!arg.terraform) {
-      transactionService.registerResourceActions(Resource, arg.resourceActions || []);
+      try {
+        transactionService.registerResourceActions(Resource, arg.resourceActions || []);
+      } catch (error) {
+        if (!/^Action ".*" already registered for resource ".*"!$/.test(error.message)) {
+          throw error;
+        }
+      }
     }
 
     const resource = new Resource(resourceId, {}, parentsResolved);

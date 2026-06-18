@@ -2,7 +2,11 @@ import { MatchingResource } from '../../app.type.js';
 import { Account } from '../../models/account/account.model.js';
 import { AccountType } from '../../models/account/account.schema.js';
 import { App } from '../../models/app/app.model.js';
-import { TestOverlay, TestResource } from '../../utilities/test-helpers/test-classes.js';
+import { createOverlay } from '../../utilities/test-helpers/test-overlays.js';
+import { createResource } from '../../utilities/test-helpers/test-resources.js';
+
+const TestOverlay = createOverlay('test-overlay').setClassName('TestOverlay');
+const TestResource = createResource('test-resource').setClassName('TestResource');
 
 describe('Node UT', () => {
   describe('addChild()', () => {

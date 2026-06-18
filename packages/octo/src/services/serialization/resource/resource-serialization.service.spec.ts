@@ -9,13 +9,7 @@ describe('Resource Serialization Service UT', () => {
   let container: Container;
 
   beforeEach(async () => {
-    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
-
-    const resourceDataRepository = await container.get(ResourceDataRepository);
-
-    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    container.unRegisterFactory(ResourceSerializationService);
-    container.registerValue(ResourceSerializationService, resourceSerializationService);
+    container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500, force: true });
   });
 
   afterEach(async () => {

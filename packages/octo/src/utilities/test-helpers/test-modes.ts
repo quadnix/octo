@@ -6,52 +6,15 @@ import { TestContainer } from '../../functions/container/test-container.js';
 import type { Diff } from '../../functions/diff/diff.js';
 import type { Octo } from '../../main.js';
 import type { App } from '../../models/app/app.model.js';
-import { ModuleContainer } from '../../modules/module.container.js';
 import { TestModuleContainer } from '../../modules/test-module.container.js';
-import { OverlayDataRepository } from '../../overlays/overlay-data.repository.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
-import { EventService } from '../../services/event/event.service.js';
-import { InputService } from '../../services/input/input.service.js';
-import { ResourceSerializationService } from '../../services/serialization/resource/resource-serialization.service.js';
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
-import { type TerraformModuleScope, TerraformService } from '../../services/terraform/terraform.service.js';
+import type { TerraformModuleScope } from '../../services/terraform/terraform.service.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
-
-/**
- * A native terraform resource that contributes an `aws_vpc` block and publishes its id.
- *
- * @internal
- */
-export class TfVpcResource extends ATerraformResource<BaseResourceSchema, TfVpcResource> {
-  static override readonly NODE_NAME: string = 'tf-vpc';
-  static override readonly NODE_PACKAGE: string = '@octo';
-  static override readonly NODE_SCHEMA = {};
-  static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
-
-  constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
-    super(resourceId, properties, parents);
-  }
-
-  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
-    // Bind a provider only when the resource carries an accountId, so the default (provider-less)
-    // graph keeps exercising the no-provider path while a provider-aware test can opt in.
-    const provider = this.properties['accountId']
-      ? {
-          provider: {
-            accountId: this.properties['accountId'] as string,
-            regionId: this.properties['regionId'] as string | undefined,
-          },
-        }
-      : undefined;
-    const vpcTf = terraform.addOctoTerraformResource(this as TfVpcResource, provider);
-    vpcTf.addTerraformResource('aws_vpc', this.resourceId, { cidr_block: this.properties['CidrBlock'] });
-    vpcTf.output({ VpcId: terraform.raw(`aws_vpc.${this.resourceId}.id`) });
-  }
-}
 
 /**
  * An external resource: lifecycle runs outside terraform via a resource action.
@@ -95,6 +58,38 @@ export class TfSgResource extends ATerraformResource<BaseResourceSchema, TfSgRes
 }
 
 /**
+ * A native terraform resource that contributes an `aws_vpc` block and publishes its id.
+ *
+ * @internal
+ */
+export class TfVpcResource extends ATerraformResource<BaseResourceSchema, TfVpcResource> {
+  static override readonly NODE_NAME: string = 'tf-vpc';
+  static override readonly NODE_PACKAGE: string = '@octo';
+  static override readonly NODE_SCHEMA = {};
+  static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
+
+  constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
+    super(resourceId, properties, parents);
+  }
+
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    // Bind a provider only when the resource carries an accountId, so the default (provider-less)
+    // graph keeps exercising the no-provider path while a provider-aware test can opt in.
+    const provider = this.properties['accountId']
+      ? {
+          provider: {
+            accountId: this.properties['accountId'] as string,
+            regionId: this.properties['regionId'] as string | undefined,
+          },
+        }
+      : undefined;
+    const vpcTf = terraform.addOctoTerraformResource(this as TfVpcResource, provider);
+    vpcTf.addTerraformResource('aws_vpc', this.resourceId, { cidr_block: this.properties['CidrBlock'] });
+    vpcTf.output({ VpcId: terraform.raw(`aws_vpc.${this.resourceId}.id`) });
+  }
+}
+
+/**
  * Test harness for the `Octo` mode functions. {@link create} bootstraps an isolated container (via
  * {@link TestContainer}) with real test terraform + transaction services and an external igw
  * resource action, mirroring the wiring an `Octo` boot performs; the mode functions under test
@@ -115,42 +110,34 @@ export class TestModes {
     private readonly testModuleContainer: TestModuleContainer,
   ) {}
 
+  /**
+   * Registers an additional resource into an existing module folder, the way a model action would
+   * contribute a new resource on a re-run. Use after {@link createResourceGraph} to exercise an add
+   * of a brand-new resource (module-attributed, so it lands in the named folder rather than the
+   * provider-less `default` folder).
+   */
+  async addResource(moduleId: string, resource: UnknownResource): Promise<void> {
+    await this.testModuleContainer.createResources(moduleId, [resource]);
+  }
+
   static async create(): Promise<TestModes> {
-    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500, force: true });
 
-    const [eventService, inputService, moduleContainer, overlayDataRepository, resourceDataRepository] =
-      await Promise.all([
-        container.get(EventService),
-        container.get(InputService),
-        container.get(ModuleContainer),
-        container.get(OverlayDataRepository),
-        container.get(ResourceDataRepository),
-      ]);
+    const [resourceDataRepository, transactionService] = await Promise.all([
+      container.get(ResourceDataRepository),
+      container.get(TransactionService),
+    ]);
 
-    const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
-    container.unRegisterFactory(ResourceSerializationService);
-    container.registerValue(ResourceSerializationService, resourceSerializationService);
-
-    const terraformService = new TerraformService();
-    container.unRegisterFactory(TerraformService);
-    container.registerValue(TerraformService, terraformService);
-
-    const transactionService = new TransactionService(
-      eventService,
-      inputService,
-      moduleContainer,
-      overlayDataRepository,
-      resourceDataRepository,
-      terraformService,
-    );
-    container.unRegisterFactory(TransactionService);
-    container.registerValue(TransactionService, transactionService);
-
-    const testModuleContainer = new TestModuleContainer();
+    const testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize(new TestStateProvider());
 
     const outputDir = await mkdtemp(join(tmpdir(), 'octo-modes-test-'));
-    const instance = new TestModes(testModuleContainer.octo, outputDir, resourceDataRepository, testModuleContainer);
+    const instance = new TestModes(
+      testModuleContainer['octo'],
+      outputDir,
+      resourceDataRepository,
+      testModuleContainer,
+    );
 
     // Registered after the instance exists so the action can read/append its mutable state. No
     // transaction runs during initialize(), so registering here is in time for the mode under test.
@@ -164,32 +151,6 @@ export class TestModes {
     transactionService.registerResourceActions(ExternalIgwResource, [igwResourceAction]);
 
     return instance;
-  }
-
-  async createResourceGraph(options?: {
-    save?: boolean;
-  }): Promise<{ app: App; igw: ExternalIgwResource; sg: TfSgResource; vpc: TfVpcResource }> {
-    const {
-      app: [app],
-    } = await this.testModuleContainer.createTestModels('app-module', { app: ['test-app'] });
-
-    const vpc = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
-    const igw = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc]);
-    const sg = new TfSgResource('sg-1', {}, [igw]);
-    await this.testModuleContainer.createResources('region-module', [vpc, igw], options);
-    await this.testModuleContainer.createResources('sg-module', [sg], options);
-
-    return { app: app as App, igw, sg, vpc };
-  }
-
-  /**
-   * Registers an additional resource into an existing module folder, the way a model action would
-   * contribute a new resource on a re-run. Use after {@link createResourceGraph} to exercise an add
-   * of a brand-new resource (module-attributed, so it lands in the named folder rather than the
-   * provider-less `default` folder).
-   */
-  async addResource(moduleId: string, resource: UnknownResource): Promise<void> {
-    await this.testModuleContainer.createResources(moduleId, [resource]);
   }
 
   async createProviderBoundResourceGraph(provider: { accountId: string; regionId?: string }): Promise<{
@@ -208,6 +169,22 @@ export class TestModes {
     await this.testModuleContainer.createResources('region-module', [vpc]);
 
     return { app: app as App, vpc };
+  }
+
+  async createResourceGraph(options?: {
+    save?: boolean;
+  }): Promise<{ app: App; igw: ExternalIgwResource; sg: TfSgResource; vpc: TfVpcResource }> {
+    const {
+      app: [app],
+    } = await this.testModuleContainer.createTestModels('app-module', { app: ['test-app'] });
+
+    const vpc = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+    const igw = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc]);
+    const sg = new TfSgResource('sg-1', {}, [igw]);
+    await this.testModuleContainer.createResources('region-module', [vpc, igw], options);
+    await this.testModuleContainer.createResources('sg-module', [sg], options);
+
+    return { app: app as App, igw, sg, vpc };
   }
 
   async teardown(): Promise<void> {

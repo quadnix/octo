@@ -4,8 +4,11 @@ import type { Container } from '../functions/container/container.js';
 import { TestContainer } from '../functions/container/test-container.js';
 import { BaseResourceSchema } from '../resources/resource.schema.js';
 import { ResourceSerializationService } from '../services/serialization/resource/resource-serialization.service.js';
-import { TestOverlay, TestResource } from '../utilities/test-helpers/test-classes.js';
+import { TestResource } from '../utilities/test-helpers/test-classes.js';
+import { createOverlay } from '../utilities/test-helpers/test-overlays.js';
 import { Resource } from './resource.decorator.js';
+
+const TestOverlay = createOverlay('test-overlay').setClassName('TestOverlay');
 
 class TestResourceSchema extends BaseResourceSchema {}
 

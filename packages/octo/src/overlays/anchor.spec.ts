@@ -1,5 +1,8 @@
-import { TestAnchor } from '../utilities/test-helpers/test-classes.js';
 import { create } from '../utilities/test-helpers/test-models.js';
+import { createAnchor } from '../utilities/test-helpers/test-overlays.js';
+import { AAnchor } from './anchor.abstract.js';
+
+const TestAnchor = createAnchor().setClassName('TestAnchor');
 
 describe('Anchor UT', () => {
   it('should throw error adding an anchor twice to the same parent', () => {
@@ -44,7 +47,7 @@ describe('Anchor UT', () => {
       } = create({ app: ['test'] });
       const anchor = new TestAnchor('anchor-1', { key1: 'value-1' }, app);
 
-      const deserializedAnchor = await TestAnchor.unSynth(TestAnchor, anchor.synth(), () => Promise.resolve(app));
+      const deserializedAnchor = await AAnchor.unSynth(TestAnchor, anchor.synth(), () => Promise.resolve(app));
 
       expect(deserializedAnchor.synth()).toMatchInlineSnapshot(`
         {

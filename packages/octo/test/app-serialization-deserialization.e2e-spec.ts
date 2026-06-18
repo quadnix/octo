@@ -14,9 +14,11 @@ import {
   TestContainer,
 } from '../src/index.js';
 import { ModelSerializationService } from '../src/services/serialization/model/model-serialization.service.js';
-import { TestAnchor, TestOverlay } from '../src/utilities/test-helpers/test-classes.js';
 import { create } from '../src/utilities/test-helpers/test-models.js';
-import { createTestOverlays } from '../src/utilities/test-helpers/test-overlays.js';
+import { createAnchor, createOverlay, createTestOverlays } from '../src/utilities/test-helpers/test-overlays.js';
+
+const TestAnchor = createAnchor().setClassName('TestAnchor');
+const TestOverlay = createOverlay('test-overlay').setClassName('TestOverlay');
 
 describe('App Serialization and Deserialization E2E Test', () => {
   let container: Container;

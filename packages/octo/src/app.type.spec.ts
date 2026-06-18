@@ -1,6 +1,8 @@
 import { MatchingResource } from './app.type.js';
 import type { BaseResourceSchema } from './resources/resource.schema.js';
-import { TestResource } from './utilities/test-helpers/test-classes.js';
+import { createResource } from './utilities/test-helpers/test-resources.js';
+
+const TestResource = createResource('test-resource').setClassName('TestResource');
 
 describe('AppType UT', () => {
   describe('MatchingResource UT', () => {

@@ -9,9 +9,11 @@ import {
   Region,
   TestContainer,
 } from '../../src/index.js';
-import { TestAnchor, TestModelWithoutUnsynth } from '../../src/utilities/test-helpers/test-classes.js';
+import { TestModelWithoutUnsynth } from '../../src/utilities/test-helpers/test-classes.js';
 import { create } from '../../src/utilities/test-helpers/test-models.js';
-import { createTestOverlays } from '../../src/utilities/test-helpers/test-overlays.js';
+import { createAnchor, createTestOverlays } from '../../src/utilities/test-helpers/test-overlays.js';
+
+const TestAnchor = createAnchor().setClassName('TestAnchor');
 
 describe('Model E2E Test', () => {
   beforeEach(async () => {
