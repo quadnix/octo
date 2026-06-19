@@ -1,3 +1,6 @@
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type {
   ActionOutputs,
   Constructable,
@@ -6,11 +9,10 @@ import type {
   UnknownAnchor,
   UnknownModel,
   UnknownModule,
-  UnknownOverlay,
-  UnknownResource,
 } from '../app.type.js';
-import { Container } from '../functions/container/container.js';
+import { type Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
+import { DiffAction } from '../functions/diff/diff.js';
 import { DiffUtility } from '../functions/diff/diff.utility.js';
 import { Octo } from '../main.js';
 import type { App } from '../models/app/app.model.js';
@@ -28,6 +30,7 @@ import { LocalStateProvider } from '../services/state-management/local.state-pro
 import { StateManagementService } from '../services/state-management/state-management.service.js';
 import type { IStateProvider } from '../services/state-management/state-provider.interface.js';
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
+import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 import { TestAnchor } from '../utilities/test-helpers/test-classes.js';
 import { create } from '../utilities/test-helpers/test-models.js';
@@ -59,7 +62,6 @@ class UniversalResourceAction implements IResourceAction<any> {
     return true;
   }
   async handle(): Promise<void> {}
-  async mock(): Promise<void> {}
 }
 
 /**
@@ -76,23 +78,22 @@ export type TestModule<M extends UnknownModule> = {
  * @group Modules
  */
 export class TestModuleContainer {
-  readonly octo: Octo;
+  private readonly container: Container;
+  private readonly octo: Octo;
+  private previousHcl: string | undefined;
   private stateProvider: IStateProvider;
 
-  constructor() {
+  constructor(container: Container) {
+    this.container = container;
     this.octo = new Octo();
   }
 
   async commit(
     app: App,
     {
-      appLockId,
-      enableResourceCapture = false,
       filterByModuleIds = [],
       skipResourceTransaction = false,
     }: {
-      appLockId?: string;
-      enableResourceCapture?: boolean;
       filterByModuleIds?: string[];
       skipResourceTransaction?: boolean;
     } = {},
@@ -102,14 +103,13 @@ export class TestModuleContainer {
     resourceDiffs: DiffMetadata[][];
     resourceTransaction: DiffMetadata[][];
   }> {
-    if (!appLockId) {
-      const { lockId } = await this.stateProvider.lockApp();
-      appLockId = lockId;
-    }
-
-    const generator = this.octo.beginTransaction(app, {
-      appLockId: skipResourceTransaction ? undefined : appLockId,
-      enableResourceCapture,
+    const [terraformService, transactionService] = await Promise.all([
+      this.container.get(TerraformService),
+      this.container.get(TransactionService),
+    ]);
+    const diffs = await app.diff();
+    const generator = transactionService.beginTransaction(diffs, {
+      generateTerraform: true,
       yieldModelDiffs: true,
       yieldModelTransaction: true,
       yieldResourceDiffs: true,
@@ -122,19 +122,27 @@ export class TestModuleContainer {
       response.modelDiffs = (await generator.next()).value;
       response.modelTransaction = (await generator.next()).value;
       response.resourceDiffs = (await generator.next()).value;
-      response.resourceTransaction = (await generator.next()).value;
-      await generator.next();
-    } catch (error) {
-      if (!skipResourceTransaction || error.message !== 'App is not in lock state!') {
-        await this.reset();
-        throw error;
+      if (!skipResourceTransaction) {
+        response.resourceTransaction = (await generator.next()).value;
+        await generator.next();
+      } else {
+        response.resourceTransaction = [];
       }
-    } finally {
-      await this.stateProvider.unlockApp(appLockId);
+    } catch (error) {
+      await this.reset();
+      throw error;
     }
 
-    const container = Container.getInstance();
-    const inputService = await container.get(InputService);
+    if (!skipResourceTransaction) {
+      await this.octo['commitTransaction'](app, response.modelTransaction, response.resourceTransaction);
+    }
+
+    // Establish the HCL diff baseline from the same transaction that just applied the models, so a
+    // later diffHcl() reports what changed against the committed state. Captured before reset(),
+    // which wipes the model attribution renderAllModules() depends on.
+    this.previousHcl = this.serializeHcl(terraformService.renderAllModules());
+
+    const inputService = await this.container.get(InputService);
 
     for (const moduleId of filterByModuleIds) {
       response.modelDiffs = response.modelDiffs
@@ -197,6 +205,29 @@ export class TestModuleContainer {
     return response;
   }
 
+  async createResources(
+    moduleId: string,
+    args: Parameters<typeof createResources>[0],
+    options?: Parameters<typeof createResources>[1],
+  ): Promise<ReturnType<typeof createResources>> {
+    const [inputService, moduleContainer] = await Promise.all([
+      this.container.get(InputService),
+      this.container.get(ModuleContainer),
+    ]);
+
+    // Register new moduleId as instance of the universal module.
+    moduleContainer.load(UniversalTestModule, moduleId, {});
+    // Immediately unload the universal module to ensure it does not run in apply().
+    moduleContainer.unload(UniversalTestModule);
+
+    const result = await createResources(args, options);
+    for (const resource of Object.values(result)) {
+      inputService.registerResource(moduleId, resource);
+    }
+
+    return result;
+  }
+
   createTestAnchor<S extends BaseAnchorSchema & { parentInstance: UnknownModel }>(
     anchorId: string,
     properties: S['properties'],
@@ -206,7 +237,7 @@ export class TestModuleContainer {
   }
 
   async createTestModels(moduleId: string, args: Parameters<typeof create>[0]): Promise<ReturnType<typeof create>> {
-    const container = Container.getInstance();
+    const container = this.container;
     const [inputService, moduleContainer, transactionService] = await Promise.all([
       container.get(InputService),
       container.get(ModuleContainer),
@@ -257,50 +288,7 @@ export class TestModuleContainer {
     moduleId: string,
     args: Parameters<typeof createTestOverlays>[0],
   ): Promise<ReturnType<typeof createTestOverlays>> {
-    const container = Container.getInstance();
-    const [inputService, moduleContainer, transactionService] = await Promise.all([
-      container.get(InputService),
-      container.get(ModuleContainer),
-      container.get(TransactionService),
-    ]);
-
-    // Register new moduleId as instance of the universal module.
-    moduleContainer.load(UniversalTestModule, moduleId, {});
-    // Immediately unload the universal module to ensure it does not run in apply().
-    moduleContainer.unload(UniversalTestModule);
-
-    const result = await createTestOverlays(args);
-    for (const overlay of Object.values(result)) {
-      inputService.registerOverlay(moduleId, overlay);
-
-      const universalAction = new UniversalModelAction();
-      Object.assign(universalAction, {
-        constructor: { name: `${UniversalModelAction.name}For${overlay.constructor.name}` },
-      });
-      try {
-        transactionService.unregisterOverlayActions(overlay.constructor as Constructable<UnknownOverlay>);
-        transactionService.registerOverlayActions(overlay.constructor as Constructable<UnknownOverlay>, [
-          universalAction,
-        ]);
-      } catch (error) {
-        if (
-          error.message !==
-          `Action "${universalAction.constructor.name}" already registered for overlay "${overlay.constructor.name}"!`
-        ) {
-          throw error;
-        }
-      }
-    }
-
-    return result;
-  }
-
-  async createResources(
-    moduleId: string,
-    args: Parameters<typeof createResources>[0],
-    options?: Parameters<typeof createResources>[1],
-  ): Promise<ReturnType<typeof createResources>> {
-    const container = Container.getInstance();
+    const container = this.container;
     const [inputService, moduleContainer] = await Promise.all([
       container.get(InputService),
       container.get(ModuleContainer),
@@ -311,9 +299,22 @@ export class TestModuleContainer {
     // Immediately unload the universal module to ensure it does not run in apply().
     moduleContainer.unload(UniversalTestModule);
 
-    const result = await createResources(args, options);
-    for (const resource of Object.values(result)) {
-      inputService.registerResource(moduleId, resource);
+    // Default any overlay without explicit actions to a universal no-op action, named after the
+    // overlay so it reads clearly in a transaction snapshot. createTestOverlays registers them.
+    for (const arg of args) {
+      if (!arg.overlayActions || arg.overlayActions.length === 0) {
+        const [, nodeName] = arg.context.split('=')[0].split('/');
+        const universalAction = new UniversalModelAction();
+        Object.assign(universalAction, {
+          constructor: { name: `${UniversalModelAction.name}For${nodeName}` },
+        });
+        arg.overlayActions = [universalAction];
+      }
+    }
+
+    const result = await createTestOverlays(args);
+    for (const overlay of Object.values(result)) {
+      inputService.registerOverlay(moduleId, overlay);
     }
 
     return result;
@@ -324,11 +325,10 @@ export class TestModuleContainer {
     args: Parameters<typeof createTestResources<S>>[0],
     options?: Parameters<typeof createTestResources>[1],
   ): Promise<ReturnType<typeof createTestResources<S>>> {
-    const container = Container.getInstance();
-    const [inputService, moduleContainer, transactionService] = await Promise.all([
+    const container = this.container;
+    const [inputService, moduleContainer] = await Promise.all([
       container.get(InputService),
       container.get(ModuleContainer),
-      container.get(TransactionService),
     ]);
 
     // Register new moduleId as instance of the universal module.
@@ -336,31 +336,128 @@ export class TestModuleContainer {
     // Immediately unload the universal module to ensure it does not run in apply().
     moduleContainer.unload(UniversalTestModule);
 
+    // Default any resource without explicit actions to a universal no-op action, named after the
+    // resource so it reads clearly in a transaction snapshot. createTestResources registers them,
+    // and skips terraform resources (which terraform owns and cannot have actions).
+    for (const arg of args) {
+      if (!arg.resourceActions || arg.resourceActions.length === 0) {
+        const [, nodeName] = arg.resourceContext.split('=')[0].split('/');
+        const universalAction = new UniversalResourceAction();
+        Object.assign(universalAction, {
+          constructor: { name: `${UniversalResourceAction.name}For${nodeName}` },
+        });
+        arg.resourceActions = [universalAction];
+      }
+    }
+
     const result = await createTestResources(args, options);
     for (const resource of Object.values(result)) {
       inputService.registerResource(moduleId, resource);
-
-      try {
-        transactionService.registerResourceActions(resource.constructor as Constructable<UnknownResource>, [
-          new UniversalResourceAction(),
-        ]);
-      } catch (error) {
-        if (
-          error.message !==
-          `Action "${UniversalResourceAction.name}" already registered for resource "${resource.constructor.name}"!`
-        ) {
-          throw error;
-        }
-      }
     }
 
     return result;
   }
 
-  mapTransactionActions(transaction: DiffMetadata[][]): string[][] {
-    return transaction.map((i) =>
-      i.map((j) => j.actions.map((a: IModelAction<any> | IResourceAction<any>) => a.constructor.name)).flat(),
+  /**
+   * Renders the desired-state terraform for `app` and returns a block-level diff against the
+   * previous render in this test (from an earlier {@link renderHcl} or {@link diffHcl} call), ready
+   * to snapshot. Added/removed/changed top-level blocks show as `+`/`-`/`~` tagged with
+   * `moduleId/file`; a changed block shows its new body. Returns `'<no changes>'` when nothing moved.
+   */
+  async diffHcl(app: App): Promise<string> {
+    const current = await this.renderCurrentHcl(app);
+    const diff = this.diffHclBlocks(this.previousHcl ?? '', current);
+    this.previousHcl = current;
+    return diff;
+  }
+
+  /**
+   * Block-level diff of two {@link serializeHcl} renders. A block is identified by its header line,
+   * so a body change reads as `~` (showing the new body), not as an unrelated add + remove. The
+   * `+`/`-`/`~` vocabulary mirrors {@link digestDiffs}, tagged with `moduleId/file`.
+   *
+   * @internal
+   */
+  private diffHclBlocks(previous: string, current: string): string {
+    const previousSections = this.parseHclBlocks(previous);
+    const currentSections = this.parseHclBlocks(current);
+
+    const entries: string[] = [];
+    const keys = [...new Set([...previousSections.keys(), ...currentSections.keys()])].sort((a, b) =>
+      a.localeCompare(b),
     );
+    for (const key of keys) {
+      const previousBlocks = previousSections.get(key) ?? new Map<string, string>();
+      const currentBlocks = currentSections.get(key) ?? new Map<string, string>();
+      const headers = [...new Set([...previousBlocks.keys(), ...currentBlocks.keys()])].sort((a, b) =>
+        a.localeCompare(b),
+      );
+      for (const header of headers) {
+        const before = previousBlocks.get(header);
+        const after = currentBlocks.get(header);
+        if (before === undefined) {
+          entries.push(`+ ${key}\n${after}`);
+        } else if (after === undefined) {
+          entries.push(`- ${key} ${header}`);
+        } else if (before !== after) {
+          entries.push(`~ ${key}\n${after}`);
+        }
+      }
+    }
+
+    return entries.length > 0 ? entries.join('\n\n') : '<no changes>';
+  }
+
+  /**
+   * Reduces a transaction's diffs (resource or model) to a stable, snapshot-friendly digest:
+   * `+ <context>` (create), `- <context>` (delete), `^ <context>` (replace), `* <context>` (update).
+   * Folds in the former standalone `DiffAssert` — everything a test needs lives on this container.
+   */
+  digestDiffs(diffs: DiffMetadata[][]): string[] {
+    const changes: string[] = [];
+    for (const d of diffs.flat()) {
+      if (d.action === DiffAction.ADD && d.field === 'resourceId') {
+        changes.push(`+ ${d.node.getContext()}`);
+      } else if (d.action === DiffAction.DELETE && d.field === 'resourceId') {
+        changes.push(`- ${d.node.getContext()}`);
+      } else if (d.action === DiffAction.REPLACE && d.field === 'resourceId') {
+        changes.push(`^ ${d.node.getContext()}`);
+      } else if (d.action === DiffAction.UPDATE) {
+        changes.push(`* ${d.node.getContext()}`);
+      }
+    }
+    return changes;
+  }
+
+  /**
+   * Generates the full desired-state terraform for `app` to disk as standalone, executable terragrunt
+   * module folders — one per octo module (`main.tf`, `variables.tf`, `outputs.tf`, `terragrunt.hcl`).
+   * The same output an end user gets from `octo --mode=generate`, so a module author can point real
+   * `terraform`/`terragrunt` at it and validate their piece against the provider — the one check octo
+   * deliberately does not do itself.
+   *
+   * Cross-module references emit terragrunt `dependency` blocks with `mock_outputs` (and
+   * `mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]`), so
+   * `terragrunt run-all validate` / `plan` should succeed even though the upstream modules a developer would
+   * normally supply are absent. The boundary is mocked from exactly what this module consumes.
+   *
+   * Rendering throws if the terraform is internally inconsistent — a reference to a resource or
+   * output that nothing produces, or a cross-module dependency cycle.
+   *
+   * Persists nothing to octo state — safe to call before {@link commit} and to call repeatedly.
+   *
+   * @param app - the composed app to render.
+   * @param outputDir - where to write the folders. Defaults to a fresh temp directory (returned in
+   *   the result). The directory is octo-owned: it is wiped and regenerated on every call.
+   * @returns the directory written to, and the resource diffs that produced it (a review artifact).
+   */
+  async generateHcl(
+    app: App,
+    { outputDir }: { outputDir?: string } = {},
+  ): Promise<{ outputDir: string; resourceDiffs: DiffMetadata[][] }> {
+    const dir = outputDir ?? (await mkdtemp(join(tmpdir(), 'octo-hcl-')));
+    const resourceDiffs = await this.octo.generate(app, { outputDir: dir });
+    return { outputDir: dir, resourceDiffs };
   }
 
   async initialize(
@@ -382,29 +479,149 @@ export class TestModuleContainer {
     await this.octo.initialize(this.stateProvider, initializeInContainer, excludeInContainer);
 
     // Always register the UniversalTestModule to allow users to create test prerequisites.
-    const moduleContainer = await Container.getInstance().get(ModuleContainer);
+    const moduleContainer = await this.container.get(ModuleContainer);
     moduleContainer.register(UniversalTestModule, { packageName: '@octo' });
   }
 
   async isResourceStateEqual(): Promise<boolean> {
-    const container = Container.getInstance();
+    const container = this.container;
     const stateManagementService = await container.get(StateManagementService);
     const resourcesActual = await stateManagementService.getResourceState('resources-actual.json');
     const resourcesOld = await stateManagementService.getResourceState('resources-old.json');
     return DiffUtility.isObjectDeepEquals(resourcesActual, resourcesOld);
   }
 
+  mapTransactionActions(transaction: DiffMetadata[][]): string[][] {
+    return transaction.map((i) =>
+      i.map((j) => j.actions.map((a: IModelAction<any> | IResourceAction<any>) => a.constructor.name)).flat(),
+    );
+  }
+
   async orderModules(modules: (Constructable<UnknownModule> | string)[]): Promise<void> {
-    const moduleContainer = await Container.getInstance().get(ModuleContainer);
+    const moduleContainer = await this.container.get(ModuleContainer);
     moduleContainer.order(modules);
   }
 
-  registerCapture<S extends BaseResourceSchema>(resourceContext: string, response: Partial<S['response']>): void {
-    this.octo.registerCapture(resourceContext, response);
+  /**
+   * Splits a {@link serializeHcl} render into top-level blocks, keyed by `moduleId/file` and then by
+   * the block's header line (e.g. `resource "aws_vpc" "vpc-x" {`). The render format is octo-owned
+   * and regular — `# <moduleId>/<file>` section headers, blank-line-separated top-level blocks — so
+   * this needs no HCL parser or external diff library.
+   *
+   * @internal
+   */
+  private parseHclBlocks(serialized: string): Map<string, Map<string, string>> {
+    const sections = new Map<string, Map<string, string>>();
+    if (!serialized) {
+      return sections;
+    }
+
+    let currentKey: string | undefined;
+    let buffer: string[] = [];
+    const flush = (): void => {
+      if (currentKey === undefined) {
+        return;
+      }
+      const blocks = new Map<string, string>();
+      for (const block of buffer.join('\n').split(/\n\s*\n/)) {
+        const trimmed = block.trim();
+        if (trimmed) {
+          blocks.set(trimmed.split('\n')[0], trimmed);
+        }
+      }
+      sections.set(currentKey, blocks);
+      buffer = [];
+    };
+
+    for (const line of serialized.split('\n')) {
+      const header = /^# (.+\/.+\.(?:tf|hcl))$/.exec(line);
+      if (header) {
+        flush();
+        currentKey = header[1];
+      } else {
+        buffer.push(line);
+      }
+    }
+    flush();
+
+    return sections;
+  }
+
+  registerHooks(...args: Parameters<Octo['registerHooks']>): ReturnType<Octo['registerHooks']> {
+    return this.octo.registerHooks(...args);
+  }
+
+  registerTags(...args: Parameters<Octo['registerTags']>): ReturnType<Octo['registerTags']> {
+    return this.octo.registerTags(...args);
+  }
+
+  registerTerraformConfig(
+    ...args: Parameters<Octo['registerTerraformConfig']>
+  ): ReturnType<Octo['registerTerraformConfig']> {
+    return this.octo.registerTerraformConfig(...args);
+  }
+
+  registerTerraformProvider(
+    ...args: Parameters<Octo['registerTerraformProvider']>
+  ): ReturnType<Octo['registerTerraformProvider']> {
+    return this.octo.registerTerraformProvider(...args);
+  }
+
+  /**
+   * Runs the generate sweep for `app` and serializes the rendered terragrunt folders to a single
+   * deterministic string. Does not touch the stored previous render — callers manage that.
+   *
+   * @internal
+   */
+  private async renderCurrentHcl(app: App): Promise<string> {
+    const container = this.container;
+    const [terraformService, transactionService] = await Promise.all([
+      container.get(TerraformService),
+      container.get(TransactionService),
+    ]);
+
+    const diffs = await app.diff();
+    const transaction = transactionService.beginTransaction(diffs, {
+      generateTerraform: true,
+      yieldResourceDiffs: true,
+    });
+    // Drains the resource-diff yield; the contribution to TerraformService happens as a side effect.
+    await transaction.next();
+
+    return this.serializeHcl(terraformService.renderAllModules());
+  }
+
+  /**
+   * Renders the full desired-state terraform for `app` in memory (no filesystem) as a single
+   * deterministic string, suitable for a full-tree snapshot. Advances the internal "previous"
+   * render, so a later {@link diffHcl} call reports what changed since this one.
+   *
+   * Contributes resources to {@link TerraformService} and renders, but persists nothing to octo
+   * state — safe to call before {@link commit}. Throws if the terraform is internally inconsistent
+   * (a reference to a resource/output nothing produces, or a cross-module cycle).
+   */
+  async renderHcl(app: App): Promise<string> {
+    const current = await this.renderCurrentHcl(app);
+    this.previousHcl = current;
+    return current;
+  }
+
+  async reset(): Promise<void> {
+    const container = this.container;
+
+    // Reset ModuleContainer constructor injections.
+    await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
+    await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
+      args: [true, []],
+    });
+
+    // Reset module container.
+    const moduleContainer = await container.get(ModuleContainer);
+    moduleContainer.reset();
   }
 
   async runModule<M extends UnknownModule>(module: TestModule<M>): Promise<{ [key: string]: ModuleOutput<M> }> {
-    const moduleContainer = await Container.getInstance().get(ModuleContainer);
+    const moduleContainer = await this.container.get(ModuleContainer);
 
     const moduleMetadataIndex = moduleContainer.getMetadataIndex(module.type);
     if (moduleMetadataIndex === -1) {
@@ -422,7 +639,7 @@ export class TestModuleContainer {
   }
 
   async runModules<M extends UnknownModule>(modules: TestModule<M>[]): Promise<{ [key: string]: ModuleOutput<M> }> {
-    const moduleContainer = await Container.getInstance().get(ModuleContainer);
+    const moduleContainer = await this.container.get(ModuleContainer);
 
     for (const module of modules) {
       const moduleMetadataIndex = moduleContainer.getMetadataIndex(module.type);
@@ -443,17 +660,28 @@ export class TestModuleContainer {
     return (await this.octo.compose()) as { [key: string]: ModuleOutput<M> };
   }
 
-  async reset(): Promise<void> {
-    const container = Container.getInstance();
-
-    // Reset ModuleContainer constructor injections.
-    await container.get<InputService, typeof InputServiceFactory>(InputService, { args: [true] });
-    await container.get<OverlayDataRepository, typeof OverlayDataRepositoryFactory>(OverlayDataRepository, {
-      args: [true, []],
-    });
-
-    // Reset module container.
-    const moduleContainer = await container.get(ModuleContainer);
-    moduleContainer.reset();
+  /**
+   * Flattens the rendered terragrunt folders into one snapshot-friendly string: folders sorted by
+   * module id, files in a stable order, each prefixed with a `# <moduleId>/<file>` header. An empty
+   * file shows a `<empty>` body, so the file is still visible in the snapshot rather than omitted.
+   *
+   * @internal
+   */
+  private serializeHcl(moduleFiles: ReturnType<TerraformService['renderAllModules']>): string {
+    const parts: string[] = [];
+    for (const moduleId of [...moduleFiles.keys()].sort((a, b) => a.localeCompare(b))) {
+      const files = moduleFiles.get(moduleId)!;
+      const entries: [string, string][] = [
+        ['main.tf', files.mainTf],
+        ['outputs.tf', files.outputsTf],
+        ['terragrunt.hcl', files.terragruntHcl],
+        ['variables.tf', files.variablesTf],
+      ];
+      for (const [name, content] of entries) {
+        const trimmed = content.trim();
+        parts.push(`# ${moduleId}/${name}\n${trimmed || '<empty>'}`);
+      }
+    }
+    return parts.join('\n\n');
   }
 }

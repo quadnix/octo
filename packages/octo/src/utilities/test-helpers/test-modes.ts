@@ -132,12 +132,7 @@ export class TestModes {
     await testModuleContainer.initialize(new TestStateProvider());
 
     const outputDir = await mkdtemp(join(tmpdir(), 'octo-modes-test-'));
-    const instance = new TestModes(
-      testModuleContainer['octo'],
-      outputDir,
-      resourceDataRepository,
-      testModuleContainer,
-    );
+    const instance = new TestModes(testModuleContainer['octo'], outputDir, resourceDataRepository, testModuleContainer);
 
     // Registered after the instance exists so the action can read/append its mutable state. No
     // transaction runs during initialize(), so registering here is in time for the mode under test.
