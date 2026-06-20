@@ -1,7 +1,6 @@
 import {
   type Account,
   type App,
-  DiffAssert,
   type Filesystem,
   type Region,
   SubnetType,
@@ -11,16 +10,13 @@ import {
 } from '@quadnix/octo';
 import type { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import type { EfsSchema } from '../../../resources/efs/index.schema.js';
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
-import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsSimpleSubnetModule } from './index.js';
 
 async function setup(
   testModuleContainer: TestModuleContainer,
-  octoTerraform: OctoTerraform,
 ): Promise<{ account: Account; app: App; filesystem: Filesystem; region: Region }> {
   const {
     account: [account],
@@ -54,22 +50,20 @@ async function setup(
     ),
   );
 
-  const {
-    '@octo/efs=efs-region-test-filesystem': efsResource,
-    '@octo/internet-gateway=igw-region': igwResource,
-    '@octo/vpc=vpc-region': vpcResource,
-  } = await testModuleContainer.createTestResources<[EfsSchema, InternetGatewaySchema, VpcSchema]>(
+  await testModuleContainer.createTestResources<[EfsSchema, InternetGatewaySchema, VpcSchema]>(
     'testModule',
     [
       {
         properties: { awsAccountId: '123', awsRegionId: 'us-east-1', filesystemName: 'test-filesystem' },
         resourceContext: '@octo/efs=efs-region-test-filesystem',
         response: { FileSystemArn: 'FileSystemArn', FileSystemId: 'FileSystemId' },
+        terraform: true,
       },
       {
         properties: { awsAccountId: '123', awsRegionId: 'us-east-1', internetGatewayName: 'default' },
         resourceContext: '@octo/internet-gateway=igw-region',
         response: { InternetGatewayId: 'InternetGatewayId' },
+        terraform: true,
       },
       {
         properties: {
@@ -81,45 +75,28 @@ async function setup(
         },
         resourceContext: '@octo/vpc=vpc-region',
         response: { VpcId: 'VpcId' },
+        terraform: true,
       },
     ],
     { save: true },
   );
 
-  const efsOctoResource = octoTerraform.addOctoTerraformResource(efsResource);
-  efsOctoResource.output({
-    FileSystemId: octoTerraform.raw('mock.FileSystemId'),
-  });
-  const igwOctoResource = octoTerraform.addOctoTerraformResource(igwResource);
-  igwOctoResource.output({
-    InternetGatewayId: octoTerraform.raw('mock.InternetGatewayId'),
-  });
-  const vpcOctoResource = octoTerraform.addOctoTerraformResource(vpcResource);
-  vpcOctoResource.output({
-    VpcId: octoTerraform.raw('mock.VpcId'),
-  });
-
   return { account, app, filesystem, region };
 }
 
 describe('AwsSimpleSubnetModule UT', () => {
-  let hcl: HclAssert;
-  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    const container = await TestContainer.create(
-      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
-      { factoryTimeoutInMs: 500 },
-    );
-    testModuleContainer = new TestModuleContainer();
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+
+    testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
 
-    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
-    octoTerraform.addTerraformConfig();
-    octoTerraform.addTerraformProvider('123', 'us-east-1');
-
-    hcl = new HclAssert(octoTerraform);
+    testModuleContainer.registerTerraformConfig({
+      providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+    });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
   });
 
   afterEach(async () => {
@@ -128,7 +105,7 @@ describe('AwsSimpleSubnetModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer, octoTerraform);
+    const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         localFilesystems: [stub('${{testModule.model.filesystem}}')],
@@ -140,48 +117,13 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const result = await testModuleContainer.commit(app, {
-      enableResourceCapture: true,
-      filterByModuleIds: ['subnet'],
-    });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "AddAwsSimpleSubnetModelAction",
-       ],
-       [
-         "AddAwsSimpleSubnetLocalFilesystemMountOverlayAction",
-       ],
-     ]
-    `);
-    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "CaptureSubnetResponseResourceAction",
-         "CaptureSecurityGroupResponseResourceAction",
-       ],
-       [
-         "CaptureRouteTableResponseResourceAction",
-         "CaptureNetworkAclResponseResourceAction",
-         "CaptureEfsMountTargetResponseResourceAction",
-       ],
-     ]
-    `);
-    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
-     [
-       "+ @octo/subnet=subnet-region-private-subnet",
-       "+ @octo/route-table=rt-region-private-subnet",
-       "+ @octo/network-acl=nacl-region-private-subnet",
-       "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
-       "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
-     ]
-    `);
-    expect(octoTerraform.render()).toMatchInlineSnapshot(`
-     "terraform {
+    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+     "# subnet/main.tf
+     terraform {
        required_version = ">= 1.6.0"
        required_providers {
          aws = {
-           source  = "hashicorp/aws"
+           source = "hashicorp/aws"
            version = ">= 5.49"
          }
        }
@@ -192,36 +134,16 @@ describe('AwsSimpleSubnetModule UT', () => {
        region = "us-east-1"
      }
 
-     output "efs-region-test-filesystem-FileSystemId" {
-       value = mock.FileSystemId
-     }
-
-     output "igw-region-InternetGatewayId" {
-       value = mock.InternetGatewayId
-     }
-
-     output "vpc-region-VpcId" {
-       value = mock.VpcId
-     }
-
      resource "aws_subnet" "subnet-region-private-subnet" {
        provider = aws.123-us-east-1
        availability_zone = "us-east-1a"
        cidr_block = "10.0.1.0/24"
-       vpc_id = mock.VpcId
-     }
-
-     output "subnet-region-private-subnet-SubnetArn" {
-       value = aws_subnet.subnet-region-private-subnet.arn
-     }
-
-     output "subnet-region-private-subnet-SubnetId" {
-       value = aws_subnet.subnet-region-private-subnet.id
+       vpc_id = var.vpc_region_VpcId
      }
 
      resource "aws_route_table" "rt-region-private-subnet" {
        provider = aws.123-us-east-1
-       vpc_id = mock.VpcId
+       vpc_id = var.vpc_region_VpcId
      }
 
      resource "aws_route_table_association" "rt-region-private-subnet_assoc" {
@@ -232,18 +154,10 @@ describe('AwsSimpleSubnetModule UT', () => {
        depends_on = [aws_route_table.rt-region-private-subnet]
      }
 
-     output "rt-region-private-subnet-RouteTableId" {
-       value = aws_route_table.rt-region-private-subnet.id
-     }
-
-     output "rt-region-private-subnet-subnetAssociationId" {
-       value = aws_route_table_association.rt-region-private-subnet_assoc.id
-     }
-
      resource "aws_network_acl" "nacl-region-private-subnet" {
        provider = aws.123-us-east-1
        subnet_ids = [aws_subnet.subnet-region-private-subnet.id]
-       vpc_id = mock.VpcId
+       vpc_id = var.vpc_region_VpcId
        ingress {
          action = "allow"
          cidr_block = "10.0.1.0/24"
@@ -262,13 +176,9 @@ describe('AwsSimpleSubnetModule UT', () => {
        }
      }
 
-     output "nacl-region-private-subnet-NetworkAclId" {
-       value = aws_network_acl.nacl-region-private-subnet.id
-     }
-
      resource "aws_security_group" "sec-grp-efs-mount-region-private-subnet-test-filesystem" {
        provider = aws.123-us-east-1
-       vpc_id = mock.VpcId
+       vpc_id = var.vpc_region_VpcId
      }
 
      resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0" {
@@ -283,6 +193,34 @@ describe('AwsSimpleSubnetModule UT', () => {
        depends_on = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem]
      }
 
+     resource "aws_efs_mount_target" "efs-mount-region-private-subnet-test-filesystem" {
+       provider = aws.123-us-east-1
+       file_system_id = var.efs_region_test_filesystem_FileSystemId
+       security_groups = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id]
+       subnet_id = aws_subnet.subnet-region-private-subnet.id
+     }
+
+     # subnet/outputs.tf
+     output "subnet-region-private-subnet-SubnetArn" {
+       value = aws_subnet.subnet-region-private-subnet.arn
+     }
+
+     output "subnet-region-private-subnet-SubnetId" {
+       value = aws_subnet.subnet-region-private-subnet.id
+     }
+
+     output "rt-region-private-subnet-RouteTableId" {
+       value = aws_route_table.rt-region-private-subnet.id
+     }
+
+     output "rt-region-private-subnet-subnetAssociationId" {
+       value = aws_route_table_association.rt-region-private-subnet_assoc.id
+     }
+
+     output "nacl-region-private-subnet-NetworkAclId" {
+       value = aws_network_acl.nacl-region-private-subnet.id
+     }
+
      output "sec-grp-efs-mount-region-private-subnet-test-filesystem-Arn" {
        value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.arn
      }
@@ -291,25 +229,89 @@ describe('AwsSimpleSubnetModule UT', () => {
        value = aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id
      }
 
-     resource "aws_efs_mount_target" "efs-mount-region-private-subnet-test-filesystem" {
-       provider = aws.123-us-east-1
-       file_system_id = mock.FileSystemId
-       security_groups = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id]
-       subnet_id = aws_subnet.subnet-region-private-subnet.id
-     }
-
      output "efs-mount-region-private-subnet-test-filesystem-MountTargetId" {
        value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.id
      }
 
      output "efs-mount-region-private-subnet-test-filesystem-NetworkInterfaceId" {
        value = aws_efs_mount_target.efs-mount-region-private-subnet-test-filesystem.network_interface_id
-     }"
+     }
+
+     # subnet/terragrunt.hcl
+     dependency "testModule" {
+       config_path = "../testModule"
+
+       mock_outputs = {
+         "efs-region-test-filesystem-FileSystemId" = "mock-efs-region-test-filesystem-FileSystemId"
+         "vpc-region-VpcId" = "mock-vpc-region-VpcId"
+       }
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+     }
+
+     inputs = {
+       efs_region_test_filesystem_FileSystemId = dependency.testModule.outputs["efs-region-test-filesystem-FileSystemId"]
+       vpc_region_VpcId = dependency.testModule.outputs["vpc-region-VpcId"]
+     }
+
+     # subnet/variables.tf
+     variable "efs_region_test_filesystem_FileSystemId" {}
+
+     variable "vpc_region_VpcId" {}
+
+     # testModule/main.tf
+     terraform {
+       required_version = ">= 1.6.0"
+     }
+
+     # testModule/outputs.tf
+     output "efs-region-test-filesystem-FileSystemArn" {
+       value = "FileSystemArn"
+     }
+
+     output "efs-region-test-filesystem-FileSystemId" {
+       value = "FileSystemId"
+     }
+
+     output "igw-region-InternetGatewayId" {
+       value = "InternetGatewayId"
+     }
+
+     output "vpc-region-VpcId" {
+       value = "VpcId"
+     }
+
+     # testModule/terragrunt.hcl
+     <empty>
+
+     # testModule/variables.tf
+     <empty>"
     `);
+
+    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['subnet'] });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddAwsSimpleSubnetModelAction",
+       ],
+       [
+         "AddAwsSimpleSubnetLocalFilesystemMountOverlayAction",
+       ],
+     ]
+    `);
+    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "+ @octo/subnet=subnet-region-private-subnet",
+       "+ @octo/route-table=rt-region-private-subnet",
+       "+ @octo/network-acl=nacl-region-private-subnet",
+       "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
+       "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
+     ]
+    `);
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -320,17 +322,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
-     [
-       "+ @octo/subnet=subnet-region-private-subnet",
-       "+ @octo/route-table=rt-region-private-subnet",
-       "+ @octo/network-acl=nacl-region-private-subnet",
-     ]
-    `);
-    expect(hcl.digest()).toMatchSnapshot();
+    await testModuleContainer.commit(appCreate);
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appAddSubnetOptions } = await setup(testModuleContainer, octoTerraform);
+    const { app: appAddSubnetOptions } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -346,17 +341,16 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const resultAddSubnetOptions = await testModuleContainer.commit(appAddSubnetOptions, {
-      enableResourceCapture: true,
-    });
-    expect(new DiffAssert(resultAddSubnetOptions.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appAddSubnetOptions)).toMatchSnapshot();
+    const resultAddSubnetOptions = await testModuleContainer.commit(appAddSubnetOptions);
+    expect(testModuleContainer.digestDiffs(resultAddSubnetOptions.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/network-acl=nacl-region-private-subnet",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appAddLocalFilesystem } = await setup(testModuleContainer, octoTerraform);
+    const { app: appAddLocalFilesystem } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         localFilesystems: [stub('${{testModule.model.filesystem}}')],
@@ -373,20 +367,20 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const resultAddLocalFilesystem = await testModuleContainer.commit(appAddLocalFilesystem, {
-      enableResourceCapture: true,
-    });
-    expect(new DiffAssert(resultAddLocalFilesystem.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appAddLocalFilesystem)).toMatchSnapshot();
+    const resultAddLocalFilesystem = await testModuleContainer.commit(appAddLocalFilesystem);
+    expect(testModuleContainer.digestDiffs(resultAddLocalFilesystem.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
        "+ @octo/efs-mount-target=efs-mount-region-private-subnet-test-filesystem",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDelete } = await setup(testModuleContainer, octoTerraform);
-    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const { app: appDelete } = await setup(testModuleContainer);
+    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
+    const resultDelete = await testModuleContainer.commit(appDelete);
+    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/security-group=sec-grp-efs-mount-region-private-subnet-test-filesystem",
        "- @octo/subnet=subnet-region-private-subnet",
@@ -395,14 +389,11 @@ describe('AwsSimpleSubnetModule UT', () => {
        "- @octo/route-table=rt-region-private-subnet",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
-
-    const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
-    expect(isResourceStateEqual).toBe(true);
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
   });
 
   it('should associate and disassociate subnet with siblings', async () => {
-    const { app: appAssociateSubnet } = await setup(testModuleContainer, octoTerraform);
+    const { app: appAssociateSubnet } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -434,20 +425,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet2',
       type: AwsSimpleSubnetModule,
     });
-    const resultAssociateSubnet = await testModuleContainer.commit(appAssociateSubnet, { enableResourceCapture: true });
-    expect(new DiffAssert(resultAssociateSubnet.resourceDiffs).digest()).toMatchInlineSnapshot(`
-     [
-       "+ @octo/subnet=subnet-region-private-subnet",
-       "+ @octo/route-table=rt-region-private-subnet",
-       "+ @octo/network-acl=nacl-region-private-subnet",
-       "+ @octo/subnet=subnet-region-public-subnet",
-       "+ @octo/route-table=rt-region-public-subnet",
-       "+ @octo/network-acl=nacl-region-public-subnet",
-     ]
-    `);
-    expect(hcl.digest()).toMatchSnapshot();
+    await testModuleContainer.commit(appAssociateSubnet);
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDisassociateSubnet } = await setup(testModuleContainer, octoTerraform);
+    const { app: appDisassociateSubnet } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -474,21 +455,19 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet2',
       type: AwsSimpleSubnetModule,
     });
-
-    const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet, {
-      enableResourceCapture: true,
-    });
-    expect(new DiffAssert(resultDisassociateSubnet.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDisassociateSubnet)).toMatchSnapshot();
+    const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet);
+    expect(testModuleContainer.digestDiffs(resultDisassociateSubnet.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/network-acl=nacl-region-private-subnet",
        "* @octo/network-acl=nacl-region-public-subnet",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
   });
 
   it('should associate and disassociate private subnet with public subnet with a NAT Gateway', async () => {
-    const { app: appAssociateSubnet } = await setup(testModuleContainer, octoTerraform);
+    const { app: appAssociateSubnet } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -521,21 +500,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       type: AwsSimpleSubnetModule,
     });
 
-    const resultAssociateSubnet = await testModuleContainer.commit(appAssociateSubnet, { enableResourceCapture: true });
-    expect(new DiffAssert(resultAssociateSubnet.resourceDiffs).digest()).toMatchInlineSnapshot(`
-     [
-       "+ @octo/subnet=subnet-region-public-subnet",
-       "+ @octo/nat-gateway=nat-gateway-region-public-subnet",
-       "+ @octo/route-table=rt-region-public-subnet",
-       "+ @octo/network-acl=nacl-region-public-subnet",
-       "+ @octo/subnet=subnet-region-private-subnet",
-       "+ @octo/route-table=rt-region-private-subnet",
-       "+ @octo/network-acl=nacl-region-private-subnet",
-     ]
-    `);
-    expect(hcl.digest()).toMatchSnapshot();
+    await testModuleContainer.commit(appAssociateSubnet);
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDisassociateSubnet } = await setup(testModuleContainer, octoTerraform);
+    const { app: appDisassociateSubnet } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -562,18 +530,17 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet2',
       type: AwsSimpleSubnetModule,
     });
-    const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet, {
-      enableResourceCapture: true,
-    });
-    expect(new DiffAssert(resultDisassociateSubnet.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDisassociateSubnet)).toMatchSnapshot();
+    const resultDisassociateSubnet = await testModuleContainer.commit(appDisassociateSubnet);
+    expect(testModuleContainer.digestDiffs(resultDisassociateSubnet.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/network-acl=nacl-region-private-subnet",
        "* @octo/network-acl=nacl-region-public-subnet",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDeleteNATGateway } = await setup(testModuleContainer, octoTerraform);
+    const { app: appDeleteNATGateway } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -600,20 +567,19 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet2',
       type: AwsSimpleSubnetModule,
     });
-    const resultDeleteNATGateway = await testModuleContainer.commit(appDeleteNATGateway, {
-      enableResourceCapture: true,
-    });
-    expect(new DiffAssert(resultDeleteNATGateway.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDeleteNATGateway)).toMatchSnapshot();
+    const resultDeleteNATGateway = await testModuleContainer.commit(appDeleteNATGateway);
+    expect(testModuleContainer.digestDiffs(resultDeleteNATGateway.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/nat-gateway=nat-gateway-region-public-subnet",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
   });
 
   it('should CUD tags', async () => {
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -624,18 +590,11 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
-     [
-       "+ @octo/subnet=subnet-region-private-subnet",
-       "+ @octo/route-table=rt-region-private-subnet",
-       "+ @octo/network-acl=nacl-region-private-subnet",
-     ]
-    `);
-    expect(hcl.digest()).toMatchSnapshot();
+    await testModuleContainer.commit(appCreate);
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer, octoTerraform);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -646,17 +605,18 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
+    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/subnet=subnet-region-private-subnet",
        "* @octo/network-acl=nacl-region-private-subnet",
        "* @octo/route-table=rt-region-private-subnet",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appDeleteTags } = await setup(testModuleContainer, octoTerraform);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -667,20 +627,21 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet',
       type: AwsSimpleSubnetModule,
     });
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
+    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/subnet=subnet-region-private-subnet",
        "* @octo/network-acl=nacl-region-private-subnet",
        "* @octo/route-table=rt-region-private-subnet",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
   });
 
   describe('input changes', () => {
     it('should handle subnetAvailabilityZone change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -691,10 +652,10 @@ describe('AwsSimpleSubnetModule UT', () => {
         moduleId: 'subnet',
         type: AwsSimpleSubnetModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
+      expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateAvailabilityZone } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateAvailabilityZone } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -706,16 +667,14 @@ describe('AwsSimpleSubnetModule UT', () => {
         type: AwsSimpleSubnetModule,
       });
       await expect(async () => {
-        await testModuleContainer.commit(appUpdateAvailabilityZone, {
-          enableResourceCapture: true,
-        });
+        await testModuleContainer.commit(appUpdateAvailabilityZone);
       }).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Cannot update Subnet immutable properties once it has been created!"`,
       );
     });
 
     it('should handle subnetCidrBlock change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -726,10 +685,10 @@ describe('AwsSimpleSubnetModule UT', () => {
         moduleId: 'subnet',
         type: AwsSimpleSubnetModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
+      expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateCidrBlock } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateCidrBlock } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -741,16 +700,14 @@ describe('AwsSimpleSubnetModule UT', () => {
         type: AwsSimpleSubnetModule,
       });
       await expect(async () => {
-        await testModuleContainer.commit(appUpdateCidrBlock, {
-          enableResourceCapture: true,
-        });
+        await testModuleContainer.commit(appUpdateCidrBlock);
       }).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Cannot update Subnet immutable properties once it has been created!"`,
       );
     });
 
     it('should handle subnetName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -761,10 +718,10 @@ describe('AwsSimpleSubnetModule UT', () => {
         moduleId: 'subnet',
         type: AwsSimpleSubnetModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
+      expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateSubnetName } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateSubnetName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -775,10 +732,9 @@ describe('AwsSimpleSubnetModule UT', () => {
         moduleId: 'subnet',
         type: AwsSimpleSubnetModule,
       });
-      const resultUpdateSubnetName = await testModuleContainer.commit(appUpdateSubnetName, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateSubnetName.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateSubnetName)).toMatchSnapshot();
+      const resultUpdateSubnetName = await testModuleContainer.commit(appUpdateSubnetName);
+      expect(testModuleContainer.digestDiffs(resultUpdateSubnetName.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/subnet=subnet-region-private-subnet",
          "- @octo/network-acl=nacl-region-private-subnet",
@@ -788,11 +744,11 @@ describe('AwsSimpleSubnetModule UT', () => {
          "+ @octo/network-acl=nacl-region-changed-subnet",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
+      expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
     });
 
     it('should handle subnetOptions change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -803,10 +759,10 @@ describe('AwsSimpleSubnetModule UT', () => {
         moduleId: 'subnet',
         type: AwsSimpleSubnetModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
+      expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-      const { app: appUpdateSubnetOptions } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateSubnetOptions } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsSimpleSubnetModule>({
         inputs: {
           region: stub('${{testModule.model.region}}'),
@@ -822,20 +778,19 @@ describe('AwsSimpleSubnetModule UT', () => {
         moduleId: 'subnet',
         type: AwsSimpleSubnetModule,
       });
-      const resultUpdateSubnetOptions = await testModuleContainer.commit(appUpdateSubnetOptions, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateSubnetOptions.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateSubnetOptions)).toMatchSnapshot();
+      const resultUpdateSubnetOptions = await testModuleContainer.commit(appUpdateSubnetOptions);
+      expect(testModuleContainer.digestDiffs(resultUpdateSubnetOptions.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/network-acl=nacl-region-private-subnet",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
+      expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
     });
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -846,10 +801,10 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet-1',
       type: AwsSimpleSubnetModule,
     });
-    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    hcl.digest();
+    await testModuleContainer.commit(appCreate);
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer, octoTerraform);
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsSimpleSubnetModule>({
       inputs: {
         region: stub('${{testModule.model.region}}'),
@@ -860,14 +815,15 @@ describe('AwsSimpleSubnetModule UT', () => {
       moduleId: 'subnet-2',
       type: AwsSimpleSubnetModule,
     });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
+    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
   });
 
   describe('validation', () => {
     it('should validate invalid subnet availability zone', async () => {
-      await setup(testModuleContainer, octoTerraform);
+      await setup(testModuleContainer);
       await expect(async () => {
         await testModuleContainer.runModule<AwsSimpleSubnetModule>({
           inputs: {
@@ -883,7 +839,7 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should validate NAT Gateway only for public subnets', async () => {
-      await setup(testModuleContainer, octoTerraform);
+      await setup(testModuleContainer);
       await expect(async () => {
         await testModuleContainer.runModule<AwsSimpleSubnetModule>({
           inputs: {
@@ -904,7 +860,7 @@ describe('AwsSimpleSubnetModule UT', () => {
     });
 
     it('should validate subnet CIDR within region CIDR', async () => {
-      await setup(testModuleContainer, octoTerraform);
+      await setup(testModuleContainer);
       await expect(async () => {
         await testModuleContainer.runModule<AwsSimpleSubnetModule>({
           inputs: {

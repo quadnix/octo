@@ -128,7 +128,6 @@ describe('AwsSingleAzRegionModule UT', () => {
       moduleId: 'region',
       type: AwsSingleAzRegionModule,
     });
-    await testModuleContainer.renderHcl(appCreate);
     const resultCreate = await testModuleContainer.commit(appCreate);
     expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
@@ -164,7 +163,6 @@ describe('AwsSingleAzRegionModule UT', () => {
       moduleId: 'region',
       type: AwsSingleAzRegionModule,
     });
-    await testModuleContainer.renderHcl(appCreate);
     const resultCreate = await testModuleContainer.commit(appCreate);
     expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
@@ -228,7 +226,6 @@ describe('AwsSingleAzRegionModule UT', () => {
         moduleId: 'region',
         type: AwsSingleAzRegionModule,
       });
-      await testModuleContainer.renderHcl(appCreate);
       await testModuleContainer.commit(appCreate);
 
       const { app: appUpdateName } = await setup(testModuleContainer);
@@ -331,7 +328,6 @@ describe('AwsSingleAzRegionModule UT', () => {
       moduleId: 'region-1',
       type: AwsSingleAzRegionModule,
     });
-    await testModuleContainer.renderHcl(appCreate);
     await testModuleContainer.commit(appCreate);
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);

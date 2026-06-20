@@ -1,6 +1,4 @@
-import { type App, DiffAssert, TestContainer, TestModuleContainer } from '@quadnix/octo';
-import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
-import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
+import { type App, TestContainer, TestModuleContainer } from '@quadnix/octo';
 import { SimpleAppModule } from './index.js';
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: App }> {
@@ -11,22 +9,16 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ app: A
 }
 
 describe('SimpleAppModule UT', () => {
-  let hcl: HclAssert;
-  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    const container = await TestContainer.create(
-      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
-      { factoryTimeoutInMs: 500 },
-    );
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    testModuleContainer = new TestModuleContainer();
+    testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
 
-    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
-
-    hcl = new HclAssert(octoTerraform);
+    testModuleContainer.registerTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
   });
 
   afterEach(async () => {
@@ -40,10 +32,11 @@ describe('SimpleAppModule UT', () => {
       moduleId: 'app',
       type: SimpleAppModule,
     });
-    const result = await testModuleContainer.commit(app, {
-      enableResourceCapture: true,
-      filterByModuleIds: ['app'],
-    });
+
+    // The app module creates no resources, so it renders no terraform.
+    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`""`);
+
+    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['app'] });
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
@@ -51,19 +44,7 @@ describe('SimpleAppModule UT', () => {
        ],
      ]
     `);
-    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`[]`);
-    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(octoTerraform.render()).toMatchInlineSnapshot(`
-     "terraform {
-       required_version = ">= 1.6.0"
-       required_providers {
-         aws = {
-           source  = "hashicorp/aws"
-           version = ">= 5.49"
-         }
-       }
-     }"
-    `);
+    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   it('should CUD', async () => {
@@ -72,48 +53,46 @@ describe('SimpleAppModule UT', () => {
       moduleId: 'app',
       type: SimpleAppModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
+    const resultDelete = await testModuleContainer.commit(appDelete);
+    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
   });
 
   it('should CUD tags', async () => {
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { 'app.model.app': appCreate } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: SimpleAppModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { 'app.model.app': appUpdateTags } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: SimpleAppModule,
     });
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
+    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     const { 'app.model.app': appDeleteTags } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app',
       type: SimpleAppModule,
     });
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
+    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('input changes', () => {
@@ -123,17 +102,16 @@ describe('SimpleAppModule UT', () => {
         moduleId: 'app',
         type: SimpleAppModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
       const { 'app.model.app': appUpdateName } = await testModuleContainer.runModule<SimpleAppModule>({
         inputs: { name: 'changed-app' },
         moduleId: 'app',
         type: SimpleAppModule,
       });
-      const resultUpdateName = await testModuleContainer.commit(appUpdateName, { enableResourceCapture: true });
-      expect(new DiffAssert(resultUpdateName.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-      expect(hcl.digest()).toMatchSnapshot();
+      expect(await testModuleContainer.diffHcl(appUpdateName)).toMatchSnapshot();
+      const resultUpdateName = await testModuleContainer.commit(appUpdateName);
+      expect(testModuleContainer.digestDiffs(resultUpdateName.resourceDiffs)).toMatchInlineSnapshot(`[]`);
     });
   });
 
@@ -143,17 +121,16 @@ describe('SimpleAppModule UT', () => {
       moduleId: 'app-1',
       type: SimpleAppModule,
     });
-    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(hcl.digest()).toMatchSnapshot();
+    await testModuleContainer.commit(appCreate);
 
     const { 'app-2.model.app': appUpdateModuleId } = await testModuleContainer.runModule<SimpleAppModule>({
       inputs: { name: 'test-app' },
       moduleId: 'app-2',
       type: SimpleAppModule,
     });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
+    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {

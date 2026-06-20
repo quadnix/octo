@@ -1,278 +1,641 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`AwsEcsServerModule UT input changes should handle serverKey change 2`] = `
-"- Expected
-+ Received
+exports[`AwsEcsServerModule UT input changes should handle serverKey change 1`] = `
+"- server/main.tf
+depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
 
-  Object {
--   "output.iam-role-ServerRole-backend-Arn": Object {
--     "value": "aws_iam_role.iam-role-ServerRole-backend.arn",
-+   "output.iam-role-ServerRole-changed-backend-Arn": Object {
-+     "value": "aws_iam_role.iam-role-ServerRole-changed-backend.arn",
-    },
--   "output.iam-role-ServerRole-backend-RoleId": Object {
--     "value": "aws_iam_role.iam-role-ServerRole-backend.unique_id",
-+   "output.iam-role-ServerRole-changed-backend-RoleId": Object {
-+     "value": "aws_iam_role.iam-role-ServerRole-changed-backend.unique_id",
-    },
--   "output.iam-role-ServerRole-backend-RoleName": Object {
--     "value": "aws_iam_role.iam-role-ServerRole-backend.name",
-+   "output.iam-role-ServerRole-changed-backend-RoleName": Object {
-+     "value": "aws_iam_role.iam-role-ServerRole-changed-backend.name",
-    },
--   "resource.aws_iam_role.iam-role-ServerRole-backend": Object {
-+   "resource.aws_iam_role.iam-role-ServerRole-changed-backend": Object {
-      "Action": "sts:AssumeRole",
-      "Effect": "Allow",
-      "Principal": Object {
-        "Service": "ecs-tasks.amazonaws.com",
-      },
-      "Statement": "[{",
-      "Version": "2012-10-17",
-      "assume_role_policy": "jsonencode({",
--     "name": "ServerRole-backend",
-+     "name": "ServerRole-changed-backend",
-      "provider": "aws.123-us-east-1",
-    },
--   "resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy": Object {
--     "depends_on": "[aws_iam_role.iam-role-ServerRole-backend]",
-+   "resource.aws_iam_role_policy_attachment.iam-role-ServerRole-changed-backend_AmazonECSTaskExecutionRolePolicy": Object {
-+     "depends_on": "[aws_iam_role.iam-role-ServerRole-changed-backend]",
-      "policy_arn": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-      "provider": "aws.123-us-east-1",
--     "role": "aws_iam_role.iam-role-ServerRole-backend.name",
-+     "role": "aws_iam_role.iam-role-ServerRole-changed-backend.name",
-    },
++ server/main.tf
+depends_on = [aws_iam_role.iam-role-ServerRole-changed-backend]
+}
+
+- server/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws.123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ServerRole-backend.name
+
++ server/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-changed-backend_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws.123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ServerRole-changed-backend.name
+
+- server/main.tf
+resource "aws_iam_role" "iam-role-ServerRole-backend" {
+  provider = aws.123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ServerRole-backend"
+}
+
++ server/main.tf
+resource "aws_iam_role" "iam-role-ServerRole-changed-backend" {
+  provider = aws.123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ServerRole-changed-backend"
+}
+
+- server/outputs.tf
+output "iam-role-ServerRole-backend-Arn" {
+  value = aws_iam_role.iam-role-ServerRole-backend.arn
+}
+
+- server/outputs.tf
+output "iam-role-ServerRole-backend-RoleId" {
+  value = aws_iam_role.iam-role-ServerRole-backend.unique_id
+}
+
+- server/outputs.tf
+output "iam-role-ServerRole-backend-RoleName" {
+  value = aws_iam_role.iam-role-ServerRole-backend.name
+}
+
++ server/outputs.tf
+output "iam-role-ServerRole-changed-backend-Arn" {
+  value = aws_iam_role.iam-role-ServerRole-changed-backend.arn
+}
+
++ server/outputs.tf
+output "iam-role-ServerRole-changed-backend-RoleId" {
+  value = aws_iam_role.iam-role-ServerRole-changed-backend.unique_id
+}
+
++ server/outputs.tf
+output "iam-role-ServerRole-changed-backend-RoleName" {
+  value = aws_iam_role.iam-role-ServerRole-changed-backend.name
+}"
+`;
+
+exports[`AwsEcsServerModule UT should CUD 1`] = `
+"# server/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
+resource "aws_iam_role" "iam-role-ServerRole-backend" {
+  provider = aws.123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ServerRole-backend"
+}
+
+resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws.123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ServerRole-backend.name
+
+  depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
+
+# server/outputs.tf
+output "iam-role-ServerRole-backend-Arn" {
+  value = aws_iam_role.iam-role-ServerRole-backend.arn
+}
+
+output "iam-role-ServerRole-backend-RoleId" {
+  value = aws_iam_role.iam-role-ServerRole-backend.unique_id
+}
+
+output "iam-role-ServerRole-backend-RoleName" {
+  value = aws_iam_role.iam-role-ServerRole-backend.name
+}
+
+# server/terragrunt.hcl
+<empty>
+
+# server/variables.tf
+<empty>
+
+# testModule/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
+resource "aws_s3_bucket" "bucket-test-bucket" {
+  provider = aws.123-us-east-1
+  bucket = "test-bucket"
+}
+
+# testModule/outputs.tf
+output "bucket-test-bucket-Arn" {
+  value = aws_s3_bucket.bucket-test-bucket.arn
+}
+
+# testModule/terragrunt.hcl
+<empty>
+
+# testModule/variables.tf
+<empty>"
+`;
+
+exports[`AwsEcsServerModule UT should CUD 3`] = `"<no changes>"`;
+
+exports[`AwsEcsServerModule UT should CUD 5`] = `
+"+ server/main.tf
+depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e]
+}
+
++ server/main.tf
+depends_on = [aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]
+}
+
++ server/main.tf
+resource "aws_iam_policy" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e" {
+  provider = aws.123-us-east-1
+  name = "aws-ecs-server-s3-access-overlay-e9dc96db328e"
+  policy = jsonencode({
+    Statement = [{
+        Action = ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectTagging", "s3:GetObjectVersionAcl", "s3:GetObjectVersionAttributes", "s3:GetObjectVersionTagging", "s3:ListBucket"]
+        Effect = "Allow"
+        Resource = ["arn:aws:s3:::test-bucket/uploads", "arn:aws:s3:::test-bucket/uploads/*"]
+        Sid = "Allowreadfrombuckettestbucket"
+      }]
+    Version = "2012-10-17"
+  })
+
++ server/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach" {
+  provider = aws.123-us-east-1
+  policy_arn = aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e.arn
+  role = aws_iam_role.iam-role-ServerRole-backend.name
+
++ testModule/main.tf
+depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
+
++ testModule/main.tf
+resource "aws_s3_bucket_policy" "bucket-test-bucket-policy" {
+  provider = aws.123-us-east-1
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  policy = jsonencode({
+    Statement = [{
+        Action = ["s3:GetObject"]
+        Effect = "Allow"
+        Principal = {
+          AWS = [var.iam_role_ServerRole_backend_Arn]
+        }
+        Resource = ["arn:aws:s3:::test-bucket/uploads", "arn:aws:s3:::test-bucket/uploads/*"]
+        Sid = "iamroleServerRolebackendReadPermission"
+      }]
+    Version = "2012-10-17"
+  })
+
+- testModule/terragrunt.hcl
+<empty>
+
++ testModule/terragrunt.hcl
+dependency "server" {
+  config_path = "../server"
+
++ testModule/terragrunt.hcl
+inputs = {
+  iam_role_ServerRole_backend_Arn = dependency.server.outputs["iam-role-ServerRole-backend-Arn"]
+}
+
++ testModule/terragrunt.hcl
+mock_outputs = {
+    "iam-role-ServerRole-backend-Arn" = "mock-iam-role-ServerRole-backend-Arn"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+- testModule/variables.tf
+<empty>
+
++ testModule/variables.tf
+variable "iam_role_ServerRole_backend_Arn" {}"
+`;
+
+exports[`AwsEcsServerModule UT should CUD 7`] = `
+"- server/main.tf
+depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e]
+}
+
+- server/main.tf
+depends_on = [aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]
+}
+
+- server/main.tf
+depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
+
+- server/main.tf
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
+- server/main.tf
+resource "aws_iam_policy" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e" {
+  provider = aws.123-us-east-1
+  name = "aws-ecs-server-s3-access-overlay-e9dc96db328e"
+  policy = jsonencode({
+    Statement = [{
+        Action = ["s3:GetObject", "s3:GetObjectAttributes", "s3:GetObjectTagging", "s3:GetObjectVersionAcl", "s3:GetObjectVersionAttributes", "s3:GetObjectVersionTagging", "s3:ListBucket"]
+        Effect = "Allow"
+        Resource = ["arn:aws:s3:::test-bucket/uploads", "arn:aws:s3:::test-bucket/uploads/*"]
+        Sid = "Allowreadfrombuckettestbucket"
+      }]
+    Version = "2012-10-17"
+  })
+
+- server/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws.123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ServerRole-backend.name
+
+- server/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach" {
+  provider = aws.123-us-east-1
+  policy_arn = aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e.arn
+  role = aws_iam_role.iam-role-ServerRole-backend.name
+
+- server/main.tf
+resource "aws_iam_role" "iam-role-ServerRole-backend" {
+  provider = aws.123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ServerRole-backend"
+}
+
+- server/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- server/outputs.tf
+output "iam-role-ServerRole-backend-Arn" {
+  value = aws_iam_role.iam-role-ServerRole-backend.arn
+}
+
+- server/outputs.tf
+output "iam-role-ServerRole-backend-RoleId" {
+  value = aws_iam_role.iam-role-ServerRole-backend.unique_id
+}
+
+- server/outputs.tf
+output "iam-role-ServerRole-backend-RoleName" {
+  value = aws_iam_role.iam-role-ServerRole-backend.name
+}
+
+- server/terragrunt.hcl
+<empty>
+
+- server/variables.tf
+<empty>
+
+- testModule/main.tf
+depends_on = [aws_s3_bucket.bucket-test-bucket]
+}
+
+- testModule/main.tf
+resource "aws_s3_bucket_policy" "bucket-test-bucket-policy" {
+  provider = aws.123-us-east-1
+  bucket = aws_s3_bucket.bucket-test-bucket.id
+  policy = jsonencode({
+    Statement = [{
+        Action = ["s3:GetObject"]
+        Effect = "Allow"
+        Principal = {
+          AWS = [var.iam_role_ServerRole_backend_Arn]
+        }
+        Resource = ["arn:aws:s3:::test-bucket/uploads", "arn:aws:s3:::test-bucket/uploads/*"]
+        Sid = "iamroleServerRolebackendReadPermission"
+      }]
+    Version = "2012-10-17"
+  })
+
++ testModule/terragrunt.hcl
+<empty>
+
+- testModule/terragrunt.hcl
+dependency "server" {
+  config_path = "../server"
+
+- testModule/terragrunt.hcl
+inputs = {
+  iam_role_ServerRole_backend_Arn = dependency.server.outputs["iam-role-ServerRole-backend-Arn"]
+}
+
+- testModule/terragrunt.hcl
+mock_outputs = {
+    "iam-role-ServerRole-backend-Arn" = "mock-iam-role-ServerRole-backend-Arn"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
++ testModule/variables.tf
+<empty>
+
+- testModule/variables.tf
+variable "iam_role_ServerRole_backend_Arn" {}"
+`;
+
+exports[`AwsEcsServerModule UT should CUD tags 1`] = `
+"# server/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
+resource "aws_iam_role" "iam-role-ServerRole-backend" {
+  provider = aws.123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ServerRole-backend"
+  tags = {
+    tag1 = "value1"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws.123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ServerRole-backend.name
+
+  depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
+
+# server/outputs.tf
+output "iam-role-ServerRole-backend-Arn" {
+  value = aws_iam_role.iam-role-ServerRole-backend.arn
+}
+
+output "iam-role-ServerRole-backend-RoleId" {
+  value = aws_iam_role.iam-role-ServerRole-backend.unique_id
+}
+
+output "iam-role-ServerRole-backend-RoleName" {
+  value = aws_iam_role.iam-role-ServerRole-backend.name
+}
+
+# server/terragrunt.hcl
+<empty>
+
+# server/variables.tf
+<empty>
+
+# testModule/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
+resource "aws_s3_bucket" "bucket-test-bucket" {
+  provider = aws.123-us-east-1
+  bucket = "test-bucket"
+}
+
+# testModule/outputs.tf
+output "bucket-test-bucket-Arn" {
+  value = aws_s3_bucket.bucket-test-bucket.arn
+}
+
+# testModule/terragrunt.hcl
+<empty>
+
+# testModule/variables.tf
+<empty>"
+`;
+
+exports[`AwsEcsServerModule UT should CUD tags 3`] = `
+"~ server/main.tf resource "aws_iam_role" "iam-role-ServerRole-backend" {
+@@ -14,3 +14,4 @@
+    tags = {
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2"
+    }"
+`;
+
+exports[`AwsEcsServerModule UT should CUD tags 5`] = `
+"~ server/main.tf resource "aws_iam_role" "iam-role-ServerRole-backend" {
+@@ -13,6 +13,2 @@
+    name = "ServerRole-backend"
+-   tags = {
+-     tag1 = "value1_1"
+-     tag2 = "value2"
+-   }
   }"
 `;
 
-exports[`AwsEcsServerModule UT should CUD 2`] = `
-"- Expected
-+ Received
+exports[`AwsEcsServerModule UT should handle moduleId change 1`] = `
+"- server-1/main.tf
+depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
 
-- Object {}
-+ Object {
-+   "output.iam-role-ServerRole-backend-Arn": Object {
-+     "value": "aws_iam_role.iam-role-ServerRole-backend.arn",
-+   },
-+   "output.iam-role-ServerRole-backend-RoleId": Object {
-+     "value": "aws_iam_role.iam-role-ServerRole-backend.unique_id",
-+   },
-+   "output.iam-role-ServerRole-backend-RoleName": Object {
-+     "value": "aws_iam_role.iam-role-ServerRole-backend.name",
-+   },
-+   "resource.aws_iam_role.iam-role-ServerRole-backend": Object {
-+     "Action": "sts:AssumeRole",
-+     "Effect": "Allow",
-+     "Principal": Object {
-+       "Service": "ecs-tasks.amazonaws.com",
-+     },
-+     "Statement": "[{",
-+     "Version": "2012-10-17",
-+     "assume_role_policy": "jsonencode({",
-+     "name": "ServerRole-backend",
-+     "provider": "aws.123-us-east-1",
-+   },
-+   "resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy": Object {
-+     "depends_on": "[aws_iam_role.iam-role-ServerRole-backend]",
-+     "policy_arn": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-+     "provider": "aws.123-us-east-1",
-+     "role": "aws_iam_role.iam-role-ServerRole-backend.name",
-+   },
-+ }"
+- server-1/main.tf
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
+- server-1/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws.123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ServerRole-backend.name
+
+- server-1/main.tf
+resource "aws_iam_role" "iam-role-ServerRole-backend" {
+  provider = aws.123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ServerRole-backend"
+}
+
+- server-1/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- server-1/outputs.tf
+output "iam-role-ServerRole-backend-Arn" {
+  value = aws_iam_role.iam-role-ServerRole-backend.arn
+}
+
+- server-1/outputs.tf
+output "iam-role-ServerRole-backend-RoleId" {
+  value = aws_iam_role.iam-role-ServerRole-backend.unique_id
+}
+
+- server-1/outputs.tf
+output "iam-role-ServerRole-backend-RoleName" {
+  value = aws_iam_role.iam-role-ServerRole-backend.name
+}
+
+- server-1/terragrunt.hcl
+<empty>
+
+- server-1/variables.tf
+<empty>
+
++ server-2/main.tf
+depends_on = [aws_iam_role.iam-role-ServerRole-backend]
+}
+
++ server-2/main.tf
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
++ server-2/main.tf
+resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
+  provider = aws.123-us-east-1
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+  role = aws_iam_role.iam-role-ServerRole-backend.name
+
++ server-2/main.tf
+resource "aws_iam_role" "iam-role-ServerRole-backend" {
+  provider = aws.123-us-east-1
+  assume_role_policy = jsonencode({
+    Statement = [{
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }]
+    Version = "2012-10-17"
+  })
+  name = "ServerRole-backend"
+}
+
++ server-2/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
++ server-2/outputs.tf
+output "iam-role-ServerRole-backend-Arn" {
+  value = aws_iam_role.iam-role-ServerRole-backend.arn
+}
+
++ server-2/outputs.tf
+output "iam-role-ServerRole-backend-RoleId" {
+  value = aws_iam_role.iam-role-ServerRole-backend.unique_id
+}
+
++ server-2/outputs.tf
+output "iam-role-ServerRole-backend-RoleName" {
+  value = aws_iam_role.iam-role-ServerRole-backend.name
+}
+
++ server-2/terragrunt.hcl
+<empty>
+
++ server-2/variables.tf
+<empty>"
 `;
-
-exports[`AwsEcsServerModule UT should CUD 4`] = `"Compared values have no visual difference."`;
-
-exports[`AwsEcsServerModule UT should CUD 6`] = `
-"- Expected
-+ Received
-
-  Object {
-+   "output.bucket-test-bucket-Arn": Object {
-+     "value": "aws_s3_bucket.bucket-test-bucket.arn",
-+   },
-    "output.iam-role-ServerRole-backend-Arn": Object {
-      "value": "aws_iam_role.iam-role-ServerRole-backend.arn",
-    },
-    "output.iam-role-ServerRole-backend-RoleId": Object {
-      "value": "aws_iam_role.iam-role-ServerRole-backend.unique_id",
-    },
-    "output.iam-role-ServerRole-backend-RoleName": Object {
-      "value": "aws_iam_role.iam-role-ServerRole-backend.name",
-+   },
-+   "resource.aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e": Object {
-+     "Action": "[\\"s3:GetObject\\", \\"s3:GetObjectAttributes\\", \\"s3:GetObjectTagging\\", \\"s3:GetObjectVersionAcl\\", \\"s3:GetObjectVersionAttributes\\", \\"s3:GetObjectVersionTagging\\", \\"s3:ListBucket\\"]",
-+     "Effect": "Allow",
-+     "Resource": "[\\"arn:aws:s3:::test-bucket/uploads\\", \\"arn:aws:s3:::test-bucket/uploads/*\\"]",
-+     "Sid": "Allowreadfrombuckettestbucket",
-+     "Statement": "[{",
-+     "Version": "2012-10-17",
-+     "depends_on": "[aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]",
-+     "name": "aws-ecs-server-s3-access-overlay-e9dc96db328e",
-+     "policy": "jsonencode({",
-+     "provider": "aws.123-us-east-1",
-    },
-    "resource.aws_iam_role.iam-role-ServerRole-backend": Object {
-      "Action": "sts:AssumeRole",
-      "Effect": "Allow",
-      "Principal": Object {
-        "Service": "ecs-tasks.amazonaws.com",
-      },
-      "Statement": "[{",
-      "Version": "2012-10-17",
-      "assume_role_policy": "jsonencode({",
-      "name": "ServerRole-backend",
-      "provider": "aws.123-us-east-1",
-    },
-    "resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy": Object {
-      "depends_on": "[aws_iam_role.iam-role-ServerRole-backend]",
-      "policy_arn": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-+     "provider": "aws.123-us-east-1",
-+     "role": "aws_iam_role.iam-role-ServerRole-backend.name",
-+   },
-+   "resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach": Object {
-+     "depends_on": "[aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e]",
-+     "policy_arn": "aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e.arn",
-      "provider": "aws.123-us-east-1",
-      "role": "aws_iam_role.iam-role-ServerRole-backend.name",
-+   },
-+   "resource.aws_s3_bucket.bucket-test-bucket": Object {
-+     "bucket": "test-bucket",
-+     "provider": "aws.123-us-east-1",
-+   },
-+   "resource.aws_s3_bucket_policy.bucket-test-bucket-policy": Object {
-+     "Action": "[\\"s3:GetObject\\"]",
-+     "Effect": "Allow",
-+     "Principal": Object {
-+       "AWS": "[aws_iam_role.iam-role-ServerRole-backend.arn]",
-+     },
-+     "Resource": "[\\"arn:aws:s3:::test-bucket/uploads\\", \\"arn:aws:s3:::test-bucket/uploads/*\\"]",
-+     "Sid": "iamroleServerRolebackendReadPermission",
-+     "Statement": "[{",
-+     "Version": "2012-10-17",
-+     "bucket": "aws_s3_bucket.bucket-test-bucket.id",
-+     "depends_on": "[aws_s3_bucket.bucket-test-bucket]",
-+     "policy": "jsonencode({",
-+     "provider": "aws.123-us-east-1",
-    },
-  }"
-`;
-
-exports[`AwsEcsServerModule UT should CUD 8`] = `
-"- Expected
-+ Received
-
-- Object {
--   "output.bucket-test-bucket-Arn": Object {
--     "value": "aws_s3_bucket.bucket-test-bucket.arn",
--   },
--   "output.iam-role-ServerRole-backend-Arn": Object {
--     "value": "aws_iam_role.iam-role-ServerRole-backend.arn",
--   },
--   "output.iam-role-ServerRole-backend-RoleId": Object {
--     "value": "aws_iam_role.iam-role-ServerRole-backend.unique_id",
--   },
--   "output.iam-role-ServerRole-backend-RoleName": Object {
--     "value": "aws_iam_role.iam-role-ServerRole-backend.name",
--   },
--   "resource.aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e": Object {
--     "Action": "[\\"s3:GetObject\\", \\"s3:GetObjectAttributes\\", \\"s3:GetObjectTagging\\", \\"s3:GetObjectVersionAcl\\", \\"s3:GetObjectVersionAttributes\\", \\"s3:GetObjectVersionTagging\\", \\"s3:ListBucket\\"]",
--     "Effect": "Allow",
--     "Resource": "[\\"arn:aws:s3:::test-bucket/uploads\\", \\"arn:aws:s3:::test-bucket/uploads/*\\"]",
--     "Sid": "Allowreadfrombuckettestbucket",
--     "Statement": "[{",
--     "Version": "2012-10-17",
--     "depends_on": "[aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy]",
--     "name": "aws-ecs-server-s3-access-overlay-e9dc96db328e",
--     "policy": "jsonencode({",
--     "provider": "aws.123-us-east-1",
--   },
--   "resource.aws_iam_role.iam-role-ServerRole-backend": Object {
--     "Action": "sts:AssumeRole",
--     "Effect": "Allow",
--     "Principal": Object {
--       "Service": "ecs-tasks.amazonaws.com",
--     },
--     "Statement": "[{",
--     "Version": "2012-10-17",
--     "assume_role_policy": "jsonencode({",
--     "name": "ServerRole-backend",
--     "provider": "aws.123-us-east-1",
--   },
--   "resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy": Object {
--     "depends_on": "[aws_iam_role.iam-role-ServerRole-backend]",
--     "policy_arn": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
--     "provider": "aws.123-us-east-1",
--     "role": "aws_iam_role.iam-role-ServerRole-backend.name",
--   },
--   "resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach": Object {
--     "depends_on": "[aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e]",
--     "policy_arn": "aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e.arn",
--     "provider": "aws.123-us-east-1",
--     "role": "aws_iam_role.iam-role-ServerRole-backend.name",
--   },
--   "resource.aws_s3_bucket.bucket-test-bucket": Object {
--     "bucket": "test-bucket",
--     "provider": "aws.123-us-east-1",
--   },
--   "resource.aws_s3_bucket_policy.bucket-test-bucket-policy": Object {
--     "Action": "[\\"s3:GetObject\\"]",
--     "Effect": "Allow",
--     "Principal": Object {
--       "AWS": "[aws_iam_role.iam-role-ServerRole-backend.arn]",
--     },
--     "Resource": "[\\"arn:aws:s3:::test-bucket/uploads\\", \\"arn:aws:s3:::test-bucket/uploads/*\\"]",
--     "Sid": "iamroleServerRolebackendReadPermission",
--     "Statement": "[{",
--     "Version": "2012-10-17",
--     "bucket": "aws_s3_bucket.bucket-test-bucket.id",
--     "depends_on": "[aws_s3_bucket.bucket-test-bucket]",
--     "policy": "jsonencode({",
--     "provider": "aws.123-us-east-1",
--   },
-- }
-+ Object {}"
-`;
-
-exports[`AwsEcsServerModule UT should CUD tags 2`] = `
-"- Expected
-+ Received
-
-- Object {}
-+ Object {
-+   "output.iam-role-ServerRole-backend-Arn": Object {
-+     "value": "aws_iam_role.iam-role-ServerRole-backend.arn",
-+   },
-+   "output.iam-role-ServerRole-backend-RoleId": Object {
-+     "value": "aws_iam_role.iam-role-ServerRole-backend.unique_id",
-+   },
-+   "output.iam-role-ServerRole-backend-RoleName": Object {
-+     "value": "aws_iam_role.iam-role-ServerRole-backend.name",
-+   },
-+   "resource.aws_iam_role.iam-role-ServerRole-backend": Object {
-+     "Action": "sts:AssumeRole",
-+     "Effect": "Allow",
-+     "Principal": Object {
-+       "Service": "ecs-tasks.amazonaws.com",
-+     },
-+     "Statement": "[{",
-+     "Version": "2012-10-17",
-+     "assume_role_policy": "jsonencode({",
-+     "name": "ServerRole-backend",
-+     "provider": "aws.123-us-east-1",
-+   },
-+   "resource.aws_iam_role_policy_attachment.iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy": Object {
-+     "depends_on": "[aws_iam_role.iam-role-ServerRole-backend]",
-+     "policy_arn": "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
-+     "provider": "aws.123-us-east-1",
-+     "role": "aws_iam_role.iam-role-ServerRole-backend.name",
-+   },
-+ }"
-`;
-
-exports[`AwsEcsServerModule UT should CUD tags 4`] = `"Compared values have no visual difference."`;
-
-exports[`AwsEcsServerModule UT should CUD tags 6`] = `"Compared values have no visual difference."`;
-
-exports[`AwsEcsServerModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;

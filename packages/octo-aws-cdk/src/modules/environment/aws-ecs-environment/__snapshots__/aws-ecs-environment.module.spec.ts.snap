@@ -1,92 +1,174 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`AwsEcsEnvironmentModule UT input changes should handle environmentName change 2`] = `
-"- Expected
-+ Received
+exports[`AwsEcsEnvironmentModule UT input changes should handle environmentName change 1`] = `
+"+ environment/main.tf
+resource "aws_ecs_cluster" "ecs-cluster-region-changed-qa" {
+  provider = aws.123-us-east-1
+  name = "region-changed-qa"
+  setting {
+    name = "containerInsights"
+    value = "disabled"
+  }
+}
 
-  Object {
--   "output.ecs-cluster-region-qa-clusterArn": Object {
--     "value": "aws_ecs_cluster.ecs-cluster-region-qa.arn",
-+   "output.ecs-cluster-region-changed-qa-clusterArn": Object {
-+     "value": "aws_ecs_cluster.ecs-cluster-region-changed-qa.arn",
-    },
--   "resource.aws_ecs_cluster.ecs-cluster-region-qa": Object {
--     "name": "region-qa",
-+   "resource.aws_ecs_cluster.ecs-cluster-region-changed-qa": Object {
-+     "name": "region-changed-qa",
-      "provider": "aws.123-us-east-1",
-      "setting": Object {
-        "name": "containerInsights",
-        "value": "disabled",
-      },
-    },
+- environment/main.tf
+resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+  provider = aws.123-us-east-1
+  name = "region-qa"
+  setting {
+    name = "containerInsights"
+    value = "disabled"
+  }
+}
+
++ environment/outputs.tf
+output "ecs-cluster-region-changed-qa-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-changed-qa.arn
+}
+
+- environment/outputs.tf
+output "ecs-cluster-region-qa-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+}"
+`;
+
+exports[`AwsEcsEnvironmentModule UT input changes should handle environmentVariables change 1`] = `"<no changes>"`;
+
+exports[`AwsEcsEnvironmentModule UT should CUD 1`] = `
+"- environment/main.tf
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
+- environment/main.tf
+resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+  provider = aws.123-us-east-1
+  name = "region-qa"
+  setting {
+    name = "containerInsights"
+    value = "disabled"
+  }
+}
+
+- environment/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- environment/outputs.tf
+output "ecs-cluster-region-qa-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+}
+
+- environment/terragrunt.hcl
+<empty>
+
+- environment/variables.tf
+<empty>"
+`;
+
+exports[`AwsEcsEnvironmentModule UT should CUD tags 1`] = `
+"~ environment/main.tf resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+@@ -8,3 +8,4 @@
+    tags = {
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2"
+    }"
+`;
+
+exports[`AwsEcsEnvironmentModule UT should CUD tags 3`] = `
+"~ environment/main.tf resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+@@ -7,6 +7,2 @@
+    }
+-   tags = {
+-     tag1 = "value1_1"
+-     tag2 = "value2"
+-   }
   }"
 `;
 
-exports[`AwsEcsEnvironmentModule UT input changes should handle environmentVariables change 2`] = `"Compared values have no visual difference."`;
+exports[`AwsEcsEnvironmentModule UT should handle moduleId change 1`] = `
+"- environment-1/main.tf
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
 
-exports[`AwsEcsEnvironmentModule UT should CUD 2`] = `
-"- Expected
-+ Received
+- environment-1/main.tf
+resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+  provider = aws.123-us-east-1
+  name = "region-qa"
+  setting {
+    name = "containerInsights"
+    value = "disabled"
+  }
+}
 
-- Object {}
-+ Object {
-+   "output.ecs-cluster-region-qa-clusterArn": Object {
-+     "value": "aws_ecs_cluster.ecs-cluster-region-qa.arn",
-+   },
-+   "resource.aws_ecs_cluster.ecs-cluster-region-qa": Object {
-+     "name": "region-qa",
-+     "provider": "aws.123-us-east-1",
-+     "setting": Object {
-+       "name": "containerInsights",
-+       "value": "disabled",
-+     },
-+   },
-+ }"
+- environment-1/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- environment-1/outputs.tf
+output "ecs-cluster-region-qa-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+}
+
+- environment-1/terragrunt.hcl
+<empty>
+
+- environment-1/variables.tf
+<empty>
+
++ environment-2/main.tf
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
++ environment-2/main.tf
+resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
+  provider = aws.123-us-east-1
+  name = "region-qa"
+  setting {
+    name = "containerInsights"
+    value = "disabled"
+  }
+}
+
++ environment-2/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
++ environment-2/outputs.tf
+output "ecs-cluster-region-qa-clusterArn" {
+  value = aws_ecs_cluster.ecs-cluster-region-qa.arn
+}
+
++ environment-2/terragrunt.hcl
+<empty>
+
++ environment-2/variables.tf
+<empty>"
 `;
-
-exports[`AwsEcsEnvironmentModule UT should CUD 4`] = `
-"- Expected
-+ Received
-
-- Object {
--   "output.ecs-cluster-region-qa-clusterArn": Object {
--     "value": "aws_ecs_cluster.ecs-cluster-region-qa.arn",
--   },
--   "resource.aws_ecs_cluster.ecs-cluster-region-qa": Object {
--     "name": "region-qa",
--     "provider": "aws.123-us-east-1",
--     "setting": Object {
--       "name": "containerInsights",
--       "value": "disabled",
--     },
--   },
-- }
-+ Object {}"
-`;
-
-exports[`AwsEcsEnvironmentModule UT should CUD tags 2`] = `
-"- Expected
-+ Received
-
-- Object {}
-+ Object {
-+   "output.ecs-cluster-region-qa-clusterArn": Object {
-+     "value": "aws_ecs_cluster.ecs-cluster-region-qa.arn",
-+   },
-+   "resource.aws_ecs_cluster.ecs-cluster-region-qa": Object {
-+     "name": "region-qa",
-+     "provider": "aws.123-us-east-1",
-+     "setting": Object {
-+       "name": "containerInsights",
-+       "value": "disabled",
-+     },
-+   },
-+ }"
-`;
-
-exports[`AwsEcsEnvironmentModule UT should CUD tags 4`] = `"Compared values have no visual difference."`;
-
-exports[`AwsEcsEnvironmentModule UT should CUD tags 6`] = `"Compared values have no visual difference."`;
-
-exports[`AwsEcsEnvironmentModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;

@@ -2,7 +2,6 @@ import {
   Action,
   type ActionOutputs,
   App,
-  Container,
   type Diff,
   DiffAction,
   type EnhancedModuleSchema,
@@ -10,7 +9,6 @@ import {
   type IModelAction,
   hasNodeName,
 } from '@quadnix/octo';
-import { OctoTerraform, type OctoTerraformFactory } from '../../../../../../factories/octo-terraform.factory.js';
 import type { SimpleAppModule } from '../../../simple-app.module.js';
 
 /**
@@ -32,11 +30,6 @@ export class AddSimpleAppModelAction implements IModelAction<SimpleAppModule> {
     _actionInputs: EnhancedModuleSchema<SimpleAppModule>,
     actionOutputs: ActionOutputs,
   ): Promise<ActionOutputs> {
-    const octoTerraform = await Container.getInstance().get<OctoTerraform, typeof OctoTerraformFactory>(OctoTerraform, {
-      metadata: { package: '@octo' },
-    });
-    octoTerraform.addTerraformConfig();
-
     return actionOutputs;
   }
 }

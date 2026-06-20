@@ -1,143 +1,260 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`AwsEfsFilesystemModule UT input changes should handle filesystemName change 2`] = `
-"- Expected
-+ Received
+exports[`AwsEfsFilesystemModule UT input changes should handle filesystemName change 1`] = `
+"+ filesystem/main.tf
+depends_on = [aws_efs_file_system.efs-region-changed-filesystem]
+}
 
-  Object {
--   "output.efs-region-test-filesystem-FileSystemArn": Object {
--     "value": "aws_efs_file_system.efs-region-test-filesystem.arn",
-+   "output.efs-region-changed-filesystem-FileSystemArn": Object {
-+     "value": "aws_efs_file_system.efs-region-changed-filesystem.arn",
-    },
--   "output.efs-region-test-filesystem-FileSystemId": Object {
--     "value": "aws_efs_file_system.efs-region-test-filesystem.id",
-+   "output.efs-region-changed-filesystem-FileSystemId": Object {
-+     "value": "aws_efs_file_system.efs-region-changed-filesystem.id",
-    },
--   "resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy": Object {
-+   "resource.aws_efs_backup_policy.efs-region-changed-filesystem_backup_policy": Object {
-      "backup_policy": Object {
-        "status": "DISABLED",
-      },
--     "depends_on": "[aws_efs_file_system.efs-region-test-filesystem]",
--     "file_system_id": "aws_efs_file_system.efs-region-test-filesystem.id",
-+     "depends_on": "[aws_efs_file_system.efs-region-changed-filesystem]",
-+     "file_system_id": "aws_efs_file_system.efs-region-changed-filesystem.id",
-      "provider": "aws.123-us-east-1",
-    },
--   "resource.aws_efs_file_system.efs-region-test-filesystem": Object {
-+   "resource.aws_efs_file_system.efs-region-changed-filesystem": Object {
-      "encrypted": "false",
-      "performance_mode": "generalPurpose",
-      "provider": "aws.123-us-east-1",
-      "tags": Object {
--       "Name": "test-filesystem",
-+       "Name": "changed-filesystem",
-      },
-      "throughput_mode": "bursting",
-    },
-  }"
+- filesystem/main.tf
+depends_on = [aws_efs_file_system.efs-region-test-filesystem]
+}
+
++ filesystem/main.tf
+resource "aws_efs_backup_policy" "efs-region-changed-filesystem_backup_policy" {
+  provider = aws.123-us-east-1
+  backup_policy {
+    status = "DISABLED"
+  }
+  file_system_id = aws_efs_file_system.efs-region-changed-filesystem.id
+
+- filesystem/main.tf
+resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
+  provider = aws.123-us-east-1
+  backup_policy {
+    status = "DISABLED"
+  }
+  file_system_id = aws_efs_file_system.efs-region-test-filesystem.id
+
++ filesystem/main.tf
+resource "aws_efs_file_system" "efs-region-changed-filesystem" {
+  provider = aws.123-us-east-1
+  encrypted = false
+  performance_mode = "generalPurpose"
+  throughput_mode = "bursting"
+  tags = {
+    Name = "changed-filesystem"
+  }
+}
+
+- filesystem/main.tf
+resource "aws_efs_file_system" "efs-region-test-filesystem" {
+  provider = aws.123-us-east-1
+  encrypted = false
+  performance_mode = "generalPurpose"
+  throughput_mode = "bursting"
+  tags = {
+    Name = "test-filesystem"
+  }
+}
+
++ filesystem/outputs.tf
+output "efs-region-changed-filesystem-FileSystemArn" {
+  value = aws_efs_file_system.efs-region-changed-filesystem.arn
+}
+
++ filesystem/outputs.tf
+output "efs-region-changed-filesystem-FileSystemId" {
+  value = aws_efs_file_system.efs-region-changed-filesystem.id
+}
+
+- filesystem/outputs.tf
+output "efs-region-test-filesystem-FileSystemArn" {
+  value = aws_efs_file_system.efs-region-test-filesystem.arn
+}
+
+- filesystem/outputs.tf
+output "efs-region-test-filesystem-FileSystemId" {
+  value = aws_efs_file_system.efs-region-test-filesystem.id
+}"
 `;
 
 exports[`AwsEfsFilesystemModule UT should CUD 2`] = `
-"- Expected
-+ Received
+"- filesystem/main.tf
+depends_on = [aws_efs_file_system.efs-region-test-filesystem]
+}
 
-- Object {}
-+ Object {
-+   "output.efs-region-test-filesystem-FileSystemArn": Object {
-+     "value": "aws_efs_file_system.efs-region-test-filesystem.arn",
-+   },
-+   "output.efs-region-test-filesystem-FileSystemId": Object {
-+     "value": "aws_efs_file_system.efs-region-test-filesystem.id",
-+   },
-+   "resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy": Object {
-+     "backup_policy": Object {
-+       "status": "DISABLED",
-+     },
-+     "depends_on": "[aws_efs_file_system.efs-region-test-filesystem]",
-+     "file_system_id": "aws_efs_file_system.efs-region-test-filesystem.id",
-+     "provider": "aws.123-us-east-1",
-+   },
-+   "resource.aws_efs_file_system.efs-region-test-filesystem": Object {
-+     "encrypted": "false",
-+     "performance_mode": "generalPurpose",
-+     "provider": "aws.123-us-east-1",
-+     "tags": Object {
-+       "Name": "test-filesystem",
-+     },
-+     "throughput_mode": "bursting",
-+   },
-+ }"
-`;
+- filesystem/main.tf
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
 
-exports[`AwsEfsFilesystemModule UT should CUD 4`] = `
-"- Expected
-+ Received
+- filesystem/main.tf
+resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
+  provider = aws.123-us-east-1
+  backup_policy {
+    status = "DISABLED"
+  }
+  file_system_id = aws_efs_file_system.efs-region-test-filesystem.id
 
-- Object {
--   "output.efs-region-test-filesystem-FileSystemArn": Object {
--     "value": "aws_efs_file_system.efs-region-test-filesystem.arn",
--   },
--   "output.efs-region-test-filesystem-FileSystemId": Object {
--     "value": "aws_efs_file_system.efs-region-test-filesystem.id",
--   },
--   "resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy": Object {
--     "backup_policy": Object {
--       "status": "DISABLED",
--     },
--     "depends_on": "[aws_efs_file_system.efs-region-test-filesystem]",
--     "file_system_id": "aws_efs_file_system.efs-region-test-filesystem.id",
--     "provider": "aws.123-us-east-1",
--   },
--   "resource.aws_efs_file_system.efs-region-test-filesystem": Object {
--     "encrypted": "false",
--     "performance_mode": "generalPurpose",
--     "provider": "aws.123-us-east-1",
--     "tags": Object {
--       "Name": "test-filesystem",
--     },
--     "throughput_mode": "bursting",
--   },
-- }
-+ Object {}"
+- filesystem/main.tf
+resource "aws_efs_file_system" "efs-region-test-filesystem" {
+  provider = aws.123-us-east-1
+  encrypted = false
+  performance_mode = "generalPurpose"
+  throughput_mode = "bursting"
+  tags = {
+    Name = "test-filesystem"
+  }
+}
+
+- filesystem/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- filesystem/outputs.tf
+output "efs-region-test-filesystem-FileSystemArn" {
+  value = aws_efs_file_system.efs-region-test-filesystem.arn
+}
+
+- filesystem/outputs.tf
+output "efs-region-test-filesystem-FileSystemId" {
+  value = aws_efs_file_system.efs-region-test-filesystem.id
+}
+
+- filesystem/terragrunt.hcl
+<empty>
+
+- filesystem/variables.tf
+<empty>"
 `;
 
 exports[`AwsEfsFilesystemModule UT should CUD tags 2`] = `
-"- Expected
-+ Received
-
-- Object {}
-+ Object {
-+   "output.efs-region-test-filesystem-FileSystemArn": Object {
-+     "value": "aws_efs_file_system.efs-region-test-filesystem.arn",
-+   },
-+   "output.efs-region-test-filesystem-FileSystemId": Object {
-+     "value": "aws_efs_file_system.efs-region-test-filesystem.id",
-+   },
-+   "resource.aws_efs_backup_policy.efs-region-test-filesystem_backup_policy": Object {
-+     "backup_policy": Object {
-+       "status": "DISABLED",
-+     },
-+     "depends_on": "[aws_efs_file_system.efs-region-test-filesystem]",
-+     "file_system_id": "aws_efs_file_system.efs-region-test-filesystem.id",
-+     "provider": "aws.123-us-east-1",
-+   },
-+   "resource.aws_efs_file_system.efs-region-test-filesystem": Object {
-+     "encrypted": "false",
-+     "performance_mode": "generalPurpose",
-+     "provider": "aws.123-us-east-1",
-+     "tags": Object {
-+       "Name": "test-filesystem",
-+     },
-+     "throughput_mode": "bursting",
-+   },
-+ }"
+"~ filesystem/main.tf resource "aws_efs_file_system" "efs-region-test-filesystem" {
+@@ -7,3 +7,4 @@
+      Name = "test-filesystem"
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2"
+    }"
 `;
 
-exports[`AwsEfsFilesystemModule UT should CUD tags 4`] = `"Compared values have no visual difference."`;
+exports[`AwsEfsFilesystemModule UT should CUD tags 4`] = `
+"~ filesystem/main.tf resource "aws_efs_file_system" "efs-region-test-filesystem" {
+@@ -7,4 +7,2 @@
+      Name = "test-filesystem"
+-     tag1 = "value1_1"
+-     tag2 = "value2"
+    }"
+`;
 
-exports[`AwsEfsFilesystemModule UT should CUD tags 6`] = `"Compared values have no visual difference."`;
+exports[`AwsEfsFilesystemModule UT should handle moduleId change 1`] = `
+"- filesystem-1/main.tf
+depends_on = [aws_efs_file_system.efs-region-test-filesystem]
+}
 
-exports[`AwsEfsFilesystemModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;
+- filesystem-1/main.tf
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
+- filesystem-1/main.tf
+resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
+  provider = aws.123-us-east-1
+  backup_policy {
+    status = "DISABLED"
+  }
+  file_system_id = aws_efs_file_system.efs-region-test-filesystem.id
+
+- filesystem-1/main.tf
+resource "aws_efs_file_system" "efs-region-test-filesystem" {
+  provider = aws.123-us-east-1
+  encrypted = false
+  performance_mode = "generalPurpose"
+  throughput_mode = "bursting"
+  tags = {
+    Name = "test-filesystem"
+  }
+}
+
+- filesystem-1/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- filesystem-1/outputs.tf
+output "efs-region-test-filesystem-FileSystemArn" {
+  value = aws_efs_file_system.efs-region-test-filesystem.arn
+}
+
+- filesystem-1/outputs.tf
+output "efs-region-test-filesystem-FileSystemId" {
+  value = aws_efs_file_system.efs-region-test-filesystem.id
+}
+
+- filesystem-1/terragrunt.hcl
+<empty>
+
+- filesystem-1/variables.tf
+<empty>
+
++ filesystem-2/main.tf
+depends_on = [aws_efs_file_system.efs-region-test-filesystem]
+}
+
++ filesystem-2/main.tf
+provider "aws" {
+  alias = "123-us-east-1"
+  region = "us-east-1"
+}
+
++ filesystem-2/main.tf
+resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
+  provider = aws.123-us-east-1
+  backup_policy {
+    status = "DISABLED"
+  }
+  file_system_id = aws_efs_file_system.efs-region-test-filesystem.id
+
++ filesystem-2/main.tf
+resource "aws_efs_file_system" "efs-region-test-filesystem" {
+  provider = aws.123-us-east-1
+  encrypted = false
+  performance_mode = "generalPurpose"
+  throughput_mode = "bursting"
+  tags = {
+    Name = "test-filesystem"
+  }
+}
+
++ filesystem-2/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
++ filesystem-2/outputs.tf
+output "efs-region-test-filesystem-FileSystemArn" {
+  value = aws_efs_file_system.efs-region-test-filesystem.arn
+}
+
++ filesystem-2/outputs.tf
+output "efs-region-test-filesystem-FileSystemId" {
+  value = aws_efs_file_system.efs-region-test-filesystem.id
+}
+
++ filesystem-2/terragrunt.hcl
+<empty>
+
++ filesystem-2/variables.tf
+<empty>"
+`;

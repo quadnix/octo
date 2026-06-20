@@ -1,15 +1,5 @@
-import {
-  type Account,
-  type App,
-  DiffAssert,
-  type Region,
-  TestContainer,
-  TestModuleContainer,
-  stub,
-} from '@quadnix/octo';
+import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
-import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsEcrImageModule } from './index.js';
 
 async function setup(
@@ -42,24 +32,18 @@ async function setup(
 }
 
 describe('AwsEcrImageModule UT', () => {
-  let hcl: HclAssert;
-  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    const container = await TestContainer.create(
-      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
-      { factoryTimeoutInMs: 500 },
-    );
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    testModuleContainer = new TestModuleContainer();
+    testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
 
-    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
-    octoTerraform.addTerraformConfig();
-    octoTerraform.addTerraformProvider('123', 'us-east-1');
-
-    hcl = new HclAssert(octoTerraform);
+    testModuleContainer.registerTerraformConfig({
+      providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+    });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
   });
 
   afterEach(async () => {
@@ -78,36 +62,13 @@ describe('AwsEcrImageModule UT', () => {
       moduleId: 'image',
       type: AwsEcrImageModule,
     });
-    const result = await testModuleContainer.commit(app, {
-      enableResourceCapture: true,
-      filterByModuleIds: ['image'],
-    });
-
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "AddAwsEcrImageModelAction",
-       ],
-     ]
-    `);
-    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "CaptureEcrImageResponseResourceAction",
-       ],
-     ]
-    `);
-    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
-     [
-       "+ @octo/ecr-image=ecr-us-east-1-family/image",
-     ]
-    `);
-    expect(octoTerraform.render()).toMatchInlineSnapshot(`
-     "terraform {
+    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+     "# image/main.tf
+     terraform {
        required_version = ">= 1.6.0"
        required_providers {
          aws = {
-           source  = "hashicorp/aws"
+           source = "hashicorp/aws"
            version = ">= 5.49"
          }
        }
@@ -118,11 +79,11 @@ describe('AwsEcrImageModule UT', () => {
        region = "us-east-1"
      }
 
-     data "aws_ecr_authorization_token" "ecr-us-east-1-family/image" {
-       registry_id = aws_ecr_repository.ecr-us-east-1-family/image.registry_id
+     data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
+       registry_id = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
      }
 
-     resource "aws_ecr_repository" "ecr-us-east-1-family/image" {
+     resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
        provider = aws.123-us-east-1
        force_delete = true
        image_scanning_configuration {
@@ -132,29 +93,57 @@ describe('AwsEcrImageModule UT', () => {
        name = "family/image"
      }
 
-     output "ecr-us-east-1-family/image-authorizationToken" {
-       value = data.aws_ecr_authorization_token.ecr-us-east-1-family/image.authorization_token
+     # image/outputs.tf
+     output "ecr-us-east-1-family_image-authorizationToken" {
+       value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
      }
 
-     output "ecr-us-east-1-family/image-proxyEndpoint" {
-       value = data.aws_ecr_authorization_token.ecr-us-east-1-family/image.proxy_endpoint
+     output "ecr-us-east-1-family_image-proxyEndpoint" {
+       value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.proxy_endpoint
      }
 
-     output "ecr-us-east-1-family/image-registryId" {
-       value = aws_ecr_repository.ecr-us-east-1-family/image.registry_id
+     output "ecr-us-east-1-family_image-registryId" {
+       value = aws_ecr_repository.ecr-us-east-1-family_image.registry_id
      }
 
-     output "ecr-us-east-1-family/image-repositoryArn" {
-       value = aws_ecr_repository.ecr-us-east-1-family/image.arn
+     output "ecr-us-east-1-family_image-repositoryArn" {
+       value = aws_ecr_repository.ecr-us-east-1-family_image.arn
      }
 
-     output "ecr-us-east-1-family/image-repositoryName" {
-       value = aws_ecr_repository.ecr-us-east-1-family/image.name
+     output "ecr-us-east-1-family_image-repositoryName" {
+       value = aws_ecr_repository.ecr-us-east-1-family_image.name
      }
 
-     output "ecr-us-east-1-family/image-repositoryUri" {
-       value = aws_ecr_repository.ecr-us-east-1-family/image.repository_url
-     }"
+     output "ecr-us-east-1-family_image-repositoryUri" {
+       value = aws_ecr_repository.ecr-us-east-1-family_image.repository_url
+     }
+
+     # image/terragrunt.hcl
+     <empty>
+
+     # image/variables.tf
+     <empty>"
+    `);
+
+    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['image'] });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddAwsEcrImageModelAction",
+       ],
+     ]
+    `);
+    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "TerraformNoopResourceAction",
+       ],
+     ]
+    `);
+    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "+ @octo/ecr-image=ecr-us-east-1-family/image",
+     ]
     `);
   });
 
@@ -169,29 +158,29 @@ describe('AwsEcrImageModule UT', () => {
       moduleId: 'image',
       type: AwsEcrImageModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.renderHcl(appCreate)).toMatchSnapshot();
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer);
-    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
+    const resultDelete = await testModuleContainer.commit(appDelete);
+    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
   });
 
   it('should CUD tags', async () => {
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcrImageModule>({
       inputs: {
@@ -202,15 +191,15 @@ describe('AwsEcrImageModule UT', () => {
       moduleId: 'image',
       type: AwsEcrImageModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.renderHcl(appCreate)).toMatchSnapshot();
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcrImageModule>({
       inputs: {
@@ -221,13 +210,13 @@ describe('AwsEcrImageModule UT', () => {
       moduleId: 'image',
       type: AwsEcrImageModule,
     });
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
+    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcrImageModule>({
@@ -239,13 +228,13 @@ describe('AwsEcrImageModule UT', () => {
       moduleId: 'image',
       type: AwsEcrImageModule,
     });
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
+    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/ecr-image=ecr-us-east-1-family/image",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -260,8 +249,7 @@ describe('AwsEcrImageModule UT', () => {
         moduleId: 'image',
         type: AwsEcrImageModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
       const { app: appUpdateImageFamily } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcrImageModule>({
@@ -273,16 +261,14 @@ describe('AwsEcrImageModule UT', () => {
         moduleId: 'image',
         type: AwsEcrImageModule,
       });
-      const resultUpdateImageFamily = await testModuleContainer.commit(appUpdateImageFamily, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateImageFamily.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateImageFamily)).toMatchSnapshot();
+      const resultUpdateImageFamily = await testModuleContainer.commit(appUpdateImageFamily);
+      expect(testModuleContainer.digestDiffs(resultUpdateImageFamily.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/ecr-image=ecr-us-east-1-family/image",
          "+ @octo/ecr-image=ecr-us-east-1-changed-family/image",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle imageName change', async () => {
@@ -296,8 +282,7 @@ describe('AwsEcrImageModule UT', () => {
         moduleId: 'image',
         type: AwsEcrImageModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
       const { app: appUpdateImageName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcrImageModule>({
@@ -309,16 +294,14 @@ describe('AwsEcrImageModule UT', () => {
         moduleId: 'image',
         type: AwsEcrImageModule,
       });
-      const resultUpdateImageName = await testModuleContainer.commit(appUpdateImageName, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateImageName.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateImageName)).toMatchSnapshot();
+      const resultUpdateImageName = await testModuleContainer.commit(appUpdateImageName);
+      expect(testModuleContainer.digestDiffs(resultUpdateImageName.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/ecr-image=ecr-us-east-1-family/image",
          "+ @octo/ecr-image=ecr-us-east-1-family/changed-image",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -333,8 +316,7 @@ describe('AwsEcrImageModule UT', () => {
       moduleId: 'image-1',
       type: AwsEcrImageModule,
     });
-    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    hcl.digest();
+    await testModuleContainer.commit(appCreate);
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcrImageModule>({
@@ -346,9 +328,9 @@ describe('AwsEcrImageModule UT', () => {
       moduleId: 'image-2',
       type: AwsEcrImageModule,
     });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
+    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {
