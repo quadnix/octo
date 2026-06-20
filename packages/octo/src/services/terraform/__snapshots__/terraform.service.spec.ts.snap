@@ -97,7 +97,7 @@ exports[`TerraformService UT addTerraformProvider() should render multiple provi
 }
 
 provider "aws" {
-  alias = "111111111-us-east-1"
+  alias = "_111111111-us-east-1"
   region = "us-east-1"
 }
 
@@ -107,7 +107,7 @@ provider "google" {
 }
 
 resource "aws_vpc" "vpc-1" {
-  provider = aws.111111111-us-east-1
+  provider = aws._111111111-us-east-1
   cidr_block = "10.0.0.0/16"
 }
 

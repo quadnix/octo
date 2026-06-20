@@ -74,10 +74,10 @@ describe('Main UT', () => {
 
       const mainTf = await readFile(join(testModes.outputDir, 'region-module', 'main.tf'), 'utf-8');
       expect(mainTf).toContain('provider "aws"');
-      expect(mainTf).toContain('alias = "111111111-us-east-1"');
+      expect(mainTf).toContain('alias = "_111111111-us-east-1"');
       expect(mainTf).toContain('region = "us-east-1"');
       // The resource is bound to the derived provider alias (no provider type named by the author).
-      expect(mainTf).toContain('provider = aws.111111111-us-east-1');
+      expect(mainTf).toContain('provider = aws._111111111-us-east-1');
     });
 
     it('should surface a clear error from generate when a resource binds an unregistered provider', async () => {

@@ -265,7 +265,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     readonly resourceContext: string,
     readonly moduleId: string,
     readonly explicitParentResourceIds: string[] = [],
-    private readonly providerRef?: string, // Fully-qualified provider reference (`aws.111111111-us-east-1`).
+    private readonly providerRef?: string, // Fully-qualified provider reference (`aws._111111111-us-east-1`).
     readonly externalResultExpression?: string, // External resource marker with `data.external.<name>.result` value.
   ) {
     // When an external script, publish the whole-result map as one output, keyed only by resource id, no output key.
@@ -481,7 +481,9 @@ export class TerraformService {
       );
     }
 
-    const alias = StringUtility.sanitizeForIdentifier(`${accountId}-${regionId}`);
+    // Terraform identifiers (here, the provider alias) must start with a letter or underscore.
+    const sanitizedAlias = StringUtility.sanitizeForIdentifier(`${accountId}-${regionId}`);
+    const alias = /^[0-9]/.test(sanitizedAlias) ? `_${sanitizedAlias}` : sanitizedAlias;
     const key = this.providerKey(providerType, accountId, regionId);
 
     if (!this.providers.has(key)) {

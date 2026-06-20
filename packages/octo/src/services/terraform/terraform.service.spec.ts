@@ -65,7 +65,7 @@ describe('TerraformService UT', () => {
 
       const mainTf = service.renderAllModules().get('m1')!.mainTf;
       expect(mainTf).toContain('provider "aws"');
-      expect(mainTf).toContain('alias = "111111111-us-east-1"');
+      expect(mainTf).toContain('alias = "_111111111-us-east-1"');
       expect(mainTf).toContain('region = "us-east-1"');
     });
 
@@ -205,7 +205,7 @@ describe('TerraformService UT', () => {
         .addOctoTerraformResource(vpc, { provider: { accountId: '111111111', regionId: 'us-east-1' } })
         .addTerraformResource('aws_vpc', 'vpc-1', {});
 
-      expect(service.renderAllModules().get('m1')!.mainTf).toContain('provider = aws.111111111-us-east-1');
+      expect(service.renderAllModules().get('m1')!.mainTf).toContain('provider = aws._111111111-us-east-1');
     });
 
     it('should throw when the target provider is not registered', () => {
@@ -485,7 +485,7 @@ describe('TerraformService UT', () => {
         .addTerraformResource('aws_vpc', 'vpc-1', { provider: scope.getProviderAliasRef('222222222', 'us-west-2') });
 
       const mainTf = service.renderAllModules().get('m1')!.mainTf;
-      expect(mainTf).toContain('provider = aws.222222222-us-west-2');
+      expect(mainTf).toContain('provider = aws._222222222-us-west-2');
       expect(mainTf).toContain('provider "aws"');
       expect(mainTf).toContain('hashicorp/aws');
     });
