@@ -1,1 +1,8 @@
+# Environment files
+.env
+
+# Auto-generated package barrel file
 src/index.ts
+
+# Generated terragrunt module folders
+test/modules/**/generated/

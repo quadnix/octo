@@ -5,7 +5,9 @@
     "mime": "~4.0.6"
   },
   "description": "Octo-AWS-CDK is an AWS specific implementation of the Octo interface.",
-  "devDependencies": {},
+  "devDependencies": {
+    "env-smart": "~2.3.2"
+  },
   "engines": {
     "node": ">=18.18.0"
   },
