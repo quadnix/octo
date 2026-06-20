@@ -1,1833 +1,1091 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`AwsEcsAlbServiceModule UT input changes should handle albName change 2`] = `
-"- Expected
-+ Received
+exports[`AwsEcsAlbServiceModule UT input changes should handle albName change 1`] = `
+"+ alb-module/main.tf
+depends_on = [aws_security_group.sec-grp-region-changed-alb]
+}
 
-  Object {
--   "output.alb-listener-test-alb-ListenerArn": Object {
--     "value": "aws_lb_listener.alb-listener-test-alb.arn",
-+   "output.alb-listener-changed-alb-ListenerArn": Object {
-+     "value": "aws_lb_listener.alb-listener-changed-alb.arn",
-    },
--   "output.alb-region-test-alb-DNSName": Object {
--     "value": "aws_lb.alb-region-test-alb.dns_name",
-+   "output.alb-region-changed-alb-DNSName": Object {
-+     "value": "aws_lb.alb-region-changed-alb.dns_name",
-    },
--   "output.alb-region-test-alb-LoadBalancerArn": Object {
--     "value": "aws_lb.alb-region-test-alb.arn",
-+   "output.alb-region-changed-alb-LoadBalancerArn": Object {
-+     "value": "aws_lb.alb-region-changed-alb.arn",
-    },
-    "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-      "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-    },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
-    },
-    "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
--   "output.sec-grp-region-test-alb-Arn": Object {
--     "value": "aws_security_group.sec-grp-region-test-alb.arn",
-+   "output.sec-grp-region-changed-alb-Arn": Object {
-+     "value": "aws_security_group.sec-grp-region-changed-alb.arn",
-    },
--   "output.sec-grp-region-test-alb-GroupId": Object {
--     "value": "aws_security_group.sec-grp-region-test-alb.id",
-+   "output.sec-grp-region-changed-alb-GroupId": Object {
-+     "value": "aws_security_group.sec-grp-region-changed-alb.id",
-    },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
-    },
-    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-      "cluster": "mock.clusterArn",
-      "desired_count": "1",
-      "launch_type": "FARGATE",
-      "load_balancer": Object {
-        "container_name": "test-container",
-        "container_port": "80",
-        "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-      },
-      "name": "backend",
-      "network_configuration": Object {
-        "assign_public_ip": "true",
-        "subnets": "[mock.Subnet1Id]",
-      },
-      "provider": "aws.123-us-east-1",
-      "task_definition": "mock.taskDefinitionArn",
-    },
--   "resource.aws_lb.alb-region-test-alb": Object {
-+   "resource.aws_lb.alb-region-changed-alb": Object {
-      "internal": "false",
-      "ip_address_type": "ipv4",
-      "load_balancer_type": "application",
--     "name": "test-alb",
-+     "name": "changed-alb",
-      "provider": "aws.123-us-east-1",
--     "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-+     "security_groups": "[aws_security_group.sec-grp-region-changed-alb.id]",
-      "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-    },
--   "resource.aws_lb_listener.alb-listener-test-alb": Object {
-+   "resource.aws_lb_listener.alb-listener-changed-alb": Object {
-      "default_action": Object {
-        "forward": Object {
-          "target_group": Object {
-            "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-            "weight": "100",
-          },
-        },
-        "type": "forward",
-      },
--     "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-+     "load_balancer_arn": "aws_lb.alb-region-changed-alb.arn",
-      "port": "80",
-      "protocol": "HTTP",
-      "provider": "aws.123-us-east-1",
-    },
-    "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-      "health_check": Object {
-        "enabled": "true",
-        "healthy_threshold": "3",
-        "interval": "30",
-        "matcher": "200",
-        "path": "/health",
-        "port": "80",
-        "protocol": "HTTP",
-        "timeout": "5",
-        "unhealthy_threshold": "3",
-      },
-      "ip_address_type": "ipv4",
-      "name": "test-container-80",
-      "port": "80",
-      "protocol": "HTTP",
-      "protocol_version": "HTTP1",
-      "provider": "aws.123-us-east-1",
-      "target_type": "ip",
-      "vpc_id": "mock.VpcId",
-    },
--   "resource.aws_security_group.sec-grp-region-test-alb": Object {
-+   "resource.aws_security_group.sec-grp-region-changed-alb": Object {
-      "provider": "aws.123-us-east-1",
-      "vpc_id": "mock.VpcId",
-    },
--   "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-+   "resource.aws_vpc_security_group_egress_rule.sec-grp-region-changed-alb_egress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
--     "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-+     "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-changed-alb_ingress_0]",
-      "description": "tcp 0-65535 0.0.0.0/0",
-      "from_port": "0",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
--     "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-+     "security_group_id": "aws_security_group.sec-grp-region-changed-alb.id",
-      "to_port": "65535",
-    },
--   "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-+   "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-changed-alb_ingress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
--     "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-+     "depends_on": "[aws_security_group.sec-grp-region-changed-alb]",
-      "description": "tcp 80-80 0.0.0.0/0",
-      "from_port": "80",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
--     "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-+     "security_group_id": "aws_security_group.sec-grp-region-changed-alb.id",
-      "to_port": "80",
-    },
-  }"
+- alb-module/main.tf
+depends_on = [aws_security_group.sec-grp-region-test-alb]
+}
+
++ alb-module/main.tf
+depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-changed-alb_ingress_0]
+}
+
+- alb-module/main.tf
+depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]
+}
+
++ alb-module/main.tf
+resource "aws_lb_listener" "alb-listener-changed-alb" {
+  provider = aws._123-us-east-1
+  default_action {
+    forward {
+      target_group {
+        arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+        weight = 100
+      }
+    }
+    type = "forward"
+  }
+  load_balancer_arn = aws_lb.alb-region-changed-alb.arn
+  port = 80
+  protocol = "HTTP"
+}
+
+- alb-module/main.tf
+resource "aws_lb_listener" "alb-listener-test-alb" {
+  provider = aws._123-us-east-1
+  default_action {
+    forward {
+      target_group {
+        arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+        weight = 100
+      }
+    }
+    type = "forward"
+  }
+  load_balancer_arn = aws_lb.alb-region-test-alb.arn
+  port = 80
+  protocol = "HTTP"
+}
+
++ alb-module/main.tf
+resource "aws_lb" "alb-region-changed-alb" {
+  provider = aws._123-us-east-1
+  internal = false
+  ip_address_type = "ipv4"
+  load_balancer_type = "application"
+  name = "changed-alb"
+  security_groups = [aws_security_group.sec-grp-region-changed-alb.id]
+  subnets = [var.subnet_region_public_subnet_1_SubnetId, var.subnet_region_public_subnet_2_SubnetId]
+}
+
+- alb-module/main.tf
+resource "aws_lb" "alb-region-test-alb" {
+  provider = aws._123-us-east-1
+  internal = false
+  ip_address_type = "ipv4"
+  load_balancer_type = "application"
+  name = "test-alb"
+  security_groups = [aws_security_group.sec-grp-region-test-alb.id]
+  subnets = [var.subnet_region_public_subnet_1_SubnetId, var.subnet_region_public_subnet_2_SubnetId]
+}
+
++ alb-module/main.tf
+resource "aws_security_group" "sec-grp-region-changed-alb" {
+  provider = aws._123-us-east-1
+  vpc_id = var.vpc_region_VpcId
+}
+
+- alb-module/main.tf
+resource "aws_security_group" "sec-grp-region-test-alb" {
+  provider = aws._123-us-east-1
+  vpc_id = var.vpc_region_VpcId
+}
+
++ alb-module/main.tf
+resource "aws_vpc_security_group_egress_rule" "sec-grp-region-changed-alb_egress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 0-65535 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-changed-alb.id
+  from_port = 0
+  to_port = 65535
+
+- alb-module/main.tf
+resource "aws_vpc_security_group_egress_rule" "sec-grp-region-test-alb_egress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 0-65535 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-test-alb.id
+  from_port = 0
+  to_port = 65535
+
++ alb-module/main.tf
+resource "aws_vpc_security_group_ingress_rule" "sec-grp-region-changed-alb_ingress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 80-80 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-changed-alb.id
+  from_port = 80
+  to_port = 80
+
+- alb-module/main.tf
+resource "aws_vpc_security_group_ingress_rule" "sec-grp-region-test-alb_ingress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 80-80 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-test-alb.id
+  from_port = 80
+  to_port = 80
+
++ alb-module/outputs.tf
+output "alb-listener-changed-alb-ListenerArn" {
+  value = aws_lb_listener.alb-listener-changed-alb.arn
+}
+
+- alb-module/outputs.tf
+output "alb-listener-test-alb-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb.arn
+}
+
++ alb-module/outputs.tf
+output "alb-region-changed-alb-DNSName" {
+  value = aws_lb.alb-region-changed-alb.dns_name
+}
+
++ alb-module/outputs.tf
+output "alb-region-changed-alb-LoadBalancerArn" {
+  value = aws_lb.alb-region-changed-alb.arn
+}
+
+- alb-module/outputs.tf
+output "alb-region-test-alb-DNSName" {
+  value = aws_lb.alb-region-test-alb.dns_name
+}
+
+- alb-module/outputs.tf
+output "alb-region-test-alb-LoadBalancerArn" {
+  value = aws_lb.alb-region-test-alb.arn
+}
+
++ alb-module/outputs.tf
+output "sec-grp-region-changed-alb-Arn" {
+  value = aws_security_group.sec-grp-region-changed-alb.arn
+}
+
++ alb-module/outputs.tf
+output "sec-grp-region-changed-alb-GroupId" {
+  value = aws_security_group.sec-grp-region-changed-alb.id
+}
+
+- alb-module/outputs.tf
+output "sec-grp-region-test-alb-Arn" {
+  value = aws_security_group.sec-grp-region-test-alb.arn
+}
+
+- alb-module/outputs.tf
+output "sec-grp-region-test-alb-GroupId" {
+  value = aws_security_group.sec-grp-region-test-alb.id
+}"
 `;
 
-exports[`AwsEcsAlbServiceModule UT input changes should handle listener DefaultActions change 2`] = `
-"- Expected
-+ Received
+exports[`AwsEcsAlbServiceModule UT input changes should handle listener DefaultActions change 1`] = `
+"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb" {
+@@ -3,9 +3,8 @@
+    default_action {
+-     forward {
+-       target_group {
+-         arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+-         weight = 100
+-       }
++     fixed_response {
++       content_type = "text/plain"
++       message_body = "Not Found!"
++       status_code = "404"
+      }
+-     type = "forward"
++     type = "fixed-response"
+    }
 
-  Object {
-    "output.alb-listener-test-alb-ListenerArn": Object {
-      "value": "aws_lb_listener.alb-listener-test-alb.arn",
-    },
-    "output.alb-region-test-alb-DNSName": Object {
-      "value": "aws_lb.alb-region-test-alb.dns_name",
-    },
-    "output.alb-region-test-alb-LoadBalancerArn": Object {
-      "value": "aws_lb.alb-region-test-alb.arn",
-    },
--   "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
--     "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
--   },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
--   },
--   "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
--     "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
-    "output.sec-grp-region-test-alb-Arn": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.arn",
-    },
-    "output.sec-grp-region-test-alb-GroupId": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.id",
-    },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
-    },
--   "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
--     "cluster": "mock.clusterArn",
--     "desired_count": "1",
--     "launch_type": "FARGATE",
--     "load_balancer": Object {
--       "container_name": "test-container",
--       "container_port": "80",
--       "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
--     },
--     "name": "backend",
--     "network_configuration": Object {
--       "assign_public_ip": "true",
--       "subnets": "[mock.Subnet1Id]",
--     },
--     "provider": "aws.123-us-east-1",
--     "task_definition": "mock.taskDefinitionArn",
--   },
-    "resource.aws_lb.alb-region-test-alb": Object {
-      "internal": "false",
-      "ip_address_type": "ipv4",
-      "load_balancer_type": "application",
-      "name": "test-alb",
-      "provider": "aws.123-us-east-1",
-      "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-      "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-    },
-    "resource.aws_lb_listener.alb-listener-test-alb": Object {
-      "default_action": Object {
--       "forward": Object {
--         "target_group": Object {
--           "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
--           "weight": "100",
--         },
-+       "fixed_response": Object {
-+         "content_type": "text/plain",
-+         "message_body": "Not Found!",
-+         "status_code": "404",
-        },
--       "type": "forward",
-+       "type": "fixed-response",
-      },
-      "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-      "port": "80",
-      "protocol": "HTTP",
-      "provider": "aws.123-us-east-1",
--   },
--   "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
--     "health_check": Object {
--       "enabled": "true",
--       "healthy_threshold": "3",
--       "interval": "30",
--       "matcher": "200",
--       "path": "/health",
--       "port": "80",
--       "protocol": "HTTP",
--       "timeout": "5",
--       "unhealthy_threshold": "3",
--     },
--     "ip_address_type": "ipv4",
--     "name": "test-container-80",
--     "port": "80",
--     "protocol": "HTTP",
--     "protocol_version": "HTTP1",
--     "provider": "aws.123-us-east-1",
--     "target_type": "ip",
--     "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_security_group.sec-grp-region-test-alb": Object {
-      "provider": "aws.123-us-east-1",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-      "description": "tcp 0-65535 0.0.0.0/0",
-      "from_port": "0",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "65535",
-    },
-    "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-      "description": "tcp 80-80 0.0.0.0/0",
-      "from_port": "80",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "80",
-    },
-  }"
+- alb-module/main.tf
+resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+  provider = aws._123-us-east-1
+  ip_address_type = "ipv4"
+  name = "test-container-80"
+  port = 80
+  protocol = "HTTP"
+  protocol_version = "HTTP1"
+  target_type = "ip"
+  vpc_id = var.vpc_region_VpcId
+  health_check {
+    enabled = true
+    healthy_threshold = 3
+    interval = 30
+    matcher = "200"
+    path = "/health"
+    port = "80"
+    protocol = "HTTP"
+    timeout = 5
+    unhealthy_threshold = 3
+  }
+}
+
+- alb-module/outputs.tf
+output "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" {
+  value = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+}
+
+~ testExecutionModule/main.tf resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-public-subnet-1" {
+@@ -11,7 +11,2 @@
+    task_definition = "taskDefinitionArn"
+-   load_balancer {
+-     container_name = "test-container"
+-     container_port = 80
+-     target_group_arn = var.alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn
+-   }
+  }
+
+- testExecutionModule/terragrunt.hcl
+dependency "alb-module" {
+  config_path = "../alb-module"
+
+~ testExecutionModule/terragrunt.hcl inputs = {
+@@ -1,3 +1,2 @@
+  inputs = {
+-   alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn = dependency.alb-module.outputs["alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn"]
+    ecs_cluster_region_qa_clusterArn = dependency.testModule.outputs["ecs-cluster-region-qa-clusterArn"]
+
+- testExecutionModule/variables.tf
+variable "alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn" {}"
 `;
 
-exports[`AwsEcsAlbServiceModule UT input changes should handle listener Port change 2`] = `
-"- Expected
-+ Received
-
-  Object {
-    "output.alb-listener-test-alb-ListenerArn": Object {
-      "value": "aws_lb_listener.alb-listener-test-alb.arn",
-    },
-    "output.alb-region-test-alb-DNSName": Object {
-      "value": "aws_lb.alb-region-test-alb.dns_name",
-    },
-    "output.alb-region-test-alb-LoadBalancerArn": Object {
-      "value": "aws_lb.alb-region-test-alb.arn",
-    },
-    "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-      "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-    },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
-    },
-    "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
-    "output.sec-grp-region-test-alb-Arn": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.arn",
-    },
-    "output.sec-grp-region-test-alb-GroupId": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.id",
-    },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
-    },
-    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-      "cluster": "mock.clusterArn",
-      "desired_count": "1",
-      "launch_type": "FARGATE",
-      "load_balancer": Object {
-        "container_name": "test-container",
-        "container_port": "80",
-        "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-      },
-      "name": "backend",
-      "network_configuration": Object {
-        "assign_public_ip": "true",
-        "subnets": "[mock.Subnet1Id]",
-      },
-      "provider": "aws.123-us-east-1",
-      "task_definition": "mock.taskDefinitionArn",
-    },
-    "resource.aws_lb.alb-region-test-alb": Object {
-      "internal": "false",
-      "ip_address_type": "ipv4",
-      "load_balancer_type": "application",
-      "name": "test-alb",
-      "provider": "aws.123-us-east-1",
-      "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-      "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-    },
-    "resource.aws_lb_listener.alb-listener-test-alb": Object {
-      "default_action": Object {
-        "forward": Object {
-          "target_group": Object {
-            "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-            "weight": "100",
-          },
-        },
-        "type": "forward",
-      },
-      "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
--     "port": "80",
-+     "port": "8080",
-      "protocol": "HTTP",
-      "provider": "aws.123-us-east-1",
-    },
-    "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-      "health_check": Object {
-        "enabled": "true",
-        "healthy_threshold": "3",
-        "interval": "30",
-        "matcher": "200",
-        "path": "/health",
-        "port": "80",
-        "protocol": "HTTP",
-        "timeout": "5",
-        "unhealthy_threshold": "3",
-      },
-      "ip_address_type": "ipv4",
-      "name": "test-container-80",
-      "port": "80",
-      "protocol": "HTTP",
-      "protocol_version": "HTTP1",
-      "provider": "aws.123-us-east-1",
-      "target_type": "ip",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_security_group.sec-grp-region-test-alb": Object {
-      "provider": "aws.123-us-east-1",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-      "description": "tcp 0-65535 0.0.0.0/0",
-      "from_port": "0",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "65535",
-    },
-    "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-      "description": "tcp 80-80 0.0.0.0/0",
-      "from_port": "80",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "80",
-    },
-  }"
+exports[`AwsEcsAlbServiceModule UT input changes should handle listener Port change 1`] = `
+"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb" {
+@@ -12,3 +12,3 @@
+    load_balancer_arn = aws_lb.alb-region-test-alb.arn
+-   port = 80
++   port = 8080
+    protocol = "HTTP""
 `;
 
-exports[`AwsEcsAlbServiceModule UT input changes should handle listener rules change 2`] = `
-"- Expected
-+ Received
+exports[`AwsEcsAlbServiceModule UT input changes should handle listener rules change 1`] = `
+"+ alb-module/main.tf
+depends_on = [aws_lb_listener.alb-listener-test-alb]
+}
 
-  Object {
-    "output.alb-listener-test-alb-ListenerArn": Object {
-      "value": "aws_lb_listener.alb-listener-test-alb.arn",
-    },
-    "output.alb-region-test-alb-DNSName": Object {
-      "value": "aws_lb.alb-region-test-alb.dns_name",
-    },
-    "output.alb-region-test-alb-LoadBalancerArn": Object {
-      "value": "aws_lb.alb-region-test-alb.arn",
-    },
-    "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-      "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-    },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
-    },
-    "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
-    "output.sec-grp-region-test-alb-Arn": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.arn",
-    },
-    "output.sec-grp-region-test-alb-GroupId": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.id",
-    },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
-    },
-    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-      "cluster": "mock.clusterArn",
-      "desired_count": "1",
-      "launch_type": "FARGATE",
-      "load_balancer": Object {
-        "container_name": "test-container",
-        "container_port": "80",
-        "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-      },
-      "name": "backend",
-      "network_configuration": Object {
-        "assign_public_ip": "true",
-        "subnets": "[mock.Subnet1Id]",
-      },
-      "provider": "aws.123-us-east-1",
-      "task_definition": "mock.taskDefinitionArn",
-    },
-    "resource.aws_lb.alb-region-test-alb": Object {
-      "internal": "false",
-      "ip_address_type": "ipv4",
-      "load_balancer_type": "application",
-      "name": "test-alb",
-      "provider": "aws.123-us-east-1",
-      "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-      "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-    },
-    "resource.aws_lb_listener.alb-listener-test-alb": Object {
-      "default_action": Object {
-        "forward": Object {
-          "target_group": Object {
-            "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-            "weight": "100",
-          },
-        },
-        "type": "forward",
-      },
-      "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-      "port": "80",
-      "protocol": "HTTP",
-      "provider": "aws.123-us-east-1",
-    },
-+   "resource.aws_lb_listener_rule.alb-listener-test-alb_rule_1": Object {
-+     "action": Object {
-+       "fixed_response": Object {
-+         "content_type": "text/plain",
-+         "message_body": "Not implemented!",
-+         "status_code": "404",
-+       },
-+       "type": "fixed-response",
-+     },
-+     "condition": Object {
-+       "path_pattern": Object {
-+         "values": "[\\"/api\\"]",
-+       },
-+     },
-+     "depends_on": "[aws_lb_listener.alb-listener-test-alb]",
-+     "listener_arn": "aws_lb_listener.alb-listener-test-alb.arn",
-+     "priority": "1",
-+     "provider": "aws.123-us-east-1",
-+   },
-    "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-      "health_check": Object {
-        "enabled": "true",
-        "healthy_threshold": "3",
-        "interval": "30",
-        "matcher": "200",
-        "path": "/health",
-        "port": "80",
-        "protocol": "HTTP",
-        "timeout": "5",
-        "unhealthy_threshold": "3",
-      },
-      "ip_address_type": "ipv4",
-      "name": "test-container-80",
-      "port": "80",
-      "protocol": "HTTP",
-      "protocol_version": "HTTP1",
-      "provider": "aws.123-us-east-1",
-      "target_type": "ip",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_security_group.sec-grp-region-test-alb": Object {
-      "provider": "aws.123-us-east-1",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-      "description": "tcp 0-65535 0.0.0.0/0",
-      "from_port": "0",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "65535",
-    },
-    "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-      "description": "tcp 80-80 0.0.0.0/0",
-      "from_port": "80",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "80",
-    },
-  }"
++ alb-module/main.tf
+resource "aws_lb_listener_rule" "alb-listener-test-alb_rule_1" {
+  provider = aws._123-us-east-1
+  action {
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not implemented!"
+      status_code = "404"
+    }
+    type = "fixed-response"
+  }
+  condition {
+    path_pattern {
+      values = ["/api"]
+    }
+  }
+  listener_arn = aws_lb_listener.alb-listener-test-alb.arn
+  priority = 1"
 `;
 
-exports[`AwsEcsAlbServiceModule UT input changes should handle target add change 2`] = `
-"- Expected
-+ Received
+exports[`AwsEcsAlbServiceModule UT input changes should handle target add change 1`] = `
+"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb" {
+@@ -3,8 +3,9 @@
+    default_action {
+-     fixed_response {
+-       content_type = "text/plain"
+-       message_body = "Not Found!"
+-       status_code = "404"
++     forward {
++       target_group {
++         arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
++         weight = 100
++       }
+      }
+-     type = "fixed-response"
++     type = "forward"
+    }
 
-  Object {
-    "output.alb-listener-test-alb-ListenerArn": Object {
-      "value": "aws_lb_listener.alb-listener-test-alb.arn",
-    },
-    "output.alb-region-test-alb-DNSName": Object {
-      "value": "aws_lb.alb-region-test-alb.dns_name",
-    },
-    "output.alb-region-test-alb-LoadBalancerArn": Object {
-      "value": "aws_lb.alb-region-test-alb.arn",
-    },
-+   "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-+     "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+   },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
-+   },
-+   "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-+     "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
-    "output.sec-grp-region-test-alb-Arn": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.arn",
-    },
-    "output.sec-grp-region-test-alb-GroupId": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.id",
-    },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
-    },
-+   "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-+     "cluster": "mock.clusterArn",
-+     "desired_count": "1",
-+     "launch_type": "FARGATE",
-+     "load_balancer": Object {
-+       "container_name": "test-container",
-+       "container_port": "80",
-+       "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+     },
-+     "name": "backend",
-+     "network_configuration": Object {
-+       "assign_public_ip": "true",
-+       "subnets": "[mock.Subnet1Id]",
-+     },
-+     "provider": "aws.123-us-east-1",
-+     "task_definition": "mock.taskDefinitionArn",
-+   },
-    "resource.aws_lb.alb-region-test-alb": Object {
-      "internal": "false",
-      "ip_address_type": "ipv4",
-      "load_balancer_type": "application",
-      "name": "test-alb",
-      "provider": "aws.123-us-east-1",
-      "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-      "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-    },
-    "resource.aws_lb_listener.alb-listener-test-alb": Object {
-      "default_action": Object {
--       "fixed_response": Object {
--         "content_type": "text/plain",
--         "message_body": "Not Found!",
--         "status_code": "404",
-+       "forward": Object {
-+         "target_group": Object {
-+           "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+           "weight": "100",
-+         },
-        },
--       "type": "fixed-response",
-+       "type": "forward",
-      },
-      "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-      "port": "80",
-      "protocol": "HTTP",
-      "provider": "aws.123-us-east-1",
-+   },
-+   "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-+     "health_check": Object {
-+       "enabled": "true",
-+       "healthy_threshold": "3",
-+       "interval": "30",
-+       "matcher": "200",
-+       "path": "/health",
-+       "port": "80",
-+       "protocol": "HTTP",
-+       "timeout": "5",
-+       "unhealthy_threshold": "3",
-+     },
-+     "ip_address_type": "ipv4",
-+     "name": "test-container-80",
-+     "port": "80",
-+     "protocol": "HTTP",
-+     "protocol_version": "HTTP1",
-+     "provider": "aws.123-us-east-1",
-+     "target_type": "ip",
-+     "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_security_group.sec-grp-region-test-alb": Object {
-      "provider": "aws.123-us-east-1",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-      "description": "tcp 0-65535 0.0.0.0/0",
-      "from_port": "0",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "65535",
-    },
-    "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-      "description": "tcp 80-80 0.0.0.0/0",
-      "from_port": "80",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "80",
-    },
-  }"
++ alb-module/main.tf
+resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+  provider = aws._123-us-east-1
+  ip_address_type = "ipv4"
+  name = "test-container-80"
+  port = 80
+  protocol = "HTTP"
+  protocol_version = "HTTP1"
+  target_type = "ip"
+  vpc_id = var.vpc_region_VpcId
+  health_check {
+    enabled = true
+    healthy_threshold = 3
+    interval = 30
+    matcher = "200"
+    path = "/health"
+    port = "80"
+    protocol = "HTTP"
+    timeout = 5
+    unhealthy_threshold = 3
+  }
+}
+
++ alb-module/outputs.tf
+output "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" {
+  value = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+}
+
+~ testExecutionModule/main.tf resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-public-subnet-1" {
+@@ -11,2 +11,7 @@
+    task_definition = "taskDefinitionArn"
++   load_balancer {
++     container_name = "test-container"
++     container_port = 80
++     target_group_arn = var.alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn
++   }
+  }
+
++ testExecutionModule/terragrunt.hcl
+dependency "alb-module" {
+  config_path = "../alb-module"
+
+~ testExecutionModule/terragrunt.hcl inputs = {
+@@ -1,2 +1,3 @@
+  inputs = {
++   alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn = dependency.alb-module.outputs["alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn"]
+    ecs_cluster_region_qa_clusterArn = dependency.testModule.outputs["ecs-cluster-region-qa-clusterArn"]
+
++ testExecutionModule/variables.tf
+variable "alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn" {}"
 `;
 
-exports[`AwsEcsAlbServiceModule UT input changes should handle target containerName change 2`] = `
-"- Expected
-+ Received
-
-  Object {
-    "output.alb-listener-test-alb-ListenerArn": Object {
-      "value": "aws_lb_listener.alb-listener-test-alb.arn",
-    },
-    "output.alb-region-test-alb-DNSName": Object {
-      "value": "aws_lb.alb-region-test-alb.dns_name",
-    },
-    "output.alb-region-test-alb-LoadBalancerArn": Object {
-      "value": "aws_lb.alb-region-test-alb.arn",
-    },
-    "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-      "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-    },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
-    },
-    "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
-    "output.sec-grp-region-test-alb-Arn": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.arn",
-    },
-    "output.sec-grp-region-test-alb-GroupId": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.id",
-    },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
-    },
-    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-      "cluster": "mock.clusterArn",
-      "desired_count": "1",
-      "launch_type": "FARGATE",
-      "load_balancer": Object {
--       "container_name": "test-container",
-+       "container_name": "side-container",
-        "container_port": "80",
-        "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-      },
-      "name": "backend",
-      "network_configuration": Object {
-        "assign_public_ip": "true",
-        "subnets": "[mock.Subnet1Id]",
-      },
-      "provider": "aws.123-us-east-1",
-      "task_definition": "mock.taskDefinitionArn",
-    },
-    "resource.aws_lb.alb-region-test-alb": Object {
-      "internal": "false",
-      "ip_address_type": "ipv4",
-      "load_balancer_type": "application",
-      "name": "test-alb",
-      "provider": "aws.123-us-east-1",
-      "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-      "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-    },
-    "resource.aws_lb_listener.alb-listener-test-alb": Object {
-      "default_action": Object {
-        "forward": Object {
-          "target_group": Object {
-            "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-            "weight": "100",
-          },
-        },
-        "type": "forward",
-      },
-      "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-      "port": "80",
-      "protocol": "HTTP",
-      "provider": "aws.123-us-east-1",
-    },
-    "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-      "health_check": Object {
-        "enabled": "true",
-        "healthy_threshold": "3",
-        "interval": "30",
-        "matcher": "200",
-        "path": "/health",
-        "port": "80",
-        "protocol": "HTTP",
-        "timeout": "5",
-        "unhealthy_threshold": "3",
-      },
-      "ip_address_type": "ipv4",
-      "name": "test-container-80",
-      "port": "80",
-      "protocol": "HTTP",
-      "protocol_version": "HTTP1",
-      "provider": "aws.123-us-east-1",
-      "target_type": "ip",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_security_group.sec-grp-region-test-alb": Object {
-      "provider": "aws.123-us-east-1",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-      "description": "tcp 0-65535 0.0.0.0/0",
-      "from_port": "0",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "65535",
-    },
-    "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-      "description": "tcp 80-80 0.0.0.0/0",
-      "from_port": "80",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "80",
-    },
-  }"
+exports[`AwsEcsAlbServiceModule UT input changes should handle target containerName change 1`] = `
+"~ testExecutionModule/main.tf resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-public-subnet-1" {
+@@ -12,3 +12,3 @@
+    load_balancer {
+-     container_name = "test-container"
++     container_name = "side-container"
+      container_port = 80"
 `;
 
-exports[`AwsEcsAlbServiceModule UT input changes should handle target healthCheck change 2`] = `
-"- Expected
-+ Received
-
-  Object {
-    "output.alb-listener-test-alb-ListenerArn": Object {
-      "value": "aws_lb_listener.alb-listener-test-alb.arn",
-    },
-    "output.alb-region-test-alb-DNSName": Object {
-      "value": "aws_lb.alb-region-test-alb.dns_name",
-    },
-    "output.alb-region-test-alb-LoadBalancerArn": Object {
-      "value": "aws_lb.alb-region-test-alb.arn",
-    },
-    "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-      "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-    },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
-    },
-    "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
-    "output.sec-grp-region-test-alb-Arn": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.arn",
-    },
-    "output.sec-grp-region-test-alb-GroupId": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.id",
-    },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
-    },
-    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-      "cluster": "mock.clusterArn",
-      "desired_count": "1",
-      "launch_type": "FARGATE",
-      "load_balancer": Object {
-        "container_name": "test-container",
-        "container_port": "80",
-        "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-      },
-      "name": "backend",
-      "network_configuration": Object {
-        "assign_public_ip": "true",
-        "subnets": "[mock.Subnet1Id]",
-      },
-      "provider": "aws.123-us-east-1",
-      "task_definition": "mock.taskDefinitionArn",
-    },
-    "resource.aws_lb.alb-region-test-alb": Object {
-      "internal": "false",
-      "ip_address_type": "ipv4",
-      "load_balancer_type": "application",
-      "name": "test-alb",
-      "provider": "aws.123-us-east-1",
-      "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-      "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-    },
-    "resource.aws_lb_listener.alb-listener-test-alb": Object {
-      "default_action": Object {
-        "forward": Object {
-          "target_group": Object {
-            "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-            "weight": "100",
-          },
-        },
-        "type": "forward",
-      },
-      "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-      "port": "80",
-      "protocol": "HTTP",
-      "provider": "aws.123-us-east-1",
-    },
-    "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-      "health_check": Object {
-        "enabled": "true",
-        "healthy_threshold": "3",
-        "interval": "30",
-        "matcher": "200",
-        "path": "/health",
-        "port": "80",
-        "protocol": "HTTP",
-        "timeout": "5",
--       "unhealthy_threshold": "3",
-+       "unhealthy_threshold": "4",
-      },
-      "ip_address_type": "ipv4",
-      "name": "test-container-80",
-      "port": "80",
-      "protocol": "HTTP",
-      "protocol_version": "HTTP1",
-      "provider": "aws.123-us-east-1",
-      "target_type": "ip",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_security_group.sec-grp-region-test-alb": Object {
-      "provider": "aws.123-us-east-1",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-      "description": "tcp 0-65535 0.0.0.0/0",
-      "from_port": "0",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "65535",
-    },
-    "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-      "description": "tcp 80-80 0.0.0.0/0",
-      "from_port": "80",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "80",
-    },
-  }"
+exports[`AwsEcsAlbServiceModule UT input changes should handle target healthCheck change 1`] = `
+"~ alb-module/main.tf resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+@@ -18,3 +18,3 @@
+      timeout = 5
+-     unhealthy_threshold = 3
++     unhealthy_threshold = 4
+    }"
 `;
 
 exports[`AwsEcsAlbServiceModule UT should CUD 2`] = `
-"- Expected
-+ Received
+"+ alb-module/main.tf
+depends_on = [aws_lb_listener.alb-listener-test-alb]
+}
 
-- Object {}
-+ Object {
-+   "output.alb-listener-test-alb-ListenerArn": Object {
-+     "value": "aws_lb_listener.alb-listener-test-alb.arn",
-+   },
-+   "output.alb-region-test-alb-DNSName": Object {
-+     "value": "aws_lb.alb-region-test-alb.dns_name",
-+   },
-+   "output.alb-region-test-alb-LoadBalancerArn": Object {
-+     "value": "aws_lb.alb-region-test-alb.arn",
-+   },
-+   "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-+     "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+   },
-+   "output.ecs-cluster-region-qa-clusterArn": Object {
-+     "value": "mock.clusterArn",
-+   },
-+   "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-+     "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-+   },
-+   "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-+     "value": "1",
-+   },
-+   "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-+     "value": "mock.taskDefinitionArn",
-+   },
-+   "output.igw-region-InternetGatewayId": Object {
-+     "value": "mock.InternetGatewayId",
-+   },
-+   "output.sec-grp-region-test-alb-Arn": Object {
-+     "value": "aws_security_group.sec-grp-region-test-alb.arn",
-+   },
-+   "output.sec-grp-region-test-alb-GroupId": Object {
-+     "value": "aws_security_group.sec-grp-region-test-alb.id",
-+   },
-+   "output.subnet-region-public-subnet-1-SubnetArn": Object {
-+     "value": "mock.Subnet1Arn",
-+   },
-+   "output.subnet-region-public-subnet-1-SubnetId": Object {
-+     "value": "mock.Subnet1Id",
-+   },
-+   "output.subnet-region-public-subnet-2-SubnetArn": Object {
-+     "value": "mock.Subnet2Arn",
-+   },
-+   "output.subnet-region-public-subnet-2-SubnetId": Object {
-+     "value": "mock.Subnet2Id",
-+   },
-+   "output.vpc-region-VpcId": Object {
-+     "value": "mock.VpcId",
-+   },
-+   "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-+     "cluster": "mock.clusterArn",
-+     "desired_count": "1",
-+     "launch_type": "FARGATE",
-+     "load_balancer": Object {
-+       "container_name": "test-container",
-+       "container_port": "80",
-+       "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+     },
-+     "name": "backend",
-+     "network_configuration": Object {
-+       "assign_public_ip": "true",
-+       "subnets": "[mock.Subnet1Id]",
-+     },
-+     "provider": "aws.123-us-east-1",
-+     "task_definition": "mock.taskDefinitionArn",
-+   },
-+   "resource.aws_lb.alb-region-test-alb": Object {
-+     "internal": "false",
-+     "ip_address_type": "ipv4",
-+     "load_balancer_type": "application",
-+     "name": "test-alb",
-+     "provider": "aws.123-us-east-1",
-+     "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-+     "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-+   },
-+   "resource.aws_lb_listener.alb-listener-test-alb": Object {
-+     "default_action": Object {
-+       "forward": Object {
-+         "target_group": Object {
-+           "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+           "weight": "100",
-+         },
-+       },
-+       "type": "forward",
-+     },
-+     "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-+     "port": "80",
-+     "protocol": "HTTP",
-+     "provider": "aws.123-us-east-1",
-+   },
-+   "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-+     "health_check": Object {
-+       "enabled": "true",
-+       "healthy_threshold": "3",
-+       "interval": "30",
-+       "matcher": "200",
-+       "path": "/health",
-+       "port": "80",
-+       "protocol": "HTTP",
-+       "timeout": "5",
-+       "unhealthy_threshold": "3",
-+     },
-+     "ip_address_type": "ipv4",
-+     "name": "test-container-80",
-+     "port": "80",
-+     "protocol": "HTTP",
-+     "protocol_version": "HTTP1",
-+     "provider": "aws.123-us-east-1",
-+     "target_type": "ip",
-+     "vpc_id": "mock.VpcId",
-+   },
-+   "resource.aws_security_group.sec-grp-region-test-alb": Object {
-+     "provider": "aws.123-us-east-1",
-+     "vpc_id": "mock.VpcId",
-+   },
-+   "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-+     "cidr_ipv4": "0.0.0.0/0",
-+     "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-+     "description": "tcp 0-65535 0.0.0.0/0",
-+     "from_port": "0",
-+     "ip_protocol": "tcp",
-+     "provider": "aws.123-us-east-1",
-+     "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-+     "to_port": "65535",
-+   },
-+   "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-+     "cidr_ipv4": "0.0.0.0/0",
-+     "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-+     "description": "tcp 80-80 0.0.0.0/0",
-+     "from_port": "80",
-+     "ip_protocol": "tcp",
-+     "provider": "aws.123-us-east-1",
-+     "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-+     "to_port": "80",
-+   },
-+ }"
++ alb-module/main.tf
+resource "aws_lb_listener_rule" "alb-listener-test-alb_rule_1" {
+  provider = aws._123-us-east-1
+  action {
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not implemented!"
+      status_code = "404"
+    }
+    type = "fixed-response"
+  }
+  condition {
+    path_pattern {
+      values = ["/api"]
+    }
+  }
+  listener_arn = aws_lb_listener.alb-listener-test-alb.arn
+  priority = 1"
 `;
 
 exports[`AwsEcsAlbServiceModule UT should CUD 4`] = `
-"- Expected
-+ Received
+"- alb-module/main.tf
+resource "aws_lb_listener_rule" "alb-listener-test-alb_rule_1" {
+  provider = aws._123-us-east-1
+  action {
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not implemented!"
+      status_code = "404"
+    }
+    type = "fixed-response"
+  }
+  condition {
+    path_pattern {
+      values = ["/api"]
+    }
+  }
+  listener_arn = aws_lb_listener.alb-listener-test-alb.arn
+  priority = 1
 
-  Object {
-    "output.alb-listener-test-alb-ListenerArn": Object {
-      "value": "aws_lb_listener.alb-listener-test-alb.arn",
-    },
-    "output.alb-region-test-alb-DNSName": Object {
-      "value": "aws_lb.alb-region-test-alb.dns_name",
-    },
-    "output.alb-region-test-alb-LoadBalancerArn": Object {
-      "value": "aws_lb.alb-region-test-alb.arn",
-    },
-    "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-      "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-    },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
-    },
-    "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
-    "output.sec-grp-region-test-alb-Arn": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.arn",
-    },
-    "output.sec-grp-region-test-alb-GroupId": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.id",
-    },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
-    },
-    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-      "cluster": "mock.clusterArn",
-      "desired_count": "1",
-      "launch_type": "FARGATE",
-      "load_balancer": Object {
-        "container_name": "test-container",
-        "container_port": "80",
-        "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-      },
-      "name": "backend",
-      "network_configuration": Object {
-        "assign_public_ip": "true",
-        "subnets": "[mock.Subnet1Id]",
-      },
-      "provider": "aws.123-us-east-1",
-      "task_definition": "mock.taskDefinitionArn",
-    },
-    "resource.aws_lb.alb-region-test-alb": Object {
-      "internal": "false",
-      "ip_address_type": "ipv4",
-      "load_balancer_type": "application",
-      "name": "test-alb",
-      "provider": "aws.123-us-east-1",
-      "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-      "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-    },
-    "resource.aws_lb_listener.alb-listener-test-alb": Object {
-      "default_action": Object {
-        "forward": Object {
-          "target_group": Object {
-            "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-            "weight": "100",
-          },
-        },
-        "type": "forward",
-      },
-      "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-      "port": "80",
-      "protocol": "HTTP",
-      "provider": "aws.123-us-east-1",
-    },
-+   "resource.aws_lb_listener_rule.alb-listener-test-alb_rule_1": Object {
-+     "action": Object {
-+       "fixed_response": Object {
-+         "content_type": "text/plain",
-+         "message_body": "Not implemented!",
-+         "status_code": "404",
-+       },
-+       "type": "fixed-response",
-+     },
-+     "condition": Object {
-+       "path_pattern": Object {
-+         "values": "[\\"/api\\"]",
-+       },
-+     },
-+     "depends_on": "[aws_lb_listener.alb-listener-test-alb]",
-+     "listener_arn": "aws_lb_listener.alb-listener-test-alb.arn",
-+     "priority": "1",
-+     "provider": "aws.123-us-east-1",
-+   },
-    "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-      "health_check": Object {
-        "enabled": "true",
-        "healthy_threshold": "3",
-        "interval": "30",
-        "matcher": "200",
-        "path": "/health",
-        "port": "80",
-        "protocol": "HTTP",
-        "timeout": "5",
-        "unhealthy_threshold": "3",
-      },
-      "ip_address_type": "ipv4",
-      "name": "test-container-80",
-      "port": "80",
-      "protocol": "HTTP",
-      "protocol_version": "HTTP1",
-      "provider": "aws.123-us-east-1",
-      "target_type": "ip",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_security_group.sec-grp-region-test-alb": Object {
-      "provider": "aws.123-us-east-1",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-      "description": "tcp 0-65535 0.0.0.0/0",
-      "from_port": "0",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "65535",
-    },
-    "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-      "description": "tcp 80-80 0.0.0.0/0",
-      "from_port": "80",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "80",
-    },
-  }"
++ alb-module/main.tf
+resource "aws_lb_listener_rule" "alb-listener-test-alb_rule_2" {
+  provider = aws._123-us-east-1
+  action {
+    forward {
+      target_group {
+        arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+        weight = 100
+      }
+    }
+    type = "forward"
+  }
+  condition {
+    path_pattern {
+      values = ["/api"]
+    }
+  }
+  listener_arn = aws_lb_listener.alb-listener-test-alb.arn
+  priority = 2"
 `;
 
 exports[`AwsEcsAlbServiceModule UT should CUD 6`] = `
-"- Expected
-+ Received
+"- alb-module/main.tf
+depends_on = [aws_lb_listener.alb-listener-test-alb]
+}
 
-  Object {
-    "output.alb-listener-test-alb-ListenerArn": Object {
-      "value": "aws_lb_listener.alb-listener-test-alb.arn",
-    },
-    "output.alb-region-test-alb-DNSName": Object {
-      "value": "aws_lb.alb-region-test-alb.dns_name",
-    },
-    "output.alb-region-test-alb-LoadBalancerArn": Object {
-      "value": "aws_lb.alb-region-test-alb.arn",
-    },
-    "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-      "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-    },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
-    },
-    "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-      "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
-    "output.sec-grp-region-test-alb-Arn": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.arn",
-    },
-    "output.sec-grp-region-test-alb-GroupId": Object {
-      "value": "aws_security_group.sec-grp-region-test-alb.id",
-    },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
-    },
-    "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-      "cluster": "mock.clusterArn",
-      "desired_count": "1",
-      "launch_type": "FARGATE",
-      "load_balancer": Object {
-        "container_name": "test-container",
-        "container_port": "80",
-        "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-      },
-      "name": "backend",
-      "network_configuration": Object {
-        "assign_public_ip": "true",
-        "subnets": "[mock.Subnet1Id]",
-      },
-      "provider": "aws.123-us-east-1",
-      "task_definition": "mock.taskDefinitionArn",
-    },
-    "resource.aws_lb.alb-region-test-alb": Object {
-      "internal": "false",
-      "ip_address_type": "ipv4",
-      "load_balancer_type": "application",
-      "name": "test-alb",
-      "provider": "aws.123-us-east-1",
-      "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-      "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-    },
-    "resource.aws_lb_listener.alb-listener-test-alb": Object {
-      "default_action": Object {
-        "forward": Object {
-          "target_group": Object {
-            "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-            "weight": "100",
-          },
-        },
-        "type": "forward",
-      },
-      "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-      "port": "80",
-      "protocol": "HTTP",
-      "provider": "aws.123-us-east-1",
-    },
--   "resource.aws_lb_listener_rule.alb-listener-test-alb_rule_1": Object {
-+   "resource.aws_lb_listener_rule.alb-listener-test-alb_rule_2": Object {
-      "action": Object {
--       "fixed_response": Object {
--         "content_type": "text/plain",
--         "message_body": "Not implemented!",
--         "status_code": "404",
-+       "forward": Object {
-+         "target_group": Object {
-+           "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+           "weight": "100",
-+         },
-        },
--       "type": "fixed-response",
-+       "type": "forward",
-      },
-      "condition": Object {
-        "path_pattern": Object {
-          "values": "[\\"/api\\"]",
-        },
-      },
-      "depends_on": "[aws_lb_listener.alb-listener-test-alb]",
-      "listener_arn": "aws_lb_listener.alb-listener-test-alb.arn",
--     "priority": "1",
-+     "priority": "2",
-      "provider": "aws.123-us-east-1",
-    },
-    "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-      "health_check": Object {
-        "enabled": "true",
-        "healthy_threshold": "3",
-        "interval": "30",
-        "matcher": "200",
-        "path": "/health",
-        "port": "80",
-        "protocol": "HTTP",
-        "timeout": "5",
-        "unhealthy_threshold": "3",
-      },
-      "ip_address_type": "ipv4",
-      "name": "test-container-80",
-      "port": "80",
-      "protocol": "HTTP",
-      "protocol_version": "HTTP1",
-      "provider": "aws.123-us-east-1",
-      "target_type": "ip",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_security_group.sec-grp-region-test-alb": Object {
-      "provider": "aws.123-us-east-1",
-      "vpc_id": "mock.VpcId",
-    },
-    "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-      "description": "tcp 0-65535 0.0.0.0/0",
-      "from_port": "0",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "65535",
-    },
-    "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-      "cidr_ipv4": "0.0.0.0/0",
-      "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-      "description": "tcp 80-80 0.0.0.0/0",
-      "from_port": "80",
-      "ip_protocol": "tcp",
-      "provider": "aws.123-us-east-1",
-      "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-      "to_port": "80",
-    },
-  }"
-`;
+- alb-module/main.tf
+depends_on = [aws_security_group.sec-grp-region-test-alb]
+}
 
-exports[`AwsEcsAlbServiceModule UT should CUD 8`] = `
-"- Expected
-+ Received
+- alb-module/main.tf
+depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]
+}
 
-  Object {
--   "output.alb-listener-test-alb-ListenerArn": Object {
--     "value": "aws_lb_listener.alb-listener-test-alb.arn",
--   },
--   "output.alb-region-test-alb-DNSName": Object {
--     "value": "aws_lb.alb-region-test-alb.dns_name",
--   },
--   "output.alb-region-test-alb-LoadBalancerArn": Object {
--     "value": "aws_lb.alb-region-test-alb.arn",
--   },
--   "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
--     "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
--   },
-    "output.ecs-cluster-region-qa-clusterArn": Object {
-      "value": "mock.clusterArn",
--   },
--   "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
--     "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-      "value": "1",
-    },
-    "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-      "value": "mock.taskDefinitionArn",
-    },
-    "output.igw-region-InternetGatewayId": Object {
-      "value": "mock.InternetGatewayId",
-    },
--   "output.sec-grp-region-test-alb-Arn": Object {
--     "value": "aws_security_group.sec-grp-region-test-alb.arn",
--   },
--   "output.sec-grp-region-test-alb-GroupId": Object {
--     "value": "aws_security_group.sec-grp-region-test-alb.id",
--   },
-    "output.subnet-region-public-subnet-1-SubnetArn": Object {
-      "value": "mock.Subnet1Arn",
-    },
-    "output.subnet-region-public-subnet-1-SubnetId": Object {
-      "value": "mock.Subnet1Id",
-    },
-    "output.subnet-region-public-subnet-2-SubnetArn": Object {
-      "value": "mock.Subnet2Arn",
-    },
-    "output.subnet-region-public-subnet-2-SubnetId": Object {
-      "value": "mock.Subnet2Id",
-    },
-    "output.vpc-region-VpcId": Object {
-      "value": "mock.VpcId",
--   },
--   "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
--     "cluster": "mock.clusterArn",
--     "desired_count": "1",
--     "launch_type": "FARGATE",
--     "load_balancer": Object {
--       "container_name": "test-container",
--       "container_port": "80",
--       "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
--     },
--     "name": "backend",
--     "network_configuration": Object {
--       "assign_public_ip": "true",
--       "subnets": "[mock.Subnet1Id]",
--     },
--     "provider": "aws.123-us-east-1",
--     "task_definition": "mock.taskDefinitionArn",
--   },
--   "resource.aws_lb.alb-region-test-alb": Object {
--     "internal": "false",
--     "ip_address_type": "ipv4",
--     "load_balancer_type": "application",
--     "name": "test-alb",
--     "provider": "aws.123-us-east-1",
--     "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
--     "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
--   },
--   "resource.aws_lb_listener.alb-listener-test-alb": Object {
--     "default_action": Object {
--       "forward": Object {
--         "target_group": Object {
--           "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
--           "weight": "100",
--         },
--       },
--       "type": "forward",
--     },
--     "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
--     "port": "80",
--     "protocol": "HTTP",
--     "provider": "aws.123-us-east-1",
--   },
--   "resource.aws_lb_listener_rule.alb-listener-test-alb_rule_2": Object {
--     "action": Object {
--       "forward": Object {
--         "target_group": Object {
--           "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
--           "weight": "100",
--         },
--       },
--       "type": "forward",
--     },
--     "condition": Object {
--       "path_pattern": Object {
--         "values": "[\\"/api\\"]",
--       },
--     },
--     "depends_on": "[aws_lb_listener.alb-listener-test-alb]",
--     "listener_arn": "aws_lb_listener.alb-listener-test-alb.arn",
--     "priority": "2",
--     "provider": "aws.123-us-east-1",
--   },
--   "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
--     "health_check": Object {
--       "enabled": "true",
--       "healthy_threshold": "3",
--       "interval": "30",
--       "matcher": "200",
--       "path": "/health",
--       "port": "80",
--       "protocol": "HTTP",
--       "timeout": "5",
--       "unhealthy_threshold": "3",
--     },
--     "ip_address_type": "ipv4",
--     "name": "test-container-80",
--     "port": "80",
--     "protocol": "HTTP",
--     "protocol_version": "HTTP1",
--     "provider": "aws.123-us-east-1",
--     "target_type": "ip",
--     "vpc_id": "mock.VpcId",
--   },
--   "resource.aws_security_group.sec-grp-region-test-alb": Object {
--     "provider": "aws.123-us-east-1",
--     "vpc_id": "mock.VpcId",
--   },
--   "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
--     "cidr_ipv4": "0.0.0.0/0",
--     "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
--     "description": "tcp 0-65535 0.0.0.0/0",
--     "from_port": "0",
--     "ip_protocol": "tcp",
--     "provider": "aws.123-us-east-1",
--     "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
--     "to_port": "65535",
--   },
--   "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
--     "cidr_ipv4": "0.0.0.0/0",
--     "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
--     "description": "tcp 80-80 0.0.0.0/0",
--     "from_port": "80",
--     "ip_protocol": "tcp",
--     "provider": "aws.123-us-east-1",
--     "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
--     "to_port": "80",
-    },
-  }"
+- alb-module/main.tf
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+}
+
+- alb-module/main.tf
+resource "aws_lb_listener_rule" "alb-listener-test-alb_rule_2" {
+  provider = aws._123-us-east-1
+  action {
+    forward {
+      target_group {
+        arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+        weight = 100
+      }
+    }
+    type = "forward"
+  }
+  condition {
+    path_pattern {
+      values = ["/api"]
+    }
+  }
+  listener_arn = aws_lb_listener.alb-listener-test-alb.arn
+  priority = 2
+
+- alb-module/main.tf
+resource "aws_lb_listener" "alb-listener-test-alb" {
+  provider = aws._123-us-east-1
+  default_action {
+    forward {
+      target_group {
+        arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+        weight = 100
+      }
+    }
+    type = "forward"
+  }
+  load_balancer_arn = aws_lb.alb-region-test-alb.arn
+  port = 80
+  protocol = "HTTP"
+}
+
+- alb-module/main.tf
+resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+  provider = aws._123-us-east-1
+  ip_address_type = "ipv4"
+  name = "test-container-80"
+  port = 80
+  protocol = "HTTP"
+  protocol_version = "HTTP1"
+  target_type = "ip"
+  vpc_id = var.vpc_region_VpcId
+  health_check {
+    enabled = true
+    healthy_threshold = 3
+    interval = 30
+    matcher = "200"
+    path = "/health"
+    port = "80"
+    protocol = "HTTP"
+    timeout = 5
+    unhealthy_threshold = 3
+  }
+}
+
+- alb-module/main.tf
+resource "aws_lb" "alb-region-test-alb" {
+  provider = aws._123-us-east-1
+  internal = false
+  ip_address_type = "ipv4"
+  load_balancer_type = "application"
+  name = "test-alb"
+  security_groups = [aws_security_group.sec-grp-region-test-alb.id]
+  subnets = [var.subnet_region_public_subnet_1_SubnetId, var.subnet_region_public_subnet_2_SubnetId]
+}
+
+- alb-module/main.tf
+resource "aws_security_group" "sec-grp-region-test-alb" {
+  provider = aws._123-us-east-1
+  vpc_id = var.vpc_region_VpcId
+}
+
+- alb-module/main.tf
+resource "aws_vpc_security_group_egress_rule" "sec-grp-region-test-alb_egress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 0-65535 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-test-alb.id
+  from_port = 0
+  to_port = 65535
+
+- alb-module/main.tf
+resource "aws_vpc_security_group_ingress_rule" "sec-grp-region-test-alb_ingress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 80-80 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-test-alb.id
+  from_port = 80
+  to_port = 80
+
+- alb-module/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- alb-module/outputs.tf
+output "alb-listener-test-alb-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb.arn
+}
+
+- alb-module/outputs.tf
+output "alb-region-test-alb-DNSName" {
+  value = aws_lb.alb-region-test-alb.dns_name
+}
+
+- alb-module/outputs.tf
+output "alb-region-test-alb-LoadBalancerArn" {
+  value = aws_lb.alb-region-test-alb.arn
+}
+
+- alb-module/outputs.tf
+output "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" {
+  value = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+}
+
+- alb-module/outputs.tf
+output "sec-grp-region-test-alb-Arn" {
+  value = aws_security_group.sec-grp-region-test-alb.arn
+}
+
+- alb-module/outputs.tf
+output "sec-grp-region-test-alb-GroupId" {
+  value = aws_security_group.sec-grp-region-test-alb.id
+}
+
+- alb-module/terragrunt.hcl
+dependency "testModule" {
+  config_path = "../testModule"
+
+- alb-module/terragrunt.hcl
+dependency "testSubnet1Module" {
+  config_path = "../testSubnet1Module"
+
+- alb-module/terragrunt.hcl
+dependency "testSubnet2Module" {
+  config_path = "../testSubnet2Module"
+
+- alb-module/terragrunt.hcl
+inputs = {
+  subnet_region_public_subnet_1_SubnetId = dependency.testSubnet1Module.outputs["subnet-region-public-subnet-1-SubnetId"]
+  subnet_region_public_subnet_2_SubnetId = dependency.testSubnet2Module.outputs["subnet-region-public-subnet-2-SubnetId"]
+  vpc_region_VpcId = dependency.testModule.outputs["vpc-region-VpcId"]
+}
+
+- alb-module/terragrunt.hcl
+mock_outputs = {
+    "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+- alb-module/variables.tf
+variable "subnet_region_public_subnet_1_SubnetId" {}
+
+- alb-module/variables.tf
+variable "subnet_region_public_subnet_2_SubnetId" {}
+
+- alb-module/variables.tf
+variable "vpc_region_VpcId" {}
+
+~ testExecutionModule/main.tf resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-public-subnet-1" {
+@@ -11,7 +11,2 @@
+    task_definition = "taskDefinitionArn"
+-   load_balancer {
+-     container_name = "test-container"
+-     container_port = 80
+-     target_group_arn = var.alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn
+-   }
+  }
+
+- testExecutionModule/terragrunt.hcl
+dependency "alb-module" {
+  config_path = "../alb-module"
+
+~ testExecutionModule/terragrunt.hcl inputs = {
+@@ -1,3 +1,2 @@
+  inputs = {
+-   alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn = dependency.alb-module.outputs["alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn"]
+    ecs_cluster_region_qa_clusterArn = dependency.testModule.outputs["ecs-cluster-region-qa-clusterArn"]
+
+- testExecutionModule/variables.tf
+variable "alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn" {}"
 `;
 
 exports[`AwsEcsAlbServiceModule UT should CUD tags 2`] = `
-"- Expected
-+ Received
+"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb" {
+@@ -15,3 +15,4 @@
+    tags = {
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2"
+    }
 
-- Object {}
-+ Object {
-+   "output.alb-listener-test-alb-ListenerArn": Object {
-+     "value": "aws_lb_listener.alb-listener-test-alb.arn",
-+   },
-+   "output.alb-region-test-alb-DNSName": Object {
-+     "value": "aws_lb.alb-region-test-alb.dns_name",
-+   },
-+   "output.alb-region-test-alb-LoadBalancerArn": Object {
-+     "value": "aws_lb.alb-region-test-alb.arn",
-+   },
-+   "output.alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn": Object {
-+     "value": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+   },
-+   "output.ecs-cluster-region-qa-clusterArn": Object {
-+     "value": "mock.clusterArn",
-+   },
-+   "output.ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn": Object {
-+     "value": "aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id",
-+   },
-+   "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision": Object {
-+     "value": "1",
-+   },
-+   "output.ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn": Object {
-+     "value": "mock.taskDefinitionArn",
-+   },
-+   "output.igw-region-InternetGatewayId": Object {
-+     "value": "mock.InternetGatewayId",
-+   },
-+   "output.sec-grp-region-test-alb-Arn": Object {
-+     "value": "aws_security_group.sec-grp-region-test-alb.arn",
-+   },
-+   "output.sec-grp-region-test-alb-GroupId": Object {
-+     "value": "aws_security_group.sec-grp-region-test-alb.id",
-+   },
-+   "output.subnet-region-public-subnet-1-SubnetArn": Object {
-+     "value": "mock.Subnet1Arn",
-+   },
-+   "output.subnet-region-public-subnet-1-SubnetId": Object {
-+     "value": "mock.Subnet1Id",
-+   },
-+   "output.subnet-region-public-subnet-2-SubnetArn": Object {
-+     "value": "mock.Subnet2Arn",
-+   },
-+   "output.subnet-region-public-subnet-2-SubnetId": Object {
-+     "value": "mock.Subnet2Id",
-+   },
-+   "output.vpc-region-VpcId": Object {
-+     "value": "mock.VpcId",
-+   },
-+   "resource.aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1": Object {
-+     "cluster": "mock.clusterArn",
-+     "desired_count": "1",
-+     "launch_type": "FARGATE",
-+     "load_balancer": Object {
-+       "container_name": "test-container",
-+       "container_port": "80",
-+       "target_group_arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+     },
-+     "name": "backend",
-+     "network_configuration": Object {
-+       "assign_public_ip": "true",
-+       "subnets": "[mock.Subnet1Id]",
-+     },
-+     "provider": "aws.123-us-east-1",
-+     "task_definition": "mock.taskDefinitionArn",
-+   },
-+   "resource.aws_lb.alb-region-test-alb": Object {
-+     "internal": "false",
-+     "ip_address_type": "ipv4",
-+     "load_balancer_type": "application",
-+     "name": "test-alb",
-+     "provider": "aws.123-us-east-1",
-+     "security_groups": "[aws_security_group.sec-grp-region-test-alb.id]",
-+     "subnets": "[mock.Subnet1Id, mock.Subnet2Id]",
-+   },
-+   "resource.aws_lb_listener.alb-listener-test-alb": Object {
-+     "default_action": Object {
-+       "forward": Object {
-+         "target_group": Object {
-+           "arn": "aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn",
-+           "weight": "100",
-+         },
-+       },
-+       "type": "forward",
-+     },
-+     "load_balancer_arn": "aws_lb.alb-region-test-alb.arn",
-+     "port": "80",
-+     "protocol": "HTTP",
-+     "provider": "aws.123-us-east-1",
-+   },
-+   "resource.aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1": Object {
-+     "health_check": Object {
-+       "enabled": "true",
-+       "healthy_threshold": "3",
-+       "interval": "30",
-+       "matcher": "200",
-+       "path": "/health",
-+       "port": "80",
-+       "protocol": "HTTP",
-+       "timeout": "5",
-+       "unhealthy_threshold": "3",
-+     },
-+     "ip_address_type": "ipv4",
-+     "name": "test-container-80",
-+     "port": "80",
-+     "protocol": "HTTP",
-+     "protocol_version": "HTTP1",
-+     "provider": "aws.123-us-east-1",
-+     "target_type": "ip",
-+     "vpc_id": "mock.VpcId",
-+   },
-+   "resource.aws_security_group.sec-grp-region-test-alb": Object {
-+     "provider": "aws.123-us-east-1",
-+     "vpc_id": "mock.VpcId",
-+   },
-+   "resource.aws_vpc_security_group_egress_rule.sec-grp-region-test-alb_egress_0": Object {
-+     "cidr_ipv4": "0.0.0.0/0",
-+     "depends_on": "[aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]",
-+     "description": "tcp 0-65535 0.0.0.0/0",
-+     "from_port": "0",
-+     "ip_protocol": "tcp",
-+     "provider": "aws.123-us-east-1",
-+     "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-+     "to_port": "65535",
-+   },
-+   "resource.aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0": Object {
-+     "cidr_ipv4": "0.0.0.0/0",
-+     "depends_on": "[aws_security_group.sec-grp-region-test-alb]",
-+     "description": "tcp 80-80 0.0.0.0/0",
-+     "from_port": "80",
-+     "ip_protocol": "tcp",
-+     "provider": "aws.123-us-east-1",
-+     "security_group_id": "aws_security_group.sec-grp-region-test-alb.id",
-+     "to_port": "80",
-+   },
-+ }"
+~ alb-module/main.tf resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+@@ -21,3 +21,4 @@
+    tags = {
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2"
+    }
+
+~ alb-module/main.tf resource "aws_lb" "alb-region-test-alb" {
+@@ -9,3 +9,4 @@
+    tags = {
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2"
+    }
+
+~ alb-module/main.tf resource "aws_security_group" "sec-grp-region-test-alb" {
+@@ -4,3 +4,4 @@
+    tags = {
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2"
+    }
+
+~ testExecutionModule/main.tf resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-public-subnet-1" {
+@@ -17,3 +17,4 @@
+    tags = {
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2"
+    }"
 `;
 
-exports[`AwsEcsAlbServiceModule UT should CUD tags 4`] = `"Compared values have no visual difference."`;
+exports[`AwsEcsAlbServiceModule UT should CUD tags 4`] = `
+"~ alb-module/main.tf resource "aws_lb_listener" "alb-listener-test-alb" {
+@@ -14,6 +14,2 @@
+    protocol = "HTTP"
+-   tags = {
+-     tag1 = "value1_1"
+-     tag2 = "value2"
+-   }
+  }
 
-exports[`AwsEcsAlbServiceModule UT should CUD tags 6`] = `"Compared values have no visual difference."`;
+~ alb-module/main.tf resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+@@ -20,6 +20,2 @@
+    }
+-   tags = {
+-     tag1 = "value1_1"
+-     tag2 = "value2"
+-   }
+  }
 
-exports[`AwsEcsAlbServiceModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;
+~ alb-module/main.tf resource "aws_lb" "alb-region-test-alb" {
+@@ -8,6 +8,2 @@
+    subnets = [var.subnet_region_public_subnet_1_SubnetId, var.subnet_region_public_subnet_2_SubnetId]
+-   tags = {
+-     tag1 = "value1_1"
+-     tag2 = "value2"
+-   }
+  }
+
+~ alb-module/main.tf resource "aws_security_group" "sec-grp-region-test-alb" {
+@@ -3,6 +3,2 @@
+    vpc_id = var.vpc_region_VpcId
+-   tags = {
+-     tag1 = "value1_1"
+-     tag2 = "value2"
+-   }
+  }
+
+~ testExecutionModule/main.tf resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-public-subnet-1" {
+@@ -16,6 +16,2 @@
+    }
+-   tags = {
+-     tag1 = "value1_1"
+-     tag2 = "value2"
+-   }
+  }"
+`;
+
+exports[`AwsEcsAlbServiceModule UT should handle moduleId change 1`] = `
+"- alb-module-1/main.tf
+depends_on = [aws_security_group.sec-grp-region-test-alb]
+}
+
+- alb-module-1/main.tf
+depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]
+}
+
+- alb-module-1/main.tf
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+}
+
+- alb-module-1/main.tf
+resource "aws_lb_listener" "alb-listener-test-alb" {
+  provider = aws._123-us-east-1
+  default_action {
+    forward {
+      target_group {
+        arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+        weight = 100
+      }
+    }
+    type = "forward"
+  }
+  load_balancer_arn = aws_lb.alb-region-test-alb.arn
+  port = 80
+  protocol = "HTTP"
+}
+
+- alb-module-1/main.tf
+resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+  provider = aws._123-us-east-1
+  ip_address_type = "ipv4"
+  name = "test-container-80"
+  port = 80
+  protocol = "HTTP"
+  protocol_version = "HTTP1"
+  target_type = "ip"
+  vpc_id = var.vpc_region_VpcId
+  health_check {
+    enabled = true
+    healthy_threshold = 3
+    interval = 30
+    matcher = "200"
+    path = "/health"
+    port = "80"
+    protocol = "HTTP"
+    timeout = 5
+    unhealthy_threshold = 3
+  }
+}
+
+- alb-module-1/main.tf
+resource "aws_lb" "alb-region-test-alb" {
+  provider = aws._123-us-east-1
+  internal = false
+  ip_address_type = "ipv4"
+  load_balancer_type = "application"
+  name = "test-alb"
+  security_groups = [aws_security_group.sec-grp-region-test-alb.id]
+  subnets = [var.subnet_region_public_subnet_1_SubnetId, var.subnet_region_public_subnet_2_SubnetId]
+}
+
+- alb-module-1/main.tf
+resource "aws_security_group" "sec-grp-region-test-alb" {
+  provider = aws._123-us-east-1
+  vpc_id = var.vpc_region_VpcId
+}
+
+- alb-module-1/main.tf
+resource "aws_vpc_security_group_egress_rule" "sec-grp-region-test-alb_egress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 0-65535 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-test-alb.id
+  from_port = 0
+  to_port = 65535
+
+- alb-module-1/main.tf
+resource "aws_vpc_security_group_ingress_rule" "sec-grp-region-test-alb_ingress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 80-80 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-test-alb.id
+  from_port = 80
+  to_port = 80
+
+- alb-module-1/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- alb-module-1/outputs.tf
+output "alb-listener-test-alb-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb.arn
+}
+
+- alb-module-1/outputs.tf
+output "alb-region-test-alb-DNSName" {
+  value = aws_lb.alb-region-test-alb.dns_name
+}
+
+- alb-module-1/outputs.tf
+output "alb-region-test-alb-LoadBalancerArn" {
+  value = aws_lb.alb-region-test-alb.arn
+}
+
+- alb-module-1/outputs.tf
+output "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" {
+  value = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+}
+
+- alb-module-1/outputs.tf
+output "sec-grp-region-test-alb-Arn" {
+  value = aws_security_group.sec-grp-region-test-alb.arn
+}
+
+- alb-module-1/outputs.tf
+output "sec-grp-region-test-alb-GroupId" {
+  value = aws_security_group.sec-grp-region-test-alb.id
+}
+
+- alb-module-1/terragrunt.hcl
+dependency "testModule" {
+  config_path = "../testModule"
+
+- alb-module-1/terragrunt.hcl
+dependency "testSubnet1Module" {
+  config_path = "../testSubnet1Module"
+
+- alb-module-1/terragrunt.hcl
+dependency "testSubnet2Module" {
+  config_path = "../testSubnet2Module"
+
+- alb-module-1/terragrunt.hcl
+inputs = {
+  subnet_region_public_subnet_1_SubnetId = dependency.testSubnet1Module.outputs["subnet-region-public-subnet-1-SubnetId"]
+  subnet_region_public_subnet_2_SubnetId = dependency.testSubnet2Module.outputs["subnet-region-public-subnet-2-SubnetId"]
+  vpc_region_VpcId = dependency.testModule.outputs["vpc-region-VpcId"]
+}
+
+- alb-module-1/terragrunt.hcl
+mock_outputs = {
+    "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+- alb-module-1/variables.tf
+variable "subnet_region_public_subnet_1_SubnetId" {}
+
+- alb-module-1/variables.tf
+variable "subnet_region_public_subnet_2_SubnetId" {}
+
+- alb-module-1/variables.tf
+variable "vpc_region_VpcId" {}
+
++ alb-module-2/main.tf
+depends_on = [aws_security_group.sec-grp-region-test-alb]
+}
+
++ alb-module-2/main.tf
+depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]
+}
+
++ alb-module-2/main.tf
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+}
+
++ alb-module-2/main.tf
+resource "aws_lb_listener" "alb-listener-test-alb" {
+  provider = aws._123-us-east-1
+  default_action {
+    forward {
+      target_group {
+        arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+        weight = 100
+      }
+    }
+    type = "forward"
+  }
+  load_balancer_arn = aws_lb.alb-region-test-alb.arn
+  port = 80
+  protocol = "HTTP"
+}
+
++ alb-module-2/main.tf
+resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
+  provider = aws._123-us-east-1
+  ip_address_type = "ipv4"
+  name = "test-container-80"
+  port = 80
+  protocol = "HTTP"
+  protocol_version = "HTTP1"
+  target_type = "ip"
+  vpc_id = var.vpc_region_VpcId
+  health_check {
+    enabled = true
+    healthy_threshold = 3
+    interval = 30
+    matcher = "200"
+    path = "/health"
+    port = "80"
+    protocol = "HTTP"
+    timeout = 5
+    unhealthy_threshold = 3
+  }
+}
+
++ alb-module-2/main.tf
+resource "aws_lb" "alb-region-test-alb" {
+  provider = aws._123-us-east-1
+  internal = false
+  ip_address_type = "ipv4"
+  load_balancer_type = "application"
+  name = "test-alb"
+  security_groups = [aws_security_group.sec-grp-region-test-alb.id]
+  subnets = [var.subnet_region_public_subnet_1_SubnetId, var.subnet_region_public_subnet_2_SubnetId]
+}
+
++ alb-module-2/main.tf
+resource "aws_security_group" "sec-grp-region-test-alb" {
+  provider = aws._123-us-east-1
+  vpc_id = var.vpc_region_VpcId
+}
+
++ alb-module-2/main.tf
+resource "aws_vpc_security_group_egress_rule" "sec-grp-region-test-alb_egress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 0-65535 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-test-alb.id
+  from_port = 0
+  to_port = 65535
+
++ alb-module-2/main.tf
+resource "aws_vpc_security_group_ingress_rule" "sec-grp-region-test-alb_ingress_0" {
+  provider = aws._123-us-east-1
+  cidr_ipv4 = "0.0.0.0/0"
+  description = "tcp 80-80 0.0.0.0/0"
+  ip_protocol = "tcp"
+  security_group_id = aws_security_group.sec-grp-region-test-alb.id
+  from_port = 80
+  to_port = 80
+
++ alb-module-2/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
++ alb-module-2/outputs.tf
+output "alb-listener-test-alb-ListenerArn" {
+  value = aws_lb_listener.alb-listener-test-alb.arn
+}
+
++ alb-module-2/outputs.tf
+output "alb-region-test-alb-DNSName" {
+  value = aws_lb.alb-region-test-alb.dns_name
+}
+
++ alb-module-2/outputs.tf
+output "alb-region-test-alb-LoadBalancerArn" {
+  value = aws_lb.alb-region-test-alb.arn
+}
+
++ alb-module-2/outputs.tf
+output "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" {
+  value = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+}
+
++ alb-module-2/outputs.tf
+output "sec-grp-region-test-alb-Arn" {
+  value = aws_security_group.sec-grp-region-test-alb.arn
+}
+
++ alb-module-2/outputs.tf
+output "sec-grp-region-test-alb-GroupId" {
+  value = aws_security_group.sec-grp-region-test-alb.id
+}
+
++ alb-module-2/terragrunt.hcl
+dependency "testModule" {
+  config_path = "../testModule"
+
++ alb-module-2/terragrunt.hcl
+dependency "testSubnet1Module" {
+  config_path = "../testSubnet1Module"
+
++ alb-module-2/terragrunt.hcl
+dependency "testSubnet2Module" {
+  config_path = "../testSubnet2Module"
+
++ alb-module-2/terragrunt.hcl
+inputs = {
+  subnet_region_public_subnet_1_SubnetId = dependency.testSubnet1Module.outputs["subnet-region-public-subnet-1-SubnetId"]
+  subnet_region_public_subnet_2_SubnetId = dependency.testSubnet2Module.outputs["subnet-region-public-subnet-2-SubnetId"]
+  vpc_region_VpcId = dependency.testModule.outputs["vpc-region-VpcId"]
+}
+
++ alb-module-2/terragrunt.hcl
+mock_outputs = {
+    "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
++ alb-module-2/variables.tf
+variable "subnet_region_public_subnet_1_SubnetId" {}
+
++ alb-module-2/variables.tf
+variable "subnet_region_public_subnet_2_SubnetId" {}
+
++ alb-module-2/variables.tf
+variable "vpc_region_VpcId" {}
+
+- testExecutionModule/terragrunt.hcl
+dependency "alb-module-1" {
+  config_path = "../alb-module-1"
+
++ testExecutionModule/terragrunt.hcl
+dependency "alb-module-2" {
+  config_path = "../alb-module-2"
+
+~ testExecutionModule/terragrunt.hcl inputs = {
+@@ -1,3 +1,3 @@
+  inputs = {
+-   alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn = dependency.alb-module-1.outputs["alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn"]
++   alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn = dependency.alb-module-2.outputs["alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn"]
+    ecs_cluster_region_qa_clusterArn = dependency.testModule.outputs["ecs-cluster-region-qa-clusterArn"]"
+`;

@@ -65,7 +65,15 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
     const existingTaskDefinitionParent = this.getParents('ecs-task-definition')['ecs-task-definition'][0]
       .to as AResource<EcsTaskDefinitionSchema, any>;
 
-    if (this.properties.loadBalancers.find((lb) => lb.targetGroupName === targetGroupName)) {
+    // Idempotent: re-registering the exact same target group (same name, container, and port) is a no-op.
+    const existingLoadBalancer = this.properties.loadBalancers.find((lb) => lb.targetGroupName === targetGroupName);
+    if (existingLoadBalancer) {
+      if (
+        existingLoadBalancer.containerName === containerName &&
+        existingLoadBalancer.containerPort === containerPort
+      ) {
+        return;
+      }
       throw new ResourceError(`Target group "${targetGroupName}" is already registered with this service!`, this);
     }
     if (existingAlbTargetGroupParentDependencies?.length > 0) {

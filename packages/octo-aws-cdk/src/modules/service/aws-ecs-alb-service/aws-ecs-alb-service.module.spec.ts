@@ -2,7 +2,6 @@ import {
   type AResource,
   type Account,
   type App,
-  DiffAssert,
   MatchingResource,
   type Region,
   SubnetType,
@@ -12,19 +11,27 @@ import {
 } from '@quadnix/octo';
 import type { AwsEcsServiceAnchorSchema } from '../../../anchors/aws-ecs/aws-ecs-service.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import type { EcsClusterSchema } from '../../../resources/ecs-cluster/index.schema.js';
 import { EcsService } from '../../../resources/ecs-service/index.js';
 import type { EcsTaskDefinitionSchema } from '../../../resources/ecs-task-definition/index.schema.js';
 import type { InternetGatewaySchema } from '../../../resources/internet-gateway/index.schema.js';
 import type { SubnetSchema } from '../../../resources/subnet/index.schema.js';
 import type { VpcSchema } from '../../../resources/vpc/index.schema.js';
-import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsEcsAlbServiceModule } from './index.js';
+
+const HEALTH_CHECK_RESPONSE = {
+  HealthCheckIntervalSeconds: 30,
+  HealthCheckPath: '/health',
+  HealthCheckPort: 80,
+  HealthCheckProtocol: 'HTTP' as const,
+  HealthCheckTimeoutSeconds: 5,
+  HealthyThresholdCount: 3,
+  Matcher: { HttpCode: 200 },
+  UnhealthyThresholdCount: 3,
+};
 
 async function setup(
   testModuleContainer: TestModuleContainer,
-  octoTerraform: OctoTerraform,
 ): Promise<{ account: Account; app: App; region: Region }> {
   const {
     account: [account],
@@ -108,47 +115,47 @@ async function setup(
     ),
   );
 
-  const {
-    '@octo/ecs-cluster=ecs-cluster-region-qa': ecsClusterResource,
-    '@octo/internet-gateway=igw-region': igwResource,
-    '@octo/vpc=vpc-region': vpcResource,
-  } = await testModuleContainer.createTestResources<[EcsClusterSchema, InternetGatewaySchema, VpcSchema]>(
-    'testModule',
-    [
-      {
-        properties: {
-          awsAccountId: '123',
-          awsRegionId: 'us-east-1',
-          clusterName: 'region-qa',
+  const { '@octo/ecs-cluster=ecs-cluster-region-qa': ecsClusterResource } =
+    await testModuleContainer.createTestResources<[EcsClusterSchema, InternetGatewaySchema, VpcSchema]>(
+      'testModule',
+      [
+        {
+          properties: {
+            awsAccountId: '123',
+            awsRegionId: 'us-east-1',
+            clusterName: 'region-qa',
+          },
+          resourceContext: '@octo/ecs-cluster=ecs-cluster-region-qa',
+          response: {
+            clusterArn: 'clusterArn',
+          },
+          terraform: true,
         },
-        resourceContext: '@octo/ecs-cluster=ecs-cluster-region-qa',
-        response: {
-          clusterArn: 'clusterArn',
+        {
+          properties: {
+            awsAccountId: '123',
+            awsRegionId: 'us-east-1',
+            internetGatewayName: 'default',
+          },
+          resourceContext: '@octo/internet-gateway=igw-region',
+          response: { InternetGatewayId: 'InternetGatewayId' },
+          terraform: true,
         },
-      },
-      {
-        properties: {
-          awsAccountId: '123',
-          awsRegionId: 'us-east-1',
-          internetGatewayName: 'default',
+        {
+          properties: {
+            awsAccountId: '123',
+            awsAvailabilityZones: ['us-east-1a'],
+            awsRegionId: 'us-east-1',
+            CidrBlock: '10.0.0.0/16',
+            InstanceTenancy: 'default',
+          },
+          resourceContext: '@octo/vpc=vpc-region',
+          response: { VpcId: 'VpcId' },
+          terraform: true,
         },
-        resourceContext: '@octo/internet-gateway=igw-region',
-        response: { InternetGatewayId: 'InternetGatewayId' },
-      },
-      {
-        properties: {
-          awsAccountId: '123',
-          awsAvailabilityZones: ['us-east-1a'],
-          awsRegionId: 'us-east-1',
-          CidrBlock: '10.0.0.0/16',
-          InstanceTenancy: 'default',
-        },
-        resourceContext: '@octo/vpc=vpc-region',
-        response: { VpcId: 'VpcId' },
-      },
-    ],
-    { save: true },
-  );
+      ],
+      { save: true },
+    );
   const { '@octo/subnet=subnet-region-public-subnet-1': subnet1Resource } =
     await testModuleContainer.createTestResources<[SubnetSchema]>(
       'testSubnet1Module',
@@ -162,29 +169,30 @@ async function setup(
             subnetName: 'public-subnet-1',
           },
           resourceContext: '@octo/subnet=subnet-region-public-subnet-1',
-          response: { SubnetId: 'SubnetId' },
+          response: { SubnetArn: 'SubnetArn', SubnetId: 'SubnetId' },
+          terraform: true,
         },
       ],
       { save: true },
     );
-  const { '@octo/subnet=subnet-region-public-subnet-2': subnet2Resource } =
-    await testModuleContainer.createTestResources<[SubnetSchema]>(
-      'testSubnet2Module',
-      [
-        {
-          properties: {
-            AvailabilityZone: 'us-east-1a',
-            awsAccountId: '123',
-            awsRegionId: 'us-east-1',
-            CidrBlock: '10.1.0.0/24',
-            subnetName: 'public-subnet-2',
-          },
-          resourceContext: '@octo/subnet=subnet-region-public-subnet-2',
-          response: { SubnetId: 'SubnetId' },
+  await testModuleContainer.createTestResources<[SubnetSchema]>(
+    'testSubnet2Module',
+    [
+      {
+        properties: {
+          AvailabilityZone: 'us-east-1a',
+          awsAccountId: '123',
+          awsRegionId: 'us-east-1',
+          CidrBlock: '10.1.0.0/24',
+          subnetName: 'public-subnet-2',
         },
-      ],
-      { save: true },
-    );
+        resourceContext: '@octo/subnet=subnet-region-public-subnet-2',
+        response: { SubnetArn: 'SubnetArn', SubnetId: 'SubnetId' },
+        terraform: true,
+      },
+    ],
+    { save: true },
+  );
   const {
     '@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-public-subnet-1': ecsTaskDefinitionResource,
   } = await testModuleContainer.createTestResources<[EcsTaskDefinitionSchema]>(
@@ -221,41 +229,14 @@ async function setup(
         },
         resourceContext: '@octo/ecs-task-definition=ecs-task-definition-backend-v1-region-qa-public-subnet-1',
         response: {
-          revision: 1,
+          revision: '1',
           taskDefinitionArn: 'taskDefinitionArn',
         },
+        terraform: true,
       },
     ],
     { save: true },
   );
-
-  const ecsClusterOctoResource = octoTerraform.addOctoTerraformResource(ecsClusterResource);
-  ecsClusterOctoResource.output({
-    clusterArn: octoTerraform.raw('mock.clusterArn'),
-  });
-  const igwOctoResource = octoTerraform.addOctoTerraformResource(igwResource);
-  igwOctoResource.output({
-    InternetGatewayId: octoTerraform.raw('mock.InternetGatewayId'),
-  });
-  const vpcOctoResource = octoTerraform.addOctoTerraformResource(vpcResource);
-  vpcOctoResource.output({
-    VpcId: octoTerraform.raw('mock.VpcId'),
-  });
-  const subnet1OctoResource = octoTerraform.addOctoTerraformResource(subnet1Resource);
-  subnet1OctoResource.output({
-    SubnetArn: octoTerraform.raw('mock.Subnet1Arn'),
-    SubnetId: octoTerraform.raw('mock.Subnet1Id'),
-  });
-  const subnet2OctoResource = octoTerraform.addOctoTerraformResource(subnet2Resource);
-  subnet2OctoResource.output({
-    SubnetArn: octoTerraform.raw('mock.Subnet2Arn'),
-    SubnetId: octoTerraform.raw('mock.Subnet2Id'),
-  });
-  const ecsTaskDefinitionOctoResource = octoTerraform.addOctoTerraformResource(ecsTaskDefinitionResource);
-  ecsTaskDefinitionOctoResource.output({
-    revision: '1',
-    taskDefinitionArn: octoTerraform.raw('mock.taskDefinitionArn'),
-  });
 
   const ecsCluster = ecsClusterResource as AResource<EcsClusterSchema, any>;
   const ecsTaskDefinition = ecsTaskDefinitionResource as AResource<EcsTaskDefinitionSchema, any>;
@@ -279,23 +260,18 @@ async function setup(
 }
 
 describe('AwsEcsAlbServiceModule UT', () => {
-  let hcl: HclAssert;
-  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    const container = await TestContainer.create(
-      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
-      { factoryTimeoutInMs: 500 },
-    );
-    testModuleContainer = new TestModuleContainer();
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+
+    testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
 
-    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
-    octoTerraform.addTerraformConfig();
-    octoTerraform.addTerraformProvider('123', 'us-east-1');
-
-    hcl = new HclAssert(octoTerraform);
+    testModuleContainer.registerTerraformConfig({
+      providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+    });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
   });
 
   afterEach(async () => {
@@ -304,7 +280,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer, octoTerraform);
+    const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -347,16 +323,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             containerName: 'test-container',
             containerPort: 80,
             execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: {
-              HealthCheckIntervalSeconds: 30,
-              HealthCheckPath: '/health',
-              HealthCheckPort: 80,
-              HealthCheckProtocol: 'HTTP',
-              HealthCheckTimeoutSeconds: 5,
-              HealthyThresholdCount: 3,
-              Matcher: { HttpCode: 200 },
-              UnhealthyThresholdCount: 3,
-            },
+            healthCheck: HEALTH_CHECK_RESPONSE,
             Name: 'test-container-80',
           },
         ],
@@ -364,107 +331,30 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const result = await testModuleContainer.commit(app, {
-      enableResourceCapture: true,
-      filterByModuleIds: ['alb-module'],
-    });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "AddAwsEcsAlbServiceModelAction",
-       ],
-       [
-         "AddAwsEcsAlbServiceOverlayAction",
-       ],
-     ]
-    `);
-    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "CaptureSecurityGroupResponseResourceAction",
-         "CaptureAlbTargetGroupResponseResourceAction",
-       ],
-       [
-         "CaptureAlbResponseResourceAction",
-       ],
-       [
-         "CaptureAlbListenerResponseResourceAction",
-       ],
-       [
-         "CaptureAlbListenerResponseResourceAction",
-         "CaptureAlbListenerResponseResourceAction",
-       ],
-     ]
-    `);
-    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
-     [
-       "+ @octo/security-group=sec-grp-region-test-alb",
-       "+ @octo/alb=alb-region-test-alb",
-       "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
-       "+ @octo/alb-listener=alb-listener-test-alb",
-       "* @octo/alb-listener=alb-listener-test-alb",
-       "* @octo/alb-listener=alb-listener-test-alb",
-     ]
-    `);
-    expect(octoTerraform.render()).toMatchInlineSnapshot(`
-     "terraform {
+    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+     "# alb-module/main.tf
+     terraform {
        required_version = ">= 1.6.0"
        required_providers {
          aws = {
-           source  = "hashicorp/aws"
+           source = "hashicorp/aws"
            version = ">= 5.49"
          }
        }
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
-     output "ecs-cluster-region-qa-clusterArn" {
-       value = mock.clusterArn
-     }
-
-     output "igw-region-InternetGatewayId" {
-       value = mock.InternetGatewayId
-     }
-
-     output "vpc-region-VpcId" {
-       value = mock.VpcId
-     }
-
-     output "subnet-region-public-subnet-1-SubnetArn" {
-       value = mock.Subnet1Arn
-     }
-
-     output "subnet-region-public-subnet-1-SubnetId" {
-       value = mock.Subnet1Id
-     }
-
-     output "subnet-region-public-subnet-2-SubnetArn" {
-       value = mock.Subnet2Arn
-     }
-
-     output "subnet-region-public-subnet-2-SubnetId" {
-       value = mock.Subnet2Id
-     }
-
-     output "ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision" {
-       value = "1"
-     }
-
-     output "ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn" {
-       value = mock.taskDefinitionArn
-     }
-
      resource "aws_security_group" "sec-grp-region-test-alb" {
-       provider = aws.123-us-east-1
-       vpc_id = mock.VpcId
+       provider = aws._123-us-east-1
+       vpc_id = var.vpc_region_VpcId
      }
 
      resource "aws_vpc_security_group_ingress_rule" "sec-grp-region-test-alb_ingress_0" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        cidr_ipv4 = "0.0.0.0/0"
        description = "tcp 80-80 0.0.0.0/0"
        ip_protocol = "tcp"
@@ -476,7 +366,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
      }
 
      resource "aws_vpc_security_group_egress_rule" "sec-grp-region-test-alb_egress_0" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        cidr_ipv4 = "0.0.0.0/0"
        description = "tcp 0-65535 0.0.0.0/0"
        ip_protocol = "tcp"
@@ -487,41 +377,25 @@ describe('AwsEcsAlbServiceModule UT', () => {
        depends_on = [aws_vpc_security_group_ingress_rule.sec-grp-region-test-alb_ingress_0]
      }
 
-     output "sec-grp-region-test-alb-Arn" {
-       value = aws_security_group.sec-grp-region-test-alb.arn
-     }
-
-     output "sec-grp-region-test-alb-GroupId" {
-       value = aws_security_group.sec-grp-region-test-alb.id
-     }
-
      resource "aws_lb" "alb-region-test-alb" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        internal = false
        ip_address_type = "ipv4"
        load_balancer_type = "application"
        name = "test-alb"
        security_groups = [aws_security_group.sec-grp-region-test-alb.id]
-       subnets = [mock.Subnet1Id, mock.Subnet2Id]
-     }
-
-     output "alb-region-test-alb-DNSName" {
-       value = aws_lb.alb-region-test-alb.dns_name
-     }
-
-     output "alb-region-test-alb-LoadBalancerArn" {
-       value = aws_lb.alb-region-test-alb.arn
+       subnets = [var.subnet_region_public_subnet_1_SubnetId, var.subnet_region_public_subnet_2_SubnetId]
      }
 
      resource "aws_lb_target_group" "alb-target-group-backend-v1-region-qa-public-subnet-1" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        ip_address_type = "ipv4"
        name = "test-container-80"
        port = 80
        protocol = "HTTP"
        protocol_version = "HTTP1"
        target_type = "ip"
-       vpc_id = mock.VpcId
+       vpc_id = var.vpc_region_VpcId
        health_check {
          enabled = true
          healthy_threshold = 3
@@ -535,12 +409,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
        }
      }
 
-     output "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" {
-       value = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
-     }
-
      resource "aws_lb_listener" "alb-listener-test-alb" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        default_action {
          forward {
            target_group {
@@ -556,7 +426,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
      }
 
      resource "aws_lb_listener_rule" "alb-listener-test-alb_rule_1" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        action {
          forward {
            target_group {
@@ -577,36 +447,250 @@ describe('AwsEcsAlbServiceModule UT', () => {
        depends_on = [aws_lb_listener.alb-listener-test-alb]
      }
 
+     # alb-module/outputs.tf
+     output "sec-grp-region-test-alb-Arn" {
+       value = aws_security_group.sec-grp-region-test-alb.arn
+     }
+
+     output "sec-grp-region-test-alb-GroupId" {
+       value = aws_security_group.sec-grp-region-test-alb.id
+     }
+
+     output "alb-region-test-alb-DNSName" {
+       value = aws_lb.alb-region-test-alb.dns_name
+     }
+
+     output "alb-region-test-alb-LoadBalancerArn" {
+       value = aws_lb.alb-region-test-alb.arn
+     }
+
+     output "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" {
+       value = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+     }
+
      output "alb-listener-test-alb-ListenerArn" {
        value = aws_lb_listener.alb-listener-test-alb.arn
      }
 
+     # alb-module/terragrunt.hcl
+     dependency "testModule" {
+       config_path = "../testModule"
+
+       mock_outputs = {
+         "vpc-region-VpcId" = "mock-vpc-region-VpcId"
+       }
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+     }
+
+     dependency "testSubnet1Module" {
+       config_path = "../testSubnet1Module"
+
+       mock_outputs = {
+         "subnet-region-public-subnet-1-SubnetId" = "mock-subnet-region-public-subnet-1-SubnetId"
+       }
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+     }
+
+     dependency "testSubnet2Module" {
+       config_path = "../testSubnet2Module"
+
+       mock_outputs = {
+         "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
+       }
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+     }
+
+     inputs = {
+       subnet_region_public_subnet_1_SubnetId = dependency.testSubnet1Module.outputs["subnet-region-public-subnet-1-SubnetId"]
+       subnet_region_public_subnet_2_SubnetId = dependency.testSubnet2Module.outputs["subnet-region-public-subnet-2-SubnetId"]
+       vpc_region_VpcId = dependency.testModule.outputs["vpc-region-VpcId"]
+     }
+
+     # alb-module/variables.tf
+     variable "subnet_region_public_subnet_1_SubnetId" {}
+
+     variable "subnet_region_public_subnet_2_SubnetId" {}
+
+     variable "vpc_region_VpcId" {}
+
+     # testExecutionModule/main.tf
+     terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "_123-us-east-1"
+       region = "us-east-1"
+     }
+
      resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-public-subnet-1" {
-       provider = aws.123-us-east-1
-       cluster = mock.clusterArn
+       provider = aws._123-us-east-1
+       cluster = var.ecs_cluster_region_qa_clusterArn
        desired_count = 1
        launch_type = "FARGATE"
        name = "backend"
        network_configuration {
          assign_public_ip = true
-         subnets = [mock.Subnet1Id]
+         subnets = [var.subnet_region_public_subnet_1_SubnetId]
        }
-       task_definition = mock.taskDefinitionArn
+       task_definition = "taskDefinitionArn"
        load_balancer {
          container_name = "test-container"
          container_port = 80
-         target_group_arn = aws_lb_target_group.alb-target-group-backend-v1-region-qa-public-subnet-1.arn
+         target_group_arn = var.alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn
        }
+     }
+
+     # testExecutionModule/outputs.tf
+     output "ecs-task-definition-backend-v1-region-qa-public-subnet-1-revision" {
+       value = "1"
+     }
+
+     output "ecs-task-definition-backend-v1-region-qa-public-subnet-1-taskDefinitionArn" {
+       value = "taskDefinitionArn"
      }
 
      output "ecs-service-backend-v1-region-qa-public-subnet-1-serviceArn" {
        value = aws_ecs_service.ecs-service-backend-v1-region-qa-public-subnet-1.id
-     }"
+     }
+
+     # testExecutionModule/terragrunt.hcl
+     dependency "alb-module" {
+       config_path = "../alb-module"
+
+       mock_outputs = {
+         "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" = "mock-alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn"
+       }
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+     }
+
+     dependency "testModule" {
+       config_path = "../testModule"
+
+       mock_outputs = {
+         "ecs-cluster-region-qa-clusterArn" = "mock-ecs-cluster-region-qa-clusterArn"
+       }
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+     }
+
+     dependency "testSubnet1Module" {
+       config_path = "../testSubnet1Module"
+
+       mock_outputs = {
+         "subnet-region-public-subnet-1-SubnetId" = "mock-subnet-region-public-subnet-1-SubnetId"
+       }
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+     }
+
+     inputs = {
+       alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn = dependency.alb-module.outputs["alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn"]
+       ecs_cluster_region_qa_clusterArn = dependency.testModule.outputs["ecs-cluster-region-qa-clusterArn"]
+       subnet_region_public_subnet_1_SubnetId = dependency.testSubnet1Module.outputs["subnet-region-public-subnet-1-SubnetId"]
+     }
+
+     # testExecutionModule/variables.tf
+     variable "alb_target_group_backend_v1_region_qa_public_subnet_1_TargetGroupArn" {}
+
+     variable "ecs_cluster_region_qa_clusterArn" {}
+
+     variable "subnet_region_public_subnet_1_SubnetId" {}
+
+     # testModule/main.tf
+     terraform {
+       required_version = ">= 1.6.0"
+     }
+
+     # testModule/outputs.tf
+     output "ecs-cluster-region-qa-clusterArn" {
+       value = "clusterArn"
+     }
+
+     output "igw-region-InternetGatewayId" {
+       value = "InternetGatewayId"
+     }
+
+     output "vpc-region-VpcId" {
+       value = "VpcId"
+     }
+
+     # testModule/terragrunt.hcl
+     <empty>
+
+     # testModule/variables.tf
+     <empty>
+
+     # testSubnet1Module/main.tf
+     terraform {
+       required_version = ">= 1.6.0"
+     }
+
+     # testSubnet1Module/outputs.tf
+     output "subnet-region-public-subnet-1-SubnetArn" {
+       value = "SubnetArn"
+     }
+
+     output "subnet-region-public-subnet-1-SubnetId" {
+       value = "SubnetId"
+     }
+
+     # testSubnet1Module/terragrunt.hcl
+     <empty>
+
+     # testSubnet1Module/variables.tf
+     <empty>
+
+     # testSubnet2Module/main.tf
+     terraform {
+       required_version = ">= 1.6.0"
+     }
+
+     # testSubnet2Module/outputs.tf
+     output "subnet-region-public-subnet-2-SubnetArn" {
+       value = "SubnetArn"
+     }
+
+     output "subnet-region-public-subnet-2-SubnetId" {
+       value = "SubnetId"
+     }
+
+     # testSubnet2Module/terragrunt.hcl
+     <empty>
+
+     # testSubnet2Module/variables.tf
+     <empty>"
+    `);
+
+    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['alb-module'] });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddAwsEcsAlbServiceModelAction",
+       ],
+       [
+         "AddAwsEcsAlbServiceOverlayAction",
+       ],
+     ]
+    `);
+    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "+ @octo/security-group=sec-grp-region-test-alb",
+       "+ @octo/alb=alb-region-test-alb",
+       "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+       "+ @octo/alb-listener=alb-listener-test-alb",
+       "* @octo/alb-listener=alb-listener-test-alb",
+       "* @octo/alb-listener=alb-listener-test-alb",
+     ]
     `);
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -631,16 +715,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             containerName: 'test-container',
             containerPort: 80,
             execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: {
-              HealthCheckIntervalSeconds: 30,
-              HealthCheckPath: '/health',
-              HealthCheckPort: 80,
-              HealthCheckProtocol: 'HTTP',
-              HealthCheckTimeoutSeconds: 5,
-              HealthyThresholdCount: 3,
-              Matcher: { HttpCode: 200 },
-              UnhealthyThresholdCount: 3,
-            },
+            healthCheck: HEALTH_CHECK_RESPONSE,
             Name: 'test-container-80',
           },
         ],
@@ -648,8 +723,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-region-test-alb",
        "+ @octo/alb=alb-region-test-alb",
@@ -659,9 +734,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    const { app: appAddListenerRule } = await setup(testModuleContainer, octoTerraform);
+    const { app: appAddListenerRule } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -697,16 +771,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             containerName: 'test-container',
             containerPort: 80,
             execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: {
-              HealthCheckIntervalSeconds: 30,
-              HealthCheckPath: '/health',
-              HealthCheckPort: 80,
-              HealthCheckProtocol: 'HTTP',
-              HealthCheckTimeoutSeconds: 5,
-              HealthyThresholdCount: 3,
-              Matcher: { HttpCode: 200 },
-              UnhealthyThresholdCount: 3,
-            },
+            healthCheck: HEALTH_CHECK_RESPONSE,
             Name: 'test-container-80',
           },
         ],
@@ -714,15 +779,15 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const resultAddListenerRule = await testModuleContainer.commit(appAddListenerRule, { enableResourceCapture: true });
-    expect(new DiffAssert(resultAddListenerRule.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appAddListenerRule)).toMatchSnapshot();
+    const resultAddListenerRule = await testModuleContainer.commit(appAddListenerRule);
+    expect(testModuleContainer.digestDiffs(resultAddListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/alb-listener=alb-listener-test-alb",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    const { app: appUpdateListenerRule } = await setup(testModuleContainer, octoTerraform);
+    const { app: appUpdateListenerRule } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -758,16 +823,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             containerName: 'test-container',
             containerPort: 80,
             execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: {
-              HealthCheckIntervalSeconds: 30,
-              HealthCheckPath: '/health',
-              HealthCheckPort: 80,
-              HealthCheckProtocol: 'HTTP',
-              HealthCheckTimeoutSeconds: 5,
-              HealthyThresholdCount: 3,
-              Matcher: { HttpCode: 200 },
-              UnhealthyThresholdCount: 3,
-            },
+            healthCheck: HEALTH_CHECK_RESPONSE,
             Name: 'test-container-80',
           },
         ],
@@ -775,20 +831,19 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule, {
-      enableResourceCapture: true,
-    });
-    expect(new DiffAssert(resultUpdateListenerRule.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appUpdateListenerRule)).toMatchSnapshot();
+    const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule);
+    expect(testModuleContainer.digestDiffs(resultUpdateListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/alb-listener=alb-listener-test-alb",
        "* @octo/alb-listener=alb-listener-test-alb",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    const { app: appDelete } = await setup(testModuleContainer, octoTerraform);
-    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const { app: appDelete } = await setup(testModuleContainer);
+    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
+    const resultDelete = await testModuleContainer.commit(appDelete);
+    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
        "- @octo/security-group=sec-grp-region-test-alb",
@@ -797,15 +852,13 @@ describe('AwsEcsAlbServiceModule UT', () => {
        "- @octo/alb-listener=alb-listener-test-alb",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
-    expect(isResourceStateEqual).toBe(true);
+    expect(await testModuleContainer.isResourceStateEqual()).toBe(true);
   });
 
   it('should CUD tags', async () => {
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -830,16 +883,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             containerName: 'test-container',
             containerPort: 80,
             execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: {
-              HealthCheckIntervalSeconds: 30,
-              HealthCheckPath: '/health',
-              HealthCheckPort: 80,
-              HealthCheckProtocol: 'HTTP',
-              HealthCheckTimeoutSeconds: 5,
-              HealthyThresholdCount: 3,
-              Matcher: { HttpCode: 200 },
-              UnhealthyThresholdCount: 3,
-            },
+            healthCheck: HEALTH_CHECK_RESPONSE,
             Name: 'test-container-80',
           },
         ],
@@ -847,8 +891,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/security-group=sec-grp-region-test-alb",
        "+ @octo/alb=alb-region-test-alb",
@@ -859,10 +903,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
        "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer, octoTerraform);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -887,16 +930,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             containerName: 'test-container',
             containerPort: 80,
             execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: {
-              HealthCheckIntervalSeconds: 30,
-              HealthCheckPath: '/health',
-              HealthCheckPort: 80,
-              HealthCheckProtocol: 'HTTP',
-              HealthCheckTimeoutSeconds: 5,
-              HealthyThresholdCount: 3,
-              Matcher: { HttpCode: 200 },
-              UnhealthyThresholdCount: 3,
-            },
+            healthCheck: HEALTH_CHECK_RESPONSE,
             Name: 'test-container-80',
           },
         ],
@@ -904,8 +938,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
+    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
        "* @octo/security-group=sec-grp-region-test-alb",
@@ -914,9 +949,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
        "* @octo/alb-listener=alb-listener-test-alb",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    const { app: appDeleteTags } = await setup(testModuleContainer, octoTerraform);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -941,16 +975,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             containerName: 'test-container',
             containerPort: 80,
             execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: {
-              HealthCheckIntervalSeconds: 30,
-              HealthCheckPath: '/health',
-              HealthCheckPort: 80,
-              HealthCheckProtocol: 'HTTP',
-              HealthCheckTimeoutSeconds: 5,
-              HealthyThresholdCount: 3,
-              Matcher: { HttpCode: 200 },
-              UnhealthyThresholdCount: 3,
-            },
+            healthCheck: HEALTH_CHECK_RESPONSE,
             Name: 'test-container-80',
           },
         ],
@@ -958,8 +983,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module',
       type: AwsEcsAlbServiceModule,
     });
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
+    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
        "* @octo/security-group=sec-grp-region-test-alb",
@@ -968,12 +994,11 @@ describe('AwsEcsAlbServiceModule UT', () => {
        "* @octo/alb-listener=alb-listener-test-alb",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
     it('should handle albName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -998,16 +1023,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1015,10 +1031,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateAlbName } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateAlbName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'changed-alb',
@@ -1043,16 +1058,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1060,10 +1066,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      const resultUpdateAlbName = await testModuleContainer.commit(appUpdateAlbName, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateAlbName.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateAlbName)).toMatchSnapshot();
+      const resultUpdateAlbName = await testModuleContainer.commit(appUpdateAlbName);
+      expect(testModuleContainer.digestDiffs(resultUpdateAlbName.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/security-group=sec-grp-region-test-alb",
          "- @octo/alb=alb-region-test-alb",
@@ -1074,11 +1079,10 @@ describe('AwsEcsAlbServiceModule UT', () => {
          "* @octo/alb-listener=alb-listener-changed-alb",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle listener DefaultActions change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1103,16 +1107,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1120,10 +1115,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateListenerDefaultAction } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateListenerDefaultAction } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1146,21 +1140,19 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      const resultUpdateListenerDefaultAction = await testModuleContainer.commit(appUpdateListenerDefaultAction, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateListenerDefaultAction.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateListenerDefaultAction)).toMatchSnapshot();
+      const resultUpdateListenerDefaultAction = await testModuleContainer.commit(appUpdateListenerDefaultAction);
+      expect(testModuleContainer.digestDiffs(resultUpdateListenerDefaultAction.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
          "* @octo/alb-listener=alb-listener-test-alb",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle listener Port change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1185,16 +1177,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1202,10 +1185,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateListenerPort } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateListenerPort } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1230,16 +1212,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1247,19 +1220,17 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      const resultUpdateListenerPort = await testModuleContainer.commit(appUpdateListenerPort, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateListenerPort.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateListenerPort)).toMatchSnapshot();
+      const resultUpdateListenerPort = await testModuleContainer.commit(appUpdateListenerPort);
+      expect(testModuleContainer.digestDiffs(resultUpdateListenerPort.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/alb-listener=alb-listener-test-alb",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle listener rules change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1284,16 +1255,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1301,10 +1263,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateListenerRule } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateListenerRule } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1340,16 +1301,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1357,19 +1309,17 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateListenerRule.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateListenerRule)).toMatchSnapshot();
+      const resultUpdateListenerRule = await testModuleContainer.commit(appUpdateListenerRule);
+      expect(testModuleContainer.digestDiffs(resultUpdateListenerRule.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/alb-listener=alb-listener-test-alb",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle target add change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1392,10 +1342,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateTargetAddNewTarget } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateTargetAddNewTarget } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1420,16 +1369,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1437,21 +1377,19 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      const resultUpdateTargetAddNewTarget = await testModuleContainer.commit(appUpdateTargetAddNewTarget, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateTargetAddNewTarget.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateTargetAddNewTarget)).toMatchSnapshot();
+      const resultUpdateTargetAddNewTarget = await testModuleContainer.commit(appUpdateTargetAddNewTarget);
+      expect(testModuleContainer.digestDiffs(resultUpdateTargetAddNewTarget.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
          "* @octo/alb-listener=alb-listener-test-alb",
          "+ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle target containerName change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1476,16 +1414,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1493,10 +1422,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateTargetContainerName } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateTargetContainerName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1521,16 +1449,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'side-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1538,19 +1457,17 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      const resultUpdateTargetContainerName = await testModuleContainer.commit(appUpdateTargetContainerName, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateTargetContainerName.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateTargetContainerName)).toMatchSnapshot();
+      const resultUpdateTargetContainerName = await testModuleContainer.commit(appUpdateTargetContainerName);
+      expect(testModuleContainer.digestDiffs(resultUpdateTargetContainerName.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle target containerPort change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1575,16 +1492,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1592,10 +1500,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateTargetContainerPort } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateTargetContainerPort } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1620,16 +1527,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 8080,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1638,16 +1536,14 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await expect(async () => {
-        await testModuleContainer.commit(appUpdateTargetContainerPort, {
-          enableResourceCapture: true,
-        });
+        await testModuleContainer.commit(appUpdateTargetContainerPort);
       }).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Cannot update ALB Target Group immutable properties once it has been created!"`,
       );
     });
 
     it('should handle target healthCheck change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1672,16 +1568,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1689,10 +1576,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateTargetHealthCheck } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateTargetHealthCheck } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1717,16 +1603,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 4, // change.
-              },
+              healthCheck: { ...HEALTH_CHECK_RESPONSE, UnhealthyThresholdCount: 4 },
               Name: 'test-container-80',
             },
           ],
@@ -1734,20 +1611,18 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      const resultUpdateTargetHealthCheck = await testModuleContainer.commit(appUpdateTargetHealthCheck, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateTargetHealthCheck.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateTargetHealthCheck)).toMatchSnapshot();
+      const resultUpdateTargetHealthCheck = await testModuleContainer.commit(appUpdateTargetHealthCheck);
+      expect(testModuleContainer.digestDiffs(resultUpdateTargetHealthCheck.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
          "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle target name change', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1772,16 +1647,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'test-container-80',
             },
           ],
@@ -1789,10 +1655,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateTargetName } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateTargetName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
         inputs: {
           albName: 'test-alb',
@@ -1817,16 +1682,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
               containerName: 'test-container',
               containerPort: 80,
               execution: stub('${{testExecutionModule.model.execution}}'),
-              healthCheck: {
-                HealthCheckIntervalSeconds: 30,
-                HealthCheckPath: '/health',
-                HealthCheckPort: 80,
-                HealthCheckProtocol: 'HTTP',
-                HealthCheckTimeoutSeconds: 5,
-                HealthyThresholdCount: 3,
-                Matcher: { HttpCode: 200 },
-                UnhealthyThresholdCount: 3,
-              },
+              healthCheck: HEALTH_CHECK_RESPONSE,
               Name: 'change-container-80',
             },
           ],
@@ -1835,9 +1691,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
         type: AwsEcsAlbServiceModule,
       });
       await expect(async () => {
-        await testModuleContainer.commit(appUpdateTargetName, {
-          enableResourceCapture: true,
-        });
+        await testModuleContainer.commit(appUpdateTargetName);
       }).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Cannot update ALB Target Group immutable properties once it has been created!"`,
       );
@@ -1845,7 +1699,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -1870,16 +1724,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             containerName: 'test-container',
             containerPort: 80,
             execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: {
-              HealthCheckIntervalSeconds: 30,
-              HealthCheckPath: '/health',
-              HealthCheckPort: 80,
-              HealthCheckProtocol: 'HTTP',
-              HealthCheckTimeoutSeconds: 5,
-              HealthyThresholdCount: 3,
-              Matcher: { HttpCode: 200 },
-              UnhealthyThresholdCount: 3,
-            },
+            healthCheck: HEALTH_CHECK_RESPONSE,
             Name: 'test-container-80',
           },
         ],
@@ -1887,10 +1732,9 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module-1',
       type: AwsEcsAlbServiceModule,
     });
-    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    hcl.digest();
+    await testModuleContainer.commit(appCreate);
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer, octoTerraform);
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsEcsAlbServiceModule>({
       inputs: {
         albName: 'test-alb',
@@ -1915,16 +1759,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
             containerName: 'test-container',
             containerPort: 80,
             execution: stub('${{testExecutionModule.model.execution}}'),
-            healthCheck: {
-              HealthCheckIntervalSeconds: 30,
-              HealthCheckPath: '/health',
-              HealthCheckPort: 80,
-              HealthCheckProtocol: 'HTTP',
-              HealthCheckTimeoutSeconds: 5,
-              HealthyThresholdCount: 3,
-              Matcher: { HttpCode: 200 },
-              UnhealthyThresholdCount: 3,
-            },
+            healthCheck: HEALTH_CHECK_RESPONSE,
             Name: 'test-container-80',
           },
         ],
@@ -1932,8 +1767,8 @@ describe('AwsEcsAlbServiceModule UT', () => {
       moduleId: 'alb-module-2',
       type: AwsEcsAlbServiceModule,
     });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
+    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 });

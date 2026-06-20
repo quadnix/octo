@@ -1,15 +1,10 @@
-import { type Account, type App, DiffAssert, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsDynamoDBAnchorSchema } from '../../../anchors/aws-dynamodb/aws-dynamodb.anchor.schema.js';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
 import type { DynamoDBSchema } from '../../../resources/dynamodb/index.schema.js';
-import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsDynamoDBGlobalServiceModule } from './index.js';
 
-async function setup(
-  testModuleContainer: TestModuleContainer,
-  octoTerraform: OctoTerraform,
-): Promise<{ account: Account; app: App }> {
+async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
   const {
     account: [account],
     app: [app],
@@ -70,14 +65,12 @@ async function setup(
     ),
   );
 
-  const { '@octo/dynamodb=dynamodb-test-table': dynamoDBResource } = await testModuleContainer.createTestResources<
-    [DynamoDBSchema]
-  >(
+  await testModuleContainer.createTestResources<[DynamoDBSchema]>(
     'testModule',
     [
       {
         properties: {
-          AttributeDefinitions: [],
+          AttributeDefinitions: [{ AttributeName: 'AccountId', AttributeType: 'S' }],
           awsAccountId: '123',
           awsRegionId: 'us-east-1',
           billingMode: {
@@ -92,43 +85,29 @@ async function setup(
           TableName: 'test-table',
         },
         resourceContext: '@octo/dynamodb=dynamodb-test-table',
-        response: {
-          TableArn: 'TableArn',
-        },
+        response: { TableArn: 'TableArn' },
+        terraform: true,
       },
     ],
-    {
-      save: true,
-    },
+    { save: true },
   );
-
-  const dynamoDBOctoResource = octoTerraform.addOctoTerraformResource(dynamoDBResource);
-  dynamoDBOctoResource.output({
-    TableArn: octoTerraform.raw('mock.TableArn'),
-  });
 
   return { account, app };
 }
 
 describe('AwsDynamoDBGlobalServiceModule UT', () => {
-  let hcl: HclAssert;
-  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    const container = await TestContainer.create(
-      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
-      { factoryTimeoutInMs: 500 },
-    );
-    testModuleContainer = new TestModuleContainer();
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
 
-    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
-    octoTerraform.addTerraformConfig();
-    octoTerraform.addTerraformProvider('123', 'us-east-1');
-    octoTerraform.addTerraformProvider('123', 'us-west-2');
-
-    hcl = new HclAssert(octoTerraform);
+    testModuleContainer.registerTerraformConfig({
+      providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+    });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
+    testModuleContainer.registerTerraformProvider('aws', '123', 'us-west-2');
   });
 
   afterEach(async () => {
@@ -137,7 +116,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
   });
 
   it('should call correct actions', async () => {
-    const { app } = await setup(testModuleContainer, octoTerraform);
+    const { app } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -146,10 +125,71 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    const result = await testModuleContainer.commit(app, {
-      enableResourceCapture: true,
-      filterByModuleIds: ['global-dynamodb-module'],
-    });
+    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+     "# global-dynamodb-module/main.tf
+     terraform {
+       required_version = ">= 1.6.0"
+       required_providers {
+         aws = {
+           source = "hashicorp/aws"
+           version = ">= 5.49"
+         }
+       }
+     }
+
+     provider "aws" {
+       alias = "_123-us-east-1"
+       region = "us-east-1"
+     }
+
+     resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
+       global_table_arn = var.dynamodb_test_table_TableArn
+       provider = aws._123-us-east-1
+       tags = {
+         key1 = "value1"
+       }
+     }
+
+     # global-dynamodb-module/outputs.tf
+     output "dynamodb-global-test-table-123:us-east-1:TableArn" {
+       value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
+     }
+
+     # global-dynamodb-module/terragrunt.hcl
+     dependency "testModule" {
+       config_path = "../testModule"
+
+       mock_outputs = {
+         "dynamodb-test-table-TableArn" = "mock-dynamodb-test-table-TableArn"
+       }
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+     }
+
+     inputs = {
+       dynamodb_test_table_TableArn = dependency.testModule.outputs["dynamodb-test-table-TableArn"]
+     }
+
+     # global-dynamodb-module/variables.tf
+     variable "dynamodb_test_table_TableArn" {}
+
+     # testModule/main.tf
+     terraform {
+       required_version = ">= 1.6.0"
+     }
+
+     # testModule/outputs.tf
+     output "dynamodb-test-table-TableArn" {
+       value = "TableArn"
+     }
+
+     # testModule/terragrunt.hcl
+     <empty>
+
+     # testModule/variables.tf
+     <empty>"
+    `);
+
+    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['global-dynamodb-module'] });
     expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
      [
        [
@@ -157,59 +197,15 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
        ],
      ]
     `);
-    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "CaptureDynamoDBGlobalResponseResourceAction",
-       ],
-     ]
-    `);
-    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
-    `);
-    expect(octoTerraform.render()).toMatchInlineSnapshot(`
-     "terraform {
-       required_version = ">= 1.6.0"
-       required_providers {
-         aws = {
-           source  = "hashicorp/aws"
-           version = ">= 5.49"
-         }
-       }
-     }
-
-     provider "aws" {
-       alias = "123-us-east-1"
-       region = "us-east-1"
-     }
-
-     provider "aws" {
-       alias = "123-us-west-2"
-       region = "us-west-2"
-     }
-
-     output "dynamodb-test-table-TableArn" {
-       value = mock.TableArn
-     }
-
-     resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
-       global_table_arn = mock.TableArn
-       provider = aws.123-us-east-1
-       tags = {
-         key1 = "value1"
-       }
-     }
-
-     output "dynamodb-global-test-table-123:us-east-1:TableArn" {
-       value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
-     }"
     `);
   });
 
   it('should CUD', async () => {
-    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -218,15 +214,14 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    const { app: appNoChange } = await setup(testModuleContainer, octoTerraform);
+    const { app: appNoChange } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -235,11 +230,11 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    const resultNoChange = await testModuleContainer.commit(appNoChange, { enableResourceCapture: true });
-    expect(new DiffAssert(resultNoChange.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appNoChange)).toMatchSnapshot();
+    const resultNoChange = await testModuleContainer.commit(appNoChange);
+    expect(testModuleContainer.digestDiffs(resultNoChange.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
-    const { app: appAddReplica } = await setup(testModuleContainer, octoTerraform);
+    const { app: appAddReplica } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -251,15 +246,15 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    const resultAddReplica = await testModuleContainer.commit(appAddReplica, { enableResourceCapture: true });
-    expect(new DiffAssert(resultAddReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appAddReplica)).toMatchSnapshot();
+    const resultAddReplica = await testModuleContainer.commit(appAddReplica);
+    expect(testModuleContainer.digestDiffs(resultAddReplica.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    const { app: appRemoveReplica } = await setup(testModuleContainer, octoTerraform);
+    const { app: appRemoveReplica } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -268,26 +263,26 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    const resultRemoveReplica = await testModuleContainer.commit(appRemoveReplica, { enableResourceCapture: true });
-    expect(new DiffAssert(resultRemoveReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appRemoveReplica)).toMatchSnapshot();
+    const resultRemoveReplica = await testModuleContainer.commit(appRemoveReplica);
+    expect(testModuleContainer.digestDiffs(resultRemoveReplica.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    const { app: appDelete } = await setup(testModuleContainer, octoTerraform);
-    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    const { app: appDelete } = await setup(testModuleContainer);
+    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
+    const resultDelete = await testModuleContainer.commit(appDelete);
+    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
   });
 
   it('should CUD tags', async () => {
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
-    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -296,16 +291,15 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
-    const { app: appUpdateTags } = await setup(testModuleContainer, octoTerraform);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -316,15 +310,15 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
+    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    const { app: appDeleteTags } = await setup(testModuleContainer, octoTerraform);
+    const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -333,18 +327,18 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
+    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/dynamodb-global=dynamodb-global-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
     it('should handle replica add', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -353,10 +347,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         moduleId: 'global-dynamodb-module',
         type: AwsDynamoDBGlobalServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appAddReplica } = await setup(testModuleContainer, octoTerraform);
+      const { app: appAddReplica } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -368,17 +361,17 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         moduleId: 'global-dynamodb-module',
         type: AwsDynamoDBGlobalServiceModule,
       });
-      const resultAddReplica = await testModuleContainer.commit(appAddReplica, { enableResourceCapture: true });
-      expect(new DiffAssert(resultAddReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appAddReplica)).toMatchSnapshot();
+      const resultAddReplica = await testModuleContainer.commit(appAddReplica);
+      expect(testModuleContainer.digestDiffs(resultAddReplica.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb-global=dynamodb-global-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle replica delete', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -390,10 +383,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         moduleId: 'global-dynamodb-module',
         type: AwsDynamoDBGlobalServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appRemoveReplica } = await setup(testModuleContainer, octoTerraform);
+      const { app: appRemoveReplica } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -402,17 +394,17 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         moduleId: 'global-dynamodb-module',
         type: AwsDynamoDBGlobalServiceModule,
       });
-      const resultRemoveReplica = await testModuleContainer.commit(appRemoveReplica, { enableResourceCapture: true });
-      expect(new DiffAssert(resultRemoveReplica.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appRemoveReplica)).toMatchSnapshot();
+      const resultRemoveReplica = await testModuleContainer.commit(appRemoveReplica);
+      expect(testModuleContainer.digestDiffs(resultRemoveReplica.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb-global=dynamodb-global-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle replica tags update', async () => {
-      const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+      const { app: appCreate } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -421,10 +413,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         moduleId: 'global-dynamodb-module',
         type: AwsDynamoDBGlobalServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
-      const { app: appUpdateReplicaTags } = await setup(testModuleContainer, octoTerraform);
+      const { app: appUpdateReplicaTags } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
         inputs: {
           dynamoDBService: stub('${{testModule.model.service}}'),
@@ -433,20 +424,18 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
         moduleId: 'global-dynamodb-module',
         type: AwsDynamoDBGlobalServiceModule,
       });
-      const resultUpdateReplicaTags = await testModuleContainer.commit(appUpdateReplicaTags, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateReplicaTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateReplicaTags)).toMatchSnapshot();
+      const resultUpdateReplicaTags = await testModuleContainer.commit(appUpdateReplicaTags);
+      expect(testModuleContainer.digestDiffs(resultUpdateReplicaTags.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb-global=dynamodb-global-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
   it('should handle moduleId change', async () => {
-    const { app: appCreate } = await setup(testModuleContainer, octoTerraform);
+    const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -455,10 +444,9 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module-1',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    hcl.digest();
+    await testModuleContainer.commit(appCreate);
 
-    const { app: appUpdateModuleId } = await setup(testModuleContainer, octoTerraform);
+    const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
       inputs: {
         dynamoDBService: stub('${{testModule.model.service}}'),
@@ -467,16 +455,14 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
       moduleId: 'global-dynamodb-module-2',
       type: AwsDynamoDBGlobalServiceModule,
     });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, {
-      enableResourceCapture: true,
-    });
-    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
+    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {
     it('should validate replicas is not empty', async () => {
-      await setup(testModuleContainer, octoTerraform);
+      await setup(testModuleContainer);
       await expect(async () => {
         await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
           inputs: {
@@ -490,7 +476,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
     });
 
     it('should validate replica tag keys and values are non-empty', async () => {
-      await setup(testModuleContainer, octoTerraform);
+      await setup(testModuleContainer);
       await expect(async () => {
         await testModuleContainer.runModule<AwsDynamoDBGlobalServiceModule>({
           inputs: {

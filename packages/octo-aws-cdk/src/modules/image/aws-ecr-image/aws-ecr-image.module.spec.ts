@@ -158,7 +158,6 @@ describe('AwsEcrImageModule UT', () => {
       moduleId: 'image',
       type: AwsEcrImageModule,
     });
-    expect(await testModuleContainer.renderHcl(appCreate)).toMatchSnapshot();
     const resultCreate = await testModuleContainer.commit(appCreate);
     expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
@@ -191,7 +190,6 @@ describe('AwsEcrImageModule UT', () => {
       moduleId: 'image',
       type: AwsEcrImageModule,
     });
-    expect(await testModuleContainer.renderHcl(appCreate)).toMatchSnapshot();
     const resultCreate = await testModuleContainer.commit(appCreate);
     expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [

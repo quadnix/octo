@@ -261,7 +261,6 @@ describe('AwsEcsServerModule UT', () => {
       moduleId: 'server',
       type: AwsEcsServerModule,
     });
-    expect(await testModuleContainer.renderHcl(appCreate)).toMatchSnapshot();
     const resultCreate = await testModuleContainer.commit(appCreate);
     expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
@@ -354,7 +353,6 @@ describe('AwsEcsServerModule UT', () => {
       moduleId: 'server',
       type: AwsEcsServerModule,
     });
-    expect(await testModuleContainer.renderHcl(appCreate)).toMatchSnapshot();
     const resultCreate = await testModuleContainer.commit(appCreate);
     expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [

@@ -84,101 +84,9 @@ output "iam-role-ServerRole-changed-backend-RoleName" {
 }"
 `;
 
-exports[`AwsEcsServerModule UT should CUD 1`] = `
-"# server/main.tf
-terraform {
-  required_version = ">= 1.6.0"
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-      version = ">= 5.49"
-    }
-  }
-}
+exports[`AwsEcsServerModule UT should CUD 2`] = `"<no changes>"`;
 
-provider "aws" {
-  alias = "_123-us-east-1"
-  region = "us-east-1"
-}
-
-resource "aws_iam_role" "iam-role-ServerRole-backend" {
-  provider = aws._123-us-east-1
-  assume_role_policy = jsonencode({
-    Statement = [{
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }]
-    Version = "2012-10-17"
-  })
-  name = "ServerRole-backend"
-}
-
-resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
-  provider = aws._123-us-east-1
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-  role = aws_iam_role.iam-role-ServerRole-backend.name
-
-  depends_on = [aws_iam_role.iam-role-ServerRole-backend]
-}
-
-# server/outputs.tf
-output "iam-role-ServerRole-backend-Arn" {
-  value = aws_iam_role.iam-role-ServerRole-backend.arn
-}
-
-output "iam-role-ServerRole-backend-RoleId" {
-  value = aws_iam_role.iam-role-ServerRole-backend.unique_id
-}
-
-output "iam-role-ServerRole-backend-RoleName" {
-  value = aws_iam_role.iam-role-ServerRole-backend.name
-}
-
-# server/terragrunt.hcl
-<empty>
-
-# server/variables.tf
-<empty>
-
-# testModule/main.tf
-terraform {
-  required_version = ">= 1.6.0"
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-      version = ">= 5.49"
-    }
-  }
-}
-
-provider "aws" {
-  alias = "_123-us-east-1"
-  region = "us-east-1"
-}
-
-resource "aws_s3_bucket" "bucket-test-bucket" {
-  provider = aws._123-us-east-1
-  bucket = "test-bucket"
-}
-
-# testModule/outputs.tf
-output "bucket-test-bucket-Arn" {
-  value = aws_s3_bucket.bucket-test-bucket.arn
-}
-
-# testModule/terragrunt.hcl
-<empty>
-
-# testModule/variables.tf
-<empty>"
-`;
-
-exports[`AwsEcsServerModule UT should CUD 3`] = `"<no changes>"`;
-
-exports[`AwsEcsServerModule UT should CUD 5`] = `
+exports[`AwsEcsServerModule UT should CUD 4`] = `
 "+ server/main.tf
 depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e]
 }
@@ -254,7 +162,7 @@ mock_outputs = {
 variable "iam_role_ServerRole_backend_Arn" {}"
 `;
 
-exports[`AwsEcsServerModule UT should CUD 7`] = `
+exports[`AwsEcsServerModule UT should CUD 6`] = `
 "- server/main.tf
 depends_on = [aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e]
 }
@@ -394,102 +302,7 @@ mock_outputs = {
 variable "iam_role_ServerRole_backend_Arn" {}"
 `;
 
-exports[`AwsEcsServerModule UT should CUD tags 1`] = `
-"# server/main.tf
-terraform {
-  required_version = ">= 1.6.0"
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-      version = ">= 5.49"
-    }
-  }
-}
-
-provider "aws" {
-  alias = "_123-us-east-1"
-  region = "us-east-1"
-}
-
-resource "aws_iam_role" "iam-role-ServerRole-backend" {
-  provider = aws._123-us-east-1
-  assume_role_policy = jsonencode({
-    Statement = [{
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
-      }]
-    Version = "2012-10-17"
-  })
-  name = "ServerRole-backend"
-  tags = {
-    tag1 = "value1"
-  }
-}
-
-resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
-  provider = aws._123-us-east-1
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-  role = aws_iam_role.iam-role-ServerRole-backend.name
-
-  depends_on = [aws_iam_role.iam-role-ServerRole-backend]
-}
-
-# server/outputs.tf
-output "iam-role-ServerRole-backend-Arn" {
-  value = aws_iam_role.iam-role-ServerRole-backend.arn
-}
-
-output "iam-role-ServerRole-backend-RoleId" {
-  value = aws_iam_role.iam-role-ServerRole-backend.unique_id
-}
-
-output "iam-role-ServerRole-backend-RoleName" {
-  value = aws_iam_role.iam-role-ServerRole-backend.name
-}
-
-# server/terragrunt.hcl
-<empty>
-
-# server/variables.tf
-<empty>
-
-# testModule/main.tf
-terraform {
-  required_version = ">= 1.6.0"
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-      version = ">= 5.49"
-    }
-  }
-}
-
-provider "aws" {
-  alias = "_123-us-east-1"
-  region = "us-east-1"
-}
-
-resource "aws_s3_bucket" "bucket-test-bucket" {
-  provider = aws._123-us-east-1
-  bucket = "test-bucket"
-}
-
-# testModule/outputs.tf
-output "bucket-test-bucket-Arn" {
-  value = aws_s3_bucket.bucket-test-bucket.arn
-}
-
-# testModule/terragrunt.hcl
-<empty>
-
-# testModule/variables.tf
-<empty>"
-`;
-
-exports[`AwsEcsServerModule UT should CUD tags 3`] = `
+exports[`AwsEcsServerModule UT should CUD tags 2`] = `
 "~ server/main.tf resource "aws_iam_role" "iam-role-ServerRole-backend" {
 @@ -14,3 +14,4 @@
     tags = {
@@ -499,7 +312,7 @@ exports[`AwsEcsServerModule UT should CUD tags 3`] = `
     }"
 `;
 
-exports[`AwsEcsServerModule UT should CUD tags 5`] = `
+exports[`AwsEcsServerModule UT should CUD tags 4`] = `
 "~ server/main.tf resource "aws_iam_role" "iam-role-ServerRole-backend" {
 @@ -13,6 +13,2 @@
     name = "ServerRole-backend"

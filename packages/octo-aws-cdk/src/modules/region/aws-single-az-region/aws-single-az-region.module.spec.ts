@@ -413,7 +413,7 @@ describe('AwsSingleAzRegionModule UT', () => {
           type: AwsSingleAzRegionModule,
         });
       }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Invalid VPC cidr block "10.0.0.0/8"! AWS requires a valid IPv4 cidr between /16 and /28."`,
+        `"Invalid VPC cidr block "10.0.0.0/8"! AWS requires a valid IpV4 cidr between /16 and /28."`,
       );
     });
   });

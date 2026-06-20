@@ -1,14 +1,14 @@
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { type Account, type App, DiffAssert, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
+import { type Account, type App, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsAccountAnchorSchema } from '../../../anchors/aws-account/aws-account.anchor.schema.js';
-import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
-import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsS3StaticWebsiteServiceModule } from './index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const resourcesPath = join(__dirname, '../../../../resources');
 const websiteSourcePath = join(resourcesPath, 's3-static-website');
+
+const toRelativePaths = (hcl: string): string => hcl.replaceAll(resourcesPath, 'resources');
 
 async function setup(testModuleContainer: TestModuleContainer): Promise<{ account: Account; app: App }> {
   const {
@@ -27,24 +27,18 @@ async function setup(testModuleContainer: TestModuleContainer): Promise<{ accoun
 }
 
 describe('AwsS3StaticWebsiteServiceModule UT', () => {
-  let hcl: HclAssert;
-  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    const container = await TestContainer.create(
-      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
-      { factoryTimeoutInMs: 500 },
-    );
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    testModuleContainer = new TestModuleContainer();
+    testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
 
-    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
-    octoTerraform.addTerraformConfig();
-    octoTerraform.addTerraformProvider('123', 'us-east-1');
-
-    hcl = new HclAssert(octoTerraform);
+    testModuleContainer.registerTerraformConfig({
+      providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+    });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
   });
 
   afterEach(async () => {
@@ -64,60 +58,31 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
     });
-    const result = await testModuleContainer.commit(app, {
-      enableResourceCapture: true,
-      filterByModuleIds: ['service'],
-    });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "AddAwsS3StaticWebsiteServiceModelAction",
-       ],
-       [
-         "UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction",
-       ],
-     ]
-    `);
-    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "CaptureS3WebsiteResponseResourceAction",
-       ],
-       [
-         "CaptureS3WebsiteResponseResourceAction",
-       ],
-     ]
-    `);
-    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
-     [
-       "+ @octo/s3-website=bucket-test-bucket",
-       "* @octo/s3-website=bucket-test-bucket",
-     ]
-    `);
-    /* eslint-disable spellcheck/spell-checker */
-    expect(octoTerraform.render()).toMatchInlineSnapshot(`
-     "terraform {
+
+    expect(toRelativePaths(await testModuleContainer.renderHcl(app))).toMatchInlineSnapshot(`
+     "# service/main.tf
+     terraform {
        required_version = ">= 1.6.0"
        required_providers {
          aws = {
-           source  = "hashicorp/aws"
+           source = "hashicorp/aws"
            version = ">= 5.49"
          }
        }
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
      resource "aws_s3_bucket" "bucket-test-bucket_website_bucket" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        bucket = "test-bucket"
      }
 
      resource "aws_s3_bucket_website_configuration" "bucket-test-bucket_website_bucket_config" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
        error_document {
          key = "error.html"
@@ -130,7 +95,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
      }
 
      resource "aws_s3_bucket_public_access_block" "bucket-test-bucket_website_bucket_public_access" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        block_public_acls = false
        block_public_policy = false
        bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
@@ -141,7 +106,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
      }
 
      resource "aws_s3_bucket_policy" "bucket-test-bucket_website_bucket_public_read_policy" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
        policy = jsonencode({
          Statement = [{
@@ -158,47 +123,71 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
      }
 
      resource "aws_s3_object" "bucket-test-bucket_file_errorhtml" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
        content_type = "text/html"
-       etag = filemd5("${websiteSourcePath}/error.html")
+       etag = filemd5("resources/s3-static-website/error.html")
        key = "error.html"
-       source = "${websiteSourcePath}/error.html"
+       source = "resources/s3-static-website/error.html"
 
        depends_on = [aws_s3_bucket_policy.bucket-test-bucket_website_bucket_public_read_policy]
      }
 
      resource "aws_s3_object" "bucket-test-bucket_file_indexhtml" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
        content_type = "text/html"
-       etag = filemd5("${websiteSourcePath}/index.html")
+       etag = filemd5("resources/s3-static-website/index.html")
        key = "index.html"
-       source = "${websiteSourcePath}/index.html"
+       source = "resources/s3-static-website/index.html"
 
        depends_on = [aws_s3_object.bucket-test-bucket_file_errorhtml]
      }
 
      resource "aws_s3_object" "bucket-test-bucket_file_page1html" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket_website_bucket.id
        content_type = "text/html"
-       etag = filemd5("${websiteSourcePath}/page-1.html")
+       etag = filemd5("resources/s3-static-website/page-1.html")
        key = "page-1.html"
-       source = "${websiteSourcePath}/page-1.html"
+       source = "resources/s3-static-website/page-1.html"
 
        depends_on = [aws_s3_object.bucket-test-bucket_file_indexhtml]
      }
 
+     # service/outputs.tf
      output "bucket-test-bucket-Arn" {
        value = aws_s3_bucket.bucket-test-bucket_website_bucket.arn
      }
 
      output "bucket-test-bucket-awsRegionId" {
        value = "us-east-1"
-     }"
+     }
+
+     # service/terragrunt.hcl
+     <empty>
+
+     # service/variables.tf
+     <empty>"
     `);
-    /* eslint-enable */
+
+    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['service'] });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddAwsS3StaticWebsiteServiceModelAction",
+       ],
+       [
+         "UpdateAwsS3StaticWebsiteServiceSourcePathsModelAction",
+       ],
+     ]
+    `);
+    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "+ @octo/s3-website=bucket-test-bucket",
+       "* @octo/s3-website=bucket-test-bucket",
+     ]
+    `);
   });
 
   it('should CUD', async () => {
@@ -213,14 +202,13 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appUpdateNoChange } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
@@ -233,29 +221,29 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
     });
-    const resultUpdateNoChange = await testModuleContainer.commit(appUpdateNoChange, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateNoChange.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateNoChange))).toMatchSnapshot();
+    const resultUpdateNoChange = await testModuleContainer.commit(appUpdateNoChange);
+    expect(testModuleContainer.digestDiffs(resultUpdateNoChange.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDelete } = await setup(testModuleContainer);
-    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(toRelativePaths(await testModuleContainer.diffHcl(appDelete))).toMatchSnapshot();
+    const resultDelete = await testModuleContainer.commit(appDelete);
+    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
   });
 
   it('should CUD tags', async () => {
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
       inputs: {
@@ -267,16 +255,15 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
       inputs: {
@@ -288,14 +275,14 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
     });
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateTags))).toMatchSnapshot();
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
+    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
@@ -308,14 +295,14 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       moduleId: 'service',
       type: AwsS3StaticWebsiteServiceModule,
     });
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(toRelativePaths(await testModuleContainer.diffHcl(appDeleteTags))).toMatchSnapshot();
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
+    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
        "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -331,9 +318,9 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         moduleId: 'service',
         type: AwsS3StaticWebsiteServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
+      testModuleContainer.registerTerraformProvider('aws', '123', 'us-west-2');
       const { app: appUpdateRegionId } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
         inputs: {
@@ -346,9 +333,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         type: AwsS3StaticWebsiteServiceModule,
       });
       await expect(async () => {
-        await testModuleContainer.commit(appUpdateRegionId, {
-          enableResourceCapture: true,
-        });
+        await testModuleContainer.commit(appUpdateRegionId);
       }).rejects.toThrowErrorMatchingInlineSnapshot(
         `"Cannot update S3 Website immutable properties once it has been created!"`,
       );
@@ -366,8 +351,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         moduleId: 'service',
         type: AwsS3StaticWebsiteServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
       const { app: appUpdateBucketName } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
@@ -380,17 +364,15 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         moduleId: 'service',
         type: AwsS3StaticWebsiteServiceModule,
       });
-      const resultUpdateBucketName = await testModuleContainer.commit(appUpdateBucketName, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateBucketName.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateBucketName))).toMatchSnapshot();
+      const resultUpdateBucketName = await testModuleContainer.commit(appUpdateBucketName);
+      expect(testModuleContainer.digestDiffs(resultUpdateBucketName.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "- @octo/s3-website=bucket-test-bucket",
          "+ @octo/s3-website=bucket-changed-bucket",
          "* @octo/s3-website=bucket-changed-bucket",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle directoryPath change', async () => {
@@ -405,8 +387,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         moduleId: 'service',
         type: AwsS3StaticWebsiteServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
       const { app: appUpdateDirectoryPath } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
@@ -419,15 +400,13 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         moduleId: 'service',
         type: AwsS3StaticWebsiteServiceModule,
       });
-      const resultUpdateDirectoryPath = await testModuleContainer.commit(appUpdateDirectoryPath, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateDirectoryPath.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateDirectoryPath))).toMatchSnapshot();
+      const resultUpdateDirectoryPath = await testModuleContainer.commit(appUpdateDirectoryPath);
+      expect(testModuleContainer.digestDiffs(resultUpdateDirectoryPath.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/s3-website=bucket-test-bucket",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -443,8 +422,7 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       moduleId: 'service-1',
       type: AwsS3StaticWebsiteServiceModule,
     });
-    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    hcl.digest();
+    await testModuleContainer.commit(appCreate);
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsS3StaticWebsiteServiceModule>({
@@ -457,13 +435,13 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
       moduleId: 'service-2',
       type: AwsS3StaticWebsiteServiceModule,
     });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(toRelativePaths(await testModuleContainer.diffHcl(appUpdateModuleId))).toMatchSnapshot();
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
+    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/s3-website=bucket-test-bucket",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('validation', () => {

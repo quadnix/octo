@@ -1,247 +1,285 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`AwsDynamoDBGlobalServiceModule UT input changes should handle replica add 2`] = `
-"- Expected
-+ Received
+exports[`AwsDynamoDBGlobalServiceModule UT input changes should handle replica add 1`] = `
+"+ global-dynamodb-module/main.tf
+depends_on = [aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1]
+}
 
-  Object {
-    "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
-      "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
-    },
-+   "output.dynamodb-global-test-table-123:us-west-2:TableArn": Object {
-+     "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn",
-+   },
-    "output.dynamodb-test-table-TableArn": Object {
-      "value": "mock.TableArn",
-    },
-    "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
-      "global_table_arn": "mock.TableArn",
-      "provider": "aws.123-us-east-1",
-+   },
-+   "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2": Object {
-+     "depends_on": "[aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1]",
-+     "global_table_arn": "mock.TableArn",
-+     "provider": "aws.123-us-west-2",
-+     "tags": Object {
-+       "env": "replica2",
-+     },
-    },
-  }"
+~ global-dynamodb-module/main.tf provider "aws" {
+@@ -1,4 +1,4 @@
+  provider "aws" {
+-   alias = "_123-us-east-1"
+-   region = "us-east-1"
++   alias = "_123-us-west-2"
++   region = "us-west-2"
+  }
+
++ global-dynamodb-module/main.tf
+resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
+  global_table_arn = var.dynamodb_test_table_TableArn
+  provider = aws._123-us-west-2
+  tags = {
+    env = "replica2"
+  }
+
++ global-dynamodb-module/outputs.tf
+output "dynamodb-global-test-table-123:us-west-2:TableArn" {
+  value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
+}"
 `;
 
-exports[`AwsDynamoDBGlobalServiceModule UT input changes should handle replica delete 2`] = `
-"- Expected
-+ Received
+exports[`AwsDynamoDBGlobalServiceModule UT input changes should handle replica delete 1`] = `
+"- global-dynamodb-module/main.tf
+depends_on = [aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1]
+}
 
-  Object {
-    "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
-      "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
-    },
--   "output.dynamodb-global-test-table-123:us-west-2:TableArn": Object {
--     "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn",
--   },
-    "output.dynamodb-test-table-TableArn": Object {
-      "value": "mock.TableArn",
-    },
-    "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
-      "global_table_arn": "mock.TableArn",
-      "provider": "aws.123-us-east-1",
--   },
--   "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2": Object {
--     "depends_on": "[aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1]",
--     "global_table_arn": "mock.TableArn",
--     "provider": "aws.123-us-west-2",
-    },
-  }"
+~ global-dynamodb-module/main.tf provider "aws" {
+@@ -1,4 +1,4 @@
+  provider "aws" {
+-   alias = "_123-us-west-2"
+-   region = "us-west-2"
++   alias = "_123-us-east-1"
++   region = "us-east-1"
+  }
+
+- global-dynamodb-module/main.tf
+resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
+  global_table_arn = var.dynamodb_test_table_TableArn
+  provider = aws._123-us-west-2
+
+- global-dynamodb-module/outputs.tf
+output "dynamodb-global-test-table-123:us-west-2:TableArn" {
+  value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
+}"
 `;
 
-exports[`AwsDynamoDBGlobalServiceModule UT input changes should handle replica tags update 2`] = `
-"- Expected
-+ Received
-
-  Object {
-    "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
-      "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
-    },
-    "output.dynamodb-test-table-TableArn": Object {
-      "value": "mock.TableArn",
-    },
-    "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
-      "global_table_arn": "mock.TableArn",
-      "provider": "aws.123-us-east-1",
-      "tags": Object {
--       "a": "1",
-+       "a": "2",
-+       "b": "3",
-      },
-    },
-  }"
+exports[`AwsDynamoDBGlobalServiceModule UT input changes should handle replica tags update 1`] = `
+"~ global-dynamodb-module/main.tf resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
+@@ -4,3 +4,4 @@
+    tags = {
+-     a = "1"
++     a = "2"
++     b = "3"
+    }"
 `;
 
-exports[`AwsDynamoDBGlobalServiceModule UT should CUD 2`] = `
-"- Expected
-+ Received
+exports[`AwsDynamoDBGlobalServiceModule UT should CUD 2`] = `"<no changes>"`;
 
-- Object {}
-+ Object {
-+   "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
-+     "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
-+   },
-+   "output.dynamodb-test-table-TableArn": Object {
-+     "value": "mock.TableArn",
-+   },
-+   "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
-+     "global_table_arn": "mock.TableArn",
-+     "provider": "aws.123-us-east-1",
-+     "tags": Object {
-+       "key1": "value1",
-+     },
-+   },
-+ }"
+exports[`AwsDynamoDBGlobalServiceModule UT should CUD 4`] = `
+"+ global-dynamodb-module/main.tf
+depends_on = [aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1]
+}
+
+~ global-dynamodb-module/main.tf provider "aws" {
+@@ -1,4 +1,4 @@
+  provider "aws" {
+-   alias = "_123-us-east-1"
+-   region = "us-east-1"
++   alias = "_123-us-west-2"
++   region = "us-west-2"
+  }
+
++ global-dynamodb-module/main.tf
+resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
+  global_table_arn = var.dynamodb_test_table_TableArn
+  provider = aws._123-us-west-2
+
++ global-dynamodb-module/outputs.tf
+output "dynamodb-global-test-table-123:us-west-2:TableArn" {
+  value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
+}"
 `;
-
-exports[`AwsDynamoDBGlobalServiceModule UT should CUD 4`] = `"Compared values have no visual difference."`;
 
 exports[`AwsDynamoDBGlobalServiceModule UT should CUD 6`] = `
-"- Expected
-+ Received
+"- global-dynamodb-module/main.tf
+depends_on = [aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1]
+}
 
-  Object {
-    "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
-      "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
-    },
-+   "output.dynamodb-global-test-table-123:us-west-2:TableArn": Object {
-+     "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn",
-+   },
-    "output.dynamodb-test-table-TableArn": Object {
-      "value": "mock.TableArn",
-    },
-    "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
-      "global_table_arn": "mock.TableArn",
-      "provider": "aws.123-us-east-1",
-      "tags": Object {
-        "key1": "value1",
-+     },
-    },
-+   "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2": Object {
-+     "depends_on": "[aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1]",
-+     "global_table_arn": "mock.TableArn",
-+     "provider": "aws.123-us-west-2",
-    },
-  }"
+~ global-dynamodb-module/main.tf provider "aws" {
+@@ -1,4 +1,4 @@
+  provider "aws" {
+-   alias = "_123-us-west-2"
+-   region = "us-west-2"
++   alias = "_123-us-east-1"
++   region = "us-east-1"
+  }
+
+- global-dynamodb-module/main.tf
+resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
+  global_table_arn = var.dynamodb_test_table_TableArn
+  provider = aws._123-us-west-2
+
+- global-dynamodb-module/outputs.tf
+output "dynamodb-global-test-table-123:us-west-2:TableArn" {
+  value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
+}"
 `;
 
 exports[`AwsDynamoDBGlobalServiceModule UT should CUD 8`] = `
-"- Expected
-+ Received
+"- global-dynamodb-module/main.tf
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+}
 
-  Object {
-    "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
-      "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
-    },
--   "output.dynamodb-global-test-table-123:us-west-2:TableArn": Object {
--     "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn",
--   },
-    "output.dynamodb-test-table-TableArn": Object {
-      "value": "mock.TableArn",
-    },
-    "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
-      "global_table_arn": "mock.TableArn",
-      "provider": "aws.123-us-east-1",
-      "tags": Object {
-        "key1": "value1",
--     },
-      },
--   "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2": Object {
--     "depends_on": "[aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1]",
--     "global_table_arn": "mock.TableArn",
--     "provider": "aws.123-us-west-2",
-    },
-  }"
-`;
+- global-dynamodb-module/main.tf
+resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
+  global_table_arn = var.dynamodb_test_table_TableArn
+  provider = aws._123-us-east-1
+  tags = {
+    key1 = "value1"
+  }
+}
 
-exports[`AwsDynamoDBGlobalServiceModule UT should CUD 10`] = `
-"- Expected
-+ Received
+- global-dynamodb-module/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
 
-  Object {
--   "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
--     "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
--   },
-    "output.dynamodb-test-table-TableArn": Object {
-      "value": "mock.TableArn",
--   },
--   "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
--     "global_table_arn": "mock.TableArn",
--     "provider": "aws.123-us-east-1",
--     "tags": Object {
--       "key1": "value1",
--     },
-    },
-  }"
+- global-dynamodb-module/outputs.tf
+output "dynamodb-global-test-table-123:us-east-1:TableArn" {
+  value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
+}
+
+- global-dynamodb-module/terragrunt.hcl
+dependency "testModule" {
+  config_path = "../testModule"
+
+- global-dynamodb-module/terragrunt.hcl
+inputs = {
+  dynamodb_test_table_TableArn = dependency.testModule.outputs["dynamodb-test-table-TableArn"]
+}
+
+- global-dynamodb-module/terragrunt.hcl
+mock_outputs = {
+    "dynamodb-test-table-TableArn" = "mock-dynamodb-test-table-TableArn"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+- global-dynamodb-module/variables.tf
+variable "dynamodb_test_table_TableArn" {}"
 `;
 
 exports[`AwsDynamoDBGlobalServiceModule UT should CUD tags 2`] = `
-"- Expected
-+ Received
-
-- Object {}
-+ Object {
-+   "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
-+     "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
-+   },
-+   "output.dynamodb-test-table-TableArn": Object {
-+     "value": "mock.TableArn",
-+   },
-+   "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
-+     "global_table_arn": "mock.TableArn",
-+     "provider": "aws.123-us-east-1",
-+   },
-+ }"
+"~ global-dynamodb-module/main.tf resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
+@@ -4,3 +4,4 @@
+    tags = {
+-     tag1 = "value1"
++     tag1 = "value1_1"
++     tag2 = "value2_1"
+    }"
 `;
 
 exports[`AwsDynamoDBGlobalServiceModule UT should CUD tags 4`] = `
-"- Expected
-+ Received
-
-  Object {
-    "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
-      "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
-    },
-    "output.dynamodb-test-table-TableArn": Object {
-      "value": "mock.TableArn",
-    },
-    "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
-      "global_table_arn": "mock.TableArn",
-      "provider": "aws.123-us-east-1",
-+     "tags": Object {
-+       "tag1": "value1_1",
-+       "tag2": "value2_1",
-+     },
-    },
+"~ global-dynamodb-module/main.tf resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
+@@ -3,6 +3,2 @@
+    provider = aws._123-us-east-1
+-   tags = {
+-     tag1 = "value1_1"
+-     tag2 = "value2_1"
+-   }
   }"
 `;
 
-exports[`AwsDynamoDBGlobalServiceModule UT should CUD tags 6`] = `
-"- Expected
-+ Received
+exports[`AwsDynamoDBGlobalServiceModule UT should handle moduleId change 1`] = `
+"- global-dynamodb-module-1/main.tf
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+}
 
-  Object {
-    "output.dynamodb-global-test-table-123:us-east-1:TableArn": Object {
-      "value": "aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn",
-    },
-    "output.dynamodb-test-table-TableArn": Object {
-      "value": "mock.TableArn",
-    },
-    "resource.aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1": Object {
-      "global_table_arn": "mock.TableArn",
-      "provider": "aws.123-us-east-1",
--     "tags": Object {
--       "tag1": "value1_1",
--       "tag2": "value2_1",
--     },
-    },
-  }"
+- global-dynamodb-module-1/main.tf
+resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
+  global_table_arn = var.dynamodb_test_table_TableArn
+  provider = aws._123-us-east-1
+}
+
+- global-dynamodb-module-1/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
+- global-dynamodb-module-1/outputs.tf
+output "dynamodb-global-test-table-123:us-east-1:TableArn" {
+  value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
+}
+
+- global-dynamodb-module-1/terragrunt.hcl
+dependency "testModule" {
+  config_path = "../testModule"
+
+- global-dynamodb-module-1/terragrunt.hcl
+inputs = {
+  dynamodb_test_table_TableArn = dependency.testModule.outputs["dynamodb-test-table-TableArn"]
+}
+
+- global-dynamodb-module-1/terragrunt.hcl
+mock_outputs = {
+    "dynamodb-test-table-TableArn" = "mock-dynamodb-test-table-TableArn"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
+- global-dynamodb-module-1/variables.tf
+variable "dynamodb_test_table_TableArn" {}
+
++ global-dynamodb-module-2/main.tf
+provider "aws" {
+  alias = "_123-us-east-1"
+  region = "us-east-1"
+}
+
++ global-dynamodb-module-2/main.tf
+resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-east-1" {
+  global_table_arn = var.dynamodb_test_table_TableArn
+  provider = aws._123-us-east-1
+}
+
++ global-dynamodb-module-2/main.tf
+terraform {
+  required_version = ">= 1.6.0"
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = ">= 5.49"
+    }
+  }
+}
+
++ global-dynamodb-module-2/outputs.tf
+output "dynamodb-global-test-table-123:us-east-1:TableArn" {
+  value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
+}
+
++ global-dynamodb-module-2/terragrunt.hcl
+dependency "testModule" {
+  config_path = "../testModule"
+
++ global-dynamodb-module-2/terragrunt.hcl
+inputs = {
+  dynamodb_test_table_TableArn = dependency.testModule.outputs["dynamodb-test-table-TableArn"]
+}
+
++ global-dynamodb-module-2/terragrunt.hcl
+mock_outputs = {
+    "dynamodb-test-table-TableArn" = "mock-dynamodb-test-table-TableArn"
+  }
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
++ global-dynamodb-module-2/variables.tf
+variable "dynamodb_test_table_TableArn" {}"
 `;
-
-exports[`AwsDynamoDBGlobalServiceModule UT should handle moduleId change 2`] = `"Compared values have no visual difference."`;

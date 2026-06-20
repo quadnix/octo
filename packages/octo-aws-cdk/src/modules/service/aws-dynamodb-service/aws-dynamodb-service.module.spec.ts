@@ -1,15 +1,5 @@
-import {
-  type Account,
-  type App,
-  DiffAssert,
-  type Region,
-  TestContainer,
-  TestModuleContainer,
-  stub,
-} from '@quadnix/octo';
+import { type Account, type App, type Region, TestContainer, TestModuleContainer, stub } from '@quadnix/octo';
 import type { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
-import { OctoTerraform } from '../../../factories/octo-terraform.factory.js';
-import { HclAssert } from '../../../utilities/test-helpers/test-hcl-assert.js';
 import { AwsDynamoDBServiceModule } from './index.js';
 
 async function setup(
@@ -42,23 +32,17 @@ async function setup(
 }
 
 describe('AwsDynamoDBServiceModule UT', () => {
-  let hcl: HclAssert;
-  let octoTerraform: OctoTerraform;
   let testModuleContainer: TestModuleContainer;
 
   beforeEach(async () => {
-    const container = await TestContainer.create(
-      { mocks: [{ metadata: { package: '@octo' }, type: OctoTerraform, value: new OctoTerraform() }] },
-      { factoryTimeoutInMs: 500 },
-    );
-    testModuleContainer = new TestModuleContainer();
+    const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
+    testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize();
 
-    octoTerraform = await container.get(OctoTerraform, { metadata: { package: '@octo' } });
-    octoTerraform.addTerraformConfig();
-    octoTerraform.addTerraformProvider('123', 'us-east-1');
-
-    hcl = new HclAssert(octoTerraform);
+    testModuleContainer.registerTerraformConfig({
+      providers: { aws: { minVersion: '5.49', source: 'hashicorp/aws' } },
+    });
+    testModuleContainer.registerTerraformProvider('aws', '123', 'us-east-1');
   });
 
   afterEach(async () => {
@@ -82,47 +66,25 @@ describe('AwsDynamoDBServiceModule UT', () => {
       moduleId: 'dynamodb-module',
       type: AwsDynamoDBServiceModule,
     });
-    const result = await testModuleContainer.commit(app, {
-      enableResourceCapture: true,
-      filterByModuleIds: ['dynamodb-module'],
-    });
-    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "AddAwsDynamoDBServiceModelAction",
-       ],
-     ]
-    `);
-    expect(testModuleContainer.mapTransactionActions(result.resourceTransaction)).toMatchInlineSnapshot(`
-     [
-       [
-         "CaptureDynamoDBResponseResourceAction",
-       ],
-     ]
-    `);
-    expect(new DiffAssert(result.resourceDiffs).digest()).toMatchInlineSnapshot(`
-     [
-       "+ @octo/dynamodb=dynamodb-test-table",
-     ]
-    `);
-    expect(octoTerraform.render()).toMatchInlineSnapshot(`
-     "terraform {
+    expect(await testModuleContainer.renderHcl(app)).toMatchInlineSnapshot(`
+     "# dynamodb-module/main.tf
+     terraform {
        required_version = ">= 1.6.0"
        required_providers {
          aws = {
-           source  = "hashicorp/aws"
+           source = "hashicorp/aws"
            version = ">= 5.49"
          }
        }
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
      resource "aws_dynamodb_table" "dynamodb-test-table" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        attribute {
          name = "AccountId"
          type = "S"
@@ -136,9 +98,30 @@ describe('AwsDynamoDBServiceModule UT', () => {
        write_capacity = 5
      }
 
+     # dynamodb-module/outputs.tf
      output "dynamodb-test-table-TableArn" {
        value = aws_dynamodb_table.dynamodb-test-table.arn
-     }"
+     }
+
+     # dynamodb-module/terragrunt.hcl
+     <empty>
+
+     # dynamodb-module/variables.tf
+     <empty>"
+    `);
+
+    const result = await testModuleContainer.commit(app, { filterByModuleIds: ['dynamodb-module'] });
+    expect(testModuleContainer.mapTransactionActions(result.modelTransaction)).toMatchInlineSnapshot(`
+     [
+       [
+         "AddAwsDynamoDBServiceModelAction",
+       ],
+     ]
+    `);
+    expect(testModuleContainer.digestDiffs(result.resourceDiffs)).toMatchInlineSnapshot(`
+     [
+       "+ @octo/dynamodb=dynamodb-test-table",
+     ]
     `);
   });
 
@@ -158,13 +141,12 @@ describe('AwsDynamoDBServiceModule UT', () => {
       moduleId: 'service',
       type: AwsDynamoDBServiceModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appNoChange } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -181,25 +163,25 @@ describe('AwsDynamoDBServiceModule UT', () => {
       moduleId: 'service',
       type: AwsDynamoDBServiceModule,
     });
-    const resultNoChange = await testModuleContainer.commit(appNoChange, { enableResourceCapture: true });
-    expect(new DiffAssert(resultNoChange.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appNoChange)).toMatchSnapshot();
+    const resultNoChange = await testModuleContainer.commit(appNoChange);
+    expect(testModuleContainer.digestDiffs(resultNoChange.resourceDiffs)).toMatchInlineSnapshot(`[]`);
 
     const { app: appDelete } = await setup(testModuleContainer);
-    const resultDelete = await testModuleContainer.commit(appDelete, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDelete.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDelete)).toMatchSnapshot();
+    const resultDelete = await testModuleContainer.commit(appDelete);
+    expect(testModuleContainer.digestDiffs(resultDelete.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "- @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const isResourceStateEqual = await testModuleContainer.isResourceStateEqual();
     expect(isResourceStateEqual).toBe(true);
   });
 
   it('should CUD tags', async () => {
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1' } }]);
     const { app: appCreate } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
       inputs: {
@@ -215,15 +197,14 @@ describe('AwsDynamoDBServiceModule UT', () => {
       moduleId: 'service',
       type: AwsDynamoDBServiceModule,
     });
-    const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    const resultCreate = await testModuleContainer.commit(appCreate);
+    expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "+ @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
-    testModuleContainer.octo.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
+    testModuleContainer.registerTags([{ scope: {}, tags: { tag1: 'value1_1', tag2: 'value2' } }]);
     const { app: appUpdateTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
       inputs: {
@@ -239,13 +220,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
       moduleId: 'service',
       type: AwsDynamoDBServiceModule,
     });
-    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appUpdateTags)).toMatchSnapshot();
+    const resultUpdateTags = await testModuleContainer.commit(appUpdateTags);
+    expect(testModuleContainer.digestDiffs(resultUpdateTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
 
     const { app: appDeleteTags } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -262,13 +243,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
       moduleId: 'service',
       type: AwsDynamoDBServiceModule,
     });
-    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags, { enableResourceCapture: true });
-    expect(new DiffAssert(resultDeleteTags.resourceDiffs).digest()).toMatchInlineSnapshot(`
+    expect(await testModuleContainer.diffHcl(appDeleteTags)).toMatchSnapshot();
+    const resultDeleteTags = await testModuleContainer.commit(appDeleteTags);
+    expect(testModuleContainer.digestDiffs(resultDeleteTags.resourceDiffs)).toMatchInlineSnapshot(`
      [
        "* @octo/dynamodb=dynamodb-test-table",
      ]
     `);
-    expect(hcl.digest()).toMatchSnapshot();
   });
 
   describe('input changes', () => {
@@ -288,8 +269,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'service',
         type: AwsDynamoDBServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
       const { app: appUpdateBillingProvisionedThroughput } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -306,16 +286,16 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'service',
         type: AwsDynamoDBServiceModule,
       });
+      expect(await testModuleContainer.diffHcl(appUpdateBillingProvisionedThroughput)).toMatchSnapshot();
       const resultUpdateBillingProvisionedThroughput = await testModuleContainer.commit(
         appUpdateBillingProvisionedThroughput,
-        { enableResourceCapture: true },
       );
-      expect(new DiffAssert(resultUpdateBillingProvisionedThroughput.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(testModuleContainer.digestDiffs(resultUpdateBillingProvisionedThroughput.resourceDiffs))
+        .toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
 
       const { app: appUpdateBillingPayPerRequest } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -332,15 +312,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'service',
         type: AwsDynamoDBServiceModule,
       });
-      const resultUpdateBillingPayPerRequest = await testModuleContainer.commit(appUpdateBillingPayPerRequest, {
-        enableResourceCapture: true,
-      });
-      expect(new DiffAssert(resultUpdateBillingPayPerRequest.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appUpdateBillingPayPerRequest)).toMatchSnapshot();
+      const resultUpdateBillingPayPerRequest = await testModuleContainer.commit(appUpdateBillingPayPerRequest);
+      expect(testModuleContainer.digestDiffs(resultUpdateBillingPayPerRequest.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     describe('should handle GlobalSecondaryIndexes change', () => {
@@ -371,13 +349,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-        expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+        expect(await testModuleContainer.renderHcl(appCreate)).toMatchSnapshot();
+        const resultCreate = await testModuleContainer.commit(appCreate);
+        expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
          [
            "+ @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchSnapshot();
       });
 
       it('should add a GSI to an existing table', async () => {
@@ -397,8 +375,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-        hcl.digest();
+        await testModuleContainer.commit(appCreate);
 
         const { app: appAddGSI } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -426,13 +403,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        const resultAddGSI = await testModuleContainer.commit(appAddGSI, { enableResourceCapture: true });
-        expect(new DiffAssert(resultAddGSI.resourceDiffs).digest()).toMatchInlineSnapshot(`
+        expect(await testModuleContainer.diffHcl(appAddGSI)).toMatchSnapshot();
+        const resultAddGSI = await testModuleContainer.commit(appAddGSI);
+        expect(testModuleContainer.digestDiffs(resultAddGSI.resourceDiffs)).toMatchInlineSnapshot(`
          [
            "* @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchSnapshot();
       });
 
       it('should throw error updating a GSI in an existing table', async () => {
@@ -462,8 +439,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-        hcl.digest();
+        await testModuleContainer.commit(appCreate);
 
         const { app: appUpdateGSIWithoutUpdatingIndex } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -492,9 +468,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
         await expect(async () => {
-          await testModuleContainer.commit(appUpdateGSIWithoutUpdatingIndex, {
-            enableResourceCapture: true,
-          });
+          await testModuleContainer.commit(appUpdateGSIWithoutUpdatingIndex);
         }).rejects.toThrowErrorMatchingInlineSnapshot(
           `"Cannot update DynamoDB GSIs immutable properties once it has been created!"`,
         );
@@ -527,8 +501,8 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-        hcl.digest();
+
+        await testModuleContainer.commit(appCreate);
 
         const { app: appUpdateGSI } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -556,13 +530,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        const resultUpdateGSI = await testModuleContainer.commit(appUpdateGSI, { enableResourceCapture: true });
-        expect(new DiffAssert(resultUpdateGSI.resourceDiffs).digest()).toMatchInlineSnapshot(`
+        expect(await testModuleContainer.diffHcl(appUpdateGSI)).toMatchSnapshot();
+        const resultUpdateGSI = await testModuleContainer.commit(appUpdateGSI);
+        expect(testModuleContainer.digestDiffs(resultUpdateGSI.resourceDiffs)).toMatchInlineSnapshot(`
          [
            "* @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchSnapshot();
       });
 
       it('should delete a GSI from an existing table', async () => {
@@ -592,8 +566,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-        hcl.digest();
+        await testModuleContainer.commit(appCreate);
 
         const { app: appRemoveGSI } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -611,13 +584,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        const resultRemoveGSI = await testModuleContainer.commit(appRemoveGSI, { enableResourceCapture: true });
-        expect(new DiffAssert(resultRemoveGSI.resourceDiffs).digest()).toMatchInlineSnapshot(`
+        expect(await testModuleContainer.diffHcl(appRemoveGSI)).toMatchSnapshot();
+        const resultRemoveGSI = await testModuleContainer.commit(appRemoveGSI);
+        expect(testModuleContainer.digestDiffs(resultRemoveGSI.resourceDiffs)).toMatchInlineSnapshot(`
          [
            "* @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchSnapshot();
       });
     });
 
@@ -655,13 +628,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        const resultCreate = await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-        expect(new DiffAssert(resultCreate.resourceDiffs).digest()).toMatchInlineSnapshot(`
+        expect(await testModuleContainer.renderHcl(appCreate)).toMatchSnapshot();
+        const resultCreate = await testModuleContainer.commit(appCreate);
+        expect(testModuleContainer.digestDiffs(resultCreate.resourceDiffs)).toMatchInlineSnapshot(`
          [
            "+ @octo/dynamodb=dynamodb-test-table",
          ]
         `);
-        expect(hcl.digest()).toMatchSnapshot();
       });
 
       it('should throw error updating a LSI on an existing table', async () => {
@@ -697,8 +670,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           moduleId: 'service',
           type: AwsDynamoDBServiceModule,
         });
-        await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-        hcl.digest();
+        await testModuleContainer.commit(appCreate);
 
         const { app: appUpdateLSI } = await setup(testModuleContainer);
         await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -733,9 +705,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
 
-        await expect(
-          testModuleContainer.commit(appUpdateLSI, { enableResourceCapture: true }),
-        ).rejects.toThrowErrorMatchingInlineSnapshot(
+        await expect(testModuleContainer.commit(appUpdateLSI)).rejects.toThrowErrorMatchingInlineSnapshot(
           `"Cannot update DynamoDB immutable properties once it has been created!"`,
         );
       });
@@ -757,8 +727,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'service',
         type: AwsDynamoDBServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
       const { app: appAddStream } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -776,13 +745,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'service',
         type: AwsDynamoDBServiceModule,
       });
-      const resultAddStream = await testModuleContainer.commit(appAddStream, { enableResourceCapture: true });
-      expect(new DiffAssert(resultAddStream.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appAddStream)).toMatchSnapshot();
+      const resultAddStream = await testModuleContainer.commit(appAddStream);
+      expect(testModuleContainer.digestDiffs(resultAddStream.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
 
       const { app: appRemoveStream } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -799,13 +768,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'service',
         type: AwsDynamoDBServiceModule,
       });
-      const resultRemoveStream = await testModuleContainer.commit(appRemoveStream, { enableResourceCapture: true });
-      expect(new DiffAssert(resultRemoveStream.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appRemoveStream)).toMatchSnapshot();
+      const resultRemoveStream = await testModuleContainer.commit(appRemoveStream);
+      expect(testModuleContainer.digestDiffs(resultRemoveStream.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
 
     it('should handle timeToLiveAttribute change', async () => {
@@ -824,8 +793,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'service',
         type: AwsDynamoDBServiceModule,
       });
-      await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-      hcl.digest();
+      await testModuleContainer.commit(appCreate);
 
       const { app: appAddTTL } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -843,13 +811,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'service',
         type: AwsDynamoDBServiceModule,
       });
-      const resultAddTTL = await testModuleContainer.commit(appAddTTL, { enableResourceCapture: true });
-      expect(new DiffAssert(resultAddTTL.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appAddTTL)).toMatchSnapshot();
+      const resultAddTTL = await testModuleContainer.commit(appAddTTL);
+      expect(testModuleContainer.digestDiffs(resultAddTTL.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
 
       const { app: appRemoveTTL } = await setup(testModuleContainer);
       await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -866,13 +834,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
         moduleId: 'service',
         type: AwsDynamoDBServiceModule,
       });
-      const resultRemoveTTL = await testModuleContainer.commit(appRemoveTTL, { enableResourceCapture: true });
-      expect(new DiffAssert(resultRemoveTTL.resourceDiffs).digest()).toMatchInlineSnapshot(`
+      expect(await testModuleContainer.diffHcl(appRemoveTTL)).toMatchSnapshot();
+      const resultRemoveTTL = await testModuleContainer.commit(appRemoveTTL);
+      expect(testModuleContainer.digestDiffs(resultRemoveTTL.resourceDiffs)).toMatchInlineSnapshot(`
        [
          "* @octo/dynamodb=dynamodb-test-table",
        ]
       `);
-      expect(hcl.digest()).toMatchSnapshot();
     });
   });
 
@@ -892,8 +860,7 @@ describe('AwsDynamoDBServiceModule UT', () => {
       moduleId: 'service-1',
       type: AwsDynamoDBServiceModule,
     });
-    await testModuleContainer.commit(appCreate, { enableResourceCapture: true });
-    hcl.digest();
+    await testModuleContainer.commit(appCreate);
 
     const { app: appUpdateModuleId } = await setup(testModuleContainer);
     await testModuleContainer.runModule<AwsDynamoDBServiceModule>({
@@ -910,9 +877,9 @@ describe('AwsDynamoDBServiceModule UT', () => {
       moduleId: 'service-2',
       type: AwsDynamoDBServiceModule,
     });
-    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId, { enableResourceCapture: true });
-    expect(new DiffAssert(resultUpdateModuleId.resourceDiffs).digest()).toMatchInlineSnapshot(`[]`);
-    expect(hcl.digest()).toMatchSnapshot();
+    expect(await testModuleContainer.diffHcl(appUpdateModuleId)).toMatchSnapshot();
+    const resultUpdateModuleId = await testModuleContainer.commit(appUpdateModuleId);
+    expect(testModuleContainer.digestDiffs(resultUpdateModuleId.resourceDiffs)).toMatchInlineSnapshot(`[]`);
   });
 
   describe('validation', () => {
