@@ -32,6 +32,7 @@ import type { IStateProvider } from '../services/state-management/state-provider
 import { TestStateProvider } from '../services/state-management/test.state-provider.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
+import { HclUtility } from '../utilities/hcl/hcl.utility.js';
 import { TestAnchor } from '../utilities/test-helpers/test-classes.js';
 import { create } from '../utilities/test-helpers/test-models.js';
 import { createTestOverlays } from '../utilities/test-helpers/test-overlays.js';
@@ -140,7 +141,7 @@ export class TestModuleContainer {
     // Establish the HCL diff baseline from the same transaction that just applied the models, so a
     // later diffHcl() reports what changed against the committed state. Captured before reset(),
     // which wipes the model attribution renderAllModules() depends on.
-    this.previousHcl = this.serializeHcl(terraformService.renderAllModules());
+    this.previousHcl = HclUtility.serialize(terraformService.renderAllModules());
 
     const inputService = await this.container.get(InputService);
 
@@ -361,51 +362,13 @@ export class TestModuleContainer {
   /**
    * Renders the desired-state terraform for `app` and returns a block-level diff against the
    * previous render in this test (from an earlier {@link renderHcl} or {@link diffHcl} call), ready
-   * to snapshot. Added/removed/changed top-level blocks show as `+`/`-`/`~` tagged with
-   * `moduleId/file`; a changed block shows its new body. Returns `'<no changes>'` when nothing moved.
+   * to snapshot. Returns `'<no changes>'` when nothing moved.
    */
   async diffHcl(app: App): Promise<string> {
     const current = await this.renderCurrentHcl(app);
-    const diff = this.diffHclBlocks(this.previousHcl ?? '', current);
+    const diff = HclUtility.diffBlocks(this.previousHcl ?? '', current);
     this.previousHcl = current;
     return diff;
-  }
-
-  /**
-   * Block-level diff of two {@link serializeHcl} renders. A block is identified by its header line,
-   * so a body change reads as `~` (showing the new body), not as an unrelated add + remove. The
-   * `+`/`-`/`~` vocabulary mirrors {@link digestDiffs}, tagged with `moduleId/file`.
-   *
-   * @internal
-   */
-  private diffHclBlocks(previous: string, current: string): string {
-    const previousSections = this.parseHclBlocks(previous);
-    const currentSections = this.parseHclBlocks(current);
-
-    const entries: string[] = [];
-    const keys = [...new Set([...previousSections.keys(), ...currentSections.keys()])].sort((a, b) =>
-      a.localeCompare(b),
-    );
-    for (const key of keys) {
-      const previousBlocks = previousSections.get(key) ?? new Map<string, string>();
-      const currentBlocks = currentSections.get(key) ?? new Map<string, string>();
-      const headers = [...new Set([...previousBlocks.keys(), ...currentBlocks.keys()])].sort((a, b) =>
-        a.localeCompare(b),
-      );
-      for (const header of headers) {
-        const before = previousBlocks.get(header);
-        const after = currentBlocks.get(header);
-        if (before === undefined) {
-          entries.push(`+ ${key}\n${after}`);
-        } else if (after === undefined) {
-          entries.push(`- ${key} ${header}`);
-        } else if (before !== after) {
-          entries.push(`~ ${key}\n${after}`);
-        }
-      }
-    }
-
-    return entries.length > 0 ? entries.join('\n\n') : '<no changes>';
   }
 
   /**
@@ -502,51 +465,6 @@ export class TestModuleContainer {
     moduleContainer.order(modules);
   }
 
-  /**
-   * Splits a {@link serializeHcl} render into top-level blocks, keyed by `moduleId/file` and then by
-   * the block's header line (e.g. `resource "aws_vpc" "vpc-x" {`). The render format is octo-owned
-   * and regular — `# <moduleId>/<file>` section headers, blank-line-separated top-level blocks — so
-   * this needs no HCL parser or external diff library.
-   *
-   * @internal
-   */
-  private parseHclBlocks(serialized: string): Map<string, Map<string, string>> {
-    const sections = new Map<string, Map<string, string>>();
-    if (!serialized) {
-      return sections;
-    }
-
-    let currentKey: string | undefined;
-    let buffer: string[] = [];
-    const flush = (): void => {
-      if (currentKey === undefined) {
-        return;
-      }
-      const blocks = new Map<string, string>();
-      for (const block of buffer.join('\n').split(/\n\s*\n/)) {
-        const trimmed = block.trim();
-        if (trimmed) {
-          blocks.set(trimmed.split('\n')[0], trimmed);
-        }
-      }
-      sections.set(currentKey, blocks);
-      buffer = [];
-    };
-
-    for (const line of serialized.split('\n')) {
-      const header = /^# (.+\/.+\.(?:tf|hcl))$/.exec(line);
-      if (header) {
-        flush();
-        currentKey = header[1];
-      } else {
-        buffer.push(line);
-      }
-    }
-    flush();
-
-    return sections;
-  }
-
   registerHooks(...args: Parameters<Octo['registerHooks']>): ReturnType<Octo['registerHooks']> {
     return this.octo.registerHooks(...args);
   }
@@ -588,7 +506,7 @@ export class TestModuleContainer {
     // Drains the resource-diff yield; the contribution to TerraformService happens as a side effect.
     await transaction.next();
 
-    return this.serializeHcl(terraformService.renderAllModules());
+    return HclUtility.serialize(terraformService.renderAllModules());
   }
 
   /**
@@ -658,30 +576,5 @@ export class TestModuleContainer {
     }
 
     return (await this.octo.compose()) as { [key: string]: ModuleOutput<M> };
-  }
-
-  /**
-   * Flattens the rendered terragrunt folders into one snapshot-friendly string: folders sorted by
-   * module id, files in a stable order, each prefixed with a `# <moduleId>/<file>` header. An empty
-   * file shows a `<empty>` body, so the file is still visible in the snapshot rather than omitted.
-   *
-   * @internal
-   */
-  private serializeHcl(moduleFiles: ReturnType<TerraformService['renderAllModules']>): string {
-    const parts: string[] = [];
-    for (const moduleId of [...moduleFiles.keys()].sort((a, b) => a.localeCompare(b))) {
-      const files = moduleFiles.get(moduleId)!;
-      const entries: [string, string][] = [
-        ['main.tf', files.mainTf],
-        ['outputs.tf', files.outputsTf],
-        ['terragrunt.hcl', files.terragruntHcl],
-        ['variables.tf', files.variablesTf],
-      ];
-      for (const [name, content] of entries) {
-        const trimmed = content.trim();
-        parts.push(`# ${moduleId}/${name}\n${trimmed || '<empty>'}`);
-      }
-    }
-    return parts.join('\n\n');
   }
 }
