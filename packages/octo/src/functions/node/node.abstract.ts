@@ -351,6 +351,9 @@ export abstract class ANode<S, T> implements INode<S, T> {
     return this.dependencies
       .filter(
         (d) =>
+          // A self-dependency (from === to) only carries field-ordering behaviors (see
+          // addFieldDependency); a node is not its own sibling, so exclude it.
+          d.to.getContext() !== this.getContext() &&
           !d.isChildRelationship() &&
           !d.isParentRelationship() &&
           (name ? (d.to.constructor as typeof ANode).NODE_NAME === name : true),
