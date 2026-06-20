@@ -11,7 +11,7 @@ depends_on = [aws_efs_file_system.efs-region-test-filesystem]
 
 + filesystem/main.tf
 resource "aws_efs_backup_policy" "efs-region-changed-filesystem_backup_policy" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   backup_policy {
     status = "DISABLED"
   }
@@ -19,7 +19,7 @@ resource "aws_efs_backup_policy" "efs-region-changed-filesystem_backup_policy" {
 
 - filesystem/main.tf
 resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   backup_policy {
     status = "DISABLED"
   }
@@ -27,7 +27,7 @@ resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
 
 + filesystem/main.tf
 resource "aws_efs_file_system" "efs-region-changed-filesystem" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   encrypted = false
   performance_mode = "generalPurpose"
   throughput_mode = "bursting"
@@ -38,7 +38,7 @@ resource "aws_efs_file_system" "efs-region-changed-filesystem" {
 
 - filesystem/main.tf
 resource "aws_efs_file_system" "efs-region-test-filesystem" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   encrypted = false
   performance_mode = "generalPurpose"
   throughput_mode = "bursting"
@@ -75,13 +75,13 @@ depends_on = [aws_efs_file_system.efs-region-test-filesystem]
 
 - filesystem/main.tf
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 - filesystem/main.tf
 resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   backup_policy {
     status = "DISABLED"
   }
@@ -89,7 +89,7 @@ resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
 
 - filesystem/main.tf
 resource "aws_efs_file_system" "efs-region-test-filesystem" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   encrypted = false
   performance_mode = "generalPurpose"
   throughput_mode = "bursting"
@@ -152,13 +152,13 @@ depends_on = [aws_efs_file_system.efs-region-test-filesystem]
 
 - filesystem-1/main.tf
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 - filesystem-1/main.tf
 resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   backup_policy {
     status = "DISABLED"
   }
@@ -166,7 +166,7 @@ resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
 
 - filesystem-1/main.tf
 resource "aws_efs_file_system" "efs-region-test-filesystem" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   encrypted = false
   performance_mode = "generalPurpose"
   throughput_mode = "bursting"
@@ -208,13 +208,13 @@ depends_on = [aws_efs_file_system.efs-region-test-filesystem]
 
 + filesystem-2/main.tf
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 + filesystem-2/main.tf
 resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   backup_policy {
     status = "DISABLED"
   }
@@ -222,7 +222,7 @@ resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
 
 + filesystem-2/main.tf
 resource "aws_efs_file_system" "efs-region-test-filesystem" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   encrypted = false
   performance_mode = "generalPurpose"
   throughput_mode = "bursting"

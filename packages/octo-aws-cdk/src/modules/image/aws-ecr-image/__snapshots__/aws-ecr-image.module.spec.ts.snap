@@ -13,7 +13,7 @@ data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
 
 + image/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-changed-family_image" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
     scan_on_push = false
@@ -24,7 +24,7 @@ resource "aws_ecr_repository" "ecr-us-east-1-changed-family_image" {
 
 - image/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
     scan_on_push = false
@@ -107,7 +107,7 @@ data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
 
 + image/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-family_changed-image" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
     scan_on_push = false
@@ -118,7 +118,7 @@ resource "aws_ecr_repository" "ecr-us-east-1-family_changed-image" {
 
 - image/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
     scan_on_push = false
@@ -201,7 +201,7 @@ terraform {
 }
 
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
@@ -210,7 +210,7 @@ data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
 }
 
 resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
     scan_on_push = false
@@ -259,13 +259,13 @@ data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
 
 - image/main.tf
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 - image/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
     scan_on_push = false
@@ -335,7 +335,7 @@ terraform {
 }
 
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
@@ -344,7 +344,7 @@ data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
 }
 
 resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
     scan_on_push = false
@@ -417,13 +417,13 @@ data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
 
 - image-1/main.tf
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 - image-1/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
     scan_on_push = false
@@ -486,13 +486,13 @@ data "aws_ecr_authorization_token" "ecr-us-east-1-family_image" {
 
 + image-2/main.tf
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 + image-2/main.tf
 resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   force_delete = true
   image_scanning_configuration {
     scan_on_push = false

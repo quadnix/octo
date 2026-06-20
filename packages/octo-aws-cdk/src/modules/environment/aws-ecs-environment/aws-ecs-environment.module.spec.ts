@@ -75,12 +75,12 @@ describe('AwsEcsEnvironmentModule UT', () => {
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
      resource "aws_ecs_cluster" "ecs-cluster-region-qa" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        name = "region-qa"
        setting {
          name = "containerInsights"

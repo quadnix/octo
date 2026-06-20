@@ -98,12 +98,12 @@ describe('AwsEcsServerModule UT', () => {
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
      resource "aws_iam_role" "iam-role-ServerRole-backend" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        assume_role_policy = jsonencode({
          Statement = [{
              Action = "sts:AssumeRole"
@@ -118,7 +118,7 @@ describe('AwsEcsServerModule UT', () => {
      }
 
      resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_AmazonECSTaskExecutionRolePolicy" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
        role = aws_iam_role.iam-role-ServerRole-backend.name
 
@@ -126,7 +126,7 @@ describe('AwsEcsServerModule UT', () => {
      }
 
      resource "aws_iam_policy" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        name = "aws-ecs-server-s3-access-overlay-e9dc96db328e"
        policy = jsonencode({
          Statement = [{
@@ -142,7 +142,7 @@ describe('AwsEcsServerModule UT', () => {
      }
 
      resource "aws_iam_role_policy_attachment" "iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e_attach" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        policy_arn = aws_iam_policy.iam-role-ServerRole-backend_aws-ecs-server-s3-access-overlay-e9dc96db328e.arn
        role = aws_iam_role.iam-role-ServerRole-backend.name
 
@@ -180,17 +180,17 @@ describe('AwsEcsServerModule UT', () => {
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
      resource "aws_s3_bucket" "bucket-test-bucket" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        bucket = "test-bucket"
      }
 
      resource "aws_s3_bucket_policy" "bucket-test-bucket-policy" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        bucket = aws_s3_bucket.bucket-test-bucket.id
        policy = jsonencode({
          Statement = [{

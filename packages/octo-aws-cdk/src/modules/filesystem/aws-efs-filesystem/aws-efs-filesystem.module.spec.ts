@@ -74,12 +74,12 @@ describe('AwsEfsFilesystemModule UT', () => {
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
      resource "aws_efs_file_system" "efs-region-test-filesystem" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        encrypted = false
        performance_mode = "generalPurpose"
        throughput_mode = "bursting"
@@ -89,7 +89,7 @@ describe('AwsEfsFilesystemModule UT', () => {
      }
 
      resource "aws_efs_backup_policy" "efs-region-test-filesystem_backup_policy" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        backup_policy {
          status = "DISABLED"
        }

@@ -1,9 +1,9 @@
 import { AModule, type Account, type Filesystem, Module, ModuleError, type Region, SubnetType } from '@quadnix/octo';
+import { contains } from 'fast-cidr-tools';
 import { AwsEfsAnchorSchema } from '../../../anchors/aws-efs/aws-efs.anchor.schema.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { AwsSubnetLocalFilesystemMountAnchor } from '../../../anchors/aws-subnet/aws-subnet-local-filesystem-mount.anchor.js';
 import { AwsSubnetAnchor } from '../../../anchors/aws-subnet/aws-subnet.anchor.js';
-import { CidrUtility } from '../../../utilities/cidr/cidr.utility.js';
 import { AwsSimpleSubnetModuleSchema } from './index.schema.js';
 import { AwsSimpleSubnet } from './models/subnet/index.js';
 import { AwsSimpleSubnetLocalFilesystemMountOverlay } from './overlays/aws-simple-subnet-local-filesystem-mount/index.js';
@@ -70,7 +70,7 @@ export class AwsSimpleSubnetModule extends AModule<AwsSimpleSubnetModuleSchema, 
     }
 
     // Validate subnet CIDR is within region CIDR.
-    if (!CidrUtility.contains([awsRegionVpcCidrBlock], [inputs.subnetCidrBlock])) {
+    if (!contains([awsRegionVpcCidrBlock], [inputs.subnetCidrBlock])) {
       throw new ModuleError('Subnet CIDR is not within region CIDR!', this.constructor.name);
     }
 

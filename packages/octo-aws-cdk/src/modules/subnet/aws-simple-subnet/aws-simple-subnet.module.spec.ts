@@ -130,24 +130,24 @@ describe('AwsSimpleSubnetModule UT', () => {
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
      resource "aws_subnet" "subnet-region-private-subnet" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        availability_zone = "us-east-1a"
        cidr_block = "10.0.1.0/24"
        vpc_id = var.vpc_region_VpcId
      }
 
      resource "aws_route_table" "rt-region-private-subnet" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        vpc_id = var.vpc_region_VpcId
      }
 
      resource "aws_route_table_association" "rt-region-private-subnet_assoc" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        route_table_id = aws_route_table.rt-region-private-subnet.id
        subnet_id = aws_subnet.subnet-region-private-subnet.id
 
@@ -155,7 +155,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      }
 
      resource "aws_network_acl" "nacl-region-private-subnet" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        subnet_ids = [aws_subnet.subnet-region-private-subnet.id]
        vpc_id = var.vpc_region_VpcId
        ingress {
@@ -177,12 +177,12 @@ describe('AwsSimpleSubnetModule UT', () => {
      }
 
      resource "aws_security_group" "sec-grp-efs-mount-region-private-subnet-test-filesystem" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        vpc_id = var.vpc_region_VpcId
      }
 
      resource "aws_vpc_security_group_ingress_rule" "sec-grp-efs-mount-region-private-subnet-test-filesystem_ingress_0" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        cidr_ipv4 = "10.0.1.0/24"
        description = "tcp 2049-2049 10.0.1.0/24"
        ip_protocol = "tcp"
@@ -194,7 +194,7 @@ describe('AwsSimpleSubnetModule UT', () => {
      }
 
      resource "aws_efs_mount_target" "efs-mount-region-private-subnet-test-filesystem" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        file_system_id = var.efs_region_test_filesystem_FileSystemId
        security_groups = [aws_security_group.sec-grp-efs-mount-region-private-subnet-test-filesystem.id]
        subnet_id = aws_subnet.subnet-region-private-subnet.id

@@ -43,7 +43,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
         regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-        vpcCidrBlock: '10.0.0.0/8',
+        vpcCidrBlock: '10.0.0.0/16',
       },
       moduleId: 'region',
       type: AwsMultiAzRegionModule,
@@ -62,20 +62,20 @@ describe('AwsMultiAzRegionModule UT', () => {
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
      resource "aws_vpc" "vpc-test-region" {
-       provider = aws.123-us-east-1
-       cidr_block = "10.0.0.0/8"
+       provider = aws._123-us-east-1
+       cidr_block = "10.0.0.0/16"
        enable_dns_hostnames = true
        enable_dns_support = true
        instance_tenancy = "default"
      }
 
      resource "aws_internet_gateway" "igw-test-region" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        vpc_id = aws_vpc.vpc-test-region.id
      }
 
@@ -126,7 +126,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
         regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-        vpcCidrBlock: '10.0.0.0/8',
+        vpcCidrBlock: '10.0.0.0/16',
       },
       moduleId: 'region',
       type: AwsMultiAzRegionModule,
@@ -155,7 +155,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
         regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-        vpcCidrBlock: '10.0.0.0/8',
+        vpcCidrBlock: '10.0.0.0/16',
       },
       moduleId: 'region',
       type: AwsMultiAzRegionModule,
@@ -169,7 +169,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
         regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-        vpcCidrBlock: '10.0.0.0/8',
+        vpcCidrBlock: '10.0.0.0/16',
       },
       moduleId: 'region',
       type: AwsMultiAzRegionModule,
@@ -189,7 +189,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
         regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-        vpcCidrBlock: '10.0.0.0/8',
+        vpcCidrBlock: '10.0.0.0/16',
       },
       moduleId: 'region',
       type: AwsMultiAzRegionModule,
@@ -212,7 +212,7 @@ describe('AwsMultiAzRegionModule UT', () => {
           account: stub('${{testModule.model.account}}'),
           name: 'test-region',
           regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-          vpcCidrBlock: '10.0.0.0/8',
+          vpcCidrBlock: '10.0.0.0/16',
         },
         moduleId: 'region',
         type: AwsMultiAzRegionModule,
@@ -225,7 +225,7 @@ describe('AwsMultiAzRegionModule UT', () => {
           account: stub('${{testModule.model.account}}'),
           name: 'changed-region',
           regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-          vpcCidrBlock: '10.0.0.0/8',
+          vpcCidrBlock: '10.0.0.0/16',
         },
         moduleId: 'region',
         type: AwsMultiAzRegionModule,
@@ -249,7 +249,7 @@ describe('AwsMultiAzRegionModule UT', () => {
           account: stub('${{testModule.model.account}}'),
           name: 'test-region',
           regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-          vpcCidrBlock: '10.0.0.0/8',
+          vpcCidrBlock: '10.0.0.0/16',
         },
         moduleId: 'region',
         type: AwsMultiAzRegionModule,
@@ -262,7 +262,7 @@ describe('AwsMultiAzRegionModule UT', () => {
           account: stub('${{testModule.model.account}}'),
           name: 'test-region',
           regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1B, AwsMultiAzRegionId.AWS_US_EAST_1C],
-          vpcCidrBlock: '10.0.0.0/8',
+          vpcCidrBlock: '10.0.0.0/16',
         },
         moduleId: 'region',
         type: AwsMultiAzRegionModule,
@@ -281,7 +281,7 @@ describe('AwsMultiAzRegionModule UT', () => {
           account: stub('${{testModule.model.account}}'),
           name: 'test-region',
           regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-          vpcCidrBlock: '10.0.0.0/8',
+          vpcCidrBlock: '10.0.0.0/16',
         },
         moduleId: 'region',
         type: AwsMultiAzRegionModule,
@@ -294,7 +294,7 @@ describe('AwsMultiAzRegionModule UT', () => {
           account: stub('${{testModule.model.account}}'),
           name: 'test-region',
           regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-          vpcCidrBlock: '10.0.0.0/16',
+          vpcCidrBlock: '10.0.0.0/24',
         },
         moduleId: 'region',
         type: AwsMultiAzRegionModule,
@@ -314,7 +314,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
         regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-        vpcCidrBlock: '10.0.0.0/8',
+        vpcCidrBlock: '10.0.0.0/16',
       },
       moduleId: 'region-1',
       type: AwsMultiAzRegionModule,
@@ -327,7 +327,7 @@ describe('AwsMultiAzRegionModule UT', () => {
         account: stub('${{testModule.model.account}}'),
         name: 'test-region',
         regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-        vpcCidrBlock: '10.0.0.0/8',
+        vpcCidrBlock: '10.0.0.0/16',
       },
       moduleId: 'region-2',
       type: AwsMultiAzRegionModule,
@@ -346,7 +346,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             account: stub('${{testModule.model.account}}'),
             name: 'test-region',
             regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A],
-            vpcCidrBlock: '10.0.0.0/8',
+            vpcCidrBlock: '10.0.0.0/16',
           },
           moduleId: 'region',
           type: AwsMultiAzRegionModule,
@@ -362,7 +362,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             account: stub('${{testModule.model.account}}'),
             name: 'test-region',
             regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-            vpcCidrBlock: '10.0.0.0/8',
+            vpcCidrBlock: '10.0.0.0/16',
           },
           moduleId: 'region1',
           type: AwsMultiAzRegionModule,
@@ -388,7 +388,7 @@ describe('AwsMultiAzRegionModule UT', () => {
             account: stub('${{testModule.model.account}}'),
             name: 'test-region-1',
             regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-            vpcCidrBlock: '10.0.0.0/8',
+            vpcCidrBlock: '10.0.0.0/16',
           },
           moduleId: 'region1',
           type: AwsMultiAzRegionModule,
@@ -398,12 +398,30 @@ describe('AwsMultiAzRegionModule UT', () => {
             account: stub('${{testModule.model.account}}'),
             name: 'test-region-2',
             regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
-            vpcCidrBlock: '10.0.0.0/8',
+            vpcCidrBlock: '10.0.0.0/16',
           },
           moduleId: 'region2',
           type: AwsMultiAzRegionModule,
         });
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"Overlapping VPC cidr blocks are not allowed!"`);
+    });
+
+    it('should validate invalid VPC cidr block', async () => {
+      await setup(testModuleContainer);
+      await expect(async () => {
+        await testModuleContainer.runModule<AwsMultiAzRegionModule>({
+          inputs: {
+            account: stub('${{testModule.model.account}}'),
+            name: 'test-region',
+            regionIds: [AwsMultiAzRegionId.AWS_US_EAST_1A, AwsMultiAzRegionId.AWS_US_EAST_1B],
+            vpcCidrBlock: '10.0.0.0/8',
+          },
+          moduleId: 'region',
+          type: AwsMultiAzRegionModule,
+        });
+      }).rejects.toThrowErrorMatchingInlineSnapshot(
+        `"Invalid VPC cidr block "10.0.0.0/8"! AWS requires a valid IPv4 cidr between /16 and /28."`,
+      );
     });
   });
 });

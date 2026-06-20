@@ -75,7 +75,7 @@ describe('AwsEcrImageModule UT', () => {
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
@@ -84,7 +84,7 @@ describe('AwsEcrImageModule UT', () => {
      }
 
      resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        force_delete = true
        image_scanning_configuration {
          scan_on_push = false

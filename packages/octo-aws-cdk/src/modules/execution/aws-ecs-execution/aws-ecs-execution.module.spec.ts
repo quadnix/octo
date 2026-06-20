@@ -266,22 +266,22 @@ describe('AwsEcsExecutionModule UT', () => {
      }
 
      provider "aws" {
-       alias = "123-us-east-1"
+       alias = "_123-us-east-1"
        region = "us-east-1"
      }
 
      resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        vpc_id = var.vpc_region.VpcId
      }
 
      resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        vpc_id = var.vpc_region.VpcId
      }
 
      resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        container_definitions = jsonencode([
          {
            command = ["/bin/sh"]
@@ -310,7 +310,7 @@ describe('AwsEcsExecutionModule UT', () => {
      }
 
      resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
-       provider = aws.123-us-east-1
+       provider = aws._123-us-east-1
        cluster = var.ecs_cluster_region_qa.clusterArn
        desired_count = 1
        launch_type = "FARGATE"

@@ -21,7 +21,7 @@ exports[`AwsEcsExecutionModule UT input changes should handle desiredCount chang
 exports[`AwsEcsExecutionModule UT input changes should handle executionId change 1`] = `
 "- execution/main.tf
 resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   cluster = var.ecs_cluster_region_qa.clusterArn
   desired_count = 1
   launch_type = "FARGATE"
@@ -36,7 +36,7 @@ resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
 
 + execution/main.tf
 resource "aws_ecs_service" "ecs-service-changed-execution-id" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   cluster = var.ecs_cluster_region_qa.clusterArn
   desired_count = 1
   launch_type = "FARGATE"
@@ -51,7 +51,7 @@ resource "aws_ecs_service" "ecs-service-changed-execution-id" {
 
 - execution/main.tf
 resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   container_definitions = jsonencode([
     {
       command = ["/bin/sh"]
@@ -81,7 +81,7 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
 
 + execution/main.tf
 resource "aws_ecs_task_definition" "ecs-task-definition-changed-execution-id" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   container_definitions = jsonencode([
     {
       command = ["/bin/sh"]
@@ -111,13 +111,13 @@ resource "aws_ecs_task_definition" "ecs-task-definition-changed-execution-id" {
 
 - execution/main.tf
 resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 
 + execution/main.tf
 resource "aws_security_group" "sec-grp-SecurityGroup-changed-execution-id" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 
@@ -185,22 +185,22 @@ terraform {
 }
 
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 
 resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 
 resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   container_definitions = jsonencode([
     {
       command = ["/bin/sh"]
@@ -229,7 +229,7 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
 }
 
 resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   cluster = var.ecs_cluster_region_qa.clusterArn
   desired_count = 1
   launch_type = "FARGATE"
@@ -524,7 +524,7 @@ depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-priv
 
 + execution/main.tf
 resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   cidr_ipv4 = "10.0.0.0/8"
   description = "tcp 8080-8080 10.0.0.0/8"
   ip_protocol = "tcp"
@@ -540,13 +540,13 @@ depends_on = [aws_security_group.sec-grp-SecurityGroup-backend-v1-region-qa-priv
 
 - execution/main.tf
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 - execution/main.tf
 resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   cluster = var.ecs_cluster_region_qa.clusterArn
   desired_count = 2
   launch_type = "FARGATE"
@@ -561,7 +561,7 @@ resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
 
 - execution/main.tf
 resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   container_definitions = jsonencode([
     {
       command = ["/bin/sh"]
@@ -601,19 +601,19 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
 
 - execution/main.tf
 resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 
 - execution/main.tf
 resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 
 - execution/main.tf
 resource "aws_vpc_security_group_egress_rule" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet_egress_0" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   cidr_ipv4 = "10.0.0.0/8"
   description = "tcp 8080-8080 10.0.0.0/8"
   ip_protocol = "tcp"
@@ -720,12 +720,12 @@ terraform {
 }
 
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
   tags = {
     tag1 = "value1"
@@ -733,7 +733,7 @@ resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
 }
 
 resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
   tags = {
     tag1 = "value1"
@@ -741,7 +741,7 @@ resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-privat
 }
 
 resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   container_definitions = jsonencode([
     {
       command = ["/bin/sh"]
@@ -773,7 +773,7 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
 }
 
 resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   cluster = var.ecs_cluster_region_qa.clusterArn
   desired_count = 1
   launch_type = "FARGATE"
@@ -1075,13 +1075,13 @@ exports[`AwsEcsExecutionModule UT should CUD tags 5`] = `
 exports[`AwsEcsExecutionModule UT should handle moduleId change 1`] = `
 "- execution-1/main.tf
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 - execution-1/main.tf
 resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   cluster = var.ecs_cluster_region_qa.clusterArn
   desired_count = 1
   launch_type = "FARGATE"
@@ -1096,7 +1096,7 @@ resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
 
 - execution-1/main.tf
 resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   container_definitions = jsonencode([
     {
       command = ["/bin/sh"]
@@ -1126,13 +1126,13 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
 
 - execution-1/main.tf
 resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 
 - execution-1/main.tf
 resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 
@@ -1218,13 +1218,13 @@ variable "vpc_region" {}
 
 + execution-2/main.tf
 provider "aws" {
-  alias = "123-us-east-1"
+  alias = "_123-us-east-1"
   region = "us-east-1"
 }
 
 + execution-2/main.tf
 resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   cluster = var.ecs_cluster_region_qa.clusterArn
   desired_count = 1
   launch_type = "FARGATE"
@@ -1239,7 +1239,7 @@ resource "aws_ecs_service" "ecs-service-backend-v1-region-qa-private-subnet" {
 
 + execution-2/main.tf
 resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   container_definitions = jsonencode([
     {
       command = ["/bin/sh"]
@@ -1269,13 +1269,13 @@ resource "aws_ecs_task_definition" "ecs-task-definition-backend-v1-region-qa-pri
 
 + execution-2/main.tf
 resource "aws_security_group" "sec-grp-SecurityGroup-backend-v1-region-qa-private-subnet" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 
 + execution-2/main.tf
 resource "aws_security_group" "sec-grp-SecurityGroup-backend" {
-  provider = aws.123-us-east-1
+  provider = aws._123-us-east-1
   vpc_id = var.vpc_region.VpcId
 }
 

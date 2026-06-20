@@ -1,4 +1,5 @@
 import { AModule, AccountType, Module, ModuleError, type Region } from '@quadnix/octo';
+import { overlap } from 'fast-cidr-tools';
 import { AwsRegionAnchor } from '../../../anchors/aws-region/aws-region.anchor.js';
 import { AwsRegionAnchorSchema } from '../../../anchors/aws-region/aws-region.anchor.schema.js';
 import { CidrUtility } from '../../../utilities/cidr/cidr.utility.js';
@@ -39,6 +40,14 @@ export class AwsSingleAzRegionModule extends AModule<AwsSingleAzRegionModuleSche
       throw new ModuleError('Only AWS accounts are supported in this module!', this.constructor.name);
     }
 
+    // Check for a valid VPC cidr block. AWS requires a /16-/28 IpV4 cidr.
+    if (!CidrUtility.isValidVpcCidrBlock(inputs.vpcCidrBlock)) {
+      throw new ModuleError(
+        `Invalid VPC cidr block "${inputs.vpcCidrBlock}"! AWS requires a valid IpV4 cidr between /16 and /28.`,
+        this.constructor.name,
+      );
+    }
+
     // Check for overlapping cidr regions. This ensures correctness in VPC peering.
     const accountRegions = account.getChildren()['region']?.map((r) => r.to as Region) || [];
     const accountRegionCidrBlocks = (
@@ -50,7 +59,7 @@ export class AwsSingleAzRegionModule extends AModule<AwsSingleAzRegionModuleSche
     ).flat();
     if (
       accountRegionCidrBlocks.some((c) =>
-        CidrUtility.hasOverlap([c.getSchemaInstance().properties.vpcCidrBlock], [inputs.vpcCidrBlock]),
+        overlap([c.getSchemaInstance().properties.vpcCidrBlock], [inputs.vpcCidrBlock]),
       )
     ) {
       throw new ModuleError('Overlapping VPC cidr blocks are not allowed!', this.constructor.name);
