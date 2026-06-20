@@ -49,10 +49,10 @@ export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl>
       .map((e) => ({
         action: e.RuleAction,
         cidr_block: e.CidrBlock,
-        from_port: e.PortRange.From,
+        from_port: NetworkAclUtility.toHclPort(e.PortRange.From),
         protocol: e.Protocol,
         rule_no: e.RuleNumber,
-        to_port: e.PortRange.To,
+        to_port: NetworkAclUtility.toHclPort(e.PortRange.To),
       }));
 
     const egressEntries = this.properties.entries
@@ -60,10 +60,10 @@ export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl>
       .map((e) => ({
         action: e.RuleAction,
         cidr_block: e.CidrBlock,
-        from_port: e.PortRange.From,
+        from_port: NetworkAclUtility.toHclPort(e.PortRange.From),
         protocol: e.Protocol,
         rule_no: e.RuleNumber,
-        to_port: e.PortRange.To,
+        to_port: NetworkAclUtility.toHclPort(e.PortRange.To),
       }));
 
     const spec: Record<string, unknown> = {

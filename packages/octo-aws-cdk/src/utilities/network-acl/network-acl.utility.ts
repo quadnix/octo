@@ -4,6 +4,8 @@ import type { NetworkAclSchema } from '../../resources/network-acl/index.schema.
  * @internal
  */
 export class NetworkAclUtility {
+  private static readonly MAX_HCL_PORT = 65535;
+
   static assignRuleNumber(
     entries: NetworkAclSchema['properties']['entries'],
   ): NetworkAclSchema['properties']['entries'] {
@@ -31,5 +33,13 @@ export class NetworkAclUtility {
       ce.Protocol === pe.Protocol &&
       ce.RuleAction === pe.RuleAction
     );
+  }
+
+  static toHclPort(value: number): number {
+    const port = value === -1 ? 0 : value;
+    if (!Number.isInteger(port) || port < 0 || port > NetworkAclUtility.MAX_HCL_PORT) {
+      throw new Error(`Network ACL port "${value}" is out of range! Expected -1 (all ports) or 0-65535.`);
+    }
+    return port;
   }
 }

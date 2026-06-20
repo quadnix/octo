@@ -161,18 +161,18 @@ describe('AwsSimpleSubnetModule UT', () => {
        ingress {
          action = "allow"
          cidr_block = "10.0.1.0/24"
-         from_port = -1
+         from_port = 0
          protocol = "-1"
          rule_no = 10
-         to_port = -1
+         to_port = 0
        }
        egress {
          action = "allow"
          cidr_block = "10.0.1.0/24"
-         from_port = -1
+         from_port = 0
          protocol = "-1"
          rule_no = 10
-         to_port = -1
+         to_port = 0
        }
      }
 
@@ -873,6 +873,26 @@ describe('AwsSimpleSubnetModule UT', () => {
           type: AwsSimpleSubnetModule,
         });
       }).rejects.toThrowErrorMatchingInlineSnapshot(`"Subnet CIDR is not within region CIDR!"`);
+    });
+
+    it('should normalize the all-ports sentinel (-1) to 0 in rendered HCL', async () => {
+      const { app } = await setup(testModuleContainer);
+      await testModuleContainer.runModule<AwsSimpleSubnetModule>({
+        inputs: {
+          region: stub('${{testModule.model.region}}'),
+          subnetAvailabilityZone: 'us-east-1a',
+          subnetCidrBlock: '10.0.1.0/24',
+          subnetName: 'private-subnet',
+        },
+        moduleId: 'subnet',
+        type: AwsSimpleSubnetModule,
+      });
+
+      const hcl = await testModuleContainer.renderHcl(app);
+      expect(hcl).toContain('from_port = 0');
+      expect(hcl).toContain('to_port = 0');
+      expect(hcl).not.toContain('from_port = -1');
+      expect(hcl).not.toContain('to_port = -1');
     });
   });
 });

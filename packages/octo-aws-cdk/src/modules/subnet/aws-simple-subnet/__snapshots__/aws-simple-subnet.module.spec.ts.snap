@@ -17,18 +17,18 @@ resource "aws_network_acl" "nacl-region-changed-subnet" {
   ingress {
     action = "allow"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
   egress {
     action = "allow"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
 }
 
@@ -40,18 +40,18 @@ resource "aws_network_acl" "nacl-region-private-subnet" {
   ingress {
     action = "allow"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
   egress {
     action = "allow"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
 }
 
@@ -270,18 +270,18 @@ resource "aws_network_acl" "nacl-region-private-subnet" {
   ingress {
     action = "deny"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
   egress {
     action = "deny"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
 }
 
@@ -464,10 +464,10 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate private subn
 -   ingress {
 -     action = "allow"
 -     cidr_block = "10.0.1.0/24"
--     from_port = -1
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 30
--     to_port = -1
+-     to_port = 0
 -   }
     egress {
 @@ -44,10 +36,2 @@
@@ -475,10 +475,10 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate private subn
 -   egress {
 -     action = "allow"
 -     cidr_block = "10.0.1.0/24"
--     from_port = -1
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 30
--     to_port = -1
+-     to_port = 0
 -   }
   }
 
@@ -488,10 +488,10 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate private subn
 -   ingress {
 -     action = "allow"
 -     cidr_block = "10.0.0.0/24"
--     from_port = -1
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 20
--     to_port = -1
+-     to_port = 0
 -   }
 -   ingress {
 -     action = "allow"
@@ -507,18 +507,18 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate private subn
 -   egress {
 -     action = "allow"
 -     cidr_block = "10.0.0.0/24"
--     from_port = -1
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 20
--     to_port = -1
+-     to_port = 0
 -   }
 -   egress {
 -     action = "allow"
 -     cidr_block = "0.0.0.0/0"
--     from_port = -1
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 30
--     to_port = -1
+-     to_port = 0
 -   }
   }
 
@@ -581,10 +581,10 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate subnet with 
 -   ingress {
 -     action = "allow"
 -     cidr_block = "10.0.0.0/24"
--     from_port = -1
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 20
--     to_port = -1
+-     to_port = 0
 -   }
     egress {
 @@ -28,10 +20,2 @@
@@ -592,10 +592,10 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate subnet with 
 -   egress {
 -     action = "allow"
 -     cidr_block = "10.0.0.0/24"
--     from_port = -1
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 20
--     to_port = -1
+-     to_port = 0
 -   }
   }
 
@@ -605,10 +605,10 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate subnet with 
 -   ingress {
 -     action = "allow"
 -     cidr_block = "10.0.1.0/24"
--     from_port = -1
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 30
--     to_port = -1
+-     to_port = 0
 -   }
     egress {
 @@ -44,10 +36,2 @@
@@ -616,10 +616,10 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate subnet with 
 -   egress {
 -     action = "allow"
 -     cidr_block = "10.0.1.0/24"
--     from_port = -1
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 30
--     to_port = -1
+-     to_port = 0
 -   }
   }"
 `;
@@ -643,18 +643,18 @@ resource "aws_network_acl" "nacl-region-private-subnet" {
   ingress {
     action = "allow"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
   egress {
     action = "allow"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
 }
 
@@ -751,18 +751,18 @@ resource "aws_network_acl" "nacl-region-private-subnet" {
   ingress {
     action = "allow"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
   egress {
     action = "allow"
     cidr_block = "10.0.1.0/24"
-    from_port = -1
+    from_port = 0
     protocol = "-1"
     rule_no = 10
-    to_port = -1
+    to_port = 0
   }
 }
 
