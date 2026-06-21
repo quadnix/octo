@@ -287,6 +287,23 @@ describe('App Modes E2E Test', () => {
       expect(actionResult.response).toEqual({ igwId: 'igw-0real' });
     });
 
+    it('keeps the committed response value out of the consumer mock_outputs on regenerate', async () => {
+      // Baseline applied + committed: octo state now holds the real tfstate-sourced responses
+      // (igw-1's igwId is 'igw-0real'). Re-declaring the identical desired graph clones those
+      // responses onto the fresh new graph via addNewResource.
+      const app = await commitBaseline();
+      setDesiredGraph();
+
+      await testModes.octo.generate(app, { outputDir: testModes.outputDir });
+
+      // renderTerragrunt seeds mock_outputs from the producer schema's declared default, never the live
+      // applied response. igw-1's (test) schema declares no default, so the mock stays the synthetic
+      // placeholder — the real committed value never reaches the generated, on-disk terragrunt.hcl.
+      const sgTerragruntHcl = await readFile(join(testModes.outputDir, 'sg-module', 'terragrunt.hcl'), 'utf-8');
+      expect(sgTerragruntHcl).toContain('"igw-1" = { igwId = "mock-igw-1-igwId" }');
+      expect(sgTerragruntHcl).not.toContain('igw-0real');
+    });
+
     it('with deleted resources runs the deletes and validates against the persisted mapping', async () => {
       const app = await commitBaseline();
       // Drop igw and sg from the desired state; only vpc remains. igw and sg are deletes.

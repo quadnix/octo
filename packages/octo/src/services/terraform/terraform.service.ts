@@ -1,5 +1,6 @@
-import { MatchingResource, type ResourceSchema, type UnknownResource } from '../../app.type.js';
+import { type Constructable, MatchingResource, type ResourceSchema, type UnknownResource } from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
+import { getSchemaDefaults } from '../../functions/schema/schema.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 import { StringUtility } from '../../utilities/string/string.utility.js';
 import {
@@ -194,7 +195,16 @@ interface TerraformModuleWiring {
    * actually accessed so `terragrunt.hcl` can mock the output as an object rather than a flat
    * string. Normal (per-key scalar) producers leave it undefined.
    */
-  autoVariables: Map<string, { objectKeys?: Set<string>; outputName: string; producerModuleId: string }>;
+  autoVariables: Map<
+    string,
+    {
+      objectKeys?: Set<string>;
+      outputName: string;
+      producerModuleId: string;
+      producerResourceId: string;
+      responseKey?: string;
+    }
+  >;
 
   /**
    * Producer folders this module's `terragrunt.hcl` must declare `dependency` blocks for,
@@ -272,6 +282,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     readonly explicitParentResourceIds: string[] = [],
     private readonly providerRef?: string, // Fully-qualified provider reference (`aws._111111111-us-east-1`).
     readonly externalResultExpression?: string, // External resource marker with `data.external.<name>.result` value.
+    readonly responseDefaults: BaseResourceSchema['response'] = {}, // Resource schema's *declared* response defaults.
   ) {
     // When an external script, publish the whole-result map as one output, keyed only by resource id, no output key.
     if (externalResultExpression !== undefined) {
@@ -431,6 +442,14 @@ export class TerraformService {
       module.providerKeys.add(key);
     }
 
+    // Seed mock outputs from the producer schema's declared response defaults — never the live
+    // response — so a regenerate after a commit cannot inline real (possibly secret) applied values.
+    // Test resources carry a non-constructable NODE_SCHEMA; they fall back to synthetic placeholders.
+    const schemaClass = (octoResource.constructor as unknown as { NODE_SCHEMA?: Constructable<BaseResourceSchema> })
+      .NODE_SCHEMA;
+    const responseDefaults: BaseResourceSchema['response'] =
+      typeof schemaClass === 'function' ? (getSchemaDefaults(schemaClass).response ?? {}) : {};
+
     const newResource = new OctoTerraformResource<ResourceSchema<T>['response']>(
       octoResource.resourceId,
       octoResource.getContext(),
@@ -438,6 +457,7 @@ export class TerraformService {
       explicitParentResourceIds,
       providerRef,
       options.externalResultExpression,
+      responseDefaults,
     );
     module.resources.push(newResource);
     this.resourceRegistry.set(octoResource.resourceId, newResource);
@@ -601,6 +621,7 @@ export class TerraformService {
               objectKeys,
               outputName: entireResponseOutput.name,
               producerModuleId: producer.moduleId,
+              producerResourceId: producer.resourceId,
             });
             addModuleDependency(moduleWiring, producer.moduleId, `ref "${ref.resourceId}.${ref.key}"`);
             moduleWiring.resolvedRefs.set(
@@ -630,6 +651,8 @@ export class TerraformService {
           moduleWiring.autoVariables.set(variableName, {
             outputName: output.name,
             producerModuleId: producer.moduleId,
+            producerResourceId: producer.resourceId,
+            responseKey: ref.key,
           });
           addModuleDependency(moduleWiring, producer.moduleId, `ref "${ref.resourceId}.${ref.key}"`);
           moduleWiring.resolvedRefs.set(`${ref.resourceId}.${ref.key}`, `var.${variableName}`);
@@ -906,33 +929,48 @@ export class TerraformService {
       const dependencyName = StringUtility.sanitizeForIdentifier(producerModuleId);
       // Map each consumed output name to its mock shape: a flat string for per-key scalar outputs,
       // or an object (keyed by the accessed fields) for an external producer's entire-response output.
-      const mockOutputs = new Map<string, Set<string> | undefined>();
+      const mockOutputs = new Map<
+        string,
+        { producerResourceId: string; responseKey?: string; responseKeys?: Set<string> }
+      >();
       for (const v of moduleWiring.autoVariables.values()) {
         if (v.producerModuleId !== producerModuleId) {
           continue;
         }
         if (v.objectKeys) {
-          const keys = mockOutputs.get(v.outputName) ?? new Set<string>();
+          const responseKeys = mockOutputs.get(v.outputName)?.responseKeys ?? new Set<string>();
           for (const key of v.objectKeys) {
-            keys.add(key);
+            responseKeys.add(key);
           }
-          mockOutputs.set(v.outputName, keys);
+          mockOutputs.set(v.outputName, { producerResourceId: v.producerResourceId, responseKeys });
         } else if (!mockOutputs.has(v.outputName)) {
-          mockOutputs.set(v.outputName, undefined);
+          mockOutputs.set(v.outputName, { producerResourceId: v.producerResourceId, responseKey: v.responseKey });
         }
       }
+
+      // Prefer the producer schema's declared default value (an author-written, non-secret
+      // placeholder, e.g. a syntactically valid ARN) over a synthetic placeholder, falling back to
+      // `mock-*` when the schema declares no default for that response key.
+      const mockValue = (producerResourceId: string, responseKey: string, fallback: string): string => {
+        const value = this.resourceRegistry.get(producerResourceId)?.responseDefaults[responseKey];
+        return typeof value === 'string' && value.length > 0 ? value : fallback;
+      };
 
       const lines = [`dependency "${dependencyName}" {`, `${step}config_path = "../${producerModuleId}"`];
       if (mockOutputs.size > 0) {
         lines.push('');
         lines.push(`${step}mock_outputs = {`);
         for (const outputName of [...mockOutputs.keys()].sort()) {
-          const keys = mockOutputs.get(outputName);
-          if (keys) {
-            const fields = [...keys].sort().map((key) => `${key} = "mock-${outputName}-${key}"`);
+          const { producerResourceId, responseKey, responseKeys } = mockOutputs.get(outputName)!;
+          if (responseKeys) {
+            const fields = [...responseKeys]
+              .sort()
+              .map((key) => `${key} = "${mockValue(producerResourceId, key, `mock-${outputName}-${key}`)}"`);
             lines.push(`${step}${step}"${outputName}" = { ${fields.join(', ')} }`);
           } else {
-            lines.push(`${step}${step}"${outputName}" = "mock-${outputName}"`);
+            lines.push(
+              `${step}${step}"${outputName}" = "${mockValue(producerResourceId, responseKey!, `mock-${outputName}`)}"`,
+            );
           }
         }
         lines.push(`${step}}`);

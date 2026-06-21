@@ -33,6 +33,16 @@ export function getSchemaInstance<S extends object>(schemaClass: Constructable<S
 }
 
 /**
+ * Returns a schema's declared default values without merging any
+ * instance data or validating that every property resolves.
+ *
+ * @internal
+ */
+export function getSchemaDefaults<S extends object>(schemaClass: Constructable<S>): Partial<S> {
+  return new schemaClass();
+}
+
+/**
  * @internal
  */
 export function getSchemaKeys<S>(schemaClass: Constructable<S>): string[] {
