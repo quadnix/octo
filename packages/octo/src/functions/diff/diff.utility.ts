@@ -32,7 +32,13 @@ export class DiffUtility {
     } else if (x instanceof Dependency && y instanceof Dependency) {
       return this.isObjectDeepEquals(x.synth(), y.synth(), excludePaths, currentPath);
     } else if (x instanceof Diff && y instanceof Diff) {
-      return this.isObjectDeepEquals(x.toJSON(), y.toJSON(), excludePaths, currentPath);
+      // `reason` is informational only and must not affect whether two diffs are considered equal.
+      return this.isObjectDeepEquals(
+        x.toJSON(),
+        y.toJSON(),
+        [...excludePaths, [...currentPath, 'reason'].join('.')],
+        currentPath,
+      );
     }
 
     const ok = (subject: object): string[] =>
