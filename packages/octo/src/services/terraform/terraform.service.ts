@@ -77,7 +77,10 @@ export interface OctoTerraformResourceScope<
    * Every response key must be declared; the commit phase reads exactly these outputs to
    * reconstruct the full response.
    */
-  output(outputs: Record<keyof TResponse & string, unknown>): void;
+  output(
+    outputs: Record<keyof TResponse & string, unknown>,
+    options?: { sensitiveKeys?: (keyof TResponse & string)[] },
+  ): void;
 }
 
 interface TerraformModuleFiles {
@@ -272,7 +275,7 @@ function addTerraformResourceSpec(
 class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = BaseResourceSchema['response']>
   implements OctoTerraformResourceScope<TResponse>
 {
-  readonly outputs: Map<string, { name: string; value: HclExpression }> = new Map();
+  readonly outputs: Map<string, { name: string; sensitive: boolean; value: HclExpression }> = new Map();
   readonly terraformResources: TerraformResource[] = [];
 
   constructor(
@@ -288,6 +291,7 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     if (externalResultExpression !== undefined) {
       this.outputs.set(resourceId, {
         name: StringUtility.sanitizeForIdentifier(resourceId),
+        sensitive: false,
         value: new ExpressionHclNode(externalResultExpression),
       });
     }
@@ -316,10 +320,15 @@ class OctoTerraformResource<TResponse extends BaseResourceSchema['response'] = B
     this.outputs.forEach((o) => o.value.collectRefs(into));
   }
 
-  output(outputs: Record<keyof TResponse & string, unknown>): void {
+  output(
+    outputs: Record<keyof TResponse & string, unknown>,
+    options: { sensitiveKeys?: (keyof TResponse & string)[] } = {},
+  ): void {
+    const sensitiveKeys = new Set<string>(options.sensitiveKeys ?? []);
     for (const [key, value] of Object.entries(outputs)) {
       this.outputs.set(key, {
-        name: `${StringUtility.sanitizeForIdentifier(this.resourceId)}-${key}`,
+        name: StringUtility.sanitizeForIdentifier(`${this.resourceId}-${key}`),
+        sensitive: sensitiveKeys.has(key),
         value: toHclNode(value),
       });
     }
@@ -875,7 +884,9 @@ export class TerraformService {
       // outputs.tf: every resource's declared outputs.
       const outputsTf = module.resources
         .map((r) =>
-          [...r.outputs.values()].map((o) => new TerraformOutput(o.name, o.value).render(context)).join('\n\n'),
+          [...r.outputs.values()]
+            .map((o) => new TerraformOutput(o.name, o.value, o.sensitive).render(context))
+            .join('\n\n'),
         )
         .filter(Boolean)
         .join('\n\n');

@@ -381,13 +381,19 @@ export class TerraformOutput {
   constructor(
     private readonly name: string,
     private readonly value: HclExpression,
+    private readonly sensitive: boolean = false,
   ) {}
 
   /**
-   * Renders an `output "<name>" { value = ... }` block.
+   * Renders an `output "<name>" { value = ... }` block. Marks the output `sensitive = true`
+   * when it carries a secret, which Terraform requires for any root output containing sensitive data.
    */
   render(context: RenderContext): string {
-    return `output "${this.name}" {\n${context.step}value = ${this.value.render(context.step, context)}\n}`;
+    const body = [`${context.step}value = ${this.value.render(context.step, context)}`];
+    if (this.sensitive) {
+      body.push(`${context.step}sensitive = true`);
+    }
+    return `output "${this.name}" {\n${body.join('\n')}\n}`;
   }
 }
 
