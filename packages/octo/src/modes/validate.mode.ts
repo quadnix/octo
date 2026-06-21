@@ -60,10 +60,12 @@ export async function validate(
   const errors: ValidateResult['errors'] = [];
   const warnings: ValidateResult['warnings'] = [];
 
-  // Aggregate octo diffs to one action per resource.
+  // Aggregate octo diffs to one action per resource. A resourceId add/delete is definitive; a
+  // REPLACE (author-declared recreate, on any field) dominates a plain update; otherwise the
+  // resource is an update.
   const octoActions = new Map<
     string,
-    { action: DiffAction.ADD | DiffAction.DELETE | DiffAction.UPDATE; resourceId: string }
+    { action: DiffAction.ADD | DiffAction.DELETE | DiffAction.REPLACE | DiffAction.UPDATE; resourceId: string }
   >();
   for (const diff of allDiffs) {
     const node = diff.node as UnknownResource;
@@ -72,6 +74,11 @@ export async function validate(
       octoActions.set(context, { action: DiffAction.DELETE, resourceId: node.resourceId });
     } else if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
       octoActions.set(context, { action: DiffAction.ADD, resourceId: node.resourceId });
+    } else if (diff.action === DiffAction.REPLACE) {
+      const existing = octoActions.get(context);
+      if (!existing || existing.action === DiffAction.UPDATE) {
+        octoActions.set(context, { action: DiffAction.REPLACE, resourceId: node.resourceId });
+      }
     } else if (!octoActions.has(context)) {
       octoActions.set(context, { action: DiffAction.UPDATE, resourceId: node.resourceId });
     }
@@ -103,7 +110,7 @@ export async function validate(
   const isNoop = (actions: string[]): boolean =>
     actions.length === 0 || (actions.length === 1 && (actions[0] === 'no-op' || actions[0] === 'read'));
   const matchesAction = (
-    octoAction: DiffAction.ADD | DiffAction.DELETE | DiffAction.UPDATE,
+    octoAction: DiffAction.ADD | DiffAction.DELETE | DiffAction.REPLACE | DiffAction.UPDATE,
     tfActions: string[],
   ): boolean => {
     const joined = [...tfActions].sort().join(',');
@@ -112,6 +119,10 @@ export async function validate(
     }
     if (octoAction === DiffAction.DELETE) {
       return joined === 'delete';
+    }
+    if (octoAction === DiffAction.REPLACE) {
+      // An author-declared replace must surface in terraform as a recreate, not an in-place update.
+      return joined === 'create,delete';
     }
     // Updates may surface in terraform as in-place updates or replacements.
     return joined === 'update' || joined === 'create,delete' || joined === 'create';
@@ -125,7 +136,33 @@ export async function validate(
     claimedAddresses.get(moduleId)!.add(address);
   };
 
-  // Forward: every octo diff entry has matching terraform changes with the correct action.
+  // Replace diff cascade: terraform recreates everything that (transitively) references a replaced
+  // resource (force-new). Collect those referrers so their expected terraform changes are not
+  // flagged as unattributed. Octo's diff graph stays minimal — only the replaced resource carries
+  // the REPLACE; the cascade lives here, reusing the exact reference graph terraform cascades along.
+  const replacedResourceIds = new Set(
+    [...octoActions.values()].filter((a) => a.action === DiffAction.REPLACE).map((a) => a.resourceId),
+  );
+  const referrers = terraformService.getResourceReferrers();
+  const cascadeAffectedResourceIds = new Set<string>();
+  const cascadeQueue = [...replacedResourceIds];
+  while (cascadeQueue.length > 0) {
+    const referentId = cascadeQueue.shift()!;
+    for (const referrerId of referrers.get(referentId) ?? []) {
+      if (!cascadeAffectedResourceIds.has(referrerId) && !replacedResourceIds.has(referrerId)) {
+        cascadeAffectedResourceIds.add(referrerId);
+        cascadeQueue.push(referrerId);
+      }
+    }
+  }
+
+  const describeChanges = (changed: { address: string; tfActions: string[] }[]): string =>
+    changed.map((c) => `[${c.tfActions.join(', ')}] on "${c.address}"`).join('; ');
+
+  // Forward: correlation is resource-level — octo cannot be finer than "this resource changed in
+  // some way". A resource octo flagged must have at least one terraform change consistent with its
+  // action (a partial change leaving sibling addresses no-op is fine). A resource octo did not flag
+  // must have no terraform change — unless it is a cascade referrer of a replace.
   for (const mapping of mappings) {
     const octoAction = octoActions.get(mapping.resourceContext);
     const planChanges = planChangesByModule.get(mapping.moduleId);
@@ -133,34 +170,36 @@ export async function validate(
       continue;
     }
 
-    for (const address of mapping.terraformAddresses) {
-      const tfActions = planChanges.get(address) ?? [];
+    const addressActions = mapping.terraformAddresses.map((address) => {
       claim(mapping.moduleId, address);
+      return { address, tfActions: planChanges.get(address) ?? [] };
+    });
+    const changed = addressActions.filter((a) => !isNoop(a.tfActions));
 
-      if (!octoAction) {
-        if (!isNoop(tfActions)) {
-          errors.push({
-            message:
-              `Resource "${mapping.resourceId}" has no octo diff, but terraform plans ` +
-              `[${tfActions.join(', ')}] on "${address}"!`,
-            moduleId: mapping.moduleId,
-          });
-        }
-      } else if (isNoop(tfActions)) {
+    if (!octoAction) {
+      if (changed.length > 0 && !cascadeAffectedResourceIds.has(mapping.resourceId)) {
         errors.push({
-          message:
-            `Resource "${mapping.resourceId}" has octo action "${octoAction.action}", but terraform plans ` +
-            `no change on "${address}"!`,
-          moduleId: mapping.moduleId,
-        });
-      } else if (!matchesAction(octoAction.action, tfActions)) {
-        errors.push({
-          message:
-            `Resource "${mapping.resourceId}" has octo action "${octoAction.action}", but terraform plans ` +
-            `[${tfActions.join(', ')}] on "${address}"!`,
+          message: `Resource "${mapping.resourceId}" has no octo diff, but terraform plans ${describeChanges(changed)}!`,
           moduleId: mapping.moduleId,
         });
       }
+      continue;
+    }
+
+    if (changed.length === 0) {
+      errors.push({
+        message:
+          `Resource "${mapping.resourceId}" has octo action "${octoAction.action}", but terraform plans ` +
+          `no change on any of [${mapping.terraformAddresses.join(', ')}]!`,
+        moduleId: mapping.moduleId,
+      });
+    } else if (!changed.some((c) => matchesAction(octoAction.action, c.tfActions))) {
+      errors.push({
+        message:
+          `Resource "${mapping.resourceId}" has octo action "${octoAction.action}", but terraform plans ` +
+          `${describeChanges(changed)} — none consistent with "${octoAction.action}"!`,
+        moduleId: mapping.moduleId,
+      });
     }
   }
 

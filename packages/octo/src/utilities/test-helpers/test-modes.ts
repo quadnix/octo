@@ -2,8 +2,10 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'path';
 import { NodeType, type UnknownResource } from '../../app.type.js';
+import { ResourceError } from '../../errors/index.js';
 import { TestContainer } from '../../functions/container/test-container.js';
-import type { Diff } from '../../functions/diff/diff.js';
+import { Diff, DiffAction } from '../../functions/diff/diff.js';
+import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import type { Octo } from '../../main.js';
 import type { App } from '../../models/app/app.model.js';
 import { TestModuleContainer } from '../../modules/test-module.container.js';
@@ -86,6 +88,72 @@ export class TfVpcResource extends ATerraformResource<BaseResourceSchema, TfVpcR
     const vpcTf = terraform.addOctoTerraformResource(this as TfVpcResource, provider);
     vpcTf.addTerraformResource('aws_vpc', this.resourceId, { cidr_block: this.properties['CidrBlock'] });
     vpcTf.output({ VpcId: terraform.raw(`aws_vpc.${this.resourceId}.id`) });
+  }
+}
+
+/**
+ * A native terraform resource whose author declares that any property change recreates it: its
+ * `diffProperties` emits a single `REPLACE` instead of a granular update. Used to exercise the
+ * first-class REPLACE action and the validate replacement cascade.
+ *
+ * @internal
+ */
+export class ReplacingTfVpcResource extends ATerraformResource<BaseResourceSchema, ReplacingTfVpcResource> {
+  static override readonly NODE_NAME: string = 'replacing-tf-vpc';
+  static override readonly NODE_PACKAGE: string = '@octo';
+  static override readonly NODE_SCHEMA = {};
+  static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
+
+  constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
+    super(resourceId, properties, parents);
+  }
+
+  override async diffProperties(previous: ReplacingTfVpcResource): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
+      return [new Diff(this, DiffAction.REPLACE, 'properties', '', 'CidrBlock change forces VPC recreation')];
+    }
+    return [];
+  }
+
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const vpcTf = terraform.addOctoTerraformResource(this as ReplacingTfVpcResource);
+    vpcTf.addTerraformResource('aws_vpc', this.resourceId, { cidr_block: this.properties['CidrBlock'] });
+    vpcTf.output({ VpcId: terraform.raw(`aws_vpc.${this.resourceId}.id`) });
+  }
+}
+
+/**
+ * A native terraform resource whose author refuses any property update by throwing in
+ * `diffProperties`. Used to prove that an author refusal in a `diff*` method aborts generation
+ * before any HCL is built. Its `toHCL` records every invocation in {@link toHCLInvocations}, so a
+ * test can assert it was never reached when the diff threw.
+ *
+ * @internal
+ */
+export class RefusingTfResource extends ATerraformResource<BaseResourceSchema, RefusingTfResource> {
+  static override readonly NODE_NAME: string = 'refusing-tf';
+  static override readonly NODE_PACKAGE: string = '@octo';
+  static override readonly NODE_SCHEMA = {};
+  static override readonly NODE_TYPE: NodeType = NodeType.RESOURCE;
+
+  static readonly toHCLInvocations: string[] = [];
+
+  constructor(resourceId: string, properties: BaseResourceSchema['properties'] = {}, parents: UnknownResource[] = []) {
+    super(resourceId, properties, parents);
+  }
+
+  override async diffProperties(previous: RefusingTfResource): Promise<Diff[]> {
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
+      throw new ResourceError('Cannot update RefusingTfResource once it has been created!', this);
+    }
+    return super.diffProperties(previous);
+  }
+
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    RefusingTfResource.toHCLInvocations.push(this.resourceId);
+    const tf = terraform.addOctoTerraformResource(this as RefusingTfResource);
+    tf.addTerraformResource('aws_vpc', this.resourceId, { cidr_block: this.properties['CidrBlock'] });
+    tf.output({ VpcId: terraform.raw(`aws_vpc.${this.resourceId}.id`) });
   }
 }
 
@@ -174,6 +242,43 @@ export class TestModes {
     } = await this.testModuleContainer.createTestModels('app-module', { app: ['test-app'] });
 
     const vpc = new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
+    const igw = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc]);
+    const sg = new TfSgResource('sg-1', {}, [igw]);
+    await this.testModuleContainer.createResources('region-module', [vpc, igw], options);
+    await this.testModuleContainer.createResources('sg-module', [sg], options);
+
+    return { app: app as App, igw, sg, vpc };
+  }
+
+  /**
+   * Stages a single {@link RefusingTfResource} in `region-module`. With `save: true`, commits it so a
+   * later re-stage with changed properties drives an update that the resource refuses. Used to prove
+   * that an author refusal in `diff*` aborts generation before HCL is built.
+   */
+  async createRefusingResourceGraph(options?: { save?: boolean }): Promise<{ app: App; refusing: RefusingTfResource }> {
+    const {
+      app: [app],
+    } = await this.testModuleContainer.createTestModels('app-module', { app: ['test-app'] });
+
+    const refusing = new RefusingTfResource('refuse-1', { CidrBlock: '10.0.0.0/16' });
+    await this.testModuleContainer.createResources('region-module', [refusing], options);
+
+    return { app: app as App, refusing };
+  }
+
+  /**
+   * Same `vpc → igw → sg` shape as {@link createResourceGraph}, but the vpc is a
+   * {@link ReplacingTfVpcResource}, so changing its properties later yields a REPLACE that cascades
+   * (in terraform) onto igw and sg. Used to exercise the validate replacement cascade.
+   */
+  async createReplaceableResourceGraph(options?: {
+    save?: boolean;
+  }): Promise<{ app: App; igw: ExternalIgwResource; sg: TfSgResource; vpc: ReplacingTfVpcResource }> {
+    const {
+      app: [app],
+    } = await this.testModuleContainer.createTestModels('app-module', { app: ['test-app'] });
+
+    const vpc = new ReplacingTfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' });
     const igw = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc]);
     const sg = new TfSgResource('sg-1', {}, [igw]);
     await this.testModuleContainer.createResources('region-module', [vpc, igw], options);

@@ -785,6 +785,48 @@ export class TerraformService {
     return new RefHclNode(resourceId, key);
   }
 
+  /**
+   * Resource→resource value-reference edges, keyed by the referenced (producer) resourceId → the set
+   * of resourceIds that reference it. Edges follow `getRef` value references only — the same graph
+   * terraform cascades replacement along (force-new). `depends_on`/explicit parents are excluded:
+   * an ordering edge carries no value and does not force a dependent's replacement.
+   *
+   * Used by validate to attribute terraform's transitive replacement cascade: when octo replaces a
+   * resource, terraform recreates everything that (transitively) references it, so those changes are
+   * expected rather than unattributed.
+   */
+  getResourceReferrers(): Map<string, Set<string>> {
+    const referrers = new Map<string, Set<string>>();
+    const addEdge = (referentId: string, referrerId: string): void => {
+      if (referentId === referrerId) {
+        return;
+      }
+      if (!referrers.has(referentId)) {
+        referrers.set(referentId, new Set());
+      }
+      referrers.get(referentId)!.add(referrerId);
+    };
+
+    for (const resource of this.resourceRegistry.values()) {
+      const refs: RefHclNode[] = [];
+      resource.collectRefs(refs);
+      for (const ref of refs) {
+        addEdge(ref.resourceId, resource.resourceId);
+      }
+
+      // An external resource consumes each parent's outputs as inputs — its null_resource triggers
+      // embed the parent's values, so a parent replace recreates it. That is a true value edge, even
+      // though it is recorded as an explicit parent (and its trigger refs are wired only at render
+      // time, so they are not yet in `collectRefs` here).
+      if (resource.externalResultExpression !== undefined) {
+        for (const parentResourceId of resource.explicitParentResourceIds) {
+          addEdge(parentResourceId, resource.resourceId);
+        }
+      }
+    }
+    return referrers;
+  }
+
   getOctoTerraformResourceMappings(): OctoTerraformResourceMapping[] {
     return [...this.resourceRegistry.values()].map((r) => {
       const isExternal = r.externalResultExpression !== undefined;

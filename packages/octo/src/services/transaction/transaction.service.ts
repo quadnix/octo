@@ -443,8 +443,9 @@ export class TransactionService {
     }
 
     // Get diffs of same node.
-    // Process ADD before UPDATE, and UPDATE before DELETE.
-    if (diff.action === DiffAction.UPDATE) {
+    // Process ADD before UPDATE/REPLACE, and UPDATE/REPLACE before DELETE. A REPLACE recreates the
+    // resource in place (same context), so for ordering it behaves like an UPDATE.
+    if (diff.action === DiffAction.UPDATE || diff.action === DiffAction.REPLACE) {
       const diffsOfSameNodeWithAddAction = this.getDiffsOfSameNode(diff, diffs, DiffAction.ADD);
       for (const sameNodeDiffWithAddAction of diffsOfSameNodeWithAddAction) {
         this.setApplyOrder(sameNodeDiffWithAddAction, diffs, [...seen, diff]);
@@ -516,11 +517,6 @@ export class TransactionService {
     this.eventService.emit(new ModelTransactionTransactionEvent(undefined, modelTransaction));
     if (yieldModelTransaction) {
       yield modelTransaction;
-    }
-
-    // Contribute the full desired resource graph to terraform.
-    if (generateTerraform) {
-      await this.generateTerraform();
     }
 
     // Generate resource diffs.
@@ -621,6 +617,14 @@ export class TransactionService {
     for (const diff of dirtyResourceDiffs) {
       this.setApplyOrder(diff, dirtyResourceDiffs);
     }
+
+    // Contribute the full desired resource graph to terraform. Deferred until after resource diffs
+    // are computed and ordered, so an author refusal (a throw in diff*) or an ordering/cycle error
+    // aborts generation before any HCL is built — diffs gate generation.
+    if (generateTerraform) {
+      await this.generateTerraform();
+    }
+
     this.eventService.emit(new ResourceDiffsTransactionEvent(undefined, [[resourceDiffs], [dirtyResourceDiffs]]));
     if (yieldResourceDiffs) {
       yield [resourceDiffs, dirtyResourceDiffs];

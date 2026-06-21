@@ -1,7 +1,8 @@
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'path';
-import { TestModes } from '../utilities/test-helpers/test-modes.js';
+import { RefusingTfResource, TestModes } from '../utilities/test-helpers/test-modes.js';
+import { commitResources } from '../utilities/test-helpers/test-resources.js';
 import { generate } from './generate.mode.js';
 
 describe('generate()', () => {
@@ -62,6 +63,22 @@ describe('generate()', () => {
     await generate(app, { outputDir: testModes.outputDir });
 
     expect(existsSync(join(testModes.outputDir, 'stale-file.hcl'))).toBe(false);
+  });
+
+  it('should refuse generation and write no files when a resource diff throws', async () => {
+    RefusingTfResource.toHCLInvocations.length = 0;
+
+    // Commit a graph whose resource refuses property updates, then re-stage it with a changed
+    // property so the next diff throws.
+    const { app } = await testModes.createRefusingResourceGraph({ save: true });
+    await commitResources({ skipAddActualResource: true });
+    testModes.resourceDataRepository.addNewResource(new RefusingTfResource('refuse-1', { CidrBlock: '10.9.0.0/16' }));
+
+    await expect(generate(app, { outputDir: testModes.outputDir })).rejects.toThrow(/Cannot update RefusingTfResource/);
+
+    // The diff gated generation: toHCL never ran and no module folder was written.
+    expect(RefusingTfResource.toHCLInvocations).toHaveLength(0);
+    expect(existsSync(join(testModes.outputDir, 'region-module'))).toBe(false);
   });
 
   it('should not persist any octo state', async () => {

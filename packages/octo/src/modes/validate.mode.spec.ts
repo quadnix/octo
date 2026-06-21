@@ -1,5 +1,11 @@
 import type { App } from '../models/app/app.model.js';
-import { ExternalIgwResource, TestModes, TfSgResource, TfVpcResource } from '../utilities/test-helpers/test-modes.js';
+import {
+  ExternalIgwResource,
+  ReplacingTfVpcResource,
+  TestModes,
+  TfSgResource,
+  TfVpcResource,
+} from '../utilities/test-helpers/test-modes.js';
 import { commitResources } from '../utilities/test-helpers/test-resources.js';
 import { type PersistedTerraformMapping, validate } from './validate.mode.js';
 
@@ -20,6 +26,17 @@ describe('validate()', () => {
   // cascades an update onto its direct child igw-1 (sg-1 stays unchanged).
   async function recreateGraph({ changeVpc }: { changeVpc?: boolean } = {}): Promise<void> {
     const vpc2 = new TfVpcResource('vpc-1', { CidrBlock: changeVpc ? '10.1.0.0/16' : '10.0.0.0/16' });
+    const igw2 = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc2]);
+    const secGroup2 = new TfSgResource('sg-1', {}, [igw2]);
+    testModes.resourceDataRepository.addNewResource(vpc2);
+    testModes.resourceDataRepository.addNewResource(igw2);
+    testModes.resourceDataRepository.addNewResource(secGroup2);
+  }
+
+  // Re-stages the replaceable graph with vpc-1 changed, so vpc-1 emits a REPLACE that (in terraform)
+  // recreates the resources referencing it.
+  async function recreateReplaceableGraph(): Promise<void> {
+    const vpc2 = new ReplacingTfVpcResource('vpc-1', { CidrBlock: '10.1.0.0/16' });
     const igw2 = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc2]);
     const secGroup2 = new TfSgResource('sg-1', {}, [igw2]);
     testModes.resourceDataRepository.addNewResource(vpc2);
@@ -88,7 +105,7 @@ describe('validate()', () => {
       tfDir: testModes.outputDir,
     });
     expect(result.pass).toBe(false);
-    expect(result.errors[0].message).toContain('terraform plans no change on "aws_vpc.vpc-1"');
+    expect(result.errors[0].message).toContain('no change on any of [aws_vpc.vpc-1]');
   });
 
   it('should fail when terraform plans a change that maps to no octo diff', async () => {
@@ -260,6 +277,60 @@ describe('validate()', () => {
     expect(result.pass).toBe(true);
     expect(result.errors).toEqual([]);
     expect(result.warnings.some((w) => w.message.includes('igw-1') && w.message.includes('persisted'))).toBe(true);
+  });
+
+  it('should pass an octo replace that terraform recreates', async () => {
+    const { app } = await testModes.createReplaceableResourceGraph({ save: true });
+    await commitResources({ skipAddActualResource: true });
+    await recreateReplaceableGraph();
+
+    // octo: vpc-1 REPLACE. terraform: vpc-1 recreated (delete + create).
+    await testModes.writePlan('region-module', [
+      { actions: ['create', 'delete'], address: 'aws_vpc.vpc-1' },
+      { actions: ['update'], address: 'null_resource.igw-1' }, // depth-1 parent update
+    ]);
+    await testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+
+    const result = await validate(app, { persistedMappings: noPersisted(), tfDir: testModes.outputDir });
+    expect(result.errors).toEqual([]);
+    expect(result.pass).toBe(true);
+  });
+
+  it('should fail an octo replace that terraform only updates in place', async () => {
+    const { app } = await testModes.createReplaceableResourceGraph({ save: true });
+    await commitResources({ skipAddActualResource: true });
+    await recreateReplaceableGraph();
+
+    await testModes.writePlan('region-module', [
+      { actions: ['update'], address: 'aws_vpc.vpc-1' }, // octo said replace, tf only updates
+      { actions: ['update'], address: 'null_resource.igw-1' },
+    ]);
+    await testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+
+    const result = await validate(app, { persistedMappings: noPersisted(), tfDir: testModes.outputDir });
+    expect(result.pass).toBe(false);
+    expect(
+      result.errors.some((e) => e.message.includes('has octo action "replace"') && e.message.includes('aws_vpc.vpc-1')),
+    ).toBe(true);
+  });
+
+  it('should attribute a terraform cascade on a referrer with no octo diff to the upstream replace', async () => {
+    const { app } = await testModes.createReplaceableResourceGraph({ save: true });
+    await commitResources({ skipAddActualResource: true });
+    await recreateReplaceableGraph();
+
+    // sg-1 has no octo diff (its parent igw-1 only changed its own parent), but terraform recreates
+    // it because it transitively references the replaced vpc-1 (force-new cascade). Design B: this is
+    // expected, not an unattributed change.
+    await testModes.writePlan('region-module', [
+      { actions: ['create', 'delete'], address: 'aws_vpc.vpc-1' },
+      { actions: ['update'], address: 'null_resource.igw-1' },
+    ]);
+    await testModes.writePlan('sg-module', [{ actions: ['create', 'delete'], address: 'aws_security_group.sg-1' }]);
+
+    const result = await validate(app, { persistedMappings: noPersisted(), tfDir: testModes.outputDir });
+    expect(result.errors).toEqual([]);
+    expect(result.pass).toBe(true);
   });
 
   it('should fail when a module plan file is missing', async () => {
