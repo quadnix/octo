@@ -77,11 +77,14 @@ ecr
 ecs
 efs
 eip
+eipalloc
 ejs
 eks
 elasticfilesystem
 elasticloadbalancing
+elb
 elbv
+eni
 enum
 eslintcache
 eslintrc
@@ -196,6 +199,8 @@ rehype
 renderer
 rimraf
 rolename
+rtb
+rtbassoc
 runbooks
 scalable
 schemas

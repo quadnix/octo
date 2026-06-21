@@ -99,5 +99,9 @@ export class IamUserSchema extends BaseResourceSchema {
     Arn?: string;
     UserId?: string;
     UserName?: string;
-  }>();
+  }>({
+    Arn: 'arn:aws:iam::000000000000:user/mock-user',
+    UserId: 'ABC00123456789ABC0ABC',
+    UserName: 'mock-user',
+  });
 }

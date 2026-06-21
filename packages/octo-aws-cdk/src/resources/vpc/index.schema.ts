@@ -73,5 +73,8 @@ export class VpcSchema extends BaseResourceSchema {
   override response = Schema<{
     VpcArn?: string;
     VpcId?: string;
-  }>();
+  }>({
+    VpcArn: 'arn:aws:ec2:us-east-1:000000000000:vpc/vpc-0123456789abcdef0',
+    VpcId: 'vpc-0123456789abcdef0',
+  });
 }

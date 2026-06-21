@@ -563,5 +563,8 @@ export class AlbListenerSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     ListenerArn?: string;
-  }>();
+  }>({
+    ListenerArn:
+      'arn:aws:elasticloadbalancing:us-east-1:000000000000:listener/app/mock-alb/0123456789abcdef/0123456789abcdef',
+  });
 }

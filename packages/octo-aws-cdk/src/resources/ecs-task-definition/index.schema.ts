@@ -180,5 +180,8 @@ export class EcsTaskDefinitionSchema extends BaseResourceSchema {
   override response = Schema<{
     revision?: string;
     taskDefinitionArn?: string;
-  }>();
+  }>({
+    revision: '1',
+    taskDefinitionArn: 'arn:aws:ecs:us-east-1:000000000000:task-definition/mock-task:1',
+  });
 }

@@ -50,5 +50,7 @@ export class EcsClusterSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     clusterArn?: string;
-  }>();
+  }>({
+    clusterArn: 'arn:aws:ecs:us-east-1:000000000000:cluster/mock-cluster',
+  });
 }

@@ -237,5 +237,7 @@ export class DynamoDBSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     TableArn?: string;
-  }>();
+  }>({
+    TableArn: 'arn:aws:dynamodb:us-east-1:000000000000:table/mock-table',
+  });
 }

@@ -103,5 +103,8 @@ export class SecurityGroupSchema extends BaseResourceSchema {
   override response = Schema<{
     Arn?: string;
     GroupId?: string;
-  }>();
+  }>({
+    Arn: 'arn:aws:ec2:us-east-1:000000000000:security-group/sg-0123456789abcdef0',
+    GroupId: 'sg-0123456789abcdef0',
+  });
 }

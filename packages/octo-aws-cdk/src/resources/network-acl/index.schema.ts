@@ -107,5 +107,7 @@ export class NetworkAclSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     NetworkAclId?: string;
-  }>();
+  }>({
+    NetworkAclId: 'acl-0123456789abcdef0',
+  });
 }

@@ -59,5 +59,8 @@ export class InternetGatewaySchema extends BaseResourceSchema {
   override response = Schema<{
     InternetGatewayArn?: string;
     InternetGatewayId?: string;
-  }>();
+  }>({
+    InternetGatewayArn: 'arn:aws:ec2:us-east-1:000000000000:internet-gateway/igw-0123456789abcdef0',
+    InternetGatewayId: 'igw-0123456789abcdef0',
+  });
 }

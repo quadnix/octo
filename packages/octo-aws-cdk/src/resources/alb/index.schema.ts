@@ -69,5 +69,8 @@ export class AlbSchema extends BaseResourceSchema {
   override response = Schema<{
     DNSName?: string;
     LoadBalancerArn?: string;
-  }>();
+  }>({
+    DNSName: 'mock-alb-0000000000.us-east-1.elb.amazonaws.com',
+    LoadBalancerArn: 'arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/app/mock-alb/0123456789abcdef',
+  });
 }

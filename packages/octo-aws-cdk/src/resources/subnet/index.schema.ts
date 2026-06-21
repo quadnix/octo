@@ -65,5 +65,8 @@ export class SubnetSchema extends BaseResourceSchema {
   override response = Schema<{
     SubnetArn?: string;
     SubnetId?: string;
-  }>();
+  }>({
+    SubnetArn: 'arn:aws:ec2:us-east-1:000000000000:subnet/subnet-0123456789abcdef0',
+    SubnetId: 'subnet-0123456789abcdef0',
+  });
 }

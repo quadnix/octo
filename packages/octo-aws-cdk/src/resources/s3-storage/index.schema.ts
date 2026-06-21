@@ -50,7 +50,9 @@ export class PrincipalResourceSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     Arn?: string;
-  }>();
+  }>({
+    Arn: 'arn:aws:s3:::mock-bucket',
+  });
 }
 
 /**
@@ -115,5 +117,7 @@ export class S3StorageSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     Arn?: string;
-  }>();
+  }>({
+    Arn: 'arn:aws:s3:::mock-bucket',
+  });
 }

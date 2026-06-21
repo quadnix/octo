@@ -61,5 +61,8 @@ export class NatGatewaySchema extends BaseResourceSchema {
   override response = Schema<{
     AllocationId?: string;
     NatGatewayId?: string;
-  }>();
+  }>({
+    AllocationId: 'eipalloc-0123456789abcdef0',
+    NatGatewayId: 'nat-0123456789abcdef0',
+  });
 }

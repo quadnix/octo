@@ -62,5 +62,8 @@ export class RouteTableSchema extends BaseResourceSchema {
   override response = Schema<{
     RouteTableId?: string;
     subnetAssociationId?: string;
-  }>();
+  }>({
+    RouteTableId: 'rtb-0123456789abcdef0',
+    subnetAssociationId: 'rtbassoc-0123456789abcdef0',
+  });
 }

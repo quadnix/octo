@@ -72,5 +72,12 @@ export class EcrImageSchema extends BaseResourceSchema {
     repositoryArn?: string;
     repositoryName?: string;
     repositoryUri?: string;
-  }>();
+  }>({
+    authorizationToken: 'token',
+    proxyEndpoint: 'https://000000000000.dkr.ecr.us-east-1.amazonaws.com',
+    registryId: '000000000000',
+    repositoryArn: 'arn:aws:ecr:us-east-1:000000000000:repository/mock-repository',
+    repositoryName: 'mock-repository',
+    repositoryUri: '000000000000.dkr.ecr.us-east-1.amazonaws.com/mock-repository',
+  });
 }

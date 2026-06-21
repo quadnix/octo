@@ -565,7 +565,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        config_path = "../alb-module"
 
        mock_outputs = {
-         "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" = "mock-alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn"
+         "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" = "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/mock-tg/0123456789abcdef"
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
      }

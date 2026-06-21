@@ -100,5 +100,7 @@ export class EcsServiceSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     serviceArn?: string;
-  }>();
+  }>({
+    serviceArn: 'arn:aws:ecs:us-east-1:000000000000:service/mock-cluster/mock-service',
+  });
 }

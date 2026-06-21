@@ -148,5 +148,7 @@ export class AlbTargetGroupSchema extends BaseResourceSchema {
   })
   override response = Schema<{
     TargetGroupArn?: string;
-  }>();
+  }>({
+    TargetGroupArn: 'arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/mock-tg/0123456789abcdef',
+  });
 }

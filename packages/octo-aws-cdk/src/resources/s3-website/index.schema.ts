@@ -61,5 +61,8 @@ export class S3WebsiteSchema extends BaseResourceSchema {
   override response = Schema<{
     Arn?: string;
     awsRegionId?: string;
-  }>();
+  }>({
+    Arn: 'arn:aws:s3:::mock-website-bucket',
+    awsRegionId: 'us-east-1',
+  });
 }

@@ -122,5 +122,9 @@ export class IamRoleSchema extends BaseResourceSchema {
     Arn?: string;
     RoleId?: string;
     RoleName?: string;
-  }>();
+  }>({
+    Arn: 'arn:aws:iam::000000000000:role/mock-role',
+    RoleId: 'ABC00123456789ABC0ABC',
+    RoleName: 'mock-role',
+  });
 }

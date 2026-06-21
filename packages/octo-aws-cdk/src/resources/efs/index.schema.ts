@@ -55,5 +55,8 @@ export class EfsSchema extends BaseResourceSchema {
   override response = Schema<{
     FileSystemArn?: string;
     FileSystemId?: string;
-  }>();
+  }>({
+    FileSystemArn: 'arn:aws:elasticfilesystem:us-east-1:000000000000:file-system/fs-0123456789abcdef0',
+    FileSystemId: 'fs-0123456789abcdef0',
+  });
 }
