@@ -96,6 +96,7 @@ describe('AwsEcrImageModule UT', () => {
      # image/outputs.tf
      output "ecr-us-east-1-family_image-authorizationToken" {
        value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
+       sensitive = true
      }
 
      output "ecr-us-east-1-family_image-proxyEndpoint" {

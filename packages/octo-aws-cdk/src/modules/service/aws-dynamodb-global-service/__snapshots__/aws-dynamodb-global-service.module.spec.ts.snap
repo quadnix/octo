@@ -23,7 +23,7 @@ resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
   }
 
 + global-dynamodb-module/outputs.tf
-output "dynamodb-global-test-table-123:us-west-2:TableArn" {
+output "dynamodb-global-test-table-123_us-west-2_TableArn" {
   value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
 }"
 `;
@@ -48,7 +48,7 @@ resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
   provider = aws._123-us-west-2
 
 - global-dynamodb-module/outputs.tf
-output "dynamodb-global-test-table-123:us-west-2:TableArn" {
+output "dynamodb-global-test-table-123_us-west-2_TableArn" {
   value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
 }"
 `;
@@ -85,7 +85,7 @@ resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
   provider = aws._123-us-west-2
 
 + global-dynamodb-module/outputs.tf
-output "dynamodb-global-test-table-123:us-west-2:TableArn" {
+output "dynamodb-global-test-table-123_us-west-2_TableArn" {
   value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
 }"
 `;
@@ -110,7 +110,7 @@ resource "aws_dynamodb_table_replica" "dynamodb-global-test-table_us-west-2" {
   provider = aws._123-us-west-2
 
 - global-dynamodb-module/outputs.tf
-output "dynamodb-global-test-table-123:us-west-2:TableArn" {
+output "dynamodb-global-test-table-123_us-west-2_TableArn" {
   value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-west-2.arn
 }"
 `;
@@ -143,7 +143,7 @@ terraform {
 }
 
 - global-dynamodb-module/outputs.tf
-output "dynamodb-global-test-table-123:us-east-1:TableArn" {
+output "dynamodb-global-test-table-123_us-east-1_TableArn" {
   value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
 }
 
@@ -213,7 +213,7 @@ terraform {
 }
 
 - global-dynamodb-module-1/outputs.tf
-output "dynamodb-global-test-table-123:us-east-1:TableArn" {
+output "dynamodb-global-test-table-123_us-east-1_TableArn" {
   value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
 }
 
@@ -260,7 +260,7 @@ terraform {
 }
 
 + global-dynamodb-module-2/outputs.tf
-output "dynamodb-global-test-table-123:us-east-1:TableArn" {
+output "dynamodb-global-test-table-123_us-east-1_TableArn" {
   value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
 }
 

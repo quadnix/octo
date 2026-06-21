@@ -151,7 +151,7 @@ describe('AwsDynamoDBGlobalServiceModule UT', () => {
      }
 
      # global-dynamodb-module/outputs.tf
-     output "dynamodb-global-test-table-123:us-east-1:TableArn" {
+     output "dynamodb-global-test-table-123_us-east-1_TableArn" {
        value = aws_dynamodb_table_replica.dynamodb-global-test-table_us-east-1.arn
      }
 

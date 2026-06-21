@@ -44,14 +44,17 @@ export class EcrImage extends ATerraformResource<EcrImageSchema, EcrImage> {
       registry_id: terraform.raw(`${ecrImageTFResource.address}.registry_id`),
     });
 
-    ecrImageOctoResource.output({
-      authorizationToken: ecrAuthToken.ref('authorization_token'),
-      proxyEndpoint: ecrAuthToken.ref('proxy_endpoint'),
-      registryId: terraform.raw(`${ecrImageTFResource.address}.registry_id`),
-      repositoryArn: terraform.raw(`${ecrImageTFResource.address}.arn`),
-      repositoryName: terraform.raw(`${ecrImageTFResource.address}.name`),
-      repositoryUri: terraform.raw(`${ecrImageTFResource.address}.repository_url`),
-    });
+    ecrImageOctoResource.output(
+      {
+        authorizationToken: ecrAuthToken.ref('authorization_token'),
+        proxyEndpoint: ecrAuthToken.ref('proxy_endpoint'),
+        registryId: terraform.raw(`${ecrImageTFResource.address}.registry_id`),
+        repositoryArn: terraform.raw(`${ecrImageTFResource.address}.arn`),
+        repositoryName: terraform.raw(`${ecrImageTFResource.address}.name`),
+        repositoryUri: terraform.raw(`${ecrImageTFResource.address}.repository_url`),
+      },
+      { sensitiveKeys: ['authorizationToken'] },
+    );
 
     if (Object.keys(this.tags).length > 0) {
       ecrImageTFResource.attribute('tags', this.tags);

@@ -36,6 +36,7 @@ resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
 + image/outputs.tf
 output "ecr-us-east-1-changed-family_image-authorizationToken" {
   value = data.aws_ecr_authorization_token.ecr-us-east-1-changed-family_image.authorization_token
+  sensitive = true
 }
 
 + image/outputs.tf
@@ -66,6 +67,7 @@ output "ecr-us-east-1-changed-family_image-repositoryUri" {
 - image/outputs.tf
 output "ecr-us-east-1-family_image-authorizationToken" {
   value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
+  sensitive = true
 }
 
 - image/outputs.tf
@@ -130,6 +132,7 @@ resource "aws_ecr_repository" "ecr-us-east-1-family_image" {
 + image/outputs.tf
 output "ecr-us-east-1-family_changed-image-authorizationToken" {
   value = data.aws_ecr_authorization_token.ecr-us-east-1-family_changed-image.authorization_token
+  sensitive = true
 }
 
 + image/outputs.tf
@@ -160,6 +163,7 @@ output "ecr-us-east-1-family_changed-image-repositoryUri" {
 - image/outputs.tf
 output "ecr-us-east-1-family_image-authorizationToken" {
   value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
+  sensitive = true
 }
 
 - image/outputs.tf
@@ -225,6 +229,7 @@ terraform {
 - image/outputs.tf
 output "ecr-us-east-1-family_image-authorizationToken" {
   value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
+  sensitive = true
 }
 
 - image/outputs.tf
@@ -317,6 +322,7 @@ terraform {
 - image-1/outputs.tf
 output "ecr-us-east-1-family_image-authorizationToken" {
   value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
+  sensitive = true
 }
 
 - image-1/outputs.tf
@@ -386,6 +392,7 @@ terraform {
 + image-2/outputs.tf
 output "ecr-us-east-1-family_image-authorizationToken" {
   value = data.aws_ecr_authorization_token.ecr-us-east-1-family_image.authorization_token
+  sensitive = true
 }
 
 + image-2/outputs.tf
