@@ -154,6 +154,7 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
       parents?: string[] | UnknownResource[];
       resourceActions?: IUnknownResourceAction[];
       resourceContext: string;
+      schema?: Constructable<S[K]>;
       terraform?: boolean;
     };
   },
@@ -203,6 +204,11 @@ export async function createTestResources<S extends BaseResourceSchema[]>(
 
     const Resource = arg.terraform ? createTerraformResource(NODE_NAME) : createResource(NODE_NAME);
     Object.defineProperty(Resource, 'name', { value: NODE_NAME });
+
+    if (arg.schema) {
+      Object.defineProperty(Resource, 'NODE_SCHEMA', { configurable: true, value: arg.schema });
+    }
+
     // Terraform resources are managed by terraform via toHCL() and cannot have resource actions.
     if (!arg.terraform) {
       try {
