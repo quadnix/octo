@@ -95,9 +95,10 @@ describe('App Modes E2E Test', () => {
     const sgMainTf = await readFile(join(tfDir, 'sg-module', 'main.tf'), 'utf-8');
     expect(sgMainTf).toContain('igw_id = var.igw_1.igwId');
     const sgVariablesTf = await readFile(join(tfDir, 'sg-module', 'variables.tf'), 'utf-8');
-    expect(sgVariablesTf).toContain('variable "igw_1" {}');
+    expect(sgVariablesTf).toContain('variable "igw_1" {\n  type = map(string)\n}');
     const sgTerragruntHcl = await readFile(join(tfDir, 'sg-module', 'terragrunt.hcl'), 'utf-8');
     expect(sgTerragruntHcl).toContain('dependency "region-module"');
+    expect(sgTerragruntHcl).toContain('"igw-1" = { igwId = "mock-igw-1-igwId" }');
     expect(sgTerragruntHcl).toContain('igw_1 = dependency.region-module.outputs["igw-1"]');
 
     // Every folder is written with the four terragrunt files.

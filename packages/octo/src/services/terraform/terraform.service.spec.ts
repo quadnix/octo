@@ -386,7 +386,9 @@ describe('TerraformService UT', () => {
       // Cross module: one variable carries the parent's whole result map, sourced via terragrunt from
       // the parent's single output, and consumed whole (jsonencode) in the child's input.
       expect(files.get('nat-module')!.mainTf).toContain('--input igw-1=${jsonencode(var.igw_1)}');
-      expect(files.get('nat-module')!.variablesTf).toContain('variable "igw_1" {}');
+      // External producer → the variable carries the whole result map, so it is typed `map(string)`
+      // (an un-typed variable would coerce the object to a JSON string).
+      expect(files.get('nat-module')!.variablesTf).toContain('variable "igw_1" {\n  type = map(string)\n}');
       expect(files.get('nat-module')!.terragruntHcl).toContain('igw_1 = dependency.igw-module.outputs["igw-1"]');
     });
   });
@@ -819,6 +821,26 @@ describe('TerraformService UT', () => {
         expect(terragruntHcl).not.toContain('cluster-1-Name');
         expect(variablesTf).toContain('variable "cluster_1_Id" {}');
         expect(variablesTf).not.toContain('cluster_1_Arn');
+      });
+
+      it("should mock an external producer's entire-response output as an object keyed by consumed fields", () => {
+        const igw = new TestExternalResource('igw-1', {});
+        service.scope('igw-module').addOctoTerraformExternalResource(igw);
+
+        const subnetScope = service.scope('subnet-module');
+        const subnetResource = new TestTerraformResource('subnet-1', {});
+        subnetScope.addOctoTerraformResource(subnetResource).addTerraformResource('aws_subnet', 'subnet-1', {
+          gateway_id: subnetScope.getRef(igw, 'InternetGatewayId'),
+          owner_id: subnetScope.getRef(igw, 'OwnerId'),
+        });
+
+        const { mainTf, terragruntHcl, variablesTf } = service.renderAllModules().get('subnet-module')!;
+        expect(mainTf).toContain('gateway_id = var.igw_1.InternetGatewayId');
+        expect(mainTf).toContain('owner_id = var.igw_1.OwnerId');
+        expect(terragruntHcl).toContain(
+          '"igw-1" = { InternetGatewayId = "mock-igw-1-InternetGatewayId", OwnerId = "mock-igw-1-OwnerId" }',
+        );
+        expect(variablesTf).toContain('variable "igw_1" {\n  type = map(string)\n}');
       });
 
       it('should throw when a cross-module dependency cycle is detected', () => {

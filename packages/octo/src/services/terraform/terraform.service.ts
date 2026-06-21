@@ -188,8 +188,13 @@ interface TerraformModuleWiring {
   /**
    * Cross-module refs only. Maps the generated variable name to the producer folder and output
    * it must be wired from. Drives `variables.tf` declarations and `terragrunt.hcl` inputs.
+   *
+   * `objectKeys` is set only for external producers, whose single auto variable carries the
+   * producer's **entire response object** (consumed as `var.<name>.<key>`); it lists the keys
+   * actually accessed so `terragrunt.hcl` can mock the output as an object rather than a flat
+   * string. Normal (per-key scalar) producers leave it undefined.
    */
-  autoVariables: Map<string, { outputName: string; producerModuleId: string }>;
+  autoVariables: Map<string, { objectKeys?: Set<string>; outputName: string; producerModuleId: string }>;
 
   /**
    * Producer folders this module's `terragrunt.hcl` must declare `dependency` blocks for,
@@ -584,7 +589,16 @@ export class TerraformService {
           } else {
             const variableName = StringUtility.sanitizeForEnvironmentVariable(ref.resourceId);
             const entireResponseOutput = producer.outputs.get(producer.resourceId)!;
+
+            // The variable holds the producer's entire response object; collect the keys consumed
+            // across all refs so the mock can be shaped as an object (see `objectKeys`).
+            const objectKeys = moduleWiring.autoVariables.get(variableName)?.objectKeys ?? new Set<string>();
+            if (!ref.entireResponse) {
+              objectKeys.add(ref.key);
+            }
+
             moduleWiring.autoVariables.set(variableName, {
+              objectKeys,
               outputName: entireResponseOutput.name,
               producerModuleId: producer.moduleId,
             });
@@ -819,9 +833,17 @@ export class TerraformService {
         .filter(Boolean)
         .join('\n\n');
 
-      // variables.tf: auto variables from cross-module refs, then user variables.
+      // variables.tf: auto variables from cross-module refs, then user variables. An external
+      // producer's variable carries its entire response object (consumed as `var.<name>.<key>`), so it
+      // must be typed `map(string)` — terraform's external-data contract — otherwise an un-typed variable
+      // coerces the object to a JSON string and `var.<name>.<key>` fails at plan/apply. Per-key scalar
+      // variables stay un-typed.
       const variablesTf = [
-        ...[...moduleWiring.autoVariables.keys()].sort().map((name) => `variable "${name}" {}`),
+        ...[...moduleWiring.autoVariables.entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, v]) =>
+            v.objectKeys ? `variable "${name}" {\n${this.step}type = map(string)\n}` : `variable "${name}" {}`,
+          ),
         ...module.variables.map((v) => v.render(context)),
       ]
         .filter(Boolean)
@@ -882,17 +904,36 @@ export class TerraformService {
     // Dependency blocks, with mock outputs so `run-all plan` works before first apply.
     for (const producerModuleId of [...moduleWiring.moduleDependencies.keys()].sort()) {
       const dependencyName = StringUtility.sanitizeForIdentifier(producerModuleId);
-      const mockOutputs = [...moduleWiring.autoVariables.values()]
-        .filter((v) => v.producerModuleId === producerModuleId)
-        .map((v) => v.outputName)
-        .sort();
+      // Map each consumed output name to its mock shape: a flat string for per-key scalar outputs,
+      // or an object (keyed by the accessed fields) for an external producer's entire-response output.
+      const mockOutputs = new Map<string, Set<string> | undefined>();
+      for (const v of moduleWiring.autoVariables.values()) {
+        if (v.producerModuleId !== producerModuleId) {
+          continue;
+        }
+        if (v.objectKeys) {
+          const keys = mockOutputs.get(v.outputName) ?? new Set<string>();
+          for (const key of v.objectKeys) {
+            keys.add(key);
+          }
+          mockOutputs.set(v.outputName, keys);
+        } else if (!mockOutputs.has(v.outputName)) {
+          mockOutputs.set(v.outputName, undefined);
+        }
+      }
 
       const lines = [`dependency "${dependencyName}" {`, `${step}config_path = "../${producerModuleId}"`];
-      if (mockOutputs.length > 0) {
+      if (mockOutputs.size > 0) {
         lines.push('');
         lines.push(`${step}mock_outputs = {`);
-        for (const outputName of mockOutputs) {
-          lines.push(`${step}${step}"${outputName}" = "mock-${outputName}"`);
+        for (const outputName of [...mockOutputs.keys()].sort()) {
+          const keys = mockOutputs.get(outputName);
+          if (keys) {
+            const fields = [...keys].sort().map((key) => `${key} = "mock-${outputName}-${key}"`);
+            lines.push(`${step}${step}"${outputName}" = { ${fields.join(', ')} }`);
+          } else {
+            lines.push(`${step}${step}"${outputName}" = "mock-${outputName}"`);
+          }
         }
         lines.push(`${step}}`);
         lines.push(`${step}mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]`);
