@@ -228,12 +228,14 @@ exports[`AwsEcsExecutionModule UT should CUD 8`] = `
 
 ~ execution/terragrunt.hcl mock_outputs = {
 @@ -2,2 +2,3 @@
-      "ecs-cluster-region-qa" = "mock-ecs-cluster-region-qa"
-+     "efs-region-test-filesystem" = "mock-efs-region-test-filesystem"
-      "iam-role-ServerRole-backend" = "mock-iam-role-ServerRole-backend"
+      "ecs-cluster-region-qa" = { clusterArn = "mock-ecs-cluster-region-qa-clusterArn" }
++     "efs-region-test-filesystem" = { FileSystemId = "mock-efs-region-test-filesystem-FileSystemId" }
+      "iam-role-ServerRole-backend" = { Arn = "mock-iam-role-ServerRole-backend-Arn" }
 
 + execution/variables.tf
-variable "efs_region_test_filesystem" {}"
+variable "efs_region_test_filesystem" {
+  type = map(string)
+}"
 `;
 
 exports[`AwsEcsExecutionModule UT should CUD 10`] = `
@@ -401,29 +403,39 @@ inputs = {
 
 - execution/terragrunt.hcl
 mock_outputs = {
-    "ecs-cluster-region-qa" = "mock-ecs-cluster-region-qa"
-    "efs-region-test-filesystem" = "mock-efs-region-test-filesystem"
-    "iam-role-ServerRole-backend" = "mock-iam-role-ServerRole-backend"
-    "subnet-region-private-subnet" = "mock-subnet-region-private-subnet"
-    "vpc-region" = "mock-vpc-region"
+    "ecs-cluster-region-qa" = { clusterArn = "mock-ecs-cluster-region-qa-clusterArn" }
+    "efs-region-test-filesystem" = { FileSystemId = "mock-efs-region-test-filesystem-FileSystemId" }
+    "iam-role-ServerRole-backend" = { Arn = "mock-iam-role-ServerRole-backend-Arn" }
+    "subnet-region-private-subnet" = { SubnetId = "mock-subnet-region-private-subnet-SubnetId" }
+    "vpc-region" = { VpcId = "mock-vpc-region-VpcId" }
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
 - execution/variables.tf
-variable "ecs_cluster_region_qa" {}
+variable "ecs_cluster_region_qa" {
+  type = map(string)
+}
 
 - execution/variables.tf
-variable "efs_region_test_filesystem" {}
+variable "efs_region_test_filesystem" {
+  type = map(string)
+}
 
 - execution/variables.tf
-variable "iam_role_ServerRole_backend" {}
+variable "iam_role_ServerRole_backend" {
+  type = map(string)
+}
 
 - execution/variables.tf
-variable "subnet_region_private_subnet" {}
+variable "subnet_region_private_subnet" {
+  type = map(string)
+}
 
 - execution/variables.tf
-variable "vpc_region" {}"
+variable "vpc_region" {
+  type = map(string)
+}"
 `;
 
 exports[`AwsEcsExecutionModule UT should CUD tags 2`] = `
@@ -622,25 +634,33 @@ inputs = {
 
 - execution-1/terragrunt.hcl
 mock_outputs = {
-    "ecs-cluster-region-qa" = "mock-ecs-cluster-region-qa"
-    "iam-role-ServerRole-backend" = "mock-iam-role-ServerRole-backend"
-    "subnet-region-private-subnet" = "mock-subnet-region-private-subnet"
-    "vpc-region" = "mock-vpc-region"
+    "ecs-cluster-region-qa" = { clusterArn = "mock-ecs-cluster-region-qa-clusterArn" }
+    "iam-role-ServerRole-backend" = { Arn = "mock-iam-role-ServerRole-backend-Arn" }
+    "subnet-region-private-subnet" = { SubnetId = "mock-subnet-region-private-subnet-SubnetId" }
+    "vpc-region" = { VpcId = "mock-vpc-region-VpcId" }
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
 - execution-1/variables.tf
-variable "ecs_cluster_region_qa" {}
+variable "ecs_cluster_region_qa" {
+  type = map(string)
+}
 
 - execution-1/variables.tf
-variable "iam_role_ServerRole_backend" {}
+variable "iam_role_ServerRole_backend" {
+  type = map(string)
+}
 
 - execution-1/variables.tf
-variable "subnet_region_private_subnet" {}
+variable "subnet_region_private_subnet" {
+  type = map(string)
+}
 
 - execution-1/variables.tf
-variable "vpc_region" {}
+variable "vpc_region" {
+  type = map(string)
+}
 
 + execution-2/main.tf
 provider "aws" {
@@ -765,23 +785,31 @@ inputs = {
 
 + execution-2/terragrunt.hcl
 mock_outputs = {
-    "ecs-cluster-region-qa" = "mock-ecs-cluster-region-qa"
-    "iam-role-ServerRole-backend" = "mock-iam-role-ServerRole-backend"
-    "subnet-region-private-subnet" = "mock-subnet-region-private-subnet"
-    "vpc-region" = "mock-vpc-region"
+    "ecs-cluster-region-qa" = { clusterArn = "mock-ecs-cluster-region-qa-clusterArn" }
+    "iam-role-ServerRole-backend" = { Arn = "mock-iam-role-ServerRole-backend-Arn" }
+    "subnet-region-private-subnet" = { SubnetId = "mock-subnet-region-private-subnet-SubnetId" }
+    "vpc-region" = { VpcId = "mock-vpc-region-VpcId" }
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
 + execution-2/variables.tf
-variable "ecs_cluster_region_qa" {}
+variable "ecs_cluster_region_qa" {
+  type = map(string)
+}
 
 + execution-2/variables.tf
-variable "iam_role_ServerRole_backend" {}
+variable "iam_role_ServerRole_backend" {
+  type = map(string)
+}
 
 + execution-2/variables.tf
-variable "subnet_region_private_subnet" {}
+variable "subnet_region_private_subnet" {
+  type = map(string)
+}
 
 + execution-2/variables.tf
-variable "vpc_region" {}"
+variable "vpc_region" {
+  type = map(string)
+}"
 `;

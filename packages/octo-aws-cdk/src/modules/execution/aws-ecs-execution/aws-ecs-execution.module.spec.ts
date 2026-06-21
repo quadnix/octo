@@ -357,10 +357,10 @@ describe('AwsEcsExecutionModule UT', () => {
        config_path = "../testModule"
 
        mock_outputs = {
-         "ecs-cluster-region-qa" = "mock-ecs-cluster-region-qa"
-         "iam-role-ServerRole-backend" = "mock-iam-role-ServerRole-backend"
-         "subnet-region-private-subnet" = "mock-subnet-region-private-subnet"
-         "vpc-region" = "mock-vpc-region"
+         "ecs-cluster-region-qa" = { clusterArn = "mock-ecs-cluster-region-qa-clusterArn" }
+         "iam-role-ServerRole-backend" = { Arn = "mock-iam-role-ServerRole-backend-Arn" }
+         "subnet-region-private-subnet" = { SubnetId = "mock-subnet-region-private-subnet-SubnetId" }
+         "vpc-region" = { VpcId = "mock-vpc-region-VpcId" }
        }
        mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
      }
@@ -373,13 +373,21 @@ describe('AwsEcsExecutionModule UT', () => {
      }
 
      # execution/variables.tf
-     variable "ecs_cluster_region_qa" {}
+     variable "ecs_cluster_region_qa" {
+       type = map(string)
+     }
 
-     variable "iam_role_ServerRole_backend" {}
+     variable "iam_role_ServerRole_backend" {
+       type = map(string)
+     }
 
-     variable "subnet_region_private_subnet" {}
+     variable "subnet_region_private_subnet" {
+       type = map(string)
+     }
 
-     variable "vpc_region" {}
+     variable "vpc_region" {
+       type = map(string)
+     }
 
      # testModule/main.tf
      terraform {
