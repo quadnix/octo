@@ -3,10 +3,8 @@ import {
   DependencyRelationship,
   Diff,
   DiffAction,
-  DiffUtility,
   type MatchingResource,
   Resource,
-  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import type { DynamoDBSchema } from '../dynamodb/index.schema.js';
@@ -109,14 +107,6 @@ export class DynamoDBGlobal extends ATerraformResource<DynamoDBGlobalSchema, Dyn
     } else {
       await super.diffInverse(diff, deReferenceResource);
     }
-  }
-
-  override async diffProperties(previous: DynamoDBGlobal): Promise<Diff[]> {
-    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['replicas'])) {
-      throw new ResourceError('Cannot update DynamoDBGlobal immutable properties once it has been created!', this);
-    }
-
-    return super.diffProperties(previous);
   }
 
   override diffUnpack(diff: Diff): Diff[] {

@@ -1,11 +1,4 @@
-import {
-  ATerraformResource,
-  Diff,
-  DiffUtility,
-  Resource,
-  ResourceError,
-  type TerraformModuleScope,
-} from '@quadnix/octo';
+import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type TerraformModuleScope } from '@quadnix/octo';
 import { EcsClusterSchema } from './index.schema.js';
 
 /**
@@ -22,10 +15,18 @@ export class EcsCluster extends ATerraformResource<EcsClusterSchema, EcsCluster>
 
   override async diffProperties(previous: EcsCluster): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update ECS Cluster immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'name is force-new on aws_ecs_cluster; a change recreates it',
+        ),
+      ];
     }
 
-    return super.diffProperties(previous);
+    return [];
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {

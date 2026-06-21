@@ -1,11 +1,4 @@
-import {
-  ATerraformResource,
-  Diff,
-  DiffUtility,
-  Resource,
-  ResourceError,
-  type TerraformModuleScope,
-} from '@quadnix/octo';
+import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type TerraformModuleScope } from '@quadnix/octo';
 import { VpcSchema } from './index.schema.js';
 
 /**
@@ -21,11 +14,19 @@ export class Vpc extends ATerraformResource<VpcSchema, Vpc> {
   }
 
   override async diffProperties(previous: Vpc): Promise<Diff[]> {
-    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update VPC immutable properties once it has been created!', this);
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['awsAvailabilityZones'])) {
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'cidr_block is force-new on aws_vpc; a change recreates the VPC',
+        ),
+      ];
     }
 
-    return super.diffProperties(previous);
+    return [];
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {

@@ -75,21 +75,18 @@ export class EcsTaskDefinition extends ATerraformResource<EcsTaskDefinitionSchem
         'memory',
       ])
     ) {
-      throw new ResourceError('Cannot update ECS Task Definition immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'family is force-new on aws_ecs_task_definition; a change recreates it',
+        ),
+      ];
     }
 
     return super.diffProperties(previous);
-  }
-
-  override async diffInverse(
-    diff: Diff<EcsTaskDefinition>,
-    deReferenceResource: (resourceId: string) => Promise<AResource<EfsSchema, any>>,
-  ): Promise<void> {
-    if (diff.action === DiffAction.UPDATE && diff.field === 'resourceId') {
-      await this.cloneResourceInPlace(diff.node, deReferenceResource);
-    } else {
-      await super.diffInverse(diff, deReferenceResource);
-    }
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {

@@ -69,24 +69,17 @@ export class RouteTable extends ATerraformResource<RouteTableSchema, RouteTable>
     parentToChildDependency.addBehavior('resourceId', DiffAction.DELETE, 'parent', DiffAction.UPDATE);
   }
 
-  override diffUnpack(diff: Diff): Diff[] {
-    if (diff.action === DiffAction.ADD && diff.field === 'resourceId') {
-      const diffs: Diff[] = [diff];
-
-      const existingNatGatewayParentDependencies = this.getParents('nat-gateway')['nat-gateway'];
-      if (existingNatGatewayParentDependencies?.length > 0) {
-        diffs.push(new Diff(this, DiffAction.ADD, 'parent', existingNatGatewayParentDependencies[0].to));
-      }
-
-      return diffs;
-    } else {
-      return [diff];
-    }
-  }
-
   override async diffProperties(previous: RouteTable): Promise<Diff[]> {
-    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update Route Table immutable properties once it has been created!', this);
+    if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['associateWithInternetGateway'])) {
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'route table routes update in place; non-route properties are identity',
+        ),
+      ];
     }
 
     return super.diffProperties(previous);

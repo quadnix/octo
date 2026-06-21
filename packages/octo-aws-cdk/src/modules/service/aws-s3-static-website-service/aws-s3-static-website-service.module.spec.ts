@@ -332,11 +332,13 @@ describe('AwsS3StaticWebsiteServiceModule UT', () => {
         moduleId: 'service',
         type: AwsS3StaticWebsiteServiceModule,
       });
-      await expect(async () => {
-        await testModuleContainer.commit(appUpdateRegionId);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update S3 Website immutable properties once it has been created!"`,
-      );
+      // awsRegionId selects the provider; Bucket is force-new on aws_s3_bucket → octo emits a REPLACE.
+      const resultUpdateRegionId = await testModuleContainer.commit(appUpdateRegionId);
+      expect(testModuleContainer.digestDiffs(resultUpdateRegionId.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "^ @octo/s3-website=bucket-test-bucket",
+       ]
+      `);
     });
 
     it('should handle bucketName change', async () => {

@@ -173,19 +173,6 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
     return diffs;
   }
 
-  override async diffInverse(
-    diff: Diff<AlbListener>,
-    deReferenceResource: (
-      resourceId: string,
-    ) => Promise<AResource<AlbSchema, any> | AResource<AlbTargetGroupSchema, any>>,
-  ): Promise<void> {
-    if (diff.action === DiffAction.UPDATE && diff.field === 'properties') {
-      await this.cloneResourceInPlace(diff.node, deReferenceResource);
-    } else {
-      return super.diffInverse(diff, deReferenceResource);
-    }
-  }
-
   override async diffProperties(previous: AlbListener): Promise<Diff[]> {
     const diffs: Diff[] = [];
 
@@ -197,7 +184,15 @@ export class AlbListener extends ATerraformResource<AlbListenerSchema, AlbListen
         'rules',
       ])
     ) {
-      throw new ResourceError('Cannot update ALB Listener immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'alb listener identity (account/region) changed; a change recreates it',
+        ),
+      ];
     }
 
     // Diff DefaultActions, Port, or Protocols.

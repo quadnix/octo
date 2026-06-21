@@ -1,12 +1,10 @@
 import {
-  AResource,
   ATerraformResource,
   Diff,
   DiffAction,
   DiffUtility,
   type MatchingResource,
   Resource,
-  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
@@ -29,29 +27,24 @@ export class AlbTargetGroup extends ATerraformResource<AlbTargetGroupSchema, Alb
     super(resourceId, properties, parents);
   }
 
-  override async diffInverse(
-    diff: Diff<AlbTargetGroup>,
-    deReferenceResource: (resourceId: string) => Promise<AResource<VpcSchema, any>>,
-  ): Promise<void> {
-    if (diff.field === 'properties' && diff.action === DiffAction.UPDATE) {
-      this.clonePropertiesInPlace(diff.node);
-    } else {
-      await super.diffInverse(diff, deReferenceResource);
-    }
-  }
-
   override async diffProperties(previous: AlbTargetGroup): Promise<Diff[]> {
-    const diffs: Diff[] = [];
-
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['healthCheck'])) {
-      throw new ResourceError('Cannot update ALB Target Group immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'name/port/protocol/target_type are force-new on aws_lb_target_group; a change recreates it',
+        ),
+      ];
     }
 
     if (!DiffUtility.isObjectDeepEquals(previous.properties.healthCheck, this.properties.healthCheck)) {
-      diffs.push(new Diff(this, DiffAction.UPDATE, 'properties', ''));
+      return [new Diff(this, DiffAction.UPDATE, 'properties', '')];
     }
 
-    return diffs;
+    return [];
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {

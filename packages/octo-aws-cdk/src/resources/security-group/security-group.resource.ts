@@ -1,10 +1,10 @@
 import {
   ATerraformResource,
   Diff,
+  DiffAction,
   DiffUtility,
   type MatchingResource,
   Resource,
-  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
@@ -29,7 +29,15 @@ export class SecurityGroup extends ATerraformResource<SecurityGroupSchema, Secur
 
   override async diffProperties(previous: SecurityGroup): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['rules'])) {
-      throw new ResourceError('Cannot update Security Group immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'security group properties are identity; a change recreates it',
+        ),
+      ];
     }
 
     return super.diffProperties(previous);

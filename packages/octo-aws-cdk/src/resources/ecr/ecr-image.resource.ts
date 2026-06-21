@@ -1,11 +1,4 @@
-import {
-  ATerraformResource,
-  type Diff,
-  DiffUtility,
-  Resource,
-  ResourceError,
-  type TerraformModuleScope,
-} from '@quadnix/octo';
+import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type TerraformModuleScope } from '@quadnix/octo';
 import { EcrImageSchema } from './index.schema.js';
 
 /**
@@ -22,7 +15,15 @@ export class EcrImage extends ATerraformResource<EcrImageSchema, EcrImage> {
 
   override async diffProperties(previous: EcrImage): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update ECR immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'name is force-new on aws_ecr_repository; a change recreates it',
+        ),
+      ];
     }
 
     return [];

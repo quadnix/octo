@@ -1,10 +1,10 @@
 import {
   ATerraformResource,
   Diff,
+  DiffAction,
   DiffUtility,
   type MatchingResource,
   Resource,
-  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import type { EfsSchema } from '../efs/index.schema.js';
@@ -31,10 +31,18 @@ export class EfsMountTarget extends ATerraformResource<EfsMountTargetSchema, Efs
 
   override async diffProperties(previous: EfsMountTarget): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update EFS Mount Target immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'efs mount target properties are identity; a change recreates it',
+        ),
+      ];
     }
 
-    return super.diffProperties(previous);
+    return [];
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {

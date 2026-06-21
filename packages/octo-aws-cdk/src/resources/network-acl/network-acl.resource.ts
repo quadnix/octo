@@ -1,10 +1,10 @@
 import {
   ATerraformResource,
   Diff,
+  DiffAction,
   DiffUtility,
   type MatchingResource,
   Resource,
-  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import { NetworkAclUtility } from '../../utilities/network-acl/network-acl.utility.js';
@@ -32,7 +32,15 @@ export class NetworkAcl extends ATerraformResource<NetworkAclSchema, NetworkAcl>
 
   override async diffProperties(previous: NetworkAcl): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['entries'])) {
-      throw new ResourceError('Cannot update Network ACL immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'only network-acl entries update in place; other properties are identity',
+        ),
+      ];
     }
 
     return super.diffProperties(previous);

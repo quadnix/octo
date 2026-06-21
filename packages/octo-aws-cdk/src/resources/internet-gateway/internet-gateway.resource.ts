@@ -1,10 +1,10 @@
 import {
   ATerraformResource,
   Diff,
+  DiffAction,
   DiffUtility,
   type MatchingResource,
   Resource,
-  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
@@ -29,10 +29,18 @@ export class InternetGateway extends ATerraformResource<InternetGatewaySchema, I
 
   override async diffProperties(previous: InternetGateway): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update Internet Gateway immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'internet gateway properties are identity; a change recreates it',
+        ),
+      ];
     }
 
-    return super.diffProperties(previous);
+    return [];
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {

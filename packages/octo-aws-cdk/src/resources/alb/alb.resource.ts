@@ -6,7 +6,6 @@ import {
   DiffUtility,
   type MatchingResource,
   Resource,
-  ResourceError,
   type TerraformModuleScope,
   hasNodeName,
 } from '@quadnix/octo';
@@ -69,10 +68,18 @@ export class Alb extends ATerraformResource<AlbSchema, Alb> {
 
   override async diffProperties(previous: Alb): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update ALB immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'name is force-new on aws_lb; a change recreates the load balancer',
+        ),
+      ];
     }
 
-    return super.diffProperties(previous);
+    return [];
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {

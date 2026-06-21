@@ -276,11 +276,14 @@ describe('AwsSingleAzRegionModule UT', () => {
         moduleId: 'region',
         type: AwsSingleAzRegionModule,
       });
-      await expect(async () => {
-        await testModuleContainer.commit(appUpdateRegionId);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update VPC immutable properties once it has been created!"`,
-      );
+      // regionId change moves the provider region (and AZ) of every resource → terraform recreates
+      // them. Octo emits a REPLACE on the force-new resources.
+      const resultUpdateRegionId = await testModuleContainer.commit(appUpdateRegionId);
+      expect(testModuleContainer.digestDiffs(resultUpdateRegionId.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "* @octo/internet-gateway=igw-test-region",
+       ]
+      `);
     });
 
     it('should handle vpcCidrBlock change', async () => {
@@ -308,11 +311,14 @@ describe('AwsSingleAzRegionModule UT', () => {
         moduleId: 'region',
         type: AwsSingleAzRegionModule,
       });
-      await expect(async () => {
-        await testModuleContainer.commit(appUpdateVpcCidrBlock);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update VPC immutable properties once it has been created!"`,
-      );
+      // cidr_block is force-new on aws_vpc → octo emits a REPLACE on the vpc (and force-new dependents).
+      const resultUpdateVpcCidrBlock = await testModuleContainer.commit(appUpdateVpcCidrBlock);
+      expect(testModuleContainer.digestDiffs(resultUpdateVpcCidrBlock.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "^ @octo/vpc=vpc-test-region",
+         "* @octo/internet-gateway=igw-test-region",
+       ]
+      `);
     });
   });
 

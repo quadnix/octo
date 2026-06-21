@@ -666,11 +666,15 @@ describe('AwsSimpleSubnetModule UT', () => {
         moduleId: 'subnet',
         type: AwsSimpleSubnetModule,
       });
-      await expect(async () => {
-        await testModuleContainer.commit(appUpdateAvailabilityZone);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update Subnet immutable properties once it has been created!"`,
-      );
+      // availability_zone is force-new on aws_subnet → octo emits a REPLACE on the subnet.
+      const resultUpdateAvailabilityZone = await testModuleContainer.commit(appUpdateAvailabilityZone);
+      expect(testModuleContainer.digestDiffs(resultUpdateAvailabilityZone.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "^ @octo/subnet=subnet-region-private-subnet",
+         "* @octo/network-acl=nacl-region-private-subnet",
+         "* @octo/route-table=rt-region-private-subnet",
+       ]
+      `);
     });
 
     it('should handle subnetCidrBlock change', async () => {
@@ -699,11 +703,16 @@ describe('AwsSimpleSubnetModule UT', () => {
         moduleId: 'subnet',
         type: AwsSimpleSubnetModule,
       });
-      await expect(async () => {
-        await testModuleContainer.commit(appUpdateCidrBlock);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update Subnet immutable properties once it has been created!"`,
-      );
+      // cidr_block is force-new on aws_subnet → octo emits a REPLACE on the subnet.
+      const resultUpdateCidrBlock = await testModuleContainer.commit(appUpdateCidrBlock);
+      expect(testModuleContainer.digestDiffs(resultUpdateCidrBlock.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "^ @octo/subnet=subnet-region-private-subnet",
+         "* @octo/network-acl=nacl-region-private-subnet",
+         "* @octo/network-acl=nacl-region-private-subnet",
+         "* @octo/route-table=rt-region-private-subnet",
+       ]
+      `);
     });
 
     it('should handle subnetName change', async () => {

@@ -267,11 +267,14 @@ describe('AwsMultiAzRegionModule UT', () => {
         moduleId: 'region',
         type: AwsMultiAzRegionModule,
       });
-      await expect(async () => {
-        await testModuleContainer.commit(appUpdateRegionId);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update VPC immutable properties once it has been created!"`,
-      );
+      // regionIds change only the availability zones (region stays us-east-1), which is VPC metadata
+      // not rendered into the aws_vpc block → no VPC diff; the change ripples a parent-update to igw.
+      const resultUpdateRegionId = await testModuleContainer.commit(appUpdateRegionId);
+      expect(testModuleContainer.digestDiffs(resultUpdateRegionId.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "* @octo/internet-gateway=igw-test-region",
+       ]
+      `);
     });
 
     it('should handle vpcCidrBlock change', async () => {
@@ -299,11 +302,14 @@ describe('AwsMultiAzRegionModule UT', () => {
         moduleId: 'region',
         type: AwsMultiAzRegionModule,
       });
-      await expect(async () => {
-        await testModuleContainer.commit(appUpdateVpcCidrBlock);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update VPC immutable properties once it has been created!"`,
-      );
+      // cidr_block is force-new on aws_vpc → octo emits a REPLACE on the vpc.
+      const resultUpdateVpcCidrBlock = await testModuleContainer.commit(appUpdateVpcCidrBlock);
+      expect(testModuleContainer.digestDiffs(resultUpdateVpcCidrBlock.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "^ @octo/vpc=vpc-test-region",
+         "* @octo/internet-gateway=igw-test-region",
+       ]
+      `);
     });
   });
 

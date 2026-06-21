@@ -221,17 +221,6 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
     return diffs;
   }
 
-  override async diffInverse(
-    diff: Diff<DynamoDB>,
-    deReferenceResource: (resourceId: string) => Promise<never>,
-  ): Promise<void> {
-    if (diff.action === DiffAction.UPDATE && diff.field === 'properties') {
-      await this.cloneResourceInPlace(diff.node, deReferenceResource);
-    } else {
-      await super.diffInverse(diff, deReferenceResource);
-    }
-  }
-
   override async diffProperties(previous: DynamoDB): Promise<Diff[]> {
     if (
       !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
@@ -242,7 +231,15 @@ export class DynamoDB extends ATerraformResource<DynamoDBSchema, DynamoDB> {
         'timeToLiveAttribute',
       ])
     ) {
-      throw new ResourceError('Cannot update DynamoDB immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'name is force-new on aws_dynamodb_table; a change recreates the table',
+        ),
+      ];
     }
 
     // Existing GSIs cannot be updated.

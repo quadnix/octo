@@ -1,11 +1,4 @@
-import {
-  ATerraformResource,
-  Diff,
-  DiffUtility,
-  Resource,
-  ResourceError,
-  type TerraformModuleScope,
-} from '@quadnix/octo';
+import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type TerraformModuleScope } from '@quadnix/octo';
 import { EfsSchema } from './index.schema.js';
 
 /**
@@ -22,10 +15,18 @@ export class Efs extends ATerraformResource<EfsSchema, Efs> {
 
   override async diffProperties(previous: Efs): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update EFS immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'efs properties are identity; a change recreates it',
+        ),
+      ];
     }
 
-    return super.diffProperties(previous);
+    return [];
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {

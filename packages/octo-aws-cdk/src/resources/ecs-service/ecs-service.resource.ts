@@ -137,19 +137,6 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
     return diffs;
   }
 
-  override async diffInverse(
-    diff: Diff<EcsService>,
-    deReferenceResource: (
-      resourceId: string,
-    ) => Promise<AResource<EcsTaskDefinitionSchema, any> | AResource<SecurityGroupSchema, any>>,
-  ): Promise<void> {
-    if (diff.field === 'properties' && diff.action === DiffAction.UPDATE) {
-      await this.cloneResourceInPlace(diff.node, deReferenceResource);
-    } else {
-      await super.diffInverse(diff, deReferenceResource);
-    }
-  }
-
   override async diffProperties(previous: EcsService): Promise<Diff[]> {
     if (
       !DiffUtility.isObjectDeepEquals(previous.properties, this.properties, [
@@ -158,7 +145,15 @@ export class EcsService extends ATerraformResource<EcsServiceSchema, EcsService>
         'loadBalancers',
       ])
     ) {
-      throw new ResourceError('Cannot update ECS Service immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'name is force-new on aws_ecs_service; a change recreates the service',
+        ),
+      ];
     }
 
     return super.diffProperties(previous);

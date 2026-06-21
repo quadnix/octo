@@ -1,10 +1,10 @@
 import {
   ATerraformResource,
   Diff,
+  DiffAction,
   DiffUtility,
   MatchingResource,
   Resource,
-  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import type { VpcSchema } from '../vpc/index.schema.js';
@@ -25,10 +25,18 @@ export class Subnet extends ATerraformResource<SubnetSchema, Subnet> {
 
   override async diffProperties(previous: Subnet): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update Subnet immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'availability_zone and cidr_block are force-new on aws_subnet; a change recreates the subnet',
+        ),
+      ];
     }
 
-    return super.diffProperties(previous);
+    return [];
   }
 
   override async toHCL(terraform: TerraformModuleScope): Promise<void> {

@@ -28,24 +28,6 @@ export type IIamRoleAddPolicyDiff = {
  * @internal
  */
 export type IIamRoleDeletePolicyDiff = { action: 'delete'; policyId: string; policyType: keyof IIamRolePolicyTypes };
-/**
- * @internal
- */
-export type IIamRolePolicyDiff = IIamRoleAddPolicyDiff | IIamRoleDeletePolicyDiff;
-
-/**
- * @internal
- */
-export function isAddPolicyDiff(policy: IIamRolePolicyDiff): policy is IIamRoleAddPolicyDiff {
-  return policy.action === 'add';
-}
-
-/**
- * @internal
- */
-export function isDeletePolicyDiff(policy: IIamRolePolicyDiff): policy is IIamRoleDeletePolicyDiff {
-  return policy.action === 'delete';
-}
 
 /**
  * @internal
@@ -124,42 +106,17 @@ export class IamRole extends ATerraformResource<IamRoleSchema, IamRole> {
     }
   }
 
-  override async diffInverse(
-    diff: Diff<IamRole, IIamRolePolicyDiff>,
-    deReferenceResource: (resourceId: string) => Promise<never>,
-  ): Promise<void> {
-    if (diff.action === DiffAction.UPDATE && diff.field === 'tags') {
-      await super.diffInverse(diff, deReferenceResource);
-    } else if (diff.action === DiffAction.UPDATE) {
-      if (isAddPolicyDiff(diff.value || {})) {
-        const newPolicy = diff.node.properties.policies.find((p) => p.policyId === diff.value.policyId);
-        if (newPolicy && !this.properties.policies.find((p) => p.policyId === newPolicy.policyId)) {
-          this.properties.policies.push(newPolicy);
-        }
-      } else if (isDeletePolicyDiff(diff.value || {})) {
-        const deletedPolicyIndex = this.properties.policies.findIndex((p) => {
-          if (diff.value.policyType === 'aws-policy') {
-            return p.policy === diff.value.policyId;
-          } else {
-            return p.policyId === diff.value.policyId;
-          }
-        });
-        if (deletedPolicyIndex > -1) {
-          this.properties.policies.splice(deletedPolicyIndex, 1);
-        }
-      } else {
-        this.clonePropertiesInPlace(diff.node);
-      }
-
-      this.cloneResponseInPlace(diff.node);
-    } else {
-      await super.diffInverse(diff, deReferenceResource);
-    }
-  }
-
   override async diffProperties(previous: IamRole): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['policies'])) {
-      throw new ResourceError('Cannot update IAM Role immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'name is force-new on aws_iam_role; a change recreates the role',
+        ),
+      ];
     }
 
     if (this.properties.policies.length === 0) {

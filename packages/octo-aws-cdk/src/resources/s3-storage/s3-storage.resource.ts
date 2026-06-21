@@ -8,7 +8,6 @@ import {
   type DiffValueTypeTagUpdate,
   MatchingResource,
   Resource,
-  ResourceError,
   type TerraformModuleScope,
 } from '@quadnix/octo';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
@@ -69,24 +68,17 @@ export class S3Storage extends ATerraformResource<S3StorageSchema, S3Storage> {
     }
   }
 
-  override async diffInverse(
-    diff: Diff<S3Storage>,
-    deReferenceResource: (resourceId: string) => Promise<never>,
-  ): Promise<void> {
-    if (diff.field === 'update-permissions' && diff.action === DiffAction.UPDATE) {
-      // All changes to properties.permissions is in this single diff, invoking one single action.
-      // Copying all permissions in one shot.
-      this.properties.permissions = JSON.parse(JSON.stringify(diff.node.properties.permissions));
-
-      // There is no need to clone response since it did not change.
-    } else {
-      await super.diffInverse(diff, deReferenceResource);
-    }
-  }
-
   override async diffProperties(previous: S3Storage): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['permissions'])) {
-      throw new ResourceError('Cannot update S3 Storage immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'Bucket is force-new on aws_s3_bucket; a change recreates the bucket',
+        ),
+      ];
     }
 
     const diffs: Diff[] = [];

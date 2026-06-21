@@ -1,12 +1,4 @@
-import {
-  ATerraformResource,
-  Diff,
-  DiffAction,
-  DiffUtility,
-  Resource,
-  ResourceError,
-  type TerraformModuleScope,
-} from '@quadnix/octo';
+import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type TerraformModuleScope } from '@quadnix/octo';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
 import { type IIamUserPolicyTypes, type IIamUserS3BucketPolicy, IamUserSchema } from './index.schema.js';
 
@@ -23,24 +15,6 @@ export type IIamUserAddPolicyDiff = {
  * @internal
  */
 export type IIamUserDeletePolicyDiff = { action: 'delete'; policyId: string; policyType: keyof IIamUserPolicyTypes };
-/**
- * @internal
- */
-export type IIamUserPolicyDiff = IIamUserAddPolicyDiff | IIamUserDeletePolicyDiff;
-
-/**
- * @internal
- */
-export function isAddPolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUserAddPolicyDiff {
-  return policy.action === 'add';
-}
-
-/**
- * @internal
- */
-export function isDeletePolicyDiff(policy: IIamUserPolicyDiff): policy is IIamUserDeletePolicyDiff {
-  return policy.action === 'delete';
-}
 
 /**
  * @internal
@@ -90,36 +64,17 @@ export class IamUser extends ATerraformResource<IamUserSchema, IamUser> {
     }
   }
 
-  override async diffInverse(
-    diff: Diff<IamUser, IIamUserPolicyDiff>,
-    deReferenceResource: (resourceId: string) => Promise<never>,
-  ): Promise<void> {
-    if (diff.action === DiffAction.UPDATE && diff.field === 'tags') {
-      await super.diffInverse(diff, deReferenceResource);
-    } else if (diff.action === DiffAction.UPDATE) {
-      if (isAddPolicyDiff(diff.value || {})) {
-        const newPolicy = diff.node.properties.policies.find((p) => p.policyId === diff.value.policyId);
-        if (newPolicy) {
-          this.properties.policies.push(newPolicy);
-        }
-      } else if (isDeletePolicyDiff(diff.value || {})) {
-        const deletedPolicyIndex = this.properties.policies.findIndex((p) => p.policyId === diff.value.policyId);
-        if (deletedPolicyIndex > -1) {
-          this.properties.policies.splice(deletedPolicyIndex, 1);
-        }
-      } else {
-        this.clonePropertiesInPlace(diff.node);
-      }
-
-      this.cloneResponseInPlace(diff.node);
-    } else {
-      await super.diffInverse(diff, deReferenceResource);
-    }
-  }
-
   override async diffProperties(previous: IamUser): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties, ['policies'])) {
-      throw new ResourceError('Cannot update IAM User immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'name is force-new on aws_iam_user; a change recreates the user',
+        ),
+      ];
     }
 
     const diffs: Diff[] = [];

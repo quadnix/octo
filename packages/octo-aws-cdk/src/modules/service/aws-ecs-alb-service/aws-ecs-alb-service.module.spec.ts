@@ -1535,11 +1535,14 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await expect(async () => {
-        await testModuleContainer.commit(appUpdateTargetContainerPort);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update ALB Target Group immutable properties once it has been created!"`,
-      );
+      // The target group port is force-new on aws_lb_target_group → octo emits a REPLACE.
+      const resultUpdateTargetContainerPort = await testModuleContainer.commit(appUpdateTargetContainerPort);
+      expect(testModuleContainer.digestDiffs(resultUpdateTargetContainerPort.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "^ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+       ]
+      `);
     });
 
     it('should handle target healthCheck change', async () => {
@@ -1690,11 +1693,15 @@ describe('AwsEcsAlbServiceModule UT', () => {
         moduleId: 'alb-module',
         type: AwsEcsAlbServiceModule,
       });
-      await expect(async () => {
-        await testModuleContainer.commit(appUpdateTargetName);
-      }).rejects.toThrowErrorMatchingInlineSnapshot(
-        `"Cannot update ALB Target Group immutable properties once it has been created!"`,
-      );
+      // The target group name is force-new on aws_lb_target_group → octo emits a REPLACE.
+      const resultUpdateTargetName = await testModuleContainer.commit(appUpdateTargetName);
+      expect(testModuleContainer.digestDiffs(resultUpdateTargetName.resourceDiffs)).toMatchInlineSnapshot(`
+       [
+         "^ @octo/alb-target-group=alb-target-group-backend-v1-region-qa-public-subnet-1",
+         "* @octo/ecs-service=ecs-service-backend-v1-region-qa-public-subnet-1",
+         "* @octo/alb-listener=alb-listener-test-alb",
+       ]
+      `);
     });
   });
 

@@ -705,9 +705,13 @@ describe('AwsDynamoDBServiceModule UT', () => {
           type: AwsDynamoDBServiceModule,
         });
 
-        await expect(testModuleContainer.commit(appUpdateLSI)).rejects.toThrowErrorMatchingInlineSnapshot(
-          `"Cannot update DynamoDB immutable properties once it has been created!"`,
-        );
+        // local_secondary_index is force-new on aws_dynamodb_table → octo emits a REPLACE.
+        const resultUpdateLSI = await testModuleContainer.commit(appUpdateLSI);
+        expect(testModuleContainer.digestDiffs(resultUpdateLSI.resourceDiffs)).toMatchInlineSnapshot(`
+         [
+           "^ @octo/dynamodb=dynamodb-test-table",
+         ]
+        `);
       });
     });
 

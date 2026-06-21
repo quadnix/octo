@@ -1,12 +1,4 @@
-import {
-  ATerraformResource,
-  Diff,
-  DiffAction,
-  DiffUtility,
-  Resource,
-  ResourceError,
-  type TerraformModuleScope,
-} from '@quadnix/octo';
+import { ATerraformResource, Diff, DiffAction, DiffUtility, Resource, type TerraformModuleScope } from '@quadnix/octo';
 import mime from 'mime';
 import { PolicyUtility } from '../../utilities/policy/policy.utility.js';
 import { S3WebsiteSchema } from './index.schema.js';
@@ -30,17 +22,17 @@ export class S3Website extends ATerraformResource<S3WebsiteSchema, S3Website> {
     super(resourceId, properties, []);
   }
 
-  override async diffInverse(diff: Diff, deReferenceResource: (resourceId: string) => Promise<never>): Promise<void> {
-    if (diff.field === 'update-source-paths' && diff.action === DiffAction.UPDATE) {
-      // do nothing, since nothing in node changes for this diff action.
-    } else {
-      await super.diffInverse(diff, deReferenceResource);
-    }
-  }
-
   override async diffProperties(previous: S3Website): Promise<Diff[]> {
     if (!DiffUtility.isObjectDeepEquals(previous.properties, this.properties)) {
-      throw new ResourceError('Cannot update S3 Website immutable properties once it has been created!', this);
+      return [
+        new Diff(
+          this,
+          DiffAction.REPLACE,
+          'resourceId',
+          this.getContext(),
+          'Bucket is force-new on aws_s3_bucket; a change recreates the bucket',
+        ),
+      ];
     }
 
     const diffs: Diff[] = [];
