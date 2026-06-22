@@ -235,6 +235,7 @@ tds
 terraform
 terragrunt
 testcontainers
+tfplan
 tfstate
 tmpdir
 toc
