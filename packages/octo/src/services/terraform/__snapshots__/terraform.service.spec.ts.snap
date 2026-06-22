@@ -24,11 +24,11 @@ resource "null_resource" "igw-1" {
     input_vpc_1_VpcId = "\${var.vpc_1_VpcId}"
   }
   provisioner "local-exec" {
-    command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=igw-1 --input vpc-1.VpcId=\${var.vpc_1_VpcId} > \${path.module}/.octo-outputs/igw-1.json"
+    command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=igw-1 --input vpc-1.VpcId=\${var.vpc_1_VpcId} > \${path.module}/.octo-outputs/igw-1.json"
   }
   provisioner "local-exec" {
     when = destroy
-    command = "octo --mode=run-action --resourceId=igw-1 --input vpc-1.VpcId=\${self.triggers.input_vpc_1_VpcId}"
+    command = "octo run-action --resourceId=igw-1 --input vpc-1.VpcId=\${self.triggers.input_vpc_1_VpcId}"
   }
 }
 "
@@ -69,11 +69,11 @@ resource "null_resource" "igw-1" {
     input_vpc_1_VpcId = "\${aws_vpc.vpc-1.id}"
   }
   provisioner "local-exec" {
-    command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=igw-1 --input vpc-1.VpcId=\${aws_vpc.vpc-1.id} > \${path.module}/.octo-outputs/igw-1.json"
+    command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=igw-1 --input vpc-1.VpcId=\${aws_vpc.vpc-1.id} > \${path.module}/.octo-outputs/igw-1.json"
   }
   provisioner "local-exec" {
     when = destroy
-    command = "octo --mode=run-action --resourceId=igw-1 --input vpc-1.VpcId=\${self.triggers.input_vpc_1_VpcId}"
+    command = "octo run-action --resourceId=igw-1 --input vpc-1.VpcId=\${self.triggers.input_vpc_1_VpcId}"
   }
 
   depends_on = [aws_vpc.vpc-1]

@@ -95,7 +95,7 @@ export interface TerraformModuleScope {
 
   /**
    * Wraps an octo resource whose lifecycle runs outside Terraform (e.g. a script or SDK call).
-   * Generates a `null_resource` + `data "external"` pair that calls `octo --mode=run-action`
+   * Generates a `null_resource` + `data "external"` pair that calls `octo run-action`
    * at apply time and exposes the result as outputs.
    */
   addOctoTerraformExternalResource<T extends UnknownResource>(
@@ -361,7 +361,7 @@ export class TerraformService {
   private readonly sanitizedResourceIds: Map<string, string> = new Map(); // Sanitized id -> original id.
 
   constructor(
-    private readonly runOctoResourceActionCommandPrefix: string = 'octo --mode=run-action',
+    private readonly runOctoResourceActionCommandPrefix: string = 'octo run-action',
     private readonly indentLength: number = 2,
   ) {}
 
@@ -1178,7 +1178,7 @@ export class TerraformServiceFactory {
 
   static async create(
     {
-      runOctoResourceActionCommandPrefix = 'octo --mode=run-action',
+      runOctoResourceActionCommandPrefix = 'octo run-action',
       terraformFileIndentLength = 2,
     }: {
       runOctoResourceActionCommandPrefix?: string;

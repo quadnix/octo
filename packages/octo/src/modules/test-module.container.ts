@@ -395,7 +395,7 @@ export class TestModuleContainer {
   /**
    * Generates the full desired-state terraform for `app` to disk as standalone, executable terragrunt
    * module folders — one per octo module (`main.tf`, `variables.tf`, `outputs.tf`, `terragrunt.hcl`).
-   * The same output an end user gets from `octo --mode=generate`, so a module author can point real
+   * The same output an end user gets from `octo run-action`, so a module author can point real
    * `terraform`/`terragrunt` at it and validate their piece against the provider — the one check octo
    * deliberately does not do itself.
    *
