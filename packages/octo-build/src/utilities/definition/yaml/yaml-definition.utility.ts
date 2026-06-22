@@ -37,12 +37,17 @@ interface IYamlDefinition {
       | { encryptionKey: string; statePath: string; type: 'LocalEncryptionStateProvider' }
       | { statePath: string; type: 'LocalStateProvider' }
       | { type: 'TestStateProvider' };
-    transactionOptions?: {
-      yieldModelDiffs?: boolean;
-      yieldModelTransaction?: boolean;
-      yieldResourceDiffs?: boolean;
-      yieldResourceTransaction?: boolean;
-    };
+  };
+  terraform: {
+    providers: Array<{
+      accountId: string;
+      providerType: string;
+      regionId: string;
+      setRegionAttribute?: boolean;
+      spec?: Record<string, unknown>;
+    }>;
+    requiredProviders: Record<string, { minVersion?: string; source: string }>;
+    requiredVersion: string;
   };
   version: number;
 }
@@ -60,7 +65,7 @@ export class YamlDefinitionUtility {
     try {
       const content = readFileSync(definitionFilePath, 'utf-8');
       this.definition = (load(content) || {}) as IYamlDefinition;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error('Unable to parse definition file: ' + error?.message);
     }
 
@@ -137,7 +142,7 @@ export class YamlDefinitionUtility {
           hooks.preModelActionHooks!.push(...(importedHooks.preModelActionHooks || []));
           hooks.preResourceActionHooks!.push(...(importedHooks.preResourceActionHooks || []));
         }
-      } catch (error: any) {
+      } catch (error) {
         throw new Error(`Failed to import path "${resolvedImport}": ${error?.message || String(error)}`);
       }
     }
@@ -164,7 +169,7 @@ export class YamlDefinitionUtility {
         } else {
           imports.push({ className: imported[className] });
         }
-      } catch (error: any) {
+      } catch (error) {
         throw new Error(`Failed to import path "${resolvedImport}": ${error?.message || String(error)}`);
       }
     }
@@ -253,49 +258,39 @@ export class YamlDefinitionUtility {
     }
   }
 
-  resolveTransactionOptions(): {
-    appLockId: string | undefined;
-    enableResourceCapture: boolean;
-    enableResourceValidation: boolean;
-    yieldModelDiffs: boolean;
-    yieldModelTransaction: boolean;
-    yieldResourceDiffs: boolean;
-    yieldResourceTransaction: boolean;
+  resolveTerraformOptions(): {
+    providers: {
+      accountId: string;
+      providerType: string;
+      regionId: string;
+      setRegionAttribute: boolean;
+      spec: Record<string, unknown>;
+    }[];
+    requiredProviders: Record<string, { minVersion?: string; source: string }>;
+    requiredVersion: string;
   } {
-    const tx = this.definition.settings.transactionOptions || {};
-    const options: ReturnType<YamlDefinitionUtility['resolveTransactionOptions']> = {
-      appLockId: undefined,
-      enableResourceCapture: false,
-      enableResourceValidation: false,
-      yieldModelDiffs: tx.yieldModelDiffs || false,
-      yieldModelTransaction: tx.yieldModelTransaction || false,
-      yieldResourceDiffs: tx.yieldResourceDiffs || false,
-      yieldResourceTransaction: tx.yieldResourceTransaction || false,
+    const terraform = this.definition.terraform;
+
+    const providers = terraform.providers.map((p) => {
+      const spec: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(p.spec || {})) {
+        spec[key] = this.resolveEnvironmentValue(value);
+      }
+
+      return {
+        accountId: this.resolveEnvironmentValue<string>(p.accountId),
+        providerType: p.providerType,
+        regionId: this.resolveEnvironmentValue<string>(p.regionId),
+        setRegionAttribute: p.setRegionAttribute ?? true,
+        spec,
+      };
+    });
+
+    return {
+      providers,
+      requiredProviders: terraform.requiredProviders,
+      requiredVersion: this.resolveEnvironmentValue<string>(terraform.requiredVersion),
     };
-
-    if (process.env.OCTO_APP_LOCK_ID) {
-      options.appLockId = process.env.OCTO_APP_LOCK_ID;
-    }
-    if (process.env.OCTO_ENABLE_RESOURCE_CAPTURE) {
-      options.enableResourceCapture = process.env.OCTO_ENABLE_RESOURCE_CAPTURE.toLowerCase() === 'true';
-    }
-    if (process.env.OCTO_ENABLE_RESOURCE_VALIDATION) {
-      options.enableResourceValidation = process.env.OCTO_ENABLE_RESOURCE_VALIDATION.toLowerCase() === 'true';
-    }
-    if (process.env.OCTO_YIELD_MODEL_DIFFS) {
-      options.yieldModelDiffs = process.env.OCTO_YIELD_MODEL_DIFFS.toLowerCase() === 'true';
-    }
-    if (process.env.OCTO_YIELD_MODEL_TRANSACTION) {
-      options.yieldModelTransaction = process.env.OCTO_YIELD_MODEL_TRANSACTION.toLowerCase() === 'true';
-    }
-    if (process.env.OCTO_YIELD_RESOURCE_DIFFS) {
-      options.yieldResourceDiffs = process.env.OCTO_YIELD_RESOURCE_DIFFS.toLowerCase() === 'true';
-    }
-    if (process.env.OCTO_YIELD_RESOURCE_TRANSACTION) {
-      options.yieldResourceTransaction = process.env.OCTO_YIELD_RESOURCE_TRANSACTION.toLowerCase() === 'true';
-    }
-
-    return options;
   }
 
   private validateDefinition(): void {

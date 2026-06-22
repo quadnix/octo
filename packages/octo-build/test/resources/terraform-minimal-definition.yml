@@ -1,0 +1,19 @@
+version: 1
+
+terraform:
+  requiredVersion: '1.6.0'
+  requiredProviders: {}
+  providers: []
+
+imports:
+  - className: 'SomeModule'
+    importPath: './some-module.js'
+
+modules:
+  - moduleClass: 'SomeModule'
+    moduleId: 'app'
+    moduleInputs: {}
+
+settings:
+  stateProvider:
+    type: 'TestStateProvider'

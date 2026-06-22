@@ -1,0 +1,36 @@
+version: 1
+
+env:
+  - key: AWS_PROFILE
+    kind: string
+    value: 'default'
+
+terraform:
+  requiredVersion: '1.6.0'
+  requiredProviders:
+    aws:
+      source: 'hashicorp/aws'
+      minVersion: '5.0.0'
+  providers:
+    - providerType: 'aws'
+      accountId: '111111111111'
+      regionId: 'us-east-1'
+      spec:
+        profile: '${env.AWS_PROFILE}'
+    - providerType: 'aws'
+      accountId: '222222222222'
+      regionId: 'us-west-2'
+      setRegionAttribute: false
+
+imports:
+  - className: 'SomeModule'
+    importPath: './some-module.js'
+
+modules:
+  - moduleClass: 'SomeModule'
+    moduleId: 'app'
+    moduleInputs: {}
+
+settings:
+  stateProvider:
+    type: 'TestStateProvider'

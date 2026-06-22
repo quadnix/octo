@@ -149,31 +149,60 @@
               "type": "object"
             }
           ]
-        },
-        "transactionOptions": {
-          "additionalProperties": false,
-          "properties": {
-            "yieldModelDiffs": {
-              "default": false,
-              "type": "boolean"
-            },
-            "yieldModelTransaction": {
-              "default": false,
-              "type": "boolean"
-            },
-            "yieldResourceDiffs": {
-              "default": false,
-              "type": "boolean"
-            },
-            "yieldResourceTransaction": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          "type": "object"
         }
       },
       "required": ["stateProvider"],
+      "type": "object"
+    },
+    "terraform": {
+      "additionalProperties": false,
+      "properties": {
+        "providers": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "accountId": {
+                "type": "string"
+              },
+              "providerType": {
+                "type": "string"
+              },
+              "regionId": {
+                "type": "string"
+              },
+              "setRegionAttribute": {
+                "type": "boolean"
+              },
+              "spec": {
+                "type": "object"
+              }
+            },
+            "required": ["accountId", "providerType", "regionId"],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "requiredProviders": {
+          "additionalProperties": {
+            "additionalProperties": false,
+            "properties": {
+              "minVersion": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              }
+            },
+            "required": ["source"],
+            "type": "object"
+          },
+          "type": "object"
+        },
+        "requiredVersion": {
+          "type": "string"
+        }
+      },
+      "required": ["providers", "requiredProviders", "requiredVersion"],
       "type": "object"
     },
     "version": {
@@ -181,7 +210,7 @@
       "type": "number"
     }
   },
-  "required": ["imports", "modules", "settings", "version"],
+  "required": ["imports", "modules", "settings", "terraform", "version"],
   "title": "Octo V1 Definition Schema",
   "type": "object"
 }

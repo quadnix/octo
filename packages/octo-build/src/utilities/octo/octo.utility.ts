@@ -31,7 +31,7 @@ export async function bootOcto({ noConsole = false }: { noConsole?: boolean } = 
   const listeners = noConsole ? [] : await definition.resolveListeners();
   const modules = definition.resolveModules(imports);
   const stateProvider = definition.resolveStateProvider();
-  const terraform = definition.resolveTerraformOptions();
+  const terraformOptions = definition.resolveTerraformOptions();
 
   if (!noConsole) {
     console.log(chalk.green('Definition file is valid and all modules were successfully imported.'));
@@ -55,10 +55,10 @@ export async function bootOcto({ noConsole = false }: { noConsole?: boolean } = 
 
   // Register terraform config + providers.
   octo.registerTerraformConfig({
-    minTerraformVersion: terraform.version,
-    providers: terraform.requiredProviders,
+    minTerraformVersion: terraformOptions.requiredVersion,
+    providers: terraformOptions.requiredProviders,
   });
-  for (const provider of terraform.providers) {
+  for (const provider of terraformOptions.providers) {
     octo.registerTerraformProvider(provider.providerType, provider.accountId, provider.regionId, provider.spec, {
       setRegionAttribute: provider.setRegionAttribute,
     });
