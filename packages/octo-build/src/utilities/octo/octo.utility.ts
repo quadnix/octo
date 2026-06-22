@@ -28,12 +28,11 @@ export async function bootOcto({ noConsole = false }: { noConsole?: boolean } = 
 
   const hooks = await definition.resolveHooks();
   const imports = await definition.resolveImports();
-  const listeners = await definition.resolveListeners();
+  const listeners = noConsole ? [] : await definition.resolveListeners();
   const modules = definition.resolveModules(imports);
   const stateProvider = definition.resolveStateProvider();
   const terraform = definition.resolveTerraformOptions();
 
-  // `noConsole` is set by commands whose stdout is machine-read (e.g. run-action), so boot stays silent.
   if (!noConsole) {
     console.log(chalk.green('Definition file is valid and all modules were successfully imported.'));
   }
