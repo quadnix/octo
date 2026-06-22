@@ -24,7 +24,7 @@ export const createResourceCommand = {
       .option('path', {
         alias: 'p',
         default: '.',
-        description: 'Root directory path of the CDK.',
+        description: 'Root directory path of the project.',
         type: 'string',
       });
   },

@@ -6,9 +6,9 @@ import { StringUtility } from '../../../../../utilities/string/string.utility.js
 
 export default class extends Generator {
   private readonly modelType: string;
-  private readonly cdkRootDir: string;
   private readonly moduleName: string;
   private readonly packageName: string;
+  private readonly projectRootDir: string;
 
   constructor(args: string[], opts: BaseOptions) {
     super(args, opts);
@@ -16,12 +16,12 @@ export default class extends Generator {
     this.moduleName = args[0];
     this.modelType = args[1];
     this.packageName = args[2];
-    this.cdkRootDir = args[3];
+    this.projectRootDir = args[3];
   }
 
   async initializing(): Promise<void> {
     const targetPath = resolve(
-      join(this.cdkRootDir, 'src', 'modules', this.modelType, this.moduleName, 'models', this.modelType),
+      join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName, 'models', this.modelType),
     );
 
     // Check if directory already exists and is not empty.
@@ -88,7 +88,7 @@ export default class extends Generator {
 
   end(): void {
     const targetPath = resolve(
-      join(this.cdkRootDir, 'src', 'modules', this.modelType, this.moduleName, 'models', this.modelType),
+      join(this.projectRootDir, 'src', 'modules', this.modelType, this.moduleName, 'models', this.modelType),
     );
 
     this.log('✅ Your model has been generated successfully!');
