@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises';
 import type { UnknownResource } from '../app.type.js';
 import { TransactionError } from '../errors/index.js';
 import { Container } from '../functions/container/container.js';
@@ -28,23 +27,13 @@ interface RunActionResult {
  */
 export async function runAction(
   app: App,
-  {
-    inputs = {},
-    inputsFilePath = undefined,
-    resourceId,
-  }: { inputs?: Record<string, unknown>; inputsFilePath?: string; resourceId: string },
+  { inputs = {}, resourceId }: { inputs?: Record<string, unknown>; resourceId: string },
 ): Promise<RunActionResult> {
   const container = Container.getInstance();
   const [resourceDataRepository, transactionService] = await Promise.all([
     container.get(ResourceDataRepository),
     container.get(TransactionService),
   ]);
-
-  // Sensitive values arrive via a file instead of inline args; file values take precedence.
-  if (inputsFilePath) {
-    const fileContent = await readFile(inputsFilePath, 'utf-8');
-    inputs = { ...inputs, ...JSON.parse(fileContent) };
-  }
 
   const diffs = await app.diff();
   const transaction = transactionService.beginTransaction(diffs, {

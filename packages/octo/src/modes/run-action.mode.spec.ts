@@ -1,5 +1,3 @@
-import { writeFile } from 'node:fs/promises';
-import { join } from 'path';
 import type { UnknownResource } from '../app.type.js';
 import { ExternalIgwResource, TestModes, TfSgResource, TfVpcResource } from '../utilities/test-helpers/test-modes.js';
 import { commitResources } from '../utilities/test-helpers/test-resources.js';
@@ -131,21 +129,5 @@ describe('runAction()', () => {
     await expect(runAction(app, { resourceId: 'vpc-1' })).rejects.toThrow(
       'Resource "vpc-1" is a terraform resource and cannot be run via run-action!',
     );
-  });
-
-  it('should support sensitive inputs from a file', async () => {
-    const { app } = await testModes.createResourceGraph();
-
-    const inputsFilePath = join(testModes.outputDir, 'inputs.json');
-    await writeFile(inputsFilePath, JSON.stringify({ 'vpc-1.VpcId': 'vpc-0sensitive' }), 'utf-8');
-
-    const result = await runAction(app, {
-      inputsFilePath,
-      resourceId: 'igw-1',
-    });
-
-    expect(result.action).toBe('add');
-    const handledNode = testModes.igwActionHandledDiffs[0].node as UnknownResource;
-    expect((handledNode.parents[0] as UnknownResource).response['VpcId']).toBe('vpc-0sensitive');
   });
 });

@@ -229,7 +229,7 @@ export class Octo {
    */
   async runAction(
     app: App,
-    options: { inputs?: Record<string, unknown>; inputsFilePath?: string; resourceId: string },
+    options: { inputs?: Record<string, unknown>; resourceId: string },
   ): ReturnType<typeof runRunAction> {
     return runRunAction(app, options);
   }
