@@ -18,6 +18,11 @@ export class StringUtility {
     return /^[a-z][a-z0-9-]*[a-z0-9]$/.test(subject);
   }
 
+  static toCamelCase(subject: string): string {
+    const pascal = StringUtility.toPascalCase(subject);
+    return pascal.charAt(0).toLowerCase() + pascal.slice(1);
+  }
+
   static toPascalCase(subject: string): string {
     return subject
       .split('-')

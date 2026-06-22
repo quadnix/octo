@@ -4,6 +4,7 @@ import * as process from 'process';
 import chalk from 'chalk';
 import yargs from 'yargs/yargs';
 import { buildCommand } from './commands/build/index.js';
+import { commitCommand } from './commands/commit/index.js';
 import { createAnchorCommand } from './commands/create-anchor/index.js';
 import { createAppCommand } from './commands/create-app/index.js';
 import { createCdkCommand } from './commands/create-cdk/index.js';
@@ -11,8 +12,10 @@ import { createModelCommand } from './commands/create-model/index.js';
 import { createModuleCommand } from './commands/create-module/index.js';
 import { createOverlayCommand } from './commands/create-overlay/index.js';
 import { createResourceCommand } from './commands/create-resource/index.js';
-import { runCommand } from './commands/run/index.js';
-import { stateCommand } from './commands/state/index.js';
+import { createTerraformResourceCommand } from './commands/create-terraform-resource/index.js';
+import { generateCommand } from './commands/generate/index.js';
+import { runActionCommand } from './commands/run-action/index.js';
+import { validateCommand } from './commands/validate/index.js';
 
 const PROGRAM_NAME = 'octo';
 
@@ -32,8 +35,11 @@ parser.command(createModelCommand);
 parser.command(createModuleCommand);
 parser.command(createOverlayCommand);
 parser.command(createResourceCommand);
+parser.command(createTerraformResourceCommand);
 parser.command(buildCommand);
-parser.command(runCommand);
-parser.command(stateCommand);
+parser.command(commitCommand);
+parser.command(generateCommand);
+parser.command(runActionCommand);
+parser.command(validateCommand);
 
 await parser.argv;

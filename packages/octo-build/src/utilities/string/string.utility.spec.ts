@@ -19,4 +19,19 @@ describe('StringUtility UT', () => {
       expect(actualModelTypes).toEqual(expectedModelTypes);
     });
   });
+
+  describe('toCamelCase()', () => {
+    it('should convert kebab-case to a valid camelCase identifier', () => {
+      expect(StringUtility.toCamelCase('vpc')).toBe('vpc');
+      expect(StringUtility.toCamelCase('my-thing')).toBe('myThing');
+      expect(StringUtility.toCamelCase('my-awesome-resource')).toBe('myAwesomeResource');
+    });
+  });
+
+  describe('toPascalCase()', () => {
+    it('should convert kebab-case to PascalCase', () => {
+      expect(StringUtility.toPascalCase('vpc')).toBe('Vpc');
+      expect(StringUtility.toPascalCase('my-thing')).toBe('MyThing');
+    });
+  });
 });
