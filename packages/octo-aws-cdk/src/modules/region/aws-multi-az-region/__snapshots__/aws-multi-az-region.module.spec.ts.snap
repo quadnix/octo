@@ -126,7 +126,16 @@ output "vpc-test-region-VpcId" {
 }
 
 - region/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - region/variables.tf
 <empty>"
@@ -224,7 +233,16 @@ output "vpc-test-region-VpcId" {
 }
 
 - region-1/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - region-1/variables.tf
 <empty>
@@ -282,7 +300,16 @@ output "vpc-test-region-VpcId" {
 }
 
 + region-2/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 + region-2/variables.tf
 <empty>"

@@ -163,6 +163,18 @@ mock_outputs = {
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
+- global-dynamodb-module/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
 - global-dynamodb-module/variables.tf
 variable "dynamodb_test_table_TableArn" {}"
 `;
@@ -233,6 +245,18 @@ mock_outputs = {
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
+- global-dynamodb-module-1/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
 - global-dynamodb-module-1/variables.tf
 variable "dynamodb_test_table_TableArn" {}
 
@@ -278,6 +302,18 @@ mock_outputs = {
     "dynamodb-test-table-TableArn" = "mock-dynamodb-test-table-TableArn"
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
++ global-dynamodb-module-2/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
 }
 
 + global-dynamodb-module-2/variables.tf

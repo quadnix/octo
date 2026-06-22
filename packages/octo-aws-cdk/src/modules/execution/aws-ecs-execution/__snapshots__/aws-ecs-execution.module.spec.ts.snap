@@ -412,6 +412,18 @@ mock_outputs = {
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
+- execution/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
 - execution/variables.tf
 variable "ecs_cluster_region_qa" {
   type = map(string)
@@ -642,6 +654,18 @@ mock_outputs = {
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
+- execution-1/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
 - execution-1/variables.tf
 variable "ecs_cluster_region_qa" {
   type = map(string)
@@ -791,6 +815,18 @@ mock_outputs = {
     "vpc-region" = { VpcId = "mock-vpc-region-VpcId" }
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
++ execution-2/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
 }
 
 + execution-2/variables.tf

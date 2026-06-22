@@ -357,7 +357,16 @@ output "bucket-test-bucket-awsRegionId" {
 }
 
 - service/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - service/variables.tf
 <empty>"
@@ -505,7 +514,16 @@ output "bucket-test-bucket-awsRegionId" {
 }
 
 - service-1/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - service-1/variables.tf
 <empty>
@@ -630,7 +648,16 @@ output "bucket-test-bucket-awsRegionId" {
 }
 
 + service-2/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 + service-2/variables.tf
 <empty>"

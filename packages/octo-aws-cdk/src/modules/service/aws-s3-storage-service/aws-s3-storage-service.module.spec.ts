@@ -90,7 +90,16 @@ describe('AwsS3StorageServiceModule UT', () => {
      }
 
      # service/terragrunt.hcl
-     <empty>
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
 
      # service/variables.tf
      <empty>"

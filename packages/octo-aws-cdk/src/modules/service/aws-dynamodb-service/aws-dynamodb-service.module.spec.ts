@@ -104,7 +104,16 @@ describe('AwsDynamoDBServiceModule UT', () => {
      }
 
      # dynamodb-module/terragrunt.hcl
-     <empty>
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
 
      # dynamodb-module/variables.tf
      <empty>"

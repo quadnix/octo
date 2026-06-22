@@ -120,7 +120,16 @@ output "efs-region-test-filesystem-FileSystemId" {
 }
 
 - filesystem/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - filesystem/variables.tf
 <empty>"
@@ -197,7 +206,16 @@ output "efs-region-test-filesystem-FileSystemId" {
 }
 
 - filesystem-1/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - filesystem-1/variables.tf
 <empty>
@@ -253,7 +271,16 @@ output "efs-region-test-filesystem-FileSystemId" {
 }
 
 + filesystem-2/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 + filesystem-2/variables.tf
 <empty>"

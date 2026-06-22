@@ -238,6 +238,17 @@ describe('AwsSimpleSubnetModule UT', () => {
      }
 
      # subnet/terragrunt.hcl
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
+
      dependency "testModule" {
        config_path = "../testModule"
 
@@ -281,7 +292,16 @@ describe('AwsSimpleSubnetModule UT', () => {
      }
 
      # testModule/terragrunt.hcl
-     <empty>
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
 
      # testModule/variables.tf
      <empty>"

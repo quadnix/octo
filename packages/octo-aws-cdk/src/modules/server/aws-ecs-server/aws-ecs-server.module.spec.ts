@@ -163,7 +163,16 @@ describe('AwsEcsServerModule UT', () => {
      }
 
      # server/terragrunt.hcl
-     <empty>
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
 
      # server/variables.tf
      <empty>
@@ -214,6 +223,17 @@ describe('AwsEcsServerModule UT', () => {
      }
 
      # testModule/terragrunt.hcl
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
+
      dependency "server" {
        config_path = "../server"
 

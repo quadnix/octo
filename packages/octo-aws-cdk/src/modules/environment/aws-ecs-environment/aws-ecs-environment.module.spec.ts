@@ -94,7 +94,16 @@ describe('AwsEcsEnvironmentModule UT', () => {
      }
 
      # environment/terragrunt.hcl
-     <empty>
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
 
      # environment/variables.tf
      <empty>"

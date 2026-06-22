@@ -395,6 +395,18 @@ mock_outputs = {
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
+- subnet/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
 - subnet/variables.tf
 variable "efs_region_test_filesystem_FileSystemId" {}
 
@@ -730,6 +742,18 @@ mock_outputs = {
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
+- subnet-1/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
 - subnet-1/variables.tf
 variable "vpc_region_VpcId" {}
 
@@ -836,6 +860,18 @@ mock_outputs = {
     "vpc-region-VpcId" = "mock-vpc-region-VpcId"
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
++ subnet-2/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
 }
 
 + subnet-2/variables.tf

@@ -68,7 +68,16 @@ output "ecs-cluster-region-qa-clusterArn" {
 }
 
 - environment/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - environment/variables.tf
 <empty>"
@@ -129,7 +138,16 @@ output "ecs-cluster-region-qa-clusterArn" {
 }
 
 - environment-1/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - environment-1/variables.tf
 <empty>
@@ -167,7 +185,16 @@ output "ecs-cluster-region-qa-clusterArn" {
 }
 
 + environment-2/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 + environment-2/variables.tf
 <empty>"

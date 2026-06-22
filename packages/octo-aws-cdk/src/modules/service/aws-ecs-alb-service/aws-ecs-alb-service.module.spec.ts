@@ -473,6 +473,17 @@ describe('AwsEcsAlbServiceModule UT', () => {
      }
 
      # alb-module/terragrunt.hcl
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
+
      dependency "testModule" {
        config_path = "../testModule"
 
@@ -561,6 +572,17 @@ describe('AwsEcsAlbServiceModule UT', () => {
      }
 
      # testExecutionModule/terragrunt.hcl
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
+
      dependency "alb-module" {
        config_path = "../alb-module"
 
@@ -620,7 +642,16 @@ describe('AwsEcsAlbServiceModule UT', () => {
      }
 
      # testModule/terragrunt.hcl
-     <empty>
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
 
      # testModule/variables.tf
      <empty>
@@ -640,7 +671,16 @@ describe('AwsEcsAlbServiceModule UT', () => {
      }
 
      # testSubnet1Module/terragrunt.hcl
-     <empty>
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
 
      # testSubnet1Module/variables.tf
      <empty>
@@ -660,7 +700,16 @@ describe('AwsEcsAlbServiceModule UT', () => {
      }
 
      # testSubnet2Module/terragrunt.hcl
-     <empty>
+     remote_state {
+       backend = "local"
+       generate = {
+         path      = "backend.tf"
+         if_exists = "overwrite_terragrunt"
+       }
+       config = {
+         path = "\${get_terragrunt_dir()}/terraform.tfstate"
+       }
+     }
 
      # testSubnet2Module/variables.tf
      <empty>"

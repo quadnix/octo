@@ -258,7 +258,16 @@ output "ecr-us-east-1-family_image-repositoryUri" {
 }
 
 - image/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - image/variables.tf
 <empty>"
@@ -351,7 +360,16 @@ output "ecr-us-east-1-family_image-repositoryUri" {
 }
 
 - image-1/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 - image-1/variables.tf
 <empty>
@@ -421,7 +439,16 @@ output "ecr-us-east-1-family_image-repositoryUri" {
 }
 
 + image-2/terragrunt.hcl
-<empty>
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
 
 + image-2/variables.tf
 <empty>"

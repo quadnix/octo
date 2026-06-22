@@ -617,6 +617,18 @@ mock_outputs = {
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
+- alb-module/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
 - alb-module/variables.tf
 variable "subnet_region_public_subnet_1_SubnetId" {}
 
@@ -898,6 +910,18 @@ mock_outputs = {
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
 }
 
+- alb-module-1/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
 - alb-module-1/variables.tf
 variable "subnet_region_public_subnet_1_SubnetId" {}
 
@@ -1063,6 +1087,18 @@ mock_outputs = {
     "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
   }
   mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+}
+
++ alb-module-2/terragrunt.hcl
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
 }
 
 + alb-module-2/variables.tf
