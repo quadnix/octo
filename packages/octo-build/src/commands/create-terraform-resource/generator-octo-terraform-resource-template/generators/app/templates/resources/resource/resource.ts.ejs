@@ -1,0 +1,44 @@
+import { ATerraformResource, Resource, type TerraformModuleScope } from '@quadnix/octo';
+import { <%= resourceNamePascal %>Schema } from './index.schema.js';
+
+/**
+ * A Terraform-managed resource. Its lifecycle (create / update / delete) is handled by Terraform
+ * via `toHCL()`, which Octo invokes automatically while generating Terraform files.
+ *
+ * Terraform resources cannot have resource actions — registering one throws. For a resource whose
+ * lifecycle runs outside Terraform (SDK calls, scripts), use `create-resource` instead.
+ */
+@Resource<<%= resourceNamePascal %>>('<%= packageName %>', '<%= resourceName %>', <%= resourceNamePascal %>Schema)
+export class <%= resourceNamePascal %> extends ATerraformResource<<%= resourceNamePascal %>Schema, <%= resourceNamePascal %>> {
+  declare properties: <%= resourceNamePascal %>Schema['properties'];
+  declare response: <%= resourceNamePascal %>Schema['response'];
+
+  constructor(resourceId: string, properties: <%= resourceNamePascal %>Schema['properties'], parents: []) {
+    super(resourceId, properties, parents);
+  }
+
+  override async toHCL(terraform: TerraformModuleScope): Promise<void> {
+    const octoResource = terraform.addOctoTerraformResource(this, {
+      // Fix me: bind to the provider this resource deploys into (accountId + regionId of a registered provider).
+      provider: { accountId: 'Fix me', regionId: 'Fix me' },
+    });
+
+    const tfResource = octoResource.addTerraformResource(
+      // Fix me: set the Terraform resource type (e.g. 'aws_vpc').
+      'terraform_resource_type',
+      this.resourceId,
+      {
+        // Fix me: set Terraform attributes. Reference a parent's output via
+        // terraform.getRef(this.parents[0], 'SomeResponseKey').
+      },
+    );
+
+    // Fix me: expose every response key as an output.
+    // Declare each key on the schema's `response`, then emit it here, e.g.:
+    // octoResource.output({ SomeId: terraform.raw(`${tfResource.address}.id`) });
+
+    if (Object.keys(this.tags).length > 0) {
+      tfResource.attribute('tags', this.tags);
+    }
+  }
+}

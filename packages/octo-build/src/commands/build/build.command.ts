@@ -73,7 +73,7 @@ export const buildCommand = {
 
     // Ensure build file exists.
     if (!existsSync(buildFilePath)) {
-      console.log(chalk.red('Cannot find build file: ' + buildFilePath));
+      console.error(chalk.red('Cannot find build file: ' + buildFilePath));
       process.exit(1);
     }
     // Ensure logsDir exists, and is writable.
@@ -82,7 +82,7 @@ export const buildCommand = {
         accessSync(logsDir, constants.W_OK);
       }
     } catch (error) {
-      console.log(chalk.red("Logs directory doesn't exist, or is not writable: " + logsDir));
+      console.error(chalk.red("Logs directory doesn't exist, or is not writable: " + logsDir));
       process.exit(1);
     }
 
@@ -101,7 +101,7 @@ export const buildCommand = {
     try {
       json = load(readFileSync(buildFilePath, 'utf-8'));
     } catch (error) {
-      console.log(chalk.red('Unable to parse build file: ' + error.message));
+      console.error(chalk.red('Unable to parse build file: ' + error.message));
       throw error;
     }
     const buildConfiguration = BuildFileParser.parse(json);
@@ -111,7 +111,7 @@ export const buildCommand = {
       await main.start();
       console.log(chalk.green('Success'));
     } catch (error) {
-      console.log(chalk.red(error));
+      console.error(chalk.red(error));
     }
   },
 };

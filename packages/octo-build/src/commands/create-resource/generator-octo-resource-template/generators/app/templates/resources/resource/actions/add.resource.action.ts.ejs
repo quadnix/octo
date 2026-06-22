@@ -19,25 +19,16 @@ export class Add<%= resourceNamePascal %>ResourceAction extends ANodeAction impl
 
   async handle(diff: Diff<<%= resourceNamePascal %>>): Promise<<%= resourceNamePascal %>Schema['response']> {
     // Get properties.
-    const <%= resourceName %> = diff.node;
-    const properties = <%= resourceName %>.properties;
-    const response = <%= resourceName %>.response;
-    const tags = <%= resourceName %>.tags;
+    const <%= resourceNameCamel %> = diff.node;
+    const properties = <%= resourceNameCamel %>.properties;
+    const response = <%= resourceNameCamel %>.response;
+    const tags = <%= resourceNameCamel %>.tags;
 
     // Fix me: Implement the add resource logic.
-    // This is where you would create the actual resource.
+    // This is where you would create the actual resource (SDK call, script, API request, ...).
 
-    // Fix me: Return response properties.
-    return response;
-  }
-
-  async mock(diff: Diff<<%= resourceNamePascal %>>, capture: Partial<<%= resourceNamePascal %>Schema['response']>): Promise<<%= resourceNamePascal %>Schema['response']> {
-    // Get properties.
-    const <%= resourceName %> = diff.node;
-    const properties = <%= resourceName %>.properties;
-    const response = <%= resourceName %>.response;
-
-    // Fix me: Return response using captures.
+    // Fix me: Populate and return every declared response key. Each key must be declared on the
+    // schema's `response` so Octo can emit it as a Terraform output.
     return response;
   }
 }

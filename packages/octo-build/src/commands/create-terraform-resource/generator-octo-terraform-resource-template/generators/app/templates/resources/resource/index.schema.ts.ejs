@@ -1,0 +1,31 @@
+import { BaseResourceSchema, Schema, Validate } from '@quadnix/octo';
+
+export class <%= resourceNamePascal %>Schema extends BaseResourceSchema {
+  @Validate({
+    destruct: (value: <%= resourceNamePascal %>Schema['properties']): string[] => [
+      // Fix me: Add properties for validation.
+    ],
+    options: { minLength: 1 },
+  })
+  override properties = Schema<{
+    // Fix me: Add resource properties.
+  }>();
+
+  @Validate({
+    destruct: (value: <%= resourceNamePascal %>Schema['response']): string[] => {
+      const subjects: string[] = [];
+      // Fix me: Add response properties for validation.
+      // E.g.,
+      // if (value.Arn) {
+      //   subjects.push(value.Arn);
+      // }
+      return subjects;
+    },
+    options: { minLength: 1 },
+  })
+  override response = Schema<{
+    // Fix me: Add a response key per Terraform output you expose in toHCL().
+    // Each key declared here is emitted as an `output "${resourceId}-${key}"` and is how other
+    // resources/modules consume this resource (via terraform.getRef(this, 'Key')).
+  }>();
+}

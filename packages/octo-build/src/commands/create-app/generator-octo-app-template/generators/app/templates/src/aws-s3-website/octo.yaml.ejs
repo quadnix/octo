@@ -10,6 +10,18 @@ env:
     kind: string
     value: my-website-unique-bucket
 
+terraform:
+  requiredVersion: "1.6.0"
+  requiredProviders:
+    aws:
+      source: hashicorp/aws
+  providers:
+    - providerType: aws
+      accountId: "${env.AWS_ACCOUNT_ID}"
+      regionId: us-east-1
+      spec:
+        profile: default
+
 settings:
   listeners:
     - type: HtmlReportEventListener

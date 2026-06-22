@@ -1,6 +1,13 @@
 import { AResource, Resource } from '@quadnix/octo';
 import { <%= resourceNamePascal %>Schema } from './index.schema.js';
 
+/**
+ * An external resource: its lifecycle (create / update / delete) runs outside Terraform, in the
+ * resource actions under `./actions` (SDK calls, scripts, API requests). Octo wraps it in a
+ * `null_resource` + `data "external"` at generate time and calls back into the action at apply time.
+ *
+ * For a resource whose lifecycle is managed by Terraform itself, use `create-terraform-resource`.
+ */
 @Resource<<%= resourceNamePascal %>>('<%= packageName %>', '<%= resourceName %>', <%= resourceNamePascal %>Schema)
 export class <%= resourceNamePascal %> extends AResource<<%= resourceNamePascal %>Schema, <%= resourceNamePascal %>> {
   declare properties: <%= resourceNamePascal %>Schema['properties'];

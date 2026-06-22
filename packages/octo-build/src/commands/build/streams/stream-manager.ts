@@ -20,7 +20,7 @@ export class StreamManager {
       console.log(randomColor(data.toString()));
     });
     stream.stderr.on('error', (error) => {
-      console.log(chalk.red(error));
+      console.error(chalk.red(error));
     });
     stream.on('close', () => {
       stream.removeAllListeners();

@@ -44,11 +44,10 @@ export default class extends Generator {
     const templateData = {
       packageName: this.packageName,
       resourceName: this.resourceName,
-      resourceNameCamel: StringUtility.toCamelCase(this.resourceName),
       resourceNamePascal: StringUtility.toPascalCase(this.resourceName),
     };
 
-    // Create the resource file.
+    // Create the terraform resource file.
     this.fs.copyTpl(
       this.templatePath('resources/resource/resource.ts.ejs'),
       this.destinationPath(`${this.resourceName}.resource.ts`),
@@ -68,37 +67,12 @@ export default class extends Generator {
       this.destinationPath('index.ts'),
       templateData,
     );
-
-    // Create actions directory and action files
-    this.fs.copyTpl(
-      this.templatePath('resources/resource/actions/add.resource.action.ts.ejs'),
-      this.destinationPath('actions', `add-${this.resourceName}.resource.action.ts`),
-      templateData,
-    );
-
-    this.fs.copyTpl(
-      this.templatePath('resources/resource/actions/delete.resource.action.ts.ejs'),
-      this.destinationPath('actions', `delete-${this.resourceName}.resource.action.ts`),
-      templateData,
-    );
-
-    this.fs.copyTpl(
-      this.templatePath('resources/resource/actions/update-tags.resource.action.ts.ejs'),
-      this.destinationPath('actions', `update-${this.resourceName}-tags.resource.action.ts`),
-      templateData,
-    );
-
-    this.fs.copyTpl(
-      this.templatePath('resources/resource/actions/validate.resource.action.ts.ejs'),
-      this.destinationPath('actions', `validate-${this.resourceName}.resource.action.ts`),
-      templateData,
-    );
   }
 
   end(): void {
     const targetPath = resolve(join(this.cdkRootDir, 'src', 'resources', this.resourceName));
 
-    this.log('✅ Your resource has been generated successfully!');
+    this.log('✅ Your terraform resource has been generated successfully!');
     this.log(`📁 Resource created at: ${targetPath}`);
     this.log('📦 Next steps:');
     this.log(`   Address all "Fix me" in generated files`);

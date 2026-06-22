@@ -18,9 +18,9 @@ export class Delete<%= resourceNamePascal %>ResourceAction extends ANodeAction i
 
   async handle(diff: Diff<<%= resourceNamePascal %>>): Promise<void> {
     // Get properties.
-    const <%= resourceName %> = diff.node;
-    const properties = <%= resourceName %>.properties;
-    const response = <%= resourceName %>.response;
+    const <%= resourceNameCamel %> = diff.node;
+    const properties = <%= resourceNameCamel %>.properties;
+    const response = <%= resourceNameCamel %>.response;
 
     // Fix me: Implement the delete resource logic.
     // This is where you would delete the actual resource.

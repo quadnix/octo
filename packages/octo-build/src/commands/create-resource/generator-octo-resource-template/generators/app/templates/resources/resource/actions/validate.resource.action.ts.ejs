@@ -18,9 +18,9 @@ export class Validate<%= resourceNamePascal %>ResourceAction extends ANodeAction
 
   async handle(diff: Diff<<%= resourceNamePascal %>>): Promise<void> {
     // Get properties.
-    const <%= resourceName %> = diff.node;
-    const properties = <%= resourceName %>.properties;
-    const response = <%= resourceName %>.response;
+    const <%= resourceNameCamel %> = diff.node;
+    const properties = <%= resourceNameCamel %>.properties;
+    const response = <%= resourceNameCamel %>.response;
 
     // Fix me: Implement the resource validation logic.
     // This is where you would validate the actual resource and its properties.
