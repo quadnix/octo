@@ -345,9 +345,14 @@ describe('TerraformService UT', () => {
       scope.addOctoTerraformExternalResource(internetGateway);
 
       const { mainTf, variablesTf, terragruntHcl } = service.renderAllModules().get('m1')!;
+
       expect(mainTf).toMatchSnapshot();
       expect(variablesTf).toBe('');
-      expect(terragruntHcl.trim()).toBe('');
+
+      // Only the backend-pinning remote_state block; no cross-folder dependency/inputs wiring.
+      expect(terragruntHcl).toContain('remote_state {');
+      expect(terragruntHcl).not.toContain('dependency "');
+      expect(terragruntHcl).not.toContain('inputs');
     });
 
     it('should include null and external providers in required_providers', () => {
@@ -433,9 +438,13 @@ describe('TerraformService UT', () => {
         .addTerraformResource('aws_subnet', 'subnet-1', { vpc_id: scope.getRef(vpc, 'VpcId') });
 
       const files = service.renderAllModules();
+
       expect(files.get('m1')!.mainTf).toContain('vpc_id = aws_vpc.vpc-1.id');
       expect(files.get('m1')!.variablesTf).toBe('');
-      expect(files.get('m1')!.terragruntHcl.trim()).toBe('');
+
+      // Same-folder ref needs no cross-folder wiring; only the backend-pinning remote_state block.
+      expect(files.get('m1')!.terragruntHcl).toContain('remote_state {');
+      expect(files.get('m1')!.terragruntHcl).not.toContain('dependency "');
     });
 
     it('should resolve cross-module refs to variables with terragrunt wiring', () => {

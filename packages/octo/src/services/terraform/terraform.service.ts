@@ -977,6 +977,27 @@ export class TerraformService {
     const step = this.step;
     const sections: string[] = [];
 
+    // Pin the (local) backend state to a stable absolute path in the module folder. Terragrunt
+    // copies each module into a per-invocation `.terragrunt-cache` working directory; without this,
+    // local state lands inside that throwaway copy, so a later `terragrunt output` (run from a fresh
+    // copy) cannot see the state a prior `terragrunt apply` wrote. Generating a `backend.tf` that
+    // points at `${get_terragrunt_dir()}/terraform.tfstate` keeps the state in one fixed place that
+    // every terragrunt command shares. Users who want a remote backend override this block.
+    sections.push(
+      [
+        'remote_state {',
+        `${step}backend = "local"`,
+        `${step}generate = {`,
+        `${step}${step}path      = "backend.tf"`,
+        `${step}${step}if_exists = "overwrite_terragrunt"`,
+        `${step}}`,
+        `${step}config = {`,
+        `${step}${step}path = "\${get_terragrunt_dir()}/terraform.tfstate"`,
+        `${step}}`,
+        '}',
+      ].join('\n'),
+    );
+
     // Dependency blocks, with mock outputs so `run-all plan` works before first apply.
     for (const producerModuleId of [...moduleWiring.moduleDependencies.keys()].sort()) {
       const dependencyName = StringUtility.sanitizeForIdentifier(producerModuleId);

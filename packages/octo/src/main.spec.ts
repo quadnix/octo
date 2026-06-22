@@ -16,9 +16,9 @@ describe('Main UT', () => {
   async function generateAndCommitFullGraph(): Promise<ReturnType<TestModes['createResourceGraph']>> {
     const graph = await testModes.createResourceGraph();
     await testModes.octo.generate(graph.app, { outputDir: testModes.outputDir });
-    await testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
-    await testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
-    await testModes.octo.commit(graph.app, { tfDir: testModes.outputDir });
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+    testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+    await testModes.octo.commit(graph.app, { outputs: testModes.outputs });
     return graph;
   }
 
@@ -50,12 +50,12 @@ describe('Main UT', () => {
       testModes.resourceDataRepository.addNewResource(new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' }));
       await testModes.octo.generate(app, { outputDir: testModes.outputDir });
 
-      await testModes.writePlan('region-module', [
+      testModes.writePlan('region-module', [
         { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
         { actions: ['delete'], address: 'null_resource.igw-1' },
       ]);
 
-      const result = await testModes.octo.validate(app, { tfDir: testModes.outputDir });
+      const result = await testModes.octo.validate(app, { plans: testModes.plans });
       expect(result.errors).toEqual([]);
       expect(result.pass).toBe(true);
     });

@@ -29,9 +29,9 @@ describe('App Modes E2E Test', () => {
   // and terraform mapping) persisted — the starting point for a re-run.
   async function commitBaseline(): Promise<App> {
     const { app } = await testModes.createResourceGraph();
-    await testModes.writeTfState('region-module', REGION_TFSTATE);
-    await testModes.writeTfState('sg-module', SG_TFSTATE);
-    await testModes.octo.commit(app, { tfDir: testModes.outputDir });
+    testModes.writeTfState('region-module', REGION_TFSTATE);
+    testModes.writeTfState('sg-module', SG_TFSTATE);
+    await testModes.octo.commit(app, { outputs: testModes.outputs });
     return app;
   }
 
@@ -112,22 +112,22 @@ describe('App Modes E2E Test', () => {
     // Mode 2: validate. The user has run `terragrunt plan` to produce plan.json per folder; octo
     // re-derives its diff and checks the plan matches it (every add accounted for, nothing extra).
     // ------------------------------------------------------------------------------------------
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['create'], address: 'aws_vpc.vpc-1' },
       { actions: ['create'], address: 'null_resource.igw-1' },
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
-    const validation = await testModes.octo.validate(app, { tfDir });
+    const validation = await testModes.octo.validate(app, { plans: testModes.plans });
     expect(validation.errors).toEqual([]);
     expect(validation.pass).toBe(true);
 
     // A plan that disagrees with octo's diff fails validation.
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
       { actions: ['create'], address: 'null_resource.igw-1' },
     ]);
-    const badValidation = await testModes.octo.validate(app, { tfDir });
+    const badValidation = await testModes.octo.validate(app, { plans: testModes.plans });
     expect(badValidation.pass).toBe(false);
     expect(badValidation.errors.some((e) => e.message.includes('aws_vpc.vpc-1'))).toBe(true);
 
@@ -158,10 +158,10 @@ describe('App Modes E2E Test', () => {
     // outputs back onto resource responses, and persists state. The igw value matches what
     // run-action produced above — the same value terraform would have captured to tfstate.
     // ------------------------------------------------------------------------------------------
-    await testModes.writeTfState('region-module', REGION_TFSTATE);
-    await testModes.writeTfState('sg-module', SG_TFSTATE);
+    testModes.writeTfState('region-module', REGION_TFSTATE);
+    testModes.writeTfState('sg-module', SG_TFSTATE);
 
-    await testModes.octo.commit(app, { tfDir });
+    await testModes.octo.commit(app, { outputs: testModes.outputs });
 
     // commit persisted state and reloaded it, so the committed graph (with tfstate-sourced
     // responses) is now octo's actual resource state.
@@ -181,12 +181,12 @@ describe('App Modes E2E Test', () => {
       expect(resourceChanges(diffs)).toEqual([]);
 
       // validate: a plan that changes nothing matches the (empty) octo diff.
-      await testModes.writePlan('region-module', [
+      testModes.writePlan('region-module', [
         { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
         { actions: ['no-op'], address: 'null_resource.igw-1' },
       ]);
-      await testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
-      const validation = await testModes.octo.validate(app, { tfDir: testModes.outputDir });
+      testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
 
@@ -209,12 +209,12 @@ describe('App Modes E2E Test', () => {
       expect(resourceChanges(diffs)).toEqual(['update:igw-1', 'update:sg-1']);
 
       // validate: vpc unchanged; igw updates in region-module; sg updates in sg-module.
-      await testModes.writePlan('region-module', [
+      testModes.writePlan('region-module', [
         { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
         { actions: ['update'], address: 'null_resource.igw-1' },
       ]);
-      await testModes.writePlan('sg-module', [{ actions: ['update'], address: 'aws_security_group.sg-1' }]);
-      const validation = await testModes.octo.validate(app, { tfDir: testModes.outputDir });
+      testModes.writePlan('sg-module', [{ actions: ['update'], address: 'aws_security_group.sg-1' }]);
+      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
 
@@ -235,12 +235,12 @@ describe('App Modes E2E Test', () => {
       const diffs = await testModes.octo.generate(app, { outputDir: testModes.outputDir });
       expect(resourceChanges(diffs)).toEqual(['update:igw-1', 'update:vpc-1']);
 
-      await testModes.writePlan('region-module', [
+      testModes.writePlan('region-module', [
         { actions: ['update'], address: 'aws_vpc.vpc-1' },
         { actions: ['update'], address: 'null_resource.igw-1' },
       ]);
-      await testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
-      const validation = await testModes.octo.validate(app, { tfDir: testModes.outputDir });
+      testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
 
@@ -267,13 +267,13 @@ describe('App Modes E2E Test', () => {
       expect(regionMainTf).toContain('resource "null_resource" "igw-2"');
 
       // validate: everything already applied is no-op; only igw-2 is created.
-      await testModes.writePlan('region-module', [
+      testModes.writePlan('region-module', [
         { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
         { actions: ['no-op'], address: 'null_resource.igw-1' },
         { actions: ['create'], address: 'null_resource.igw-2' },
       ]);
-      await testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
-      const validation = await testModes.octo.validate(app, { tfDir: testModes.outputDir });
+      testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
 
@@ -319,11 +319,11 @@ describe('App Modes E2E Test', () => {
       // validate: igw delete is checked in region-module (still present); sg lived in sg-module,
       // which no longer exists this boot, so its delete is recovered from the persisted mapping that
       // commit wrote — and can only be warned about, not plan-verified.
-      await testModes.writePlan('region-module', [
+      testModes.writePlan('region-module', [
         { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
         { actions: ['delete'], address: 'null_resource.igw-1' },
       ]);
-      const validation = await testModes.octo.validate(app, { tfDir: testModes.outputDir });
+      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
       expect(validation.warnings.some((w) => w.message.includes('sg-1') && w.message.includes('sg-module'))).toBe(true);

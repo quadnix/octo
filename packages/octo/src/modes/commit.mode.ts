@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'path';
 import type { UnknownResource } from '../app.type.js';
 import { TransactionError } from '../errors/index.js';
 import { Container } from '../functions/container/container.js';
@@ -9,19 +7,24 @@ import { ResourceDataRepository } from '../resources/resource-data.repository.js
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 
+type TerraformOutputs = Record<string, { value: unknown }>;
+
 /**
  * Maps a terraform apply's outputs back onto the new resource graph's responses.
  *
- * Boots normally (modules → model actions → resource graph), reads every module folder's
- * tfstate under `tfDir`, populates resource responses from outputs by the `${resourceId}-${key}`
- * convention, and syncs the actual graph to the new graph. All-or-nothing: if any expected output
- * is missing (e.g. partial apply), errors before mutating anything.
+ * Boots normally (modules → model actions → resource graph), reads every module folder's outputs
+ * from the caller-supplied `outputs` map (keyed by module id), populates resource responses by the
+ * `${resourceId}-${key}` convention, and syncs the actual graph to the new graph. All-or-nothing:
+ * if any expected output is missing (e.g. partial apply), errors before mutating anything.
  *
  * Returns the model transaction so {@link Octo} can run the persistence + commit hooks it owns.
  *
  * @internal
  */
-export async function commit(app: App, { tfDir }: { tfDir: string }): Promise<{ modelTransaction: DiffMetadata[][] }> {
+export async function commit(
+  app: App,
+  { outputs }: { outputs: Map<string, TerraformOutputs> },
+): Promise<{ modelTransaction: DiffMetadata[][] }> {
   const container = Container.getInstance();
   const [resourceDataRepository, terraformService, transactionService] = await Promise.all([
     container.get(ResourceDataRepository),
@@ -42,20 +45,14 @@ export async function commit(app: App, { tfDir }: { tfDir: string }): Promise<{ 
 
   const mappings = terraformService.getOctoTerraformResourceMappings();
 
-  // Read every module folder's tfstate outputs.
-  const outputsByModule = new Map<string, Record<string, { value: unknown }>>();
+  // Read every module folder's outputs from the caller-supplied map.
+  const outputsByModule = new Map<string, TerraformOutputs>();
   for (const moduleId of terraformService.getModuleIds()) {
-    const tfStatePath = join(tfDir, moduleId, 'terraform.tfstate');
-
-    let tfStateContent: string;
-    try {
-      tfStateContent = await readFile(tfStatePath, 'utf-8');
-    } catch (error) {
-      throw new TransactionError(`Cannot read terraform state for module "${moduleId}" at "${tfStatePath}"!`);
+    const moduleOutputs = outputs.get(moduleId);
+    if (moduleOutputs === undefined) {
+      throw new TransactionError(`No terraform outputs provided for module "${moduleId}"!`);
     }
-
-    const tfState = JSON.parse(tfStateContent);
-    outputsByModule.set(moduleId, tfState.outputs ?? {});
+    outputsByModule.set(moduleId, moduleOutputs);
   }
 
   // Populate responses; collect all missing outputs before failing. Values are coerced to string

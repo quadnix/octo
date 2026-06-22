@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'path';
 import type { UnknownResource } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
@@ -27,8 +25,16 @@ interface ValidateResult {
 }
 
 /**
+ * One module's parsed terraform plan, i.e. the JSON produced by `terraform show -json <plan-file>`
+ * (run via terragrunt by the caller, so it is backend-agnostic). Only `resource_changes` is read.
+ */
+export interface TerraformPlan {
+  resource_changes?: { address: string; change?: { actions?: string[] }; mode?: string }[];
+}
+
+/**
  * Compares octo's resource diff against terraform plans, bidirectionally.
- * Expects each generated module folder to contain a `plan.json` (`terraform show -json <plan-file>`). Writes nothing.
+ * `plans` maps each module folder's id to its parsed terraform plan.
  *
  * `persistedMappings` is the octo→terraform mapping captured by the last commit,
  * used to recover the addresses of resources that have since
@@ -38,7 +44,10 @@ interface ValidateResult {
  */
 export async function validate(
   app: App,
-  { persistedMappings, tfDir }: { persistedMappings: Map<string, PersistedTerraformMapping>; tfDir: string },
+  {
+    persistedMappings,
+    plans,
+  }: { persistedMappings: Map<string, PersistedTerraformMapping>; plans: Map<string, TerraformPlan> },
 ): Promise<ValidateResult> {
   const container = Container.getInstance();
   const [terraformService, transactionService] = await Promise.all([
@@ -84,19 +93,15 @@ export async function validate(
     }
   }
 
-  // Read every module folder's plan.
+  // Read every module folder's plan from the caller-supplied map.
   const planChangesByModule = new Map<string, Map<string, string[]>>();
   for (const moduleId of terraformService.getModuleIds()) {
-    const planPath = join(tfDir, moduleId, 'plan.json');
-    let planContent: string;
-    try {
-      planContent = await readFile(planPath, 'utf-8');
-    } catch (error) {
-      errors.push({ message: `Cannot read terraform plan at "${planPath}"!`, moduleId });
+    const plan = plans.get(moduleId);
+    if (!plan) {
+      errors.push({ message: `No terraform plan provided for module "${moduleId}"!`, moduleId });
       continue;
     }
 
-    const plan = JSON.parse(planContent);
     const changes = new Map<string, string[]>();
     for (const resourceChange of plan.resource_changes ?? []) {
       if (resourceChange.mode === 'data') {

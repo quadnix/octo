@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'path';
 import { NodeType, type UnknownResource } from '../../app.type.js';
@@ -8,6 +8,7 @@ import { Diff, DiffAction } from '../../functions/diff/diff.js';
 import { DiffUtility } from '../../functions/diff/diff.utility.js';
 import type { Octo } from '../../main.js';
 import type { App } from '../../models/app/app.model.js';
+import type { TerraformPlan } from '../../modes/validate.mode.js';
 import { TestModuleContainer } from '../../modules/test-module.container.js';
 import type { IResourceAction } from '../../resources/resource-action.interface.js';
 import { ResourceDataRepository } from '../../resources/resource-data.repository.js';
@@ -169,6 +170,8 @@ export class RefusingTfResource extends ATerraformResource<BaseResourceSchema, R
  */
 export class TestModes {
   readonly igwActionHandledDiffs: Diff[] = [];
+  readonly outputs = new Map<string, Record<string, { value: unknown }>>();
+  readonly plans = new Map<string, TerraformPlan>();
   private readonly igwResponse: BaseResourceSchema['response'] = { igwId: 'igw-0real' };
 
   private constructor(
@@ -293,29 +296,20 @@ export class TestModes {
     await TestContainer.reset();
   }
 
-  async writePlan(moduleId: string, resourceChanges: { actions: string[]; address: string }[]): Promise<void> {
-    await mkdir(join(this.outputDir, moduleId), { recursive: true });
-    await writeFile(
-      join(this.outputDir, moduleId, 'plan.json'),
-      JSON.stringify({
-        resource_changes: resourceChanges.map((c) => ({
-          address: c.address,
-          change: { actions: c.actions },
-          mode: 'managed',
-        })),
-      }),
-      'utf-8',
-    );
+  writePlan(moduleId: string, resourceChanges: { actions: string[]; address: string }[]): void {
+    this.plans.set(moduleId, {
+      resource_changes: resourceChanges.map((c) => ({
+        address: c.address,
+        change: { actions: c.actions },
+        mode: 'managed',
+      })),
+    });
   }
 
-  async writeTfState(moduleId: string, outputs: Record<string, unknown>): Promise<void> {
-    await mkdir(join(this.outputDir, moduleId), { recursive: true });
-    await writeFile(
-      join(this.outputDir, moduleId, 'terraform.tfstate'),
-      JSON.stringify({
-        outputs: Object.fromEntries(Object.entries(outputs).map(([k, v]) => [k, { type: 'string', value: v }])),
-      }),
-      'utf-8',
+  writeTfState(moduleId: string, outputs: Record<string, unknown>): void {
+    this.outputs.set(
+      moduleId,
+      Object.fromEntries(Object.entries(outputs).map(([k, v]) => [k, { type: 'string', value: v }])),
     );
   }
 }

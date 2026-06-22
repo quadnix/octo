@@ -77,15 +77,15 @@ describe('validate()', () => {
   it('should pass when terraform plan matches the octo diff', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['create'], address: 'aws_vpc.vpc-1' },
       { actions: ['create'], address: 'null_resource.igw-1' },
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
     const result = await validate(app, {
       persistedMappings: noPersisted(),
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.errors).toEqual([]);
     expect(result.pass).toBe(true);
@@ -94,15 +94,15 @@ describe('validate()', () => {
   it('should fail when terraform plans no change for an octo diff', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
       { actions: ['create'], address: 'null_resource.igw-1' },
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
     const result = await validate(app, {
       persistedMappings: noPersisted(),
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.pass).toBe(false);
     expect(result.errors[0].message).toContain('no change on any of [aws_vpc.vpc-1]');
@@ -111,16 +111,16 @@ describe('validate()', () => {
   it('should fail when terraform plans a change that maps to no octo diff', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['create'], address: 'aws_vpc.vpc-1' },
       { actions: ['create'], address: 'null_resource.igw-1' },
       { actions: ['delete'], address: 'aws_instance.rogue' },
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
     const result = await validate(app, {
       persistedMappings: noPersisted(),
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.pass).toBe(false);
     expect(result.errors.some((e) => e.message.includes('aws_instance.rogue'))).toBe(true);
@@ -131,15 +131,15 @@ describe('validate()', () => {
     await commitResources({ skipAddActualResource: true });
     await recreateGraph({ changeVpc: true });
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['update'], address: 'aws_vpc.vpc-1' },
       { actions: ['update'], address: 'null_resource.igw-1' },
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
 
     const result = await validate(app, {
       persistedMappings: noPersisted(),
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.errors).toEqual([]);
     expect(result.pass).toBe(true);
@@ -148,15 +148,15 @@ describe('validate()', () => {
   it('should fail when terraform plans a different action than octo', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['delete'], address: 'aws_vpc.vpc-1' },
       { actions: ['create'], address: 'null_resource.igw-1' },
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
     const result = await validate(app, {
       persistedMappings: noPersisted(),
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.pass).toBe(false);
     expect(
@@ -171,15 +171,15 @@ describe('validate()', () => {
     await commitResources({ skipAddActualResource: true });
     await recreateGraph(); // identical graph → no octo diff, but vpc-1 stays in the mapping
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['update'], address: 'aws_vpc.vpc-1' },
       { actions: ['no-op'], address: 'null_resource.igw-1' },
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
 
     const result = await validate(app, {
       persistedMappings: noPersisted(),
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.pass).toBe(false);
     expect(
@@ -190,14 +190,14 @@ describe('validate()', () => {
   it('should accept a delete in the same folder and warn for a delete in a removed folder', async () => {
     const { app, persisted } = await stageDeletedIgwAndSg();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
       { actions: ['delete'], address: 'null_resource.igw-1' },
     ]);
 
     const result = await validate(app, {
       persistedMappings: persisted,
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.errors).toEqual([]);
     expect(result.pass).toBe(true);
@@ -208,14 +208,14 @@ describe('validate()', () => {
   it('should fail when a deleted octo resource shows no change in terraform', async () => {
     const { app, persisted } = await stageDeletedIgwAndSg();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
       { actions: ['no-op'], address: 'null_resource.igw-1' },
     ]);
 
     const result = await validate(app, {
       persistedMappings: persisted,
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.pass).toBe(false);
     expect(
@@ -228,14 +228,14 @@ describe('validate()', () => {
   it('should fail when a deleted octo resource shows a non-delete terraform action', async () => {
     const { app, persisted } = await stageDeletedIgwAndSg();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
       { actions: ['update'], address: 'null_resource.igw-1' },
     ]);
 
     const result = await validate(app, {
       persistedMappings: persisted,
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.pass).toBe(false);
     expect(
@@ -248,7 +248,7 @@ describe('validate()', () => {
   it('should not let a deleted octo resource claim a delete on a similarly-named address', async () => {
     const { app, persisted } = await stageDeletedIgwAndSg();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
       { actions: ['delete'], address: 'null_resource.igw-1' },
       { actions: ['delete'], address: 'null_resource.igw-10' },
@@ -256,7 +256,7 @@ describe('validate()', () => {
 
     const result = await validate(app, {
       persistedMappings: persisted,
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.pass).toBe(false);
     expect(result.errors.some((e) => e.message.includes('null_resource.igw-10'))).toBe(true);
@@ -265,14 +265,14 @@ describe('validate()', () => {
   it('should warn but pass when a deleted resource has no persisted mapping', async () => {
     const { app } = await stageDeletedIgwAndSg();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
       { actions: ['delete'], address: 'null_resource.igw-1' },
     ]);
 
     const result = await validate(app, {
       persistedMappings: noPersisted(),
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.pass).toBe(true);
     expect(result.errors).toEqual([]);
@@ -285,13 +285,13 @@ describe('validate()', () => {
     await recreateReplaceableGraph();
 
     // octo: vpc-1 REPLACE. terraform: vpc-1 recreated (delete + create).
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['create', 'delete'], address: 'aws_vpc.vpc-1' },
       { actions: ['update'], address: 'null_resource.igw-1' }, // depth-1 parent update
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, { persistedMappings: noPersisted(), tfDir: testModes.outputDir });
+    const result = await validate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
     expect(result.errors).toEqual([]);
     expect(result.pass).toBe(true);
   });
@@ -301,13 +301,13 @@ describe('validate()', () => {
     await commitResources({ skipAddActualResource: true });
     await recreateReplaceableGraph();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['update'], address: 'aws_vpc.vpc-1' }, // octo said replace, tf only updates
       { actions: ['update'], address: 'null_resource.igw-1' },
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, { persistedMappings: noPersisted(), tfDir: testModes.outputDir });
+    const result = await validate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
     expect(result.pass).toBe(false);
     expect(
       result.errors.some((e) => e.message.includes('has octo action "replace"') && e.message.includes('aws_vpc.vpc-1')),
@@ -322,30 +322,30 @@ describe('validate()', () => {
     // sg-1 has no octo diff (its parent igw-1 only changed its own parent), but terraform recreates
     // it because it transitively references the replaced vpc-1 (force-new cascade). Design B: this is
     // expected, not an unattributed change.
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['create', 'delete'], address: 'aws_vpc.vpc-1' },
       { actions: ['update'], address: 'null_resource.igw-1' },
     ]);
-    await testModes.writePlan('sg-module', [{ actions: ['create', 'delete'], address: 'aws_security_group.sg-1' }]);
+    testModes.writePlan('sg-module', [{ actions: ['create', 'delete'], address: 'aws_security_group.sg-1' }]);
 
-    const result = await validate(app, { persistedMappings: noPersisted(), tfDir: testModes.outputDir });
+    const result = await validate(app, { persistedMappings: noPersisted(), plans: testModes.plans });
     expect(result.errors).toEqual([]);
     expect(result.pass).toBe(true);
   });
 
-  it('should fail when a module plan file is missing', async () => {
+  it('should fail when a module plan is not provided', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await testModes.writePlan('region-module', [
+    testModes.writePlan('region-module', [
       { actions: ['create'], address: 'aws_vpc.vpc-1' },
       { actions: ['create'], address: 'null_resource.igw-1' },
     ]);
 
     const result = await validate(app, {
       persistedMappings: noPersisted(),
-      tfDir: testModes.outputDir,
+      plans: testModes.plans,
     });
     expect(result.pass).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('Cannot read terraform plan'))).toBe(true);
+    expect(result.errors.some((e) => e.message.includes('No terraform plan provided'))).toBe(true);
   });
 });

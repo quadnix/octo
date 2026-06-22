@@ -35,7 +35,7 @@ describe('CommitHook UT', () => {
       postCommitHooks: [{ handle: postCommitHookMock as any }],
       preCommitHooks: [{ handle: preCommitHookMock as any }],
     });
-    await octo.commit(new App('test-app'), { tfDir: '/tmp/octo-tf-does-not-exist' });
+    await octo.commit(new App('test-app'), { outputs: new Map() });
 
     expect(postCommitHookMock).toHaveBeenCalledTimes(1);
     expect(preCommitHookMock).toHaveBeenCalledTimes(1);

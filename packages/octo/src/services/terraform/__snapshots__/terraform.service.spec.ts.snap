@@ -119,7 +119,18 @@ resource "google_compute_network" "network-1" {
 `;
 
 exports[`TerraformService UT getRef() should resolve cross-module refs to variables with terragrunt wiring 1`] = `
-"dependency "vpc-module" {
+"remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }
+  config = {
+    path = "\${get_terragrunt_dir()}/terraform.tfstate"
+  }
+}
+
+dependency "vpc-module" {
   config_path = "../vpc-module"
 
   mock_outputs = {

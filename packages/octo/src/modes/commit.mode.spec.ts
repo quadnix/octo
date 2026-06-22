@@ -15,10 +15,10 @@ describe('commit()', () => {
   it('should populate responses from tfstate outputs and sync the actual graph', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
-    await testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+    testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
 
-    const { modelTransaction } = await commit(app, { tfDir: testModes.outputDir });
+    const { modelTransaction } = await commit(app, { outputs: testModes.outputs });
 
     expect(Array.isArray(modelTransaction)).toBe(true);
 
@@ -42,11 +42,11 @@ describe('commit()', () => {
   it('should coerce non-string output values to strings', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 12345 });
-    await testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 12345 });
+    testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
 
     await commit(app, {
-      tfDir: testModes.outputDir,
+      outputs: testModes.outputs,
     });
 
     const newVpc = testModes.resourceDataRepository
@@ -58,10 +58,10 @@ describe('commit()', () => {
   it('should error on missing outputs without mutating responses', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
-    await testModes.writeTfState('sg-module', {});
+    testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+    testModes.writeTfState('sg-module', {});
 
-    await expect(commit(app, { tfDir: testModes.outputDir })).rejects.toThrow(
+    await expect(commit(app, { outputs: testModes.outputs })).rejects.toThrow(
       /missing terraform outputs.*region-module\/igw-1.*Octo state is unchanged/,
     );
 
@@ -71,9 +71,9 @@ describe('commit()', () => {
     expect(newVpc.response['VpcId']).toBeUndefined();
   });
 
-  it('should error when a module tfstate is missing', async () => {
+  it('should error when a module has no provided outputs', async () => {
     const { app } = await testModes.createResourceGraph();
 
-    await expect(commit(app, { tfDir: testModes.outputDir })).rejects.toThrow(/Cannot read terraform state/);
+    await expect(commit(app, { outputs: testModes.outputs })).rejects.toThrow(/No terraform outputs provided/);
   });
 });
