@@ -437,11 +437,11 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "da2c133b3ff12ab8"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=ecs-cluster-region-qa > \${path.module}/.octo-outputs/ecs-cluster-region-qa.json"
+         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=ecs-cluster-region-qa > \${path.module}/.octo-outputs/ecs-cluster-region-qa.json"
        }
        provisioner "local-exec" {
          when = destroy
-         command = "octo --mode=run-action --resourceId=ecs-cluster-region-qa"
+         command = "octo run-action --resourceId=ecs-cluster-region-qa"
        }
      }
 
@@ -450,11 +450,11 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "1a31f0c2f24ce06f"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=efs-region-test-filesystem > \${path.module}/.octo-outputs/efs-region-test-filesystem.json"
+         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=efs-region-test-filesystem > \${path.module}/.octo-outputs/efs-region-test-filesystem.json"
        }
        provisioner "local-exec" {
          when = destroy
-         command = "octo --mode=run-action --resourceId=efs-region-test-filesystem"
+         command = "octo run-action --resourceId=efs-region-test-filesystem"
        }
      }
 
@@ -463,11 +463,11 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "4c9717384d508cbf"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=efs-mount-region-private-subnet-test-filesystem > \${path.module}/.octo-outputs/efs-mount-region-private-subnet-test-filesystem.json"
+         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=efs-mount-region-private-subnet-test-filesystem > \${path.module}/.octo-outputs/efs-mount-region-private-subnet-test-filesystem.json"
        }
        provisioner "local-exec" {
          when = destroy
-         command = "octo --mode=run-action --resourceId=efs-mount-region-private-subnet-test-filesystem"
+         command = "octo run-action --resourceId=efs-mount-region-private-subnet-test-filesystem"
        }
      }
 
@@ -476,11 +476,11 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "6d1a33e75e52b61d"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=iam-role-ServerRole-backend > \${path.module}/.octo-outputs/iam-role-ServerRole-backend.json"
+         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=iam-role-ServerRole-backend > \${path.module}/.octo-outputs/iam-role-ServerRole-backend.json"
        }
        provisioner "local-exec" {
          when = destroy
-         command = "octo --mode=run-action --resourceId=iam-role-ServerRole-backend"
+         command = "octo run-action --resourceId=iam-role-ServerRole-backend"
        }
      }
 
@@ -489,11 +489,11 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "8f35c7a4d38e129c"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=subnet-region-private-subnet > \${path.module}/.octo-outputs/subnet-region-private-subnet.json"
+         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=subnet-region-private-subnet > \${path.module}/.octo-outputs/subnet-region-private-subnet.json"
        }
        provisioner "local-exec" {
          when = destroy
-         command = "octo --mode=run-action --resourceId=subnet-region-private-subnet"
+         command = "octo run-action --resourceId=subnet-region-private-subnet"
        }
      }
 
@@ -502,11 +502,11 @@ describe('AwsEcsExecutionModule UT', () => {
          octo_properties_hash = "f548f82f959ec360"
        }
        provisioner "local-exec" {
-         command = "mkdir -p \${path.module}/.octo-outputs && octo --mode=run-action --resourceId=vpc-region > \${path.module}/.octo-outputs/vpc-region.json"
+         command = "mkdir -p \${path.module}/.octo-outputs && octo run-action --resourceId=vpc-region > \${path.module}/.octo-outputs/vpc-region.json"
        }
        provisioner "local-exec" {
          when = destroy
-         command = "octo --mode=run-action --resourceId=vpc-region"
+         command = "octo run-action --resourceId=vpc-region"
        }
      }
 
