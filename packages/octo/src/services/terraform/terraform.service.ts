@@ -1048,7 +1048,7 @@ export class TerraformService {
           }
         }
         lines.push(`${step}}`);
-        lines.push(`${step}mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]`);
+        lines.push(`${step}mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]`);
       }
       lines.push('}');
       sections.push(lines.join('\n'));

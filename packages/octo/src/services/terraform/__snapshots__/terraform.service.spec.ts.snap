@@ -136,7 +136,7 @@ dependency "vpc-module" {
   mock_outputs = {
     "vpc-1-VpcId" = "mock-vpc-1-VpcId"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
 }
 
 inputs = {

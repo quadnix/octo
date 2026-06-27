@@ -400,7 +400,7 @@ export class TestModuleContainer {
    * deliberately does not do itself.
    *
    * Cross-module references emit terragrunt `dependency` blocks with `mock_outputs` (and
-   * `mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]`), so
+   * `mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]`), so
    * `terragrunt run-all validate` / `plan` should succeed even though the upstream modules a developer would
    * normally supply are absent. The boundary is mocked from exactly what this module consumes.
    *
