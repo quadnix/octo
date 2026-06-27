@@ -614,7 +614,7 @@ inputs = {
 mock_outputs = {
     "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
 }
 
 - alb-module/terragrunt.hcl
@@ -907,7 +907,7 @@ inputs = {
 mock_outputs = {
     "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
 }
 
 - alb-module-1/terragrunt.hcl
@@ -1086,7 +1086,7 @@ inputs = {
 mock_outputs = {
     "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
 }
 
 + alb-module-2/terragrunt.hcl

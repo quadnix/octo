@@ -256,7 +256,7 @@ describe('AwsSimpleSubnetModule UT', () => {
          "efs-region-test-filesystem-FileSystemId" = "mock-efs-region-test-filesystem-FileSystemId"
          "vpc-region-VpcId" = "mock-vpc-region-VpcId"
        }
-       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
      }
 
      inputs = {

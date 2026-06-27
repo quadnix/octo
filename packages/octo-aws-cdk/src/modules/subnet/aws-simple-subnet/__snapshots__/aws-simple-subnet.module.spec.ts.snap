@@ -392,7 +392,7 @@ mock_outputs = {
     "efs-region-test-filesystem-FileSystemId" = "mock-efs-region-test-filesystem-FileSystemId"
     "vpc-region-VpcId" = "mock-vpc-region-VpcId"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
 }
 
 - subnet/terragrunt.hcl
@@ -508,10 +508,10 @@ exports[`AwsSimpleSubnetModule UT should associate and disassociate private subn
 -   ingress {
 -     action = "allow"
 -     cidr_block = "0.0.0.0/0"
--     from_port = 1024
+-     from_port = 0
 -     protocol = "-1"
 -     rule_no = 30
--     to_port = 65535
+-     to_port = 0
 -   }
     egress {
 @@ -36,18 +20,2 @@
@@ -739,7 +739,7 @@ inputs = {
 mock_outputs = {
     "vpc-region-VpcId" = "mock-vpc-region-VpcId"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
 }
 
 - subnet-1/terragrunt.hcl
@@ -859,7 +859,7 @@ inputs = {
 mock_outputs = {
     "vpc-region-VpcId" = "mock-vpc-region-VpcId"
   }
-  mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+  mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
 }
 
 + subnet-2/terragrunt.hcl

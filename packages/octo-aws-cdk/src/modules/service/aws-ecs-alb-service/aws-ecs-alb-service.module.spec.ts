@@ -490,7 +490,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        mock_outputs = {
          "vpc-region-VpcId" = "mock-vpc-region-VpcId"
        }
-       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
      }
 
      dependency "testSubnet1Module" {
@@ -499,7 +499,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        mock_outputs = {
          "subnet-region-public-subnet-1-SubnetId" = "mock-subnet-region-public-subnet-1-SubnetId"
        }
-       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
      }
 
      dependency "testSubnet2Module" {
@@ -508,7 +508,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        mock_outputs = {
          "subnet-region-public-subnet-2-SubnetId" = "mock-subnet-region-public-subnet-2-SubnetId"
        }
-       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
      }
 
      inputs = {
@@ -589,7 +589,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        mock_outputs = {
          "alb-target-group-backend-v1-region-qa-public-subnet-1-TargetGroupArn" = "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/mock-tg/0123456789abcdef"
        }
-       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
      }
 
      dependency "testModule" {
@@ -598,7 +598,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        mock_outputs = {
          "ecs-cluster-region-qa-clusterArn" = "mock-ecs-cluster-region-qa-clusterArn"
        }
-       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
      }
 
      dependency "testSubnet1Module" {
@@ -607,7 +607,7 @@ describe('AwsEcsAlbServiceModule UT', () => {
        mock_outputs = {
          "subnet-region-public-subnet-1-SubnetId" = "mock-subnet-region-public-subnet-1-SubnetId"
        }
-       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
      }
 
      inputs = {

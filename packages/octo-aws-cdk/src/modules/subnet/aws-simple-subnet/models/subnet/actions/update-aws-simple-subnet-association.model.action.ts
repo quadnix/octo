@@ -113,7 +113,7 @@ export class UpdateAwsSimpleSubnetAssociationModelAction implements IModelAction
       subnetNAclEntries.push({
         CidrBlock: '0.0.0.0/0',
         Egress: false,
-        PortRange: { From: 1024, To: 65535 },
+        PortRange: { From: -1, To: -1 },
         Protocol: '-1', // All.
         RuleAction: 'allow',
         RuleNumber: -1,

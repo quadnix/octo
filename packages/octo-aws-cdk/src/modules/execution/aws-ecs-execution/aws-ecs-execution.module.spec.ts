@@ -373,7 +373,7 @@ describe('AwsEcsExecutionModule UT', () => {
          "subnet-region-private-subnet" = { SubnetId = "mock-subnet-region-private-subnet-SubnetId" }
          "vpc-region" = { VpcId = "mock-vpc-region-VpcId" }
        }
-       mock_outputs_allowed_terraform_commands = ["init", "plan", "validate"]
+       mock_outputs_allowed_terraform_commands = ["init", "plan", "show", "validate"]
      }
 
      inputs = {
