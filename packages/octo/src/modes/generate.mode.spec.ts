@@ -56,13 +56,18 @@ describe('generate()', () => {
     expect(existsSync(join(testModes.outputDir, 'region-module', 'terragrunt.hcl'))).toBe(true);
   });
 
-  it('should wipe stale module folders on regenerate', async () => {
+  it('should preserve unrelated folders and state on regenerate', async () => {
     const { app } = await testModes.createResourceGraph();
-
-    await writeFile(join(testModes.outputDir, 'stale-file.hcl'), 'stale', 'utf-8');
     await generate(app, { outputDir: testModes.outputDir });
 
-    expect(existsSync(join(testModes.outputDir, 'stale-file.hcl'))).toBe(false);
+    // Terraform state and a hand-written file live alongside the generated folders.
+    await writeFile(join(testModes.outputDir, 'stale-file.hcl'), 'stale', 'utf-8');
+    await writeFile(join(testModes.outputDir, 'region-module', 'terraform.tfstate'), '{}', 'utf-8');
+
+    await generate(app, { outputDir: testModes.outputDir });
+
+    expect(existsSync(join(testModes.outputDir, 'stale-file.hcl'))).toBe(true);
+    expect(existsSync(join(testModes.outputDir, 'region-module', 'terraform.tfstate'))).toBe(true);
   });
 
   it('should refuse generation and write no files when a resource diff throws', async () => {

@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'path';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
@@ -11,8 +11,11 @@ import { TransactionService } from '../services/transaction/transaction.service.
  *
  * Boots normally (modules → model actions → resource graph), contributes every resource to
  * terraform (terraform resources via `toHCL()`, external resources via the `null_resource`
- * wrapper), wipes `outputDir`, and writes one folder per octo module. Persists nothing to
- * octo state — the returned resource diffs are a review artifact only.
+ * wrapper), and writes one folder per octo module. Persists nothing to octo state — the returned
+ * resource diffs are a review artifact only.
+ *
+ * Writes are gentle: each folder is overwritten in place, and `outputDir` is not wiped, so
+ * `terraform.tfstate`, `.terragrunt-cache`, and any other folders are preserved across runs.
  *
  * @internal
  */
@@ -33,8 +36,8 @@ export async function generate(app: App, { outputDir }: { outputDir: string }): 
 
   const moduleFiles = terraformService.renderAllModules();
 
-  // The output directory is fully octo-owned: wipe and regenerate.
-  await rm(outputDir, { force: true, recursive: true });
+  // Overwrite each module folder in place. The output directory is not wiped, so terraform state,
+  // caches, and unrelated folders survive a regenerate.
   for (const [moduleId, files] of moduleFiles.entries()) {
     const moduleDir = join(outputDir, moduleId);
     await mkdir(moduleDir, { recursive: true });
