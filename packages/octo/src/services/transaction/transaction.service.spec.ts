@@ -509,16 +509,19 @@ describe('TransactionService UT', () => {
       expect(igwMapping.terraformAddresses.some((a) => a.startsWith('null_resource.'))).toBe(true);
     });
 
-    it('should reset prior contributions so a re-run over the same graph does not throw', async () => {
+    it('should require an explicit reset() to re-sweep the same graph', async () => {
       const terraformService = await container.get(TerraformService);
       await testModuleContainer.createTestResources('region-module', [
         { resourceContext: '@octo/test-tf-resource=vpc-1', terraform: true },
       ]);
 
       await generateTerraform();
-      // Without reset() the duplicate registration would throw; the sweep must be repeatable.
-      await expect(generateTerraform()).resolves.not.toThrow();
+      // The sweep no longer self-resets, so re-sweeping without a reset re-registers and throws.
+      await expect(generateTerraform()).rejects.toThrow('Resource id "vpc-1" is already registered!');
 
+      // reset() clears prior contributions, so a fresh run (which resets at its boundary) is repeatable.
+      terraformService.reset();
+      await expect(generateTerraform()).resolves.not.toThrow();
       expect(terraformService.getOctoTerraformResourceMappings().filter((m) => m.resourceId === 'vpc-1')).toHaveLength(
         1,
       );

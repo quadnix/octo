@@ -1071,8 +1071,11 @@ export class TerraformService {
   }
 
   reset(): void {
+    this.minTerraformVersion = '1.6.0';
     this.modules.clear();
     this.pendingExternalResourcesInputWiring.length = 0;
+    this.providers.clear();
+    this.requiredProviders = {};
     this.resourceRegistry.clear();
     this.sanitizedResourceIds.clear();
   }

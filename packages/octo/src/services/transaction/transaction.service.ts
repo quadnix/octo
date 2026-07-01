@@ -354,8 +354,6 @@ export class TransactionService {
    * resource is registered (see {@link TerraformService}'s wiring phase).
    */
   private async generateTerraform(): Promise<void> {
-    this.terraformService.reset();
-
     const resources = this.resourceDataRepository.getNewResourcesByProperties().filter((r) => !r.isMarkedDeleted());
 
     for (const resource of resources) {
