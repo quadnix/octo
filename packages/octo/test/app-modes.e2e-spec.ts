@@ -31,7 +31,7 @@ describe('App Modes E2E Test', () => {
     const { app } = await testModes.createResourceGraph();
     testModes.writeTfState('region-module', REGION_TFSTATE);
     testModes.writeTfState('sg-module', SG_TFSTATE);
-    await testModes.octo.commit(app, { outputs: testModes.outputs });
+    await testModes.commit(app, { outputs: testModes.outputs });
     return app;
   }
 
@@ -75,7 +75,7 @@ describe('App Modes E2E Test', () => {
     // Mode 1: generate. Runs the resource sweep and writes one terragrunt folder per module.
     // Asserts the real files on disk, including the cross-folder variable/dependency wiring.
     // ------------------------------------------------------------------------------------------
-    const resourceDiffs = await testModes.octo.generate(app, { outputDir: tfDir });
+    const resourceDiffs = await testModes.generate(app, { outputDir: tfDir });
 
     expect(resourceChanges(resourceDiffs)).toEqual(['add:igw-1', 'add:sg-1', 'add:vpc-1']);
 
@@ -118,7 +118,7 @@ describe('App Modes E2E Test', () => {
     ]);
     testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
 
-    const validation = await testModes.octo.validate(app, { plans: testModes.plans });
+    const validation = await testModes.validate(app, { plans: testModes.plans });
     expect(validation.errors).toEqual([]);
     expect(validation.pass).toBe(true);
 
@@ -127,7 +127,7 @@ describe('App Modes E2E Test', () => {
       { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
       { actions: ['create'], address: 'null_resource.igw-1' },
     ]);
-    const badValidation = await testModes.octo.validate(app, { plans: testModes.plans });
+    const badValidation = await testModes.validate(app, { plans: testModes.plans });
     expect(badValidation.pass).toBe(false);
     expect(badValidation.errors.some((e) => e.message.includes('aws_vpc.vpc-1'))).toBe(true);
 
@@ -135,7 +135,7 @@ describe('App Modes E2E Test', () => {
     // Mode 3: run-action. Terraform shells back into octo mid-apply for the external resource.
     // Octo recomputes the diff (add), injects the parent's value, runs the action, returns JSON.
     // ------------------------------------------------------------------------------------------
-    const actionResult = await testModes.octo.runAction(app, {
+    const actionResult = await testModes.runAction(app, {
       inputs: { 'vpc-1.VpcId': 'vpc-0real' },
       resourceId: 'igw-1',
     });
@@ -149,7 +149,7 @@ describe('App Modes E2E Test', () => {
     expect((handledNode.parents[0] as UnknownResource).response['VpcId']).toBe('vpc-0real');
 
     // A terraform resource cannot be driven by run-action.
-    await expect(testModes.octo.runAction(app, { resourceId: 'vpc-1' })).rejects.toThrow(
+    await expect(testModes.runAction(app, { resourceId: 'vpc-1' })).rejects.toThrow(
       'Resource "vpc-1" is a terraform resource and cannot be run via run-action!',
     );
 
@@ -161,7 +161,7 @@ describe('App Modes E2E Test', () => {
     testModes.writeTfState('region-module', REGION_TFSTATE);
     testModes.writeTfState('sg-module', SG_TFSTATE);
 
-    await testModes.octo.commit(app, { outputs: testModes.outputs });
+    await testModes.commit(app, { outputs: testModes.outputs });
 
     // commit persisted state and reloaded it, so the committed graph (with tfstate-sourced
     // responses) is now octo's actual resource state.
@@ -177,7 +177,7 @@ describe('App Modes E2E Test', () => {
       setDesiredGraph(); // identical desired state
 
       // generate: nothing to add, update, or delete.
-      const diffs = await testModes.octo.generate(app, { outputDir: testModes.outputDir });
+      const diffs = await testModes.generate(app, { outputDir: testModes.outputDir });
       expect(resourceChanges(diffs)).toEqual([]);
 
       // validate: a plan that changes nothing matches the (empty) octo diff.
@@ -186,12 +186,12 @@ describe('App Modes E2E Test', () => {
         { actions: ['no-op'], address: 'null_resource.igw-1' },
       ]);
       testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
-      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
+      const validation = await testModes.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
 
       // run-action: the external resource is unchanged, so the action does not run.
-      const actionResult = await testModes.octo.runAction(app, {
+      const actionResult = await testModes.runAction(app, {
         inputs: { 'vpc-1.VpcId': 'vpc-0real' },
         resourceId: 'igw-1',
       });
@@ -205,7 +205,7 @@ describe('App Modes E2E Test', () => {
       // child sg — which lives in a different module folder, so this is a cross-folder update.
       setDesiredGraph({ igwType: 'internet-gateway-v2' });
 
-      const diffs = await testModes.octo.generate(app, { outputDir: testModes.outputDir });
+      const diffs = await testModes.generate(app, { outputDir: testModes.outputDir });
       expect(resourceChanges(diffs)).toEqual(['update:igw-1', 'update:sg-1']);
 
       // validate: vpc unchanged; igw updates in region-module; sg updates in sg-module.
@@ -214,12 +214,12 @@ describe('App Modes E2E Test', () => {
         { actions: ['update'], address: 'null_resource.igw-1' },
       ]);
       testModes.writePlan('sg-module', [{ actions: ['update'], address: 'aws_security_group.sg-1' }]);
-      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
+      const validation = await testModes.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
 
       // run-action: octo determines this is an update from the property change and runs the action.
-      const actionResult = await testModes.octo.runAction(app, {
+      const actionResult = await testModes.runAction(app, {
         inputs: { 'vpc-1.VpcId': 'vpc-0real' },
         resourceId: 'igw-1',
       });
@@ -232,7 +232,7 @@ describe('App Modes E2E Test', () => {
       // Change the terraform vpc cidr. vpc updates and cascades onto its direct child igw.
       setDesiredGraph({ vpcCidrBlock: '10.1.0.0/16' });
 
-      const diffs = await testModes.octo.generate(app, { outputDir: testModes.outputDir });
+      const diffs = await testModes.generate(app, { outputDir: testModes.outputDir });
       expect(resourceChanges(diffs)).toEqual(['update:igw-1', 'update:vpc-1']);
 
       testModes.writePlan('region-module', [
@@ -240,12 +240,12 @@ describe('App Modes E2E Test', () => {
         { actions: ['update'], address: 'null_resource.igw-1' },
       ]);
       testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
-      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
+      const validation = await testModes.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
 
       // A terraform resource still cannot be driven by run-action, even when it is the thing changing.
-      await expect(testModes.octo.runAction(app, { resourceId: 'vpc-1' })).rejects.toThrow(
+      await expect(testModes.runAction(app, { resourceId: 'vpc-1' })).rejects.toThrow(
         'Resource "vpc-1" is a terraform resource and cannot be run via run-action!',
       );
     });
@@ -259,7 +259,7 @@ describe('App Modes E2E Test', () => {
       const igw2 = new ExternalIgwResource('igw-2', { Type: 'internet-gateway' }, [vpc]);
       await testModes.addResource('region-module', igw2);
 
-      const diffs = await testModes.octo.generate(app, { outputDir: testModes.outputDir });
+      const diffs = await testModes.generate(app, { outputDir: testModes.outputDir });
       expect(resourceChanges(diffs)).toEqual(['add:igw-2']);
 
       // The new resource is wrapped into region-module's main.tf alongside the unchanged ones.
@@ -273,12 +273,12 @@ describe('App Modes E2E Test', () => {
         { actions: ['create'], address: 'null_resource.igw-2' },
       ]);
       testModes.writePlan('sg-module', [{ actions: ['no-op'], address: 'aws_security_group.sg-1' }]);
-      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
+      const validation = await testModes.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
 
       // run-action: octo determines igw-2 is an add and runs the action.
-      const actionResult = await testModes.octo.runAction(app, {
+      const actionResult = await testModes.runAction(app, {
         inputs: { 'vpc-1.VpcId': 'vpc-0real' },
         resourceId: 'igw-2',
       });
@@ -294,7 +294,7 @@ describe('App Modes E2E Test', () => {
       const app = await commitBaseline();
       setDesiredGraph();
 
-      await testModes.octo.generate(app, { outputDir: testModes.outputDir });
+      await testModes.generate(app, { outputDir: testModes.outputDir });
 
       // renderTerragrunt seeds mock_outputs from the producer schema's declared default, never the live
       // applied response. igw-1's (test) schema declares no default, so the mock stays the synthetic
@@ -309,7 +309,7 @@ describe('App Modes E2E Test', () => {
       // Drop igw and sg from the desired state; only vpc remains. igw and sg are deletes.
       setDesiredGraph({ withChildren: false });
 
-      const diffs = await testModes.octo.generate(app, { outputDir: testModes.outputDir });
+      const diffs = await testModes.generate(app, { outputDir: testModes.outputDir });
       expect(resourceChanges(diffs)).toEqual(['delete:igw-1', 'delete:sg-1']);
 
       // generate wiped and rewrote the dir; only region-module (vpc) is regenerated. sg-module is gone.
@@ -323,13 +323,13 @@ describe('App Modes E2E Test', () => {
         { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
         { actions: ['delete'], address: 'null_resource.igw-1' },
       ]);
-      const validation = await testModes.octo.validate(app, { plans: testModes.plans });
+      const validation = await testModes.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
       expect(validation.warnings.some((w) => w.message.includes('sg-1') && w.message.includes('sg-module'))).toBe(true);
 
       // run-action: octo determines igw is a delete and runs the delete action (empty response).
-      const actionResult = await testModes.octo.runAction(app, {
+      const actionResult = await testModes.runAction(app, {
         inputs: { 'vpc-1.VpcId': 'vpc-0real' },
         resourceId: 'igw-1',
       });

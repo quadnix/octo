@@ -152,7 +152,9 @@ export class TransactionService {
                 ? this.inputService.getModuleIdFromOverlay(diffToProcess.node)
                 : this.inputService.getModuleIdFromModel(diffToProcess.node as UnknownModel);
             if (moduleId === undefined) {
-              throw new TransactionError(`Node "${diffToProcess.node.getContext()}" is not associated with any module!`);
+              throw new TransactionError(
+                `Node "${diffToProcess.node.getContext()}" is not associated with any module!`,
+              );
             }
 
             // Set resource tags.

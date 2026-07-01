@@ -74,10 +74,12 @@ export class Octo {
   }
 
   /**
-   * Generates terragrunt module folders representing the full desired state.
+   * Generates terragrunt module folders representing the full desired state, and saves `models.json`.
    */
   async generate(app: App, options: { outputDir: string }): ReturnType<typeof runGenerate> {
-    return runGenerate(app, options);
+    const resourceDiffs = await runGenerate(app, options);
+    await this.saveModelState(app);
+    return resourceDiffs;
   }
 
   getModule<M extends UnknownModule>(...args: Parameters<InputService['getModule']>): M | undefined {

@@ -1,7 +1,12 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'path';
-import { NodeType, type UnknownResource } from '../../app.type.js';
+import {
+  type ModelSerializedOutput,
+  NodeType,
+  type ResourceSerializedOutput,
+  type UnknownResource,
+} from '../../app.type.js';
 import { ResourceError } from '../../errors/index.js';
 import { TestContainer } from '../../functions/container/test-container.js';
 import { Diff, DiffAction } from '../../functions/diff/diff.js';
@@ -15,8 +20,9 @@ import { ResourceDataRepository } from '../../resources/resource-data.repository
 import { AResource } from '../../resources/resource.abstract.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
 import { ATerraformResource } from '../../resources/terraform-resource.abstract.js';
+import { StateManagementService } from '../../services/state-management/state-management.service.js';
 import { TestStateProvider } from '../../services/state-management/test.state-provider.js';
-import type { TerraformModuleScope } from '../../services/terraform/terraform.service.js';
+import { type TerraformModuleScope, TerraformService } from '../../services/terraform/terraform.service.js';
 import { TransactionService } from '../../services/transaction/transaction.service.js';
 
 /**
@@ -170,14 +176,20 @@ export class RefusingTfResource extends ATerraformResource<BaseResourceSchema, R
  */
 export class TestModes {
   readonly igwActionHandledDiffs: Diff[] = [];
-  readonly outputs = new Map<string, Record<string, { value: unknown }>>();
-  readonly plans = new Map<string, TerraformPlan>();
   private readonly igwResponse: BaseResourceSchema['response'] = { igwId: 'igw-0real' };
 
+  readonly outputs = new Map<string, Record<string, { value: unknown }>>();
+  readonly plans = new Map<string, TerraformPlan>();
+
+  private readonly terraformConfigs: Parameters<Octo['registerTerraformConfig']>[] = [];
+  private readonly terraformProviders: Parameters<Octo['registerTerraformProvider']>[] = [];
+
   private constructor(
-    readonly octo: Octo,
+    private readonly octo: Octo,
     readonly outputDir: string,
     readonly resourceDataRepository: ResourceDataRepository,
+    private readonly stateManagementService: StateManagementService,
+    private readonly terraformService: TerraformService,
     private readonly testModuleContainer: TestModuleContainer,
   ) {}
 
@@ -191,19 +203,34 @@ export class TestModes {
     await this.testModuleContainer.createResources(moduleId, [resource]);
   }
 
+  async commit(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
+    await this.simulateFreshProcess();
+    return this.octo.commit(...args);
+  }
+
   static async create(): Promise<TestModes> {
     const container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500, force: true });
 
-    const [resourceDataRepository, transactionService] = await Promise.all([
+    const [resourceDataRepository, terraformService, transactionService] = await Promise.all([
       container.get(ResourceDataRepository),
+      container.get(TerraformService),
       container.get(TransactionService),
     ]);
 
     const testModuleContainer = new TestModuleContainer(container);
     await testModuleContainer.initialize(new TestStateProvider());
 
+    const stateManagementService = await container.get(StateManagementService);
+
     const outputDir = await mkdtemp(join(tmpdir(), 'octo-modes-test-'));
-    const instance = new TestModes(testModuleContainer['octo'], outputDir, resourceDataRepository, testModuleContainer);
+    const instance = new TestModes(
+      testModuleContainer['octo'],
+      outputDir,
+      resourceDataRepository,
+      stateManagementService,
+      terraformService,
+      testModuleContainer,
+    );
 
     // Registered after the instance exists so the action can read/append its mutable state. No
     // transaction runs during initialize(), so registering here is in time for the mode under test.
@@ -290,10 +317,59 @@ export class TestModes {
     return { app: app as App, igw, sg, vpc };
   }
 
+  async generate(...args: Parameters<Octo['generate']>): ReturnType<Octo['generate']> {
+    await this.simulateFreshProcess();
+    return this.octo.generate(...args);
+  }
+
+  async getModelState(): Promise<ModelSerializedOutput> {
+    const { data } = await this.stateManagementService.getModelState('models.json');
+    return data;
+  }
+
+  async getResourceState(fileName = 'resources-old.json'): Promise<ResourceSerializedOutput> {
+    const { data } = await this.stateManagementService.getResourceState(fileName);
+    return data;
+  }
+
+  registerTerraformConfig(...args: Parameters<Octo['registerTerraformConfig']>): void {
+    this.terraformConfigs.push(args);
+    this.octo.registerTerraformConfig(...args);
+  }
+
+  registerTerraformProvider(...args: Parameters<Octo['registerTerraformProvider']>): void {
+    this.terraformProviders.push(args);
+    this.octo.registerTerraformProvider(...args);
+  }
+
+  async runAction(...args: Parameters<Octo['runAction']>): ReturnType<Octo['runAction']> {
+    await this.simulateFreshProcess();
+    return this.octo.runAction(...args);
+  }
+
+  /**
+   * Simulates the boot of a fresh octo process: fully reset the terraform service, then replay the
+   * recorded config/provider registrations (config before providers, as boot order requires).
+   */
+  async simulateFreshProcess(): Promise<void> {
+    this.terraformService.reset();
+    for (const args of this.terraformConfigs) {
+      this.octo.registerTerraformConfig(...args);
+    }
+    for (const args of this.terraformProviders) {
+      this.octo.registerTerraformProvider(...args);
+    }
+  }
+
   async teardown(): Promise<void> {
     await rm(this.outputDir, { force: true, recursive: true });
     await this.testModuleContainer.reset();
     await TestContainer.reset();
+  }
+
+  async validate(...args: Parameters<Octo['validate']>): ReturnType<Octo['validate']> {
+    await this.simulateFreshProcess();
+    return this.octo.validate(...args);
   }
 
   writePlan(moduleId: string, resourceChanges: { actions: string[]; address: string }[]): void {

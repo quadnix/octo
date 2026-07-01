@@ -64,6 +64,8 @@ describe('generate()', () => {
     await writeFile(join(testModes.outputDir, 'stale-file.hcl'), 'stale', 'utf-8');
     await writeFile(join(testModes.outputDir, 'region-module', 'terraform.tfstate'), '{}', 'utf-8');
 
+    // A regenerate is a second, fresh octo process — reset the shared terraform service to mirror it.
+    await testModes.simulateFreshProcess();
     await generate(app, { outputDir: testModes.outputDir });
 
     expect(existsSync(join(testModes.outputDir, 'stale-file.hcl'))).toBe(true);
