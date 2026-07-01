@@ -15,6 +15,7 @@ import {
 } from '../../../resources/resource-data.repository.js';
 import type { AResource } from '../../../resources/resource.abstract.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
+import { InputService } from '../../input/input.service.js';
 
 /**
  * @internal
@@ -24,7 +25,10 @@ export class ResourceSerializationService {
 
   private readonly classMapping: { [key: string]: any } = {};
 
-  constructor(private readonly resourceDataRepository: ResourceDataRepository) {}
+  constructor(
+    private readonly resourceDataRepository: ResourceDataRepository,
+    private readonly inputService: InputService,
+  ) {}
 
   private async _deserialize(serializedOutput: ResourceSerializedOutput, freeze: boolean): Promise<ActionOutputs> {
     const deReferencePromises: {
@@ -135,6 +139,13 @@ export class ResourceSerializationService {
         className: `${(resource.constructor as typeof AResource).NODE_PACKAGE}/${resource.constructor.name}`,
         resource: resource.synth(),
       };
+
+      // Record which module produced this resource. A resource not registered with the input service
+      // has no owning module — leave moduleId unset.
+      const moduleId = this.inputService.getModuleIdFromResource(resource);
+      if (moduleId !== undefined) {
+        serializedResources[resource.getContext()].moduleId = moduleId;
+      }
     }
 
     return { dependencies, resources: serializedResources };
@@ -166,9 +177,10 @@ export class ResourceSerializationServiceFactory {
 
   static async create(): Promise<ResourceSerializationService> {
     const resourceDataRepository = await Container.getInstance().get(ResourceDataRepository);
+    const inputService = await Container.getInstance().get(InputService);
 
     if (!this.instance) {
-      this.instance = new ResourceSerializationService(resourceDataRepository);
+      this.instance = new ResourceSerializationService(resourceDataRepository, inputService);
     }
 
     return this.instance;

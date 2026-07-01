@@ -73,22 +73,20 @@ export class TestContainer {
       args: [true],
     });
 
-    await container.get<TerraformService, typeof TerraformServiceFactory>(TerraformService, { args: [{}, true] });
+    const terraformService = await container.get<TerraformService, typeof TerraformServiceFactory>(TerraformService, {
+      args: [{}, true],
+    });
 
     if (force) {
       const eventService = await container.get(EventService);
 
-      const modelSerializationService = new ModelSerializationService();
+      const modelSerializationService = new ModelSerializationService(inputService);
       container.unRegisterFactory(ModelSerializationService);
       container.registerValue(ModelSerializationService, modelSerializationService);
 
-      const resourceSerializationService = new ResourceSerializationService(resourceDataRepository);
+      const resourceSerializationService = new ResourceSerializationService(resourceDataRepository, inputService);
       container.unRegisterFactory(ResourceSerializationService);
       container.registerValue(ResourceSerializationService, resourceSerializationService);
-
-      const terraformService = new TerraformService();
-      container.unRegisterFactory(TerraformService);
-      container.registerValue(TerraformService, terraformService);
 
       const transactionService = new TransactionService(
         eventService,

@@ -252,14 +252,10 @@ export class TestModuleContainer {
 
     const result = create(args);
     for (const models of Object.values(result)) {
-      // Check if the model has already been registered.
-      // If no error thrown, the model has already been registered.
       for (const model of models) {
-        try {
-          inputService.getModuleIdFromModel(model);
+        // Skip models that are already registered (a defined moduleId means it is known).
+        if (inputService.getModuleIdFromModel(model) !== undefined) {
           continue;
-        } catch (error) {
-          /* do nothing. */
         }
 
         inputService.registerModel(moduleId, model);

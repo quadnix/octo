@@ -13,6 +13,7 @@ import {
   Subnet,
   TestContainer,
 } from '../src/index.js';
+import { InputService } from '../src/services/input/input.service.js';
 import { ModelSerializationService } from '../src/services/serialization/model/model-serialization.service.js';
 import { create } from '../src/utilities/test-helpers/test-models.js';
 import { createAnchor, createOverlay, createTestOverlays } from '../src/utilities/test-helpers/test-overlays.js';
@@ -26,7 +27,8 @@ describe('App Serialization and Deserialization E2E Test', () => {
   beforeEach(async () => {
     container = await TestContainer.create({ mocks: [] }, { factoryTimeoutInMs: 500 });
 
-    const modelSerializationService = new ModelSerializationService();
+    const inputService = await container.get(InputService);
+    const modelSerializationService = new ModelSerializationService(inputService);
     modelSerializationService.registerClass('@octo/Account', Account);
     modelSerializationService.registerClass('@octo/App', App);
     modelSerializationService.registerClass('@octo/Deployment', Deployment);

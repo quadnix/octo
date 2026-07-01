@@ -219,7 +219,7 @@ export type ModelSerializedOutput = {
     location: IModelReference & { type: NodeType };
   })[];
   dependencies: IDependency[];
-  models: { [p: string]: { className: string; model: IUnknownModel } };
+  models: { [p: string]: { className: string; model: IUnknownModel; moduleId?: string } };
   overlays: { className: string; overlay: OverlaySchema<UnknownOverlay> }[];
 };
 
@@ -228,7 +228,7 @@ export type ModelSerializedOutput = {
  */
 export type ResourceSerializedOutput = {
   dependencies: IDependency[];
-  resources: { [p: string]: { className: string; resource: BaseResourceSchema } };
+  resources: { [p: string]: { className: string; moduleId?: string; resource: BaseResourceSchema } };
 };
 
 /**

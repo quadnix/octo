@@ -22,6 +22,7 @@ import type { ANode } from '../../../functions/node/node.abstract.js';
 import type { AAnchor } from '../../../overlays/anchor.abstract.js';
 import { OverlayDataRepository, type OverlayDataRepositoryFactory } from '../../../overlays/overlay-data.repository.js';
 import { ObjectUtility } from '../../../utilities/object/object.utility.js';
+import { InputService } from '../../input/input.service.js';
 
 /**
  * @internal
@@ -30,6 +31,8 @@ export class ModelSerializationService {
   private MODEL_DESERIALIZATION_TIMEOUT_IN_MS = 3000;
 
   private readonly classMapping: { [key: string]: any } = {};
+
+  constructor(private readonly inputService: InputService) {}
 
   private async _deserialize(
     serializedOutput: ModelSerializedOutput,
@@ -200,6 +203,13 @@ export class ModelSerializationService {
             className: `${(model.constructor as typeof ANode).NODE_PACKAGE}/${model.constructor.name}`,
             model: model.synth() as IUnknownModel,
           };
+
+          // Record which module produced this model. A model not registered with the input service
+          // (e.g. a synthetic test model) has no owning module — leave moduleId unset.
+          const moduleId = this.inputService.getModuleIdFromModel(model as UnknownModel);
+          if (moduleId !== undefined) {
+            models[context].moduleId = moduleId;
+          }
         }
 
         for (const a of (model as UnknownModel).getAnchors()) {
@@ -236,8 +246,10 @@ export class ModelSerializationServiceFactory {
   private static instance: ModelSerializationService;
 
   static async create(): Promise<ModelSerializationService> {
+    const inputService = await Container.getInstance().get(InputService);
+
     if (!this.instance) {
-      this.instance = new ModelSerializationService();
+      this.instance = new ModelSerializationService(inputService);
     }
 
     return this.instance;

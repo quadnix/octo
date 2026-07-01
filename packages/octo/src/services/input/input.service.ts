@@ -65,16 +65,16 @@ export class InputService {
     return this.modules[moduleKey] as M | undefined;
   }
 
-  getModuleIdFromModel(model: UnknownModel): string {
-    const modelContext = model.getContext();
-    const [key] = Object.entries(this.models).find(([, m]) => m.getContext() === modelContext)!;
-    return key.split('.')[0];
+  getModuleIdFromModel(model: UnknownModel): string | undefined {
+    const context = model.getContext();
+    const entry = Object.entries(this.models).find(([, m]) => m.getContext() === context);
+    return entry?.[0].split('.')[0];
   }
 
-  getModuleIdFromOverlay(overlay: UnknownOverlay): string {
-    const overlayContext = overlay.getContext();
-    const [key] = Object.entries(this.overlays).find(([, o]) => o === overlayContext)!;
-    return key.split('.')[0];
+  getModuleIdFromOverlay(overlay: UnknownOverlay): string | undefined {
+    const context = overlay.getContext();
+    const entry = Object.entries(this.overlays).find(([, o]) => o === context);
+    return entry?.[0].split('.')[0];
   }
 
   getModuleIdFromResource(resource: UnknownResource): string | undefined {

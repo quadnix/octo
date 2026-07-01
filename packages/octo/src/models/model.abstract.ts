@@ -287,6 +287,9 @@ export abstract class AModel<S, T extends UnknownModel> extends ANode<S, T> impl
         (model.constructor as typeof ANode).NODE_TYPE === NodeType.OVERLAY
           ? inputService.getModuleIdFromOverlay(model as UnknownOverlay)
           : inputService.getModuleIdFromModel(model);
+      if (moduleId === undefined) {
+        continue;
+      }
       const moduleResources = inputService.getModuleResources(moduleId);
       for (const r of moduleResources) {
         try {
