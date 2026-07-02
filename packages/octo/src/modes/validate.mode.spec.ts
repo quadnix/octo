@@ -1,3 +1,4 @@
+import type { TerraformResourceOutput } from '../app.type.js';
 import type { App } from '../models/app/app.model.js';
 import {
   ExternalIgwResource,
@@ -7,7 +8,7 @@ import {
   TfVpcResource,
 } from '../utilities/test-helpers/test-modes.js';
 import { commitResources } from '../utilities/test-helpers/test-resources.js';
-import { type PersistedTerraformMapping, validate } from './validate.mode.js';
+import { validate } from './validate.mode.js';
 
 describe('validate()', () => {
   let testModes: TestModes;
@@ -20,7 +21,7 @@ describe('validate()', () => {
     await testModes.teardown();
   });
 
-  const noPersisted = (): Map<string, PersistedTerraformMapping> => new Map();
+  const noPersisted = (): Map<string, TerraformResourceOutput> => new Map();
 
   // Re-creates the committed full graph in memory with vpc-1 changed, so vpc-1 updates and the change
   // cascades an update onto its direct child igw-1 (sg-1 stays unchanged).
@@ -46,12 +47,12 @@ describe('validate()', () => {
 
   // Stages a committed full graph, then re-creates a desired graph of just vpc-1 so igw-1 and sg-1
   // are deletes. Returns the app handle plus the persisted mapping the last commit would have written.
-  async function stageDeletedIgwAndSg(): Promise<{ app: App; persisted: Map<string, PersistedTerraformMapping> }> {
+  async function stageDeletedIgwAndSg(): Promise<{ app: App; persisted: Map<string, TerraformResourceOutput> }> {
     const { app, igw, sg } = await testModes.createResourceGraph({ save: true });
     await commitResources({ skipAddActualResource: true });
     testModes.resourceDataRepository.addNewResource(new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' }));
 
-    const persisted = new Map<string, PersistedTerraformMapping>([
+    const persisted = new Map<string, TerraformResourceOutput>([
       [
         igw.getContext(),
         {

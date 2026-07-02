@@ -247,6 +247,16 @@ export type TerraformFolderOutput = {
 };
 
 /**
+ * @group Types
+ */
+export type TerraformResourceOutput = {
+  moduleId: string;
+  resourceContext: string;
+  resourceId: string;
+  terraformAddresses: string[];
+};
+
+/**
  * @internal
  */
 export type TransactionOptions = {

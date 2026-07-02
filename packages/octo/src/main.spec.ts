@@ -42,11 +42,12 @@ describe('Main UT', () => {
       expect(testModes.resourceDataRepository['dirtyResources']).toEqual([]);
     });
 
-    it('should persist the terraform mapping so a later validate can verify a delete', async () => {
+    it('should persist terraform addresses so a later validate can verify a delete', async () => {
       const { app } = await generateAndCommitFullGraph();
 
-      // Re-create the desired graph without igw-1/sg-1 → octo deletes them. Only the persisted mapping
-      // (written by the commit above) carries their terraform addresses into this validate.
+      // Re-create the desired graph without igw-1/sg-1 → octo deletes them. Only the committed
+      // resource state (written by the commit above) carries their terraform addresses into this
+      // validate.
       testModes.resourceDataRepository.addNewResource(new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' }));
       await testModes.generate(app, { outputDir: testModes.outputDir });
 
@@ -68,6 +69,36 @@ describe('Main UT', () => {
       const sg = Object.values(resources).find((r) => r.resource.resourceId === 'sg-1')!;
       expect(vpc.moduleId).toBe('region-module');
       expect(sg.moduleId).toBe('sg-module');
+    });
+
+    it('should persist the terraform memory with the committed resource state', async () => {
+      await generateAndCommitFullGraph();
+
+      const { terraformFolders, terraformResources } = await testModes.getCommittedTerraformState();
+      expect(terraformFolders).toEqual([
+        { hasExternalResources: true, moduleId: 'region-module', providers: [] },
+        { hasExternalResources: false, moduleId: 'sg-module', providers: [] },
+      ]);
+      expect(terraformResources).toEqual([
+        {
+          moduleId: 'region-module',
+          resourceContext: expect.stringContaining('vpc-1'),
+          resourceId: 'vpc-1',
+          terraformAddresses: ['aws_vpc.vpc-1'],
+        },
+        {
+          moduleId: 'region-module',
+          resourceContext: expect.stringContaining('igw-1'),
+          resourceId: 'igw-1',
+          terraformAddresses: ['null_resource.igw-1'],
+        },
+        {
+          moduleId: 'sg-module',
+          resourceContext: expect.stringContaining('sg-1'),
+          resourceId: 'sg-1',
+          terraformAddresses: ['aws_security_group.sg-1'],
+        },
+      ]);
     });
   });
 

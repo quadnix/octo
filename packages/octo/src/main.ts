@@ -1,5 +1,11 @@
 import { strict as assert } from 'assert';
-import type { Constructable, ModuleSchemaInputs, UnknownModule, UnknownResource } from './app.type.js';
+import type {
+  Constructable,
+  ModuleSchemaInputs,
+  TerraformResourceOutput,
+  UnknownModule,
+  UnknownResource,
+} from './app.type.js';
 import { EnableHook } from './decorators/enable-hook.decorator.js';
 import { Container } from './functions/container/container.js';
 import { DiffMetadata } from './functions/diff/diff-metadata.js';
@@ -7,7 +13,7 @@ import { App } from './models/app/app.model.js';
 import { commit as runCommit } from './modes/commit.mode.js';
 import { generate as runGenerate } from './modes/generate.mode.js';
 import { runAction as runRunAction } from './modes/run-action.mode.js';
-import { type PersistedTerraformMapping, type TerraformPlan, validate as runValidate } from './modes/validate.mode.js';
+import { type TerraformPlan, validate as runValidate } from './modes/validate.mode.js';
 import { ModuleContainer } from './modules/module.container.js';
 import { OverlayDataRepository, OverlayDataRepositoryFactory } from './overlays/overlay-data.repository.js';
 import { InputService } from './services/input/input.service.js';
@@ -28,7 +34,6 @@ export class Octo {
   private readonly modelStateFileName: string = 'models.json';
   private readonly actualResourceStateFileName: string = 'resources-actual.json';
   private readonly oldResourceStateFileName: string = 'resources-old.json';
-  private readonly terraformMappingStateFileName: string = 'terraform-mapping.json';
 
   private inputService: InputService;
   private modelSerializationService: ModelSerializationService;
@@ -60,12 +65,12 @@ export class Octo {
    * Commits the result of a terraform apply back into octo's state.
    *
    * Delegates the tfstate → response mapping to the `commit` mode, then persists octo's state
-   * (model + old + actual) and the octo→terraform mapping. All-or-nothing: the mode errors before
-   * mutating anything if an expected output is missing, leaving state untouched.
+   * (model + old + actual, with the octo→terraform mapping carried in the actual resource state).
+   * All-or-nothing: the mode errors before mutating anything if an expected output is missing,
+   * leaving state untouched.
    */
   async commit(...args: Parameters<typeof runCommit>): Promise<void> {
     const { modelTransaction } = await runCommit(...args);
-    await this.saveTerraformMapping();
     await this.commitTransaction(args[0], modelTransaction, []);
   }
 
@@ -225,9 +230,23 @@ export class Octo {
     );
   }
 
+  /**
+   * The actual (committed) resource state also carries the terraform memory of the last apply: the
+   * folder record of the committed folders, and each resource's terraform addresses — so a later
+   * generate can empty a deleted module's folder, and a later validate can verify its destroys.
+   */
   private async saveResourceState(): Promise<void> {
     const actualSerializedOutput = await this.resourceSerializationService.serializeActualResources();
     await this.stateManagementService.saveResourceState(this.actualResourceStateFileName, actualSerializedOutput, {
+      terraformFolders: this.terraformService.getFolderRecords(),
+      terraformResources: this.terraformService.getOctoTerraformResourceMappings().map(
+        (m): TerraformResourceOutput => ({
+          moduleId: m.moduleId,
+          resourceContext: m.resourceContext,
+          resourceId: m.resourceId,
+          terraformAddresses: m.terraformAddresses,
+        }),
+      ),
       version: 1,
     });
 
@@ -238,42 +257,17 @@ export class Octo {
   }
 
   /**
-   * Persists the current octo→terraform mapping so a later validate can recover the addresses of
-   * resources that get deleted afterwards. Written only on a successful commit (last-applied state).
-   */
-  private async saveTerraformMapping(): Promise<void> {
-    const mappings = this.terraformService.getOctoTerraformResourceMappings();
-    const data: PersistedTerraformMapping[] = mappings.map((m) => ({
-      moduleId: m.moduleId,
-      resourceContext: m.resourceContext,
-      resourceId: m.resourceId,
-      terraformAddresses: m.terraformAddresses,
-    }));
-    await this.stateManagementService.saveState(
-      this.terraformMappingStateFileName,
-      Buffer.from(JSON.stringify({ data })),
-    );
-  }
-
-  /**
    * Validates the generated terraform plans against octo's resource diff.
    *
-   * Also reads the octo→terraform mapping persisted by the last commit, keyed by resource context.
-   * Returns an empty map when nothing has been committed yet.
+   * Also reads the octo→terraform mapping persisted by the last commit (in the actual resource
+   * state), keyed by resource context. Empty when nothing has been committed yet.
    */
   async validate(app: App, { plans }: { plans: Map<string, TerraformPlan> }): ReturnType<typeof runValidate> {
-    let content: { data: PersistedTerraformMapping[] } = { data: [] };
-    try {
-      const buffer = await this.stateManagementService.getState(this.terraformMappingStateFileName);
-      content = JSON.parse(buffer.toString()) as { data: PersistedTerraformMapping[] };
-    } catch (error) {
-      if (error.message !== 'No state found!') {
-        throw error;
-      }
-    }
+    const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
+    const terraformResources = (userData as { terraformResources?: TerraformResourceOutput[] }).terraformResources;
 
-    const persistedMappings = new Map<string, PersistedTerraformMapping>();
-    for (const mapping of content.data ?? []) {
+    const persistedMappings = new Map<string, TerraformResourceOutput>();
+    for (const mapping of terraformResources ?? []) {
       persistedMappings.set(mapping.resourceContext, mapping);
     }
 

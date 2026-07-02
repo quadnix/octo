@@ -1,22 +1,10 @@
-import type { UnknownResource } from '../app.type.js';
+import type { TerraformResourceOutput, UnknownResource } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { DiffAction } from '../functions/diff/diff.js';
 import type { App } from '../models/app/app.model.js';
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
-
-/**
- * One resource's octo→terraform mapping, persisted at commit so a later validate can recover the
- * exact terraform addresses (and owning module) of resources that have since been deleted — they
- * are gone from the freshly generated files, but were present at the last apply.
- */
-export interface PersistedTerraformMapping {
-  moduleId: string;
-  resourceContext: string;
-  resourceId: string;
-  terraformAddresses: string[];
-}
 
 interface ValidateResult {
   errors: { message: string; moduleId?: string }[];
@@ -36,8 +24,8 @@ export interface TerraformPlan {
  * Compares octo's resource diff against terraform plans, bidirectionally.
  * `plans` maps each module folder's id to its parsed terraform plan.
  *
- * `persistedMappings` is the octo→terraform mapping captured by the last commit,
- * used to recover the addresses of resources that have since
+ * `persistedMappings` is the octo→terraform mapping captured by the last commit (persisted in the
+ * committed resource state), used to recover the addresses of resources that have since
  * been deleted (and so are absent from this boot's generated files).
  *
  * @internal
@@ -47,7 +35,7 @@ export async function validate(
   {
     persistedMappings,
     plans,
-  }: { persistedMappings: Map<string, PersistedTerraformMapping>; plans: Map<string, TerraformPlan> },
+  }: { persistedMappings: Map<string, TerraformResourceOutput>; plans: Map<string, TerraformPlan> },
 ): Promise<ValidateResult> {
   const container = Container.getInstance();
   const [terraformService, transactionService] = await Promise.all([
