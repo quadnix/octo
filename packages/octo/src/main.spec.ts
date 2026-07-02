@@ -80,6 +80,49 @@ describe('Main UT', () => {
       const appModel = Object.values(models).find((m) => m.className === '@octo/App')!;
       expect(appModel.moduleId).toBe('app-module');
     });
+
+    it('should persist the folder record with exactly the folder-bearing modules', async () => {
+      const { app } = await testModes.createResourceGraph();
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      // Model-only modules (app-module) are absent: they bear no folder, so they never need emptying.
+      const records = await testModes.getTerraformFolderRecords();
+      expect(records).toEqual([
+        { hasExternalResources: true, moduleId: 'region-module', providers: [] },
+        { hasExternalResources: false, moduleId: 'sg-module', providers: [] },
+      ]);
+    });
+
+    it('should record each folder provider block as rendered HCL', async () => {
+      testModes.registerTerraformConfig({ providers: { aws: { minVersion: '5.0.0', source: 'hashicorp/aws' } } });
+      testModes.registerTerraformProvider('aws', '111111111', 'us-east-1');
+
+      const { app } = await testModes.createProviderBoundResourceGraph({
+        accountId: '111111111',
+        regionId: 'us-east-1',
+      });
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      const records = await testModes.getTerraformFolderRecords();
+      expect(records).toEqual([
+        {
+          hasExternalResources: false,
+          moduleId: 'region-module',
+          providers: [
+            {
+              accountId: '111111111',
+              blockHcl: expect.stringContaining('provider "aws"'),
+              providerType: 'aws',
+              regionId: 'us-east-1',
+              requiredProvider: { minVersion: '5.0.0', source: 'hashicorp/aws' },
+            },
+          ],
+        },
+      ]);
+      // The rendered block is complete enough to re-emit verbatim in an emptied folder.
+      expect(records[0].providers[0].blockHcl).toContain('alias = "_111111111-us-east-1"');
+      expect(records[0].providers[0].blockHcl).toContain('region = "us-east-1"');
+    });
   });
 
   describe('registerTerraformProvider() / registerTerraformConfig()', () => {

@@ -74,7 +74,8 @@ export class Octo {
   }
 
   /**
-   * Generates terragrunt module folders representing the full desired state, and saves `models.json`.
+   * Generates terragrunt module folders representing the full desired state, and saves `models.json`
+   * (the model graph, plus the terraform folder record of the folders this generate wrote).
    */
   async generate(app: App, options: { outputDir: string }): ReturnType<typeof runGenerate> {
     const resourceDiffs = await runGenerate(app, options);
@@ -214,6 +215,7 @@ export class Octo {
   private async saveModelState(app: App): Promise<void> {
     const modelSerializedOutput = await this.modelSerializationService.serialize(app);
     await this.stateManagementService.saveModelState(this.modelStateFileName, modelSerializedOutput, {
+      terraformFolders: this.terraformService.getFolderRecords(),
       version: 1,
     });
 

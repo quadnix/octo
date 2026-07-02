@@ -232,6 +232,21 @@ export type ResourceSerializedOutput = {
 };
 
 /**
+ * @group Types
+ */
+export type TerraformFolderOutput = {
+  hasExternalResources: boolean;
+  moduleId: string;
+  providers: {
+    accountId: string;
+    blockHcl: string;
+    providerType: string;
+    regionId: string;
+    requiredProvider: { minVersion?: string; source: string };
+  }[];
+};
+
+/**
  * @internal
  */
 export type TransactionOptions = {

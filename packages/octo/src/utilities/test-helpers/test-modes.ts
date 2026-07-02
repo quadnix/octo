@@ -5,6 +5,7 @@ import {
   type ModelSerializedOutput,
   NodeType,
   type ResourceSerializedOutput,
+  type TerraformFolderOutput,
   type UnknownResource,
 } from '../../app.type.js';
 import { ResourceError } from '../../errors/index.js';
@@ -330,6 +331,11 @@ export class TestModes {
   async getResourceState(fileName = 'resources-old.json'): Promise<ResourceSerializedOutput> {
     const { data } = await this.stateManagementService.getResourceState(fileName);
     return data;
+  }
+
+  async getTerraformFolderRecords(): Promise<TerraformFolderOutput[]> {
+    const { userData } = await this.stateManagementService.getModelState('models.json');
+    return (userData as { terraformFolders?: TerraformFolderOutput[] }).terraformFolders ?? [];
   }
 
   registerTerraformConfig(...args: Parameters<Octo['registerTerraformConfig']>): void {

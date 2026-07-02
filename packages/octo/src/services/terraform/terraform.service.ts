@@ -1,4 +1,10 @@
-import { type Constructable, MatchingResource, type ResourceSchema, type UnknownResource } from '../../app.type.js';
+import {
+  type Constructable,
+  MatchingResource,
+  type ResourceSchema,
+  type TerraformFolderOutput,
+  type UnknownResource,
+} from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { getSchemaDefaults } from '../../functions/schema/schema.js';
 import type { BaseResourceSchema } from '../../resources/resource.schema.js';
@@ -757,6 +763,35 @@ export class TerraformService {
 
     const [key, provider] = matches[0];
     return { alias: provider.alias, key, providerType: provider.providerType };
+  }
+
+  /**
+   * Returns the folder record of the current sweep: one entry per folder-bearing module. Call after
+   * the sweep has contributed every resource (the same point {@link renderAllModules} is valid).
+   */
+  getFolderRecords(): TerraformFolderOutput[] {
+    // Provider blocks are registration-time constants; a resource reference inside one is invalid.
+    const context: RenderContext = {
+      resolveRef: () => {
+        throw new Error('Resource references are not supported in provider blocks!');
+      },
+      step: this.step,
+    };
+
+    return [...this.modules.values()].map((module) => ({
+      hasExternalResources: module.hasExternalResources,
+      moduleId: module.moduleId,
+      providers: [...module.providerKeys].sort().map((key) => {
+        const provider = this.providers.get(key)!;
+        return {
+          accountId: provider.accountId,
+          blockHcl: provider.block.render('', context),
+          providerType: provider.providerType,
+          regionId: provider.regionId,
+          requiredProvider: this.requiredProviders[provider.providerType],
+        };
+      }),
+    }));
   }
 
   getModuleIds(): string[] {
