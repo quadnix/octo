@@ -25,13 +25,23 @@ export const commitCommand = {
     try {
       const { app, octo } = await bootOcto();
 
+      // Read outputs from every folder terragrunt discovers. A folder whose outputs cannot be read
+      // is warned and omitted rather than aborting the commit: octo rejects the commit itself if
+      // that folder held a module it tracks, and merely warns if it is a folder octo does not know.
       const outputs = new Map<string, TerraformOutputs>();
       const moduleIds = await TerragruntUtility.listModuleFolders(resolvedDir);
       for (const moduleId of moduleIds) {
-        outputs.set(moduleId, await TerragruntUtility.readOutputs(resolve(resolvedDir, moduleId)));
+        try {
+          outputs.set(moduleId, await TerragruntUtility.readOutputs(resolve(resolvedDir, moduleId)));
+        } catch (error) {
+          console.error(chalk.yellow(`WARN [${moduleId}] Could not read terraform outputs: ${error.message}`));
+        }
       }
 
-      await octo.commit(app, { outputs });
+      const { warnings } = await octo.commit(app, { outputs });
+      for (const warning of warnings) {
+        console.error(chalk.yellow(`WARN ${warning.moduleId ? `[${warning.moduleId}] ` : ''}${warning.message}`));
+      }
 
       console.log(chalk.green('==== Commit complete ===='));
       console.log(chalk.green('Octo state updated from the applied Terraform outputs.'));

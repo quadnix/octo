@@ -12,7 +12,9 @@ export const generateCommand = {
     return yargs.option('outputDir', {
       alias: 'o',
       demandOption: true,
-      description: 'Directory to write the generated Terragrunt module folders into (wiped on every run).',
+      description:
+        'Directory to write the generated Terragrunt module folders into. Folders are overwritten in place, never ' +
+        'wiped; a deleted module leaves an emptied folder so a later apply destroys its resources.',
       type: 'string',
     });
   },

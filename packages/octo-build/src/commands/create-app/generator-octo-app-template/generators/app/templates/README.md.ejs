@@ -27,7 +27,7 @@ Pass it inline before each command, as shown below. For the apply step, export i
 so Terragrunt passes it through to the `octo run-action` calls it makes mid-apply.
 
 ```bash
-# 1. Generate the Terragrunt module folders into ./.octo-tf (this directory is octo-owned and wiped each run).
+# 1. Generate the Terragrunt module folders into ./.octo-tf (folders are overwritten in place; state and unrelated folders survive).
 OCTO_DEFINITION_FILE_PATH=octo.yaml node_modules/.bin/octo generate -o .octo-tf
 
 # 2. (optional) Produce a plan.json per module folder, then validate it against Octo's resource diff.
@@ -56,8 +56,11 @@ npm run build
 ## Destroy
 Once you have your infrastructure created, and you wish all of them destroyed,
 its as simple as commenting out the necessary modules and re-running the generate → apply → commit flow.
-Octo wipes and regenerates `.octo-tf`, so removed modules disappear from the Terragrunt files and
-Terragrunt destroys their resources on the next apply.
+Octo rewrites a removed module's folder as an **empty** module — no resources, but the Terraform
+configuration and providers intact — so Terragrunt still discovers it and destroys its resources on
+the next apply. (The folder is never deleted: an emptied folder is what makes the destroy happen.)
+After the destroy is committed, the leftover empty folder is benign — Octo warns about it and you can
+delete it by hand.
 
 ### Step 1
 In `octo.yaml`, comment out all modules except the `app` and `account` modules.
