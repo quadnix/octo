@@ -1154,10 +1154,20 @@ export class TerraformService {
 
   reset(): void {
     this.minTerraformVersion = '1.6.0';
-    this.modules.clear();
-    this.pendingExternalResourcesInputWiring.length = 0;
     this.providers.clear();
     this.requiredProviders = {};
+    this.resetTransactionState();
+  }
+
+  /**
+   * Clears what a transaction's sweep contributed (modules, resources, wiring), keeping the
+   * per-process registrations (terraform config and providers) intact. Test harnesses that run
+   * multiple transactions in one process call this between them; a real octo process runs one
+   * transaction, so production code never resets.
+   */
+  resetTransactionState(): void {
+    this.modules.clear();
+    this.pendingExternalResourcesInputWiring.length = 0;
     this.resourceRegistry.clear();
     this.sanitizedResourceIds.clear();
   }

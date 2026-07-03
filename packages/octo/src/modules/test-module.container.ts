@@ -108,6 +108,12 @@ export class TestModuleContainer {
       this.container.get(TerraformService),
       this.container.get(TransactionService),
     ]);
+
+    // Each transaction sweeps the full resource graph into the terraform service, so the previous
+    // call's sweep must be cleared first. Config and providers survive, as they would in a real
+    // process — tests register them once (in beforeEach), not per transaction.
+    terraformService.resetTransactionState();
+
     const diffs = await app.diff();
     const generator = transactionService.beginTransaction(diffs, {
       generateTerraform: true,
@@ -414,6 +420,9 @@ export class TestModuleContainer {
     app: App,
     { outputDir }: { outputDir?: string } = {},
   ): Promise<{ outputDir: string; resourceDiffs: DiffMetadata[][] }> {
+    // Clear the previous call's sweep; config and providers survive (registered once per process).
+    (await this.container.get(TerraformService)).resetTransactionState();
+
     const dir = outputDir ?? (await mkdtemp(join(tmpdir(), 'octo-hcl-')));
     const resourceDiffs = await this.octo.generate(app, { outputDir: dir });
     return { outputDir: dir, resourceDiffs };
@@ -447,7 +456,7 @@ export class TestModuleContainer {
     const stateManagementService = await container.get(StateManagementService);
     const resourcesActual = await stateManagementService.getResourceState('resources-actual.json');
     const resourcesOld = await stateManagementService.getResourceState('resources-old.json');
-    return DiffUtility.isObjectDeepEquals(resourcesActual, resourcesOld);
+    return DiffUtility.isObjectDeepEquals(resourcesActual.data, resourcesOld.data);
   }
 
   mapTransactionActions(transaction: DiffMetadata[][]): string[][] {
@@ -493,6 +502,9 @@ export class TestModuleContainer {
       container.get(TerraformService),
       container.get(TransactionService),
     ]);
+
+    // Clear the previous call's sweep; config and providers survive (registered once per process).
+    terraformService.resetTransactionState();
 
     const diffs = await app.diff();
     const transaction = transactionService.beginTransaction(diffs, {
