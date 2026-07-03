@@ -75,7 +75,7 @@ export class Octo {
     ...args: Parameters<typeof runCommit>
   ): Promise<Pick<Awaited<ReturnType<typeof runCommit>>, 'warnings'>> {
     const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
-    const previousFolders = (userData as { terraformFolders?: TerraformFolderOutput[] }).terraformFolders ?? [];
+    const previousFolders = userData.terraformFolders ?? [];
 
     const { modelTransaction, warnings } = await runCommit(args[0], { ...args[1], previousFolders });
     await this.commitTransaction(args[0], modelTransaction, []);
@@ -103,9 +103,10 @@ export class Octo {
       this.stateManagementService.getResourceState(this.actualResourceStateFileName),
     ]);
     const previousFolders = new Map<string, TerraformFolderOutput>();
-    const foldersOf = (userData: object): TerraformFolderOutput[] =>
-      (userData as { terraformFolders?: TerraformFolderOutput[] }).terraformFolders ?? [];
-    for (const record of [...foldersOf(actualResourceUserData), ...foldersOf(modelUserData)]) {
+    for (const record of [
+      ...(actualResourceUserData.terraformFolders ?? []),
+      ...(modelUserData.terraformFolders ?? []),
+    ]) {
       previousFolders.set(record.moduleId, record);
     }
 
@@ -291,10 +292,7 @@ export class Octo {
    */
   async validate(app: App, { plans }: { plans: Map<string, TerraformPlan> }): ReturnType<typeof runValidate> {
     const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
-    const { terraformFolders, terraformResources } = userData as {
-      terraformFolders?: TerraformFolderOutput[];
-      terraformResources?: TerraformResourceOutput[];
-    };
+    const { terraformFolders, terraformResources } = userData;
 
     const persistedMappings = new Map<string, TerraformResourceOutput>();
     for (const mapping of terraformResources ?? []) {

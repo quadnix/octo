@@ -1,7 +1,30 @@
-import type { ModelSerializedOutput, ResourceSerializedOutput } from '../../app.type.js';
+import type {
+  ModelSerializedOutput,
+  ResourceSerializedOutput,
+  TerraformFolderOutput,
+  TerraformResourceOutput,
+} from '../../app.type.js';
 import { Factory } from '../../decorators/factory.decorator.js';
 import { TransactionError } from '../../errors/index.js';
 import type { IStateProvider } from './state-provider.interface.js';
+
+/**
+ * The `userData` persisted alongside the model graph in `models.json`.
+ */
+interface ModelStateUserData {
+  terraformFolders?: TerraformFolderOutput[];
+  version?: number;
+}
+
+/**
+ * The `userData` persisted alongside the resource graph in `resources-actual.json` /
+ * `resources-old.json`.
+ */
+interface ResourceStateUserData {
+  terraformFolders?: TerraformFolderOutput[];
+  terraformResources?: TerraformResourceOutput[];
+  version?: number;
+}
 
 /**
  * @group Services/State Management
@@ -16,8 +39,8 @@ export class StateManagementService {
   async getModelState(
     stateFileName: string,
     { freeze = true }: { freeze?: boolean } = {},
-  ): Promise<{ data: ModelSerializedOutput; userData: object }> {
-    const defaultValue: { data: ModelSerializedOutput; userData: object } = {
+  ): Promise<{ data: ModelSerializedOutput; userData: ModelStateUserData }> {
+    const defaultValue: { data: ModelSerializedOutput; userData: ModelStateUserData } = {
       data: {
         anchors: [],
         dependencies: [],
@@ -42,8 +65,8 @@ export class StateManagementService {
   async getResourceState(
     stateFileName: string,
     { freeze = true }: { freeze?: boolean } = {},
-  ): Promise<{ data: ResourceSerializedOutput; userData: object }> {
-    const defaultValue: { data: ResourceSerializedOutput; userData: object } = {
+  ): Promise<{ data: ResourceSerializedOutput; userData: ResourceStateUserData }> {
+    const defaultValue: { data: ResourceSerializedOutput; userData: ResourceStateUserData } = {
       data: {
         dependencies: [],
         resources: {},
@@ -75,11 +98,19 @@ export class StateManagementService {
     }
   }
 
-  async saveModelState(stateFileName: string, data: ModelSerializedOutput, userData: object): Promise<void> {
+  async saveModelState(
+    stateFileName: string,
+    data: ModelSerializedOutput,
+    userData: ModelStateUserData,
+  ): Promise<void> {
     await this.saveState(stateFileName, Buffer.from(JSON.stringify({ data, userData })));
   }
 
-  async saveResourceState(stateFileName: string, data: ResourceSerializedOutput, userData: object): Promise<void> {
+  async saveResourceState(
+    stateFileName: string,
+    data: ResourceSerializedOutput,
+    userData: ResourceStateUserData,
+  ): Promise<void> {
     await this.saveState(stateFileName, Buffer.from(JSON.stringify({ data, userData })));
   }
 

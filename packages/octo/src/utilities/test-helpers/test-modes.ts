@@ -348,16 +348,15 @@ export class TestModes {
     terraformResources: TerraformResourceOutput[];
   }> {
     const { userData } = await this.stateManagementService.getResourceState('resources-actual.json');
-    const { terraformFolders, terraformResources } = userData as {
-      terraformFolders?: TerraformFolderOutput[];
-      terraformResources?: TerraformResourceOutput[];
+    return {
+      terraformFolders: userData.terraformFolders ?? [],
+      terraformResources: userData.terraformResources ?? [],
     };
-    return { terraformFolders: terraformFolders ?? [], terraformResources: terraformResources ?? [] };
   }
 
   async getTerraformFolderRecords(): Promise<TerraformFolderOutput[]> {
     const { userData } = await this.stateManagementService.getModelState('models.json');
-    return (userData as { terraformFolders?: TerraformFolderOutput[] }).terraformFolders ?? [];
+    return userData.terraformFolders ?? [];
   }
 
   registerTerraformConfig(...args: Parameters<Octo['registerTerraformConfig']>): void {
