@@ -766,8 +766,10 @@ export class TerraformService {
   }
 
   /**
-   * Returns the folder record of the current sweep: one entry per folder-bearing module. Call after
-   * the sweep has contributed every resource (the same point {@link renderAllModules} is valid).
+   * Returns the folder record of the current sweep: one entry per folder-bearing module — a
+   * preloaded shell the sweep left empty is an emptied folder, not folder-bearing, so it drops out
+   * of the record. Call after the sweep has contributed every resource (the same point
+   * {@link renderAllModules} is valid).
    */
   getFolderRecords(): TerraformFolderOutput[] {
     // Provider blocks are registration-time constants; a resource reference inside one is invalid.
@@ -778,20 +780,22 @@ export class TerraformService {
       step: this.step,
     };
 
-    return [...this.modules.values()].map((module) => ({
-      hasExternalResources: module.hasExternalResources,
-      moduleId: module.moduleId,
-      providers: [...module.providerKeys].sort().map((key) => {
-        const provider = this.providers.get(key)!;
-        return {
-          accountId: provider.accountId,
-          blockHcl: provider.block.render('', context),
-          providerType: provider.providerType,
-          regionId: provider.regionId,
-          requiredProvider: this.requiredProviders[provider.providerType],
-        };
-      }),
-    }));
+    return [...this.modules.values()]
+      .filter((module) => module.resources.length > 0)
+      .map((module) => ({
+        hasExternalResources: module.hasExternalResources,
+        moduleId: module.moduleId,
+        providers: [...module.providerKeys].sort().map((key) => {
+          const provider = this.providers.get(key)!;
+          return {
+            accountId: provider.accountId,
+            blockHcl: provider.block.render('', context),
+            providerType: provider.providerType,
+            regionId: provider.regionId,
+            requiredProvider: this.requiredProviders[provider.providerType],
+          };
+        }),
+      }));
   }
 
   getModuleIds(): string[] {
@@ -916,23 +920,18 @@ export class TerraformService {
       };
 
       // main.tf: terraform config, provider blocks, data sources, resources.
-      const usedProviderTypes = new Set<string>();
+      const requiredProviders: Record<string, { minVersion?: string; source: string }> = {};
       for (const key of module.providerKeys) {
-        usedProviderTypes.add(this.providers.get(key)!.providerType);
+        const providerType = this.providers.get(key)!.providerType;
+        requiredProviders[providerType] = this.requiredProviders[providerType];
       }
       if (module.hasExternalResources) {
-        usedProviderTypes.add('null');
-        usedProviderTypes.add('external');
-        if (!('null' in this.requiredProviders)) {
-          this.requiredProviders['null'] = { source: 'hashicorp/null' };
-        }
-        if (!('external' in this.requiredProviders)) {
-          this.requiredProviders['external'] = { source: 'hashicorp/external' };
-        }
+        requiredProviders['null'] = this.requiredProviders['null'] ?? { source: 'hashicorp/null' };
+        requiredProviders['external'] = this.requiredProviders['external'] ?? { source: 'hashicorp/external' };
       }
 
       const mainTf = [
-        this.renderConfigBlock(usedProviderTypes, context),
+        this.renderConfigBlock(requiredProviders, context),
         ...[...module.providerKeys].sort().map((key) => this.providers.get(key)!.block.render('', context)),
         ...module.dataSources.map((d) => d.render(context)),
         ...module.resources.map((r) =>
@@ -984,14 +983,18 @@ export class TerraformService {
   /**
    * Prints one folder's `terraform { required_version, required_providers }` config block.
    */
-  private renderConfigBlock(usedProviderTypes: Set<string>, context: RenderContext): string {
+  private renderConfigBlock(
+    requiredProviders: Record<string, { minVersion?: string; source: string }>,
+    context: RenderContext,
+  ): string {
     const configBlock = new TerraformBlock('terraform');
     configBlock.attribute('required_version', `>= ${this.minTerraformVersion}`);
 
-    if (usedProviderTypes.size > 0) {
+    const providerTypes = Object.keys(requiredProviders).sort();
+    if (providerTypes.length > 0) {
       const requiredProvidersBlock = configBlock.block('required_providers');
-      for (const providerType of [...usedProviderTypes].sort()) {
-        const entry = this.requiredProviders[providerType];
+      for (const providerType of providerTypes) {
+        const entry = requiredProviders[providerType];
         const lines = [`source = "${entry.source}"`];
         if (entry.minVersion) {
           lines.push(`version = ">= ${entry.minVersion}"`);
@@ -1001,6 +1004,50 @@ export class TerraformService {
     }
 
     return configBlock.render('', context);
+  }
+
+  /**
+   * Prints the four files of an **empty** folder from a recorded folder: a `main.tf` with the
+   * config block rebuilt from the recorded `required_providers` entries (plus null/external when
+   * the folder had external resources) and the recorded provider blocks verbatim; empty
+   * variables/outputs; a remote_state-only `terragrunt.hcl`.
+   *
+   * Reads no module state;
+   * the generate mode decides which folders are emptied and which recorded folder each renders from.
+   */
+  renderEmptyModule(record: TerraformFolderOutput): TerraformModuleFiles {
+    const context: RenderContext = {
+      resolveRef: () => {
+        throw new Error('Resource references are not supported in emptied folders!');
+      },
+      step: this.step,
+    };
+
+    const requiredProviders: Record<string, { minVersion?: string; source: string }> = {};
+    for (const provider of record.providers) {
+      requiredProviders[provider.providerType] = provider.requiredProvider;
+    }
+    if (record.hasExternalResources) {
+      requiredProviders['null'] = this.requiredProviders['null'] ?? { source: 'hashicorp/null' };
+      requiredProviders['external'] = this.requiredProviders['external'] ?? { source: 'hashicorp/external' };
+    }
+
+    const mainTf = [this.renderConfigBlock(requiredProviders, context), ...record.providers.map((p) => p.blockHcl)]
+      .filter(Boolean)
+      .join('\n\n');
+
+    return {
+      mainTf: mainTf + '\n',
+      outputsTf: '',
+      terragruntHcl:
+        this.renderTerragrunt({
+          autoVariables: new Map(),
+          moduleDependencies: new Map(),
+          parentDependsOn: new Map(),
+          resolvedRefs: new Map(),
+        }) + '\n',
+      variablesTf: '',
+    };
   }
 
   /**

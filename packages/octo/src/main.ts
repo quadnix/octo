@@ -2,6 +2,7 @@ import { strict as assert } from 'assert';
 import type {
   Constructable,
   ModuleSchemaInputs,
+  TerraformFolderOutput,
   TerraformResourceOutput,
   UnknownModule,
   UnknownResource,
@@ -81,9 +82,27 @@ export class Octo {
   /**
    * Generates terragrunt module folders representing the full desired state, and saves `models.json`
    * (the model graph, plus the terraform folder record of the folders this generate wrote).
+   *
+   * Folders recorded by the previous generate (`models.json`) or the last commit (`resources.json`)
+   * that the current intent no longer fills are **emptied** — rewritten with their recorded provider
+   * blocks and no resources — so a later apply destroys their live infrastructure instead of
+   * orphaning it. Octo never deletes a folder.
    */
   async generate(app: App, options: { outputDir: string }): ReturnType<typeof runGenerate> {
-    const resourceDiffs = await runGenerate(app, options);
+    // The previous folder records must be read before this run writes the new `models.json`, so a
+    // module deleted from intent is caught on the generate right after its removal.
+    const [{ userData: modelUserData }, { userData: actualResourceUserData }] = await Promise.all([
+      this.stateManagementService.getModelState(this.modelStateFileName),
+      this.stateManagementService.getResourceState(this.actualResourceStateFileName),
+    ]);
+    const previousFolders = new Map<string, TerraformFolderOutput>();
+    const foldersOf = (userData: object): TerraformFolderOutput[] =>
+      (userData as { terraformFolders?: TerraformFolderOutput[] }).terraformFolders ?? [];
+    for (const record of [...foldersOf(actualResourceUserData), ...foldersOf(modelUserData)]) {
+      previousFolders.set(record.moduleId, record);
+    }
+
+    const resourceDiffs = await runGenerate(app, { ...options, previousFolders: [...previousFolders.values()] });
     await this.saveModelState(app);
     return resourceDiffs;
   }

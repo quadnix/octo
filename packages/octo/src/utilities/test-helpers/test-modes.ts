@@ -205,6 +205,15 @@ export class TestModes {
     await this.testModuleContainer.createResources(moduleId, [resource]);
   }
 
+  /**
+   * Simulates deleting every terraform config/provider declaration from `octo.yml`: the next
+   * simulated fresh process boots without them, the way a real process would after the edit.
+   */
+  clearTerraformRegistrations(): void {
+    this.terraformConfigs.length = 0;
+    this.terraformProviders.length = 0;
+  }
+
   async commit(...args: Parameters<Octo['commit']>): ReturnType<Octo['commit']> {
     await this.simulateFreshProcess();
     return this.octo.commit(...args);
@@ -364,6 +373,18 @@ export class TestModes {
   async runAction(...args: Parameters<Octo['runAction']>): ReturnType<Octo['runAction']> {
     await this.simulateFreshProcess();
     return this.octo.runAction(...args);
+  }
+
+  /**
+   * Plants a terraform folder record into `models.json`, as if a past generate had written those
+   * folders.
+   */
+  async seedModelTerraformFolders(records: TerraformFolderOutput[]): Promise<void> {
+    const { data, userData } = await this.stateManagementService.getModelState('models.json');
+    await this.stateManagementService.saveModelState('models.json', data, {
+      ...userData,
+      terraformFolders: records,
+    });
   }
 
   /**

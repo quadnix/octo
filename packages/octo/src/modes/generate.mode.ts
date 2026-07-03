@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'path';
+import type { TerraformFolderOutput } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import type { App } from '../models/app/app.model.js';
@@ -14,12 +15,21 @@ import { TransactionService } from '../services/transaction/transaction.service.
  * wrapper), and writes one folder per octo module. Persists nothing to octo state — the returned
  * resource diffs are a review artifact only.
  *
+ * `previousFolders` is the folder record persisted by previous runs (the caller reads it from
+ * `models.json` ∪ `resources.json`). A recorded folder the sweep does not produce was deleted from
+ * intent, and is written **emptied** — no resources, but the recorded provider blocks intact — so
+ * terragrunt still discovers it and a later apply destroys whatever its state holds (and cannot
+ * redeploy it). Folders are emptied, never removed.
+ *
  * Writes are gentle: each folder is overwritten in place, and `outputDir` is not wiped, so
  * `terraform.tfstate`, `.terragrunt-cache`, and any other folders are preserved across runs.
  *
  * @internal
  */
-export async function generate(app: App, { outputDir }: { outputDir: string }): Promise<DiffMetadata[][]> {
+export async function generate(
+  app: App,
+  { outputDir, previousFolders = [] }: { outputDir: string; previousFolders?: TerraformFolderOutput[] },
+): Promise<DiffMetadata[][]> {
   const container = Container.getInstance();
   const [terraformService, transactionService] = await Promise.all([
     container.get(TerraformService),
@@ -35,6 +45,14 @@ export async function generate(app: App, { outputDir }: { outputDir: string }): 
   const resourceDiffs = await transaction.next();
 
   const moduleFiles = terraformService.renderAllModules();
+
+  // Write rule: a recorded folder the sweep did not produce was deleted from intent — add it to
+  // the write set emptied, with the providers recorded by the last run.
+  for (const folder of previousFolders) {
+    if (!moduleFiles.has(folder.moduleId)) {
+      moduleFiles.set(folder.moduleId, terraformService.renderEmptyModule(folder));
+    }
+  }
 
   // Overwrite each module folder in place. The output directory is not wiped, so terraform state,
   // caches, and unrelated folders survive a regenerate.

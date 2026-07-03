@@ -312,13 +312,17 @@ describe('App Modes E2E Test', () => {
       const diffs = await testModes.generate(app, { outputDir: testModes.outputDir });
       expect(resourceChanges(diffs)).toEqual(['delete:igw-1', 'delete:sg-1']);
 
-      // generate wiped and rewrote the dir; only region-module (vpc) is regenerated. sg-module is gone.
+      // region-module (vpc) is regenerated filled. sg-module was deleted from intent, so its
+      // committed folder is emptied — no resources, but terragrunt still discovers it, so the
+      // next apply destroys sg-1 instead of orphaning it.
       expect(existsSync(join(testModes.outputDir, 'region-module'))).toBe(true);
-      expect(existsSync(join(testModes.outputDir, 'sg-module'))).toBe(false);
+      const sgMainTf = await readFile(join(testModes.outputDir, 'sg-module', 'main.tf'), 'utf-8');
+      expect(sgMainTf).toContain('terraform {');
+      expect(sgMainTf).not.toContain('resource "');
 
       // validate: igw delete is checked in region-module (still present); sg lived in sg-module,
-      // which no longer exists this boot, so its delete is recovered from the persisted mapping that
-      // commit wrote — and can only be warned about, not plan-verified.
+      // which produced no folder this sweep, so its delete is recovered from the mapping the last
+      // commit persisted — and can only be warned about, not plan-verified.
       testModes.writePlan('region-module', [
         { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
         { actions: ['delete'], address: 'null_resource.igw-1' },
