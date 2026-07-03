@@ -68,11 +68,18 @@ export class Octo {
    * Delegates the tfstate → response mapping to the `commit` mode, then persists octo's state
    * (model + old + actual, with the octo→terraform mapping carried in the actual resource state).
    * All-or-nothing: the mode errors before mutating anything if an expected output is missing,
-   * leaving state untouched.
+   * leaving state untouched. Outputs supplied for a folder octo does not track (not in intent or committed
+   * state) are ignored — returned as warnings for the caller to surface.
    */
-  async commit(...args: Parameters<typeof runCommit>): Promise<void> {
-    const { modelTransaction } = await runCommit(...args);
+  async commit(
+    ...args: Parameters<typeof runCommit>
+  ): Promise<Pick<Awaited<ReturnType<typeof runCommit>>, 'warnings'>> {
+    const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
+    const previousFolders = (userData as { terraformFolders?: TerraformFolderOutput[] }).terraformFolders ?? [];
+
+    const { modelTransaction, warnings } = await runCommit(args[0], { ...args[1], previousFolders });
     await this.commitTransaction(args[0], modelTransaction, []);
+    return { warnings };
   }
 
   async compose(): Promise<{ [key: string]: unknown }> {
@@ -278,18 +285,22 @@ export class Octo {
   /**
    * Validates the generated terraform plans against octo's resource diff.
    *
-   * Also reads the octo→terraform mapping persisted by the last commit (in the actual resource
-   * state), keyed by resource context. Empty when nothing has been committed yet.
+   * Also reads the terraform memory persisted by the last commit (in the actual resource state):
+   * the octo→terraform mapping keyed by resource context, and the committed folder record used to
+   * recognize emptied folders and folders octo does not track. Both empty when nothing has been committed yet.
    */
   async validate(app: App, { plans }: { plans: Map<string, TerraformPlan> }): ReturnType<typeof runValidate> {
     const { userData } = await this.stateManagementService.getResourceState(this.actualResourceStateFileName);
-    const terraformResources = (userData as { terraformResources?: TerraformResourceOutput[] }).terraformResources;
+    const { terraformFolders, terraformResources } = userData as {
+      terraformFolders?: TerraformFolderOutput[];
+      terraformResources?: TerraformResourceOutput[];
+    };
 
     const persistedMappings = new Map<string, TerraformResourceOutput>();
     for (const mapping of terraformResources ?? []) {
       persistedMappings.set(mapping.resourceContext, mapping);
     }
 
-    return runValidate(app, { persistedMappings, plans });
+    return runValidate(app, { persistedMappings, plans, previousFolders: terraformFolders ?? [] });
   }
 }

@@ -1,4 +1,4 @@
-import type { TerraformResourceOutput, UnknownResource } from '../app.type.js';
+import type { TerraformFolderOutput, TerraformResourceOutput, UnknownResource } from '../app.type.js';
 import { Container } from '../functions/container/container.js';
 import type { DiffMetadata } from '../functions/diff/diff-metadata.js';
 import { DiffAction } from '../functions/diff/diff.js';
@@ -28,6 +28,12 @@ export interface TerraformPlan {
  * committed resource state), used to recover the addresses of resources that have since
  * been deleted (and so are absent from this boot's generated files).
  *
+ * Plans are partitioned by the tracked set (intent ∪ the committed folder record,
+ * `previousFolders`): a plan for a module the sweep filled is demanded and diffed; a plan for a
+ * committed-then-deleted (emptied) folder is read when supplied, so its destroys are **verified**
+ * against the persisted addresses; a plan for a folder octo does **not track** is warned about and excluded
+ * from the reverse-diff — octo never errors on a folder it does not recognize.
+ *
  * @internal
  */
 export async function validate(
@@ -35,7 +41,12 @@ export async function validate(
   {
     persistedMappings,
     plans,
-  }: { persistedMappings: Map<string, TerraformResourceOutput>; plans: Map<string, TerraformPlan> },
+    previousFolders = [],
+  }: {
+    persistedMappings: Map<string, TerraformResourceOutput>;
+    plans: Map<string, TerraformPlan>;
+    previousFolders?: TerraformFolderOutput[];
+  },
 ): Promise<ValidateResult> {
   const container = Container.getInstance();
   const [terraformService, transactionService] = await Promise.all([
@@ -81,15 +92,7 @@ export async function validate(
     }
   }
 
-  // Read every module folder's plan from the caller-supplied map.
-  const planChangesByModule = new Map<string, Map<string, string[]>>();
-  for (const moduleId of terraformService.getModuleIds()) {
-    const plan = plans.get(moduleId);
-    if (!plan) {
-      errors.push({ message: `No terraform plan provided for module "${moduleId}"!`, moduleId });
-      continue;
-    }
-
+  const parsePlanChanges = (plan: TerraformPlan): Map<string, string[]> => {
     const changes = new Map<string, string[]>();
     for (const resourceChange of plan.resource_changes ?? []) {
       if (resourceChange.mode === 'data') {
@@ -97,7 +100,37 @@ export async function validate(
       }
       changes.set(resourceChange.address, resourceChange.change?.actions ?? []);
     }
-    planChangesByModule.set(moduleId, changes);
+    return changes;
+  };
+
+  // Read the plans, partitioned by the tracked set. A filled module's plan is demanded;
+  // an emptied (committed-then-deleted) folder's plan is read when supplied, so its destroys can be verified;
+  // the plan of a folder octo does not track is warned about and excluded from all diffing.
+  const sweptModuleIds = new Set(terraformService.getModuleIds());
+  const trackedModuleIds = new Set([...sweptModuleIds, ...previousFolders.map((folder) => folder.moduleId)]);
+  const planChangesByModule = new Map<string, Map<string, string[]>>();
+  for (const moduleId of sweptModuleIds) {
+    const plan = plans.get(moduleId);
+    if (!plan) {
+      errors.push({ message: `No terraform plan provided for module "${moduleId}"!`, moduleId });
+      continue;
+    }
+    planChangesByModule.set(moduleId, parsePlanChanges(plan));
+  }
+  for (const [moduleId, plan] of plans.entries()) {
+    if (sweptModuleIds.has(moduleId)) {
+      continue;
+    }
+    if (trackedModuleIds.has(moduleId)) {
+      planChangesByModule.set(moduleId, parsePlanChanges(plan));
+    } else {
+      warnings.push({
+        message:
+          `Terraform plan supplied for folder "${moduleId}", which octo does not track (not in intent or committed ` +
+          'state); excluding it from validation. Re-declare its module in intent to re-adopt it.',
+        moduleId,
+      });
+    }
   }
 
   const isNoop = (actions: string[]): boolean =>
@@ -219,12 +252,12 @@ export async function validate(
 
     const planChanges = planChangesByModule.get(persisted.moduleId);
     if (!planChanges) {
-      // The owning folder was removed entirely (no resources remain); terragrunt destroys it
-      // outside any plan octo reads, so there is nothing to verify against.
+      // The owning folder is emptied (no resources remain in intent), but no plan was supplied
+      // for it, so there is nothing to verify its destroys against.
       warnings.push({
         message:
           `Deleted resource "${octoAction.resourceId}" lived in module "${persisted.moduleId}", whose ` +
-          'plan is absent (folder removed); cannot verify its terraform deletes.',
+          'plan was not supplied; cannot verify its terraform deletes.',
         moduleId: persisted.moduleId,
       });
       continue;

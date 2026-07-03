@@ -18,9 +18,11 @@ describe('commit()', () => {
     testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
     testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
 
-    const { modelTransaction } = await commit(app, { outputs: testModes.outputs });
+    const { modelTransaction, warnings } = await commit(app, { outputs: testModes.outputs });
 
     expect(Array.isArray(modelTransaction)).toBe(true);
+    // Every supplied folder is in intent — no not-tracked warns, even with nothing committed yet.
+    expect(warnings).toEqual([]);
 
     // Responses came from tfstate; the external resource's whole-response output expanded per key.
     const newVpc = testModes.resourceDataRepository
@@ -75,5 +77,42 @@ describe('commit()', () => {
     const { app } = await testModes.createResourceGraph();
 
     await expect(commit(app, { outputs: testModes.outputs })).rejects.toThrow(/No terraform outputs provided/);
+  });
+
+  it('should warn on outputs for a folder octo does not track without rejecting', async () => {
+    const { app } = await testModes.createResourceGraph();
+
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+    testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+    // A folder octo never wrote (not in intent, not in the committed folder record).
+    testModes.writeTfState('user-module', { anything: 'x' });
+
+    const { warnings } = await commit(app, { outputs: testModes.outputs });
+
+    expect(warnings).toEqual([
+      { message: expect.stringContaining('folder "user-module", which octo does not track'), moduleId: 'user-module' },
+    ]);
+    // The tracked modules still committed.
+    const actualVpc = testModes.resourceDataRepository
+      .getActualResourcesByProperties()
+      .find((r) => r.resourceId === 'vpc-1')!;
+    expect(actualVpc.response['VpcId']).toBe('vpc-0real');
+  });
+
+  it('should not demand or warn about outputs for a committed-then-deleted folder', async () => {
+    const { app } = await testModes.createResourceGraph();
+
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': 'vpc-0real' });
+    testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+    // legacy-module is in the committed folder record but not in intent: an emptied folder. Its
+    // (empty) outputs are tracked — no not-tracked warn — and never demanded.
+    testModes.writeTfState('legacy-module', {});
+
+    const { warnings } = await commit(app, {
+      outputs: testModes.outputs,
+      previousFolders: [{ hasExternalResources: false, moduleId: 'legacy-module', providers: [] }],
+    });
+
+    expect(warnings).toEqual([]);
   });
 });

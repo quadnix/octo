@@ -71,6 +71,26 @@ describe('Main UT', () => {
       expect(sg.moduleId).toBe('sg-module');
     });
 
+    it('should drop a deleted module from the committed state on the destroy commit', async () => {
+      const { app } = await generateAndCommitFullGraph();
+
+      // Delete igw/sg from intent and regenerate (sg-module is emptied). The apply destroys them;
+      // the destroy commit supplies outputs only for the remaining filled folder.
+      testModes.resourceDataRepository.addNewResource(new TfVpcResource('vpc-1', { CidrBlock: '10.0.0.0/16' }));
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      testModes.outputs.clear();
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      const { warnings } = await testModes.commit(app, { outputs: testModes.outputs });
+
+      // Nothing was demanded or warned for the emptied sg-module; it dropped out of the committed
+      // folder record and resource mappings.
+      expect(warnings).toEqual([]);
+      const { terraformFolders, terraformResources } = await testModes.getCommittedTerraformState();
+      expect(terraformFolders).toEqual([{ hasExternalResources: false, moduleId: 'region-module', providers: [] }]);
+      expect(terraformResources.map((r) => r.resourceId)).toEqual(['vpc-1']);
+    });
+
     it('should persist the terraform memory with the committed resource state', async () => {
       await generateAndCommitFullGraph();
 

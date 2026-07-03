@@ -188,7 +188,7 @@ describe('validate()', () => {
     ).toBe(true);
   });
 
-  it('should accept a delete in the same folder and warn for a delete in a removed folder', async () => {
+  it('should accept a delete in the same folder and warn for a delete with no supplied plan', async () => {
     const { app, persisted } = await stageDeletedIgwAndSg();
 
     testModes.writePlan('region-module', [
@@ -202,8 +202,71 @@ describe('validate()', () => {
     });
     expect(result.errors).toEqual([]);
     expect(result.pass).toBe(true);
-    // sg-1 lived in sg-module, which is gone this boot — its delete can only be warned about.
+    // sg-1 lived in sg-module, whose plan was not supplied — its delete can only be warned about.
     expect(result.warnings.some((w) => w.message.includes('sg-1') && w.message.includes('sg-module'))).toBe(true);
+  });
+
+  it('should verify a delete against the emptied folder plan of a committed-then-deleted module', async () => {
+    const { app, persisted } = await stageDeletedIgwAndSg();
+
+    // sg-module was emptied by generate; its plan (supplied here) shows the destroy. The folder is
+    // recognized from the committed folder record, so the delete is verified, not warned.
+    testModes.writePlan('region-module', [
+      { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
+      { actions: ['delete'], address: 'null_resource.igw-1' },
+    ]);
+    testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
+
+    const result = await validate(app, {
+      persistedMappings: persisted,
+      plans: testModes.plans,
+      previousFolders: [{ hasExternalResources: false, moduleId: 'sg-module', providers: [] }],
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+    expect(result.pass).toBe(true);
+  });
+
+  it('should fail when the emptied folder plan shows a non-delete for a deleted resource', async () => {
+    const { app, persisted } = await stageDeletedIgwAndSg();
+
+    testModes.writePlan('region-module', [
+      { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
+      { actions: ['delete'], address: 'null_resource.igw-1' },
+    ]);
+    testModes.writePlan('sg-module', [{ actions: ['update'], address: 'aws_security_group.sg-1' }]);
+
+    const result = await validate(app, {
+      persistedMappings: persisted,
+      plans: testModes.plans,
+      previousFolders: [{ hasExternalResources: false, moduleId: 'sg-module', providers: [] }],
+    });
+    expect(result.pass).toBe(false);
+    expect(
+      result.errors.some(
+        (e) => e.message.includes('is deleted in octo') && e.message.includes('[update] on "aws_security_group.sg-1"'),
+      ),
+    ).toBe(true);
+  });
+
+  it('should warn and exclude a plan supplied for a folder octo does not track', async () => {
+    const { app } = await testModes.createResourceGraph();
+
+    testModes.writePlan('region-module', [
+      { actions: ['create'], address: 'aws_vpc.vpc-1' },
+      { actions: ['create'], address: 'null_resource.igw-1' },
+    ]);
+    testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
+    // A folder octo never wrote: its changes must not surface as "maps to no octo diff" errors.
+    testModes.writePlan('user-module', [{ actions: ['create'], address: 'aws_instance.hand-written' }]);
+
+    const result = await validate(app, {
+      persistedMappings: noPersisted(),
+      plans: testModes.plans,
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.pass).toBe(true);
+    expect(result.warnings.some((w) => w.message.includes('folder "user-module", which octo does not track'))).toBe(true);
   });
 
   it('should fail when a deleted octo resource shows no change in terraform', async () => {

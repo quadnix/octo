@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'path';
 import type { UnknownResource } from '../src/app.type.js';
 import { AResource, type App, type DiffMetadata } from '../src/index.js';
@@ -320,17 +320,18 @@ describe('App Modes E2E Test', () => {
       expect(sgMainTf).toContain('terraform {');
       expect(sgMainTf).not.toContain('resource "');
 
-      // validate: igw delete is checked in region-module (still present); sg lived in sg-module,
-      // which produced no folder this sweep, so its delete is recovered from the mapping the last
-      // commit persisted — and can only be warned about, not plan-verified.
+      // validate: the igw delete is checked in region-module (still filled); the sg delete is
+      // checked in the emptied sg-module plan — the folder is recognized from the committed folder
+      // record, and the destroy is verified against the addresses the last commit persisted.
       testModes.writePlan('region-module', [
         { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
         { actions: ['delete'], address: 'null_resource.igw-1' },
       ]);
+      testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
       const validation = await testModes.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
+      expect(validation.warnings).toEqual([]);
       expect(validation.pass).toBe(true);
-      expect(validation.warnings.some((w) => w.message.includes('sg-1') && w.message.includes('sg-module'))).toBe(true);
 
       // run-action: octo determines igw is a delete and runs the delete action (empty response).
       const actionResult = await testModes.runAction(app, {
@@ -339,6 +340,193 @@ describe('App Modes E2E Test', () => {
       });
       expect(actionResult.action).toBe('delete');
       expect(actionResult.response).toEqual({});
+    });
+  });
+
+  describe('user journeys around deletion and unrecognized folders', () => {
+    it('runs the full committed-delete cycle: verified destroy, destroy commit, benign leftover, re-add', async () => {
+      // Committed baseline, then the user deletes igw and sg from the yaml.
+      const app = await commitBaseline();
+      setDesiredGraph({ withChildren: false });
+
+      // generate: region-module is rewritten filled (vpc only); sg-module is emptied.
+      const deleteDiffs = await testModes.generate(app, { outputDir: testModes.outputDir });
+      expect(resourceChanges(deleteDiffs)).toEqual(['delete:igw-1', 'delete:sg-1']);
+
+      // validate: both destroys are verified — igw in the still-filled region-module, sg in the
+      // emptied sg-module's plan, against the addresses the baseline commit persisted.
+      testModes.writePlan('region-module', [
+        { actions: ['no-op'], address: 'aws_vpc.vpc-1' },
+        { actions: ['delete'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
+      const deleteValidation = await testModes.validate(app, { plans: testModes.plans });
+      expect(deleteValidation.errors).toEqual([]);
+      expect(deleteValidation.warnings).toEqual([]);
+      expect(deleteValidation.pass).toBe(true);
+
+      // The user applies (destroying igw and sg), then commits. Outputs exist only for the filled
+      // folder — nothing is demanded for the emptied one — and the destroyed module drops out of
+      // the committed state.
+      testModes.outputs.clear();
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      const { warnings: destroyCommitWarnings } = await testModes.commit(app, { outputs: testModes.outputs });
+      expect(destroyCommitWarnings).toEqual([]);
+      const { terraformFolders } = await testModes.getCommittedTerraformState();
+      expect(terraformFolders).toEqual([{ hasExternalResources: false, moduleId: 'region-module', providers: [] }]);
+
+      // Next run: the emptied folder is now a benign leftover. Octo no longer tracks it, does not
+      // rewrite it, and never deletes it; validate merely warns when given its (empty) plan.
+      const { vpc } = setDesiredGraph({ withChildren: false });
+      const noopDiffs = await testModes.generate(app, { outputDir: testModes.outputDir });
+      expect(resourceChanges(noopDiffs)).toEqual([]);
+      expect(existsSync(join(testModes.outputDir, 'sg-module', 'terragrunt.hcl'))).toBe(true);
+
+      testModes.plans.clear();
+      testModes.writePlan('region-module', [{ actions: ['no-op'], address: 'aws_vpc.vpc-1' }]);
+      testModes.writePlan('sg-module', []);
+      const leftoverValidation = await testModes.validate(app, { plans: testModes.plans });
+      expect(leftoverValidation.errors).toEqual([]);
+      expect(leftoverValidation.pass).toBe(true);
+      expect(
+        leftoverValidation.warnings.some(
+          (w) => w.moduleId === 'sg-module' && w.message.includes('does not track'),
+        ),
+      ).toBe(true);
+
+      // The user brings igw and sg back (vpc is still staged from the run above — only a commit
+      // resets the staged graph): generate fills sg-module again, and the commit after the apply
+      // re-tracks it — the leftover warning clears itself.
+      const igw = new ExternalIgwResource('igw-1', { Type: 'internet-gateway' }, [vpc]);
+      testModes.resourceDataRepository.addNewResource(igw);
+      testModes.resourceDataRepository.addNewResource(new TfSgResource('sg-1', {}, [igw]));
+      const reAddDiffs = await testModes.generate(app, { outputDir: testModes.outputDir });
+      expect(resourceChanges(reAddDiffs)).toEqual(['add:igw-1', 'add:sg-1']);
+      const sgMainTf = await readFile(join(testModes.outputDir, 'sg-module', 'main.tf'), 'utf-8');
+      expect(sgMainTf).toContain('resource "aws_security_group" "sg-1"');
+
+      testModes.outputs.clear();
+      testModes.writeTfState('region-module', REGION_TFSTATE);
+      testModes.writeTfState('sg-module', SG_TFSTATE);
+      const { warnings: reAddCommitWarnings } = await testModes.commit(app, { outputs: testModes.outputs });
+      expect(reAddCommitWarnings).toEqual([]);
+      const reAddState = await testModes.getCommittedTerraformState();
+      expect(reAddState.terraformFolders.map((f) => f.moduleId)).toEqual(['region-module', 'sg-module']);
+    });
+
+    it('empties an uncommitted module on the next generate; its destroy can only be warned about', async () => {
+      // The user generated (and possibly applied), but never committed.
+      const { app, sg } = await testModes.createResourceGraph();
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+
+      // The user deletes sg from the yaml and reruns. A fresh boot stages vpc + igw only — octo has
+      // no committed record of sg, so there is no delete diff for it anywhere.
+      testModes.resourceDataRepository.removeNewResource(sg);
+      const diffs = await testModes.generate(app, { outputDir: testModes.outputDir });
+      expect(resourceChanges(diffs)).toEqual(['add:igw-1', 'add:vpc-1']);
+
+      // sg-module is emptied from the previous generate's memory (models.json): if the user had
+      // applied it, the next apply destroys sg; if not, the apply is a no-op — either way a
+      // `run-all apply` can no longer redeploy the deleted module.
+      const sgMainTf = await readFile(join(testModes.outputDir, 'sg-module', 'main.tf'), 'utf-8');
+      expect(sgMainTf).not.toContain('resource "');
+      const sgTerragruntHcl = await readFile(join(testModes.outputDir, 'sg-module', 'terragrunt.hcl'), 'utf-8');
+      expect(sgTerragruntHcl).toContain('remote_state {');
+
+      // validate: with no committed addresses for sg, the destroy in the emptied folder's plan
+      // cannot be verified — it is warned about, never an error.
+      testModes.writePlan('region-module', [
+        { actions: ['create'], address: 'aws_vpc.vpc-1' },
+        { actions: ['create'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['delete'], address: 'aws_security_group.sg-1' }]);
+      const validation = await testModes.validate(app, { plans: testModes.plans });
+      expect(validation.errors).toEqual([]);
+      expect(validation.pass).toBe(true);
+      expect(
+        validation.warnings.some((w) => w.moduleId === 'sg-module' && w.message.includes('does not track')),
+      ).toBe(true);
+    });
+
+    it('destroys a module whose provider was deleted from intent in the same edit', async () => {
+      testModes.registerTerraformConfig({ providers: { aws: { source: 'hashicorp/aws' } } });
+      testModes.registerTerraformProvider('aws', '111111111', 'us-east-1');
+      const { app } = await testModes.createProviderBoundResourceGraph({
+        accountId: '111111111',
+        regionId: 'us-east-1',
+      });
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      testModes.writeTfState('region-module', { 'vpc-1-VpcId': 'vpc-0real' });
+      await testModes.commit(app, { outputs: testModes.outputs });
+
+      // The user deletes the module AND its provider from octo.yml in one edit. The emptied folder
+      // still renders the provider — from the committed record, not from octo.yml.
+      testModes.clearTerraformRegistrations();
+      const diffs = await testModes.generate(app, { outputDir: testModes.outputDir });
+      expect(resourceChanges(diffs)).toEqual(['delete:vpc-1']);
+      const mainTf = await readFile(join(testModes.outputDir, 'region-module', 'main.tf'), 'utf-8');
+      expect(mainTf).toContain('provider "aws"');
+      expect(mainTf).toContain('alias = "_111111111-us-east-1"');
+      expect(mainTf).not.toContain('resource "');
+
+      // validate: the destroy is verified via the committed addresses.
+      testModes.plans.clear();
+      testModes.writePlan('region-module', [{ actions: ['delete'], address: 'aws_vpc.vpc-1' }]);
+      const validation = await testModes.validate(app, { plans: testModes.plans });
+      expect(validation.errors).toEqual([]);
+      expect(validation.warnings).toEqual([]);
+      expect(validation.pass).toBe(true);
+
+      // The destroy commit demands nothing (no filled folders); supplying the emptied folder's
+      // (empty) outputs is tracked, not warned. The committed state ends empty.
+      testModes.outputs.clear();
+      testModes.writeTfState('region-module', {});
+      const { warnings } = await testModes.commit(app, { outputs: testModes.outputs });
+      expect(warnings).toEqual([]);
+      const { terraformFolders, terraformResources } = await testModes.getCommittedTerraformState();
+      expect(terraformFolders).toEqual([]);
+      expect(terraformResources).toEqual([]);
+    });
+
+    it('preserves a hand-written folder, only warning about it in validate and commit', async () => {
+      const { app } = await testModes.createResourceGraph();
+
+      // The user keeps their own terragrunt folder next to octo's.
+      const handWrittenDir = join(testModes.outputDir, 'hand-written-module');
+      await mkdir(handWrittenDir, { recursive: true });
+      const handWrittenHcl = 'resource "aws_s3_bucket" "mine" {}\n';
+      await writeFile(join(handWrittenDir, 'main.tf'), handWrittenHcl, 'utf-8');
+
+      // generate never touches it.
+      await testModes.generate(app, { outputDir: testModes.outputDir });
+      expect(await readFile(join(handWrittenDir, 'main.tf'), 'utf-8')).toBe(handWrittenHcl);
+
+      // validate: its plan is excluded from diffing — a warning, never an error.
+      testModes.writePlan('region-module', [
+        { actions: ['create'], address: 'aws_vpc.vpc-1' },
+        { actions: ['create'], address: 'null_resource.igw-1' },
+      ]);
+      testModes.writePlan('sg-module', [{ actions: ['create'], address: 'aws_security_group.sg-1' }]);
+      testModes.writePlan('hand-written-module', [{ actions: ['create'], address: 'aws_s3_bucket.mine' }]);
+      const validation = await testModes.validate(app, { plans: testModes.plans });
+      expect(validation.errors).toEqual([]);
+      expect(validation.pass).toBe(true);
+      expect(
+        validation.warnings.some((w) => w.moduleId === 'hand-written-module' && w.message.includes('does not track')),
+      ).toBe(true);
+
+      // commit: its outputs are ignored with the same warning; the tracked modules commit fine.
+      testModes.writeTfState('region-module', REGION_TFSTATE);
+      testModes.writeTfState('sg-module', SG_TFSTATE);
+      testModes.writeTfState('hand-written-module', { mine: 'bucket-0real' });
+      const { warnings } = await testModes.commit(app, { outputs: testModes.outputs });
+      expect(warnings).toEqual([
+        { message: expect.stringContaining('"hand-written-module", which octo does not track'), moduleId: 'hand-written-module' },
+      ]);
+      const actualVpc = testModes.resourceDataRepository
+        .getActualResourcesByProperties()
+        .find((r) => r.resourceId === 'vpc-1')!;
+      expect(actualVpc.response['VpcId']).toBe('vpc-0real');
     });
   });
 });
