@@ -389,9 +389,7 @@ describe('App Modes E2E Test', () => {
       expect(leftoverValidation.errors).toEqual([]);
       expect(leftoverValidation.pass).toBe(true);
       expect(
-        leftoverValidation.warnings.some(
-          (w) => w.moduleId === 'sg-module' && w.message.includes('does not track'),
-        ),
+        leftoverValidation.warnings.some((w) => w.moduleId === 'sg-module' && w.message.includes('does not track')),
       ).toBe(true);
 
       // The user brings igw and sg back (vpc is still staged from the run above — only a commit
@@ -443,9 +441,9 @@ describe('App Modes E2E Test', () => {
       const validation = await testModes.validate(app, { plans: testModes.plans });
       expect(validation.errors).toEqual([]);
       expect(validation.pass).toBe(true);
-      expect(
-        validation.warnings.some((w) => w.moduleId === 'sg-module' && w.message.includes('does not track')),
-      ).toBe(true);
+      expect(validation.warnings.some((w) => w.moduleId === 'sg-module' && w.message.includes('does not track'))).toBe(
+        true,
+      );
     });
 
     it('destroys a module whose provider was deleted from intent in the same edit', async () => {
@@ -521,7 +519,10 @@ describe('App Modes E2E Test', () => {
       testModes.writeTfState('hand-written-module', { mine: 'bucket-0real' });
       const { warnings } = await testModes.commit(app, { outputs: testModes.outputs });
       expect(warnings).toEqual([
-        { message: expect.stringContaining('"hand-written-module", which octo does not track'), moduleId: 'hand-written-module' },
+        {
+          message: expect.stringContaining('"hand-written-module", which octo does not track'),
+          moduleId: 'hand-written-module',
+        },
       ]);
       const actualVpc = testModes.resourceDataRepository
         .getActualResourcesByProperties()

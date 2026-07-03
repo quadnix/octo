@@ -266,7 +266,9 @@ describe('validate()', () => {
     });
     expect(result.errors).toEqual([]);
     expect(result.pass).toBe(true);
-    expect(result.warnings.some((w) => w.message.includes('folder "user-module", which octo does not track'))).toBe(true);
+    expect(result.warnings.some((w) => w.message.includes('folder "user-module", which octo does not track'))).toBe(
+      true,
+    );
   });
 
   it('should fail when a deleted octo resource shows no change in terraform', async () => {

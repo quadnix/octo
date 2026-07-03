@@ -10,18 +10,19 @@ import { TransactionService } from '../services/transaction/transaction.service.
 type TerraformOutputs = Record<string, { value: unknown }>;
 
 /**
- * Maps a terraform apply's outputs back onto the new resource graph's responses.
+ * Records a terraform apply back into octo's state: Committed ← Cloud. The catch-up step of the
+ * cycle, not a drift resolver.
  *
  * Boots normally (modules → model actions → resource graph), reads every module folder's outputs
  * from the caller-supplied `outputs` map (keyed by module id), populates resource responses by the
- * `${resourceId}-${key}` convention, and syncs the actual graph to the new graph. All-or-nothing:
- * if any expected output is missing (e.g. partial apply), errors before mutating anything.
+ * `${resourceId}-${key}` convention, and syncs the actual graph to the new graph.
  *
- * Outputs are demanded only for the modules the sweep filled — never for an emptied (deleted)
- * folder, whose destroy simply drops its resources from the committed state. Outputs supplied for
- * a folder that is neither in intent nor in the committed folder record (`previousFolders`) are
- * ignored with a **not-tracked** warning — octo never fails on, or touches, a folder it does not
- * recognize.
+ * Rejects — all-or-nothing, throwing before any mutation: a declared output that is missing
+ * (partial apply) or carries a null value (broken apply). Outputs are demanded only for the
+ * modules the sweep filled — never for an emptied (deleted) folder, whose destroy simply drops its
+ * resources from the committed state. Warns: outputs supplied for a folder that is neither in
+ * intent nor in the committed folder record (`previousFolders`) are ignored — octo never fails on,
+ * or touches, a folder it does not recognize; re-declaring the module in intent re-adopts it.
  *
  * Returns the model transaction so {@link Octo} can run the persistence + commit hooks it owns,
  * plus the warnings for the caller to surface.
@@ -84,9 +85,11 @@ export async function commit(
     }
   }
 
-  // Populate responses; collect all missing outputs before failing. Values are coerced to string
-  // to honor the flat-string response contract.
+  // Populate responses; collect all missing and null outputs before failing. Non-null values are
+  // coerced to string to honor the flat-string response contract; a null value is rejected — no
+  // resource legitimately emits one, so it signals a broken apply and must not corrupt octo state.
   const missingOutputs: string[] = [];
+  const nullOutputs: string[] = [];
   const responseUpdates: { key: string; resource: UnknownResource; value: string }[] = [];
   for (const mapping of mappings) {
     const resource = resourceDataRepository.getNewResourceByContext(mapping.resourceContext);
@@ -100,10 +103,16 @@ export async function commit(
       const outputName = mapping.entireResponseOutput;
       if (!(outputName in outputs)) {
         missingOutputs.push(`${mapping.moduleId}/${outputName}`);
+      } else if (outputs[outputName].value === null || outputs[outputName].value === undefined) {
+        nullOutputs.push(`${mapping.moduleId}/${outputName}`);
       } else {
-        const wholeResponse = (outputs[outputName].value ?? {}) as Record<string, unknown>;
+        const wholeResponse = outputs[outputName].value as Record<string, unknown>;
         for (const [key, value] of Object.entries(wholeResponse)) {
-          responseUpdates.push({ key, resource, value: String(value) });
+          if (value === null || value === undefined) {
+            nullOutputs.push(`${mapping.moduleId}/${outputName}.${key}`);
+          } else {
+            responseUpdates.push({ key, resource, value: String(value) });
+          }
         }
       }
       continue;
@@ -112,6 +121,8 @@ export async function commit(
     for (const { key, outputName } of mapping.outputMappings) {
       if (!(outputName in outputs)) {
         missingOutputs.push(`${mapping.moduleId}/${outputName}`);
+      } else if (outputs[outputName].value === null || outputs[outputName].value === undefined) {
+        nullOutputs.push(`${mapping.moduleId}/${outputName}`);
       } else {
         responseUpdates.push({ key, resource, value: String(outputs[outputName].value) });
       }
@@ -122,6 +133,12 @@ export async function commit(
     throw new TransactionError(
       `Cannot commit: missing terraform outputs (partial apply?): ${missingOutputs.join(', ')}! ` +
         'Octo state is unchanged.',
+    );
+  }
+  if (nullOutputs.length > 0) {
+    throw new TransactionError(
+      `Cannot commit: null terraform outputs (broken apply?): ${nullOutputs.join(', ')}! ` +
+        'A declared output must carry a value. Octo state is unchanged.',
     );
   }
 

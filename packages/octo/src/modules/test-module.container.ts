@@ -407,7 +407,7 @@ export class TestModuleContainer {
    *
    * @param app - the composed app to render.
    * @param outputDir - where to write the folders. Defaults to a fresh temp directory (returned in
-   *   the result). The directory is octo-owned: it is wiped and regenerated on every call.
+   *   the result). Folders are overwritten in place; the directory is not wiped.
    * @returns the directory written to, and the resource diffs that produced it (a review artifact).
    */
   async generateHcl(

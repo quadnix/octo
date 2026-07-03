@@ -73,6 +73,33 @@ describe('commit()', () => {
     expect(newVpc.response['VpcId']).toBeUndefined();
   });
 
+  it('should error on a null output value without mutating responses', async () => {
+    const { app } = await testModes.createResourceGraph();
+
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: 'igw-0real' }, 'vpc-1-VpcId': null });
+    testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+
+    await expect(commit(app, { outputs: testModes.outputs })).rejects.toThrow(
+      /null terraform outputs.*region-module\/vpc-1-VpcId.*Octo state is unchanged/,
+    );
+
+    const newVpc = testModes.resourceDataRepository
+      .getNewResourcesByProperties()
+      .find((r) => r.resourceId === 'vpc-1')!;
+    expect(newVpc.response['VpcId']).toBeUndefined();
+  });
+
+  it('should error on a null value inside an external whole-response output', async () => {
+    const { app } = await testModes.createResourceGraph();
+
+    testModes.writeTfState('region-module', { 'igw-1': { igwId: null }, 'vpc-1-VpcId': 'vpc-0real' });
+    testModes.writeTfState('sg-module', { 'sg-1-SgId': 'sg-0real' });
+
+    await expect(commit(app, { outputs: testModes.outputs })).rejects.toThrow(
+      /null terraform outputs.*region-module\/igw-1\.igwId/,
+    );
+  });
+
   it('should error when a module has no provided outputs', async () => {
     const { app } = await testModes.createResourceGraph();
 

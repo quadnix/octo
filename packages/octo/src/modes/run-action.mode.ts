@@ -18,10 +18,14 @@ interface RunActionResult {
 /**
  * Runs a single resource action, invoked by terraform mid-apply for an external resource.
  *
+ * Octo-internal: not a step of the user's generate → validate → apply → commit cycle — terraform
+ * shells back into it from a generated `local-exec` provisioner; users never run it by hand.
+ *
  * Boots normally, computes the full resource diff, filters to `resourceId` — the diff decides
  * whether this is an add, update, delete, or noop. Explicit `inputs`
  * (`<parentResourceId>.<responseKey>` keys) are injected into the parent resources' responses in
- * memory before the action runs. Fully stateless: never writes octo state.
+ * memory before the action runs. Rejects a `resourceId` that is not an external resource. Fully
+ * stateless: never writes octo state.
  *
  * @internal
  */

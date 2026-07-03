@@ -21,7 +21,8 @@ export interface TerraformPlan {
 }
 
 /**
- * Compares octo's resource diff against terraform plans, bidirectionally.
+ * Read-only mirror of `terraform plan` against intent: compares octo's resource diff to
+ * terraform's planned diff, bidirectionally. Never writes state or folders.
  * `plans` maps each module folder's id to its parsed terraform plan.
  *
  * `persistedMappings` is the octo→terraform mapping captured by the last commit (persisted in the
@@ -31,8 +32,14 @@ export interface TerraformPlan {
  * Plans are partitioned by the tracked set (intent ∪ the committed folder record,
  * `previousFolders`): a plan for a module the sweep filled is demanded and diffed; a plan for a
  * committed-then-deleted (emptied) folder is read when supplied, so its destroys are **verified**
- * against the persisted addresses; a plan for a folder octo does **not track** is warned about and excluded
- * from the reverse-diff — octo never errors on a folder it does not recognize.
+ * against the persisted addresses; a plan for a folder octo does **not track** is warned about and
+ * excluded from the reverse-diff — octo never errors on a folder it does not recognize;
+ * re-declaring the module in intent re-adopts it.
+ *
+ * Errors when the plans and octo's diff disagree in either direction. Warns (never errors) on what
+ * it cannot attribute: an uncommitted deletion (no recorded addresses), or a folder it does not
+ * track. By-design limits: no-diff vs no-diff passes, and correlation is resource-level, not
+ * field-level.
  *
  * @internal
  */

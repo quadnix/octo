@@ -8,7 +8,7 @@ import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 
 /**
- * Generates terragrunt module folders representing the full desired state.
+ * Generates terragrunt module folders representing the full desired state: Folders ← Intent.
  *
  * Boots normally (modules → model actions → resource graph), contributes every resource to
  * terraform (terraform resources via `toHCL()`, external resources via the `null_resource`
@@ -21,8 +21,10 @@ import { TransactionService } from '../services/transaction/transaction.service.
  * terragrunt still discovers it and a later apply destroys whatever its state holds (and cannot
  * redeploy it). Folders are emptied, never removed.
  *
- * Writes are gentle: each folder is overwritten in place, and `outputDir` is not wiped, so
- * `terraform.tfstate`, `.terragrunt-cache`, and any other folders are preserved across runs.
+ * Rejects by throwing before any folder is written — a resource author's refusal in a `diff*`
+ * method aborts the run with no partial writes. Writes are gentle: each folder is overwritten in
+ * place, and `outputDir` is not wiped, so `terraform.tfstate`, `.terragrunt-cache`, and any folder
+ * octo does not recognize (a user's own, or an emptied leftover) are preserved across runs.
  *
  * @internal
  */
