@@ -7,7 +7,7 @@ import { ResourceDataRepository } from '../resources/resource-data.repository.js
 import { TerraformService } from '../services/terraform/terraform.service.js';
 import { TransactionService } from '../services/transaction/transaction.service.js';
 
-type TerraformOutputs = Record<string, { value: unknown }>;
+export type TerraformOutputs = Record<string, { value: unknown }>;
 
 /**
  * Records a terraform apply back into octo's state: Committed ← Cloud. The catch-up step of the

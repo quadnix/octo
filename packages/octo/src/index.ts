@@ -70,6 +70,8 @@ export { TestStateProvider } from './services/state-management/test.state-provid
 
 export type { OctoTerraformResourceScope, TerraformModuleScope } from './services/terraform/terraform.service.js';
 
+export { TerraformUtility } from './utilities/terraform/terraform.utility.js';
+
 export {
   type ActionOutputs,
   type AnchorSchema,
