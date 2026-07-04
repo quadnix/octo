@@ -20,18 +20,18 @@ interface TerraformRawResult {
 export class TerraformUtility {
   private onceArgs: string[] | undefined;
 
-  constructor(
-    private readonly options: {
-      terraformBinary?: string;
-      terragruntBinary?: string;
-      timeoutInMs?: number;
-    } = {},
-  ) {
-    Object.assign(this.options, {
-      terraformBinary: options.terraformBinary ?? 'terraform',
+  private readonly options: {
+    terraformBinary?: string;
+    terragruntBinary: string;
+    timeoutInMs: number;
+  };
+
+  constructor(options: { terraformBinary?: string; terragruntBinary?: string; timeoutInMs?: number } = {}) {
+    this.options = {
+      terraformBinary: options.terraformBinary,
       terragruntBinary: options.terragruntBinary ?? 'terragrunt',
       timeoutInMs: options.timeoutInMs ?? DEFAULT_TIMEOUT_IN_MS,
-    });
+    };
   }
 
   async apply(terragruntDir: string): Promise<TerraformRawResult> {
@@ -79,7 +79,7 @@ export class TerraformUtility {
    * Returns the immediate sub-directories of `terragruntDir` that look like generated module
    * folders (they contain a `terragrunt.hcl`). Each folder name is the octo `moduleId`.
    */
-  private async listModuleFolders(terragruntDir: string): Promise<string[]> {
+  async listModuleFolders(terragruntDir: string): Promise<string[]> {
     const entries = await readdir(terragruntDir, { withFileTypes: true });
     const moduleIds: string[] = [];
     for (const entry of entries) {
@@ -180,14 +180,14 @@ export class TerraformUtility {
    * Runs one terragrunt command in a single module folder (`cwd` = that folder).
    */
   private async run(moduleDir: string, args: string[]): Promise<TerraformRawResult> {
-    const binary = this.options.terragruntBinary!;
+    const binary = this.options.terragruntBinary;
 
     try {
       const { stdout, stderr } = await this.execFileAsync(binary, args, {
         cwd: moduleDir,
         env: this.buildEnv(),
         maxBuffer: MAX_BUFFER,
-        timeout: this.options.timeoutInMs!,
+        timeout: this.options.timeoutInMs,
       });
       return { args, exitCode: 0, stderr, stdout };
     } catch (error) {
@@ -199,7 +199,7 @@ export class TerraformUtility {
    * Runs `terragrunt run --all -- <command>` across every module folder under `terragruntDir`.
    */
   private async runAll(terragruntDir: string, command: string, commandArgs: string[]): Promise<TerraformRawResult> {
-    const binary = this.options.terragruntBinary!;
+    const binary = this.options.terragruntBinary;
     const args = [
       '--non-interactive',
       '--no-color',
@@ -216,7 +216,7 @@ export class TerraformUtility {
       const { stdout, stderr } = await this.execFileAsync(binary, args, {
         env: this.buildEnv(),
         maxBuffer: MAX_BUFFER,
-        timeout: this.options.timeoutInMs!,
+        timeout: this.options.timeoutInMs,
       });
       return { args, exitCode: 0, stderr, stdout };
     } catch (error) {
@@ -251,15 +251,15 @@ export class TerraformUtilityFactory {
   private static instance: TerraformUtility;
 
   static async create(
-    args: ConstructorParameters<typeof TerraformUtility>,
+    options: ConstructorParameters<typeof TerraformUtility>[0] = {},
     forceNew: boolean = false,
   ): Promise<TerraformUtility> {
     if (!this.instance) {
-      this.instance = new TerraformUtility(args[0] || {});
+      this.instance = new TerraformUtility(options);
     }
 
     if (forceNew) {
-      this.instance = new TerraformUtility(args[0] || {});
+      this.instance = new TerraformUtility(options);
     }
 
     return this.instance;

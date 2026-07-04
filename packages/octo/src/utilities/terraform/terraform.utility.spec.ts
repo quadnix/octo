@@ -119,6 +119,24 @@ describe('TerraformUtility UT', () => {
     });
   });
 
+  describe('listModuleFolders()', () => {
+    it('returns only immediate sub-directories containing terragrunt.hcl, sorted', async () => {
+      await createModuleFolder('module-b');
+      await createModuleFolder('module-a');
+      await mkdir(join(terragruntDir, 'not-a-module'));
+
+      const moduleIds = await terraform.listModuleFolders(terragruntDir);
+
+      expect(moduleIds).toEqual(['module-a', 'module-b']);
+    });
+
+    it('returns an empty array when there are no module folders', async () => {
+      const moduleIds = await terraform.listModuleFolders(terragruntDir);
+
+      expect(moduleIds).toEqual([]);
+    });
+  });
+
   describe('plan()/output() - non-json', () => {
     it('plan() runs a single "run --all -- plan" shell-out with no folder enumeration', async () => {
       const result = await terraform.plan(terragruntDir);
@@ -259,6 +277,12 @@ describe('TerraformUtility UT', () => {
       expect(terraform.execFileAsyncMock.mock.calls[0][2].env?.TG_TF_PATH).toBe('/opt/bin/terraform');
     });
 
+    it('does not set TG_TF_PATH when terraformBinary is not configured', async () => {
+      await terraform.validate(terragruntDir);
+
+      expect(terraform.execFileAsyncMock.mock.calls[0][2].env?.TG_TF_PATH).toBeUndefined();
+    });
+
     it('passes timeoutInMs as the timeout option, defaulting to 5 minutes', async () => {
       await terraform.validate(terragruntDir);
       expect(terraform.execFileAsyncMock.mock.calls[0][2].timeout).toBe(5 * 60 * 1000);
@@ -295,7 +319,7 @@ describe('TerraformUtility UT', () => {
   describe('TerraformUtilityFactory', () => {
     it('wires configuration through to the constructed instance', async () => {
       const { TerraformUtilityFactory } = await import('./terraform.utility.js');
-      const instance = await TerraformUtilityFactory.create([{ terragruntBinary: '/opt/bin/terragrunt' }], true);
+      const instance = await TerraformUtilityFactory.create({ terragruntBinary: '/opt/bin/terragrunt' }, true);
       const options = instance['options'] as { terragruntBinary?: string };
 
       expect(options.terragruntBinary).toBe('/opt/bin/terragrunt');
